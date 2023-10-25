@@ -8,6 +8,7 @@ import pytest
 
 import torch
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
+
 from tests.test_utils import assert_expected, set_rng_seed
 
 
@@ -45,6 +46,6 @@ class TestRotaryPositionEmbedding:
 
     def test_forward(self, input, rope):
         x_out = rope(input)
-        assert_expected(x_out.mean(), torch.tensor(-4.3060e-05), rtol=1e-05, atol=1e-8)
-        assert_expected(x_out.sum(), torch.tensor(-2889.6804), rtol=1e-05, atol=1e-8)
-        assert_expected(x_out.max(), torch.tensor(5.6446), rtol=1e-05, atol=1e-8)
+        assert_expected(x_out.mean(), torch.tensor(-4.3060e-05))
+        assert_expected(x_out.sum(), torch.tensor(-2889.6804))
+        assert_expected(x_out.max(), torch.tensor(5.6446))
