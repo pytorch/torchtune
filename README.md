@@ -1,33 +1,17 @@
 
 # torchTBD
 
-## Examples
-...
+### Coding Style
+TorchTBD uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
 
-## Requirements
-__________ requires or works with
-* Mac OS X or Linux
-* ...
+```
+pre-commit install
+```
 
-## Building __________
-...
+After this pre-commit hooks will be run before every commit.
 
-## Installing __________
-...
+You can also run this manually on every file using:
 
-## How __________ works
-...
-
-## Full documentation
-...
-
-## Join the __________ community
-* Website:
-* Facebook page:
-* Mailing list
-* irc:
-
-See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
-
-## License
-__________ is <YOUR LICENSE HERE> licensed, as found in the LICENSE file.
+```
+pre-commit run --all-files
+```
