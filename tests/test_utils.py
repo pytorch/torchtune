@@ -19,8 +19,8 @@ def set_rng_seed(seed):
 def assert_expected(
     actual: Any,
     expected: Any,
-    rtol: Optional[float] = None,
-    atol: Optional[float] = None,
+    rtol: float = 1e-5,
+    atol: float = 1e-8,
     check_device=True,
 ):
     torch.testing.assert_close(
