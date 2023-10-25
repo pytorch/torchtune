@@ -5,9 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import random
+from typing import Any
 
 import torch
-from typing import Any, Optional
 
 
 def set_rng_seed(seed):
@@ -21,7 +21,7 @@ def assert_expected(
     expected: Any,
     rtol: float = 1e-5,
     atol: float = 1e-8,
-    check_device=True,
+    check_device: bool = True,
 ):
     torch.testing.assert_close(
         actual,

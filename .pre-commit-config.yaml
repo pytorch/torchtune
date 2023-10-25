@@ -1,0 +1,34 @@
+exclude: 'build'
+
+default_language_version:
+    python: python3
+
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.1.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: check-ast
+    -   id: check-merge-conflict
+    -   id: no-commit-to-branch
+        args: ['--branch=main']
+    -   id: check-added-large-files
+        args: ['--maxkb=500']
+    -   id: end-of-file-fixer
+
+-   repo: https://github.com/pycqa/flake8
+    rev: 4.0.1
+    hooks:
+    -   id: flake8
+        additional_dependencies:
+          - flake8-bugbear == 22.4.25
+          - pep8-naming == 0.12.1
+        args: ['--config=.flake8']
+
+-   repo: https://github.com/omnilib/ufmt
+    rev: v2.0.1
+    hooks:
+    -   id: ufmt
+        additional_dependencies:
+          - black == 22.12.0
+          - usort == 1.0.5

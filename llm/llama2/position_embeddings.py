@@ -40,9 +40,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         super().__init__()
         self.dim = dim
 
-        theta = 1.0 / (
-            base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim)
-        )
+        theta = 1.0 / (base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
         self.register_buffer("theta", theta)
         self.build_rope_cache(max_seq_len)
 
@@ -55,9 +53,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         # Outer product of theta and position index
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
-        cache = torch.stack(
-            [torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1
-        )
+        cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
