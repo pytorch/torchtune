@@ -6,7 +6,7 @@
 
 import torch
 
-from torch import nn
+from torch import nn, Tensor
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -18,20 +18,13 @@ class RotaryPositionalEmbeddings(nn.Module):
     can be found here:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
 
-    Attributes:
+    Args:
         dim (int): Embedding dimension for each head, computed as:
             embed_size //  num_heads
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
             the rotation angles
-
-    Args:
-        x (tensor): input tensor to which rope is applied
-
-    Returns:
-        torch.Tensor: output tensor with RoPE applied
-
     """
 
     def __init__(
@@ -59,10 +52,16 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """
         TODO: The implementation below can be made more efficient
         for inference.
+
+        Args:
+            x (Tensor): input tensor to which rope is applied
+
+        Returns:
+            Tensor: output tensor with RoPE applied
         """
         seq_len = x.size(1)
         rope_cache = self.cache[:seq_len]

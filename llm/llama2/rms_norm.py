@@ -18,16 +18,9 @@ class RMSNorm(nn.Module):
     can be found here:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py
 
-    Attributes:
+    Args:
         dim (int): embedding size
         eps (float): small value to avoid division by zero. Default: 1e-6
-
-    Args:
-        x (Tensor): input tensor to normalize
-
-    Returns:
-        torch.Tensor: The output tensor after applying RMSNorm.
-
     """
 
     def __init__(self, dim: int, eps: float = 1e-6) -> None:
@@ -36,6 +29,13 @@ class RMSNorm(nn.Module):
         self.scale = nn.Parameter(torch.ones(dim))
 
     def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x (Tensor): input tensor to normalize
+
+        Returns:
+            Tensor: The output tensor after applying RMSNorm.
+        """
         # computation is in fp32
         x = x.float()
         x_normed = (
