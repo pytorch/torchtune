@@ -9,11 +9,18 @@ from typing import Any
 
 import torch
 
+from torch import nn
+
 
 def set_rng_seed(seed):
     """Sets the seed for random number generators"""
     torch.manual_seed(seed)
     random.seed(seed)
+
+
+def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
+    for p in model.parameters():
+        nn.init.constant_(p, constant)
 
 
 def assert_expected(
