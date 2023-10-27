@@ -50,12 +50,12 @@ class MultiHeadGQA(nn.Module):
             This is needed to compute the RoPE Cache
         num_kv_heads (Optional[int]): number of key and value heads. For MHA
             this is the the same as `n_heads`. User should ensure
-            `n_kv_heads` % `n_heads` == 0
+            `num_kv_heads` % `num_heads` == 0
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function
 
     Raises:
-         ValueError: If `n_kv_heads` % `n_heads` != 0
+         ValueError: If `num_kv_heads` % `num_heads` != 0
     """
 
     def __init__(
