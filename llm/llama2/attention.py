@@ -168,6 +168,8 @@ class MultiHeadGQA(nn.Module):
             q,
             k,
             v,
+            attn_mask=None,
+            dropout_p=self.attn_dropout if self.training else 0.0,
             is_causal=True,
         )
 

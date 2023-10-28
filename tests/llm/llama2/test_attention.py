@@ -62,5 +62,6 @@ class TestMultiHeadGQA:
         return attn
 
     def test_forward(self, input, gqa):
-        output = gqa(input)
+        with torch.no_grad():
+            output = gqa(input)
         assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
