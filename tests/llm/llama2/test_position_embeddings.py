@@ -46,6 +46,11 @@ class TestRotaryPositionEmbedding:
 
     def test_forward(self, input, rope):
         x_out = rope(input)
+
+        # check the numerics of the computed tensor
         assert_expected(x_out.mean(), torch.tensor(-4.3060e-05))
         assert_expected(x_out.sum(), torch.tensor(-2889.6804))
         assert_expected(x_out.max(), torch.tensor(5.6446))
+
+        # check shapes
+        assert_expected(x_out.shape, input.shape)
