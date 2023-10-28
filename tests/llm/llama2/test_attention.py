@@ -23,7 +23,8 @@ class TestMultiHeadGQA:
     """
     Class for testing our MultiHeadGQA
     implementation. The expected tensors are computed from the
-    reference implementation here:
+    reference implementation below by using the same seed, same params
+    and same initialization used in the fixtures below.
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
     """
 
@@ -65,3 +66,4 @@ class TestMultiHeadGQA:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
+        assert_expected(output.shape, input.shape)
