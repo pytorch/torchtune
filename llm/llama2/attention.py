@@ -11,7 +11,7 @@ from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 from torch import nn, Tensor
 
 
-class MultiHeadGQA(nn.Module):
+class LlamaSelfAttention(nn.Module):
     """
     Multi-headed grouped query attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf

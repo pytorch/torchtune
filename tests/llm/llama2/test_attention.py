@@ -10,7 +10,7 @@ import pytest
 
 import torch
 
-from llm.llama2.attention import MultiHeadGQA
+from llm.llama2.attention import LlamaSelfAttention
 from torch import tensor
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
@@ -21,12 +21,13 @@ def random():
     set_rng_seed(16)
 
 
-class TestMultiHeadGQA:
+class TestLlamaSelfAttention:
     """
-    Class for testing our MultiHeadGQA
-    implementation. The expected tensors are computed from the
-    reference implementation below by using the same seed, same params
-    and same initialization used in the fixtures below.
+    Class for testing our LlamaSelfAttention implementation.
+
+    The expected tensors are computed from the reference implementation
+    below by using the same seed, same params and same initialization used
+    in the fixtures below.
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
     """
 
@@ -52,9 +53,9 @@ class TestMultiHeadGQA:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params: Tuple[int, int, int, int]) -> MultiHeadGQA:
+    def gqa(self, attn_params: Tuple[int, int, int, int]) -> LlamaSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params
-        attn = MultiHeadGQA(
+        attn = LlamaSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -64,7 +65,7 @@ class TestMultiHeadGQA:
         attn.eval()
         return attn
 
-    def test_forward(self, input: tensor, gqa: MultiHeadGQA) -> None:
+    def test_forward(self, input: tensor, gqa: LlamaSelfAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
