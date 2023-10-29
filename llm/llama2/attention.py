@@ -17,10 +17,11 @@ class MultiHeadGQA(nn.Module):
     in https://arxiv.org/pdf/2305.13245v1.pdf
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
-    key/value heads than query heads. Multi-Query Attention is an exteme
+    key/value heads than query heads by grouping n query heads for each
+    key and value. Multi-Query Attention is an extreme
     version where we have a single key and value head.
 
-    Following is an example of MHA, GQA and MQA with n_heads = 4
+    Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
     https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py)
@@ -48,14 +49,17 @@ class MultiHeadGQA(nn.Module):
             number of heads for key and value
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache
-        num_kv_heads (Optional[int]): number of key and value heads. For MHA
-            this is the the same as `n_heads`. User should ensure
-            `num_kv_heads` % `num_heads` == 0
+        num_kv_heads (Optional[int]): number of key and value heads. User should
+            ensure `num_kv_heads` % `num_heads` == 0. Default value is None, in
+            which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
-            scaled_dot_product_attention function
+            scaled_dot_product_attention function. This argument is ignored if the
+            self.training is False. Default value is 0.0.
 
     Raises:
          ValueError: If `num_kv_heads` % `num_heads` != 0
+         ValueError: If `embed_dim` & `num_heads` != 0
+         ValueError: If `attn_dropout` < 0 or > 1
     """
 
     def __init__(
@@ -74,11 +78,23 @@ class MultiHeadGQA(nn.Module):
                 f"num_kv_heads ({num_kv_heads})"
             )
 
+        if embed_dim % num_heads != 0:
+            raise ValueError(
+                f"embed_dim ({embed_dim}) must be divisible by "
+                f"num_heads ({num_heads})"
+            )
+
+        if attn_dropout < 0 or attn_dropout > 1:
+            raise ValueError(
+                f"attn_dropout ({embed_dim}) must be between " f"0.0 and 1.0"
+            )
+
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
         self.head_dim = embed_dim // num_heads
+        self.max_seq_len = max_seq_len
 
         # Output dimension of the qkv projection matrix depends on the
         # total number of heads and the dimension of each head.
@@ -100,11 +116,14 @@ class MultiHeadGQA(nn.Module):
                 [batch_size x seq_length x embed_dim]
 
         Returns:
-            Tensor: output tensor with att
+            Tensor: output tensor with attention applied
+
+        Raises:
+            ValueError: if seq_len of x is bigger than max_seq_len
 
         Notation used for tensor shapes:
             - b: batch size
-            - s / t: sequence length
+            - s: sequence length
             - n_h: num heads
             - n_kv: num kv heads
             - d: embed dim
@@ -119,6 +138,12 @@ class MultiHeadGQA(nn.Module):
 
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
+
+        if seq_len > self.max_seq_len:
+            raise ValueError(
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
+            )
 
         # qkv has shape [b, s, qkv_d]
         qkv = self.qkv_proj(x)

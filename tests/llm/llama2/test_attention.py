@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Tuple
+
 import pytest
 
 import torch
@@ -29,20 +31,20 @@ class TestMultiHeadGQA:
     """
 
     @pytest.fixture
-    def input_params(self):
+    def input_params(self) -> Tuple[int, int, int]:
         batch_size = 4
         seq_len = 2048
         embed_dim = 4096
         return batch_size, seq_len, embed_dim
 
     @pytest.fixture
-    def input(self, input_params):
+    def input(self, input_params: Tuple[int, int, int]) -> tensor:
         batch_size, seq_len, embed_dim = input_params
         x = torch.randn(batch_size, seq_len, embed_dim)
         return x
 
     @pytest.fixture
-    def attn_params(self):
+    def attn_params(self) -> Tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
@@ -50,7 +52,7 @@ class TestMultiHeadGQA:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params):
+    def gqa(self, attn_params: Tuple[int, int, int, int]) -> MultiHeadGQA:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params
         attn = MultiHeadGQA(
             num_heads=num_heads,
@@ -62,7 +64,7 @@ class TestMultiHeadGQA:
         attn.eval()
         return attn
 
-    def test_forward(self, input, gqa):
+    def test_forward(self, input: tensor, gqa: MultiHeadGQA) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
