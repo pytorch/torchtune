@@ -60,6 +60,14 @@ class TestLlamaSelfAttention:
         return num_heads, None, embed_dim, max_seq_len
 
     @pytest.fixture
+    def attn_params_mqa(self) -> Tuple[int, int, int, int]:
+        num_heads = 32
+        num_kv_heads = 1
+        embed_dim = 4096
+        max_seq_len = 4096
+        return num_heads, num_kv_heads, embed_dim, max_seq_len
+
+    @pytest.fixture
     def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         attn = LlamaSelfAttention(
@@ -68,7 +76,7 @@ class TestLlamaSelfAttention:
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
         )
-        init_weights_with_constant(attn)
+        init_weights_with_constant(attn, constant=0.1)
         attn.eval()
         return attn
 
@@ -81,18 +89,37 @@ class TestLlamaSelfAttention:
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
         )
-        init_weights_with_constant(attn)
+        init_weights_with_constant(attn, constant=0.05)
+        attn.eval()
+        return attn
+
+    @pytest.fixture
+    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+        num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
+        attn = LlamaSelfAttention(
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+        )
+        init_weights_with_constant(attn, constant=0.6)
         attn.eval()
         return attn
 
     def test_forward_gqa(self, input: tensor, gqa: LlamaSelfAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
-        assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
+        assert_expected(output.mean(), tensor(-98.41), atol=1e-8, rtol=1e-3)
         assert_expected(output.shape, input.shape)
 
     def test_forward_mha(self, input: tensor, mha: LlamaSelfAttention) -> None:
         with torch.no_grad():
             output = mha(input)
-        assert_expected(output.mean(), tensor(-10056.5381), atol=1e-8, rtol=1e-3)
+        assert_expected(output.mean(), tensor(-27.5058), atol=1e-8, rtol=1e-3)
+        assert_expected(output.shape, input.shape)
+
+    def test_forward_mqa(self, input: tensor, mqa: LlamaSelfAttention) -> None:
+        with torch.no_grad():
+            output = mqa(input)
+        assert_expected(output.mean(), tensor(-3602.9180), atol=1e-8, rtol=1e-3)
         assert_expected(output.shape, input.shape)
