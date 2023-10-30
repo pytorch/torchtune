@@ -19,20 +19,25 @@ class FeedForward(nn.Module):
     Args:
         dim (int): Input dimension.
         hidden_dim (int): Hidden dimension of the feedforward layer. `hidden_dim` should be a large multiple of 2
-            and can additionally include a custom multiplier which increases the model capacity for LLaMA V2. Based
-            on experiments, the LLaMA team recommends using a custom multiplier of 4 and rounding the result to a
-            multiple of 256. E.g. for LLaMA 7B, the hidden dimension would be 896000.
+            and can additionally include a custom multiplier which increases the model capacity for LLaMA V2.
+        multiple_of (int): After scaling, `hidden_dim` must be rounded to nearest multiple provided. Based on experiments,
+            the LLaMA team recommends rounding the result to a multiple of 256. E.g. for LLaMA 7B, the hidden dimension
+            would be 11008 after scaling and rounding.
     """
 
     def __init__(
         self,
         dim: int,
         hidden_dim: int,
+        multiple_of: int = 256,
     ):
         super().__init__()
-        # Scale hidden dimension by 2/3 for SwiGLU to keep number of
+        # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
         # parameters and computation constant
-        hidden_dim = int(2 * hidden_dim / 3)
+        hidden_dim = 4 * int(2 * hidden_dim / 3)
+
+        # Round hidden dimension to nearest multiple of `multiple_of`
+        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
 
         self.w1 = nn.Linear(dim, hidden_dim, bias=False)
         self.w2 = nn.Linear(hidden_dim, dim, bias=False)
