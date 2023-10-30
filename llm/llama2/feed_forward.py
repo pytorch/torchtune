@@ -24,7 +24,7 @@ class FeedForward(nn.Module):
         multiple_of (int): After applying a SwiGLU scaling factor to `hidden_dim`, `hidden_dim` is rounded to
             the nearest multiple of `multiple_of` that is greater than `hidden_dim`. Based on experiments, the
             LLaMA team recommends rounding the result to a multiple of 256. E.g. for LLaMA 7B, the hidden dimension
-            would be 11008 after applying SwiGLU-related scaling and rounding.
+            would be 11008 after applying SwiGLU-related scaling and rounding. Default: 256
     """
 
     def __init__(
