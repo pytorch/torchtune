@@ -45,7 +45,7 @@ class TestLlamaSelfAttention:
         return x
 
     @pytest.fixture
-    def attn_params(self) -> Tuple[int, int, int, int]:
+    def attn_params_gqa(self) -> Tuple[int, int, int, int]:
         num_heads = 32
         num_kv_heads = 8
         embed_dim = 4096
@@ -53,8 +53,15 @@ class TestLlamaSelfAttention:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params: Tuple[int, int, int, int]) -> LlamaSelfAttention:
-        num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params
+    def attn_params_mha(self) -> Tuple[int, int, int, int]:
+        num_heads = 32
+        embed_dim = 4096
+        max_seq_len = 4096
+        return num_heads, None, embed_dim, max_seq_len
+
+    @pytest.fixture
+    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+        num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         attn = LlamaSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -65,8 +72,27 @@ class TestLlamaSelfAttention:
         attn.eval()
         return attn
 
-    def test_forward(self, input: tensor, gqa: LlamaSelfAttention) -> None:
+    @pytest.fixture
+    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+        num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
+        attn = LlamaSelfAttention(
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+        )
+        init_weights_with_constant(attn)
+        attn.eval()
+        return attn
+
+    def test_forward_gqa(self, input: tensor, gqa: LlamaSelfAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(output.mean(), tensor(-10056.5293), atol=1e-8, rtol=1e-3)
+        assert_expected(output.shape, input.shape)
+
+    def test_forward_mha(self, input: tensor, mha: LlamaSelfAttention) -> None:
+        with torch.no_grad():
+            output = mha(input)
+        assert_expected(output.mean(), tensor(-10056.5381), atol=1e-8, rtol=1e-3)
         assert_expected(output.shape, input.shape)

@@ -58,7 +58,7 @@ class LlamaSelfAttention(nn.Module):
 
     Raises:
          ValueError: If `num_kv_heads` % `num_heads` != 0
-         ValueError: If `embed_dim` & `num_heads` != 0
+         ValueError: If `embed_dim` % `num_heads` != 0
          ValueError: If `attn_dropout` < 0 or > 1
     """
 
@@ -72,7 +72,7 @@ class LlamaSelfAttention(nn.Module):
     ) -> None:
         super().__init__()
 
-        if num_heads % num_kv_heads != 0:
+        if num_kv_heads and num_heads % num_kv_heads != 0:
             raise ValueError(
                 f"num_heads ({num_heads}) must be divisible by "
                 f"num_kv_heads ({num_kv_heads})"
@@ -85,9 +85,7 @@ class LlamaSelfAttention(nn.Module):
             )
 
         if attn_dropout < 0 or attn_dropout > 1:
-            raise ValueError(
-                f"attn_dropout ({embed_dim}) must be between " f"0.0 and 1.0"
-            )
+            raise ValueError(f"attn_dropout ({embed_dim}) must be between 0.0 and 1.0")
 
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -99,7 +97,7 @@ class LlamaSelfAttention(nn.Module):
         # Output dimension of the qkv projection matrix depends on the
         # total number of heads and the dimension of each head.
         # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * self.head_dim
+        qkv_dim = (self.num_heads + 2 * self.num_kv_heads) * self.head_dim
 
         self.qkv_proj = nn.Linear(self.embed_dim, qkv_dim, bias=False)
         self.output_proj = nn.Linear(self.embed_dim, self.embed_dim, bias=False)
