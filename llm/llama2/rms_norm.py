@@ -37,8 +37,8 @@ class RMSNorm(nn.Module):
             Tensor: The output tensor after applying RMSNorm.
         """
         # computation is in fp32
-        x = x.float()
+        x_fp32 = x.float()
         x_normed = (
-            x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps) * self.scale
+            x_fp32 * torch.rsqrt(x_fp32.pow(2).mean(-1, keepdim=True) + self.eps)
         ).type_as(x)
         return x_normed * self.scale
