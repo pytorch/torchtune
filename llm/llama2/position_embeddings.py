@@ -18,9 +18,12 @@ class RotaryPositionalEmbeddings(nn.Module):
     can be found here:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
 
+    In this implementation we cache the embeddings for each position upto
+    ```max_seq_len``` by computing this during init.
+
     Args:
-        dim (int): Embedding dimension for each head, computed as:
-            embed_size //  num_heads
+        dim (int): Embedding dimension. This is usually set to the dim of each
+            head in the attention module computed as ```embed_dim``` // ```num_heads```
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
@@ -46,34 +49,48 @@ class RotaryPositionalEmbeddings(nn.Module):
             max_seq_len, dtype=self.theta.dtype, device=self.theta.device
         )
 
-        # Outer product of theta and position index
+        # Outer product of theta and position index; output tensor has
+        # a shape of [max_seq_len, dim // 2]
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
+        # cache includes both the cos and sin components and so the output shape is
+        # [max_seq_len, dim // 2, 2]
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache)
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        TODO: The implementation below can be made more efficient
-        for inference.
-
         Args:
-            x (Tensor): input tensor to which rope is applied
+            x (Tensor): input tensor with shape
+                [bsz, seq_len, num_heads, head_dim]
 
         Returns:
             Tensor: output tensor with RoPE applied
+
+        Notation used for tensor shapes:
+            - b: batch size
+            - s: sequence length
+            - n_h: num heads
+            - h_d: head dim
+
+        TODO: The implementation below can be made more efficient
+        for inference.
         """
+        # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
         rope_cache = self.cache[:seq_len]
 
-        # reshape input; the last dimension is used for computing the output
-        # cast to float to match the reference implementation
+        # reshape input; the last dimension is used for computing the output.
+        # Cast to float to match the reference implementation
+        # tensor has shape [b, s, n_h, n_d // 2, 2]
         xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
 
         # reshape the cache for broadcasting
+        # tensor has shape [1, s, 1, n_d // 2, 2]
         rope_cache = rope_cache.view(1, xshaped.size(1), 1, xshaped.size(3), 2)
 
-        x_out2 = torch.stack(
+        # tensor has shape [b, s, n_h, n_d // 2, 2]
+        x_out = torch.stack(
             [
                 xshaped[..., 0] * rope_cache[..., 0]
                 - xshaped[..., 1] * rope_cache[..., 1],
@@ -83,5 +100,6 @@ class RotaryPositionalEmbeddings(nn.Module):
             -1,
         )
 
-        x_out2 = x_out2.flatten(3)
-        return x_out2.type_as(x)
+        # tensor has shape [b, s, n_h, n_d]
+        x_out = x_out.flatten(3)
+        return x_out.type_as(x)
