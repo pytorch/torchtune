@@ -22,7 +22,7 @@ class RotaryPositionalEmbeddings(nn.Module):
     ```max_seq_len``` by computing this during init.
 
     Args:
-        dim (int): Embedding dimension. This is ussually set to the dim of each
+        dim (int): Embedding dimension. This is usually set to the dim of each
             head in the attention module computed as ```embed_dim``` // ```num_heads```
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
