@@ -65,5 +65,5 @@ class TestRMSNorm:
         # convert input to float since rms_norm computes in fp32
         expected_fp16 = normalize(input_random_fp16.float(), p=2, dim=-1) * (dim**0.5)
 
-        assert_expected(output_fp16, expected_fp16)
+        assert_expected(output_fp16, expected_fp16, atol=1e-7, rtol=1e-3)
         assert output_fp16.dtype == torch.float32

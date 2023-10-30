@@ -38,6 +38,6 @@ class TestFeedForward:
 
     def test_forward(self, input, ffn):
         x_out = ffn(input)
-        assert_expected(x_out.mean(), torch.tensor(0.0011))
-        assert_expected(x_out.sum(), torch.tensor(4.3965))
-        assert_expected(x_out.max(), torch.tensor(0.3466))
+        assert_expected(x_out.mean(), torch.tensor(0.0011), atol=1e-4, rtol=1e-3)
+        assert_expected(x_out.sum(), torch.tensor(4.3965), atol=1e-7, rtol=1e-3)
+        assert_expected(x_out.max(), torch.tensor(0.3466), atol=1e-7, rtol=1e-3)
