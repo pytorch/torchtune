@@ -51,7 +51,7 @@ class LlamaSelfAttention(nn.Module):
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
         num_kv_heads (Optional[int]): number of key and value heads. If specified,
-            sser should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
             `None`, in which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
