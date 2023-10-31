@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
 import random
-from typing import Any, Union
 
-import numpy as np
+from typing import Any, Union
 
 import torch
 
@@ -38,7 +38,7 @@ def fixed_init_tensor(
     generates a range tensor [min_val, max_val) of a specified dtype, applies
     a sine function if nonlinear=True, then reshapes to the appropriate shape.
     """
-    n_elements = np.prod(shape)
+    n_elements = math.prod(shape)
     step_size = (max_val - min_val) / n_elements
     print(f"RV: step_size {step_size}")
     x = torch.arange(min_val, max_val, step_size, dtype=dtype)
