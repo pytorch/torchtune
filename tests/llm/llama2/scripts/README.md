@@ -11,5 +11,5 @@ You can run the scripts using the following command as an example.
 Each script should print out the value being used in the associated unit tests.
 
 ```
-python3 -m tests.llm.llama2.scripts.compare_rope_embeddings
+python3 -m tests.llm.llama2.scripts.compare_attention
 ```
