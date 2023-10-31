@@ -38,7 +38,6 @@ def fixed_init_tensor(
     generates a range tensor [min_val, max_val) of a specified dtype, applies
     a sine function if nonlinear=True, then reshapes to the appropriate shape.
     """
-    # n_elements = torch.prod(torch.tensor(shape))
     n_elements = np.prod(shape)
     step_size = (max_val - min_val) / n_elements
     print(f"RV: step_size {step_size}")
