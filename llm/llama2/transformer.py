@@ -24,16 +24,16 @@ class TransformerDecoderLayer(nn.Module):
 
     Args:
         embed_dim (int): embedding dimension for the model
-        num_heads (int): number of query heads. For MHA this is also the
-            number of heads for key and value
+        num_heads (int): number of query heads. To enable MHA, set
+            ```num_kv_heads``` = ```num_heads``` or ```num_kv_heads``` = None
         max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache
+            This is needed to compute the RoPE Cache. Default value is 4096
         num_kv_heads (Optional[int]): number of key and value heads. User should
-            ensure `num_kv_heads` % `num_heads` == 0. Default value is None, in
+            ensure `num_heads` % `num_kv_heads` == 0. Default value is None, in
             which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
-            self.training is False. Default value is 0.0.
+            self.training is False. Default value is 0.0
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -109,10 +109,10 @@ class TransformerDecoder(nn.Module):
             controls the number of rows in the embedding table
         embed_dim (int): embedding dimension for the model
         num_layers (int): number of TransformerDecoderLayers
-        num_heads (int): number of query heads. For MHA this is also the
-            number of heads for key and value
+        num_heads (int): number of query heads. To enable MHA, set
+            ```num_kv_heads``` = ```num_heads``` or ```num_kv_heads``` = None
         max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache
+            This is needed to compute the RoPE Cache. Default value is 4096
         num_kv_heads (Optional[int]): number of key and value heads. User should
             ensure `num_kv_heads` % `num_heads` == 0. Default value is None, in
             which case this is the same as MHA
@@ -123,6 +123,7 @@ class TransformerDecoder(nn.Module):
 
     TODO: A few TODOs
             - Make norm configurable
+            - Make application of RoPE configurable
     """
 
     def __init__(
