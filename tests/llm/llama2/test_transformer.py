@@ -143,6 +143,31 @@ class TestTransformerDecoder:
         decoder.eval()
         return decoder
 
+    @pytest.fixture
+    def decoder_with_kv_cache_enabled(
+        self, decoder_params: Tuple[int, int, int, int, int, int]
+    ) -> TransformerDecoder:
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
+        decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+            max_bsz_for_kv_cache=32,
+        )
+        init_weights_with_constant(decoder, constant=0.2)
+        decoder.eval()
+        return decoder
+
     def test_forward(
         self,
         input: Tensor,
@@ -162,3 +187,15 @@ class TestTransformerDecoder:
     ) -> None:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
+
+    def test_kv_cache(
+        self,
+        input: Tensor,
+        input_params: Tuple[int, int, int],
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+        decoder: TransformerDecoder,
+    ) -> None:
+        with torch.no_grad():
+            output_cache = decoder_with_kv_cache_enabled(input)
+            output_no_cache = decoder(input)
+        assert_expected(output_cache.mean(), output_no_cache.mean())
