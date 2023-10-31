@@ -13,13 +13,14 @@ from torch import nn, Tensor
 
 class LlamaSelfAttention(nn.Module):
     """
-    Multi-headed grouped query attention (GQA) layer introduced
+    Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
     key/value heads than query heads by grouping n query heads for each
-    key and value. Multi-Query Attention is an extreme
-    version where we have a single key and value head.
+    key and value head. Multi-Query Attention is an extreme
+    version where we have a single key and value head shared by all
+    query heads.
 
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
@@ -48,16 +49,16 @@ class LlamaSelfAttention(nn.Module):
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
         max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache
-        num_kv_heads (Optional[int]): number of key and value heads. User should
-            ensure `num_kv_heads` % `num_heads` == 0. Default value is None, in
-            which case this is the same as MHA
+            This is needed to compute the RoPE Cache. Default: 4096.
+        num_kv_heads (Optional[int]): number of key and value heads. If specified,
+            sser should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            `None`, in which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
 
     Raises:
-         ValueError: If `num_kv_heads` % `num_heads` != 0
+         ValueError: If `num_heads` % `num_kv_heads` != 0
          ValueError: If `embed_dim` % `num_heads` != 0
          ValueError: If `attn_dropout` < 0 or > 1
     """
