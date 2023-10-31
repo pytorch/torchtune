@@ -8,11 +8,11 @@ from typing import Optional
 
 import torch
 
+from torch import nn, Tensor
+
 from llm.llama2.attention import LlamaSelfAttention
 from llm.llama2.feed_forward import FeedForward
 from llm.llama2.rms_norm import RMSNorm
-
-from torch import nn, Tensor
 
 
 class TransformerDecoderLayer(nn.Module):
