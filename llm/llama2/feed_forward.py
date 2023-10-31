@@ -19,8 +19,8 @@ class FeedForward(nn.Module):
     Args:
         dim (int): Input dimension.
         hidden_dim (int): Hidden dimension of the feedforward layer. `hidden_dim` should be a large multiple of 2
-            and can additionally include a custom multiplier, specified via `multiple_of`, which increases
-            the model capacity for LLaMA V2.
+            and can additionally include a custom multiplier, which affects the model capacity for LLaMA V2. In
+            the original facebookresearch/llama documentation, this is referred to as `ffn_custom_multiplier`.
         multiple_of (int): After applying a SwiGLU scaling factor to `hidden_dim`, `hidden_dim` is rounded to
             the nearest multiple of `multiple_of` that is greater than `hidden_dim`. Based on experiments, the
             LLaMA team recommends rounding the result to a multiple of 256. E.g. for LLaMA 7B, the hidden dimension
