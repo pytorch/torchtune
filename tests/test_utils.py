@@ -42,9 +42,7 @@ def fixed_init_tensor(
     step_size = (max_val - min_val) / n_elements
     print(f"RV: step_size {step_size}")
     x = torch.arange(min_val, max_val, step_size, dtype=dtype)
-    print(f"RV: before reshape {x.shape}")
     x = x.reshape(shape)
-    print(f"RV: after reshape {x.shape}")
     if nonlinear:
         return torch.sin(x)
     return x
