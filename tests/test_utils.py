@@ -5,7 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import random
-from typing import Any
+from typing import Any, Union
+
+import numpy as np
 
 import torch
 
@@ -21,6 +23,55 @@ def set_rng_seed(seed):
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
     for p in model.parameters():
         nn.init.constant_(p, constant)
+
+
+def fixed_init_tensor(
+    shape: torch.Size,
+    min_val: Union[float, int] = 0.0,
+    max_val: Union[float, int] = 1.0,
+    nonlinear: bool = False,
+    dtype: torch.dtype = torch.float,
+):
+    """
+    Utility for generating deterministic tensors of a given shape. In general stuff
+    like torch.ones, torch.eye, etc can result in trivial outputs. This utility
+    generates a range tensor [min_val, max_val) of a specified dtype, applies
+    a sine function if nonlinear=True, then reshapes to the appropriate shape.
+    """
+    # n_elements = torch.prod(torch.tensor(shape))
+    n_elements = np.prod(shape)
+    step_size = (max_val - min_val) / n_elements
+    print(f"RV: step_size {step_size}")
+    x = torch.arange(min_val, max_val, step_size, dtype=dtype)
+    print(f"RV: before reshape {x.shape}")
+    x = x.reshape(shape)
+    print(f"RV: after reshape {x.shape}")
+    if nonlinear:
+        return torch.sin(x)
+    return x
+
+
+@torch.no_grad
+def fixed_init_model(
+    model: nn.Module,
+    min_val: Union[float, int] = 0.0,
+    max_val: Union[float, int] = 1.0,
+    nonlinear: bool = False,
+):
+    """
+    This utility initializes all parameters of a model deterministically using the
+    function fixed_init_tensor above. See that docstring for details of each parameter.
+    """
+    for _, param in model.named_parameters():
+        param.copy_(
+            fixed_init_tensor(
+                param.shape,
+                min_val=min_val,
+                max_val=max_val,
+                nonlinear=nonlinear,
+                dtype=param.dtype,
+            )
+        )
 
 
 def assert_expected(
