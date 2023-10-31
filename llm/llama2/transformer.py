@@ -141,6 +141,7 @@ class TransformerDecoder(nn.Module):
         norm_eps: float = 1e-6,
     ) -> None:
         super().__init__()
+        self.max_seq_len = max_seq_len
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
         self.layers = torch.nn.ModuleList()
@@ -168,6 +169,9 @@ class TransformerDecoder(nn.Module):
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x vocab_size]
 
+        Raises:
+            ValueError: if seq_len of x is bigger than max_seq_len
+
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
@@ -175,7 +179,13 @@ class TransformerDecoder(nn.Module):
             - d: embed dim
         """
         # input tensor of shape [b, s]
-        bsz, seqlen = tokens.shape
+        bsz, seq_len = tokens.shape
+
+        if seq_len > self.max_seq_len:
+            raise ValueError(
+                f"seq_len ({seq_len}) of input tensor should be smaller "
+                f"than max_seq_len ({self.max_seq_len})"
+            )
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)

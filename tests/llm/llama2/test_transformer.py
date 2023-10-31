@@ -109,6 +109,17 @@ class TestTransformerDecoder:
         return vocab_size, embed_dim, num_layers, num_heads, max_seq_len, num_kv_heads
 
     @pytest.fixture
+    def input_max_len_exceeded(
+        self,
+        input_params: Tuple[int, int],
+        decoder_params: Tuple[int, int, int, int, int, int],
+    ) -> Tensor:
+        batch_size, seq_len, vocab_size = input_params
+        _, _, _, _, max_seq_len, _ = decoder_params
+        seq_len = max_seq_len + 1
+        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
+
+    @pytest.fixture
     def decoder(
         self, decoder_params: Tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
@@ -143,3 +154,11 @@ class TestTransformerDecoder:
             output = decoder(input)
         assert_expected(output.mean(), torch.tensor(163.8399), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
+
+    def test_max_seq_len_exceeded(
+        self,
+        input_max_len_exceeded: Tensor,
+        decoder: TransformerDecoder,
+    ) -> None:
+        with pytest.raises(Exception):
+            output = decoder(input_max_len_exceeded)
