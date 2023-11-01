@@ -7,7 +7,6 @@
 from pathlib import Path
 
 import pytest
-import torch
 from llm.llama2.tokenizer import Tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent / "assets"
@@ -16,6 +15,8 @@ ASSETS = Path(__file__).parent.parent.parent / "assets"
 class TestTokenizer:
     @pytest.fixture
     def tokenizer(self):
+        # m.model is a pretrained Sentencepiece model using the following command:
+        # spm.SentencePieceTrainer.train('--input=botchan.txt --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(ASSETS / "m.model"))
 
     def test_encode(self, tokenizer):
@@ -40,29 +41,6 @@ class TestTokenizer:
             1024,
             103,
         ]
-        assert tokenizer.encode(["Hello world!"]) == [[1, 12, 1803, 1024, 103, 2]]
-        assert tokenizer.encode(["Hello world!", "what"]) == [
-            [1, 12, 1803, 1024, 103, 2],
-            [1, 121, 2],
-        ]
-        assert torch.allclose(
-            tokenizer.encode("Hello world!", return_as_tensor=True),
-            torch.tensor([1, 12, 1803, 1024, 103, 2]),
-        )
-        assert torch.allclose(
-            tokenizer.encode(["Hello world!", "what"], return_as_tensor=True),
-            torch.tensor([[1, 12, 1803, 1024, 103, 2], [1, 121, 2, -1, -1, -1]]),
-        )
 
     def test_decode(self, tokenizer):
-        assert tokenizer.decode([1, 12, 1803, 1024, 103, 2]) == ["Hello world!"]
-        assert tokenizer.decode([[1, 12, 1803, 1024, 103, 2], [1, 121, 2]]) == [
-            "Hello world!",
-            "what",
-        ]
-        assert tokenizer.decode(torch.tensor([1, 12, 1803, 1024, 103, 2])) == [
-            "Hello world!"
-        ]
-        assert tokenizer.decode(
-            torch.tensor([[1, 12, 1803, 1024, 103, 2], [1, 121, 2, -1, -1, -1]])
-        ) == ["Hello world!", "what"]
+        assert tokenizer.decode([1, 12, 1803, 1024, 103, 2]) == "Hello world!"

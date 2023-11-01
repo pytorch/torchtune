@@ -4,59 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Union
-
-import torch
+from typing import List
 
 from sentencepiece import SentencePieceProcessor
 
-from torch.nn.utils.rnn import pad_sequence
-
-
-def to_tensor(
-    ids: Union[List[int], List[List[int]]],
-    padding_value: Optional[int] = None,
-    dtype: torch.dtype = torch.long,
-) -> torch.Tensor:
-    """Convert input to PyTorch Tensor.
-
-    Args:
-        ids (Union[List[int], List[List[int]]]): Input data.
-        padding_value (Optional[int]): Padding value. Default: None.
-        dtype (torch.dtype): Output tensor dtype. Default: torch.long.
-
-    Returns:
-        Converted ids as PyTorch Tensor.
-
-    Raises:
-        TypeError: If the input type is not supported.
-
-    Example:
-        >>> input = [[1, 2, 3], [4, 5]]
-        >>> tensor = to_tensor(input)
-        >>> print(tensor)
-        tensor([[1, 2, 3],  [4, 5]])
-    """
-    # Utilize JIT to check Generics types
-    if torch.jit.isinstance(ids, List[int]):
-        return torch.tensor(ids, dtype=dtype)
-    elif torch.jit.isinstance(ids, List[List[int]]):
-        if padding_value is None:
-            output = torch.tensor(ids, dtype=dtype)
-            return output
-        else:
-            output = pad_sequence(
-                [torch.tensor(id, dtype=dtype) for id in ids],
-                batch_first=True,
-                padding_value=padding_value,
-            )
-            return output
-    else:
-        raise TypeError(f"Input type '{type(ids)}' not supported.")
-
 
 class Tokenizer:
-    """A wrapper around SentencePieceProcessor that supports batching and custom encoding/decoding.
+    """A wrapper around SentencePieceProcessor.
 
     Args:
         spm_model (SentencePieceProcessor): The SentencePiece model.
@@ -66,32 +20,11 @@ class Tokenizer:
         pad_id (int): The ID of the padding token.
 
     Example:
+        # Accepts only non-batched input for now
         >>> tokenizer = Tokenizer.from_file("/path/to/spm_model")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True, return_as_tensor_with_dtype=torch.long)
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
-        tensor([    0, 31587, 29644,   102])
-        >>> detokenized_text = tokenizer.decode([0, 31587, 29644, 102])
-        >>> print(detokenized_text)
-        ["Hello world!"]
-
-        # Batched encoding
-        # If creating a tensor, the padding value must be provided. Encoding will
-        # not pad non-tensor output.
-        >>> tokenized_text = tokenizer.encode(
-            ["Hello world!", "How are you?"],
-            add_bos=True,
-            add_eos=False,
-            return_as_tensor_with_dtype=torch.long
-        )
-        >>> print(tokenized_text)
-        tensor([[    0, 31587, 29644, 102],
-                [    0, 31587, 29644]])
-
-        # Batched decoding
-        >>> detokenized_text = tokenizer.decode([[0, 31587, 29644, 102],
-                                                 [0, 31587, 29644]])
-        >>> print(detokenized_text)
-        [['Hello world!'], ['How are you?']]
+        [0, 31587, 29644, 102]
 
         # Initialize with custom SentencePieceModel
         >>> spm.SentencePieceTrainer.train('--input=botchan.txt --model_prefix=m --vocab_size=2000')
@@ -130,51 +63,34 @@ class Tokenizer:
 
     def encode(
         self,
-        text: Union[str, List[int]],
+        text: str,
         add_bos: bool = True,
         add_eos: bool = True,
-        return_as_tensor: bool = False,
-        tensor_dtype: torch.dtype = torch.long,
-        num_threads: int = -1,
-    ) -> Union[torch.Tensor, List[int], List[List[int]]]:
-        """Encode string(s) into token IDs.
+    ) -> List[int]:
+        """Encode text into token IDs.
 
         Args:
-            text (Union[str, List[int]]): The input text to be encoded.
+            text (str): The input text to be encoded, unbatched.
             add_bos (bool): Whether to prepend BOS to the input, defaults to True.
             add_eos (bool): Whether to append EOS to the input, defaults to True.
-            return_as_tensor (bool): Whether to return the result as a tensor, defaults to False.
-            tensor_dtype (torch.dtype): The dtype of the returned tensor, defaults to torch.long.
-            num_threads (int): Number of processing threads used for encoding, defaults to -1.
 
         Returns:
-            Union[torch.Tensor, List[int], List[List[int]]]: The encoded text.
+            List[int]: The encoded token IDs.
         """
-        encoded_text = self.spm_model.encode(
+        return self.spm_model.encode(
             text,
             add_bos=add_bos,
             add_eos=add_eos,
             out_type=int,
-            num_threads=num_threads,
         )
-        if return_as_tensor:
-            return to_tensor(
-                encoded_text, padding_value=self.spm_model.pad_id(), dtype=tensor_dtype
-            )
-        return encoded_text
 
-    def decode(self, ids: Union[List[int], List[List[int]], torch.Tensor]) -> List[str]:
+    def decode(self, ids: List[int]) -> str:
         """Decode token IDs to strings.
 
         Args:
-            ids (Union[List[int], List[List[int]], torch.Tensor]): The input tokens to be decoded.
+            ids (List[int]): The input token IDs to be decoded.
 
         Returns:
-            List[str]: The decoded text.
+            str: The decoded text.
         """
-        if isinstance(ids, torch.Tensor):
-            ids = ids.tolist()
-        decoded_ids = self.spm_model.decode(ids)
-        if isinstance(decoded_ids, str):
-            return [decoded_ids]
-        return decoded_ids
+        return self.spm_model.decode(ids)
