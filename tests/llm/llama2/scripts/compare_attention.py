@@ -137,9 +137,15 @@ def compare_rope(bsz: int, num_heads: int, embed_dim: int, seq_len: int) -> None
 
     # Validate correctness
     assert torch.allclose(x_out_ref, x_out, atol=1e-6)
-    print(f"mean value for x_out: {x_out.mean()}")
-    print(f"sum value for x_out: {x_out.sum()}")
-    print(f"max value for x_out: {x_out.max()}")
+
+    # value: tensor(-4.3060e-05)
+    print(x_out.mean())
+
+    # value: tensor(-2889.6772)
+    print(x_out.sum())
+
+    # value: tensor(5.6446)
+    print(x_out.max())
 
 
 def compare_attention(
@@ -186,8 +192,8 @@ def compare_attention(
     with torch.no_grad():
         attn_out = attn(input_t)
 
+    # value: tensor(-27.5074)
     print(attn_out.mean())
-    print(attn_out_ref.mean())
 
     # output tensors should be similar
     assert torch.allclose(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
@@ -225,7 +231,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    compare_rope(args.seed, args.bsz, args.num_heads, args.embed_dim, args.max_seq_len)
+    compare_rope(args.bsz, args.num_heads, args.embed_dim, args.max_seq_len)
 
     compare_attention(
         args.bsz,
