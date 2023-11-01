@@ -21,8 +21,8 @@ Reference implementation of Attention from:
 https://github.com/facebookresearch/llama/blob/main/llama/model.py#L176
 
 Replicating code here to minimize dependencies. The code is modified to
-remove dependencies like FAIRSCale and KV Caching since these are features
-not supported by the current implementation.
+remove dependencies like FAIRSCale and features like KV Caching.
+The latter is not supported by the current implementation.
 """
 
 
@@ -117,9 +117,7 @@ def apply_rotary_emb(x: torch.Tensor, freqs_cis: torch.Tensor) -> torch.Tensor:
     return x_out.type_as(x)
 
 
-def compare_rope(
-    seed: int, bsz: int, num_heads: int, embed_dim: int, seq_len: int
-) -> None:
+def compare_rope(bsz: int, num_heads: int, embed_dim: int, seq_len: int) -> None:
 
     # make sure we have the right seed for generating outputs
     torch.manual_seed(0)
@@ -145,7 +143,6 @@ def compare_rope(
 
 
 def compare_attention(
-    seed: int,
     bsz: int,
     seq_len: int,
     embed_dim: int,
@@ -155,11 +152,13 @@ def compare_attention(
 ) -> None:
 
     # make sure we have the right seed for generating outputs
+    # this should match up the seed value set in the corresponding
+    # unit test
     torch.manual_seed(16)
 
     head_dim = embed_dim // num_heads
 
-    # generate input tensor
+    # generate input tensor used by both implementations
     input_t = torch.randn(bsz, seq_len, embed_dim)
 
     # generate mask and frequencies tensor needed for the reference
@@ -190,6 +189,7 @@ def compare_attention(
     print(attn_out.mean())
     print(attn_out_ref.mean())
 
+    # output tensors should be similar
     assert torch.allclose(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
 
 
@@ -197,9 +197,6 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Compare Attention implementations")
-    parser.add_argument(
-        "--seed", type=int, default=16, help="Seed for random generator"
-    )
     parser.add_argument("--bsz", type=int, default=4, help="Batch size of input tensor")
     parser.add_argument(
         "--seq_len", type=int, default=2048, help="input sequence length"
@@ -231,7 +228,6 @@ if __name__ == "__main__":
     compare_rope(args.seed, args.bsz, args.num_heads, args.embed_dim, args.max_seq_len)
 
     compare_attention(
-        args.seed,
         args.bsz,
         args.seq_len,
         args.embed_dim,
