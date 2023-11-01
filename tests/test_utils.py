@@ -40,7 +40,6 @@ def fixed_init_tensor(
     """
     n_elements = math.prod(shape)
     step_size = (max_val - min_val) / n_elements
-    print(f"RV: step_size {step_size}")
     x = torch.arange(min_val, max_val, step_size, dtype=dtype)
     x = x.reshape(shape)
     if nonlinear:
