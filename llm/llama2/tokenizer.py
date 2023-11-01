@@ -77,6 +77,7 @@ class Tokenizer:
         Returns:
             List[int]: The encoded token IDs.
         """
+        assert type(text) == str, f"Expected string but got {type(text)}"
         return self.spm_model.encode(
             text,
             add_bos=add_bos,
