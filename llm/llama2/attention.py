@@ -175,7 +175,7 @@ class LlamaSelfAttention(nn.Module):
         # Reshape the tensors before we apply RoPE
         q = q.reshape(bsz, seq_len, -1, self.head_dim)
         k = k.reshape(bsz, seq_len, -1, self.head_dim)
-        v = k.reshape(bsz, seq_len, -1, self.head_dim)
+        v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
         q = self.rope(q)
         k = self.rope(k)
