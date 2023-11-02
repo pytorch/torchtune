@@ -191,7 +191,6 @@ class TestTransformerDecoder:
     def test_kv_cache(
         self,
         input: Tensor,
-        input_params: Tuple[int, int, int],
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
