@@ -6,6 +6,8 @@
 
 import argparse
 
+import logging
+
 import os
 
 from dataclasses import dataclass
@@ -16,6 +18,9 @@ from llm.llama2.transformer import TransformerDecoder
 from tests.llm.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def _is_qkv(s: str) -> bool:
@@ -137,7 +142,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     path = args.checkpoint_path
-    print(f"setting {args.device}")
     torch.set_default_device(args.device)
     llama_7b_args = args_7b()
 
@@ -208,7 +212,7 @@ if __name__ == "__main__":
                 # Successfully processed key
                 orig_sd_processed_keys.add(key)
             else:
-                print(f"Warning: {key} in orig state_dict, but not mapped!")
+                logger.warning(f"Warning: {key} in orig state_dict, but not mapped!")
 
     # sanity check qkv_dict to ensure each layer has qkv tensors.
     for i in range(llama_7b_args.num_layers):
@@ -300,3 +304,5 @@ if __name__ == "__main__":
 
     with open(os.path.join(native_dirpath, checkpoint_file), "w+") as f:
         torch.save(native_state_dict, f.name)
+
+    logger.info(f"Wrote native checkpoint to {f.name}")
