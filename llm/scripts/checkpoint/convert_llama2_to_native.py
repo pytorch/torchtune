@@ -125,10 +125,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--checkpoint_path", type=str, help="Path to original checkpoint file."
     )
-    torch.set_default_device("cuda:5")
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda:0",
+        help="""
+        Device to initialize tensors on. This defaults to cuda:0 which is much faster
+        than CPU for checkpoint conversion. If GPU is unavailable, pass in "cpu".
+        """,
+    )
 
     args = parser.parse_args()
     path = args.checkpoint_path
+    print(f"setting {args.device}")
+    torch.set_default_device(args.device)
     llama_7b_args = args_7b()
 
     decoder = TransformerDecoder(
