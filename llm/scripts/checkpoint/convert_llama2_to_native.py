@@ -222,6 +222,8 @@ if __name__ == "__main__":
     num_heads = llama_7b_args.num_heads
     num_kv_heads = llama_7b_args.num_kv_heads
     for layer_idx in qkv_dict:
+        # Map individual qkv matrices to the fused matrix. This approach is motived from Lightning AI:
+        # https://github.com/Lightning-AI/lit-gpt/blob/main/scripts/convert_hf_checkpoint.py#L112
         head_dim = embed_dim // num_heads
         q = qkv_dict[layer_idx]["wq"]
         k = qkv_dict[layer_idx]["wk"]
