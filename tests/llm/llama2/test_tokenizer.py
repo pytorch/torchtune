@@ -20,7 +20,14 @@ class TestTokenizer:
         return Tokenizer.from_file(str(ASSETS / "m.model"))
 
     def test_encode(self, tokenizer):
-        assert tokenizer.encode("Hello world!") == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
+        assert tokenizer.encode("Hello world!") == [
+            tokenizer.bos_id,
+            12,
+            1803,
+            1024,
+            103,
+            tokenizer.eos_id,
+        ]
         assert tokenizer.encode("Hello world!", add_eos=False) == [
             tokenizer.bos_id,
             12,
