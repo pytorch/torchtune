@@ -16,13 +16,13 @@ class TestTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
-        # spm.SentencePieceTrainer.train('--input=botchan.txt --model_prefix=m --vocab_size=2000')
+        # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(ASSETS / "m.model"))
 
     def test_encode(self, tokenizer):
-        assert tokenizer.encode("Hello world!") == [1, 12, 1803, 1024, 103, 2]
+        assert tokenizer.encode("Hello world!") == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
         assert tokenizer.encode("Hello world!", add_eos=False) == [
-            1,
+            tokenizer.bos_id,
             12,
             1803,
             1024,
@@ -33,7 +33,7 @@ class TestTokenizer:
             1803,
             1024,
             103,
-            2,
+            tokenizer.eos_id,
         ]
         assert tokenizer.encode("Hello world!", add_eos=False, add_bos=False) == [
             12,

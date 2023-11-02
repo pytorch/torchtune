@@ -24,13 +24,7 @@ class Tokenizer:
         >>> tokenizer = Tokenizer.from_file("/path/to/spm_model")
         >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
-        [0, 31587, 29644, 102]
-
-        # Initialize with custom SentencePieceModel
-        >>> spm.SentencePieceTrainer.train('--input=botchan.txt --model_prefix=m --vocab_size=2000')
-        >>> spm_model = spm.SentencePieceProcessor()
-        >>> spm_model.Load('/tmp/m.model')
-        >>> tokenizer = Tokenizer(spm_model, vocab_size=2000, bos_id=0, eos_id=1, pad_id=2)
+        [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
