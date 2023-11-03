@@ -6,6 +6,7 @@
 
 from typing import Optional
 
+import torch
 from torch import nn, Tensor
 
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
@@ -56,6 +57,7 @@ class LlamaSelfAttention(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
+        max_bsz_for_kv_cache (Optional[int]): Maximum batch size for kv cache. Defaults to None.
 
     Raises:
          ValueError: If `num_heads` % `num_kv_heads` != 0
@@ -70,6 +72,7 @@ class LlamaSelfAttention(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -108,11 +111,30 @@ class LlamaSelfAttention(nn.Module):
             dim=self.head_dim, max_seq_len=max_seq_len
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+        # Build the KV Cache
+        k_cache = (
+            torch.zeros(
+                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
+            )
+            if max_bsz_for_kv_cache
+            else None
+        )
+        v_cache = (
+            torch.zeros(
+                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
+            )
+            if max_bsz_for_kv_cache
+            else None
+        )
+        self.register_buffer("k_cache", k_cache)
+        self.register_buffer("v_cache", v_cache)
+
+    def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
+            curr_pos (int): current position of the token in the sequence.
 
         Returns:
             Tensor: output tensor with attention applied
@@ -132,7 +154,6 @@ class LlamaSelfAttention(nn.Module):
         TODO: A few TODOs
             - Return the attention weights
             - Control whether we apply RoPE or not with a flag
-            - Add support for KV Cache (inference)
         """
 
         # input has shape [b, s, d]
@@ -164,21 +185,31 @@ class LlamaSelfAttention(nn.Module):
         # v: [b, s, n_kv, 1, h_d]
         q, k, v = qkv.split((q_per_kv, 1, 1), dim=3)
 
-        # if needed, expand the key and value tensors to have the same shape
-        # as the query tensor by copying values across the relevant dim
-        if self.num_heads != self.num_kv_heads:
-            k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-            v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-
         # llama2 applies the RoPE embeddings on tensors with shape
         # [b, s, n_h, h_d]
         # Reshape the tensors before we apply RoPE
         q = q.reshape(bsz, seq_len, -1, self.head_dim)
-        k = k.reshape(bsz, seq_len, -1, self.head_dim)
-        v = v.reshape(bsz, seq_len, -1, self.head_dim)
+        k = k.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
+        v = v.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
 
-        q = self.rope(q)
-        k = self.rope(k)
+        q = self.rope(q, curr_pos)
+        k = self.rope(k, curr_pos)
+
+        # Update the KV caches if they exist
+        if self.k_cache is not None and self.v_cache is not None:
+            # Add the new keys and values to the cache
+            self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k
+            self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v
+
+            # Get the key values for entire sequence
+            k = self.k_cache[:bsz, : curr_pos + seq_len]
+            v = self.v_cache[:bsz, : curr_pos + seq_len]
+
+        # if needed, expand the key and value tensors to have the same shape
+        # as the query tensor by copying values across the relevant dim
+        if self.num_heads != self.num_kv_heads:
+            k = k.repeat_interleave(repeats=q_per_kv, dim=2)
+            v = v.repeat_interleave(repeats=q_per_kv, dim=2)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
