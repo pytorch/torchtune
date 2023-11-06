@@ -58,12 +58,11 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache)
 
-    def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            curr_pos (int): current position in the sequence. Defaults to 0.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -76,7 +75,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
-        rope_cache = self.cache[curr_pos : curr_pos + seq_len]
+        rope_cache = self.cache[:seq_len]
 
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation

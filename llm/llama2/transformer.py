@@ -34,7 +34,6 @@ class TransformerDecoderLayer(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
-        max_bsz_for_kv_cache (Optional[int]): maximum batch size for kv cache. Defaults to None.
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -49,7 +48,6 @@ class TransformerDecoderLayer(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
-        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -61,14 +59,26 @@ class TransformerDecoderLayer(nn.Module):
             num_kv_heads=num_kv_heads,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
-            max_bsz_for_kv_cache=max_bsz_for_kv_cache,
         )
 
         # norm applied before the feedforward layer
         self.ff_norm = RMSNorm(dim=embed_dim)
         self.mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim)
 
-    def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
+    def initialize_kv_cache_for_inference(self, max_bsz):
+        """
+        Initializes the KV cache for inference.
+
+        Args:
+            max_bsz (int): maximum batch size during inference
+        """
+        self.attn.initialize_kv_cache_for_inference(max_bsz)
+
+    def clear_kv_cache(self):
+        """Clears the KV cache."""
+        self.attn.clear_kv_cache()
+
+    def forward(self, x: Tensor) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -89,7 +99,7 @@ class TransformerDecoderLayer(nn.Module):
         """
         # input tensor and attention output have the same shape
         # [b, s, d]
-        attn_out = self.attn(self.attn_norm(x), curr_pos)
+        attn_out = self.attn(self.attn_norm(x))
 
         # residual connection; shape: [b, s, d]
         h = attn_out + x
@@ -145,12 +155,9 @@ class TransformerDecoder(nn.Module):
         attn_dropout: float = 0.0,
         # RMS Norm params
         norm_eps: float = 1e-6,
-        # Specification of max batch size for building a KV cache
-        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
         self.max_seq_len = max_seq_len
-        self.max_bsz_for_kv_cache = max_bsz_for_kv_cache
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
         self.layers = torch.nn.ModuleList()
@@ -162,19 +169,30 @@ class TransformerDecoder(nn.Module):
                     num_kv_heads=num_kv_heads,
                     max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
-                    max_bsz_for_kv_cache=max_bsz_for_kv_cache,
                 )
             )
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
 
-    def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
+    def initialize_kv_cache_for_inference(self, max_bsz: int) -> None:
+        """
+        Initializes the KV cache for inference. This method must be called
+        before calling the forward method on the decoder.
+        """
+        for layer in self.layers:
+            layer.initialize_kv_cache_for_inference(max_bsz)
+
+    def clear_kv_cache(self) -> None:
+        """Clears the KV cache for all layers."""
+        for layer in self.layers:
+            layer.clear_kv_cache()
+
+    def forward(self, tokens: Tensor) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
                 [batch_size x seq_length]
-            curr_pos (int): current position of the token in the sequence. Defaults to 0.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -192,14 +210,6 @@ class TransformerDecoder(nn.Module):
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
 
-        if self.max_bsz_for_kv_cache is not None and bsz > self.max_bsz_for_kv_cache:
-            raise ValueError(
-                f"Batch size {bsz} exceeds the max batch size {self.max_bsz_for_kv_cache}. "
-                "Please use a smaller batch size, increase the max batch size for the model "
-                "or set `max_bsz_for_kv_cache`=None to disable the KV cache. Disabling the cache "
-                "will hurt performance."
-            )
-
         if seq_len > self.max_seq_len:
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
@@ -211,7 +221,7 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, curr_pos)
+            h = layer(h)
 
         # shape: [b, s, d]
         h = self.norm(h)

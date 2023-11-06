@@ -162,7 +162,6 @@ class TestTransformerDecoder:
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
-            max_bsz_for_kv_cache=32,
         )
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
@@ -194,7 +193,12 @@ class TestTransformerDecoder:
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
+        import time
+
         with torch.no_grad():
+            decoder_with_kv_cache_enabled.initialize_kv_cache_for_inference(max_bsz=32)
             output_cache = decoder_with_kv_cache_enabled(input)
+            decoder_with_kv_cache_enabled.clear_kv_cache()
             output_no_cache = decoder(input)
+
         assert_expected(output_cache.mean(), output_no_cache.mean())

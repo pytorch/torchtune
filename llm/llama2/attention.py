@@ -72,7 +72,6 @@ class LlamaSelfAttention(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
-        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -111,25 +110,40 @@ class LlamaSelfAttention(nn.Module):
             dim=self.head_dim, max_seq_len=max_seq_len
         )
 
-        # Build the KV Cache
-        k_cache = (
-            torch.zeros(
-                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
-            )
-            if max_bsz_for_kv_cache
-            else None
-        )
-        v_cache = (
-            torch.zeros(
-                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
-            )
-            if max_bsz_for_kv_cache
-            else None
-        )
-        self.register_buffer("k_cache", k_cache)
-        self.register_buffer("v_cache", v_cache)
+        # Initialize KV cache parameters
+        self.max_bsz_for_kv_cache = None
+        self.curr_pos_in_cache = 0
+        self.register_buffer("k_cache", None)
+        self.register_buffer("v_cache", None)
 
-    def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
+    def initialize_kv_cache_for_inference(self, max_bsz: int) -> None:
+        """
+        Initializes the KV cache for inference.
+
+        Args:
+            max_bsz (int): maximum batch size that will be used during inference.
+
+        Raises:
+            ValueError: if max_bsz is greater than max_bsz_for_kv_cache
+        """
+        self.max_bsz_for_kv_cache = max_bsz
+
+        # Build the KV Cache
+        self.k_cache = torch.zeros(
+            max_bsz, self.max_seq_len, self.num_kv_heads, self.head_dim
+        )
+        self.v_cache = torch.zeros(
+            max_bsz, self.max_seq_len, self.num_kv_heads, self.head_dim
+        )
+
+    def clear_kv_cache(self) -> None:
+        """Clears the KV cache and resets all associated parameters."""
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+        self.max_bsz_for_kv_cache = None
+        self.curr_pos_in_cache = 0
+
+    def forward(self, x: Tensor) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -140,6 +154,7 @@ class LlamaSelfAttention(nn.Module):
             Tensor: output tensor with attention applied
 
         Raises:
+            ValueError: if bsz is greater than max_bsz_for_kv_cache
             ValueError: if seq_len of x is bigger than max_seq_len
 
         Notation used for tensor shapes:
@@ -155,6 +170,8 @@ class LlamaSelfAttention(nn.Module):
             - Return the attention weights
             - Control whether we apply RoPE or not with a flag
         """
+        # import pdb
+        # pdb.set_trace()
 
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
@@ -163,6 +180,14 @@ class LlamaSelfAttention(nn.Module):
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
                 f"than max_seq_len ({self.max_seq_len})"
+            )
+
+        if self.max_bsz_for_kv_cache is not None and bsz > self.max_bsz_for_kv_cache:
+            raise ValueError(
+                f"Batch size {bsz} exceeds the max batch size {self.max_bsz_for_kv_cache}. "
+                "Please use a smaller batch size, increase the max batch size for the model "
+                "or set `max_bsz_for_kv_cache`=None to disable the KV cache. Disabling the cache "
+                "will hurt performance."
             )
 
         # qkv has shape [b, s, qkv_d]
@@ -192,18 +217,25 @@ class LlamaSelfAttention(nn.Module):
         k = k.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
         v = v.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
 
-        q = self.rope(q, curr_pos)
-        k = self.rope(k, curr_pos)
+        q = self.rope(q)
+        k = self.rope(k)
 
         # Update the KV caches if they exist
         if self.k_cache is not None and self.v_cache is not None:
             # Add the new keys and values to the cache
-            self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k
-            self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v
+            self.k_cache[
+                :bsz, self.curr_pos_in_cache : self.curr_pos_in_cache + seq_len
+            ] = k
+            self.v_cache[
+                :bsz, self.curr_pos_in_cache : self.curr_pos_in_cache + seq_len
+            ] = v
 
             # Get the key values for entire sequence
-            k = self.k_cache[:bsz, : curr_pos + seq_len]
-            v = self.v_cache[:bsz, : curr_pos + seq_len]
+            k = self.k_cache[:bsz, : self.curr_pos_in_cache + seq_len]
+            v = self.v_cache[:bsz, : self.curr_pos_in_cache + seq_len]
+
+            # Increment the current position in the cache
+            self.curr_pos_in_cache += seq_len
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
