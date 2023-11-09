@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 import abc
@@ -18,6 +24,9 @@ class TemperatureTransform(LogitsTransform):
 
     Args:
         temperature (float): The parameter controlling distribution randomness.
+
+    Raises:
+        ValueError: If `temperature` is less than or equal to zero.
     """
 
     def __init__(self, temperature: float):
@@ -38,6 +47,9 @@ class TopPTransform(LogitsTransform):
     Args:
         prob (float): The minimum cumulative probability mass that the kept tokens
             must cover.
+
+    Raises:
+        ValueError: If `prob` is less than or equal to zero or greater than one.
     """
 
     def __init__(self, prob: float):
@@ -64,6 +76,10 @@ class TopKTransform(LogitsTransform):
 
     Args:
         top_k (int): The number of highest probability tokens to keep.
+
+    Raises:
+        ValueError: If `top_k` is less than or equal to zero.
+        TypeError: If `top_k` is not an integer.
     """
 
     def __init__(self, top_k: int):

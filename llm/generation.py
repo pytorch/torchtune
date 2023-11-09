@@ -1,28 +1,52 @@
-from torch import nn, Tensor
-import torch
-from typing import List, Optional, Dict
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
-from llm.utils.logits_transforms import LogitsTransform, TopKTransform, TopPTransform, TemperatureTransform
+from typing import Dict, List, Optional
+
+import torch
+from torch import nn, Tensor
+
+from llm.utils.logits_transforms import (
+    LogitsTransform,
+    TemperatureTransform,
+    TopKTransform,
+    TopPTransform,
+)
+
 
 class GenerationUtils:
     """Utility class for generating text from an LLaMA model.
 
     Args:
-        decoder_lm: Transformer-Decoder based language model.
-        pad_id: Padding token ID.
-        eos_id: End-of-sequence token ID.
+        decoder_lm (nn.Module): Transformer-Decoder based language model.
+        pad_id (int): Padding token ID.
+        eos_id (int): End-of-sequence token ID.
     """
+
     def __init__(self, decoder_lm: nn.Module, pad_id: int, eos_id: int):
         self.decoder_lm = decoder_lm
         self.pad_id = pad_id
         self.eos_id = eos_id
 
     def _get_logits_transforms(
+        self,
         temperature: float,
         top_p: float,
         top_k: int,
     ) -> List[LogitsTransform]:
-        """Returns a list of parameterized logits transforms that can be chained."""
+        """Returns a list of parameterized logits transforms that can be chained.
+
+        Args:
+            temperature (float): Sampling temperature.
+            top_p (float): Probability threshold for nucleus sampling.
+            top_k (int): Number of tokens kept for top-k filtering.
+
+        Returns:
+            List of LogitsTransform objects.
+        """
         logits_transforms = []
         if temperature > 0:
             logits_transforms.append(TemperatureTransform(temperature))
@@ -33,11 +57,18 @@ class GenerationUtils:
 
         return logits_transforms
 
-
     def _apply_logits_transforms(
-        logits_transforms: List[LogitsTransform], logits: torch.FloatTensor
+        self, logits_transforms: List[LogitsTransform], logits: torch.FloatTensor
     ) -> torch.FloatTensor:
-        """Applies a chained list of logits transforms."""
+        """Applies a chained list of logits transforms.
+
+        Args:
+            logits_transforms (List[LogitsTransform]): List of LogitsTransform objects.
+            logits (torch.FloatTensor): Raw logits tensor.
+
+        Returns:
+            Transformed logits tensor.
+        """
         output_logits = (
             functools.reduce(lambda x, f: f(x), logits_transforms, logits)
             if logits_transforms
@@ -47,6 +78,7 @@ class GenerationUtils:
 
     @torch.no_grad()
     def generate(
+        self,
         prompt_tokens: List[List[int]],
         min_gen_len: int,
         max_gen_len: int,
@@ -55,23 +87,24 @@ class GenerationUtils:
         top_k: int = 1,
         keep_prompt: bool = True,
         logprobs: bool = False,
-        decoder_lm_kwargs: Dict[str, Any] = {},
+        decoder_lm_kwargs: Optional[Dict[str, Any]] = None,
         decode_incrementally: bool = True,
         device: Optional[torch.device] = torch.device("cpu"),
     ) -> Tuple[Tensor, Optional[Tensor]]:
         """Interface for generation supporting temperature, top-k, and top-p sampling.
 
         Args:
-            prompt_tokens: List of tokenized per-batch prompts.
-            min_gen_len: Minimum generated sequence length.
-            max_gen_len: Maximum generated sequence length.
-            temperature: Temperature value to control sampling randomness.
-            top_p: Probability threshold for nucleus sampling.
-            top_k: Number of tokens kept for top-k filtering.
-            keep_prompt: Whether to keep prompt tokens in the output tensor(s).
-            logprobs: Whether to compute log probabilities.
-            decoder_lm_kwargs: Additional arguments to pass to `decoder_lm.forward`.
-            device: Device on which to initialize prompt token tensors (should match device of model).
+            prompt_tokens (List[List[int]]): List of tokenized per-batch prompts.
+            min_gen_len (int): Minimum generated sequence length.
+            max_gen_len (int): Maximum generated sequence length.
+            temperature (float): Temperature value to control sampling randomness.
+            top_p (float): Probability threshold for nucleus sampling.
+            top_k (int): Number of tokens kept for top-k filtering.
+            keep_prompt (bool): Whether to keep prompt tokens in the output tensor(s).
+            logprobs (bool): Whether to compute log probabilities.
+            decoder_lm_kwargs (dict, optional): Additional arguments to pass to `decoder_lm.forward`.
+            decode_incrementally (bool): Whether to decode incrementally or not.
+            device (torch.device, optional): Device on which to initialize prompt token tensors (should match device of model).
 
         Returns:
             Tuple of generated tokens and optional log probabilities if `logprobs=True`,
@@ -90,6 +123,8 @@ class GenerationUtils:
             >>> print(tokens)
             ["I love to eat ice cream"]
         """
+        decoder_lm_kwargs = {} if decoder_lm_kwargs is None else decoder_lm_kwargs
+
         batch_size = len(prompt_tokens)
         max_prompt_len = max(len(p) for p in prompt_tokens)
         min_prompt_len = min(len(p) for p in prompt_tokens)
@@ -98,7 +133,9 @@ class GenerationUtils:
             (batch_size, total_gen_len), pad_token_id, dtype=torch.long, device=device
         )
         for i, prompt in enumerate(prompt_tokens):
-            tokens[i, : len(prompt)] = torch.tensor(prompt, dtype=torch.long, device=device)
+            tokens[i, : len(prompt)] = torch.tensor(
+                prompt, dtype=torch.long, device=device
+            )
         if logprobs:
             token_logprobs = torch.full_like(
                 tokens, float("-inf"), dtype=torch.float, device=device
@@ -119,7 +156,9 @@ class GenerationUtils:
 
             # Convert to probability distribution, then sample
             next_token_probs = next_token_logits.softmax(dim=-1)
-            next_token_probs = self._apply_logits_transforms(logits_transforms, next_token_probs)
+            next_token_probs = self._apply_logits_transforms(
+                logits_transforms, next_token_probs
+            )
             next_token = torch.multinomial(next_token_probs, num_samples=1).squeeze(1)
             # Record positions of any EOS tokens across batches
             eos_reached_cur = next_token.eq(eos_token_id)
