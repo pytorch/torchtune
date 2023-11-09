@@ -281,13 +281,78 @@ if __name__ == "__main__":
     # We don't expect to load into RoPE but have rope.freqs in our state_dict, so
     # this is the only unexpected key.
     assert unexpected_keys == ["rope.freqs"]
+    cool_tensor = torch.tensor(
+        [
+            1,
+            4103,
+            9632,
+            4223,
+            304,
+            5176,
+            29901,
+            13,
+            13,
+            4706,
+            7205,
+            4932,
+            357,
+            1149,
+            301,
+            449,
+            276,
+            316,
+            2778,
+            13,
+            4706,
+            1236,
+            407,
+            837,
+            524,
+            1149,
+            6042,
+            354,
+            772,
+            440,
+            29878,
+            1318,
+            13,
+            4706,
+            715,
+            1878,
+            330,
+            3055,
+            1725,
+            1149,
+            330,
+            3055,
+            1725,
+            4639,
+            28754,
+            13,
+            4706,
+            923,
+            968,
+            1149,
+            2,
+        ],
+        dtype=torch.long,
+        device="cuda",
+    )
+    y = decoder(cool_tensor.unsqueeze(0)).sum()
+    x = tformer(cool_tensor.unsqueeze(0)).sum()
+    print(torch.allclose(x, y))
+    import pdb
 
+    pdb.set_trace()
     # Validate equivalence.
     bsz, seqlen = 16, 128
     with torch.no_grad():
         for _ in range(10):
             toks = torch.randint(
-                low=0, high=llama_7b_args.vocab_size + 1, size=(bsz, seqlen)
+                low=0,
+                high=llama_7b_args.vocab_size + 1,
+                size=(bsz, seqlen),
+                dtype=torch.long,
             )
             y = decoder(toks).sum()
             x = tformer(toks).sum()

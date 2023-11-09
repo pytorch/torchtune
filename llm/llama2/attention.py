@@ -194,8 +194,10 @@ class LlamaSelfAttention(nn.Module):
 
         q = self.rope(q, curr_pos)
         k = self.rope(k, curr_pos)
-
+        # if seq_len == 1:
+        #     import pdb ; pdb.set_trace()
         # Update the KV caches if they exist
+        # print(f"RV: using caching {self.k_cache is not None}")
         if self.k_cache is not None and self.v_cache is not None:
             # Add the new keys and values to the cache
             self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k
@@ -204,6 +206,12 @@ class LlamaSelfAttention(nn.Module):
             # Get the key values for entire sequence
             k = self.k_cache[:bsz, : curr_pos + seq_len]
             v = self.v_cache[:bsz, : curr_pos + seq_len]
+
+            # self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
+            # self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
+
+            # keys = self.cache_k[:bsz, : start_pos + seqlen]
+            # values = self.cache_v[:bsz, : start_pos + seqlen]
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
