@@ -68,7 +68,7 @@ class TopKTransform(LogitsTransform):
 
     def __init__(self, top_k: int):
         if top_k <= 0:
-            raise ValueError(f"Expected 0 < `top_k` but got {top_k=}")
+            raise ValueError(f"Expected 0 `top_k` > but got {top_k=}")
         if not isinstance(top_k, int):
             raise TypeError(f"Expected `top_k` to be int but got {type(top_k)=}")
 
