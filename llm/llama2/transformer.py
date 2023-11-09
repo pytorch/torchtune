@@ -14,6 +14,24 @@ from llm.llama2.attention import LlamaSelfAttention
 from llm.llama2.feed_forward import FeedForward
 from llm.llama2.rms_norm import RMSNorm
 
+class KVCache(nn.Module):
+    def __init__(self, max_batch_size: int, max_seq_length: int, n_heads: int, head_dim: int, dtype=torch.bfloat16):
+        super().__init__()
+        cache_shape = (max_batch_size, n_heads, max_seq_length, head_dim)
+        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
+        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
+
+    def update(self, input_pos, k_val, v_val):
+        # input_pos: [S], k_val: [B, H, S, D]
+        assert input_pos.shape[0] == k_val.shape[2]
+
+        k_out = self.k_cache
+        v_out = self.v_cache
+        k_out[:, :, input_pos] = k_val
+        v_out[:, :, input_pos] = v_val
+
+        return k_out, v_out
+
 
 class TransformerDecoderLayer(nn.Module):
     """
@@ -46,10 +64,8 @@ class TransformerDecoderLayer(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
-        max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
-        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -59,9 +75,7 @@ class TransformerDecoderLayer(nn.Module):
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
-            max_bsz_for_kv_cache=max_bsz_for_kv_cache,
         )
 
         # norm applied before the feedforward layer
@@ -140,7 +154,6 @@ class TransformerDecoder(nn.Module):
         # transformer layer params
         num_layers: int,
         num_heads: int,
-        max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
         # RMS Norm params
@@ -149,7 +162,6 @@ class TransformerDecoder(nn.Module):
         max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
-        self.max_seq_len = max_seq_len
         self.max_bsz_for_kv_cache = max_bsz_for_kv_cache
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
@@ -160,7 +172,6 @@ class TransformerDecoder(nn.Module):
                     embed_dim=embed_dim,
                     num_heads=num_heads,
                     num_kv_heads=num_kv_heads,
-                    max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
                     max_bsz_for_kv_cache=max_bsz_for_kv_cache,
                 )
@@ -168,6 +179,9 @@ class TransformerDecoder(nn.Module):
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
+
+    def create_caches(self, max_batch_size: int, max_seq_len: int) -> None:
+
 
     def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
         """
@@ -180,9 +194,6 @@ class TransformerDecoder(nn.Module):
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x vocab_size]
 
-        Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
-
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
@@ -191,20 +202,6 @@ class TransformerDecoder(nn.Module):
         """
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
-
-        if self.max_bsz_for_kv_cache is not None and bsz > self.max_bsz_for_kv_cache:
-            raise ValueError(
-                f"Batch size {bsz} exceeds the max batch size {self.max_bsz_for_kv_cache}. "
-                "Please use a smaller batch size, increase the max batch size for the model "
-                "or set `max_bsz_for_kv_cache`=None to disable the KV cache. Disabling the cache "
-                "will hurt performance."
-            )
-
-        if seq_len > self.max_seq_len:
-            raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller "
-                f"than max_seq_len ({self.max_seq_len})"
-            )
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
