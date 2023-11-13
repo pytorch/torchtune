@@ -341,9 +341,6 @@ if __name__ == "__main__":
     y = decoder(cool_tensor.unsqueeze(0)).sum()
     x = tformer(cool_tensor.unsqueeze(0)).sum()
     print(torch.allclose(x, y))
-    import pdb
-
-    pdb.set_trace()
     # Validate equivalence.
     bsz, seqlen = 16, 128
     with torch.no_grad():
@@ -362,8 +359,8 @@ if __name__ == "__main__":
 
     # TODO: we'll make this configurable when we switch to torch.distributed.checkpoint
     # and enable scales other than 7b.
-    native_dirpath = "/tmp/native_checkpoints"
-    checkpoint_file = "llama2-7b"
+    native_dirpath = "/home/rvarm1/local/dev/assets"
+    checkpoint_file = "llama2-7b-native-checkpoint"
     if not os.path.exists(native_dirpath):
         os.makedirs(native_dirpath)
 
