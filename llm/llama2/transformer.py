@@ -34,6 +34,7 @@ class TransformerDecoderLayer(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
+        norm_eps (float): eps value of for RMSNorm. Default is 1e-5.
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -48,11 +49,12 @@ class TransformerDecoderLayer(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        norm_eps: float = 1e-5,
     ) -> None:
         super().__init__()
 
         # norm applied before self-attention
-        self.attn_norm = RMSNorm(dim=embed_dim)
+        self.attn_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
         self.attn = LlamaSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -62,7 +64,7 @@ class TransformerDecoderLayer(nn.Module):
         )
 
         # norm applied before the feedforward layer
-        self.ff_norm = RMSNorm(dim=embed_dim)
+        self.ff_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
         self.mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -119,7 +121,7 @@ class TransformerDecoder(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
-        norm_eps (float): eps value of for RMS Norm
+        norm_eps (float): eps value of for RMS Norm. Default is 1e-5.
 
     TODO: A few TODOs
             - Make norm configurable
@@ -153,6 +155,7 @@ class TransformerDecoder(nn.Module):
                     num_kv_heads=num_kv_heads,
                     max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
+                    norm_eps=norm_eps,
                 )
             )
 

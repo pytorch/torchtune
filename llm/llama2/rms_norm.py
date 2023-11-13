@@ -20,11 +20,12 @@ class RMSNorm(nn.Module):
 
     Args:
         dim (int): embedding size
-        eps (float): small value to avoid division by zero. Default: 1e-6
+        eps (float): small value to avoid division by zero. Default: 1e-5
     """
 
-    def __init__(self, dim: int, eps: float = 1e-6) -> None:
+    def __init__(self, dim: int, eps: float = 1e-5) -> None:
         super().__init__()
+        print(f"RV: got eps {eps}", flush=True)
         self.eps = eps
         self.scale = nn.Parameter(torch.ones(dim))
 
