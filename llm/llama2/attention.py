@@ -56,6 +56,7 @@ class LlamaSelfAttention(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
+        max_batch_size (Optional[int]): max_batch_size
 
     Raises:
          ValueError: If `num_heads` % `num_kv_heads` != 0
@@ -70,9 +71,10 @@ class LlamaSelfAttention(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
-
+        self.max_batch_size = max_batch_size
         if num_kv_heads and num_heads % num_kv_heads != 0:
             raise ValueError(
                 f"num_heads ({num_heads}) must be divisible by "
@@ -95,6 +97,13 @@ class LlamaSelfAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.max_seq_len = max_seq_len
 
+        if self.max_batch_size:
+            self.kv_cache = KVCache(
+                self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim
+            )
+        else:
+            self.kv_cache = None
+
         # Output dimension of the qkv projection matrix depends on the
         # total number of heads and the dimension of each head.
         # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
@@ -108,7 +117,12 @@ class LlamaSelfAttention(nn.Module):
             dim=self.head_dim, max_seq_len=max_seq_len
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(
+        self,
+        x: Tensor,
+        mask: Optional[Tensor] = None,
+        curr_pos: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -185,6 +199,15 @@ class LlamaSelfAttention(nn.Module):
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
 
+        # Update kv caches
+        if self.kv_cache is not None:
+            assert curr_pos is not None
+            k, v = self.kv_cache.update(curr_pos, k, v)
+
+        # TODO: repeat_interleave?
+        # k = k.repeat_interleave(self.num_heads // q_per_kv, dim=1)
+        # v = v.repeat_interleave(self.num_heads // q_per_kv, dim=1)
+
         # using SDPA from nn.functional allows us to take
         # advantage of flash attention
         # ref: https://pytorch.org/blog/accelerating-large-language-models/
@@ -192,9 +215,9 @@ class LlamaSelfAttention(nn.Module):
             q,
             k,
             v,
-            attn_mask=None,
+            attn_mask=mask,  # mask is an inference mask if max_batch_size was configured
             dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=True,
+            is_causal=(True if not mask else False),
         )
 
         # reshape the output to be the same shape as the input
