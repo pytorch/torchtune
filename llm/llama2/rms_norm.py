@@ -25,7 +25,6 @@ class RMSNorm(nn.Module):
 
     def __init__(self, dim: int, eps: float = 1e-5) -> None:
         super().__init__()
-        print(f"RV: got eps {eps}", flush=True)
         self.eps = eps
         self.scale = nn.Parameter(torch.ones(dim))
 
