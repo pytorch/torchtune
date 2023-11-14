@@ -1,0 +1,55 @@
+============================= test session starts ==============================
+platform linux -- Python 3.10.13, pytest-7.4.3, pluggy-1.3.0
+rootdir: /data/users/rvarm1/dev/torch_tbd
+collected 4 items / 3 deselected / 1 selected
+
+tests/llm/llama2/test_transformer.py F                                   [100%]
+
+=================================== FAILURES ===================================
+_________________ TestTransformerDecoder.test_args_propagated __________________
+
+self = <tests.llm.llama2.test_transformer.TestTransformerDecoder object at 0x7f739c458580>
+decoder_params = (1024, 4096, 4, 32, 4096, 8)
+
+    def test_args_propagated(self, decoder_params: Tuple[int, int, int, int, int, int]) -> None:
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
+    
+        expected_norm_eps = 1e-2
+    
+        decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+            norm_eps=expected_norm_eps,
+        )
+        # ensure RMSNorm norm_eps is propagated across all RMSNorm instances
+        rms_norms = [module for module in decoder.modules() if isinstance(module, RMSNorm)]
+        for norm in rms_norms:
+>           assert norm.eps == expected_norm_eps
+E           assert 1e-05 == 0.01
+E            +  where 1e-05 = RMSNorm().eps
+
+tests/llm/llama2/test_transformer.py:191: AssertionError
+----------------------------- Captured stdout call -----------------------------
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 1e-05
+RV: got eps 0.01
+=========================== short test summary info ============================
+FAILED tests/llm/llama2/test_transformer.py::TestTransformerDecoder::test_args_propagated
+======================= 1 failed, 3 deselected in 7.69s ========================

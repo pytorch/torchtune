@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import abc
 import math
 import random
 
-from typing import Any, Union, List, Optional, Dict, Callable
-import abc
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import torch
 
@@ -86,6 +86,7 @@ def assert_expected(
         check_device=check_device,
         msg=f"actual: {actual}, expected: {expected}",
     )
+
 
 class LogitsTransform(abc.ABC):
     """Interface for a logits transformation."""
@@ -268,10 +269,18 @@ def generate(
     prev_pos = 0
     eos_reached = torch.zeros(batch_size, dtype=torch.bool, device=device)
     for cur_pos in range(min_prompt_len, total_gen_len):
-        input_ids = tokens[:, prev_pos:cur_pos] if incremental_decode else tokens[:, :cur_pos]
-        cur_pos_tensor = torch.arange(0, cur_pos, device=device) if not incremental_decode else torch.arange(prev_pos, cur_pos, device=device)
+        input_ids = (
+            tokens[:, prev_pos:cur_pos] if incremental_decode else tokens[:, :cur_pos]
+        )
+        cur_pos_tensor = (
+            torch.arange(0, cur_pos, device=device)
+            if not incremental_decode
+            else torch.arange(prev_pos, cur_pos, device=device)
+        )
         outputs = (
-            decoder_lm(input_ids, cur_pos_tensor) if decoder_lm_kwargs else decoder_lm(input_ids)
+            decoder_lm(input_ids, cur_pos_tensor)
+            if decoder_lm_kwargs
+            else decoder_lm(input_ids)
         )
         if logits_accessor:
             logits = logits_accessor(outputs)
