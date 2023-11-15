@@ -12,40 +12,6 @@ from torch import nn, Tensor
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
 
-class MaskCache(nn.Module):
-    """Mask Cache for Self-Attention.
-
-    Args:
-        max_seq_len (int): Maximum sequence length supported by the model.
-    """
-
-    def __init__(
-        self,
-        max_seq_len: int,
-    ):
-        super().__init__()
-        self.max_seq_len = max_seq_len
-        cache_shape = (max_seq_len, max_seq_len)
-        self.register_buffer(
-            "mask",
-            torch.tril(torch.ones(cache_shape, dtype=torch.bool))
-            .unsqueeze(0)
-            .unsqueeze(0),
-        )
-
-    def get_mask_for_curr_pos(self, curr_pos: int, seq_len: int) -> Tensor:
-        """Get mask for current position.
-
-        Args:
-            curr_pos (int): Current position.
-            seq_len (int): Sequence length.
-
-        Returns:
-            Tensor: Mask for current position.
-        """
-        return self.mask[:, :, curr_pos : curr_pos + seq_len]
-
-
 class KVCache(nn.Module):
     """Key-Value Cache for Self-Attention.
 
@@ -203,8 +169,6 @@ class LlamaSelfAttention(nn.Module):
         else:
             self.kv_cache = None
 
-        self.mask_cache = MaskCache(max_seq_len)
-
     def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
         """
         Args:
@@ -279,11 +243,8 @@ class LlamaSelfAttention(nn.Module):
             q,
             k,
             v,
-            attn_mask=None
-            if self.training
-            else self.mask_cache.get_mask_for_curr_pos(curr_pos, seq_len),
             dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=True if self.training else False,
+            is_causal=True,
         )
 
         # reshape the output to be the same shape as the input
