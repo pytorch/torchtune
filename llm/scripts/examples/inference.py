@@ -73,12 +73,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--native-checkpoint-path", type=str, help="Path to native checkpoint file."
     )
-    parser.add_argument(
-        "--fair-checkpoint-path", type=str, help="Path to FAIR checkpoint file"
-    )
-    parser.add_argument(
-        "--mm-checkpoint-path", type=str, help="Path for torchMM checkpoints"
-    )
     parser.add_argument("--tokenizer-path", type=str, help="Path to tokenization file.")
 
     args = parser.parse_args()

@@ -79,10 +79,11 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
-        # freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
         if curr_pos is None:
             rope_cache = self.cache[:seq_len]
         else:
+            # During incremental decoding for inference, we need to slice
+            # the appropriate region of the cache.
             rope_cache = self.cache[curr_pos : curr_pos + seq_len]
 
         # reshape input; the last dimension is used for computing the output.

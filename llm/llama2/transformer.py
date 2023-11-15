@@ -157,7 +157,6 @@ class TransformerDecoder(nn.Module):
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
         self.layers = torch.nn.ModuleList()
-        first = True
         for _ in range(num_layers):
             self.layers.append(
                 TransformerDecoderLayer(
@@ -169,9 +168,6 @@ class TransformerDecoder(nn.Module):
                     max_batch_size=self.max_batch_size,
                 )
             )
-            if first:
-                self.layers[0].attn._first = True
-                first = False
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
@@ -216,7 +212,6 @@ class TransformerDecoder(nn.Module):
         # TODO: write shape
         mask = None
         if seq_len > 1 and self.max_batch_size is not None:
-            print("creating mask", flush=True)
             mask = torch.full(
                 (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
             )

@@ -6,11 +6,11 @@
 
 from typing import Optional
 
-from torch import nn, Tensor
-from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 from llm.llama2.kv_cache import KVCache
+from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
-_first = True
+from torch import nn, Tensor
+
 
 class LlamaSelfAttention(nn.Module):
     """
@@ -198,35 +198,20 @@ class LlamaSelfAttention(nn.Module):
         if self.kv_cache is not None:
             assert curr_pos is not None
             keys, values = self.kv_cache.update(
-                batch_size=bsz,
-                seq_len=seq_len,
-                curr_pos=curr_pos,
-                k_val=k,
-                v_val=v
+                batch_size=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
             )
-            # start_pos, seqlen = curr_pos, seq_len
-            # xk, xv = k, v
-            # xq =q
-            # self.cache_k = self.cache_k.to(xq)
-            # self.cache_v = self.cache_v.to(xq)
-
-            # self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
-            # self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
-
-            # keys = self.cache_k[:bsz, : start_pos + seqlen]
-            # values = self.cache_v[:bsz, : start_pos + seqlen]
         else:
             keys, values = k, v
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
         keys = keys.transpose(1, 2)
-        values= values.transpose(1, 2)
+        values = values.transpose(1, 2)
 
         # using SDPA from nn.functional allows us to take
         # advantage of flash attention
         # ref: https://pytorch.org/blog/accelerating-large-language-models/
-        is_causal_flag = (True if self.kv_cache is None else False)
+        is_causal_flag = True if self.kv_cache is None else False
         output = nn.functional.scaled_dot_product_attention(
             q,
             keys,
