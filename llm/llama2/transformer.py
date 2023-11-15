@@ -34,6 +34,7 @@ class TransformerDecoderLayer(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
+        max_batch_size (Optional[int]): max batch size
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -48,9 +49,10 @@ class TransformerDecoderLayer(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
-
+        self.max_batch_size = max_batch_size
         # norm applied before self-attention
         self.attn_norm = RMSNorm(dim=embed_dim)
         self.attn = LlamaSelfAttention(
@@ -59,13 +61,19 @@ class TransformerDecoderLayer(nn.Module):
             num_kv_heads=num_kv_heads,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
+            max_batch_size=max_batch_size,
         )
 
         # norm applied before the feedforward layer
         self.ff_norm = RMSNorm(dim=embed_dim)
         self.mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(
+        self,
+        x: Tensor,
+        mask: Optional[Tensor] = None,
+        curr_pos: Optional[int] = None,
+    ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -85,7 +93,7 @@ class TransformerDecoderLayer(nn.Module):
         """
         # input tensor and attention output have the same shape
         # [b, s, d]
-        attn_out = self.attn(self.attn_norm(x))
+        attn_out = self.attn(self.attn_norm(x), mask, curr_pos)
 
         # residual connection; shape: [b, s, d]
         h = attn_out + x
@@ -120,6 +128,7 @@ class TransformerDecoder(nn.Module):
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
         norm_eps (float): eps value of for RMS Norm
+        max_batch_size (Optional[int]): max batch size
 
     TODO: A few TODOs
             - Make norm configurable
@@ -139,12 +148,16 @@ class TransformerDecoder(nn.Module):
         attn_dropout: float = 0.0,
         # RMS Norm params
         norm_eps: float = 1e-6,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
+        self.max_batch_size = max_batch_size
+
         self.max_seq_len = max_seq_len
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
         self.layers = torch.nn.ModuleList()
+        first = True
         for _ in range(num_layers):
             self.layers.append(
                 TransformerDecoderLayer(
@@ -153,13 +166,23 @@ class TransformerDecoder(nn.Module):
                     num_kv_heads=num_kv_heads,
                     max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
+                    max_batch_size=self.max_batch_size,
                 )
             )
+            if first:
+                self.layers[0].attn._first = True
+                first = False
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
 
-    def forward(self, tokens: Tensor) -> Tensor:
+        if self.max_batch_size:
+            ones = torch.ones((max_seq_len, max_seq_len), dtype=torch.bool)
+            self.mask_cache = torch.tril(ones).unsqueeze(0).unsqueeze(0)
+        else:
+            self.mask_cache = None
+
+    def forward(self, tokens: Tensor, curr_pos: Optional[int] = None) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
@@ -190,9 +213,17 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
+        # TODO: write shape
+        mask = None
+        if seq_len > 1 and self.max_batch_size is not None:
+            print("creating mask", flush=True)
+            mask = torch.full(
+                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
+            )
+            mask = torch.triu(mask, diagonal=curr_pos + 1).type_as(h)
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h)
+            h = layer(h, mask, curr_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)

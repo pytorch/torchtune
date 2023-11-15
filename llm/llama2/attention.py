@@ -7,9 +7,11 @@
 from typing import Optional
 
 from torch import nn, Tensor
-
+import torch
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
+from llm.llama2.kv_cache import KVCache
 
+_first = True
 
 class LlamaSelfAttention(nn.Module):
     """
@@ -56,6 +58,7 @@ class LlamaSelfAttention(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
+        max_batch_size (Optional[int]): max_batch_size
 
     Raises:
          ValueError: If `num_heads` % `num_kv_heads` != 0
@@ -70,9 +73,10 @@ class LlamaSelfAttention(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
-
+        self.max_batch_size = max_batch_size
         if num_kv_heads and num_heads % num_kv_heads != 0:
             raise ValueError(
                 f"num_heads ({num_heads}) must be divisible by "
@@ -95,6 +99,15 @@ class LlamaSelfAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.max_seq_len = max_seq_len
 
+        if self.max_batch_size:
+            self.kv_cache = KVCache(
+                self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim
+            )
+            self.cache_k = torch.zeros(self.max_batch_size,self.max_seq_len,self.num_kv_heads,self.head_dim)
+            self.cache_v = torch.zeros(self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim)
+        else:
+            self.kv_cache = None
+
         # Output dimension of the qkv projection matrix depends on the
         # total number of heads and the dimension of each head.
         # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
@@ -108,7 +121,12 @@ class LlamaSelfAttention(nn.Module):
             dim=self.head_dim, max_seq_len=max_seq_len
         )
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(
+        self,
+        x: Tensor,
+        mask: Optional[Tensor] = None,
+        curr_pos: Optional[int] = None,
+    ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -132,7 +150,6 @@ class LlamaSelfAttention(nn.Module):
         TODO: A few TODOs
             - Return the attention weights
             - Control whether we apply RoPE or not with a flag
-            - Add support for KV Cache (inference)
         """
 
         # input has shape [b, s, d]
@@ -158,6 +175,9 @@ class LlamaSelfAttention(nn.Module):
         # decompose the last dimension into n_kv x total_qkv, h_d
         qkv = qkv.view(bsz, seq_len, self.num_kv_heads, total_qkv, self.head_dim)
 
+        # kv_size = self.n_query_groups * self.head_dim
+        # q, k, v = self.attn(x).split([self.n_embd, kv_size, kv_size], dim=-1)
+
         # create the q,k and v tensors by splitting qkv
         # q: [b, s, n_kv, q_per_kv, h_d]
         # k: [b, s, n_kv, 1, h_d]
@@ -177,24 +197,73 @@ class LlamaSelfAttention(nn.Module):
         k = k.reshape(bsz, seq_len, -1, self.head_dim)
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
-        q = self.rope(q)
-        k = self.rope(k)
+        q = self.rope(q, curr_pos)
+        k = self.rope(k, curr_pos)
+
+        # Update kv caches
+        if self.kv_cache is not None:
+            assert curr_pos is not None
+
+            # keys, values = self.kv_cache.update(
+            #     batch_size=bsz,
+            #     seq_len=seq_len,
+            #     curr_pos=curr_pos,
+            #     k_val=k,
+            #     v_val=v
+            # )
+            start_pos, seqlen = curr_pos, seq_len
+            xk, xv = k, v
+            xq =q
+            self.cache_k = self.cache_k.to(xq)
+            self.cache_v = self.cache_v.to(xq)
+
+            self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
+            self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
+
+            keys = self.cache_k[:bsz, : start_pos + seqlen]
+            values = self.cache_v[:bsz, : start_pos + seqlen]
+        else:
+            keys, values = k, v
+
+        print(f"kv shape: {keys.shape} {values.shape} using kvcache:{self.kv_cache is not None}", flush=True)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
+        keys = keys.transpose(1, 2)
+        values= values.transpose(1, 2)
+
+        # TODO: repeat_interleave?
+        # k = k.repeat_interleave(self.num_heads // q_per_kv, dim=1)
+        # v = v.repeat_interleave(self.num_heads // q_per_kv, dim=1)
 
         # using SDPA from nn.functional allows us to take
         # advantage of flash attention
         # ref: https://pytorch.org/blog/accelerating-large-language-models/
+        # print(f"RV: mask none={mask is None}, causal={True if mask is None else False}", flush=True)
+        is_causal_flag = (True if self.kv_cache is None else False)
+        # print(f"RV: mask none={mask is None}, is_causal falg={is_causal_flag}")
+        # nonlocal _first
+        # if _first:
+        #     import pdb ; pdb.set_trace()
+        #     _first = False
+        # output = nn.functional.scaled_dot_product_attention(
+        #     q,
+        #     k,
+        #     v,
+        #     attn_mask=None,  # mask is an inference mask if max_batch_size was configured
+        #     dropout_p=self.attn_dropout if self.training else 0.0,
+        #     is_causal=True
+        # )
+        # raise ValueError("Fhfhh")
+        # if getattr(self, '_first', False):
+        #     import pdb ; pdb.set_trace()
         output = nn.functional.scaled_dot_product_attention(
             q,
-            k,
-            v,
-            attn_mask=None,
+            keys,
+            values,
+            attn_mask=mask,  # mask is an inference mask if max_batch_size was configured
             dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=True,
+            is_causal=is_causal_flag,
         )
 
         # reshape the output to be the same shape as the input
