@@ -7,7 +7,6 @@
 from typing import Optional
 
 from torch import nn, Tensor
-import torch
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 from llm.llama2.kv_cache import KVCache
 
@@ -103,8 +102,6 @@ class LlamaSelfAttention(nn.Module):
             self.kv_cache = KVCache(
                 self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim
             )
-            self.cache_k = torch.zeros(self.max_batch_size,self.max_seq_len,self.num_kv_heads,self.head_dim)
-            self.cache_v = torch.zeros(self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim)
         else:
             self.kv_cache = None
 
@@ -175,9 +172,6 @@ class LlamaSelfAttention(nn.Module):
         # decompose the last dimension into n_kv x total_qkv, h_d
         qkv = qkv.view(bsz, seq_len, self.num_kv_heads, total_qkv, self.head_dim)
 
-        # kv_size = self.n_query_groups * self.head_dim
-        # q, k, v = self.attn(x).split([self.n_embd, kv_size, kv_size], dim=-1)
-
         # create the q,k and v tensors by splitting qkv
         # q: [b, s, n_kv, q_per_kv, h_d]
         # k: [b, s, n_kv, 1, h_d]
@@ -203,60 +197,36 @@ class LlamaSelfAttention(nn.Module):
         # Update kv caches
         if self.kv_cache is not None:
             assert curr_pos is not None
+            keys, values = self.kv_cache.update(
+                batch_size=bsz,
+                seq_len=seq_len,
+                curr_pos=curr_pos,
+                k_val=k,
+                v_val=v
+            )
+            # start_pos, seqlen = curr_pos, seq_len
+            # xk, xv = k, v
+            # xq =q
+            # self.cache_k = self.cache_k.to(xq)
+            # self.cache_v = self.cache_v.to(xq)
 
-            # keys, values = self.kv_cache.update(
-            #     batch_size=bsz,
-            #     seq_len=seq_len,
-            #     curr_pos=curr_pos,
-            #     k_val=k,
-            #     v_val=v
-            # )
-            start_pos, seqlen = curr_pos, seq_len
-            xk, xv = k, v
-            xq =q
-            self.cache_k = self.cache_k.to(xq)
-            self.cache_v = self.cache_v.to(xq)
+            # self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
+            # self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
 
-            self.cache_k[:bsz, start_pos : start_pos + seqlen] = xk
-            self.cache_v[:bsz, start_pos : start_pos + seqlen] = xv
-
-            keys = self.cache_k[:bsz, : start_pos + seqlen]
-            values = self.cache_v[:bsz, : start_pos + seqlen]
+            # keys = self.cache_k[:bsz, : start_pos + seqlen]
+            # values = self.cache_v[:bsz, : start_pos + seqlen]
         else:
             keys, values = k, v
-
-        print(f"kv shape: {keys.shape} {values.shape} using kvcache:{self.kv_cache is not None}", flush=True)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
         keys = keys.transpose(1, 2)
         values= values.transpose(1, 2)
 
-        # TODO: repeat_interleave?
-        # k = k.repeat_interleave(self.num_heads // q_per_kv, dim=1)
-        # v = v.repeat_interleave(self.num_heads // q_per_kv, dim=1)
-
         # using SDPA from nn.functional allows us to take
         # advantage of flash attention
         # ref: https://pytorch.org/blog/accelerating-large-language-models/
-        # print(f"RV: mask none={mask is None}, causal={True if mask is None else False}", flush=True)
         is_causal_flag = (True if self.kv_cache is None else False)
-        # print(f"RV: mask none={mask is None}, is_causal falg={is_causal_flag}")
-        # nonlocal _first
-        # if _first:
-        #     import pdb ; pdb.set_trace()
-        #     _first = False
-        # output = nn.functional.scaled_dot_product_attention(
-        #     q,
-        #     k,
-        #     v,
-        #     attn_mask=None,  # mask is an inference mask if max_batch_size was configured
-        #     dropout_p=self.attn_dropout if self.training else 0.0,
-        #     is_causal=True
-        # )
-        # raise ValueError("Fhfhh")
-        # if getattr(self, '_first', False):
-        #     import pdb ; pdb.set_trace()
         output = nn.functional.scaled_dot_product_attention(
             q,
             keys,

@@ -5,11 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import abc
+import functools
 import math
 import random
 
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple
-import functools
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 
@@ -88,7 +88,9 @@ def assert_expected(
         msg=f"actual: {actual}, expected: {expected}",
     )
 
+
 from dataclasses import dataclass
+
 
 @dataclass
 class LlamaArgs:
@@ -313,21 +315,11 @@ def generate(
         input_ids = (
             tokens[:, prev_pos:cur_pos] if incremental_decode else tokens[:, :cur_pos]
         )
-        # cur_pos_tensor = (
-        #     torch.arange(0, cur_pos, device=device)
-        #     if not incremental_decode
-        #     else torch.arange(prev_pos, cur_pos, device=device)
-        # )
-        # import pdb ; pdb.set_trace()
-        # if incremental_decode:
-        #     import pdb ; pdb.set_trace()
         outputs = (
             decoder_lm(input_ids, prev_pos if incremental_decode else 0)
             if decoder_lm_kwargs
             else decoder_lm(input_ids)
         )
-        if decoder_lm_kwargs:
-            print(f"sum:{outputs.sum()} incremental={incremental_decode}", flush=True)
         if logits_accessor:
             logits = logits_accessor(outputs)
         else:
