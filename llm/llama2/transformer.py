@@ -14,24 +14,6 @@ from llm.llama2.attention import LlamaSelfAttention
 from llm.llama2.feed_forward import FeedForward
 from llm.llama2.rms_norm import RMSNorm
 
-class KVCache(nn.Module):
-    def __init__(self, max_batch_size: int, max_seq_length: int, n_heads: int, head_dim: int, dtype=torch.bfloat16):
-        super().__init__()
-        cache_shape = (max_batch_size, n_heads, max_seq_length, head_dim)
-        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-
-    def update(self, input_pos, k_val, v_val):
-        # input_pos: [S], k_val: [B, H, S, D]
-        assert input_pos.shape[0] == k_val.shape[2]
-
-        k_out = self.k_cache
-        v_out = self.v_cache
-        k_out[:, :, input_pos] = k_val
-        v_out[:, :, input_pos] = v_val
-
-        return k_out, v_out
-
 
 class TransformerDecoderLayer(nn.Module):
     """
@@ -44,14 +26,14 @@ class TransformerDecoderLayer(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. To enable MHA, set
             ```num_kv_heads``` = ```num_heads``` or ```num_kv_heads``` = None
-        max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache. Default value is 4096
         num_kv_heads (Optional[int]): number of key and value heads. User should
             ensure `num_heads` % `num_kv_heads` == 0. Default value is None, in
             which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
+        max_seq_len (int): maximum sequence length supported by the model.
+            This is needed to compute the RoPE Cache. Default value is 4096
         max_bsz_for_kv_cache (Optional[int]): maximum batch size for kv cache. Defaults to None.
 
     Implementation Note:
@@ -66,6 +48,8 @@ class TransformerDecoderLayer(nn.Module):
         num_heads: int,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_seq_len: int = 4096,
+        max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
 
@@ -76,6 +60,8 @@ class TransformerDecoderLayer(nn.Module):
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             attn_dropout=attn_dropout,
+            max_seq_len=max_seq_len,
+            max_bsz_for_kv_cache=max_bsz_for_kv_cache,
         )
 
         # norm applied before the feedforward layer
@@ -129,8 +115,6 @@ class TransformerDecoder(nn.Module):
         num_layers (int): number of TransformerDecoderLayers
         num_heads (int): number of query heads. To enable MHA, set
             ```num_kv_heads``` = ```num_heads``` or ```num_kv_heads``` = None
-        max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache. Default value is 4096
         num_kv_heads (Optional[int]): number of key and value heads. User should
             ensure `num_kv_heads` % `num_heads` == 0. Default value is None, in
             which case this is the same as MHA
@@ -138,6 +122,8 @@ class TransformerDecoder(nn.Module):
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
         norm_eps (float): eps value of for RMS Norm
+        max_seq_len (int): maximum sequence length supported by the model.
+            This is needed to compute the RoPE Cache. Default value is 4096
         max_bsz_for_kv_cache (Optional[int]): maximum batch size for kv cache. Defaults
             to None, in which case the kv cache will not be built.
 
@@ -158,6 +144,8 @@ class TransformerDecoder(nn.Module):
         attn_dropout: float = 0.0,
         # RMS Norm params
         norm_eps: float = 1e-6,
+        # Max sequence length supported by the model
+        max_seq_len: int = 4096,
         # Specification of max batch size for building a KV cache
         max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
@@ -173,15 +161,13 @@ class TransformerDecoder(nn.Module):
                     num_heads=num_heads,
                     num_kv_heads=num_kv_heads,
                     attn_dropout=attn_dropout,
+                    max_seq_len=max_seq_len,
                     max_bsz_for_kv_cache=max_bsz_for_kv_cache,
                 )
             )
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
-
-    def create_caches(self, max_batch_size: int, max_seq_len: int) -> None:
-
 
     def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
         """

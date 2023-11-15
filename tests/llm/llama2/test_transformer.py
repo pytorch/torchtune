@@ -195,6 +195,17 @@ class TestTransformerDecoder:
         decoder: TransformerDecoder,
     ) -> None:
         with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input)
+            output_cache = decoder_with_kv_cache_enabled(input, 0)
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
+
+    def test_compile(
+        self,
+        input: Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+        assert decoder_with_kv_cache_enabled.layers[0].attn.kv_cache is not None
+        # Compile the model to make sure it works as expected.
+        compiled_decoder = torch.compile(decoder_with_kv_cache_enabled, fullgraph=True)
+        with torch.no_grad():
+            output = compiled_decoder(input)

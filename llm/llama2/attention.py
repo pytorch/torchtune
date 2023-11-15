@@ -4,12 +4,92 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 from torch import nn, Tensor
 
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
+
+
+class MaskCache(nn.Module):
+    """Mask Cache for Self-Attention.
+
+    Args:
+        max_seq_len (int): Maximum sequence length supported by the model.
+    """
+
+    def __init__(
+        self,
+        max_seq_len: int,
+    ):
+        super().__init__()
+        self.max_seq_len = max_seq_len
+        cache_shape = (max_seq_len, max_seq_len)
+        self.register_buffer(
+            "mask",
+            torch.tril(torch.ones(cache_shape, dtype=torch.bool))
+            .unsqueeze(0)
+            .unsqueeze(0),
+        )
+
+    def get_mask_for_curr_pos(self, curr_pos: int, seq_len: int) -> Tensor:
+        """Get mask for current position.
+
+        Args:
+            curr_pos (int): Current position.
+            seq_len (int): Sequence length.
+
+        Returns:
+            Tensor: Mask for current position.
+        """
+        return self.mask[:, :, curr_pos : curr_pos + seq_len]
+
+
+class KVCache(nn.Module):
+    """Key-Value Cache for Self-Attention.
+
+    Args:
+        max_bsz (int): Maximum batch size supported by the model.
+        max_seq_len (int): Maximum sequence length supported by the model.
+        num_heads (int): Number of heads used in the model.
+        head_dim (int): Dimension of each head.
+    """
+
+    def __init__(
+        self,
+        max_bsz: int,
+        max_seq_len: int,
+        num_heads: int,
+        head_dim: int,
+    ):
+        super().__init__()
+        cache_shape = (max_bsz, num_heads, max_seq_len, head_dim)
+        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape))
+        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape))
+
+    def update(
+        self, bsz: int, curr_pos: int, seq_len: int, k_val: Tensor, v_val: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Update the cache with new values and return the updated keys and values.
+
+        Args:
+            bsz (int): Batch size.
+            curr_pos (int): Current position.
+            seq_len (int): Sequence length.
+            k_val (Tensor): Key values to be cached.
+            v_val (Tensor): Value values to be cached.
+
+        Returns:
+            Tuple[Tensor, Tensor]: Updated key and value caches.
+        """
+        total_len = curr_pos + seq_len
+        k_out = self.k_cache
+        v_out = self.v_cache
+        k_out[:bsz, :, curr_pos:total_len] = k_val
+        v_out[:bsz, :, curr_pos:total_len] = v_val
+
+        return k_out[:bsz, :, :total_len], v_out[:bsz, :, :total_len]
 
 
 class LlamaSelfAttention(nn.Module):
@@ -49,29 +129,29 @@ class LlamaSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache. Default: 4096.
         num_kv_heads (Optional[int]): number of key and value heads. If specified,
             user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
             `None`, in which case this is the same as MHA
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
+        max_seq_len (int): maximum sequence length supported by the model.
+            This is needed to compute the RoPE Cache. Default: 4096.
         max_bsz_for_kv_cache (Optional[int]): Maximum batch size for kv cache. Defaults to None.
 
     Raises:
-         ValueError: If `num_heads` % `num_kv_heads` != 0
-         ValueError: If `embed_dim` % `num_heads` != 0
-         ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: If `num_heads` % `num_kv_heads` != 0
+        ValueError: If `embed_dim` % `num_heads` != 0
+        ValueError: If `attn_dropout` < 0 or > 1
     """
 
     def __init__(
         self,
         embed_dim: int,
         num_heads: int,
-        max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
+        max_seq_len: int = 4096,
         max_bsz_for_kv_cache: Optional[int] = None,
     ) -> None:
         super().__init__()
@@ -96,7 +176,6 @@ class LlamaSelfAttention(nn.Module):
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
         self.head_dim = embed_dim // num_heads
-        self.max_seq_len = max_seq_len
 
         # Output dimension of the qkv projection matrix depends on the
         # total number of heads and the dimension of each head.
@@ -107,27 +186,24 @@ class LlamaSelfAttention(nn.Module):
         self.output_proj = nn.Linear(self.embed_dim, self.embed_dim, bias=False)
 
         # Build the RoPE cache
+        self.max_seq_len = max_seq_len
         self.rope = RotaryPositionalEmbeddings(
-            dim=self.head_dim, max_seq_len=max_seq_len
+            dim=self.head_dim, max_seq_len=self.max_seq_len
         )
 
-        # Build the KV Cache
-        k_cache = (
-            torch.zeros(
-                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
+        # Initialize the KV cache
+        self.max_bsz_for_kv_cache = max_bsz_for_kv_cache
+        if self.max_bsz_for_kv_cache is not None:
+            self.kv_cache = KVCache(
+                self.max_bsz_for_kv_cache,
+                max_seq_len=self.max_seq_len,
+                num_heads=self.num_kv_heads,
+                head_dim=self.head_dim,
             )
-            if max_bsz_for_kv_cache
-            else None
-        )
-        v_cache = (
-            torch.zeros(
-                max_bsz_for_kv_cache, self.max_seq_len, self.num_kv_heads, self.head_dim
-            )
-            if max_bsz_for_kv_cache
-            else None
-        )
-        self.register_buffer("k_cache", k_cache)
-        self.register_buffer("v_cache", v_cache)
+        else:
+            self.kv_cache = None
+
+        self.mask_cache = MaskCache(max_seq_len)
 
     def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
         """
@@ -159,6 +235,11 @@ class LlamaSelfAttention(nn.Module):
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
 
+        if self.max_bsz_for_kv_cache is not None and bsz > self.max_bsz_for_kv_cache:
+            raise ValueError(
+                f"bsz of size ({bsz}) cannot exceed max_bsz_for_kv_cache ({self.max_bsz_for_kv_cache})"
+            )
+
         if seq_len > self.max_seq_len:
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
@@ -168,64 +249,41 @@ class LlamaSelfAttention(nn.Module):
         # qkv has shape [b, s, qkv_d]
         qkv = self.qkv_proj(x)
 
-        # number of queries per key/value
-        q_per_kv = self.num_heads // self.num_kv_heads
-
-        # Each key and value either has a single query (MHA)
-        # or q_per_kv queries (MQA/GQA). total_qkv will be 3
-        # for MHA
-        total_qkv = q_per_kv + 2
-
-        # decompose the last dimension into n_kv x total_qkv, h_d
-        qkv = qkv.view(bsz, seq_len, self.num_kv_heads, total_qkv, self.head_dim)
-
         # create the q,k and v tensors by splitting qkv
-        # q: [b, s, n_kv, q_per_kv, h_d]
-        # k: [b, s, n_kv, 1, h_d]
-        # v: [b, s, n_kv, 1, h_d]
-        q, k, v = qkv.split((q_per_kv, 1, 1), dim=3)
+        kv_size = self.num_kv_heads * self.head_dim
+        q, k, v = qkv.split([self.embed_dim, kv_size, kv_size], dim=-1)
 
-        # llama2 applies the RoPE embeddings on tensors with shape
-        # [b, s, n_h, h_d]
         # Reshape the tensors before we apply RoPE
-        q = q.reshape(bsz, seq_len, -1, self.head_dim)
-        k = k.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
-        v = v.reshape(bsz, seq_len, self.num_kv_heads, self.head_dim)
+        q = q.view(bsz, seq_len, self.num_heads, self.head_dim)
+        k = k.view(bsz, seq_len, self.num_kv_heads, self.head_dim)
+        v = v.view(bsz, seq_len, self.num_kv_heads, self.head_dim)
 
         q = self.rope(q, curr_pos)
         k = self.rope(k, curr_pos)
 
-        # Update the KV caches if they exist
-        if self.k_cache is not None and self.v_cache is not None:
-            # Add the new keys and values to the cache
-            self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k
-            self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v
+        q, k, v = map(lambda x: x.transpose(1, 2), (q, k, v))  # (b, n_h, s, h_d)
 
-            # Get the key values for entire sequence
-            k = self.k_cache[:bsz, : curr_pos + seq_len]
-            v = self.v_cache[:bsz, : curr_pos + seq_len]
+        # Update the KV cache if it exist
+        if self.kv_cache is not None:
+            k, v = self.kv_cache.update(bsz, curr_pos, seq_len, k, v)
 
-        # if needed, expand the key and value tensors to have the same shape
+        # If needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
         if self.num_heads != self.num_kv_heads:
-            k = k.repeat_interleave(repeats=q_per_kv, dim=2)
-            v = v.repeat_interleave(repeats=q_per_kv, dim=2)
+            q_per_kv = self.num_heads // self.num_kv_heads
+            k = k.repeat_interleave(repeats=q_per_kv, dim=1)
+            v = v.repeat_interleave(repeats=q_per_kv, dim=1)
 
-        # [b, n_h, s, h_d]
-        q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
-
-        # using SDPA from nn.functional allows us to take
-        # advantage of flash attention
-        # ref: https://pytorch.org/blog/accelerating-large-language-models/
+        # Use flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
             q,
             k,
             v,
-            attn_mask=None,
+            attn_mask=None
+            if self.training
+            else self.mask_cache.get_mask_for_curr_pos(curr_pos, seq_len),
             dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=True,
+            is_causal=True if self.training else False,
         )
 
         # reshape the output to be the same shape as the input
