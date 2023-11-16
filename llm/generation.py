@@ -97,7 +97,6 @@ class GenerationUtils:
         top_k: int = 1,
         keep_prompt: bool = True,
         logprobs: bool = False,
-        decoder_lm_kwargs: Optional[Dict[str, Any]] = None,
         incremental_decode: bool = True,
         logits_accessor: Optional[Callable] = None,
         device: Optional[torch.device] = torch.device("cpu"),
@@ -113,7 +112,6 @@ class GenerationUtils:
             top_k (int): Number of tokens kept for top-k filtering. Defaults to 1.
             keep_prompt (bool): Whether to keep prompt tokens in the output tensor(s). Defaults to True.
             logprobs (bool): Whether to compute log probabilities. Defaults to False.
-            decoder_lm_kwargs (Optional[Dict[str, Any]]): Additional arguments to pass to `decoder_lm.forward`. Defaults to None.
             incremental_decode (bool): Whether to decode incrementally or not. Defaults to True.
             logits_accessor (Optional[Callable]): Function to transform logits before sampling. Defaults to None.
             device (Optional[torch.device]): Device on which to initialize prompt token tensors (should match device of model). Defaults to torch.device("cpu").
@@ -134,8 +132,6 @@ class GenerationUtils:
             ["I love to eat ice cream"]
         """
         torch.manual_seed(1337)
-
-        decoder_lm_kwargs = {} if decoder_lm_kwargs is None else decoder_lm_kwargs
 
         batch_size = len(prompt_tokens)
         max_prompt_len = max(len(p) for p in prompt_tokens)
@@ -164,9 +160,9 @@ class GenerationUtils:
         for cur_pos in range(min_prompt_len, total_gen_len):
             input_ids = tokens[:, prev_pos:cur_pos]
             if incremental_decode:
-                outputs = self.decoder_lm(input_ids, prev_pos, **decoder_lm_kwargs)
+                outputs = self.decoder_lm(input_ids, prev_pos)
             else:
-                outputs = self.decoder_lm(input_ids, **decoder_lm_kwargs)
+                outputs = self.decoder_lm(input_ids)
             if logits_accessor:
                 logits = logits_accessor(outputs)
             else:
