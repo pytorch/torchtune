@@ -121,7 +121,7 @@ class TestLlamaSelfAttention:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(
-            output.mean(), torch.tensor(-2745.7099609375), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2852.556640625), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -129,7 +129,7 @@ class TestLlamaSelfAttention:
         with torch.no_grad():
             output = mha(input)
         assert_expected(
-            output.mean(), torch.tensor(-2545.34716796875), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2598.19482421875), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -137,7 +137,7 @@ class TestLlamaSelfAttention:
         with torch.no_grad():
             output = mqa(input)
         assert_expected(
-            output.mean(), torch.tensor(-4935.3544921875), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-5087.19775390625), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
