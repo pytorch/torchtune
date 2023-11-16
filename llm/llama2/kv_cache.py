@@ -50,11 +50,9 @@ class KVCache(torch.nn.Module):
         Returns:
             Tuple[Tensor, Tensor]: the k-cache and v-cache
         """
-        # import pdb ; pdb.set_trace()
-        # print(f"updating sequence {curr_pos} {curr_pos + seq_len}", flush=True)
         self.k_cache[:batch_size, curr_pos : curr_pos + seq_len] = k_val
         self.v_cache[:batch_size, curr_pos : curr_pos + seq_len] = v_val
         return (
-            self.k_cache[:batch_size, :curr_pos + seq_len],
-            self.v_cache[:batch_size, :curr_pos + seq_len]
+            self.k_cache[:batch_size, : curr_pos + seq_len],
+            self.v_cache[:batch_size, : curr_pos + seq_len],
         )

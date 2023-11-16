@@ -16,11 +16,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
+from llm.generation import GenerationUtils
 from llm.llama2.tokenizer import Tokenizer
 from llm.llama2.transformer import TransformerDecoder
 from tests.llm.llama2.scripts.compare_decoder import Transformer
-from tests.test_utils import _generate as generate
 from transformers import LlamaForCausalLM
+
+from tests.test_utils import set_rng_seed
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -74,13 +76,28 @@ if __name__ == "__main__":
         "--native-checkpoint-path", type=str, help="Path to native checkpoint file."
     )
     parser.add_argument("--tokenizer-path", type=str, help="Path to tokenization file.")
-
+    parser.add_argument("--hf-auth-token", type=str, help="HuggingFace auth token")
     args = parser.parse_args()
-    # Initialize a decoder w/no kv-caching
+
+    # Inference setup
+    tokenizer = Tokenizer.from_file(args.tokenizer_path)
+    prompts = [
+        # Few shot prompt (providing a few examples before asking model to complete more);
+        """Translate English to French:
+
+        sea otter => loutre de mer
+        peppermint => menthe poivrée
+        plush girafe => girafe peluche
+        cheese =>""",
+    ]
+    tokens = torch.tensor(tokenizer.encode(prompts[0], add_eos=False), dtype=torch.long)
+    token_for_generation = [tokenizer.encode(prompt, add_eos=False) for prompt in prompts]
+
+    set_rng_seed(0)
+
+    ## --------- Initialize a decoder w/o kv-caching -------- ##
     llama_7b_args = args_7b()
-    # import pdb ; p
-    # decoder = TransformerDecoder(vocab_size=llama_7b_args.vocab_size,num_layers=llama_7b_args.num_layers,num_heads=llama_7b_args.num_heads,num_kv_heads=llama_7b_args.num_kv_heads,embed_dim=llama_7b_args.embed_dim,max_seq_len=llama_7b_args.max_seq_len,norm_eps=1e-5,max_batch_size=2)
-    with torch.device("cuda:0"):
+    with torch.device("cuda"):
         decoder = TransformerDecoder(
             vocab_size=llama_7b_args.vocab_size,
             num_layers=llama_7b_args.num_layers,
@@ -89,7 +106,6 @@ if __name__ == "__main__":
             embed_dim=llama_7b_args.embed_dim,
             max_seq_len=llama_7b_args.max_seq_len,
             norm_eps=1e-5,
-            max_batch_size=None,
         )
 
     # Load state_dict into decoder
@@ -98,8 +114,29 @@ if __name__ == "__main__":
     # Nothing should be missing or unexpected
     assert not missing and not unexpected
     decoder.eval()
-    # Do the same initialization process, but with a kv-caching decoder.
-    with torch.device("cuda:1"):
+
+    with torch.no_grad():
+        decoder_out = decoder(tokens.unsqueeze(0).cuda(), 0).sum()
+        generations_no_kv_cache, _ = GenerationUtils(
+            decoder_lm=decoder,
+            eos_id=tokenizer.eos_id,
+            pad_id=tokenizer.pad_id,
+        ).generate(
+            prompt_tokens=token_for_generation,
+            incremental_decode=False,  # Since we aren't caching past keys and values
+            min_gen_len=1,
+            max_gen_len=64,
+            top_p=0,
+            top_k=1,
+            temperature=1.0,
+            device=torch.device("cuda"),
+        )
+
+    # Remove from memory to allow to run on single A100
+    del decoder
+
+    ## --------- Do the same initialization process, but with a kv-caching decoder. ------- ##
+    with torch.device("cuda"):
         decoder_kv = TransformerDecoder(
             vocab_size=llama_7b_args.vocab_size,
             num_layers=llama_7b_args.num_layers,
@@ -115,84 +152,53 @@ if __name__ == "__main__":
     for key in missing:
         assert "kv_cache" in key, f"{key}"
     decoder_kv.eval()
-    print(f"RV: tbd missing unexpected {missing} {unexpected}")
-    # print(f"RV: fair missing & unexpected: {m2} {u2}")
-    # print(f"RV: mm missing unexpected: {me} {une}")
-    tokenizer = Tokenizer.from_file(args.tokenizer_path)
-    auth_token = "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"
-    # Initialize a HF model
-    with torch.device("cuda:2"):
+
+    with torch.no_grad():
+        decoder_kv_out = decoder_kv(tokens.unsqueeze(0).cuda(), 0).sum()
+        generations_kv_cache, _ = GenerationUtils(
+            decoder_lm=decoder_kv, eos_id=tokenizer.eos_id, pad_id=tokenizer.pad_id
+        ).generate(
+            prompt_tokens=token_for_generation,
+            incremental_decode=True,
+            min_gen_len=1,
+            max_gen_len=64,
+            top_p=0,
+            top_k=1,
+            temperature=1.0,
+            device=torch.device("cuda"),
+        )
+
+    del decoder_kv
+
+    ## --------- Initialize a HF model --------- ##
+    with torch.device("cuda"):
+        auth_token = args.hf_auth_token
         model_hf = LlamaForCausalLM.from_pretrained(  # pyre-ignore[16]
             "meta-llama/Llama-2-7b-hf",
             use_auth_token=auth_token,
             token=None,
         )
-    # Inference
-    prompts = [
-        # Few shot prompt (providing a few examples before asking model to complete more);
-        """Translate English to French:
 
-        sea otter => loutre de mer
-        peppermint => menthe poivrée
-        plush girafe => girafe peluche
-        cheese =>""",
-    ]
-
-    tokens = torch.tensor(tokenizer.encode(prompts[0], add_eos=False), dtype=torch.long)
     with torch.no_grad():
-        decoder_out = decoder(tokens.unsqueeze(0).cuda(0), 0).sum()
-        decoder_kv_out = decoder_kv(tokens.unsqueeze(0).cuda(1), 0).sum().cuda(0)
-        hf_out = model_hf(tokens.unsqueeze(0).cuda(2)).logits.sum().cuda(0)
-
-    assert torch.allclose(decoder_out, hf_out)
-    assert torch.allclose(decoder_kv_out, hf_out)
-
-    # Check generation parity
-    toks = [tokenizer.encode(prompt, add_eos=False) for prompt in prompts]
-    with torch.no_grad():
-        generations_no_kv_cache, _ = generate(
-            decoder_lm=decoder,
-            prompt_tokens=toks,
-            incremental_decode=False,  # Since we aren't caching past keys and values
-            min_gen_len=1,
-            max_gen_len=64,
-            top_p=0,
-            top_k=0,
-            temperature=1.0,
-            eos_token_id=tokenizer.eos_id,
-            pad_token_id=tokenizer.pad_id,
-            device=torch.device("cuda:0"),
-            decoder_lm_kwargs=True,
-        )
-        generations_kv_cache, _ = generate(
-            decoder_lm=decoder_kv,
-            prompt_tokens=toks,
-            incremental_decode=True,
-            min_gen_len=1,
-            max_gen_len=64,
-            top_p=0,
-            top_k=0,
-            temperature=1.0,
-            eos_token_id=tokenizer.eos_id,
-            pad_token_id=tokenizer.pad_id,
-            decoder_lm_kwargs=True,
-            device=torch.device("cuda:1"),
-        )
-        generations_hf, _ = generate(
-            decoder_lm=model_hf,
-            prompt_tokens=toks,
+        hf_out = model_hf(tokens.unsqueeze(0).cuda()).logits.sum()
+        generations_hf, _ = GenerationUtils(
+            decoder_lm=model_hf, eos_id=tokenizer.eos_id, pad_id=tokenizer.pad_id
+        ).generate(
+            prompt_tokens=token_for_generation,
             incremental_decode=False,
             min_gen_len=1,
             max_gen_len=64,
             top_p=0,
-            top_k=0,
+            top_k=1,
             temperature=1.0,
-            eos_token_id=tokenizer.eos_id,
-            pad_token_id=tokenizer.pad_id,
-            device=torch.device("cuda:2"),
-            decoder_lm_kwargs=False,
+            device=torch.device("cuda"),
             logits_accessor=lambda o: o.logits,
         )
 
-    assert torch.allclose(generations_kv_cache.cuda(0), generations_no_kv_cache)
-    assert torch.allclose(generations_kv_cache.cuda(0), generations_hf.cuda(0))
+    # Check that outputs are identical
+    assert torch.allclose(decoder_out, hf_out)
+    assert torch.allclose(decoder_kv_out, hf_out)
+
+    # Check generation parity
+    assert torch.allclose(generations_kv_cache, generations_no_kv_cache)
+    assert torch.allclose(generations_kv_cache, generations_hf)

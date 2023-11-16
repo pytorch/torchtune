@@ -71,8 +71,7 @@ class TransformerDecoderLayer(nn.Module):
     def forward(
         self,
         x: Tensor,
-        mask: Optional[Tensor] = None,
-        curr_pos: Optional[int] = None,
+        curr_pos: int = 0,
     ) -> Tensor:
         """
         Args:
@@ -93,7 +92,7 @@ class TransformerDecoderLayer(nn.Module):
         """
         # input tensor and attention output have the same shape
         # [b, s, d]
-        attn_out = self.attn(self.attn_norm(x), mask, curr_pos)
+        attn_out = self.attn(self.attn_norm(x), curr_pos)
 
         # residual connection; shape: [b, s, d]
         h = attn_out + x
@@ -172,7 +171,7 @@ class TransformerDecoder(nn.Module):
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
 
-    def forward(self, tokens: Tensor, curr_pos: Optional[int] = None) -> Tensor:
+    def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
@@ -203,16 +202,9 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        # TODO: write shape
-        mask = None
-        if seq_len > 1 and self.max_batch_size is not None:
-            mask = torch.full(
-                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
-            )
-            mask = torch.triu(mask, diagonal=curr_pos + 1).type_as(h)
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask, curr_pos)
+            h = layer(h, curr_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)

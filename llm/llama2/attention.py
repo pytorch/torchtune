@@ -6,10 +6,11 @@
 
 from typing import Optional
 
+from torch import nn, Tensor
+import torch
+
 from llm.llama2.kv_cache import KVCache
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
-
-from torch import nn, Tensor
 
 
 class LlamaSelfAttention(nn.Module):
@@ -118,11 +119,13 @@ class LlamaSelfAttention(nn.Module):
             dim=self.head_dim, max_seq_len=max_seq_len
         )
 
+        full = torch.full((self.max_seq_len, self.max_seq_len), float("-inf"))
+        self.mask_cache = torch.triu(full, diagonal=1)
+
     def forward(
         self,
         x: Tensor,
-        mask: Optional[Tensor] = None,
-        curr_pos: Optional[int] = None,
+        curr_pos: int = 0,
     ) -> Tensor:
         """
         Args:
@@ -208,17 +211,23 @@ class LlamaSelfAttention(nn.Module):
         keys = keys.transpose(1, 2)
         values = values.transpose(1, 2)
 
-        # using SDPA from nn.functional allows us to take
-        # advantage of flash attention
-        # ref: https://pytorch.org/blog/accelerating-large-language-models/
-        is_causal_flag = True if self.kv_cache is None else False
+
+        if self.kv_cache is not None and seq_len > 1:
+            causal_mask = self.mask_cache[:curr_pos+seq_len, :curr_pos+seq_len]
+            mask = torch.hstack([torch.zeros((curr_pos+seq_len, curr_pos), device=x.device), causal_mask]).type_as(x)
+            print(mask)
+            print(mask.shape)
+        else:
+            mask = None
+
+        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
             q,
             keys,
             values,
-            attn_mask=mask,  # mask is an inference mask if max_batch_size was configured
-            dropout_p=self.attn_dropout if self.training else 0.0,
-            is_causal=is_causal_flag,
+            attn_mask=mask,
+            dropout_p=self.attn_dropout,
+            is_causal=mask is None,
         )
 
         # reshape the output to be the same shape as the input
