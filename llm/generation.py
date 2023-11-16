@@ -7,6 +7,7 @@
 from typing import Dict, List, Optional, Any, Callable, Tuple
 
 import torch
+import torch.nn.functional as F
 from torch import nn, Tensor
 
 from llm.utils.logits_transforms import (
@@ -20,12 +21,19 @@ import functools
 
 
 class GenerationUtils:
-    """Utility class for generating text from an LLaMA model.
+    """Utility class for generating text from a decoder-style LLM.
 
     Args:
         decoder_lm (nn.Module): Transformer-Decoder based language model.
         pad_id (int): Padding token ID.
         eos_id (int): End-of-sequence token ID.
+
+    NOTE:
+        Currently, `decoder_lm` assumes a forward API with the signature
+        `def forward(x: torch.Tensor, curr_pos: int)` as the index of the
+        current token is passed in for kv-caching during incremental decoding.
+        If `decoder_lm` does not support this interface, please set
+        `incremental_decode` to `False` when calling `generate` function.
     """
 
     def __init__(self, decoder_lm: nn.Module, pad_id: int, eos_id: int):
@@ -94,25 +102,24 @@ class GenerationUtils:
         logits_accessor: Optional[Callable] = None,
         device: Optional[torch.device] = torch.device("cpu"),
     ) -> Tuple[Tensor, Optional[Tensor]]:
-        """Interface for generation supporting temperature, top-k, and top-p sampling.
-
+        """
+        Interface for generation supporting temperature, top-k, and top-p sampling.
         Args:
             prompt_tokens (List[List[int]]): List of tokenized per-batch prompts.
             min_gen_len (int): Minimum generated sequence length.
             max_gen_len (int): Maximum generated sequence length.
-            temperature (float): Temperature value to control sampling randomness.
-            top_p (float): Probability threshold for nucleus sampling.
-            top_k (int): Number of tokens kept for top-k filtering.
-            keep_prompt (bool): Whether to keep prompt tokens in the output tensor(s).
-            logprobs (bool): Whether to compute log probabilities.
-            decoder_lm_kwargs (dict, optional): Additional arguments to pass to `decoder_lm.forward`.
-            incremental_decode (bool): Whether to decode incrementally or not.
-            device (torch.device, optional): Device on which to initialize prompt token tensors (should match device of model).
-
+            temperature (float): Temperature value to control sampling randomness. Defaults to 0.6.
+            top_p (float): Probability threshold for nucleus sampling. Defaults to 0.9.
+            top_k (int): Number of tokens kept for top-k filtering. Defaults to 1.
+            keep_prompt (bool): Whether to keep prompt tokens in the output tensor(s). Defaults to True.
+            logprobs (bool): Whether to compute log probabilities. Defaults to False.
+            decoder_lm_kwargs (Optional[Dict[str, Any]]): Additional arguments to pass to `decoder_lm.forward`. Defaults to None.
+            incremental_decode (bool): Whether to decode incrementally or not. Defaults to True.
+            logits_accessor (Optional[Callable]): Function to transform logits before sampling. Defaults to None.
+            device (Optional[torch.device]): Device on which to initialize prompt token tensors (should match device of model). Defaults to torch.device("cpu").
         Returns:
-            Tuple of generated tokens and optional log probabilities if `logprobs=True`,
+            Tuple[Tensor, Optional[Tensor]]: Tuple of generated tokens and optional log probabilities if `logprobs=True`,
             where the dimensions of each tensor are (batch_size, max_gen_length)
-
         Example:
             >>> LLaMA = GenerationUtils(model, pad_id = tokenizer.pad_id, eos_id = tokenizer.eos_id)
             >>> tokens = LLaMA.generate(
