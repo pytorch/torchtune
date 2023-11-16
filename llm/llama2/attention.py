@@ -12,6 +12,8 @@ import torch
 from llm.llama2.kv_cache import KVCache
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
+from torch import nn, Tensor
+
 
 class LlamaSelfAttention(nn.Module):
     """
@@ -120,11 +122,11 @@ class LlamaSelfAttention(nn.Module):
         )
 
         full = torch.full((self.max_seq_len, self.max_seq_len), float("-inf"))
-        self.mask_cache = torch.triu(full, diagonal=1)
 
     def forward(
         self,
         x: Tensor,
+        mask: Optional[Tensor] = None,
         curr_pos: int = 0,
     ) -> Tensor:
         """
@@ -200,34 +202,24 @@ class LlamaSelfAttention(nn.Module):
         # Update kv caches
         if self.kv_cache is not None:
             assert curr_pos is not None
-            keys, values = self.kv_cache.update(
+            k, v = self.kv_cache.update(
                 batch_size=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
             )
-        else:
-            keys, values = k, v
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
-        keys = keys.transpose(1, 2)
-        values = values.transpose(1, 2)
+        k = k.transpose(1, 2)
+        v = v.transpose(1, 2)
 
-
-        if self.kv_cache is not None and seq_len > 1:
-            causal_mask = self.mask_cache[:curr_pos+seq_len, :curr_pos+seq_len]
-            mask = torch.hstack([torch.zeros((curr_pos+seq_len, curr_pos), device=x.device), causal_mask]).type_as(x)
-            print(mask)
-            print(mask.shape)
-        else:
-            mask = None
-
+        is_causal_flag = True if self.kv_cache is None else False
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
             q,
-            keys,
-            values,
+            k,
+            v,
             attn_mask=mask,
             dropout_p=self.attn_dropout,
-            is_causal=mask is None,
+            is_causal=is_causal_flag,
         )
 
         # reshape the output to be the same shape as the input

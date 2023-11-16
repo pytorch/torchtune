@@ -9,6 +9,7 @@ from typing import Optional
 import torch
 
 from torch import nn, Tensor
+from typing import Optional
 
 
 class RotaryPositionalEmbeddings(nn.Module):

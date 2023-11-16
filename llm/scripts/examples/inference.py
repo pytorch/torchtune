@@ -34,6 +34,8 @@ class LlamaArgs:
     Dataclass encapsulating various args to instantiate a Llama-2 decoder. The defaults
     are those of a 7b parameter model with a max_seq_len of 2048.
 
+    TODO: Land a class similar to this as a torchtune util
+
     Args:
         vocab_size (int): Number of entries in vocabulary (default: 32_000)
         embed_dim: (int): Embedding dimension (default: 4096)
@@ -200,5 +202,9 @@ if __name__ == "__main__":
     assert torch.allclose(decoder_kv_out, hf_out)
 
     # Check generation parity
+    import pdb ; pdb.set_trace()
     assert torch.allclose(generations_kv_cache, generations_no_kv_cache)
     assert torch.allclose(generations_kv_cache, generations_hf)
+    print(generations_kv_cache)
+    print(hf_out, decoder_kv_out)
+    print("All parity checks passed!", flush=True)
