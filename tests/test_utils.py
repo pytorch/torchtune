@@ -229,7 +229,7 @@ def _apply_logits_transforms(
 
 
 @torch.no_grad()
-def generate(
+def _generate(
     decoder_lm: torch.nn.Module,
     prompt_tokens: List[List[int]],
     incremental_decode: bool,

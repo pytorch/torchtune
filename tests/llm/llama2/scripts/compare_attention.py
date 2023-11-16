@@ -13,7 +13,7 @@ from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
 from torch import nn
 
-from tests.test_utils import init_weights_with_constant, fixed_init_model
+from tests.test_utils import init_weights_with_constant
 
 
 """
@@ -176,7 +176,6 @@ def compare_attention(
     # reference implementation; initialize with constant to compare outputs
     attn_ref = Attention(n_heads=num_heads, n_kv_heads=num_kv_heads, dim=embed_dim)
     init_weights_with_constant(attn_ref, constant=0.05)
-    fixed_init_model(attn_ref)
 
     with torch.no_grad():
         attn_out_ref = attn_ref(input_t, freq_cis, mask)
@@ -188,15 +187,14 @@ def compare_attention(
         embed_dim=embed_dim,
         max_seq_len=max_seq_len,
     )
-    # init_weights_with_constant(attn, constant=0.05)
-    fixed_init_model(attn)
+    init_weights_with_constant(attn, constant=0.05)
 
     with torch.no_grad():
         attn_out = attn(input_t)
 
-    # value: tensor(-2852.5566)
+    # value: tensor(-27.5074)
     print(attn_out.mean())
-    import pdb ; pdb.set_trace()
+
     # output tensors should be similar
     assert torch.allclose(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
 

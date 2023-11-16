@@ -105,20 +105,6 @@ class TestLlamaSelfAttention:
         return attn
 
     @pytest.fixture
-    def mha_with_kv_cache(self, attn_params_mha: Tuple[int, int, int, int]) -> LlamaSelfAttention:
-        num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
-        attn = LlamaSelfAttention(
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
-            max_seq_len=max_seq_len,
-            max_batch_size=2
-        )
-        fixed_init_model(attn)
-        attn.eval()
-        return attn
-
-    @pytest.fixture
     def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         attn = LlamaSelfAttention(
@@ -162,8 +148,3 @@ class TestLlamaSelfAttention:
     ) -> None:
         with pytest.raises(Exception):
             output = gqa(input_max_len_exceeded)
-
-    def test_kv_cache_generation_parity(
-        self,
-    ) -> None:
-        pass

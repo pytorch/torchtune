@@ -172,12 +172,6 @@ class TransformerDecoder(nn.Module):
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
 
-        if self.max_batch_size:
-            ones = torch.ones((max_seq_len, max_seq_len), dtype=torch.bool)
-            self.mask_cache = torch.tril(ones).unsqueeze(0).unsqueeze(0)
-        else:
-            self.mask_cache = None
-
     def forward(self, tokens: Tensor, curr_pos: Optional[int] = None) -> Tensor:
         """
         Args:

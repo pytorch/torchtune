@@ -19,7 +19,7 @@ import torch.nn as nn
 from llm.llama2.tokenizer import Tokenizer
 from llm.llama2.transformer import TransformerDecoder
 from tests.llm.llama2.scripts.compare_decoder import Transformer
-from tests.test_utils import generate
+from tests.test_utils import _generate as generate
 from transformers import LlamaForCausalLM
 
 logging.basicConfig(level=logging.INFO)
