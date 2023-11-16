@@ -202,7 +202,6 @@ if __name__ == "__main__":
     assert torch.allclose(decoder_kv_out, hf_out)
 
     # Check generation parity
-    import pdb ; pdb.set_trace()
     assert torch.allclose(generations_kv_cache, generations_no_kv_cache)
     assert torch.allclose(generations_kv_cache, generations_hf)
     print(generations_kv_cache)

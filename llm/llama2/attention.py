@@ -101,9 +101,14 @@ class LlamaSelfAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.max_seq_len = max_seq_len
 
+        # TODO: we create kv cache w/num_heads instead of
+        # num_kv_heads even for GQA/MQA since we repeat k and v
+        # in forward to match num_heads before caching. We should
+        # refactor the forward pass to invert this order to save
+        # memory for GQA / MQA cases.
         if self.max_batch_size:
             self.kv_cache = KVCache(
-                self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim
+                self.max_batch_size, self.max_seq_len, self.num_heads, self.head_dim
             )
         else:
             self.kv_cache = None
@@ -120,8 +125,6 @@ class LlamaSelfAttention(nn.Module):
         self.rope = RotaryPositionalEmbeddings(
             dim=self.head_dim, max_seq_len=max_seq_len
         )
-
-        full = torch.full((self.max_seq_len, self.max_seq_len), float("-inf"))
 
     def forward(
         self,
@@ -161,6 +164,12 @@ class LlamaSelfAttention(nn.Module):
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
                 f"than max_seq_len ({self.max_seq_len})"
+            )
+
+        if self.kv_cache is not None and bsz > self.max_batch_size:
+            raise ValueError(
+                f"batch_size ({bsz}) of input tensor should be smaller "
+                f"than max_batch_size ({self.max_batch_size})"
             )
 
         # qkv has shape [b, s, qkv_d]
@@ -205,6 +214,7 @@ class LlamaSelfAttention(nn.Module):
             k, v = self.kv_cache.update(
                 batch_size=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
             )
+            print(f"caching {q.shape} {k.shape} {v.shape}", flush=True)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
