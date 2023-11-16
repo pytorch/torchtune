@@ -8,10 +8,10 @@ import math
 
 import torch
 
-from llm.llama2.attention import LlamaSelfAttention
-from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
-
 from torch import nn
+
+from torchtune.llm.llama2.attention import LlamaSelfAttention
+from torchtune.llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
 from tests.test_utils import init_weights_with_constant
 

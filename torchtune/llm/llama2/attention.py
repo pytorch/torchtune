@@ -6,9 +6,9 @@
 
 from typing import Optional
 
-from torch import nn, Tensor
-
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
+
+from torch import nn, Tensor
 
 
 class LlamaSelfAttention(nn.Module):
