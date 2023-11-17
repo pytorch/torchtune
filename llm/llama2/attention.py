@@ -214,7 +214,6 @@ class LlamaSelfAttention(nn.Module):
             k, v = self.kv_cache.update(
                 batch_size=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
             )
-            print(f"caching {q.shape} {k.shape} {v.shape}", flush=True)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)

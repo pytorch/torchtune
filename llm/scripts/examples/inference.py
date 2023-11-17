@@ -204,6 +204,4 @@ if __name__ == "__main__":
     # Check generation parity
     assert torch.allclose(generations_kv_cache, generations_no_kv_cache)
     assert torch.allclose(generations_kv_cache, generations_hf)
-    print(generations_kv_cache)
-    print(hf_out, decoder_kv_out)
     print("All parity checks passed!", flush=True)
