@@ -4,12 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
-
 import torch
 
 from torch import nn, Tensor
-from typing import Optional
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -66,6 +63,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
+            curr_pos (int): current position in the sequence, defualts to 0.
 
         Returns:
             Tensor: output tensor with RoPE applied

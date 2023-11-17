@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Any, Callable, Tuple
+import functools
+from typing import Callable, List, Optional, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -16,8 +17,6 @@ from llm.utils.logits_transforms import (
     TopKTransform,
     TopPTransform,
 )
-
-import functools
 
 
 class GenerationUtils:
@@ -103,6 +102,7 @@ class GenerationUtils:
     ) -> Tuple[Tensor, Optional[Tensor]]:
         """
         Interface for generation supporting temperature, top-k, and top-p sampling.
+
         Args:
             prompt_tokens (List[List[int]]): List of tokenized per-batch prompts.
             min_gen_len (int): Minimum generated sequence length.
@@ -114,10 +114,13 @@ class GenerationUtils:
             logprobs (bool): Whether to compute log probabilities. Defaults to False.
             incremental_decode (bool): Whether to decode incrementally or not. Defaults to True.
             logits_accessor (Optional[Callable]): Function to transform logits before sampling. Defaults to None.
-            device (Optional[torch.device]): Device on which to initialize prompt token tensors (should match device of model). Defaults to torch.device("cpu").
+            device (Optional[torch.device]): Device on which to initialize prompt token tensors (should match device of model).
+                Defaults to torch.device("cpu").
+
         Returns:
             Tuple[Tensor, Optional[Tensor]]: Tuple of generated tokens and optional log probabilities if `logprobs=True`,
             where the dimensions of each tensor are (batch_size, max_gen_length)
+
         Example:
             >>> LLaMA = GenerationUtils(model, pad_id = tokenizer.pad_id, eos_id = tokenizer.eos_id)
             >>> tokens = LLaMA.generate(

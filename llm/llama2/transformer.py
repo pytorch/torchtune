@@ -78,6 +78,8 @@ class TransformerDecoderLayer(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
+            mask (Optional[Tensor]): mask tensor, defaults to None.
+            curr_pos (int): current position in the seq, defaults to 0.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -177,13 +179,12 @@ class TransformerDecoder(nn.Module):
         Args:
             tokens (Tensor): input tensor with shape
                 [batch_size x seq_length]
+            curr_pos (int): current position in the seq, defaults to 0.
+                Only relevant when incrementally decoding.
 
         Returns:
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x vocab_size]
-
-        Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
 
         Notation used for tensor shapes:
             - b: batch size
@@ -193,12 +194,6 @@ class TransformerDecoder(nn.Module):
         """
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
-
-        if seq_len > self.max_seq_len:
-            raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller "
-                f"than max_seq_len ({self.max_seq_len})"
-            )
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)

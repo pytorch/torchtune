@@ -4,25 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import abc
 import argparse
-
-import functools
 
 import logging
 
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Optional
 
 import torch
-import torch.nn as nn
 from llm.generation import GenerationUtils
 from llm.llama2.tokenizer import Tokenizer
 from llm.llama2.transformer import TransformerDecoder
-from tests.llm.llama2.scripts.compare_decoder import Transformer
-from transformers import LlamaForCausalLM
 
 from tests.test_utils import set_rng_seed
+from transformers import LlamaForCausalLM
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -93,11 +88,13 @@ if __name__ == "__main__":
         cheese =>""",
     ]
     tokens = torch.tensor(tokenizer.encode(prompts[0], add_eos=False), dtype=torch.long)
-    token_for_generation = [tokenizer.encode(prompt, add_eos=False) for prompt in prompts]
+    token_for_generation = [
+        tokenizer.encode(prompt, add_eos=False) for prompt in prompts
+    ]
 
     set_rng_seed(0)
 
-    ## --------- Initialize a decoder w/o kv-caching -------- ##
+    # --------- Initialize a decoder w/o kv-caching -------- #
     llama_7b_args = args_7b()
     with torch.device("cuda"):
         decoder = TransformerDecoder(
@@ -137,7 +134,7 @@ if __name__ == "__main__":
     # Remove from memory to allow to run on single A100
     del decoder
 
-    ## --------- Do the same initialization process, but with a kv-caching decoder. ------- ##
+    # --------- Do the same initialization process, but with a kv-caching decoder. ------- #
     with torch.device("cuda"):
         decoder_kv = TransformerDecoder(
             vocab_size=llama_7b_args.vocab_size,
@@ -172,7 +169,7 @@ if __name__ == "__main__":
 
     del decoder_kv
 
-    ## --------- Initialize a HF model --------- ##
+    # --------- Initialize a HF model --------- #
     with torch.device("cuda"):
         auth_token = args.hf_auth_token
         model_hf = LlamaForCausalLM.from_pretrained(  # pyre-ignore[16]

@@ -1,16 +1,22 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 import pytest
 
 import torch
 
-from tests.test_utils import assert_expected
-
 from llm.utils.logits_transforms import (
     TemperatureTransform,
     TopKTransform,
     TopPTransform,
 )
+
+from tests.test_utils import assert_expected
 
 
 class TestTemperatureTransform:

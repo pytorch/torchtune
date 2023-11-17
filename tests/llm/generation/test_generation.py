@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Callable, List
 
 import pytest
@@ -7,7 +13,7 @@ from llm.generation import GenerationUtils
 
 from llm.llama2.transformer import TransformerDecoder
 
-from tests.test_utils import assert_expected, set_rng_seed, init_weights_with_constant
+from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
 
 @pytest.fixture(autouse=True)
@@ -37,6 +43,7 @@ class TestTextGenerate:
     """
     Test class for text generation functionality.
     """
+
     @property
     def _batch_size(self):
         return 2
