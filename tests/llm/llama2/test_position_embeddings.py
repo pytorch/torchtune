@@ -10,7 +10,6 @@ import pytest
 import torch
 
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
-from torch import tensor
 
 from tests.test_utils import assert_expected, set_rng_seed
 
@@ -39,7 +38,7 @@ class TestRotaryPositionEmbedding:
         return bsz, num_heads, head_dim, seq_len, max_seq_len
 
     @pytest.fixture
-    def input(self, input_params: Tuple[int, int, int, int]) -> tensor:
+    def input(self, input_params: Tuple[int, int, int, int]) -> torch.Tensor:
         bsz, num_heads, head_dim, seq_len, _ = input_params
         return torch.randn(bsz, seq_len, num_heads, head_dim)
 
@@ -50,7 +49,9 @@ class TestRotaryPositionEmbedding:
         _, _, head_dim, _, max_seq_len = input_params
         return RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
 
-    def test_forward(self, input: tensor, rope: RotaryPositionalEmbeddings) -> None:
+    def test_forward(
+        self, input: torch.Tensor, rope: RotaryPositionalEmbeddings
+    ) -> None:
         x_out = rope(input)
 
         # check the numerics of the computed tensor
@@ -62,7 +63,7 @@ class TestRotaryPositionEmbedding:
         assert_expected(x_out.shape, input.shape)
 
     def test_forward_with_curr_pos(
-        self, input: tensor, rope: RotaryPositionalEmbeddings
+        self, input: torch.Tensor, rope: RotaryPositionalEmbeddings
     ) -> None:
         x_out = rope(input, curr_pos=10)
 
