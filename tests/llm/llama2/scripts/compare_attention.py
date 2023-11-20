@@ -105,7 +105,10 @@ def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0) -> torch.Te
 def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
     ndim = x.ndim
     assert 0 <= 1 < ndim
-    assert freqs_cis.shape == (x.shape[1], x.shape[-1])
+    assert freqs_cis.shape == (
+        x.shape[1],
+        x.shape[-1],
+    ), f"{freqs_cis.shape} does not match {x.shape[1], x.shape[-1]}"
     shape = [d if i == 1 or i == ndim - 1 else 1 for i, d in enumerate(x.shape)]
     return freqs_cis.view(*shape)
 
@@ -117,7 +120,9 @@ def apply_rotary_emb(x: torch.Tensor, freqs_cis: torch.Tensor) -> torch.Tensor:
     return x_out.type_as(x)
 
 
-def compare_rope(bsz: int, num_heads: int, embed_dim: int, seq_len: int) -> None:
+def compare_rope(
+    bsz: int, num_heads: int, embed_dim: int, seq_len: int, max_seq_len: int
+) -> None:
 
     # make sure we have the right seed for generating outputs
     torch.manual_seed(0)
@@ -128,23 +133,39 @@ def compare_rope(bsz: int, num_heads: int, embed_dim: int, seq_len: int) -> None
     x = torch.randn(bsz, seq_len, num_heads, head_dim)
 
     # Compute the reference tensors
-    freq_cis = precompute_freqs_cis(dim=head_dim, end=seq_len)
-    x_out_ref = apply_rotary_emb(x, freqs_cis=freq_cis)
+    freq_cis = precompute_freqs_cis(dim=head_dim, end=max_seq_len * 2)
+    x_out_ref = apply_rotary_emb(x, freqs_cis=freq_cis[:seq_len])
 
     # Compute the tensors from current implementation
-    rope_emb = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=seq_len)
+    rope_emb = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
     x_out = rope_emb(x)
 
     # Validate correctness
     assert torch.allclose(x_out_ref, x_out, atol=1e-6)
 
-    # value: tensor(-4.3060e-05)
+    # value: tensor(6.4543e-05)
     print(x_out.mean())
 
-    # value: tensor(-2889.6772)
+    # value: tensor(2165.7053)
     print(x_out.sum())
 
-    # value: tensor(5.6446)
+    # value: tensor(5.4546)
+    print(x_out.max())
+
+    curr_pos = 10
+    x_out_ref = apply_rotary_emb(x, freqs_cis=freq_cis[curr_pos : curr_pos + seq_len])
+    x_out = rope_emb(x, curr_pos=10)
+
+    # Validate correctness
+    assert torch.allclose(x_out_ref, x_out, atol=1e-6)
+
+    # value: tensor(0.0002)
+    print(x_out.mean())
+
+    # value: tensor(5158.3159)
+    print(x_out.sum())
+
+    # value: tensor(5.4543)
     print(x_out.max())
 
 
@@ -231,7 +252,9 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    compare_rope(args.bsz, args.num_heads, args.embed_dim, args.max_seq_len)
+    compare_rope(
+        args.bsz, args.num_heads, args.embed_dim, args.seq_len, args.max_seq_len
+    )
 
     compare_attention(
         args.bsz,
