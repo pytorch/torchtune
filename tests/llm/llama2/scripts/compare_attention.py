@@ -159,13 +159,13 @@ def compare_rope(
     # Validate correctness
     assert torch.allclose(x_out_ref, x_out, atol=1e-6)
 
-    # value: tensor(-0.0067)
+    # value: tensor(0.0002)
     print(x_out.mean())
 
-    # value: tensor(-109.6164)
+    # value: tensor(5158.3159)
     print(x_out.sum())
 
-    # value: tensor(3.9564)
+    # value: tensor(5.4543)
     print(x_out.max())
 
 
@@ -256,11 +256,11 @@ if __name__ == "__main__":
         args.bsz, args.num_heads, args.embed_dim, args.seq_len, args.max_seq_len
     )
 
-    # compare_attention(
-    #     args.bsz,
-    #     args.seq_len,
-    #     args.embed_dim,
-    #     args.num_heads,
-    #     args.num_kv_heads,
-    #     args.max_seq_len,
-    # )
+    compare_attention(
+        args.bsz,
+        args.seq_len,
+        args.embed_dim,
+        args.num_heads,
+        args.num_kv_heads,
+        args.max_seq_len,
+    )
