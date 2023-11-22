@@ -14,10 +14,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import torch
+from llm.llama2.transformer import TransformerDecoder
 from tests.llm.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
-from torchtune.llm.llama2.transformer import TransformerDecoder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

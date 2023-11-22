@@ -9,11 +9,11 @@ from typing import Tuple
 import pytest
 
 import torch
+from llm.llama2.rms_norm import RMSNorm
+
+from llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from torch import Tensor
-from torchtune.llm.llama2.rms_norm import RMSNorm
-
-from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 

@@ -7,8 +7,8 @@
 import pytest
 
 import torch
+from llm.llama2.rms_norm import RMSNorm
 from torch.nn.functional import normalize
-from torchtune.llm.llama2.rms_norm import RMSNorm
 
 from tests.test_utils import assert_expected, set_rng_seed
 

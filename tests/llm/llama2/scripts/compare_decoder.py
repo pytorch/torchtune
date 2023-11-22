@@ -6,9 +6,9 @@
 
 import torch
 
-from torch import nn
+from llm.llama2.transformer import TransformerDecoder
 
-from torchtune.llm.llama2.transformer import TransformerDecoder
+from torch import nn
 
 from tests.llm.llama2.scripts.compare_attention import precompute_freqs_cis
 from tests.llm.llama2.scripts.compare_decoder_layer import RMSNorm, TransformerBlock

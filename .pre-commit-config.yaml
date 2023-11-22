@@ -23,7 +23,7 @@ repos:
         files: \.py$
         args:
         - --license-filepath
-        - torchtune/docs/license_header.txt
+        - docs/license_header.txt
 
 -   repo: https://github.com/pycqa/flake8
     rev: 34cbf8ef3950f43d09b85e2e45c15ae5717dc37b

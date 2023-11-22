@@ -8,9 +8,9 @@ from typing import Optional
 
 import torch
 
-from torch import nn
+from llm.llama2.feed_forward import FeedForward
 
-from torchtune.llm.llama2.feed_forward import FeedForward
+from torch import nn
 
 from tests.test_utils import fixed_init_model
 

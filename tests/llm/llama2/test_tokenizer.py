@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from torchtune.llm.llama2.tokenizer import Tokenizer
+from llm.llama2.tokenizer import Tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent / "assets"
 
