@@ -8,9 +8,9 @@ from typing import Optional
 
 import torch
 
-from llm.llama2.transformer import TransformerDecoderLayer
-
 from torch import nn
+
+from torchtune.llm.llama2.transformer import TransformerDecoderLayer
 
 from tests.llm.llama2.scripts.compare_attention import Attention, precompute_freqs_cis
 from tests.llm.llama2.scripts.compare_feed_forward import FeedForwardRef
