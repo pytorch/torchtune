@@ -10,9 +10,9 @@ import pytest
 
 import torch
 
-from llm.llama2.feed_forward import FeedForward
-
 from torch import Tensor
+
+from torchtune.llm.llama2.feed_forward import FeedForward
 
 from tests.test_utils import assert_expected, fixed_init_model, set_rng_seed
 

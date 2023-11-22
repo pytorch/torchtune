@@ -8,9 +8,9 @@ from typing import Tuple
 
 import pytest
 import torch
-
-from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 from torch import tensor
+
+from torchtune.llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
 from tests.test_utils import assert_expected, set_rng_seed
 

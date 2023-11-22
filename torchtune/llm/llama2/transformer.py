@@ -10,9 +10,9 @@ import torch
 
 from torch import nn, Tensor
 
-from llm.llama2.attention import LlamaSelfAttention
-from llm.llama2.feed_forward import FeedForward
-from llm.llama2.rms_norm import RMSNorm
+from torchtune.llm.llama2.attention import LlamaSelfAttention
+from torchtune.llm.llama2.feed_forward import FeedForward
+from torchtune.llm.llama2.rms_norm import RMSNorm
 
 
 class TransformerDecoderLayer(nn.Module):
