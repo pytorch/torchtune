@@ -34,7 +34,7 @@ class TransformerDecoderLayer(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
-        norm_eps (float): eps value of for RMSNorm. Default is 1e-5.
+        max_batch_size (Optional[int]): max batch size
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -49,29 +49,37 @@ class TransformerDecoderLayer(nn.Module):
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
-        norm_eps: float = 1e-5,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
-
+        self.max_batch_size = max_batch_size
         # norm applied before self-attention
-        self.attn_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
+        self.attn_norm = RMSNorm(dim=embed_dim)
         self.attn = LlamaSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             max_seq_len=max_seq_len,
             attn_dropout=attn_dropout,
+            max_batch_size=max_batch_size,
         )
 
         # norm applied before the feedforward layer
-        self.ff_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
+        self.ff_norm = RMSNorm(dim=embed_dim)
         self.mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim)
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(
+        self,
+        x: Tensor,
+        mask: Optional[Tensor] = None,
+        curr_pos: int = 0,
+    ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
+            mask (Optional[Tensor]): mask tensor, defaults to None.
+            curr_pos (int): current position in the seq, defaults to 0.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -87,7 +95,7 @@ class TransformerDecoderLayer(nn.Module):
         """
         # input tensor and attention output have the same shape
         # [b, s, d]
-        attn_out = self.attn(self.attn_norm(x))
+        attn_out = self.attn(self.attn_norm(x), mask, curr_pos)
 
         # residual connection; shape: [b, s, d]
         h = attn_out + x
@@ -121,7 +129,8 @@ class TransformerDecoder(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
-        norm_eps (float): eps value of for RMS Norm. Default is 1e-5.
+        norm_eps (float): eps value of for RMS Norm
+        max_batch_size (Optional[int]): max batch size
 
     TODO: A few TODOs
             - Make norm configurable
@@ -141,8 +150,11 @@ class TransformerDecoder(nn.Module):
         attn_dropout: float = 0.0,
         # RMS Norm params
         norm_eps: float = 1e-6,
+        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
+        self.max_batch_size = max_batch_size
+
         self.max_seq_len = max_seq_len
         self.tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
@@ -155,25 +167,24 @@ class TransformerDecoder(nn.Module):
                     num_kv_heads=num_kv_heads,
                     max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
-                    norm_eps=norm_eps,
+                    max_batch_size=self.max_batch_size,
                 )
             )
 
         self.norm = RMSNorm(embed_dim, eps=norm_eps)
         self.output = nn.Linear(embed_dim, vocab_size, bias=False)
 
-    def forward(self, tokens: Tensor) -> Tensor:
+    def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
                 [batch_size x seq_length]
+            curr_pos (int): current position in the seq, defaults to 0.
+                Only relevant when incrementally decoding.
 
         Returns:
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x vocab_size]
-
-        Raises:
-            ValueError: if seq_len of x is bigger than max_seq_len
 
         Notation used for tensor shapes:
             - b: batch size
@@ -184,18 +195,20 @@ class TransformerDecoder(nn.Module):
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
 
-        if seq_len > self.max_seq_len:
-            raise ValueError(
-                f"seq_len ({seq_len}) of input tensor should be smaller "
-                f"than max_seq_len ({self.max_seq_len})"
-            )
-
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
+        # TODO: write shape
+        mask = None
+        if seq_len > 1 and self.max_batch_size is not None:
+            mask = torch.full(
+                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
+            )
+            mask = torch.triu(mask, diagonal=curr_pos + 1).type_as(h)
+
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h)
+            h = layer(h, mask, curr_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)

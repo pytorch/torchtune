@@ -63,7 +63,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            curr_pos (int): current position in the sequence, defaults to 0.
+            curr_pos (int): current position in the sequence, defualts to 0.
 
         Returns:
             Tensor: output tensor with RoPE applied
