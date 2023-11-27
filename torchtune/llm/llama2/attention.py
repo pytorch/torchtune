@@ -11,6 +11,8 @@ from torch import nn, Tensor
 from llm.llama2.kv_cache import KVCache
 from llm.llama2.position_embeddings import RotaryPositionalEmbeddings
 
+from torch import nn, Tensor
+
 
 class LlamaSelfAttention(nn.Module):
     """
@@ -45,6 +47,7 @@ class LlamaSelfAttention(nn.Module):
        n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
 
     Args:
+
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
@@ -97,14 +100,9 @@ class LlamaSelfAttention(nn.Module):
         self.head_dim = embed_dim // num_heads
         self.max_seq_len = max_seq_len
 
-        # TODO: we create kv cache w/num_heads instead of
-        # num_kv_heads even for GQA/MQA since we repeat k and v
-        # in forward to match num_heads before caching. We should
-        # refactor the forward pass to invert this order to save
-        # memory for GQA / MQA cases.
         if self.max_batch_size:
             self.kv_cache = KVCache(
-                self.max_batch_size, self.max_seq_len, self.num_heads, self.head_dim
+                self.max_batch_size, self.max_seq_len, self.num_kv_heads, self.head_dim
             )
         else:
             self.kv_cache = None
@@ -126,21 +124,18 @@ class LlamaSelfAttention(nn.Module):
         self,
         x: Tensor,
         mask: Optional[Tensor] = None,
-        curr_pos: int = 0,
+        curr_pos: Optional[int] = None,
     ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): boolean mask, defaults to None.
-            curr_pos (int): current position in the sequence, defaults to 0.
 
         Returns:
             Tensor: output tensor with attention applied
 
         Raises:
             ValueError: if seq_len of x is bigger than max_seq_len
-            ValueError: if bsz is bigger than max_batch_size
 
         Notation used for tensor shapes:
             - b: batch size
@@ -163,12 +158,6 @@ class LlamaSelfAttention(nn.Module):
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
                 f"than max_seq_len ({self.max_seq_len})"
-            )
-
-        if self.kv_cache is not None and bsz > self.max_batch_size:
-            raise ValueError(
-                f"batch_size ({bsz}) of input tensor should be smaller "
-                f"than max_batch_size ({self.max_batch_size})"
             )
 
         # qkv has shape [b, s, qkv_d]
@@ -209,23 +198,29 @@ class LlamaSelfAttention(nn.Module):
 
         # Update kv caches
         if self.kv_cache is not None:
-            k, v = self.kv_cache.update(
-                bsz=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
+            assert curr_pos is not None
+            keys, values = self.kv_cache.update(
+                batch_size=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
             )
+        else:
+            keys, values = k, v
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
-        k = k.transpose(1, 2)
-        v = v.transpose(1, 2)
+        keys = keys.transpose(1, 2)
+        values = values.transpose(1, 2)
 
-        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+        # using SDPA from nn.functional allows us to take
+        # advantage of flash attention
+        # ref: https://pytorch.org/blog/accelerating-large-language-models/
+        is_causal_flag = True if self.kv_cache is None else False
         output = nn.functional.scaled_dot_product_attention(
             q,
-            k,
-            v,
-            attn_mask=mask,
-            dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None,
+            keys,
+            values,
+            attn_mask=mask,  # mask is an inference mask if max_batch_size was configured
+            dropout_p=self.attn_dropout if self.training else 0.0,
+            is_causal=is_causal_flag,
         )
 
         # reshape the output to be the same shape as the input

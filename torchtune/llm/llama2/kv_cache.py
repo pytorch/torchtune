@@ -36,24 +36,25 @@ class KVCache(torch.nn.Module):
         self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
 
     def update(
-        self, bsz: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
+        self, batch_size: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
     ) -> Tuple[Tensor, Tensor]:
         """
-        Updates the kv-cache at curr_pos with the given k_val and v_val.
+        Updates the kv-cache at input_pos with the given k_val and v_val
 
         Args:
-            bsz (int): Batch size.
-            seq_len (int): Sequence length.
-            curr_pos (int): Current position in sequence.
-            k_val (Tensor): New k value.
-            v_val (Tensor): New v value.
+        input_pos (torch.Size): Position / sequence of positions corresponding to entries
+            to update.
+        k_val (Tensor): new k value
+        v_val (Tensor): new v value
 
         Returns:
             Tuple[Tensor, Tensor]: the k-cache and v-cache
         """
-        self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k_val
-        self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v_val
+        # import pdb ; pdb.set_trace()
+        # print(f"updating sequence {curr_pos} {curr_pos + seq_len}", flush=True)
+        self.k_cache[:batch_size, curr_pos : curr_pos + seq_len] = k_val
+        self.v_cache[:batch_size, curr_pos : curr_pos + seq_len] = v_val
         return (
-            self.k_cache[:bsz, : curr_pos + seq_len],
-            self.v_cache[:bsz, : curr_pos + seq_len],
+            self.k_cache[:batch_size, :curr_pos + seq_len],
+            self.v_cache[:batch_size, :curr_pos + seq_len]
         )

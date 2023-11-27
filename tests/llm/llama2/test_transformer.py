@@ -10,9 +10,10 @@ import pytest
 
 import torch
 
-from llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
-
 from torch import Tensor
+from torchtune.llm.llama2.rms_norm import RMSNorm
+
+from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
@@ -120,17 +121,6 @@ class TestTransformerDecoder:
         return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
 
     @pytest.fixture
-    def input_max_bs_exceeded(
-        self,
-        input_params: Tuple[int, int],
-        decoder_params: Tuple[int, int, int, int, int, int],
-    ) -> Tensor:
-        batch_size, seq_len, vocab_size = input_params
-        _, _, _, _, max_seq_len, _ = decoder_params
-        batch_size = batch_size + 1
-        return torch.randint(low=0, high=vocab_size, size=(batch_size, seq_len))
-
-    @pytest.fixture
     def decoder(
         self, decoder_params: Tuple[int, int, int, int, int, int]
     ) -> TransformerDecoder:
@@ -149,31 +139,6 @@ class TestTransformerDecoder:
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
-        )
-        init_weights_with_constant(decoder, constant=0.2)
-        decoder.eval()
-        return decoder
-
-    @pytest.fixture
-    def decoder_with_kv_cache_enabled(
-        self, decoder_params: Tuple[int, int, int, int, int, int]
-    ) -> TransformerDecoder:
-        (
-            vocab_size,
-            embed_dim,
-            num_layers,
-            num_heads,
-            max_seq_len,
-            num_kv_heads,
-        ) = decoder_params
-        decoder = TransformerDecoder(
-            vocab_size=vocab_size,
-            num_layers=num_layers,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
-            max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
@@ -199,21 +164,32 @@ class TestTransformerDecoder:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
 
-    def test_kv_cache(
-        self,
-        input: Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
-        decoder: TransformerDecoder,
+    def test_args_propagated(
+        self, decoder_params: Tuple[int, int, int, int, int, int]
     ) -> None:
-        with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input, 0)
-            output_no_cache = decoder(input)
-        assert_expected(output_cache.mean(), output_no_cache.mean())
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
 
-    def test_kv_cache_batch_size_exceeded(
-        self,
-        input_max_bs_exceeded: Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
-    ) -> None:
-        with pytest.raises(ValueError):
-            decoder_with_kv_cache_enabled(input_max_bs_exceeded)
+        expected_norm_eps = 1e-2
+
+        decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+            norm_eps=expected_norm_eps,
+        )
+        # ensure RMSNorm norm_eps is propagated across all RMSNorm instances
+        rms_norms = [
+            module for module in decoder.modules() if isinstance(module, RMSNorm)
+        ]
+        for norm in rms_norms:
+            assert norm.eps == expected_norm_eps

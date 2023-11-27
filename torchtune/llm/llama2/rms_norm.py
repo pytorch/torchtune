@@ -20,7 +20,7 @@ class RMSNorm(nn.Module):
 
     Args:
         dim (int): embedding size
-        eps (float): small value to avoid division by zero. Default: 1e-6
+        eps (float): small value to avoid division by zero. Default: 1e-5
     """
 
     def __init__(self, dim: int, eps: float = 1e-5) -> None:

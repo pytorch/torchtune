@@ -7,6 +7,7 @@
 import torch
 
 from torch import nn, Tensor
+from typing import Optional
 
 
 class RotaryPositionalEmbeddings(nn.Module):
@@ -63,7 +64,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            curr_pos (int): current position in the sequence, defualts to 0.
+            curr_pos (int): current position in the sequence, defaults to 0.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -79,8 +80,9 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
+        # During incremental decoding for inference, we need to slice
+        # the appropriate region of the cache.
         rope_cache = self.cache[curr_pos : curr_pos + seq_len]
-
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation
         # tensor has shape [b, s, n_h, n_d // 2, 2]
