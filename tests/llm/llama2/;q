@@ -10,7 +10,7 @@ import pytest
 
 import torch
 
-from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
+from llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from torch import Tensor
 
