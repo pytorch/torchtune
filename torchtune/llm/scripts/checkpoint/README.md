@@ -14,7 +14,7 @@ Assuming your original checkpoint lives at `path_to_native_checkpoint`, invoking
 
 ```
 cd torch_tbd # run next command from torch_tbd root
-python -m llm.scripts.checkpoint.convert_llama2_to_native --checkpoint_path <path_to_native_checkpoint> --device cuda:0
+python -m torchtune.llm.scripts.checkpoint.convert_llama2_to_native --checkpoint_path <path_to_native_checkpoint> --device cuda:0
 ```
 
 NOTE: This checkpoint conversion is under heavy development and expected to change. For example, we will onboard to `torch.distributed.checkpoint` and manage checkpoints at the directory, instead of

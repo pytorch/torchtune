@@ -10,9 +10,10 @@ import pytest
 
 import torch
 
-from llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
-
 from torch import Tensor
+from torchtune.llm.llama2.rms_norm import RMSNorm
+
+from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
@@ -162,3 +163,33 @@ class TestTransformerDecoder:
     ) -> None:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
+
+    def test_args_propagated(
+        self, decoder_params: Tuple[int, int, int, int, int, int]
+    ) -> None:
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
+
+        expected_norm_eps = 1e-2
+
+        decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+            norm_eps=expected_norm_eps,
+        )
+        # ensure RMSNorm norm_eps is propagated across all RMSNorm instances
+        rms_norms = [
+            module for module in decoder.modules() if isinstance(module, RMSNorm)
+        ]
+        for norm in rms_norms:
+            assert norm.eps == expected_norm_eps
