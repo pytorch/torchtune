@@ -10,8 +10,8 @@ The torchtune package contains tools and utilities to finetune generative models
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
 ```
-git clone https://github.com/pytorch-labs/torch_tbd
-cd torch_tbd
+git clone https://github.com/pytorch-labs/torchtune
+cd torchtune
 python setup.py install
 ```
 

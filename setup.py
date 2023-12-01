@@ -22,5 +22,5 @@ setup(
     description="Package for finetuning LLMs and diffusion models using native PyTorch",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/pytorch-labs/torch_tbd",
+    url="https://github.com/pytorch-labs/torchtune",
 )
