@@ -7,15 +7,21 @@ The torchtune package contains tools and utilities to finetune generative models
 
 # Installation
 
-Currently, `torchtune` must be built via cloning the repository and installing as follows:
+## Install nightlies
+
+```
+pip install git+https://github.com/pytorch-labs/torch_tbd.git
+```
+
+## Install from source
 
 ```
 git clone https://github.com/pytorch-labs/torch_tbd
 cd torch_tbd
-python setup.py install
+pip install -e .
 ```
 
-To verify successful installation, one can run:
+To verify successful installation:
 
 ```
 pip list | grep torchtune

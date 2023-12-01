@@ -12,9 +12,8 @@ import os
 
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
-
 import torch
-from tests.llm.llama2.scripts.compare_decoder import Transformer
+# from tests.llm.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
 from torchtune.llm.llama2.transformer import TransformerDecoder

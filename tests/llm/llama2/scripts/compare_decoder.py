@@ -23,55 +23,6 @@ Replicating code here to minimize dependencies. The code is modified to
 include params for the constructor and remove start_pos (not supported).
 """
 
-
-class Transformer(nn.Module):
-    def __init__(
-        self,
-        vocab_size: int,
-        dim: int,
-        n_layers: int,
-        n_heads: int,
-        max_seq_len: int,
-        n_kv_heads: int,
-    ):
-
-        super().__init__()
-        self.vocab_size = vocab_size
-        self.n_layers = n_layers
-
-        self.tok_embeddings = nn.Embedding(vocab_size, dim)
-
-        self.layers = torch.nn.ModuleList()
-        for _ in range(n_layers):
-            self.layers.append(
-                TransformerBlock(n_heads=n_heads, dim=dim, n_kv_heads=n_kv_heads)
-            )
-
-        self.norm = RMSNorm(dim)
-        self.output = nn.Linear(dim, vocab_size, bias=False)
-
-        self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2)
-
-    def forward(self, tokens: torch.Tensor, start_pos: int = 0):
-        _bsz, seqlen = tokens.shape
-        h = self.tok_embeddings(tokens)
-        self.freqs_cis = self.freqs_cis.to(h.device)
-        freqs_cis = self.freqs_cis[start_pos : start_pos + seqlen]
-
-        mask = None
-        if seqlen > 1:
-            mask = torch.full(
-                (1, 1, seqlen, seqlen), float("-inf"), device=tokens.device
-            )
-            mask = torch.triu(mask, diagonal=start_pos + 1).type_as(h)
-
-        for layer in self.layers:
-            h = layer(h, freqs_cis, mask)
-        h = self.norm(h)
-        output = self.output(h).float()
-        return output
-
-
 def compare_decoder(
     bsz: int,
     seq_len: int,

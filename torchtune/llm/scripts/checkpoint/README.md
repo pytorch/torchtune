@@ -6,6 +6,18 @@ parallelism.
 TorchTBD seeks to leverage the power of native PyTorch including PyTorch-native distributed APIs such as FSDP and Tensor Parallelism. To train Llama-2 models using TorchTBD, checkpoints must be
 converted as a result.
 
+#### Download Huggingface checkpoint
+
+```python
+from transformers import AutoModel
+
+# Download and cache the model
+model = AutoModel.from_pretrained("meta-llama/Llama-2-7b-hf")
+
+# By default this will store the checkpoint at 
+# ~/.cache/huggingface/transformers
+```
+
 
 #### Offline conversion of original checkpoint
 
@@ -13,7 +25,7 @@ Assuming your original checkpoint lives at `path_to_native_checkpoint`, invoking
 `/tmp/native_checkpoints/llama2-{x}b` where x is the model size. Currently, only the 7b parameter model is supported.
 
 ```
-cd torch_tbd # run next command from torch_tbd root
+cd torchtune # run next command from torch_tbd root
 python -m torchtune.llm.scripts.checkpoint.convert_llama2_to_native --checkpoint_path <path_to_native_checkpoint> --device cuda:0
 ```
 
