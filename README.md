@@ -10,14 +10,14 @@ The torchtune package contains tools and utilities to finetune generative models
 ## Install nightlies
 
 ```
-pip install git+https://github.com/pytorch-labs/torch_tbd.git
+pip install git+https://github.com/pytorch-labs/torchtune.git
 ```
 
 ## Install from source
 
 ```
-git clone https://github.com/pytorch-labs/torch_tbd
-cd torch_tbd
+git clone https://github.com/pytorch-labs/torchtune
+cd torchtune
 pip install -e .
 ```
 

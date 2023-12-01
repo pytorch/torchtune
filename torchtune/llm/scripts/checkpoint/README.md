@@ -25,8 +25,8 @@ Assuming your original checkpoint lives at `path_to_native_checkpoint`, invoking
 `/tmp/native_checkpoints/llama2-{x}b` where x is the model size. Currently, only the 7b parameter model is supported.
 
 ```
-cd torchtune # run next command from torch_tbd root
-python convert_llama2_to_native.py --checkpoint_path <path_to_native_checkpoint> --device cuda:0
+cd torchtune # run next command from torchtune root
+python -m torchtune.llm.scripts.checkpoint.convert_llama2_to_native --checkpoint_path <path_to_native_checkpoint> --device cuda:0
 ```
 
 NOTE: This checkpoint conversion is under heavy development and expected to change. For example, we will onboard to `torch.distributed.checkpoint` and manage checkpoints at the directory, instead of
