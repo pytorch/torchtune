@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
-
+from typing import List, Optional
+import torch
+from torch.nn.utils.rnn import pad_sequence
 from sentencepiece import SentencePieceProcessor
 
 
@@ -89,3 +90,25 @@ class Tokenizer:
             str: The decoded text.
         """
         return self.spm_model.decode(ids)
+
+    def to_tensor(self, tokens: List[List[int]], pad_value: int, max_length: Optional[int] = None) -> torch.LongTensor:
+        """Converts tokens to a LongTensor.
+
+        Args:
+            tokens (List[List[int]]): The input tokens.
+            max_length (Optional[int]): Maximum length of the output tensor, defaults to None.
+
+        Returns:
+            Tensorized tokens.
+
+        TODO: Clean this up, remove double padding
+        """
+        padded_tokens = pad_sequence(
+            [torch.tensor(t, dtype=torch.long) for t in tokens],
+            batch_first=True,
+            padding_value=pad_value,
+        )
+        if max_length is not None:
+            if padded_tokens.shape[-1] > max_length:
+                padded_tokens = padded_tokens[:, :max_length]
+        return padded_tokens
