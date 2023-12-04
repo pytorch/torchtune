@@ -5,9 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 from typing import List, Optional
+
 import torch
-from torch.nn.utils.rnn import pad_sequence
 from sentencepiece import SentencePieceProcessor
+from torch.nn.utils.rnn import pad_sequence
 
 
 class Tokenizer:
@@ -91,11 +92,14 @@ class Tokenizer:
         """
         return self.spm_model.decode(ids)
 
-    def to_tensor(self, tokens: List[List[int]], pad_value: int, max_length: Optional[int] = None) -> torch.LongTensor:
+    def to_tensor(
+        self, tokens: List[List[int]], pad_value: int, max_length: Optional[int] = None
+    ) -> torch.LongTensor:
         """Converts tokens to a LongTensor.
 
         Args:
             tokens (List[List[int]]): The input tokens.
+            pad_value (int): Padding value.
             max_length (Optional[int]): Maximum length of the output tensor, defaults to None.
 
         Returns:
