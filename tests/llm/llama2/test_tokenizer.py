@@ -51,3 +51,11 @@ class TestTokenizer:
 
     def test_decode(self, tokenizer):
         assert tokenizer.decode([1, 12, 1803, 1024, 103, 2]) == "Hello world!"
+
+    def test_token_ids(self, tokenizer):
+        assert tokenizer.eos_id == 2
+        assert tokenizer.pad_id == -1
+        assert tokenizer.bos_id == 1
+
+    def test_tokenizer_vocab_size(self, tokenizer):
+        assert tokenizer.vocab_size == 2000
