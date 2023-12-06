@@ -53,7 +53,7 @@ class Tokenizer:
         """
         spm = SentencePieceProcessor()
         spm.load(path)
-        return cls(spm, spm.vocab_size, spm.bos_id(), spm.eos_id(), spm.pad_id())
+        return cls(spm, spm.vocab_size(), spm.bos_id(), spm.eos_id(), spm.pad_id())
 
     def encode(
         self,
