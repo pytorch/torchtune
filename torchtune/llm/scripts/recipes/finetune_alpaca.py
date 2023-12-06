@@ -1,23 +1,28 @@
 import argparse
-import time
+import os
+from typing import Callable, List, Tuple
 
 import torch
 import torch.nn.functional as F
-from datasets import load_dataset
+from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 from torch.utils.data import DataLoader
+
+from torchtune.llm.datasets import get_dataset
 from torchtune.llm.llama2.tokenizer import Tokenizer
 from torchtune.llm.llama2.transformer import TransformerDecoder
 from tqdm import tqdm
 
 
-def main():
-    # ---- Parse arguments ---- #
+def get_argparser():
+    """Return an argument parser for the script. Add all arguments here."""
     parser = argparse.ArgumentParser(
-        description="Fine-tune a native PyTorch LLaMA model on a HuggingFace dataset."
+        description="Fine-tune a native PyTorch LLaMA model."
     )
     # Dataset arguments
+    parser.add_argument("--dataset", type=str, required=True, help="Dataset name.")
     parser.add_argument(
-        "--dataset", type=str, required=True, help="HuggingFace dataset name."
+        "--shuffle", action="store_true", help="Shuffle dataset.", default=True
     )
     # Model arguments
     parser.add_argument(
@@ -59,19 +64,66 @@ def main():
         default="/tmp/llama-finetune",
         help="Directory in which to save checkpoints during fine-tuning.",
     )
+    parser.add_argument(
+        "--num_gpus",
+        type=int,
+        default=0,
+        help="Number of GPUs to use for fine-tuning.",
+    )
+    return parser
+
+
+def batch_pad_to_longest_seq(
+    batch: List[Tuple[List[int], List[int]]]
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Pad a batch of sequences to the longest sequence length in the batch.
+
+    Args:
+        batch (List of tuples): A list of tuples containing input, label pairs.
+
+    Returns:
+        Collated input and label tensors.
+    """
+    input_ids = pad_sequence(
+        [torch.tensor(x[0]) for x in batch], batch_first=True, padding_value=0
+    )
+    labels = pad_sequence(
+        [torch.tensor(x[1]) for x in batch], batch_first=True, padding_value=-100
+    )
+
+    input_ids_seq_len = input_ids.shape[-1]
+    labels_seq_len = labels.shape[-1]
+
+    # Hack to pad correctly and not use max_seq_len, which is costly
+    if input_ids_seq_len > labels_seq_len:
+        labels = F.pad(labels, (0, input_ids_seq_len - labels_seq_len), value=-100)
+    elif labels_seq_len > input_ids_seq_len:
+        input_ids = F.pad(
+            input_ids,
+            (0, labels_seq_len - input_ids_seq_len),
+            value=0,
+        )
+    return input_ids, labels
+
+
+def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> nn.Module:
+    return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
+
+
+def get_loss(loss_fn: str) -> Callable:
+    return getattr(torch.nn.functional, loss_fn)
+
+
+def main():
+    # ---- Parse arguments ---- #
+    parser = get_argparser()
     args = parser.parse_args()
 
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-
     # ---- Initialize components ---- #
-    # Initialize tokenizer
-    start = time.time()
     tokenizer = Tokenizer.from_file(args.tokenizer)
     tokenizer.pad_id = 0  # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    print(f"Tokenizer initialized in {time.time() - start}s.")
 
-    # Initialize model
-    start = time.time()
+    device = "cuda" if args.num_gpus > 0 else "cpu"
     model = TransformerDecoder(
         vocab_size=tokenizer.vocab_size,
         num_layers=32,
@@ -83,70 +135,36 @@ def main():
     state_dict = torch.load(args.model_checkpoint)
     model.load_state_dict(state_dict)
     model = model.to(device)
-    print(f"Model initialized in {time.time() - start}s.")
 
-    # Load dataset
-    dataset = load_dataset(args.dataset, split="train")
+    opt = get_optimizer(model, args.optimizer, args.lr)
+    loss_fn = get_loss(args.loss_fn)
 
-    # Initialize optimizer
-    opt = getattr(torch.optim, args.optimizer)(model.parameters(), lr=args.lr)
-
-    # Initialize loss
-    loss_fn = getattr(torch.nn.functional, args.loss_fn)
+    # ---- Load dataset ---- #
+    dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
+    dataloader = DataLoader(
+        dataset,
+        args.batch_size,
+        shuffle=args.shuffle,
+        collate_fn=batch_pad_to_longest_seq,
+    )
 
     for epoch in tqdm(range(args.epochs)):
-        for i, batch in enumerate(DataLoader(dataset, args.batch_size)):
+        for i, batch in enumerate(dataloader):
             opt.zero_grad()
 
-            # ---- Prepare inputs ---- #
-            # Grab prompt + instruction + input
-            response_tag = "\n\n### Response:\n"
-            text = batch["text"]
-            instructions_and_inputs = [
-                t.split(response_tag)[0] + response_tag for t in text
-            ]
-
-            # Tensorize and encode
-            input_ids = tokenizer.to_tensor(
-                [tokenizer.encode(t) for t in instructions_and_inputs],
-                max_length=model.max_seq_len,
-                pad_value=tokenizer.pad_id,
-            )
-            input_ids_seq_len = input_ids.shape[-1]
-            labels = tokenizer.to_tensor(
-                [tokenizer.encode(output) for output in batch["output"]],
-                max_length=model.max_seq_len,
-                pad_value=-100,
-            )
-            labels_seq_len = labels.shape[-1]
-
-            # Hack to pad correctly and not use max_seq_len, which is costly
-            if input_ids_seq_len > labels_seq_len:
-                labels = F.pad(
-                    labels, (0, input_ids_seq_len - labels_seq_len), value=-100
-                )
-            elif labels_seq_len > input_ids_seq_len:
-                input_ids = F.pad(
-                    input_ids,
-                    (0, labels_seq_len - input_ids_seq_len),
-                    value=tokenizer.pad_id,
-                )
-
-            # Put on device
+            input_ids, labels = batch
             input_ids = input_ids.to(device)
+            labels.to(device)
 
-            # ---- Run forward pass ---- #
             logits = model(input_ids)
 
             # ---- Compute loss ---- #
-            logits = logits.cpu()
             # Shift so that tokens < n predict n
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
             shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
             shift_labels = shift_labels.view(-1)
-
             loss = loss_fn(shift_logits, shift_labels)
             print(f"Loss @ step {i} in epoch {epoch}: {loss}")
 
