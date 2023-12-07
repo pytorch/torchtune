@@ -1,11 +1,12 @@
 import argparse
+import logging
 import os
 from typing import Callable, List, Tuple
 
 import torch
 import torch.nn.functional as F
-from torch import nn
 from torch.nn.utils.rnn import pad_sequence
+from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 
 from torchtune.llm.datasets import get_dataset
@@ -26,7 +27,10 @@ def get_argparser():
     )
     # Model arguments
     parser.add_argument(
-        "--tokenizer", type=str, required=True, help="Path to SentencePiece tokenizer."
+        "--tokenizer-checkpoint",
+        type=str,
+        required=True,
+        help="Path to SentencePiece tokenizer.",
     )
     parser.add_argument(
         "--model-checkpoint",
@@ -65,10 +69,11 @@ def get_argparser():
         help="Directory in which to save checkpoints during fine-tuning.",
     )
     parser.add_argument(
-        "--num_gpus",
-        type=int,
-        default=0,
-        help="Number of GPUs to use for fine-tuning.",
+        "--device",
+        type=str,
+        choices=["cpu", "cuda"],
+        default="cpu",
+        help="`cuda` or `cpu`",
     )
     return parser
 
@@ -106,12 +111,17 @@ def batch_pad_to_longest_seq(
     return input_ids, labels
 
 
-def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> nn.Module:
+def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
     return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
 
 
 def get_loss(loss_fn: str) -> Callable:
     return getattr(torch.nn.functional, loss_fn)
+
+
+def get_logger():
+    logger = logging.getLogger(__name__)
+    return logger.info
 
 
 def main():
@@ -120,24 +130,25 @@ def main():
     args = parser.parse_args()
 
     # ---- Initialize components ---- #
-    tokenizer = Tokenizer.from_file(args.tokenizer)
+    tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
     tokenizer.pad_id = 0  # Original tokenizer has no pad_id, which causes indexing errors when batch training
 
-    device = "cuda" if args.num_gpus > 0 else "cpu"
-    model = TransformerDecoder(
-        vocab_size=tokenizer.vocab_size,
-        num_layers=32,
-        num_heads=32,
-        embed_dim=4096,
-        max_seq_len=2048,
-        norm_eps=1e-5,
-    )
-    state_dict = torch.load(args.model_checkpoint)
-    model.load_state_dict(state_dict)
-    model = model.to(device)
+    device = args.device
+    with torch.device(device):
+        model = TransformerDecoder(
+            vocab_size=tokenizer.vocab_size,
+            num_layers=32,
+            num_heads=32,
+            embed_dim=4096,
+            max_seq_len=2048,
+            norm_eps=1e-5,
+        )
+    model.load_state_dict(torch.load(args.model_checkpoint))
 
     opt = get_optimizer(model, args.optimizer, args.lr)
     loss_fn = get_loss(args.loss_fn)
+
+    logger = get_logger()
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
@@ -154,11 +165,11 @@ def main():
 
             input_ids, labels = batch
             input_ids = input_ids.to(device)
-            labels.to(device)
 
             logits = model(input_ids)
 
             # ---- Compute loss ---- #
+            logits = logits.cpu()
             # Shift so that tokens < n predict n
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
@@ -166,7 +177,7 @@ def main():
             shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
             shift_labels = shift_labels.view(-1)
             loss = loss_fn(shift_logits, shift_labels)
-            print(f"Loss @ step {i} in epoch {epoch}: {loss}")
+            logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
 
             loss.backward()
             opt.step()
@@ -174,8 +185,8 @@ def main():
         # Save checkpoint at end of each epoch (to be changed later)
         output_loc = f"{args.output_dir}/model_{epoch}.ckpt"
         torch.save(model.state_dict(), output_loc)
-        print(
-            f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
+        logger(
+            msg=f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
         )
 
 

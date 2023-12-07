@@ -1,34 +1,42 @@
-from typing import Callable, List, Tuple
+from typing import List, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
+# Not ideal to import this type here but it's needed for the transform function
+from torchtune.llm.llama2.tokenizer import Tokenizer
+
 
 class AlpacaDataset(Dataset):
-    """PyTorch Representation of Alpaca Dataset from Hugging Face.
+    """PyTorch Representation of the Alpaca Dataset from Hugging Face.
 
     Args:
-        split (str): Split to use.
-        tokenizer (Callable): Tokenizer used to encode data.
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
 
-    Example:
+    Data input format:
     {
         "instruction": "Create a classification task by clustering the given list of items.",
         "input": "Apples, oranges, bananas, strawberries, pineapples",
         "output": "Class 1: Apples, Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",
         "text": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:\nClass 1: Apples, Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",
     }
+
+    Example:
+    >>> alpaca_ds = AlpacaDataset(tokenizer=tokenizer)
+    >>> for batch in Dataloader(alpaca_ds, batch_size=8):
+            print(f"Batch size: {len(batch)}")
+        Batch size: 8
     """
 
-    def __init__(self, split: str, tokenizer: Callable) -> None:
-        self.data = load_dataset("tatsu-lab/alpaca", split=split)
+    def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
+        self._data = load_dataset("tatsu-lab/alpaca", split="train")
         self._tokenizer = tokenizer
 
     def __len__(self):
-        return len(self.data)
+        return len(self._data)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        return self.transform(self.data["text"][index])
+        return self.transform(self._data["text"][index])
 
     def transform(self, sample: str) -> Tuple[List[int], List[int]]:
         """Split a sample on 'response' tag to create input and labels.
