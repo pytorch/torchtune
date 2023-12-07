@@ -36,7 +36,7 @@ class AlpacaDataset(Dataset):
         return len(self._data)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        return self.transform(self._data["text"][index])
+        return self.transform(self._data[index]["text"])
 
     def transform(self, sample: str) -> Tuple[List[int], List[int]]:
         """Split a sample on 'response' tag to create input and labels.

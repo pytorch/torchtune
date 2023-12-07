@@ -1,5 +1,4 @@
 import argparse
-import logging
 import os
 from typing import Callable, List, Tuple
 
@@ -120,7 +119,11 @@ def get_loss(loss_fn: str) -> Callable:
 
 
 def get_logger():
+    import logging
+
     logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
     return logger.info
 
 
@@ -130,8 +133,11 @@ def main():
     args = parser.parse_args()
 
     # ---- Initialize components ---- #
+    logger = get_logger()
+
     tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
     tokenizer.pad_id = 0  # Original tokenizer has no pad_id, which causes indexing errors when batch training
+    logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
     with torch.device(device):
@@ -144,11 +150,10 @@ def main():
             norm_eps=1e-5,
         )
     model.load_state_dict(torch.load(args.model_checkpoint))
+    logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
     loss_fn = get_loss(args.loss_fn)
-
-    logger = get_logger()
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
@@ -159,6 +164,7 @@ def main():
         collate_fn=batch_pad_to_longest_seq,
     )
 
+    # ---- Train loop ---- #
     for epoch in tqdm(range(args.epochs)):
         for i, batch in enumerate(dataloader):
             opt.zero_grad()
@@ -168,7 +174,6 @@ def main():
 
             logits = model(input_ids)
 
-            # ---- Compute loss ---- #
             logits = logits.cpu()
             # Shift so that tokens < n predict n
             shift_logits = logits[..., :-1, :].contiguous()
@@ -176,6 +181,7 @@ def main():
             # Flatten the tokens
             shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
             shift_labels = shift_labels.view(-1)
+            # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
             logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
 
