@@ -1,9 +1,11 @@
 import argparse
+import contextlib
 import os
-from typing import Callable, List, Tuple
+from typing import Callable, List, Tuple, Dict
 
 import torch
 import torch.nn.functional as F
+from torch.cuda.amp import GradScaler
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
@@ -12,6 +14,13 @@ from torchtune.llm.datasets import get_dataset
 from torchtune.llm.llama2.tokenizer import Tokenizer
 from torchtune.llm.llama2.transformer import TransformerDecoder
 from tqdm import tqdm
+
+# TODO: rohan-varma: separate out such constants into a constants / utils file.
+_LOW_PRECISION_STR_TYPES: List[str] = ["fp16", "bf16"]
+type_str_to_dtype: Dict[str, torch.dtype] = {
+    "fp16": torch.float16,
+    "bf16": torch.bfloat16,
+}
 
 
 def get_argparser():
@@ -74,6 +83,16 @@ def get_argparser():
         default="cpu",
         help="`cuda` or `cpu`",
     )
+    parser.add_argument(
+        "--autocast-precision",
+        type=str,
+        choices=_LOW_PRECISION_STR_TYPES,
+        default=None,
+        help="""Low precision used for CUDA automatic mixed precision.
+            If specified, must be one of fp16 or bf16. --device argument
+            must be CUDA for this to apply.
+        """,
+    )
     return parser
 
 
@@ -131,7 +150,11 @@ def main():
     # ---- Parse arguments ---- #
     parser = get_argparser()
     args = parser.parse_args()
-
+    print(f"RV: got precision {args.autocast_precision}")
+    if args.device != "cuda" and args.autocast_precision in _LOW_PRECISION_STR_TYPES:
+        raise ValueError(
+            f"Only support CUDA amp low precision training for autocast precision type {args.autocast_precision}"
+        )
     # ---- Initialize components ---- #
     logger = get_logger()
 
@@ -164,29 +187,53 @@ def main():
         collate_fn=batch_pad_to_longest_seq,
     )
 
+    autocast_mgr = (
+        torch.autocast(
+            device_type=device, dtype=type_str_to_dtype[args.autocast_precision]
+        )
+        if args.autocast_precision is not None
+        else contextlib.nullcontext()
+    )
+
+    # Create a grad scaler if autocast type is fp16. Note that we'll have to use
+    # ShardedGradScaler once FSDP is integrated.
+    grad_scaler: Optional[GradScaler] = None
+    if args.autocast_precision == "fp16":
+        grad_scaler: GradScaler = GradScaler()
+        logger(
+            msg=f"Using gradient scaler since training with AMP precision {args.autocast_precision}"
+        )
+
     # ---- Train loop ---- #
     for epoch in tqdm(range(args.epochs)):
         for i, batch in enumerate(dataloader):
             opt.zero_grad()
 
             input_ids, labels = batch
+            # TODO: overlap copy with the computation via streams.
+            labels = labels.to(device)
             input_ids = input_ids.to(device)
 
-            logits = model(input_ids)
+            with autocast_mgr:
+                logits = model(input_ids)
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                # Flatten the tokens
+                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Compute loss
+                loss = loss_fn(shift_logits, shift_labels)
 
-            logits = logits.cpu()
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Compute loss
-            loss = loss_fn(shift_logits, shift_labels)
             logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
 
-            loss.backward()
-            opt.step()
+            if grad_scaler:
+                grad_scaler.scale(loss).backward()
+                grad_scaler.step(opt)
+                grad_scaler.update()
+            else:
+                loss.backward()
+                opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
         output_loc = f"{args.output_dir}/model_{epoch}.ckpt"
