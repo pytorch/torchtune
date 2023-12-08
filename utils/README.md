@@ -1,3 +1,16 @@
+---
+language:
+- en
+pipeline_tag: text-generation
+inference: false
+tags:
+- facebook
+- meta
+- pytorch
+- llama
+- llama-2
+---
+
 ## Goal of this file
 
 TODO: Make it clear that this uploaded model was finetuned using torchtune, how people can finetune and how people can load this model for an inference
