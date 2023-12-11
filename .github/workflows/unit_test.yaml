@@ -1,0 +1,39 @@
+name: Unit Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+defaults:
+  run:
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  unit_tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Setup conda env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          activate-environment: test
+          python-version: ${{ matrix.python-version }}
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          conda install pytorch
+          python setup.py install
+          python -m pip install -r requirements.txt
+          python -m pip install -r dev-requirements.txt
+      - name: Run unit tests with coverage
+        run: pytest tests --cov=. --cov-report=xml --durations=20 -vv
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
