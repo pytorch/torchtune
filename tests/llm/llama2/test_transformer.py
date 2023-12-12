@@ -102,7 +102,7 @@ class TestTransformerDecoder:
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
         vocab_size = 1024
         embed_dim = 4096
-        num_layers = 2
+        num_layers = 1
         num_heads = 32
         max_seq_len = 4096
         num_kv_heads = 8
