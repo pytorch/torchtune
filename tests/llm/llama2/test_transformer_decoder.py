@@ -102,7 +102,7 @@ class TestTransformerDecoder:
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
         vocab_size = 1024
         embed_dim = 4096
-        num_layers = 4
+        num_layers = 2
         num_heads = 32
         max_seq_len = 4096
         num_kv_heads = 8
@@ -150,6 +150,7 @@ class TestTransformerDecoder:
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
         )
+        # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
         return decoder
