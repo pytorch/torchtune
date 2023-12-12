@@ -11,7 +11,7 @@ defaults:
 
 jobs:
   unit_tests:
-    runs-on: ubuntu-22.04-16core
+    runs-on: 16-core-ubuntu
     strategy:
       matrix:
         python-version: ['3.10', '3.11']
