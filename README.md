@@ -41,3 +41,20 @@ You can also run this manually on every file using:
 ```
 pre-commit run --all-files
 ```
+
+### Build docs
+
+From the `docs` folder:
+
+Install dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+Then:
+
+```
+make html
+# Now open build/html/index.html
+```

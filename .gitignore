@@ -141,7 +141,13 @@ __pypackages__/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+docs/build
+# sphinx-gallery
+docs/source/auto_examples/
+docs/source/gen_modules/
+docs/source/generated/
+# pytorch-sphinx-theme gets installed here
+docs/src
 
 # Spyder project settings
 .spyderproject
