@@ -9,7 +9,7 @@ from typing import Optional
 from torch import nn, Tensor
 
 from torchtune.models.llama2.kv_cache import KVCache
-from torchtune.models.position_embeddings import RotaryPositionalEmbeddings
+from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddings
 
 
 class LlamaSelfAttention(nn.Module):
