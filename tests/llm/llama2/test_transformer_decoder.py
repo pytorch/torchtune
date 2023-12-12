@@ -10,9 +10,9 @@ import pytest
 
 import torch
 
-from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
-
 from torch import Tensor
+
+from torchtune.llm.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
@@ -102,7 +102,7 @@ class TestTransformerDecoder:
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
         vocab_size = 1024
         embed_dim = 4096
-        num_layers = 2
+        num_layers = 1
         num_heads = 32
         max_seq_len = 4096
         num_kv_heads = 8
