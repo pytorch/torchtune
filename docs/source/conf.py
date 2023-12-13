@@ -50,8 +50,17 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.duration",
+    "sphinx_gallery.gen_gallery",
     "sphinx_copybutton",
 ]
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../../examples/",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "backreferences_dir": "gen_modules/backreferences",
+    "doc_module": ("torchtune",),
+    "remove_config_comments": True,
+}
 
 napoleon_use_ivar = True
 napoleon_numpy_docstring = False
@@ -118,6 +127,10 @@ html_theme_options = {
 
 html_logo = "_static/img/pytorch-logo-dark.svg"
 
+html_css_files = [
+    "css/custom_torchtune.css",
+]
+
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
@@ -176,7 +189,7 @@ def patched_make_field(self, types, domain, items, **kw):
                         domain,
                         typename,
                         addnodes.literal_emphasis,
-                        **kw
+                        **kw,
                     )
                 )
             else:
@@ -199,3 +212,36 @@ def patched_make_field(self, types, domain, items, **kw):
 
 
 TypedField.make_field = patched_make_field
+
+
+def inject_minigalleries(app, what, name, obj, options, lines):
+    """Inject a minigallery into a docstring.
+
+    [This is 100% taken from torchvision]
+
+    This avoids having to manually write the .. minigallery directive for every item we want a minigallery for,
+    as it would be easy to miss some.
+
+    This callback is called after the .. auto directives (like ..autoclass) have been processed,
+    and modifies the lines parameter inplace to add the .. minigallery that will show which examples
+    are using which object.
+
+    It's a bit hacky, but not *that* hacky when you consider that the recommended way is to do pretty much the same,
+    but instead with templates using autosummary (which we don't want to use):
+    (https://sphinx-gallery.github.io/stable/configuration.html#auto-documenting-your-api-with-links-to-examples)
+
+    For docs on autodoc-process-docstring, see the autodoc docs:
+    https://www.sphinx-doc.org/en/master/usage/extensions/autodoc.html
+    """
+
+    if what in ("class", "function"):
+        lines.append(f".. minigallery:: {name}")
+        lines.append(f"    :add-heading: Examples using ``{name.split('.')[-1]}``:")
+        # avoid heading entirely to avoid warning. As a bonud it actually renders better
+        lines.append("    :heading-level: 9")
+        lines.append("\n")
+
+
+def setup(app):
+
+    app.connect("autodoc-process-docstring", inject_minigalleries)

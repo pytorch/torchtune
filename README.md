@@ -58,3 +58,10 @@ Then:
 make html
 # Now open build/html/index.html
 ```
+
+To avoid building the examples (which execute python code and can take time) you
+can use `make html-noplot`. To build a subset of specific examples instead of
+all of them, you can use a regex like `EXAMPLES_PATTERN="plot_the_best_example*"
+make html`.
+
+If the doc build starts failing for a weird reason, try `make clean`.
