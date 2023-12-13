@@ -1,12 +1,18 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Callable, List
 
 import pytest
 
 import torch
-from torchtune.utils.generation import GenerationUtils
 from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.utils.generation import GenerationUtils
 
-from tests.test_utils import assert_expected, set_rng_seed, init_weights_with_constant
+from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
 
 @pytest.fixture(autouse=True)
@@ -36,6 +42,7 @@ class TestTextGenerate:
     """
     Test class for text generation functionality.
     """
+
     @property
     def _batch_size(self):
         return 2
@@ -113,8 +120,9 @@ class TestTextGenerate:
         # Since keep_prompt=True by default, each generation should have
         # its prompt at the beginning.
         expected_prompt_lens = [len(prompt) for prompt in prompt_tokens]
+        assert len(expected_prompt_lens) == len(outputs_actual)
         for i, (expected_len, generation) in enumerate(
-            zip(expected_prompt_lens, outputs_actual, strict=True)
+            zip(expected_prompt_lens, outputs_actual)
         ):
             generation_tokens = generation.tolist()
             expected_prompt = generation_tokens[:expected_len]
