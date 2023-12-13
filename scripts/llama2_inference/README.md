@@ -1,4 +1,4 @@
-### torchtune Examples 
+### torchtune Examples
 
 This directory contains examples and documentation for getting started with using torchtune's LLM utilities.
 

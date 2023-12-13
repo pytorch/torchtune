@@ -10,9 +10,12 @@ import pytest
 
 import torch
 
-from torchtune.models.llama2.transformer import TransformerDecoder, TransformerDecoderLayer
-
 from torch import Tensor
+
+from torchtune.models.llama2.transformer import (
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
 
 from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
 
