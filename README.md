@@ -28,7 +28,7 @@ from torchtune.llm.llama2.transformer import TransformerDecoder
 ```
 
 ### Coding Style
-TorchTBD uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
+`torchtune` uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
 
 ```
 pre-commit install

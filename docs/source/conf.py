@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 #
 # PyTorch documentation build configuration file, created by
 # sphinx-quickstart on Fri Dec 23 13:31:47 2016.
@@ -177,7 +183,15 @@ def patched_make_field(self, types, domain, items, **kw):
                 typename = typename.replace("long", "python:long")
                 typename = typename.replace("float", "python:float")
                 typename = typename.replace("type", "python:type")
-                par.extend(self.make_xrefs(self.typerolename, domain, typename, addnodes.literal_emphasis, **kw))
+                par.extend(
+                    self.make_xrefs(
+                        self.typerolename,
+                        domain,
+                        typename,
+                        addnodes.literal_emphasis,
+                        **kw
+                    )
+                )
             else:
                 par += fieldtype
             par += nodes.Text(")")
