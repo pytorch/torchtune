@@ -36,5 +36,5 @@ jobs:
           python -m pip install -r requirements.txt
       - name: Build docs
         run: |
-          pwd
+          cd docs
           make html
