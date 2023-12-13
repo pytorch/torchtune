@@ -10,7 +10,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  unit_tests:
+  build_docs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
