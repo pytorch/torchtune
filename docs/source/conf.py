@@ -189,7 +189,7 @@ def patched_make_field(self, types, domain, items, **kw):
                         domain,
                         typename,
                         addnodes.literal_emphasis,
-                        **kw
+                        **kw,
                     )
                 )
             else:
@@ -212,6 +212,7 @@ def patched_make_field(self, types, domain, items, **kw):
 
 
 TypedField.make_field = patched_make_field
+
 
 def inject_minigalleries(app, what, name, obj, options, lines):
     """Inject a minigallery into a docstring.
@@ -239,6 +240,7 @@ def inject_minigalleries(app, what, name, obj, options, lines):
         # avoid heading entirely to avoid warning. As a bonud it actually renders better
         lines.append("    :heading-level: 9")
         lines.append("\n")
+
 
 def setup(app):
 

@@ -13,8 +13,7 @@ from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddin
 
 
 class LlamaSelfAttention(nn.Module):
-    """
-    Multi-headed grouped query self-attention (GQA) layer introduced
+    """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
@@ -26,7 +25,10 @@ class LlamaSelfAttention(nn.Module):
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
-    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py)::
+    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py).
+
+
+    ::
 
         ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
         │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │

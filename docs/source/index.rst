@@ -7,7 +7,7 @@ Hello.
     :toctree: generated/
     :template: class.rst
 
-    torchtune.llm.llama2.attention.LlamaSelfAttention
+    torchtune.models.llama2.attention.LlamaSelfAttention
 
 
 .. toctree::
