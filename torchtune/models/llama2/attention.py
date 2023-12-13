@@ -13,8 +13,7 @@ from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddin
 
 
 class LlamaSelfAttention(nn.Module):
-    """
-    Multi-headed grouped query self-attention (GQA) layer introduced
+    """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
@@ -26,23 +25,25 @@ class LlamaSelfAttention(nn.Module):
     Following is an example of MHA, GQA and MQA with num_heads = 4
 
     (credit for the documentation:
-    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py)
+    https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/config.py).
 
 
-    ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
-    └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-      │    │    │    │         │        │                 │
-    ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
-    │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
-    └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
-      │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
-    ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
-    │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
-    └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
-    ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
-            MHA                    GQA                   MQA
-       n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
+    ::
+
+        ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+        │ v ││ v ││ v ││ v │     │ v │    │ v │             │ v │
+        └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+        │    │    │    │         │        │                 │
+        ┌───┐┌───┐┌───┐┌───┐     ┌───┐    ┌───┐             ┌───┐
+        │ k ││ k ││ k ││ k │     │ k │    │ k │             │ k │
+        └───┘└───┘└───┘└───┘     └───┘    └───┘             └───┘
+        │    │    │    │      ┌──┴──┐  ┌──┴──┐      ┌────┬──┴─┬────┐
+        ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐  ┌───┐┌───┐┌───┐┌───┐
+        │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │  │ q ││ q ││ q ││ q │
+        └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘  └───┘└───┘└───┘└───┘
+        ◀──────────────────▶  ◀──────────────────▶  ◀──────────────────▶
+                MHA                    GQA                   MQA
+        n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
 
     Args:
         embed_dim (int): embedding dimension for the model
@@ -59,9 +60,9 @@ class LlamaSelfAttention(nn.Module):
         max_batch_size (Optional[int]): max_batch_size
 
     Raises:
-         ValueError: If `num_heads` % `num_kv_heads` != 0
-         ValueError: If `embed_dim` % `num_heads` != 0
-         ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: If `num_heads` % `num_kv_heads` != 0
+        ValueError: If `embed_dim` % `num_heads` != 0
+        ValueError: If `attn_dropout` < 0 or > 1
     """
 
     def __init__(
