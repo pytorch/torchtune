@@ -38,3 +38,7 @@ jobs:
         run: |
           cd docs
           make html
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Built-Docs
+          path: docs/build/html/
