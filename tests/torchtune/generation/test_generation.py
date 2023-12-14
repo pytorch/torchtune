@@ -120,8 +120,9 @@ class TestTextGenerate:
         # Since keep_prompt=True by default, each generation should have
         # its prompt at the beginning.
         expected_prompt_lens = [len(prompt) for prompt in prompt_tokens]
+        assert len(expected_prompt_lens) == len(outputs_actual)
         for i, (expected_len, generation) in enumerate(
-            zip(expected_prompt_lens, outputs_actual, strict=True)
+            zip(expected_prompt_lens, outputs_actual)
         ):
             generation_tokens = generation.tolist()
             expected_prompt = generation_tokens[:expected_len]
