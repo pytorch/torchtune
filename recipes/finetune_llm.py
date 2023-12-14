@@ -33,7 +33,11 @@ def get_argparser():
         type=int,
         required=False,
         default=None,
-        help="Seed for dataset shuffling order and multiprocessing worker base_seed. Same seed value will provide the same ordering and transforms of samples across runs.",
+        help="""
+            Seed for dataset shuffling order and multiprocessing
+            worker base_seed. Same seed value will provide the
+            same ordering and transforms of samples across runs.
+            """,
     )
     parser.add_argument("-shuffle", help="Shuffle dataset.", default=True)
     # Model arguments
@@ -95,7 +99,7 @@ def batch_pad_to_longest_seq(
     """Pad a batch of sequences to the longest sequence length in the batch.
 
     Args:
-        batch (List of tuples): A list of tuples containing input, label pairs.
+        batch (List[Tuple[List[int], List[int]]]): A list of tuples containing input, label pairs.
 
     Returns:
         Collated input and label tensors.
