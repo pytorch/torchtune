@@ -49,6 +49,10 @@ class LlamaSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
+        qkv_proj (nn.Module):
+        output_proj (nn.Module):
+        rope_embeddings (nn.Module):
+        sdpa (Union[Callable, nn.Module]):
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
         num_kv_heads (Optional[int]): number of key and value heads. If specified,
@@ -69,6 +73,10 @@ class LlamaSelfAttention(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
+        qkv_proj: nn.Module,  # can probably reorder params here
+        output_proj: nn.Module,
+        rope_embeddings: nn.Module,
+        sdpa: Union[Callable, nn.Module],
         max_seq_len: int = 4096,
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
@@ -110,18 +118,9 @@ class LlamaSelfAttention(nn.Module):
         else:
             self.kv_cache = None
 
-        # Output dimension of the qkv projection matrix depends on the
-        # total number of heads and the dimension of each head.
-        # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
-        qkv_dim = (self.num_heads + 2 * self.num_kv_heads) * self.head_dim
-
-        self.qkv_proj = nn.Linear(self.embed_dim, qkv_dim, bias=False)
-        self.output_proj = nn.Linear(self.embed_dim, self.embed_dim, bias=False)
-
-        # Build the RoPE cache
-        self.rope = RotaryPositionalEmbeddings(
-            dim=self.head_dim, max_seq_len=max_seq_len
-        )
+        self.rope = rope_embeddings
+        self.qkv_proj = qkv_proj
+        self.output_proj = output_proj
 
     def forward(
         self,
@@ -220,7 +219,7 @@ class LlamaSelfAttention(nn.Module):
         v = v.transpose(1, 2)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = nn.functional.scaled_dot_product_attention(
+        output = self.sdpa(
             q,
             k,
             v,
@@ -232,3 +231,37 @@ class LlamaSelfAttention(nn.Module):
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
         return self.output_proj(output)
+
+
+def llama_self_attention(
+    self,
+    embed_dim: int,
+    num_heads: int,
+    max_seq_len: int = 4096,
+    num_kv_heads: Optional[int] = None,
+    attn_dropout: float = 0.0,
+    max_batch_size: Optional[int] = None,
+):
+
+    # Output dimension of the qkv projection matrix depends on the
+    # total number of heads and the dimension of each head.
+    # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
+    head_dim = embed_dim // num_heads
+    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+    qkv_proj = nn.Linear(embed_dim, qkv_dim, bias=False)
+    output_proj = nn.Linear(embed_dim, embed_dim, bias=False)
+    # Build the RoPE cache
+    rope_embeddings = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+    sdpa = nn.functional.scaled_dot_product_attention
+    return LlamaSelfAttention(
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        qkv_proj=qkv_proj,
+        out_proj=out_proj,
+        rope_embeddings=rope_embeddings,
+        sdpa=sdpa,
+        max_seq_len=max_seq_len,
+        num_kv_heads=num_kv_heads,
+        attn_dropout=attn_dropout,
+        max_batch_size=max_batch_size,
+    )

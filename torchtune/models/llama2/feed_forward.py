@@ -17,34 +17,40 @@ class FeedForward(nn.Module):
     found here: https://github.com/facebookresearch/llama/model.py#L307.
 
     Args:
-        dim (int): Input dimension.
-        hidden_dim (int): Hidden dimension of the feedforward layer. `hidden_dim` should be a large multiple of 2
-            and can additionally include a custom multiplier, which affects the model capacity for LLaMA V2. In
-            the original facebookresearch/llama documentation, this is referred to as `ffn_custom_multiplier`.
-        multiple_of (int): After applying a SwiGLU scaling factor to `hidden_dim`, `hidden_dim` is rounded to
-            the nearest multiple of `multiple_of` that is greater than `hidden_dim`. Based on experiments, the
-            LLaMA team recommends rounding the result to a multiple of 256. E.g. for LLaMA 7B, the hidden dimension
-            would be 11008 after applying SwiGLU-related scaling and rounding. Default: 256
+        linear1 (nn.Module):
+        linear2 (nn.Module):
+        linear3 (nn.Module):
+        activation (Union[Callable, nn.Module]):
     """
 
     def __init__(
         self,
-        dim: int,
-        hidden_dim: int,
-        multiple_of: int = 256,
+        linear1: nn.Module,
+        linear2: nn.Module,
+        linear3: nn.Module,
+        activation: Union[Callable, nn.Module],
     ):
         super().__init__()
-        # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
-        # parameters and computation constant
-        hidden_dim = 4 * int(2 * hidden_dim / 3)
-
-        # Round hidden dimension to nearest multiple of `multiple_of`
-        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
-
-        self.w1 = nn.Linear(dim, hidden_dim, bias=False)
-        self.w2 = nn.Linear(hidden_dim, dim, bias=False)
-        self.w3 = nn.Linear(dim, hidden_dim, bias=False)
+        self.w1 = linear1
+        self.w2 = linear2
+        self.w3 = linear3
+        self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
         # SwiGLU = W_2(Swish(Wx) ⊗ Vx) from Shazeer 2020
-        return self.w2(F.silu(self.w1(x)) * self.w3(x))
+        return self.w2(self.activation(self.w1(x)) * self.w3(x))
+
+
+def llama_feedforward(dim: int, hidden_dim: int, multiple_of: int = 256):
+    # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
+    # parameters and computation constant
+    hidden_dim = 4 * int(2 * hidden_dim / 3)
+
+    # Round hidden dimension to nearest multiple of `multiple_of`
+    hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+
+    w1 = nn.Linear(dim, hidden_dim, bias=False)
+    w2 = nn.Linear(hidden_dim, dim, bias=False)
+    w3 = nn.Linear(dim, hidden_dim, bias=False)
+    activation = F.silu
+    return FeedForward(linear1=w1, linear2=w2, linear3=w3, activation=activation)
