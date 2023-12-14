@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import argparse
 import os
 from typing import Callable, List, Tuple
@@ -6,11 +12,11 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torch.optim.optimizer import Optimizer
-from torch.utils.data import DataLoader
-
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
+
+from torchtune.trainer import ReproducibleDataLoader
 
 from tqdm import tqdm
 
@@ -20,11 +26,16 @@ def get_argparser():
     parser = argparse.ArgumentParser(
         description="Fine-tune a native PyTorch LLaMA model."
     )
-    # Dataset arguments
+    # Dataset and DataLoader arguments
     parser.add_argument("--dataset", type=str, required=True, help="Dataset name.")
     parser.add_argument(
-        "--shuffle", action="store_true", help="Shuffle dataset.", default=True
+        "--dataloader-seed",
+        type=int,
+        required=False,
+        default=None,
+        help="Seed for dataset shuffling order and multiprocessing worker base_seed. Same seed value will provide the same ordering and transforms of samples across runs.",
     )
+    parser.add_argument("-shuffle", help="Shuffle dataset.", default=True)
     # Model arguments
     parser.add_argument(
         "--tokenizer-checkpoint",
@@ -158,11 +169,12 @@ def main():
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
-    dataloader = DataLoader(
-        dataset,
-        args.batch_size,
+    dataloader = ReproducibleDataLoader(
+        dataset=dataset,
+        batch_size=args.batch_size,
         shuffle=args.shuffle,
         collate_fn=batch_pad_to_longest_seq,
+        seed=args.dataloader_seed,
     )
 
     # ---- Train loop ---- #
