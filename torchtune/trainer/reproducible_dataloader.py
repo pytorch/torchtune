@@ -41,7 +41,7 @@ class ReproducibleDataLoader(DataLoader):
         (default: ``None``)
     """
 
-    def __init__(
+    def __init__(  # noqa: DOC101
         self,
         dataset: Dataset,
         shuffle: Optional[bool] = None,

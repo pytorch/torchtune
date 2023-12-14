@@ -24,7 +24,8 @@ class AlpacaDataset(Dataset):
         "instruction": "Create a classification task by clustering the given list of items.",
         "input": "Apples, oranges, bananas, strawberries, pineapples",
         "output": "Class 1: Apples, Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",
-        "text": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:\nClass 1: Apples, Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",
+        "text": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:\nClass 1: Apples,
+        Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",  # noqa: B950
     }
 
     Example:
