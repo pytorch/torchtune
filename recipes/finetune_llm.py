@@ -123,7 +123,8 @@ def main():
     logger = get_logger()
 
     tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
-    tokenizer.pad_id = 0  # Original tokenizer has no pad_id, which causes indexing errors when batch training
+    # Original tokenizer has no pad_id, which causes indexing errors when batch training
+    tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
