@@ -8,9 +8,15 @@ from torch.utils.data import Dataset
 
 from .alpaca import AlpacaDataset
 
+DATASET_DICT = {"alpaca": AlpacaDataset}
+
 
 def get_dataset(name: str, **kwargs) -> Dataset:
-    if name == "alpaca":
-        return AlpacaDataset(**kwargs)
+    if name in DATASET_DICT:
+        return DATASET_DICT[name](**kwargs)
     else:
         raise ValueError(f"Unknown dataset: {name}")
+
+
+def list_datasets():
+    return list(DATASET_DICT)
