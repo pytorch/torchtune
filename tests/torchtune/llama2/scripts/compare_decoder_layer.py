@@ -12,11 +12,11 @@ from torch import nn
 
 from torchtune.models.llama2.transformer import TransformerDecoderLayer
 
-from tests.blocks.llama2.scripts.compare_attention import (
+from tests.torchtune.llama2.scripts.compare_attention import (
     Attention,
     precompute_freqs_cis,
 )
-from tests.blocks.llama2.scripts.compare_feed_forward import FeedForwardRef
+from tests.torchtune.llama2.scripts.compare_feed_forward import FeedForwardRef
 
 from tests.test_utils import init_weights_with_constant
 
