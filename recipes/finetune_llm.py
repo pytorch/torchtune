@@ -6,17 +6,16 @@
 
 import argparse
 import os
-from typing import Callable, List, Tuple
+from typing import Callable
 
 import torch
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
 from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
 
 from torchtune.trainer import ReproducibleDataLoader
+from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 
 from tqdm import tqdm
 
@@ -91,39 +90,6 @@ def get_argparser():
         help="`cuda` or `cpu`",
     )
     return parser
-
-
-def batch_pad_to_longest_seq(
-    batch: List[Tuple[List[int], List[int]]]
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Pad a batch of sequences to the longest sequence length in the batch.
-
-    Args:
-        batch (List[Tuple[List[int], List[int]]]): A list of tuples containing input, label pairs.
-
-    Returns:
-        Collated input and label tensors.
-    """
-    input_ids = pad_sequence(
-        [torch.tensor(x[0]) for x in batch], batch_first=True, padding_value=0
-    )
-    labels = pad_sequence(
-        [torch.tensor(x[1]) for x in batch], batch_first=True, padding_value=-100
-    )
-
-    input_ids_seq_len = input_ids.shape[-1]
-    labels_seq_len = labels.shape[-1]
-
-    # Hack to pad correctly and not use max_seq_len, which is costly
-    if input_ids_seq_len > labels_seq_len:
-        labels = F.pad(labels, (0, input_ids_seq_len - labels_seq_len), value=-100)
-    elif labels_seq_len > input_ids_seq_len:
-        input_ids = F.pad(
-            input_ids,
-            (0, labels_seq_len - input_ids_seq_len),
-            value=0,
-        )
-    return input_ids, labels
 
 
 def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
