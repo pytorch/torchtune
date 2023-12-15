@@ -24,7 +24,7 @@ pip list | grep torchtune
 And as an example, the following import should work:
 
 ```
-from torchtune.llm.llama2.transformer import TransformerDecoder
+from torchtune.models.llama2.transformer import TransformerDecoder
 ```
 
 ### Coding Style
