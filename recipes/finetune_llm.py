@@ -6,17 +6,21 @@
 
 import argparse
 import os
-from typing import Callable, List, Tuple
+from functools import partial
+from typing import Callable
 
 import torch
-import torch.nn.functional as F
-from torch.nn.utils.rnn import pad_sequence
 from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
 
 from torchtune.trainer import ReproducibleDataLoader
+from torchtune.utils.batch_pad_sequence import (
+    _DEFAULT_INPUT_PADDING_IDX,
+    _DEFAULT_LABEL_PADDING_IDX,
+    batch_pad_to_longest_seq,
+)
 
 from tqdm import tqdm
 
@@ -93,39 +97,6 @@ def get_argparser():
     return parser
 
 
-def batch_pad_to_longest_seq(
-    batch: List[Tuple[List[int], List[int]]]
-) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Pad a batch of sequences to the longest sequence length in the batch.
-
-    Args:
-        batch (List[Tuple[List[int], List[int]]]): A list of tuples containing input, label pairs.
-
-    Returns:
-        Collated input and label tensors.
-    """
-    input_ids = pad_sequence(
-        [torch.tensor(x[0]) for x in batch], batch_first=True, padding_value=0
-    )
-    labels = pad_sequence(
-        [torch.tensor(x[1]) for x in batch], batch_first=True, padding_value=-100
-    )
-
-    input_ids_seq_len = input_ids.shape[-1]
-    labels_seq_len = labels.shape[-1]
-
-    # Hack to pad correctly and not use max_seq_len, which is costly
-    if input_ids_seq_len > labels_seq_len:
-        labels = F.pad(labels, (0, input_ids_seq_len - labels_seq_len), value=-100)
-    elif labels_seq_len > input_ids_seq_len:
-        input_ids = F.pad(
-            input_ids,
-            (0, labels_seq_len - input_ids_seq_len),
-            value=0,
-        )
-    return input_ids, labels
-
-
 def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
     return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
 
@@ -152,7 +123,8 @@ def main():
     logger = get_logger()
 
     tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
-    tokenizer.pad_id = 0  # Original tokenizer has no pad_id, which causes indexing errors when batch training
+    # Original tokenizer has no pad_id, which causes indexing errors when batch training
+    tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
@@ -177,7 +149,11 @@ def main():
         dataset=dataset,
         batch_size=args.batch_size,
         shuffle=args.shuffle,
-        collate_fn=batch_pad_to_longest_seq,
+        collate_fn=partial(
+            batch_pad_to_longest_seq,
+            input_padding_idx=_DEFAULT_INPUT_PADDING_IDX,
+            label_padding_idx=_DEFAULT_LABEL_PADDING_IDX,
+        ),
         seed=args.dataloader_seed,
     )
 
