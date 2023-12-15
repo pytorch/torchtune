@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
+# TokenPair is a pair (tuple) of two lists: tokenized text inputs and labels.
 TokenPair = Tuple[List[int], List[int]]
 
 _DEFAULT_INPUT_PADDING_IDX: int = 0
