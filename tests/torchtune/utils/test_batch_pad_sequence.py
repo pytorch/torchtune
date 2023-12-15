@@ -16,8 +16,8 @@ class TestBatchPadSequence:
         """
         Tests that shorter input, label sequences are padded to the max seq len.
         """
-        input_padding_idx = 0
-        label_padding_idx = -100
+        input_padding_idx = -8
+        label_padding_idx = -9
         token_pairs = [
             ([1, 2, 3], [4, 5, 6]),
             (

@@ -6,6 +6,7 @@
 
 import argparse
 import os
+from functools import partial
 from typing import Callable
 
 import torch
@@ -15,7 +16,11 @@ from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
 
 from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils.batch_pad_sequence import (
+    _DEFAULT_INPUT_PADDING_IDX,
+    _DEFAULT_LABEL_PADDING_IDX,
+    batch_pad_to_longest_seq,
+)
 
 from tqdm import tqdm
 
@@ -143,7 +148,11 @@ def main():
         dataset=dataset,
         batch_size=args.batch_size,
         shuffle=args.shuffle,
-        collate_fn=batch_pad_to_longest_seq,
+        collate_fn=partial(
+            batch_pad_to_longest_seq,
+            input_padding_idx=_DEFAULT_INPUT_PADDING_IDX,
+            label_padding_idx=_DEFAULT_LABEL_PADDING_IDX,
+        ),
         seed=args.dataloader_seed,
     )
 

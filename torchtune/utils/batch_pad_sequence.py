@@ -12,11 +12,14 @@ from torch.nn.utils.rnn import pad_sequence
 
 TokenPair = Tuple[List[int], List[int]]
 
+_DEFAULT_INPUT_PADDING_IDX: int = 0
+_DEFAULT_LABEL_PADDING_IDX: int = -100
+
 
 def batch_pad_to_longest_seq(
     batch: List[TokenPair],
-    input_padding_idx: int = 0,
-    label_padding_idx: int = -100,
+    input_padding_idx: int = _DEFAULT_INPUT_PADDING_IDX,
+    label_padding_idx: int = _DEFAULT_LABEL_PADDING_IDX,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
@@ -59,11 +62,13 @@ def batch_pad_to_longest_seq(
 
     # Hack to pad correctly and not use max_seq_len, which is costly
     if input_ids_seq_len > labels_seq_len:
-        labels = F.pad(labels, (0, input_ids_seq_len - labels_seq_len), value=-100)
+        labels = F.pad(
+            labels, (0, input_ids_seq_len - labels_seq_len), value=label_padding_idx
+        )
     elif labels_seq_len > input_ids_seq_len:
         input_ids = F.pad(
             input_ids,
             (0, labels_seq_len - input_ids_seq_len),
-            value=0,
+            value=input_padding_idx,
         )
     return input_ids, labels
