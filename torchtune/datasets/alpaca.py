@@ -4,17 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Tuple
+from typing import List, Tuple, Callable
 
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from torch.utils.data import Dataset
 
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.models.llama2.tokenizer import Tokenizer
 
 
-class AlpacaDataset(Dataset):
-    """PyTorch Representation of the Alpaca Dataset from Hugging Face.
+class InstructionTuningDataset(Dataset):
+    """PyTorch Representation of an Instruction Fine Tuning Dataset
+    from Hugging Face.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
@@ -35,27 +36,15 @@ class AlpacaDataset(Dataset):
         Batch size: 8
     """
 
-    def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
-        self._data = load_dataset("tatsu-lab/alpaca", split="train")
+    def __init__(self, dataset: Dataset, tokenizer: Tokenizer, row_to_input_and_label: Callable, **kwargs) -> None:
+        self._dataset = dataset
         self._tokenizer = tokenizer
+        self._row_to_input_and_label = row_to_input_and_label
 
     def __len__(self):
-        return len(self._data)
+        return len(self._dataset)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        return self.transform(self._data[index]["text"])
-
-    def transform(self, sample: str) -> Tuple[List[int], List[int]]:
-        """Split a sample on 'response' tag to create input and labels.
-
-        Args:
-            sample (str): Sample text.
-
-        Returns:
-            Tuple of encoded inputs and labels.
-        """
-        response_tag = "\n\n### Response:\n"
-        split_text = sample.split(response_tag)
-        instructions_and_inputs = self._tokenizer.encode(split_text[0] + response_tag)
-        labels = self._tokenizer.encode(split_text[1])
-        return instructions_and_inputs, labels
+        row = self._dataset[index]
+        input, label = self._row_to_input_and_label(row)
+        return self._tokenizer.encode(input), self._tokenizer.encode(label)

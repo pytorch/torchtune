@@ -176,10 +176,11 @@ def main():
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
+            print(type(loss))
             logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
 
             loss.backward()
-            opt.step()
+            # opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
         output_loc = f"{args.output_dir}/model_{epoch}.ckpt"
