@@ -14,10 +14,10 @@ from torchtune.utils.precision import _get_grad_scaler
 from tests.test_utils import assert_expected
 
 
-class TestGetGradScaler:
+class TestPrecisionUtils:
     def test_get_grad_scaler(self):
         """
-        Tests that the correct gradient scaler is returned based on device and precision.
+        Tests that the correct gradient scaler is returned based on precision.
         """
 
         for precision in [None, "bf16"]:
