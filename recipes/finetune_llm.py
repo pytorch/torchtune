@@ -5,11 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import contextlib
 import os
 from functools import partial
 from typing import Callable
 
 import torch
+from torch.cuda.amp import GradScaler
 from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
@@ -20,6 +22,11 @@ from torchtune.utils.batch_pad_sequence import (
     _DEFAULT_INPUT_PADDING_IDX,
     _DEFAULT_LABEL_PADDING_IDX,
     batch_pad_to_longest_seq,
+)
+from torchtune.utils.precision import (
+    _get_grad_scaler,
+    _LOW_PRECISION_STR_TYPES,
+    _type_str_to_dtype,
 )
 
 from tqdm import tqdm
@@ -71,7 +78,7 @@ def get_argparser():
         "--optimizer",
         type=str,
         default="AdamW",
-        choices=["AdamW"],
+        choices=["AdamW", "SGD"],
         help="Optimizer to use for fine-tuning.",
     )
     parser.add_argument(
@@ -94,6 +101,17 @@ def get_argparser():
         default="cpu",
         help="`cuda` or `cpu`",
     )
+    parser.add_argument(
+        "--autocast-precision",
+        type=str,
+        choices=_LOW_PRECISION_STR_TYPES,
+        default=None,
+        help="""Low precision used for CUDA automatic mixed precision.
+            If specified, must be one of fp16 or bf16. --device argument
+            must be CUDA for this to apply.
+        """,
+    )
+
     return parser
 
 
@@ -127,7 +145,22 @@ def main():
     tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
+    if args.device != "cuda" and args.autocast_precision in _LOW_PRECISION_STR_TYPES:
+        raise ValueError(
+            f"Cannot specify autocast precision {args.autocast_precision} without using CUDA."
+        )
+
     device = args.device
+    # NOTE: we don't use autocast w/dtype=fp32 when autocast precision is not specified, as this could cause
+    # unexpected upcasts when running w/FSDP mixed precision.
+    autocast_mgr = (
+        torch.autocast(
+            device_type=device, dtype=_type_str_to_dtype[args.autocast_precision]
+        )
+        if args.autocast_precision is not None
+        else contextlib.nullcontext()
+    )
+    grad_scaler: GradScaler = _get_grad_scaler(args.autocast_precision)
     with torch.device(device):
         model = TransformerDecoder(
             vocab_size=tokenizer.vocab_size,
@@ -164,10 +197,9 @@ def main():
 
             input_ids, labels = batch
             input_ids = input_ids.to(device)
-
+            labels = labels.to(device)
             logits = model(input_ids)
 
-            logits = logits.cpu()
             # Shift so that tokens < n predict n
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
@@ -177,9 +209,13 @@ def main():
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
             logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
-
-            loss.backward()
-            opt.step()
+            if grad_scaler:
+                grad_scaler.scale(loss).backward()
+                grad_scaler.step(opt)
+                grad_scaler.update()
+            else:
+                loss.backward()
+                opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
         output_loc = f"{args.output_dir}/model_{epoch}.ckpt"
