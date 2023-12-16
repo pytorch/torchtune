@@ -198,16 +198,19 @@ def main():
             input_ids, labels = batch
             input_ids = input_ids.to(device)
             labels = labels.to(device)
-            logits = model(input_ids)
 
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Compute loss
-            loss = loss_fn(shift_logits, shift_labels)
+            with autocast_mgr:
+                logits = model(input_ids)
+
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                # Flatten the tokens
+                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Compute loss
+                loss = loss_fn(shift_logits, shift_labels)
+
             logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
             if grad_scaler:
                 grad_scaler.scale(loss).backward()
