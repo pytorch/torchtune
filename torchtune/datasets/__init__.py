@@ -8,15 +8,17 @@ from torch.utils.data import Dataset
 
 from .alpaca import AlpacaDataset
 
-DATASET_DICT = {"alpaca": AlpacaDataset}
+_DATASET_DICT = {"alpaca": AlpacaDataset}
 
 
 def get_dataset(name: str, **kwargs) -> Dataset:
-    if name in DATASET_DICT:
-        return DATASET_DICT[name](**kwargs)
+    """Get known supported datasets by name"""
+    if name in _DATASET_DICT:
+        return _DATASET_DICT[name](**kwargs)
     else:
         raise ValueError(f"Unknown dataset: {name}")
 
 
 def list_datasets():
-    return list(DATASET_DICT)
+    """List of availabe datasets supported by `get_dataset`"""
+    return list(_DATASET_DICT)

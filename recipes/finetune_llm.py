@@ -49,7 +49,7 @@ def get_argparser():
         type=str,
         choices=list_models(),
         required=True,
-        help="Model to tinetune",
+        help="Model to finetune",
     )
     parser.add_argument(
         "--model-checkpoint",
@@ -85,26 +85,24 @@ def get_argparser():
         "--optimizer",
         type=str,
         default="AdamW",
-        choices=[i for i in dir(torch.optim) if not i.startswith("_")],
-        help="Optimizer to use for fine-tuning.",
+        help="Optimizer to use for fine-tuning, please consult torch.optim Docs for a list of available optimizers",
     )
     parser.add_argument(
-        "--loss-fn",
+        "--loss",
         type=str,
-        default="cross_entropy",
-        choices=["cross_entropy"],
-        help="Loss function to use for fine-tuning",
+        default="CrossEntropyLoss",
+        choices=["CrossEntropyLoss"],
+        help="Loss to use for fine-tuning",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/tmp/llama-finetune",
-        help="Directory in which to save checkpoints during fine-tuning.",
+        help="Directory in which to save checkpoints during fine-tuning",
     )
     parser.add_argument(
         "--device",
         type=str,
-        choices=["cpu", "cuda"] + [f"cuda:{i}" for i in range(8)],
         default="cpu",
         help="`cuda` or `cpu`",
     )
@@ -116,7 +114,7 @@ def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimize
 
 
 def get_loss(loss_fn: str) -> Callable:
-    return getattr(torch.nn.functional, loss_fn)
+    return getattr(torch.nn, loss_fn)()
 
 
 def get_logger():
@@ -140,14 +138,13 @@ def main():
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
-    model = get_model(
-        args.model, device, path=args.model_checkpoint, vocab_size=tokenizer.vocab_size
-    )
+    model = get_model(args.model, device, vocab_size=tokenizer.vocab_size)
+    model.load_state_dict(torch.load(args.model_checkpoint))
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
     # TODO add lr schedule option
-    loss_fn = get_loss(args.loss_fn)
+    loss_fn = get_loss(args.loss)
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
@@ -158,14 +155,15 @@ def main():
         collate_fn=partial(
             batch_pad_to_longest_seq,
             input_padding_idx=tokenizer.pad_id,
-            label_padding_idx=loss.ignore_index,
+            label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
         seed=args.dataloader_seed,
     )
+    logger(msg=f"Loaded dataset {args.dataset}")
 
     # ---- Train loop ---- #
-    for epoch in tqdm(range(args.epochs)):
-        for i, batch in enumerate(dataloader):
+    for epoch in range(args.epochs):
+        for batch in (pbar := tqdm(dataloader)):
             opt.zero_grad()
 
             input_ids, labels = batch
@@ -182,7 +180,7 @@ def main():
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
-            logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
+            pbar.set_description(f"{epoch+1}| Loss: {loss.item()}")
 
             loss.backward()
             opt.step()
