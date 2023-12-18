@@ -14,6 +14,7 @@ from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.models.llama2.utils import llama_7b_args
 
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils.batch_pad_sequence import (
@@ -128,13 +129,14 @@ def main():
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
+    llama_args = llama_7b_args()
     with torch.device(device):
         model = TransformerDecoder(
             vocab_size=tokenizer.vocab_size,
-            num_layers=32,
-            num_heads=32,
-            embed_dim=4096,
-            max_seq_len=2048,
+            num_layers=llama_args.num_layers,
+            num_heads=llama_args.num_heads,
+            embed_dim=llama_args.embed_dim,
+            max_seq_len=llama_args.max_seq_len,
             norm_eps=1e-5,
         )
     model.load_state_dict(torch.load(args.model_checkpoint))
