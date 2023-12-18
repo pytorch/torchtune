@@ -5,13 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-import contextlib
 import os
 from functools import partial
 from typing import Callable
 
 import torch
-from torch.cuda.amp import GradScaler
 from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
@@ -24,9 +22,9 @@ from torchtune.utils.batch_pad_sequence import (
     batch_pad_to_longest_seq,
 )
 from torchtune.utils.precision import (
+    _get_autocast_manager,
     _get_grad_scaler,
     _LOW_PRECISION_STR_TYPES,
-    _type_str_to_dtype,
 )
 
 from tqdm import tqdm
@@ -147,20 +145,15 @@ def main():
 
     if args.device != "cuda" and args.autocast_precision in _LOW_PRECISION_STR_TYPES:
         raise ValueError(
-            f"Cannot specify autocast precision {args.autocast_precision} without using CUDA."
+            f"Specifying autocast precision {args.autocast_precision} without using CUDA is not yet implemented."
         )
 
     device = args.device
-    # NOTE: we don't use autocast w/dtype=fp32 when autocast precision is not specified, as this could cause
-    # unexpected upcasts when running w/FSDP mixed precision.
-    autocast_mgr = (
-        torch.autocast(
-            device_type=device, dtype=_type_str_to_dtype[args.autocast_precision]
-        )
-        if args.autocast_precision is not None
-        else contextlib.nullcontext()
+    autocast_mgr = _get_autocast_manager(
+        device_type=device, precision=args.autocast_precision
     )
-    grad_scaler: GradScaler = _get_grad_scaler(args.autocast_precision)
+    grad_scaler = _get_grad_scaler(args.autocast_precision)
+    print(f"RV got grad_scaler {grad_scaler}")
     with torch.device(device):
         model = TransformerDecoder(
             vocab_size=tokenizer.vocab_size,
@@ -198,6 +191,10 @@ def main():
             input_ids, labels = batch
             input_ids = input_ids.to(device)
             labels = labels.to(device)
+
+            # Note: context manager for autocast is only applied in forward pass.
+            # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
+            # for more details.
 
             with autocast_mgr:
                 logits = model(input_ids)
