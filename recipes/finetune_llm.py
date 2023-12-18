@@ -153,7 +153,6 @@ def main():
         device_type=device, precision=args.autocast_precision
     )
     grad_scaler = _get_grad_scaler(args.autocast_precision)
-    print(f"RV got grad_scaler {grad_scaler}")
     with torch.device(device):
         model = TransformerDecoder(
             vocab_size=tokenizer.vocab_size,
