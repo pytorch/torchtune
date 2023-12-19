@@ -37,20 +37,4 @@ class FeedForward(nn.Module):
         self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
-        # SwiGLU = W_2(Swish(Wx) ⊗ Vx) from Shazeer 2020
         return self.w2(self.activation(self.w1(x)) * self.w3(x))
-
-
-def llama_feedforward(dim: int, hidden_dim: int, multiple_of: int = 256):
-    # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
-    # parameters and computation constant
-    hidden_dim = 4 * int(2 * hidden_dim / 3)
-
-    # Round hidden dimension to nearest multiple of `multiple_of`
-    hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
-
-    w1 = nn.Linear(dim, hidden_dim, bias=False)
-    w2 = nn.Linear(hidden_dim, dim, bias=False)
-    w3 = nn.Linear(dim, hidden_dim, bias=False)
-    activation = F.silu
-    return FeedForward(linear1=w1, linear2=w2, linear3=w3, activation=activation)

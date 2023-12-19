@@ -10,36 +10,9 @@ import torch
 
 from torch import nn, Tensor
 
-from torchtune.models.llama2.attention import llama_self_attention, LlamaSelfAttention
-from torchtune.models.llama2.feed_forward import FeedForward, llama_feedforward
+from torchtune.models.llama2.attention import CausalSelfAttention
+from torchtune.models.llama2.feed_forward import FeedForward
 from torchtune.models.llama2.rms_norm import RMSNorm
-
-
-def llama_transformer_decoder_layer(
-    embed_dim: int,
-    num_heads: int,
-    max_seq_len: int = 4096,
-    num_kv_heads: Optional[int] = None,
-    attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
-):
-    self_attention = llama_self_attention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        max_batch_size=max_batch_size,
-    )
-    mlp = llama_feedforward(dim=embed_dim, hidden_dim=embed_dim)
-    attn_norm = RMSNorm(dim=embed_dim)
-    ff_norm = RMSNorm(dim=embed_dim)
-    return TransformerDecoderLayer(
-        self_attention=self_attention,
-        mlp=mlp,
-        attn_norm=attn_norm,
-        ff_norm=ff_norm,
-    )
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -50,7 +23,7 @@ class TransformerDecoderLayer(nn.Module):
         2) Normalization is applied before the attention and FF layer
 
     Args:
-        self_attention (LlamaSelfAttention):
+        self_attention (CausalSelfAttention):
         feedforward (FeedForward):
         self_attention_norm (RMSNorm):
         feedforward_norm (RMSNorm):
@@ -63,7 +36,7 @@ class TransformerDecoderLayer(nn.Module):
 
     def __init__(
         self,
-        self_attention: LlamaSelfAttention,
+        self_attention: CausalSelfAttention,
         feedforward: FeedForward,
         self_attention_norm: RMSNorm,
         feedforward_norm: RMSNorm,
@@ -117,45 +90,9 @@ class TransformerDecoderLayer(nn.Module):
         return out
 
 
-def llama_transformer_decoder(
-    vocab_size: int,
-    embed_dim: int,
-    # transformer layer params
-    num_layers: int,
-    num_heads: int,
-    max_seq_len: int = 4096,
-    num_kv_heads: Optional[int] = None,
-    attn_dropout: float = 0.0,
-    # RMS Norm params
-    norm_eps: float = 1e-6,
-    max_batch_size: Optional[int] = None,
-):
-    token_embeddings = nn.Embedding(vocab_size, embed_dim)
-    layer = TransformerDecoderLayer(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        attn_dropout=attn_dropout,
-        max_batch_size=self.max_batch_size,
-    )
-    norm = RMSNorm(embed_dim, eps=norm_eps)
-    output = nn.Linear(embed_dim, vocab_size, bias=False)
-    return TransformerDecoder(
-        token_embeddings=token_embeddings,
-        layer=layer,
-        num_layers=num_layers,
-        norm=norm,
-        output=output,
-    )
-
-
 class TransformerDecoder(nn.Module):
     """
-    Transformer Decoder used by the Llama2 model. This has a few
-    differences compared to the original Transformer architecture.
-        1) Uses RMSNorm instead of LayerNorm
-        2) Normalization is applied before the attention and FF layer
+    Transformer Decoder based on the Llama2 architecture.
 
     Args:
         token_embeddings (nn.Embedding):
@@ -164,9 +101,8 @@ class TransformerDecoder(nn.Module):
         norm (RMSNorm):
         output (nn.Linear):
 
-    TODO: A few TODOs
-            - Make norm configurable
-            - Make application of RoPE configurable
+    TODO:
+        - Make application of RoPE configurable
     """
 
     def __init__(
