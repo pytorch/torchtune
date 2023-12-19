@@ -66,7 +66,7 @@ def args_7b() -> LlamaArgs:
 
 
 def load_orig_state_dict(path: str) -> Dict[str, Any]:
-    orig_sd = torch.load(path)
+    orig_sd = torch.load(path, weights_only=True)
     return orig_sd
 
 

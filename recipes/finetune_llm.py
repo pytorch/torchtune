@@ -139,7 +139,7 @@ def main():
 
     device = args.device
     model = get_model(args.model, device, vocab_size=tokenizer.vocab_size)
-    model.load_state_dict(torch.load(args.model_checkpoint))
+    model.load_state_dict(torch.load(args.model_checkpoint, weights_only=True))
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
