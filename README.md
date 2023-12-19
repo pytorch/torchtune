@@ -30,11 +30,6 @@ from torchtune.models.llama2.transformer import TransformerDecoder
 ```
 
 # Quickstart
-
-```
-python torchtune.recipes.finetune_llm configs/llama2_lora.yml
-```
-
 # Contributing
 ### Coding Style
 `torchtune` uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
