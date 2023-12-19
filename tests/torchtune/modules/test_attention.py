@@ -11,7 +11,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchtune.models.llama2.attention import LlamaSelfAttention
+from torchtune.modules.attention import CausalSelfAttention
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -22,9 +22,9 @@ def random():
     seed(16)
 
 
-class TestLlamaSelfAttention:
+class TestCausalSelfAttention:
     """
-    Class for testing our LlamaSelfAttention implementation.
+    Class for testing our CausalSelfAttention implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
@@ -97,9 +97,9 @@ class TestLlamaSelfAttention:
         return num_heads, num_kv_heads, embed_dim, max_seq_len
 
     @pytest.fixture
-    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+    def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -112,9 +112,9 @@ class TestLlamaSelfAttention:
     @pytest.fixture
     def gqa_kv_cache(
         self, attn_params_gqa: Tuple[int, int, int, int]
-    ) -> LlamaSelfAttention:
+    ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -126,9 +126,9 @@ class TestLlamaSelfAttention:
         return attn
 
     @pytest.fixture
-    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+    def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -141,9 +141,9 @@ class TestLlamaSelfAttention:
     @pytest.fixture
     def mha_kv_cache(
         self, attn_params_mha: Tuple[int, int, int, int]
-    ) -> LlamaSelfAttention:
+    ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -155,9 +155,9 @@ class TestLlamaSelfAttention:
         return attn
 
     @pytest.fixture
-    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> LlamaSelfAttention:
+    def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -170,9 +170,9 @@ class TestLlamaSelfAttention:
     @pytest.fixture
     def mqa_kv_cache(
         self, attn_params_mqa: Tuple[int, int, int, int]
-    ) -> LlamaSelfAttention:
+    ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
-        attn = LlamaSelfAttention(
+        attn = CausalSelfAttention(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -183,7 +183,7 @@ class TestLlamaSelfAttention:
         attn.eval()
         return attn
 
-    def test_forward_gqa(self, input: Tensor, gqa: LlamaSelfAttention) -> None:
+    def test_forward_gqa(self, input: Tensor, gqa: CausalSelfAttention) -> None:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(
@@ -192,7 +192,7 @@ class TestLlamaSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_gqa_kv_cache(
-        self, input: Tensor, gqa_kv_cache: LlamaSelfAttention
+        self, input: Tensor, gqa_kv_cache: CausalSelfAttention
     ) -> None:
         # seq_len = input.shape[1]
         # mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=input.device)
@@ -205,7 +205,7 @@ class TestLlamaSelfAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mha(self, input: Tensor, mha: LlamaSelfAttention) -> None:
+    def test_forward_mha(self, input: Tensor, mha: CausalSelfAttention) -> None:
         with torch.no_grad():
             output = mha(input)
         assert_expected(
@@ -214,7 +214,7 @@ class TestLlamaSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mha_kv_cache(
-        self, input: Tensor, mha_kv_cache: LlamaSelfAttention
+        self, input: Tensor, mha_kv_cache: CausalSelfAttention
     ) -> None:
         mask = self._get_mask(input)
         with torch.no_grad():
@@ -224,7 +224,7 @@ class TestLlamaSelfAttention:
         )
         assert_expected(output.shape, input.shape)
 
-    def test_forward_mqa(self, input: Tensor, mqa: LlamaSelfAttention) -> None:
+    def test_forward_mqa(self, input: Tensor, mqa: CausalSelfAttention) -> None:
         with torch.no_grad():
             output = mqa(input)
         assert_expected(
@@ -233,7 +233,7 @@ class TestLlamaSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mqa_kv_cache(
-        self, input: Tensor, mqa_kv_cache: LlamaSelfAttention
+        self, input: Tensor, mqa_kv_cache: CausalSelfAttention
     ) -> None:
         mask = self._get_mask(input)
         with torch.no_grad():
@@ -246,7 +246,7 @@ class TestLlamaSelfAttention:
     def test_max_seq_len_exceeded(
         self,
         input_max_len_exceeded: Tensor,
-        gqa: LlamaSelfAttention,
+        gqa: CausalSelfAttention,
     ) -> None:
         with pytest.raises(Exception):
             output = gqa(input_max_len_exceeded)
@@ -254,7 +254,7 @@ class TestLlamaSelfAttention:
     def test_max_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,
-        gqa_kv_cache: LlamaSelfAttention,
+        gqa_kv_cache: CausalSelfAttention,
     ) -> None:
         with pytest.raises(Exception):
             _ = gqa_kv_cache(input_max_bs_exceeded)

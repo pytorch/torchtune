@@ -17,7 +17,7 @@ import torch
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.modules.transformer import TransformerDecoder
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

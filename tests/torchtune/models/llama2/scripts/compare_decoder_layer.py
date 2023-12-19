@@ -8,10 +8,6 @@ from typing import Optional
 
 import torch
 
-from torch import nn
-
-from torchtune.models.llama2.transformer import TransformerDecoderLayer
-
 from tests.test_utils import init_weights_with_constant
 
 from tests.torchtune.models.llama2.scripts.compare_attention import (
@@ -19,6 +15,10 @@ from tests.torchtune.models.llama2.scripts.compare_attention import (
     precompute_freqs_cis,
 )
 from tests.torchtune.models.llama2.scripts.compare_feed_forward import FeedForwardRef
+
+from torch import nn
+
+from torchtune.modules.transformer import TransformerDecoderLayer
 
 
 """

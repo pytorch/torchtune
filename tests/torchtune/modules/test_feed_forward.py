@@ -11,7 +11,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchtune.models.llama2.feed_forward import FeedForward
+from torchtune.modules.feed_forward import FeedForward
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, fixed_init_model

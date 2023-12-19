@@ -6,10 +6,6 @@
 
 import torch
 
-from torch import nn
-
-from torchtune.models.llama2.transformer import TransformerDecoder
-
 from tests.test_utils import init_weights_with_constant
 
 from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
@@ -17,6 +13,10 @@ from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
     RMSNorm,
     TransformerBlock,
 )
+
+from torch import nn
+
+from torchtune.modules.transformer import TransformerDecoder
 
 """
 Reference implementation of Transformer from:

@@ -8,11 +8,11 @@ from typing import Optional
 
 import torch
 
+from tests.test_utils import fixed_init_model
+
 from torch import nn
 
-from torchtune.models.llama2.feed_forward import FeedForward
-
-from tests.test_utils import fixed_init_model
+from torchtune.modules.feed_forward import FeedForward
 
 
 """

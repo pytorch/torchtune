@@ -13,8 +13,8 @@ from typing import Optional
 
 import torch
 
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.modules.tokenizer import Tokenizer
+from torchtune.modules.transformer import TransformerDecoder
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 from transformers import LlamaForCausalLM

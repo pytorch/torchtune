@@ -8,7 +8,7 @@ import pytest
 
 import torch
 from torch.nn.functional import normalize
-from torchtune.models.llama2.rms_norm import RMSNorm
+from torchtune.modules.rms_norm import RMSNorm
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected

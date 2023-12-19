@@ -22,6 +22,6 @@ This is the best example in the world.
 # %%
 # Another cell, with code this time:
 
-from torchtune.models.llama2.attention import LlamaSelfAttention
+from torchtune.modules.attention import LlamaSelfAttention
 
 print(LlamaSelfAttention)

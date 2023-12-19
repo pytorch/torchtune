@@ -9,7 +9,7 @@ from typing import Callable, Union
 import torch
 from torch.nn import Module
 
-from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
+from .llama2 import llama2_7b, llama2_tokenizer
 
 _MODEL_DICT = {"llama2_7b": llama2_7b}
 _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}

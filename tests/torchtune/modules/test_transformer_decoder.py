@@ -13,10 +13,11 @@ import torch
 from torch import Tensor
 from torchtune.models.llama2.rms_norm import RMSNorm
 
-from torchtune.models.llama2.transformer import (
-    TransformerDecoder,
-    TransformerDecoderLayer,
+from torchtune.models.llama2 import (
+    Llama2,
+    Llama2DecoderLayer
 )
+from torchtune.modules.transformer import TransformerDecoderLayer, TransformerDecoder
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, init_weights_with_constant
@@ -62,7 +63,7 @@ class TestTransformerDecoderLayer:
         self, layer_params: Tuple[int, int, int, int]
     ) -> TransformerDecoderLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
-        transformer_layer = TransformerDecoderLayer(
+        transformer_layer = Llama2DecoderLayer(
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
@@ -147,7 +148,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = TransformerDecoder(
+        decoder = Llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -172,7 +173,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = TransformerDecoder(
+        decoder = Llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -190,7 +191,7 @@ class TestTransformerDecoder:
         self,
         input: Tensor,
         input_params: Tuple[int, int, int],
-        decoder: TransformerDecoder,
+        decoder: Llama2,
     ) -> None:
         batch_size, seq_len, vocab_size = input_params
         with torch.no_grad():
@@ -201,7 +202,7 @@ class TestTransformerDecoder:
     def test_max_seq_len_exceeded(
         self,
         input_max_len_exceeded: Tensor,
-        decoder: TransformerDecoder,
+        decoder: Llama2,
     ) -> None:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
@@ -209,8 +210,8 @@ class TestTransformerDecoder:
     def test_kv_cache(
         self,
         input: Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
-        decoder: TransformerDecoder,
+        decoder_with_kv_cache_enabled: Llama2,
+        decoder: Llama2,
     ) -> None:
         with torch.no_grad():
             output_cache = decoder_with_kv_cache_enabled(input, 0)
@@ -220,7 +221,7 @@ class TestTransformerDecoder:
     def test_kv_cache_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,
-        decoder_with_kv_cache_enabled: TransformerDecoder,
+        decoder_with_kv_cache_enabled: Llama2,
     ) -> None:
         with pytest.raises(ValueError):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)

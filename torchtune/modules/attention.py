@@ -8,11 +8,11 @@ from typing import Optional
 
 from torch import nn, Tensor
 
-from torchtune.models.llama2.kv_cache import KVCache
-from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddings
+from torchtune.modules.kv_cache import KVCache
+from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 
 
-class LlamaSelfAttention(nn.Module):
+class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
     in https://arxiv.org/pdf/2305.13245v1.pdf
 
@@ -49,10 +49,6 @@ class LlamaSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        qkv_proj (nn.Module):
-        output_proj (nn.Module):
-        rope_embeddings (nn.Module):
-        sdpa (Union[Callable, nn.Module]):
         max_seq_len (int): maximum sequence length supported by the model.
             This is needed to compute the RoPE Cache. Default: 4096.
         num_kv_heads (Optional[int]): number of key and value heads. If specified,
@@ -73,18 +69,17 @@ class LlamaSelfAttention(nn.Module):
         self,
         embed_dim: int,
         num_heads: int,
-        qkv_proj: nn.Module,  # can probably reorder params here
+        num_kv_heads: int,
+        head_dim: int,
+        qkv_proj: nn.Module,
         output_proj: nn.Module,
-        rope_embeddings: nn.Module,
-        sdpa: Union[Callable, nn.Module],
+        pos_embeddings: Optional[nn.Module] = None,
+        kv_cache: Optional[KVCache] = None,
         max_seq_len: int = 4096,
-        num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
-        max_batch_size: Optional[int] = None,
     ) -> None:
         super().__init__()
-        self.max_batch_size = max_batch_size
-        if num_kv_heads and num_heads % num_kv_heads != 0:
+        if num_heads % num_kv_heads != 0:
             raise ValueError(
                 f"num_heads ({num_heads}) must be divisible by "
                 f"num_kv_heads ({num_kv_heads})"
@@ -99,28 +94,19 @@ class LlamaSelfAttention(nn.Module):
         if attn_dropout < 0 or attn_dropout > 1:
             raise ValueError(f"attn_dropout ({embed_dim}) must be between 0.0 and 1.0")
 
+        # Set attributes
         self.num_heads = num_heads
-        self.num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        self.num_kv_heads = num_kv_heads
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
-        self.head_dim = embed_dim // num_heads
+        self.head_dim = head_dim
         self.max_seq_len = max_seq_len
 
-        # TODO: we create kv cache w/num_heads instead of
-        # num_kv_heads even for GQA/MQA since we repeat k and v
-        # in forward to match num_heads before caching. We should
-        # refactor the forward pass to invert this order to save
-        # memory for GQA / MQA cases.
-        if self.max_batch_size:
-            self.kv_cache = KVCache(
-                self.max_batch_size, self.max_seq_len, self.num_heads, self.head_dim
-            )
-        else:
-            self.kv_cache = None
-
-        self.rope = rope_embeddings
+        # Set layers
+        self.kv_cache = kv_cache
         self.qkv_proj = qkv_proj
         self.output_proj = output_proj
+        self.pos_embeddings = pos_embeddings
 
     def forward(
         self,
@@ -140,7 +126,6 @@ class LlamaSelfAttention(nn.Module):
 
         Raises:
             ValueError: if seq_len of x is bigger than max_seq_len
-            ValueError: if bsz is bigger than max_batch_size
 
         Notation used for tensor shapes:
             - b: batch size
@@ -153,7 +138,6 @@ class LlamaSelfAttention(nn.Module):
 
         TODO: A few TODOs
             - Return the attention weights
-            - Control whether we apply RoPE or not with a flag
         """
 
         # input has shape [b, s, d]
@@ -163,12 +147,6 @@ class LlamaSelfAttention(nn.Module):
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
                 f"than max_seq_len ({self.max_seq_len})"
-            )
-
-        if self.kv_cache is not None and bsz > self.max_batch_size:
-            raise ValueError(
-                f"batch_size ({bsz}) of input tensor should be smaller "
-                f"than max_batch_size ({self.max_batch_size})"
             )
 
         # qkv has shape [b, s, qkv_d]
@@ -197,6 +175,9 @@ class LlamaSelfAttention(nn.Module):
             k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
             v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
 
+
+        # Apply RoPE embeddings
+        # if self.pos_embeddings is not None:
         # llama2 applies the RoPE embeddings on tensors with shape
         # [b, s, n_h, h_d]
         # Reshape the tensors before we apply RoPE
@@ -204,10 +185,10 @@ class LlamaSelfAttention(nn.Module):
         k = k.reshape(bsz, seq_len, -1, self.head_dim)
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
-        q = self.rope(q, curr_pos)
-        k = self.rope(k, curr_pos)
+        q = self.pos_embeddings(q, curr_pos)
+        k = self.pos_embeddings(k, curr_pos)
 
-        # Update kv caches
+        # Update key-value cache
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(
                 bsz=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
@@ -219,7 +200,7 @@ class LlamaSelfAttention(nn.Module):
         v = v.transpose(1, 2)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
-        output = self.sdpa(
+        output = nn.functional.scaled_dot_product_attention(
             q,
             k,
             v,
@@ -231,37 +212,3 @@ class LlamaSelfAttention(nn.Module):
         # reshape the output to be the same shape as the input
         output = output.transpose(1, 2).contiguous().view(bsz, seq_len, -1)
         return self.output_proj(output)
-
-
-def llama_self_attention(
-    self,
-    embed_dim: int,
-    num_heads: int,
-    max_seq_len: int = 4096,
-    num_kv_heads: Optional[int] = None,
-    attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
-):
-
-    # Output dimension of the qkv projection matrix depends on the
-    # total number of heads and the dimension of each head.
-    # For MHA this is simply 3 * embed_dim since num_kv_heads = num_heads
-    head_dim = embed_dim // num_heads
-    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
-    qkv_proj = nn.Linear(embed_dim, qkv_dim, bias=False)
-    output_proj = nn.Linear(embed_dim, embed_dim, bias=False)
-    # Build the RoPE cache
-    rope_embeddings = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    sdpa = nn.functional.scaled_dot_product_attention
-    return LlamaSelfAttention(
-        embed_dim=embed_dim,
-        num_heads=num_heads,
-        qkv_proj=qkv_proj,
-        out_proj=out_proj,
-        rope_embeddings=rope_embeddings,
-        sdpa=sdpa,
-        max_seq_len=max_seq_len,
-        num_kv_heads=num_kv_heads,
-        attn_dropout=attn_dropout,
-        max_batch_size=max_batch_size,
-    )

@@ -11,8 +11,6 @@ import pytest
 import recipes.finetune_llm as finetune_llm
 from torchtune import models
 
-from torchtune.models.llama2.transformer import TransformerDecoder
-
 
 def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
     return TransformerDecoder(
