@@ -9,12 +9,12 @@ converted as a result.
 
 #### Offline conversion of original checkpoint
 
-Assuming your original checkpoint lives at `path_to_native_checkpoint`, invoking the below commands will write out a native checkpoint to
+Assuming your original checkpoint lives at `path_to_original_checkpoint`, invoking the below commands will write out a native checkpoint to
 `/tmp/native_checkpoints/llama2-{x}b` where x is the model size. Currently, only the 7b parameter model is supported.
 
 ```
 cd torchtune # run next command from torchtune root
-python -m scripts.llama2_checkpoint.convert_llama2_to_native --checkpoint_path <path_to_native_checkpoint> --device cuda:0
+python -m scripts.llama2_checkpoint.convert_llama2_to_native --checkpoint_path <path_to_original_checkpoint> --device cuda:0
 ```
 
 NOTE: This checkpoint conversion is under heavy development and expected to change. For example, we will onboard to `torch.distributed.checkpoint` and manage checkpoints at the directory, instead of
