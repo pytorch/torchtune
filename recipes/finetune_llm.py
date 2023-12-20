@@ -152,15 +152,23 @@ def main():
     tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
-    device = torch.device(args.device)
-    model = get_model(args.model, device, vocab_size=tokenizer.vocab_size)
-    model.load_state_dict(torch.load(args.model_checkpoint, weights_only=True))
+    #  device = torch.device(args.device)
+    model = get_model(args.model, "meta", vocab_size=tokenizer.vocab_size)
+    device_id = torch.distributed.get_rank() % torch.cuda.device_count()
+    print(f"Rank {torch.distributed.get_rank()} setting CUDA device {device_id}")
+    torch.cuda.set_device(device_id)
+    print(
+        f"RV: torch.cuda.current_device() gives {torch.cuda.current_device()}, device count is {torch.cuda.device_count()}",
+        flush=True,
+    )
 
     model = FSDP(
         model,
         auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
         device_id=torch.cuda.current_device(),
-        param_init_fn=lambda m: m.to_empty(device=torch.device("cuda"), recurse=False),
+        param_init_fn=lambda m: m.to_empty(
+            device=torch.cuda.current_device(), recurse=False
+        ),
     )
     apply_activation_checkpointing(
         model,
@@ -170,6 +178,10 @@ def main():
         check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
     )
 
+    loaded_ckpt = torch.load(
+        args.model_checkpoint, map_location="cpu", weights_only=True
+    )
+    model.load_state_dict(loaded_ckpt)
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
@@ -197,7 +209,7 @@ def main():
             opt.zero_grad()
 
             input_ids, labels = batch
-            input_ids = input_ids.to(device)
+            input_ids = input_ids.to(torch.cuda.current_device())
 
             logits = model(input_ids)
 
