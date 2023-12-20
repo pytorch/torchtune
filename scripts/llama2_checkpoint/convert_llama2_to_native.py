@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import torch
-from tests.torchtune.llama2.scripts.compare_decoder import Transformer
+from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
 from torchtune.models.llama2.transformer import TransformerDecoder
