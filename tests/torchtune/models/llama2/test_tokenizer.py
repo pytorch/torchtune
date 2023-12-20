@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from torchtune.models.llama2.tokenizer import Tokenizer
 
-ASSETS = Path(__file__).parent.parent.parent / "assets"
+ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
 class TestTokenizer:
