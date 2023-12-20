@@ -141,20 +141,28 @@ def main():
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = torch.device(args.device)
-    model = TransformerDecoder(
-        vocab_size=tokenizer.vocab_size,
-        num_layers=32,
-        num_heads=32,
-        embed_dim=4096,
-        max_seq_len=2048,
-        norm_eps=1e-5,
-    )
+    with torch.device("meta"):
+        model = TransformerDecoder(
+            vocab_size=tokenizer.vocab_size,
+            num_layers=32,
+            num_heads=32,
+            embed_dim=4096,
+            max_seq_len=2048,
+            norm_eps=1e-5,
+        )
 
+    device_id = torch.distributed.get_rank() % torch.cuda.device_count()
+    print(f"Rank {torch.distributed.get_rank()} setting CUDA device {device_id}")
+    # This appears to be needed to avoid torch.load putting all tensors on
+    # GPU 0. Might also be able to use map_location for that.
+    torch.cuda.set_device(device_id)
+    print(f"RV: torch.cuda.current_device() gives {torch.cuda.current_device()}, device count is {torch.cuda.device_count()}", flush=True)
+    #torch.set_default_device(torch.cuda.current_device())
     model = FSDP(
         model,
         auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
         device_id=torch.cuda.current_device(),
-        param_init_fn=lambda m: m.to_empty(device=torch.device("cuda"), recurse=False),
+        param_init_fn=lambda m: m.to_empty(device=torch.cuda.current_device(), recurse=False),
     )
     apply_activation_checkpointing(
         model,
@@ -164,7 +172,8 @@ def main():
         check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
     )
 
-    model.load_state_dict(torch.load(args.model_checkpoint))
+    loaded_ckpt = torch.load(args.model_checkpoint, map_location='cpu')
+    model.load_state_dict(loaded_ckpt)
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
@@ -190,7 +199,7 @@ def main():
             opt.zero_grad()
 
             input_ids, labels = batch
-            input_ids = input_ids.to(device)
+            input_ids = input_ids.to(torch.cuda.current_device())
 
             logits = model(input_ids)
 
