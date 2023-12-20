@@ -8,7 +8,7 @@
 
 import torch
 
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils._batch_pad_sequence import _batch_pad_to_longest_seq
 
 
 class TestBatchPadSequence:
@@ -29,7 +29,7 @@ class TestBatchPadSequence:
                 ],
             ),
         ]
-        inputs, labels = batch_pad_to_longest_seq(
+        inputs, labels = _batch_pad_to_longest_seq(
             batch=token_pairs,
             input_padding_idx=input_padding_idx,
             label_padding_idx=label_padding_idx,

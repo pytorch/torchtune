@@ -11,7 +11,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchtune.models.llama2.attention import LlamaSelfAttention
+from torchtune.models.llama2._attention import LlamaSelfAttention
 
 from tests.test_utils import assert_expected, fixed_init_model, set_rng_seed
 

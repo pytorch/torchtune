@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from torchtune.utils.logits_transforms import (
+from torchtune.utils._logits_transforms import (
     LogitsTransform,
     TemperatureTransform,
     TopKTransform,

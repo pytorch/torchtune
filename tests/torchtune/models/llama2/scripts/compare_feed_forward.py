@@ -10,7 +10,7 @@ import torch
 
 from torch import nn
 
-from torchtune.models.llama2.feed_forward import FeedForward
+from torchtune.models.llama2._feed_forward import FeedForward
 
 from tests.test_utils import fixed_init_model
 

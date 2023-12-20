@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.models.llama2._tokenizer import Tokenizer
+from torchtune.models.llama2._transformer import TransformerDecoder
 
 
 def llama2_7b(vocab_size: int) -> TransformerDecoder:

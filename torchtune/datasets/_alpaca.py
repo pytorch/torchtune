@@ -10,7 +10,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 
 # Not ideal to import this type here but it's needed for the transform function
-from torchtune.models.llama2.tokenizer import Tokenizer
+from torchtune.models.llama2._tokenizer import Tokenizer
 
 
 class AlpacaDataset(Dataset):

@@ -10,7 +10,7 @@ import pytest
 
 import torch
 
-from torchtune.utils.logits_transforms import (
+from torchtune.utils._logits_transforms import (
     TemperatureTransform,
     TopKTransform,
     TopPTransform,

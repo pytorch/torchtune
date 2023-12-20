@@ -10,7 +10,7 @@ import torch
 
 from torch import nn
 
-from torchtune.models.llama2.transformer import TransformerDecoderLayer
+from torchtune.models.llama2._transformer import TransformerDecoderLayer
 
 from tests.test_utils import init_weights_with_constant
 

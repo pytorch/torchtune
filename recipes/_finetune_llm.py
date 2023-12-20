@@ -15,12 +15,12 @@ from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
 
 from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils._batch_pad_sequence import _batch_pad_to_longest_seq
 
 from tqdm import tqdm
 
 
-def get_argparser():
+def _get_argparser():
     """Return an argument parser for the script. Add all arguments here."""
     parser = argparse.ArgumentParser(description="Fine-tune an LLM model.")
     # Dataset and DataLoader arguments
@@ -109,15 +109,15 @@ def get_argparser():
     return parser
 
 
-def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
+def _get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
     return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
 
 
-def get_loss(loss_fn: str) -> Callable:
+def _get_loss(loss_fn: str) -> Callable:
     return getattr(torch.nn, loss_fn)()
 
 
-def get_logger():
+def _get_logger():
     import logging
 
     logger = logging.getLogger(__name__)
@@ -128,11 +128,11 @@ def get_logger():
 
 def main():
     # ---- Parse arguments ---- #
-    parser = get_argparser()
+    parser = _get_argparser()
     args = parser.parse_args()
 
     # ---- Initialize components ---- #
-    logger = get_logger()
+    logger = _get_logger()
 
     tokenizer = get_tokenizer(args.tokenizer, path=args.tokenizer_checkpoint)
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
@@ -142,9 +142,9 @@ def main():
     model.load_state_dict(torch.load(args.model_checkpoint, weights_only=True))
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
-    opt = get_optimizer(model, args.optimizer, args.lr)
+    opt = _get_optimizer(model, args.optimizer, args.lr)
     # TODO add lr schedule option
-    loss_fn = get_loss(args.loss)
+    loss_fn = _get_loss(args.loss)
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
@@ -153,7 +153,7 @@ def main():
         batch_size=args.batch_size,
         shuffle=args.shuffle,
         collate_fn=partial(
-            batch_pad_to_longest_seq,
+            _batch_pad_to_longest_seq,
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),

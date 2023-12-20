@@ -12,7 +12,7 @@ import torch
 
 from torch import Tensor
 
-from torchtune.models.llama2.feed_forward import FeedForward
+from torchtune.models.llama2._feed_forward import FeedForward
 
 from tests.test_utils import assert_expected, fixed_init_model, set_rng_seed
 

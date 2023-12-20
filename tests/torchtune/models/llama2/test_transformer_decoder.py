@@ -12,7 +12,7 @@ import torch
 
 from torch import Tensor
 
-from torchtune.models.llama2.transformer import (
+from torchtune.models.llama2._transformer import (
     TransformerDecoder,
     TransformerDecoderLayer,
 )

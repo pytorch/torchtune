@@ -14,9 +14,9 @@ from typing import Optional
 import torch
 
 from tests.test_utils import set_rng_seed
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
-from torchtune.utils.generation import GenerationUtils
+from torchtune.models.llama2._tokenizer import Tokenizer
+from torchtune.models.llama2._transformer import TransformerDecoder
+from torchtune.utils._generation import GenerationUtils
 from transformers import LlamaForCausalLM
 
 logging.basicConfig(level=logging.INFO)

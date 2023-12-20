@@ -41,9 +41,9 @@ class RotaryPositionalEmbeddings(nn.Module):
 
         theta = 1.0 / (base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
         self.register_buffer("theta", theta)
-        self.build_rope_cache(max_seq_len)
+        self._build_rope_cache(max_seq_len)
 
-    def build_rope_cache(self, max_seq_len: int = 4096) -> None:
+    def _build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
         seq_idx = torch.arange(
             max_seq_len, dtype=self.theta.dtype, device=self.theta.device

@@ -6,7 +6,7 @@
 
 from torch.utils.data import Dataset
 
-from .alpaca import AlpacaDataset
+from ._alpaca import AlpacaDataset
 
 _DATASET_DICT = {"alpaca": AlpacaDataset}
 
@@ -22,3 +22,6 @@ def get_dataset(name: str, **kwargs) -> Dataset:
 def list_datasets():
     """List of availabe datasets supported by `get_dataset`"""
     return list(_DATASET_DICT)
+
+
+__all__ = ["AlpacaDataset", "get_dataset", "list_datasets"]

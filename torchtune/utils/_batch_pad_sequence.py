@@ -11,14 +11,14 @@ import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
 # TokenPair is a pair (tuple) of two lists: tokenized text inputs and labels.
-TokenPair = Tuple[List[int], List[int]]
+_TokenPair = Tuple[List[int], List[int]]
 
 _DEFAULT_INPUT_PADDING_IDX: int = 0
 _DEFAULT_LABEL_PADDING_IDX: int = -100
 
 
-def batch_pad_to_longest_seq(
-    batch: List[TokenPair],
+def _batch_pad_to_longest_seq(
+    batch: List[_TokenPair],
     input_padding_idx: int = _DEFAULT_INPUT_PADDING_IDX,
     label_padding_idx: int = _DEFAULT_LABEL_PADDING_IDX,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -26,7 +26,7 @@ def batch_pad_to_longest_seq(
     convert integer lists to tensors.
 
     Args:
-        batch (List[TokenPair]): A list of tuples containing input, label pairs.
+        batch (List[_TokenPair]): A list of tuples containing input, label pairs.
         input_padding_idx (int): Padding index for input ids. Defaults to 0.
         label_padding_idx (int): Padding index for labels. Defaults to -100.
     Returns:
@@ -37,7 +37,7 @@ def batch_pad_to_longest_seq(
             ([1, 2, 3], [4, 5, 6]),
             ([7,], [10,],),
         ]
-        inputs, labels = batch_pad_to_longest_seq(
+        inputs, labels = _batch_pad_to_longest_seq(
             batch=token_pairs,
             input_padding_idx=input_padding_idx,
             label_padding_idx=label_padding_idx,
