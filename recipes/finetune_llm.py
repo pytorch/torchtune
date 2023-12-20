@@ -12,8 +12,6 @@ from typing import Callable
 import torch
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
-    checkpoint_wrapper,
-    CheckpointImpl,
 )
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -23,10 +21,7 @@ from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
 from torchtune.models.llama2.transformer import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils.batch_pad_sequence import (
-    _DEFAULT_INPUT_PADDING_IDX,
-    batch_pad_to_longest_seq,
-)
+from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from tqdm import tqdm
 
 
@@ -148,11 +143,9 @@ def main():
     torch.distributed.init_process_group("nccl")
 
     tokenizer = get_tokenizer(args.tokenizer, path=args.tokenizer_checkpoint)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
+
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
-    #  device = torch.device(args.device)
     model = get_model(args.model, "meta", vocab_size=tokenizer.vocab_size)
     device_id = torch.distributed.get_rank() % torch.cuda.device_count()
     print(f"Rank {torch.distributed.get_rank()} setting CUDA device {device_id}")
@@ -172,9 +165,6 @@ def main():
     )
     apply_activation_checkpointing(
         model,
-        checkpoint_wrapper_fn=partial(
-            checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT
-        ),
         check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
     )
 
@@ -233,7 +223,6 @@ def main():
         logger(
             msg=f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
         )
-        torch.distributed.destroy_process_group()
 
 
 if __name__ == "__main__":
