@@ -36,8 +36,8 @@ def _get_device_from_env() -> torch.device:
     return device
 
 
-def maybe_enable_tf32(precision: str = "high") -> None:
-    """Conditionally sets the precision of float32 matrix multiplications and convolution operations.
+def set_float32_precision(precision: str = "high") -> None:
+    """Sets the precision of float32 matrix multiplications and convolution operations.
 
     For more information, see the PyTorch docs:
     - https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
