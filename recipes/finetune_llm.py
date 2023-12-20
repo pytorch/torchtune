@@ -5,15 +5,26 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+
 import os
 from functools import partial
 from typing import Callable
 
 import torch
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    apply_activation_checkpointing,
+    checkpoint_wrapper,
+    CheckpointImpl,
+)
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
 from torchtune.datasets import get_dataset
 from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.models.llama2.transformer import (
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
 
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils.batch_pad_sequence import (
@@ -21,14 +32,13 @@ from torchtune.utils.batch_pad_sequence import (
     _DEFAULT_LABEL_PADDING_IDX,
     batch_pad_to_longest_seq,
 )
-
 from tqdm import tqdm
 
 
 def get_argparser():
     """Return an argument parser for the script. Add all arguments here."""
     parser = argparse.ArgumentParser(
-        description="Fine-tune a native PyTorch LLaMA model."
+        description="Fine-tune a native PyTorch Llama model."
     )
     # Dataset and DataLoader arguments
     parser.add_argument("--dataset", type=str, required=True, help="Dataset name.")
@@ -55,7 +65,7 @@ def get_argparser():
         "--model-checkpoint",
         type=str,
         required=True,
-        help="Path to native PyTorch LLaMA model checkpoint.",
+        help="Path to native PyTorch Llama model checkpoint.",
     )
     # Fine-tuning arguments
     parser.add_argument(
@@ -122,21 +132,38 @@ def main():
     # ---- Initialize components ---- #
     logger = get_logger()
 
+    # ---- Initialize distributed process group ---- #
+    torch.distributed.init_process_group("nccl")
+
     tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
     tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
-    device = args.device
-    with torch.device(device):
-        model = TransformerDecoder(
-            vocab_size=tokenizer.vocab_size,
-            num_layers=32,
-            num_heads=32,
-            embed_dim=4096,
-            max_seq_len=2048,
-            norm_eps=1e-5,
-        )
+    device = torch.device(args.device)
+    model = TransformerDecoder(
+        vocab_size=tokenizer.vocab_size,
+        num_layers=32,
+        num_heads=32,
+        embed_dim=4096,
+        max_seq_len=2048,
+        norm_eps=1e-5,
+    )
+
+    model = FSDP(
+        model,
+        auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
+        device_id=torch.cuda.current_device(),
+        param_init_fn=lambda m: m.to_empty(device=torch.device("cuda"), recurse=False),
+    )
+    apply_activation_checkpointing(
+        model,
+        checkpoint_wrapper_fn=partial(
+            checkpoint_wrapper, checkpoint_impl=CheckpointImpl.NO_REENTRANT
+        ),
+        check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
+    )
+
     model.load_state_dict(torch.load(args.model_checkpoint))
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
@@ -187,6 +214,7 @@ def main():
         logger(
             msg=f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
         )
+        torch.distributed.destroy_process_group()
 
 
 if __name__ == "__main__":
