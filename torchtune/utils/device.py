@@ -9,7 +9,7 @@ import os
 import torch
 
 
-def get_device_from_env() -> torch.device:
+def _get_device_from_env() -> torch.device:
     """Function that gets the torch.device based on the current environment.
 
     This currently supports only CPU and GPU devices. If CUDA is available, this function also sets the CUDA device.
@@ -31,31 +31,27 @@ def get_device_from_env() -> torch.device:
             )
         device = torch.device(f"cuda:{local_rank}")
         torch.cuda.set_device(device)
-    elif torch.backends.mps.is_built() and torch.backends.mps.is_available():
-        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     return device
 
 
 def maybe_enable_tf32(precision: str = "high") -> None:
-    """Conditionally sets the precision of float32 matrix multiplications and conv operations.
+    """Conditionally sets the precision of float32 matrix multiplications and convolution operations.
 
-    For more information, see the
-    `PyTorch docs <https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html>`_
+    For more information, see the PyTorch docs:
+    - https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
+    - https://pytorch.org/docs/stable/backends.html#torch.backends.cudnn.allow_tf32
 
     Args:
-        precision (str): The setting to determine which datatypes to use for matrix multiplication.
+        precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.
     """
     if not torch.cuda.is_available():  # Not relevant for non-CUDA devices
         return
+    # set precision for matrix multiplications
     torch.set_float32_matmul_precision(precision)
+    # set precision for convolution operations
     if precision == "highest":
         torch.backends.cudnn.allow_tf32 = False
     else:
         torch.backends.cudnn.allow_tf32 = True
-
-
-def get_process_group_backend_from_device(device: torch.device) -> str:
-    """Function that gets the default process group backend from the device."""
-    return "nccl" if device.type == "cuda" else "gloo"

@@ -12,11 +12,7 @@ from unittest.mock import patch
 import pytest
 
 import torch
-from torchtune.utils.device import (
-    get_device_from_env,
-    get_process_group_backend_from_device,
-    maybe_enable_tf32,
-)
+from torchtune.utils.device import _get_device_from_env, maybe_enable_tf32
 
 
 class TestDevice:
@@ -25,7 +21,7 @@ class TestDevice:
 
     @patch("torch.cuda.is_available", return_value=False)
     def test_get_cpu_device(self, _) -> None:
-        device = get_device_from_env()
+        device = _get_device_from_env()
         assert device.type == "cpu"
         assert device.index is None
 
@@ -34,7 +30,7 @@ class TestDevice:
         device_idx = torch.cuda.device_count() - 1
         assert device_idx >= 0
         with mock.patch.dict(os.environ, {"LOCAL_RANK": str(device_idx)}, clear=True):
-            device = get_device_from_env()
+            device = _get_device_from_env()
             assert device.type == "cuda"
             assert device.index == device_idx
             assert device.index == torch.cuda.current_device()
@@ -45,10 +41,10 @@ class TestDevice:
                 RuntimeError,
                 match="The local rank is larger than the number of available GPUs",
             ):
-                device = get_device_from_env()
+                device = _get_device_from_env()
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
-        device = get_device_from_env()
+        device = _get_device_from_env()
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()
@@ -64,13 +60,3 @@ class TestDevice:
         assert torch.get_float32_matmul_precision() == "high"
         assert torch.backends.cudnn.allow_tf32
         assert torch.backends.cuda.matmul.allow_tf32
-
-    def test_get_process_group_backend_cpu(self) -> None:
-        device = torch.device("cpu")
-        pg_backend = get_process_group_backend_from_device(device)
-        assert pg_backend == "gloo"
-
-    def test_get_process_group_backend_gpu(self) -> None:
-        device = torch.device("cuda:0")
-        pg_backend = get_process_group_backend_from_device(device)
-        assert pg_backend == "nccl"
