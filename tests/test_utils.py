@@ -96,6 +96,11 @@ def get_pet_launch_config(nproc: int) -> pet.LaunchConfig:
 
     Returns:
         An instance of pet.LaunchConfig for single-node, multi-rank functions.
+
+    Example:
+        >>> from torch.distributed import launcher
+        >>> launch_config = get_pet_launch_config(nproc=8)
+        >>> launcher.elastic_launch(config=launch_config, entrypoint=train)()
     """
     return pet.LaunchConfig(
         min_nodes=1,

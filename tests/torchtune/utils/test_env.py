@@ -8,7 +8,7 @@
 
 
 import torch
-import torch.distributed.launcher as pet
+from torch.distributed import launcher
 from torchtune.utils.device import _get_device_from_env
 from torchtune.utils.env import _get_process_group_backend_from_device, init_from_env
 
@@ -55,7 +55,7 @@ class TestEnv:
         init_pg_explicit: bool,
     ) -> None:
         lc = get_pet_launch_config(num_processes)
-        pet.elastic_launch(lc, entrypoint=self._test_worker_fn)(init_pg_explicit)
+        launcher.elastic_launch(lc, entrypoint=self._test_worker_fn)(init_pg_explicit)
 
     def test_init_from_env_no_dup(self) -> None:
         self._test_launch_worker(2, init_pg_explicit=False)
