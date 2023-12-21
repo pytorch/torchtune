@@ -22,6 +22,7 @@ from torchtune.models import get_model, get_tokenizer, list_models, list_tokeniz
 from torchtune.models.llama2.transformer import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils.env import init_from_env
 from tqdm import tqdm
 
 
@@ -111,6 +112,18 @@ def get_argparser():
         default="cpu",
         help="`cuda` or `cpu`",
     )
+    parser.add_argument(
+        "--fsdp",
+        type=bool,
+        default=True,
+        help="Whether to wrap the model with FullyShardedDataParallel",
+    )
+    parser.add_argument(
+        "--activation-checkpointing",
+        type=bool,
+        default=False,
+        help="Whether to apply activation checkpointing",
+    )
     return parser
 
 
@@ -140,33 +153,32 @@ def main():
     logger = get_logger()
 
     # ---- Initialize distributed process group ---- #
-    torch.distributed.init_process_group("nccl")
+    init_from_env()
 
     tokenizer = get_tokenizer(args.tokenizer, path=args.tokenizer_checkpoint)
 
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
-    model = get_model(args.model, "meta", vocab_size=tokenizer.vocab_size)
-    device_id = torch.distributed.get_rank() % torch.cuda.device_count()
-    print(f"Rank {torch.distributed.get_rank()} setting CUDA device {device_id}")
-    torch.cuda.set_device(device_id)
-    print(
-        f"RV: torch.cuda.current_device() gives {torch.cuda.current_device()}, device count is {torch.cuda.device_count()}",
-        flush=True,
+    # When using fsdp, init on meta device to avoid OOM
+    model = get_model(
+        args.model,
+        "meta" if args.fsdp else args.device,
+        vocab_size=tokenizer.vocab_size,
     )
-
-    model = FSDP(
-        model,
-        auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
-        device_id=torch.cuda.current_device(),
-        param_init_fn=lambda m: m.to_empty(
-            device=torch.cuda.current_device(), recurse=False
-        ),
-    )
-    apply_activation_checkpointing(
-        model,
-        check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
-    )
+    if args.fsdp:
+        model = FSDP(
+            model,
+            auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
+            device_id=torch.cuda.current_device(),
+            param_init_fn=lambda m: m.to_empty(
+                device=torch.cuda.current_device(), recurse=False
+            ),
+        )
+    if args.activation_checkpointing:
+        apply_activation_checkpointing(
+            model,
+            check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
+        )
 
     loaded_ckpt = torch.load(
         args.model_checkpoint, map_location="cpu", weights_only=True
