@@ -7,12 +7,14 @@ The torchtune package contains tools and utilities to finetune generative models
 
 # Installation
 
+This library requires PyTorch >= 2.0. Please install locally using [this guide](https://pytorch.org/get-started/locally/).
+
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
 ```
 git clone https://github.com/pytorch-labs/torchtune
 cd torchtune
-python setup.py install
+pip install -e .
 ```
 
 To verify successful installation, one can run:
@@ -27,6 +29,8 @@ And as an example, the following import should work:
 from torchtune.models.llama2.transformer import TransformerDecoder
 ```
 
+# Quickstart
+# Contributing
 ### Coding Style
 `torchtune` uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
 
