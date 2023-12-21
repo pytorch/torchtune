@@ -22,7 +22,7 @@ from torchtune.models import get_model, get_tokenizer, list_models, list_tokeniz
 from torchtune.models.llama2.transformer import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.env import init_from_env
+from torchtune.utils.env import init_from_env, seed
 from tqdm import tqdm
 
 
@@ -124,6 +124,12 @@ def get_argparser():
         default=False,
         help="Whether to apply activation checkpointing",
     )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=100,
+        help="Seed to use for pseudo-random number generators in PyTorch and other libraries",
+    )
     return parser
 
 
@@ -151,6 +157,9 @@ def main():
 
     # ---- Initialize components ---- #
     logger = get_logger()
+
+    # ---- Initialize random seed ---- #
+    seed(args.seed)
 
     # ---- Initialize distributed process group ---- #
     init_from_env()
