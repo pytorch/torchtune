@@ -115,7 +115,7 @@ def get_argparser():
     parser.add_argument(
         "--fsdp",
         type=bool,
-        default=True,
+        default=False,
         help="Whether to wrap the model with FullyShardedDataParallel",
     )
     parser.add_argument(
@@ -165,10 +165,13 @@ def main():
         "meta" if args.fsdp else args.device,
         vocab_size=tokenizer.vocab_size,
     )
+
+    if args.fsdp or args.activation_checkpointing:
+        auto_wrap_policy = ModuleWrapPolicy({TransformerDecoderLayer})
     if args.fsdp:
         model = FSDP(
             model,
-            auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
+            auto_wrap_policy=auto_wrap_policy,
             device_id=torch.cuda.current_device(),
             param_init_fn=lambda m: m.to_empty(
                 device=torch.cuda.current_device(), recurse=False
@@ -178,6 +181,7 @@ def main():
         apply_activation_checkpointing(
             model,
             check_fn=lambda mod: isinstance(mod, TransformerDecoderLayer),
+            auto_wrap_policy=auto_wrap_policy,
         )
 
     loaded_ckpt = torch.load(
