@@ -13,9 +13,9 @@ from typing import Optional
 
 import torch
 
-from tests.test_utils import set_rng_seed
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 from transformers import LlamaForCausalLM
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         tokenizer.encode(prompt, add_eos=False) for prompt in prompts
     ]
 
-    set_rng_seed(0)
+    seed(0)
 
     # --------- Initialize a decoder w/o kv-caching -------- #
     llama_7b_args = args_7b()
