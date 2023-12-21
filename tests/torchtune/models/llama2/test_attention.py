@@ -12,13 +12,14 @@ import torch
 from torch import Tensor
 
 from torchtune.models.llama2.attention import LlamaSelfAttention
+from torchtune.utils.env import seed
 
-from tests.test_utils import assert_expected, fixed_init_model, set_rng_seed
+from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)
 def random():
-    set_rng_seed(16)
+    seed(16)
 
 
 class TestLlamaSelfAttention:

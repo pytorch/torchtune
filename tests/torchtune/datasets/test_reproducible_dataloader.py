@@ -8,13 +8,14 @@ import pytest
 
 from torch.utils.data import Dataset, IterableDataset
 from torchtune.trainer import ReproducibleDataLoader
+from torchtune.utils.env import seed
 
-from tests.test_utils import assert_expected, set_rng_seed
+from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
 def random():
-    set_rng_seed(7)
+    seed(7)
 
 
 class InMemoryMapDataset(Dataset):
