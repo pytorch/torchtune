@@ -21,7 +21,7 @@ class ReproducibleDataLoader(DataLoader):
     A version of :class:`~torch.utils.data.DataLoader` that supports
     reproducing the order of iteration over the dataset and shuffling the
     iteration order across epoch boundaries through the ``seed`` parameter.
-    This provides repeatibility in dataloading and transforms executed in dataloader workers.
+    This provides repeatability in dataloading and transforms executed in dataloader workers.
 
     [Typical usage] If users don't pass in a sampler, then :class:`~torch.utils.
     data.DistributedSampler` is used and its `set_epoch` method is called every time iter is called on the `DataLoader.
@@ -66,7 +66,7 @@ class ReproducibleDataLoader(DataLoader):
             seed = torch.empty((), dtype=torch.int64).random_().item()
         # TODO: Log the seed value for debugging purposes
 
-        # Use the seed as base_seed for all workers to ensure transforms are repeatible
+        # Use the seed as base_seed for all workers to ensure transforms are repeatable
         if generator is None:
             generator = torch.Generator()
             generator.manual_seed(seed)
