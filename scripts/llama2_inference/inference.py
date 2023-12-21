@@ -66,7 +66,7 @@ if __name__ == "__main__":
         )
 
     # Load state_dict into decoder
-    native_state_dict = torch.load(args.native_checkpoint_path)
+    native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
     missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
     # Nothing should be missing or unexpected
     assert not missing and not unexpected

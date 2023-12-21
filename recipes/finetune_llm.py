@@ -11,28 +11,26 @@ from typing import Callable
 
 import torch
 from torch.optim.optimizer import Optimizer
-from torchtune.datasets import get_dataset
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
-from torchtune.models.llama2.utils import llama_7b_args
+from torchtune.datasets import get_dataset, list_datasets
+from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
 
 from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils.batch_pad_sequence import (
-    _DEFAULT_INPUT_PADDING_IDX,
-    _DEFAULT_LABEL_PADDING_IDX,
-    batch_pad_to_longest_seq,
-)
+from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 
 from tqdm import tqdm
 
 
 def get_argparser():
     """Return an argument parser for the script. Add all arguments here."""
-    parser = argparse.ArgumentParser(
-        description="Fine-tune a native PyTorch LLaMA model."
-    )
+    parser = argparse.ArgumentParser(description="Fine-tune an LLM model.")
     # Dataset and DataLoader arguments
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name.")
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        required=True,
+        choices=list_datasets(),
+        help="Dataset name.",
+    )
     parser.add_argument(
         "--dataloader-seed",
         type=int,
@@ -47,17 +45,32 @@ def get_argparser():
     parser.add_argument("-shuffle", help="Shuffle dataset.", default=True)
     # Model arguments
     parser.add_argument(
-        "--tokenizer-checkpoint",
+        "--model",
         type=str,
+        choices=list_models(),
         required=True,
-        help="Path to SentencePiece tokenizer.",
+        help="Model to finetune",
     )
     parser.add_argument(
         "--model-checkpoint",
         type=str,
         required=True,
-        help="Path to native PyTorch LLaMA model checkpoint.",
+        help="Path to model checkpoint.",
     )
+    parser.add_argument(
+        "--tokenizer",
+        type=str,
+        choices=list_tokenizers(),
+        required=True,
+        help="Model tokenizer.",
+    )
+    parser.add_argument(
+        "--tokenizer-checkpoint",
+        type=str,
+        required=True,
+        help="Path to tokenizer checkpoint.",
+    )
+
     # Fine-tuning arguments
     parser.add_argument(
         "--batch-size", type=int, default=128, help="Batch size for fine-tuning."
@@ -72,26 +85,24 @@ def get_argparser():
         "--optimizer",
         type=str,
         default="AdamW",
-        choices=["AdamW"],
-        help="Optimizer to use for fine-tuning.",
+        help="Optimizer to use for fine-tuning, please consult torch.optim Docs for a list of available optimizers",
     )
     parser.add_argument(
-        "--loss-fn",
+        "--loss",
         type=str,
-        default="cross_entropy",
-        choices=["cross_entropy"],
-        help="Loss function to use for fine-tuning",
+        default="CrossEntropyLoss",
+        choices=["CrossEntropyLoss"],
+        help="Loss to use for fine-tuning",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
         default="/tmp/llama-finetune",
-        help="Directory in which to save checkpoints during fine-tuning.",
+        help="Directory in which to save checkpoints during fine-tuning",
     )
     parser.add_argument(
         "--device",
         type=str,
-        choices=["cpu", "cuda"],
         default="cpu",
         help="`cuda` or `cpu`",
     )
@@ -103,7 +114,7 @@ def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimize
 
 
 def get_loss(loss_fn: str) -> Callable:
-    return getattr(torch.nn.functional, loss_fn)
+    return getattr(torch.nn, loss_fn)()
 
 
 def get_logger():
@@ -123,27 +134,18 @@ def main():
     # ---- Initialize components ---- #
     logger = get_logger()
 
-    tokenizer = Tokenizer.from_file(args.tokenizer_checkpoint)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = _DEFAULT_INPUT_PADDING_IDX
+    tokenizer = get_tokenizer(args.tokenizer, path=args.tokenizer_checkpoint)
     logger(msg=f"Loaded tokenizer from {args.tokenizer_checkpoint}")
 
     device = args.device
-    llama_args = llama_7b_args()
-    with torch.device(device):
-        model = TransformerDecoder(
-            vocab_size=tokenizer.vocab_size,
-            num_layers=llama_args.num_layers,
-            num_heads=llama_args.num_heads,
-            embed_dim=llama_args.embed_dim,
-            max_seq_len=llama_args.max_seq_len,
-            norm_eps=1e-5,
-        )
-    model.load_state_dict(torch.load(args.model_checkpoint))
+<<<<<<< HEAD
+    model = get_model(args.model, device, vocab_size=tokenizer.vocab_size)
+    model.load_state_dict(torch.load(args.model_checkpoint, weights_only=True))
     logger(msg=f"Loaded model from {args.model_checkpoint}")
 
     opt = get_optimizer(model, args.optimizer, args.lr)
-    loss_fn = get_loss(args.loss_fn)
+    # TODO add lr schedule option
+    loss_fn = get_loss(args.loss)
 
     # ---- Load dataset ---- #
     dataset = get_dataset(args.dataset, split="train", tokenizer=tokenizer)
@@ -153,15 +155,16 @@ def main():
         shuffle=args.shuffle,
         collate_fn=partial(
             batch_pad_to_longest_seq,
-            input_padding_idx=_DEFAULT_INPUT_PADDING_IDX,
-            label_padding_idx=_DEFAULT_LABEL_PADDING_IDX,
+            input_padding_idx=tokenizer.pad_id,
+            label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
         seed=args.dataloader_seed,
     )
+    logger(msg=f"Loaded dataset {args.dataset}")
 
     # ---- Train loop ---- #
-    for epoch in tqdm(range(args.epochs)):
-        for i, batch in enumerate(dataloader):
+    for epoch in range(args.epochs):
+        for batch in (pbar := tqdm(dataloader)):
             opt.zero_grad()
 
             input_ids, labels = batch
@@ -178,7 +181,7 @@ def main():
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
-            logger(msg=f"Loss @ step {i} in epoch {epoch}: {loss}")
+            pbar.set_description(f"{epoch+1}| Loss: {loss.item()}")
 
             loss.backward()
             opt.step()
