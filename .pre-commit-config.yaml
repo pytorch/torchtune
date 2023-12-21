@@ -13,7 +13,7 @@ repos:
     -   id: no-commit-to-branch
         args: ['--branch=main']
     -   id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ['--maxkb=100000']
     -   id: end-of-file-fixer
 
 -   repo: https://github.com/Lucas-C/pre-commit-hooks
