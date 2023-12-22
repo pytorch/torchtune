@@ -20,6 +20,10 @@ jobs:
       matrix:
         python-version: ['3.11']
     steps:
+      - name: Set Swap Space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 32
       - name: Check out repo
         uses: actions/checkout@v3
       - name: Setup conda env
