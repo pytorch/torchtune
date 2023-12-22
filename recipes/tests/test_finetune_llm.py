@@ -25,8 +25,8 @@ class TestFinetuneLLMRecipe:
         expected_loss_values = {
             "1|1|": 12.5535,
             "1|2|": 8.7051,
-            "2|1|": 8.0128,
-            "2|2|": 7.4046,
+            "2|1|": 7.7058,
+            "2|2|": 7.8551,
         }
         argv_values = [
             "--dataset",

@@ -22,13 +22,6 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
-      - name: swap size increase
-      - run: |
-          sudo swapoff -a
-          sudo fallocate -l 32G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
       - name: Setup conda env
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -51,6 +44,11 @@ jobs:
           retry_on: error
           timeout_seconds: 14400
           command: |
+            sudo swapoff -a
+            sudo fallocate -l 32G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
             python3 -m pip install awscli==1.32.6
             mkdir -p test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model test-artifacts
