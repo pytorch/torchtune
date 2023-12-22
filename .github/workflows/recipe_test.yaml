@@ -22,6 +22,13 @@ jobs:
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
+      - name: swap size increase
+      - run: |
+          sudo swapoff -a
+          sudo fallocate -l 32G /swapfile
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
       - name: Setup conda env
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -37,13 +44,6 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
           aws-region: us-east-1
-      - name: swap size increase
-      - run: |
-          sudo swapoff -a
-          sudo fallocate -l 32G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
       - name: Download files from S3
         uses: nick-fields/retry@v2
         with:
