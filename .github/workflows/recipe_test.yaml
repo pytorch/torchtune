@@ -20,10 +20,6 @@ jobs:
       matrix:
         python-version: ['3.11']
     steps:
-      - name: Set Swap Space
-        uses: pierotofy/set-swap-space@master
-        with:
-          swap-size-gb: 32
       - name: Check out repo
         uses: actions/checkout@v3
       - name: Setup conda env
@@ -41,6 +37,13 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
           aws-region: us-east-1
+      - name: Swap size increase
+      - run: |
+          swapoff -a
+          fallocate -l 32G /swapfile
+          chmod 600 /swapfile
+          mkswap /swapfile
+          swapon /swapfile
       - name: Download files from S3
         uses: nick-fields/retry@v2
         with:
