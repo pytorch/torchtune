@@ -23,10 +23,10 @@ class TestFinetuneLLMRecipe:
 
     def test_small_test_ckpt_finetune_loss(self, capsys):
         expected_loss_values = {
-            "1|1|": 10.5483,
-            "1|2|": 10.5776,
-            "2|1|": 10.5696,
-            "2|2|": 10.5647,
+            "1|1|": 12.5535,
+            "1|2|": 8.7051,
+            "2|1|": 8.0128,
+            "2|2|": 7.4046,
         }
         argv_values = [
             "--dataset",
@@ -34,9 +34,9 @@ class TestFinetuneLLMRecipe:
             "--dataloader-seed",
             "9",
             "--model",
-            "small_test_ckpt",
+            "llama2_7b",
             "--model-checkpoint",
-            "test-artifacts/small_ckpt.model",
+            "test-artifacts/llama2-7b-native-checkpoint",
             "--tokenizer",
             "llama2_tokenizer",
             "--tokenizer-checkpoint",
