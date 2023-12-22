@@ -9,9 +9,9 @@ from typing import Callable
 import torch
 from torch.nn import Module
 
-from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
+from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer, small_test_ckpt
 
-_MODEL_DICT = {"llama2_7b": llama2_7b}
+_MODEL_DICT = {"llama2_7b": llama2_7b, "small_test_ckpt": small_test_ckpt}
 _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
 
 
