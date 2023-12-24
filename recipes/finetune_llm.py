@@ -153,7 +153,7 @@ def main():
     logger = get_logger()
 
     # ---- Initialize distributed process group ---- #
-    init_from_env()
+    device = init_from_env(device_type=args.device)
 
     tokenizer = get_tokenizer(args.tokenizer, path=args.tokenizer_checkpoint)
 
@@ -172,10 +172,8 @@ def main():
         model = FSDP(
             model,
             auto_wrap_policy=auto_wrap_policy,
-            device_id=torch.cuda.current_device(),
-            param_init_fn=lambda m: m.to_empty(
-                device=torch.cuda.current_device(), recurse=False
-            ),
+            device_id=device,
+            param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
         )
     if args.activation_checkpointing:
         apply_activation_checkpointing(
@@ -215,7 +213,7 @@ def main():
             opt.zero_grad()
 
             input_ids, labels = batch
-            input_ids = input_ids.to(torch.cuda.current_device())
+            input_ids = input_ids.to(device)
 
             logits = model(input_ids)
 
