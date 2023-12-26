@@ -9,9 +9,9 @@ from typing import Callable
 import torch
 from torch.nn import Module
 
-from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer, small_test_ckpt
+from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
 
-_MODEL_DICT = {"llama2_7b": llama2_7b, "small_test_ckpt": small_test_ckpt}
+_MODEL_DICT = {"llama2_7b": llama2_7b}
 _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
 
 
@@ -41,3 +41,9 @@ def list_models():
 def list_tokenizers():
     """List of availabe tokenizers supported by `get_tokenizer`"""
     return list(_TOKENIZER_DICT)
+
+
+def add_model(name: str, model):
+    if name in _MODEL_DICT:
+        raise ValueError(f"Model {name} already exists")
+    _MODEL_DICT[name] = model

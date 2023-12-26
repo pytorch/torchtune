@@ -4,10 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
+from torchtune.models import add_model
+
+from torchtune.models.llama2.models import small_test_ckpt
+
+add_model("small_test_ckpt", small_test_ckpt)
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class TestFinetuneLLMRecipe:
@@ -43,7 +51,7 @@ class TestFinetuneLLMRecipe:
             "test-artifacts/tokenizer.model",
             "--batch-size",
             "8",
-            "--num-batches",
+            "--max-steps-per-epoch",
             "2",
             "--epochs",
             "2",
@@ -53,7 +61,8 @@ class TestFinetuneLLMRecipe:
 
         finetune_llm.main(argv_values)
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
-        print("Loss values from Finetune : ", loss_values)
+        logger.info("Expected loss values : ", expected_loss_values)
+        logger.info("Loss values from Finetune : ", loss_values)
         assert len(loss_values) == len(expected_loss_values)
         for key, value in loss_values.items():
             assert key in expected_loss_values

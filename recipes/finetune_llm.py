@@ -89,10 +89,10 @@ def get_argparser():
         "--epochs", type=int, default=3, help="Number of epochs for fine-tuning"
     )
     parser.add_argument(
-        "--num-batches",
+        "--max-steps-per-epoch",
         type=int,
         default=None,
-        help="Number of batches to train. Used only for testing",
+        help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
     )
     parser.add_argument(
         "--optimizer",
@@ -217,7 +217,7 @@ def main(argv=None):
     # ---- Train loop ---- #
     for epoch in range(args.epochs):
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
-            if args.num_batches is not None and idx >= args.num_batches:
+            if args.max_steps_per_epoch is not None and idx >= args.max_steps_per_epoch:
                 break
             opt.zero_grad()
 
