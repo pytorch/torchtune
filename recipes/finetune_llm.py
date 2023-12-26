@@ -6,6 +6,7 @@
 
 import argparse
 import os
+import sys
 from functools import partial
 from typing import Callable
 
@@ -88,6 +89,12 @@ def get_argparser():
         "--epochs", type=int, default=3, help="Number of epochs for fine-tuning"
     )
     parser.add_argument(
+        "--max-steps-per-epoch",
+        type=int,
+        default=None,
+        help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
+    )
+    parser.add_argument(
         "--optimizer",
         type=str,
         default="AdamW",
@@ -144,10 +151,10 @@ def get_logger():
     return logger.info
 
 
-def main():
+def main(argv=None):
     # ---- Parse arguments ---- #
     parser = get_argparser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     # ---- Initialize components ---- #
     logger = get_logger()
@@ -209,7 +216,9 @@ def main():
 
     # ---- Train loop ---- #
     for epoch in range(args.epochs):
-        for batch in (pbar := tqdm(dataloader)):
+        for idx, batch in enumerate(pbar := tqdm(dataloader)):
+            if args.max_steps_per_epoch is not None and idx >= args.max_steps_per_epoch:
+                break
             opt.zero_grad()
 
             input_ids, labels = batch
@@ -226,18 +235,19 @@ def main():
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
-            pbar.set_description(f"{epoch+1}| Loss: {loss.item()}")
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
 
             loss.backward()
             opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
+        os.makedirs(args.output_dir, exist_ok=True)
         output_loc = f"{args.output_dir}/model_{epoch}.ckpt"
         torch.save(model.state_dict(), output_loc)
         logger(
-            msg=f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
+            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main(sys.argv))

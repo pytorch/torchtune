@@ -41,3 +41,9 @@ def list_models():
 def list_tokenizers():
     """List of availabe tokenizers supported by `get_tokenizer`"""
     return list(_TOKENIZER_DICT)
+
+
+def add_model(name: str, model):
+    if name in _MODEL_DICT:
+        raise ValueError(f"Model {name} already exists")
+    _MODEL_DICT[name] = model
