@@ -222,8 +222,7 @@ def main(argv=None):
             opt.zero_grad()
 
             input_ids, labels = batch
-            if args.device != "cpu":
-                input_ids = input_ids.to(device)
+            input_ids = input_ids.to(device)
 
             logits = model(input_ids)
 
