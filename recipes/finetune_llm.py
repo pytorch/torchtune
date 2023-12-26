@@ -223,7 +223,7 @@ def main(argv=None):
 
             input_ids, labels = batch
             if args.device != "cpu":
-                input_ids = input_ids.to(torch.cuda.current_device())
+                input_ids = input_ids.to(device)
 
             logits = model(input_ids)
 
