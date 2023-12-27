@@ -11,13 +11,14 @@ import torch
 from torch import tensor
 
 from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddings
+from torchtune.utils.env import seed
 
-from tests.test_utils import assert_expected, set_rng_seed
+from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
 def random():
-    set_rng_seed(0)
+    seed(0)
 
 
 class TestRotaryPositionEmbedding:

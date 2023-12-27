@@ -10,14 +10,15 @@ import pytest
 
 import torch
 from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 
-from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
+from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
 def set_seed():
-    set_rng_seed(42)
+    seed(42)
 
 
 _test_pad_id = -1

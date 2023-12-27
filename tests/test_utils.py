@@ -5,19 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-import random
 import uuid
 from typing import Any, Union
 
 import torch
 import torch.distributed.launcher as pet
 from torch import nn
-
-
-def set_rng_seed(seed):
-    """Sets the seed for random number generators"""
-    torch.manual_seed(seed)
-    random.seed(seed)
 
 
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:

@@ -5,19 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import sys
 from functools import partial
-from pathlib import Path
 from typing import Callable
 
 import torch
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    apply_activation_checkpointing,
+)
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
+
 from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-
+from torchtune.models.llama2.transformer import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import ArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-
+from torchtune.utils.env import init_from_env
 from tqdm import tqdm
 
 
@@ -42,12 +48,43 @@ def recipe(kwargs):
     # ---- Initialize components ---- #
     logger = get_logger()
 
+    # ---- Initialize distributed process group ---- #
+    device = init_from_env(device_type=kwargs["device"])
+
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
-    device = kwargs["device"]
-    model = get_model(kwargs["model"], device, vocab_size=tokenizer.vocab_size)
-    model.load_state_dict(torch.load(kwargs["model_checkpoint"], weights_only=True))
+    # When using fsdp, init on meta device to avoid OOM
+    model = get_model(
+        kwargs["model"],
+        "meta" if kwargs["fsdp"] else kwargs["device"],
+        vocab_size=tokenizer.vocab_size,
+    )
+
+    if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
+        auto_wrap_policy = ModuleWrapPolicy(
+            {TransformerDecoderLayer}
+        )  # TODO: remove model specific components
+    if kwargs["fsdp"]:
+        model = FSDP(
+            model,
+            auto_wrap_policy=auto_wrap_policy,
+            device_id=device,
+            param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
+        )
+    if kwargs["activation_checkpointing"]:
+        apply_activation_checkpointing(
+            model,
+            check_fn=lambda mod: isinstance(
+                mod, TransformerDecoderLayer
+            ),  # TODO: remove model specific components
+            auto_wrap_policy=auto_wrap_policy,
+        )
+
+    loaded_ckpt = torch.load(
+        kwargs["model_checkpoint"], map_location="cpu", weights_only=True
+    )
+    model.load_state_dict(loaded_ckpt)
     logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
 
     opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
@@ -88,12 +125,13 @@ def recipe(kwargs):
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
-            pbar.set_description(f"{epoch+1}| Loss: {loss.item()}")
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
 
             loss.backward()
             opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
+        os.makedirs(kwargs["output_dir"], exist_ok=True)
         output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
         Path(output_loc).mkdir(parents=True, exist_ok=True)
         torch.save(
@@ -106,12 +144,11 @@ def recipe(kwargs):
             output_loc,
         )
         logger(
-            msg=f"Model checkpoint of size {os.path.get_size(output_loc)} bytes saved to {output_loc}"
+            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
 
 
 if __name__ == "__main__":
-    """Return an argument parser for the script. Add all arguments here."""
     parser = ArgumentParser(description="Fine-tune an LLM model.")
 
     # Dataset and DataLoader arguments
@@ -192,6 +229,18 @@ if __name__ == "__main__":
         default="cpu",
         help="`cuda` or `cpu`",
     )
+    parser.add_argument(
+        "--fsdp",
+        type=bool,
+        default=False,
+        help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
+    )
+    parser.add_argument(
+        "--activation-checkpointing",
+        type=bool,
+        default=False,
+        help="Train the model with activation checkpointing.",
+    )
 
     kwargs = vars(parser.parse_args())
-    recipe(kwargs)
+    sys.exit(recipe(kwargs))

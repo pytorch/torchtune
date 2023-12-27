@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 
 import torch
-from torchtune.utils.device import _get_device_from_env, maybe_enable_tf32
+from torchtune.utils.device import _get_device_from_env, set_float32_precision
 
 
 class TestDevice:
@@ -50,13 +50,13 @@ class TestDevice:
         assert device.index == torch.cuda.current_device()
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
-    def test_maybe_enable_tf32(self) -> None:
-        maybe_enable_tf32("highest")
+    def test_set_float32_precision(self) -> None:
+        set_float32_precision("highest")
         assert torch.get_float32_matmul_precision() == "highest"
         assert not torch.backends.cudnn.allow_tf32
         assert not torch.backends.cuda.matmul.allow_tf32
 
-        maybe_enable_tf32("high")
+        set_float32_precision("high")
         assert torch.get_float32_matmul_precision() == "high"
         assert torch.backends.cudnn.allow_tf32
         assert torch.backends.cuda.matmul.allow_tf32
