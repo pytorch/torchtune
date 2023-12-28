@@ -9,8 +9,7 @@ from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
-from torchtune import models
-
+from torchtune.models import add_model, small_test_ckpt
 
 def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
     return TransformerDecoder(
