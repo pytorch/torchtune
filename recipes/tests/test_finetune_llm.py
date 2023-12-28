@@ -42,8 +42,8 @@ class TestFinetuneLLMRecipe:
                 loss_values[splits[0]] = loss_value
         return loss_values
 
-    def test_small_test_ckpt_finetune_loss(self, capsys):
-        expected_loss_values = {
+    def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
+        small_test_ckpt_loss_values = {
             "1|1|": 10.5483,
             "1|2|": 10.5776,
             "2|1|": 10.5696,
@@ -68,6 +68,52 @@ class TestFinetuneLLMRecipe:
             "fsdp": False,
             "activation_checkpointing": False,
         }
+        llama2_7b_ckpt_loss_values = {
+            "1|1|": 12.5535,
+            "1|2|": 8.7051,
+            "2|1|": 7.7058,
+            "2|2|": 7.8551,
+        }
+        if ckpt == "small_test_ckpt":
+            return small_test_ckpt_loss_values
+        if ckpt == "llama2_7b":
+            return llama2_7b_ckpt_loss_values
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def _fetch_ckpt_model_path(self, ckpt) -> str:
+        if ckpt == "small_test_ckpt":
+            return "test-artifacts/small_ckpt.model"
+        if ckpt == "llama2_7b":
+            return "test-artifacts/llama2-7b-native-checkpoint"
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def test_finetune_llm_loss(self, capsys, pytestconfig):
+        slow_test = pytestconfig.getoption("--run-slow")
+        ckpt = "llama2_7b" if slow_test else "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        argv_values = [
+            "--dataset",
+            "alpaca",
+            "--dataloader-seed",
+            "9",
+            "--model",
+            ckpt,
+            "--model-checkpoint",
+            self._fetch_ckpt_model_path(ckpt),
+            "--tokenizer",
+            "llama2_tokenizer",
+            "--tokenizer-checkpoint",
+            "test-artifacts/tokenizer.model",
+            "--batch-size",
+            "8",
+            "--max-steps-per-epoch",
+            "2",
+            "--epochs",
+            "2",
+            "--device",
+            "cpu",
+        ]
 
         finetune_llm.recipe(kwargs_values)
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
