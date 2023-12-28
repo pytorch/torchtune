@@ -1,6 +1,7 @@
 # Dataset and Dataloader
 dataset: alpaca
 dataloader_seed: null
+shuffle: True
 
 # Model Arguments
 model: llama2_7b

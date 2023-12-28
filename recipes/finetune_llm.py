@@ -125,7 +125,9 @@ def recipe(kwargs):
             shift_labels = shift_labels.view(-1)
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
-            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
+            pbar.set_description(
+                f"{epoch+1}|Loss: {loss.item()}"
+            )  # TODO: add terminal logger
 
             loss.backward()
             opt.step()
@@ -133,7 +135,6 @@ def recipe(kwargs):
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
         output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
-        Path(output_loc).mkdir(parents=True, exist_ok=True)
         torch.save(
             {
                 "epoch": epoch,
