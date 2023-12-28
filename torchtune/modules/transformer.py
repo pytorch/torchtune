@@ -6,6 +6,7 @@
 
 from typing import Optional
 
+import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, FeedForward
@@ -139,6 +140,12 @@ class TransformerDecoder(nn.Module):
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
+
+        if seq_len > 1 and self.layers[0].attn.kv_cache is not None:
+            mask = torch.full(
+                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
+            )
+            mask = torch.triu(mask, diagonal=curr_pos + 1)
 
         for layer in self.layers:
             # shape: [b, s, d]

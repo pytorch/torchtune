@@ -13,7 +13,7 @@ class FeedForward(nn.Module):
     Args:
         dim (int): Input dimension.
         hidden_dim (int): Hidden dimension.
-        linear (nn.Module): Linear module, can we switch with a custom implementation, e.g. LoRALinear.
+        linear_class (nn.Module): Linear module, can we switch with a custom implementation, e.g. LoRALinear.
         activation (nn.Module): Activation function.
     """
 
@@ -21,13 +21,13 @@ class FeedForward(nn.Module):
         self,
         dim: int,
         hidden_dim: int,
-        linear: nn.Module,
+        linear_class: nn.Module,
         activation: nn.Module,
     ):
         super().__init__()
-        self.w1 = linear(dim, hidden_dim, bias=False)
-        self.w2 = linear(hidden_dim, dim, bias=False)
-        self.w3 = linear(dim, hidden_dim, bias=False)
+        self.w1 = linear_class(dim, hidden_dim, bias=False)
+        self.w2 = linear_class(hidden_dim, dim, bias=False)
+        self.w3 = linear_class(dim, hidden_dim, bias=False)
         self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:

@@ -9,7 +9,7 @@ from typing import Callable, List
 import pytest
 
 import torch
-from torchtune.models.llama2 import Llama2
+from torchtune.models.llama2 import llama2
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 
@@ -53,7 +53,7 @@ class TestTextGenerate:
         """
         A dummy model to test `generate` API
         """
-        model = Llama2(
+        model = llama2(
             vocab_size=4_000,
             embed_dim=128,
             num_layers=2,
@@ -71,7 +71,7 @@ class TestTextGenerate:
         A dummy model to test incremental decoding portion of `generate` API
         w/kv-caching enabled.
         """
-        generation_model_kv_cache = Llama2(
+        generation_model_kv_cache = llama2(
             vocab_size=4_000,
             embed_dim=128,
             num_layers=2,
