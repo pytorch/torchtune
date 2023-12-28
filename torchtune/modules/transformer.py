@@ -6,8 +6,6 @@
 
 from typing import Optional
 
-import torch
-
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, FeedForward, RMSNorm
@@ -115,7 +113,7 @@ class TransformerDecoder(nn.Module):
         self.norm = norm
         self.output = output
 
-    def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
+    def forward(self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
@@ -138,14 +136,6 @@ class TransformerDecoder(nn.Module):
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
-
-        # TODO: write shape
-        mask = None
-        if seq_len > 1:
-            mask = torch.full(
-                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
-            )
-            mask = torch.triu(mask, diagonal=curr_pos + 1).type_as(h)
 
         for layer in self.layers:
             # shape: [b, s, d]

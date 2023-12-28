@@ -134,7 +134,7 @@ class CausalSelfAttention(nn.Module):
             - n_kv: num kv heads
             - d: embed dim
             - h_d: head dim
-            - qkv_d: qkv_dim compured as (n_h + 2 * n_kv) * h_d
+            - qkv_d: qkv_dim computed as (n_h + 2 * n_kv) * h_d
 
         TODO: A few TODOs
             - Return the attention weights

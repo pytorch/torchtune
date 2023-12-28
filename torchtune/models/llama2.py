@@ -6,6 +6,7 @@
 
 from typing import Optional
 
+import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
@@ -134,6 +135,7 @@ class Llama2(nn.Module):
         max_batch_size: Optional[int] = None,
     ):
         super().__init__()
+        self.max_batch_size = max_batch_size
         token_embeddings = nn.Embedding(vocab_size, embed_dim)
         layer = Llama2DecoderLayer(
             embed_dim=embed_dim,
@@ -154,4 +156,11 @@ class Llama2(nn.Module):
         )
 
     def forward(self, tokens: Tensor, curr_pos: int = 0) -> Tensor:
-        return self.model(tokens, curr_pos)
+        seq_len = tokens.size(1)
+        mask = None
+        if seq_len > 1 and self.max_batch_size is not None:
+            mask = torch.full(
+                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
+            )
+            mask = torch.triu(mask, diagonal=curr_pos + 1)
+        return self.model(tokens, mask, curr_pos)
