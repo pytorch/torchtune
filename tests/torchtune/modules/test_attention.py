@@ -9,9 +9,9 @@ from typing import Optional, Tuple
 import pytest
 
 import torch
-from torch import Tensor
+from torch import Tensor, nn
 
-from torchtune.modules.attention import CausalSelfAttention
+from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings, KVCache
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -99,12 +99,21 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def gqa(self, attn_params_gqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
+        head_dim = embed_dim // num_heads
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
+
         fixed_init_model(attn)
         attn.eval()
         return attn
@@ -114,12 +123,26 @@ class TestCausalSelfAttention:
         self, attn_params_gqa: Tuple[int, int, int, int]
     ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        head_dim = embed_dim // num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        kv_cache = KVCache(
+            max_batch_size=4,
+            max_seq_len=max_seq_len,
+            n_kv_heads=num_heads,
+            head_dim=head_dim,
+        )
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=kv_cache,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -128,10 +151,18 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def mha(self, attn_params_mha: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
+        head_dim = embed_dim // num_heads
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
@@ -143,12 +174,26 @@ class TestCausalSelfAttention:
         self, attn_params_mha: Tuple[int, int, int, int]
     ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
+        head_dim = embed_dim // num_heads
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        kv_cache = KVCache(
+            max_batch_size=4,
+            max_seq_len=max_seq_len,
+            n_kv_heads=num_heads,
+            head_dim=head_dim,
+        )
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=kv_cache,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -157,10 +202,18 @@ class TestCausalSelfAttention:
     @pytest.fixture
     def mqa(self, attn_params_mqa: Tuple[int, int, int, int]) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
+        head_dim = embed_dim // num_heads
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
@@ -172,12 +225,26 @@ class TestCausalSelfAttention:
         self, attn_params_mqa: Tuple[int, int, int, int]
     ) -> CausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
+        head_dim = embed_dim // num_heads
+        num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        kv_cache = KVCache(
+            max_batch_size=4,
+            max_seq_len=max_seq_len,
+            n_kv_heads=num_heads,
+            head_dim=head_dim,
+        )
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
+            kv_cache=kv_cache,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         fixed_init_model(attn)
         attn.eval()
