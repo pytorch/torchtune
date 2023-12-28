@@ -9,9 +9,9 @@ from typing import Optional, Tuple
 import pytest
 
 import torch
-from torch import Tensor, nn
+from torch import nn, Tensor
 
-from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings, KVCache
+from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, fixed_init_model

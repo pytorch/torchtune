@@ -9,7 +9,6 @@ from typing import Optional
 from torch import nn, Tensor
 
 from torchtune.modules.kv_cache import KVCache
-from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 
 
 class CausalSelfAttention(nn.Module):
@@ -49,15 +48,21 @@ class CausalSelfAttention(nn.Module):
         embed_dim (int): embedding dimension for the model
         num_heads (int): number of query heads. For MHA this is also the
             number of heads for key and value
-        max_seq_len (int): maximum sequence length supported by the model.
-            This is needed to compute the RoPE Cache. Default: 4096.
-        num_kv_heads (Optional[int]): number of key and value heads. If specified,
+        num_kv_heads (int): number of key and value heads. If specified,
             user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
             `None`, in which case this is the same as MHA
+        head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
+        qkv_proj (nn.Module): projection layer for query, key and value.
+        output_proj (nn.Module): projection layer for output.
+        pos_embeddings (Optional[nn.Module]): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
+            If not specified, then no positional embeddings are used.
+        kv_cache (Optional[KVCache]): KVCache object used to cache key and value.
+            If not specified, then no caching is used.
+        max_seq_len (int): maximum sequence length supported by the model.
+            This is needed to compute the RoPE Cache. Default: 4096.
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
-        max_batch_size (Optional[int]): max_batch_size
 
     Raises:
         ValueError: If `num_heads` % `num_kv_heads` != 0
@@ -174,7 +179,6 @@ class CausalSelfAttention(nn.Module):
         if self.num_heads != self.num_kv_heads:
             k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
             v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
-
 
         # Apply RoPE embeddings
         # if self.pos_embeddings is not None:

@@ -13,11 +13,8 @@ import torch
 from torch import Tensor
 from torchtune.models.llama2.rms_norm import RMSNorm
 
-from torchtune.models.llama2 import (
-    Llama2,
-    Llama2DecoderLayer
-)
-from torchtune.modules.transformer import TransformerDecoderLayer, TransformerDecoder
+from torchtune.models.llama2 import Llama2, Llama2DecoderLayer
+from torchtune.modules.transformer import TransformerDecoder, TransformerDecoderLayer
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, init_weights_with_constant

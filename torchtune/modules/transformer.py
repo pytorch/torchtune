@@ -8,7 +8,7 @@ from typing import Optional
 
 from torch import nn, Tensor
 
-from torchtune.modules import CausalSelfAttention, FeedForward, RMSNorm
+from torchtune.modules import CausalSelfAttention, FeedForward
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -113,11 +113,14 @@ class TransformerDecoder(nn.Module):
         self.norm = norm
         self.output = output
 
-    def forward(self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0) -> Tensor:
+    def forward(
+        self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape
                 [batch_size x seq_length]
+            mask (Optional[Tensor]): attention mask tensor, defaults to None.
             curr_pos (int): current position in the seq, defaults to 0.
                 Only relevant when incrementally decoding.
 

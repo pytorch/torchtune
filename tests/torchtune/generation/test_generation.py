@@ -9,13 +9,6 @@ from typing import Callable, List
 import pytest
 
 import torch
-from torchtune.modules import (
-    CausalSelfAttention,
-    FeedForward,
-    RotaryPositionalEmbeddings,
-    TransformerDecoder,
-    TransformerDecoderLayer,
-)
 from torchtune.models.llama2 import Llama2
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils

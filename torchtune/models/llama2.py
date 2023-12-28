@@ -65,7 +65,9 @@ class Llama2FeedForward(nn.Module):
         # Round hidden dimension to nearest multiple of `multiple_of`
         hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
 
-        self.ff = FeedForward(dim=dim, hidden_dim=hidden_dim, linear=nn.Linear, activation=F.silu)
+        self.ff = FeedForward(
+            dim=dim, hidden_dim=hidden_dim, linear=nn.Linear, activation=F.silu
+        )
 
     def forward(self, x):
         return self.ff(x)
@@ -85,12 +87,16 @@ class Llama2DecoderLayer(nn.Module):
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
-        kv_cache = KVCache(
-            max_batch_size=max_batch_size,
-            max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
-            head_dim=head_dim,
-        ) if max_batch_size is not None else None
+        kv_cache = (
+            KVCache(
+                max_batch_size=max_batch_size,
+                max_seq_len=max_seq_len,
+                n_kv_heads=num_heads,
+                head_dim=head_dim,
+            )
+            if max_batch_size is not None
+            else None
+        )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         self_attn = CausalSelfAttention(
             embed_dim=embed_dim,
