@@ -65,7 +65,7 @@ class Llama2FeedForward(nn.Module):
         # Round hidden dimension to nearest multiple of `multiple_of`
         hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
 
-        self.ff = FeedForward(dim=dim, hidden_dim=hidden_dim, activation=F.silu)
+        self.ff = FeedForward(dim=dim, hidden_dim=hidden_dim, linear=nn.Linear, activation=F.silu)
 
     def forward(self, x):
         return self.ff(x)

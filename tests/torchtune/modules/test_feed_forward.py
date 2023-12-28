@@ -11,7 +11,8 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchtune.modules.feed_forward import FeedForward
+from torchtune.models.llama2 import Llama2FeedForward
+from torchtune.modules import FeedForward
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -39,7 +40,7 @@ class TestFeedForward:
     @pytest.fixture
     def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
-        ff = FeedForward(dim, hidden_dim).eval()
+        ff = Llama2FeedForward(dim, hidden_dim).eval()
         fixed_init_model(ff)
         ff.eval()
         return ff
