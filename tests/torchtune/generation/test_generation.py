@@ -16,6 +16,7 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerDecoderLayer,
 )
+from torchtune.models.llama2 import Llama2
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 
@@ -59,7 +60,7 @@ class TestTextGenerate:
         """
         A dummy model to test `generate` API
         """
-        model = TransformerDecoder(
+        model = Llama2(
             vocab_size=4_000,
             embed_dim=128,
             num_layers=2,
@@ -77,7 +78,7 @@ class TestTextGenerate:
         A dummy model to test incremental decoding portion of `generate` API
         w/kv-caching enabled.
         """
-        generation_model_kv_cache = TransformerDecoder(
+        generation_model_kv_cache = Llama2(
             vocab_size=4_000,
             embed_dim=128,
             num_layers=2,
