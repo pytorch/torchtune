@@ -117,7 +117,7 @@ def get_argparser():
         "--device",
         type=str,
         default="cpu",
-        help="`cuda` or `cpu`",
+        help="Device type like `cuda` or `cpu`",
     )
     parser.add_argument(
         "--fsdp",

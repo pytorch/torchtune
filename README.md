@@ -20,13 +20,32 @@ pip install -e .
 To verify successful installation, one can run:
 
 ```
-pip list | grep torchtune
+tune recipe list
 ```
 
 And as an example, the following import should work:
 
 ```
 from torchtune.models.llama2.transformer import TransformerDecoder
+```
+
+# Running recipes
+
+On a single GPU
+```
+tune finetune_llm --config alpaca_llama2_finetune
+```
+
+On multiple GPUs using FSDP
+```
+tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --fsdp True
+```
+
+To copy a recipe to customize it yourself and then run
+```
+tune recipe cp -r finetune_llm -p my_recipe/finetune_llm.py
+tune config cp -c alpaca_llama2_finetune -p my_recipe/alpaca_llama2_finetune.yaml
+tune my_recipe/finetune_llm.py --config my_recipe/alpaca_llama2_finetune.yaml
 ```
 
 # Quickstart
