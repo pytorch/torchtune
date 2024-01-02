@@ -9,8 +9,7 @@ from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
-from torchtune import datasets, models
-from torchtune.datasets.alpaca import AlpacaDataset
+from torchtune import models
 
 from torchtune.models.llama2.transformer import TransformerDecoder
 
@@ -27,13 +26,7 @@ def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
     )
 
 
-class MiniAlpaca(AlpacaDataset):
-    def __len__(self):
-        return 1
-
-
 models._MODEL_DICT["small_test_ckpt"] = small_test_ckpt
-datasets._DATASET_DICT["mini_alpaca"] = MiniAlpaca
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -51,22 +44,23 @@ class TestFinetuneLLMRecipe:
 
     def test_small_test_ckpt_finetune_loss(self, capsys):
         expected_loss_values = {
-            "1|": 10.6901,
-            "2|": 10.6535,
-            "3|": 10.6169,
-            "4|": 10.5803,
+            "1|1|": 10.5483,
+            "1|2|": 10.5776,
+            "2|1|": 10.5696,
+            "2|2|": 10.5647,
         }
         kwargs_values = {
-            "dataset": "mini_alpaca",
+            "dataset": "alpaca",
             "dataloader_seed": 9,
             "shuffle": True,
             "model": "small_test_ckpt",
-            "model_checkpoint": "test-artifacts/small_ckpt.model",
+            "model_checkpoint": "/tmp/test-artifacts/small_ckpt.model",
             "tokenizer": "llama2_tokenizer",
-            "tokenizer_checkpoint": "test-artifacts/tokenizer.model",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
             "batch_size": 8,
             "lr": 2e-5,
-            "epochs": 4,
+            "epochs": 2,
+            "max_steps_per_epoch": 2,
             "optimizer": "AdamW",
             "loss": "CrossEntropyLoss",
             "output_dir": "/tmp",
