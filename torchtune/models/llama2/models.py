@@ -19,18 +19,6 @@ def llama2_7b(vocab_size: int) -> TransformerDecoder:
     )
 
 
-def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
-    return TransformerDecoder(
-        vocab_size=32_000,
-        num_layers=4,
-        num_heads=16,
-        embed_dim=256,
-        max_seq_len=2048,
-        norm_eps=1e-5,
-        num_kv_heads=8,
-    )
-
-
 def llama2_tokenizer(path: str) -> Tokenizer:
     tokenizer = Tokenizer.from_file(path)
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
