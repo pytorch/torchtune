@@ -9,9 +9,9 @@ import argparse
 import yaml
 
 
-class ArgumentParser(argparse.ArgumentParser):
+class TuneArgumentParser(argparse.ArgumentParser):
     """
-    ArgumentParser is a helpful utility subclass of the argparse ArgumentParser that
+    TuneArgumentParser is a helpful utility subclass of the argparse ArgumentParser that
     adds a builtin argument "config". The config argument takes a file path to a yaml file
     and will load in argument defaults from the yaml file. The yaml file must only contain
     argument names and their values and nothing more, it does not have to include all of the

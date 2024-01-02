@@ -11,7 +11,7 @@ from unittest.mock import mock_open
 
 import pytest
 
-from torchtune.utils import ArgumentParser
+from torchtune.utils import TuneArgumentParser
 
 config = """
          a: 1
@@ -22,7 +22,7 @@ config = """
 class TestArgParse:
     @pytest.fixture
     def parser(self):
-        parser = ArgumentParser("Test parser")
+        parser = TuneArgumentParser("Test parser")
         parser.add_argument("--a", type=int, default=0)
         parser.add_argument("--b", type=int, default=0)
         parser.add_argument("--c", type=int, default=0)
