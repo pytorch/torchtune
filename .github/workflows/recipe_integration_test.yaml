@@ -51,9 +51,9 @@ jobs:
             sudo mkswap /swapfile
             sudo swapon /swapfile
             python3 -m pip install awscli==1.32.6
-            mkdir -p test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b-native-checkpoint test-artifacts
+            mkdir -p /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b-native-checkpoint /tmp/test-artifacts
       - name: Install dependencies
         run: |
           conda install pytorch
@@ -61,6 +61,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run unit tests with coverage
-        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --run-slow True
+        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

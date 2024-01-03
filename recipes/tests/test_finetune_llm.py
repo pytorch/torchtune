@@ -49,25 +49,6 @@ class TestFinetuneLLMRecipe:
             "2|1|": 10.5696,
             "2|2|": 10.5647,
         }
-        kwargs_values = {
-            "dataset": "alpaca",
-            "dataloader_seed": 9,
-            "shuffle": True,
-            "model": "small_test_ckpt",
-            "model_checkpoint": "/tmp/test-artifacts/small_ckpt.model",
-            "tokenizer": "llama2_tokenizer",
-            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-            "batch_size": 8,
-            "lr": 2e-5,
-            "epochs": 2,
-            "max_steps_per_epoch": 2,
-            "optimizer": "AdamW",
-            "loss": "CrossEntropyLoss",
-            "output_dir": "/tmp",
-            "device": "cpu",
-            "fsdp": False,
-            "activation_checkpointing": False,
-        }
         llama2_7b_ckpt_loss_values = {
             "1|1|": 12.5535,
             "1|2|": 8.7051,
@@ -82,14 +63,14 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
-            return "test-artifacts/small_ckpt.model"
+            return "/tmp/test-artifacts/small_ckpt.model"
         if ckpt == "llama2_7b":
-            return "test-artifacts/llama2-7b-native-checkpoint"
+            return "/tmp/test-artifacts/llama2-7b-native-checkpoint"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):
-        slow_test = pytestconfig.getoption("--run-slow")
-        ckpt = "llama2_7b" if slow_test else "small_test_ckpt"
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
         argv_values = [
@@ -104,7 +85,7 @@ class TestFinetuneLLMRecipe:
             "--tokenizer",
             "llama2_tokenizer",
             "--tokenizer-checkpoint",
-            "test-artifacts/tokenizer.model",
+            "/tmp/test-artifacts/tokenizer.model",
             "--batch-size",
             "8",
             "--max-steps-per-epoch",

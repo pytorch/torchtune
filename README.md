@@ -5,6 +5,10 @@
 
 The torchtune package contains tools and utilities to finetune generative models with native PyTorch techniques.
 
+# Unit Tests Status
+
+[![Unit Test](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml)
+
 # Recipe Integration Test Status
 
 ![Recipe Integration Test](https://github.com/pytorch-labs/torchtune/actions/workflows/recipe_integration_test.yaml/badge.svg)

@@ -8,8 +8,8 @@ import argparse
 
 def pytest_addoption(parser: argparse.ArgumentParser) -> None:
     parser.addoption(
-        "--run-slow",
+        "--large-scale",
         type=bool,
         default=False,
-        help="Run a longer/full integration test",
+        help="Run a larger scale integration test",
     )
