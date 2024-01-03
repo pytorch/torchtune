@@ -3,8 +3,6 @@ name: recipe integration test
 on:
   push:
     branches: [ main ]
-  # TODO: Remove pull_request trigger before landing
-  pull_request:
 
 permissions:
   id-token: write
