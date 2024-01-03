@@ -84,12 +84,10 @@ class ReproducibleDataLoader(DataLoader):
                 seed=seed,
                 drop_last=drop_last,
             )
-            # Shuffle can't be set if a sampler is provided to DataLoader
-            shuffle = None
 
         super().__init__(
             dataset=dataset,
-            shuffle=shuffle,
+            shuffle=None,  # shuffle is handled by sampler
             sampler=sampler,
             drop_last=drop_last,
             generator=generator,
