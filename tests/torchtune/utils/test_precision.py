@@ -10,7 +10,11 @@ import pytest
 import torch
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-from torchtune.utils.precision import get_autocast_manager, get_grad_scaler
+from torchtune.utils.precision import (
+    get_autocast_manager,
+    get_grad_scaler,
+    get_supported_dtypes,
+)
 
 from tests.test_utils import assert_expected
 
@@ -43,3 +47,6 @@ class TestPrecisionUtils:
                 get_autocast_manager(device_type="cuda", precision=precision),
                 torch.autocast,
             )
+
+    def test_get_supported_dtyes(self):
+        assert set(get_supported_dtypes()) == {"fp16", "bf16", "fp32"}

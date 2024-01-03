@@ -24,7 +24,11 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
-from torchtune.utils.precision import get_autocast_manager, get_grad_scaler
+from torchtune.utils.precision import (
+    get_autocast_manager,
+    get_grad_scaler,
+    get_supported_dtypes,
+)
 from tqdm import tqdm
 
 
@@ -270,11 +274,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--autocast-precision",
         type=str,
-        choices=["fp16", "bf16"],
+        choices=get_supported_dtypes(),
         default=None,
-        help="""Low precision used for CUDA automatic mixed precision.
-            If specified, must be one of fp16 or bf16. --device argument
-            must be CUDA for this to apply.
+        help=f"""Low precision used for CUDA automatic mixed precision.
+            If specified, must be one of {get_supported_dtypes()}.
         """,
     )
 
