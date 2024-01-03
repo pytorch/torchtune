@@ -56,11 +56,6 @@ def recipe(kwargs):
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
     autocast_precision = kwargs.get("autocast_precision", None)
-    if kwargs["device"] != "cuda" and autocast_precision in ["fp16", "bf16"]:
-        raise ValueError(
-            f"Specifying autocast precision {autocast_precision} when using device {device} is not yet implemented."
-        )
-
     autocast_mgr = get_autocast_manager(
         device_type=kwargs["device"], precision=autocast_precision
     )
