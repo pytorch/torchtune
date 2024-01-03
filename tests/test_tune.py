@@ -65,33 +65,30 @@ class TestTuneCLI:
             runpy.run_path(tune_path, run_name="__main__")
 
         captured = capsys.readouterr()
-        output = captured.out.rstrip("\n").split("\n")[:-1]
+        output = captured.out.rstrip("\n").split("\n")
         assert output == list_configs(
             recipe
         ), "Output must match config list from recipes/__init__.py"
 
     def test_config_cp(self, tmp_path, capsys):
-        assert (
-            len(list_configs("finetune_llm")) == 0
-        ), "Update unit test since there are configs"
         # Valid recipe
-        # config = ""
-        # path = tmp_path / "dummy.yaml"
-        # testargs = f"tune config cp -c {config} -p {path}".split()
-        # with patch.object(sys, 'argv', testargs):
-        #     runpy.run_path(tune_path, run_name="__main__")
+        config = "alpaca_llama2_finetune"
+        path = tmp_path / "dummy.yaml"
+        testargs = f"tune config cp -c {config} -p {path}".split()
+        with patch.object(sys, "argv", testargs):
+            runpy.run_path(tune_path, run_name="__main__")
 
-        # captured = capsys.readouterr()
-        # output = captured.out.rstrip('\n')
-        # assert output == f"Copied config {config} to {path}"
+        captured = capsys.readouterr()
+        output = captured.out.rstrip("\n")
+        assert output == f"Copied config {config} to {path}"
 
-        # # File exists error
-        # with patch.object(sys, 'argv', testargs):
-        #     runpy.run_path(tune_path, run_name="__main__")
+        # File exists error
+        with patch.object(sys, "argv", testargs):
+            runpy.run_path(tune_path, run_name="__main__")
 
-        # captured = capsys.readouterr()
-        # output = captured.out.rstrip('\n')
-        # assert output == f"File already exists at {path}, not overwriting"
+        captured = capsys.readouterr()
+        output = captured.out.rstrip("\n")
+        assert output == f"File already exists at {path}, not overwriting"
 
         # Invalid recipe error
         config = "fake"
@@ -106,7 +103,9 @@ class TestTuneCLI:
 
     def test_run(self, capsys):
         recipe = "finetune_llm"
-        testargs = f"tune {recipe} --tokenizer fake --model fake".split()
+        testargs = (
+            f"tune {recipe} --config alpaca_llama2_finetune --tokenizer fake".split()
+        )
         with patch.object(sys, "argv", testargs):
             with pytest.raises(SystemExit) as e:
                 runpy.run_path(tune_path, run_name="__main__")

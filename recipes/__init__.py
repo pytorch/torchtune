@@ -6,7 +6,7 @@
 
 
 _RECIPE_LIST = ["finetune_llm"]
-_CONFIG_LISTS = {"finetune_llm": []}
+_CONFIG_LISTS = {"finetune_llm": ["alpaca_llama2_finetune"]}
 
 
 def list_recipes():

@@ -54,6 +54,7 @@ def _update_parser_help(parser):
         config      Utilities for built in configs
     """)
 
+    # Update torchrun argparse name for more accurate CLI help
     actions = [a.dest for a in parser._actions]
     # Update training_script help to be recipe
     idx = actions.index("training_script")
@@ -68,7 +69,7 @@ def _is_distributed_args(args):
     total = len(sys.argv) - 1 # total args minus "tune"
     script_args = len(args.recipe_args) + 1 # script args + 1 for script name
     return total > script_args
-
+import pdb
 if __name__ == "__main__":
     parser = get_args_parser()
     _update_parser_help(parser)
@@ -89,14 +90,17 @@ if __name__ == "__main__":
             args.recipe = cmd
 
             # Replace config name with package path if provided
-            if "config" in args.recipe_args:
-                config = args.recipe_args.config
-                if type(config) == str and not config.endwith(".yaml"):
-                    args.recipe_args.config = os.path.join(pkg_path, "recipes", "configs", f"{config}.yaml")
+            if "--config" in args.recipe_args:
+                cfg_idx = args.recipe_args.index("--config") + 1
+                config = args.recipe_args[cfg_idx]
+                if not config.endswith(".yaml"):
+                    args.recipe_args[cfg_idx] = os.path.join(pkg_path, "recipes", "configs", f"{config}.yaml")
         else:
             print("Unknown command, for a list of available commands, run with --help")
 
     if distributed_args:
+        args.training_script = cmd # arg names expected by torchrun
+        args.training_script_args = args.recipe_args
         run(args)
     else:
         sys.argv = [cmd] + args.recipe_args
