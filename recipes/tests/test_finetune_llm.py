@@ -73,28 +73,25 @@ class TestFinetuneLLMRecipe:
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
-        argv_values = [
-            "--dataset",
-            "alpaca",
-            "--dataloader-seed",
-            "9",
-            "--model",
-            ckpt,
-            "--model-checkpoint",
-            self._fetch_ckpt_model_path(ckpt),
-            "--tokenizer",
-            "llama2_tokenizer",
-            "--tokenizer-checkpoint",
-            "/tmp/test-artifacts/tokenizer.model",
-            "--batch-size",
-            "8",
-            "--max-steps-per-epoch",
-            "2",
-            "--epochs",
-            "2",
-            "--device",
-            "cpu",
-        ]
+        kwargs_values = {
+            "dataset": "alpaca",
+            "dataloader_seed": 9,
+            "shuffle": True,
+            "model": ckpt,
+            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
+            "tokenizer": "llama2_tokenizer",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "batch_size": 8,
+            "lr": 2e-5,
+            "epochs": 2,
+            "max_steps_per_epoch": 2,
+            "optimizer": "AdamW",
+            "loss": "CrossEntropyLoss",
+            "output_dir": "/tmp",
+            "device": "cpu",
+            "fsdp": False,
+            "activation_checkpointing": False,
+        }
 
         finetune_llm.recipe(kwargs_values)
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
