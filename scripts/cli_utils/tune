@@ -69,7 +69,7 @@ def _is_distributed_args(args):
     total = len(sys.argv) - 1 # total args minus "tune"
     script_args = len(args.recipe_args) + 1 # script args + 1 for script name
     return total > script_args
-import pdb
+
 if __name__ == "__main__":
     parser = get_args_parser()
     _update_parser_help(parser)
