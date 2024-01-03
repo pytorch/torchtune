@@ -108,7 +108,10 @@ def recipe(kwargs):
 
     # ---- Train loop ---- #
     for epoch in range(kwargs["epochs"]):
-        for batch in (pbar := tqdm(dataloader)):
+        for idx, batch in enumerate(pbar := tqdm(dataloader)):
+            max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
+            if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
+                break
             opt.zero_grad()
 
             input_ids, labels = batch
@@ -126,7 +129,7 @@ def recipe(kwargs):
             # Compute loss
             loss = loss_fn(shift_logits, shift_labels)
             pbar.set_description(
-                f"{epoch+1}|Loss: {loss.item()}"
+                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
             )  # TODO: add terminal logger
 
             loss.backward()
@@ -203,7 +206,7 @@ if __name__ == "__main__":
         "--lr", type=float, default=2e-5, help="Learning rate for fine-tuning."
     )
     parser.add_argument(
-        "--epochs", type=int, default=100, help="Number of epochs for fine-tuning"
+        "--epochs", type=int, default=3, help="Number of epochs for fine-tuning"
     )
     parser.add_argument(
         "--optimizer",
@@ -241,6 +244,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+    parser.add_argument(
+        "--max-steps-per-epoch",
+        type=int,
+        default=None,
+        help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
     )
 
     kwargs = vars(parser.parse_args())
