@@ -45,9 +45,9 @@ jobs:
           timeout_seconds: 14400
           command: |
             python3 -m pip install awscli==1.32.6
-            mkdir -p test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small_ckpt.model test-artifacts
+            mkdir -p /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/small_ckpt.model /tmp/test-artifacts
       - name: Install dependencies
         run: |
           conda install pytorch
