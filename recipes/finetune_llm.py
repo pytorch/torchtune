@@ -110,7 +110,6 @@ def recipe(kwargs):
     for epoch in range(kwargs["epochs"]):
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
             max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
-            print(f"RV: {max_steps_per_epoch}", flush=True)
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
