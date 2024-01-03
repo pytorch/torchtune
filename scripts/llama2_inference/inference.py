@@ -13,9 +13,9 @@ from typing import Optional
 
 import torch
 
-from tests.test_utils import set_rng_seed
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 from transformers import LlamaForCausalLM
 
@@ -92,7 +92,7 @@ if __name__ == "__main__":
         tokenizer.encode(prompt, add_eos=False) for prompt in prompts
     ]
 
-    set_rng_seed(0)
+    seed(0)
 
     # --------- Initialize a decoder w/o kv-caching -------- #
     llama_7b_args = args_7b()
@@ -108,7 +108,7 @@ if __name__ == "__main__":
         )
 
     # Load state_dict into decoder
-    native_state_dict = torch.load(args.native_checkpoint_path)
+    native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
     missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
     # Nothing should be missing or unexpected
     assert not missing and not unexpected

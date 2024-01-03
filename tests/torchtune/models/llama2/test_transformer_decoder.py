@@ -16,13 +16,14 @@ from torchtune.models.llama2.transformer import (
     TransformerDecoder,
     TransformerDecoderLayer,
 )
+from torchtune.utils.env import seed
 
-from tests.test_utils import assert_expected, init_weights_with_constant, set_rng_seed
+from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
 def random():
-    set_rng_seed(16)
+    seed(16)
 
 
 class TestTransformerDecoderLayer:

@@ -14,7 +14,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import torch
-from tests.torchtune.llama2.scripts.compare_decoder import Transformer
+from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
 from torchtune.models.llama2.transformer import TransformerDecoder
@@ -66,7 +66,7 @@ def args_7b() -> LlamaArgs:
 
 
 def load_orig_state_dict(path: str) -> Dict[str, Any]:
-    orig_sd = torch.load(path)
+    orig_sd = torch.load(path, weights_only=True)
     return orig_sd
 
 
