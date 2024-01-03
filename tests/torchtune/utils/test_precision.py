@@ -38,12 +38,8 @@ class TestPrecisionUtils:
         Tests that the correct autocast manager is returned based on precision.
         """
 
-        for precision in ["fp16", "bf16", None]:
+        for precision in ["fp16", "bf16", "fp32", None]:
             assert isinstance(
                 get_autocast_manager(device_type="cuda", precision=precision),
                 torch.autocast,
             )
-
-        # TODO: can change this to just return nullcontext for fp32 as well
-        with pytest.raises(ValueError):
-            get_autocast_manager(device_type="cuda", precision="fp32")
