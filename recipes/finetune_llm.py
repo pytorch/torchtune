@@ -24,6 +24,11 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
+from torchtune.utils.precision import (
+    get_autocast_manager,
+    get_grad_scaler,
+    get_supported_dtypes,
+)
 from tqdm import tqdm
 
 
@@ -53,6 +58,12 @@ def recipe(kwargs):
 
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
+
+    autocast_precision = kwargs.get("autocast_precision", None)
+    autocast_mgr = get_autocast_manager(
+        device_type=kwargs["device"], precision=autocast_precision
+    )
+    grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
 
     # When using fsdp, init on meta device to avoid OOM
     model = get_model(
@@ -116,24 +127,33 @@ def recipe(kwargs):
 
             input_ids, labels = batch
             input_ids = input_ids.to(device)
+            labels = labels.to(device)
 
-            logits = model(input_ids)
+            # Note: context manager for autocast is only applied in forward pass.
+            # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
+            # for more details.
+            with autocast_mgr:
+                logits = model(input_ids)
+                # Shift so that tokens < n predict n
+                shift_logits = logits[..., :-1, :].contiguous()
+                shift_labels = labels[..., 1:].contiguous()
+                # Flatten the tokens
+                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                shift_labels = shift_labels.view(-1)
+                # Compute loss
+                loss = loss_fn(shift_logits, shift_labels)
 
-            logits = logits.cpu()
-            # Shift so that tokens < n predict n
-            shift_logits = logits[..., :-1, :].contiguous()
-            shift_labels = labels[..., 1:].contiguous()
-            # Flatten the tokens
-            shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-            shift_labels = shift_labels.view(-1)
-            # Compute loss
-            loss = loss_fn(shift_logits, shift_labels)
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
             )  # TODO: add terminal logger
 
-            loss.backward()
-            opt.step()
+            if grad_scaler:
+                grad_scaler.scale(loss).backward()
+                grad_scaler.step(opt)
+                grad_scaler.update()
+            else:
+                loss.backward()
+                opt.step()
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
@@ -250,6 +270,15 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
+    )
+    parser.add_argument(
+        "--autocast-precision",
+        type=str,
+        choices=get_supported_dtypes(),
+        default=None,
+        help=f"""Low precision used for CUDA automatic mixed precision.
+            If specified, must be one of {get_supported_dtypes()}.
+        """,
     )
 
     kwargs = vars(parser.parse_args())
