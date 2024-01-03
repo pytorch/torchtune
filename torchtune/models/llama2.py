@@ -4,11 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
-
-import torch
-import torch.nn.functional as F
-from torch import nn, Tensor
+from torch import nn
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -30,7 +26,7 @@ def llama2_7b() -> TransformerDecoder:
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=2048,
-        max_batch_size=32, # Need to figure out the actual default used by Llama2
+        max_batch_size=32,  # Need to figure out the actual default used by Llama2
         attn_dropout=0.0,
         norm_eps=1e-5,
     )
@@ -50,9 +46,9 @@ def llama2(
     num_kv_heads,
     embed_dim,
     max_seq_len,
-    attn_dropout = 0.0,
-    max_batch_size = None,
-    norm_eps = 1e-5,
+    attn_dropout=0.0,
+    max_batch_size=None,
+    norm_eps=1e-5,
 ):
     token_embeddings = nn.Embedding(vocab_size, embed_dim)
     head_dim = embed_dim // num_heads
@@ -87,7 +83,7 @@ def llama2(
     # Round hidden dimension to nearest multiple of `multiple_of`
     multiple_of = 256
     hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim, linear_class=nn.Linear, activation=F.silu)
+    mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim, linear_class=nn.Linear)
     layer = TransformerDecoderLayer(
         self_attention=self_attn,
         mlp=mlp,

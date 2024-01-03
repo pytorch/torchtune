@@ -10,11 +10,17 @@ import pytest
 
 import torch
 
-from torch import Tensor
-from torchtune.models.llama2.rms_norm import RMSNorm
+from torch import nn, Tensor
 
-from torchtune.models.llama2 import Llama2, Llama2DecoderLayer
-from torchtune.modules.transformer import TransformerDecoder, TransformerDecoderLayer
+from torchtune.models.llama2 import llama2
+from torchtune.modules import (
+    CausalSelfAttention,
+    FeedForward,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected, init_weights_with_constant
@@ -60,11 +66,31 @@ class TestTransformerDecoderLayer:
         self, layer_params: Tuple[int, int, int, int]
     ) -> TransformerDecoderLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
-        transformer_layer = Llama2DecoderLayer(
+        head_dim = embed_dim // num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+        self_attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
             max_seq_len=max_seq_len,
+        )
+        # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
+        # parameters and computation constant
+        hidden_dim = 4 * int(2 * embed_dim / 3)
+        # Round hidden dimension to nearest multiple of `multiple_of`
+        multiple_of = 256
+        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+        mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+        transformer_layer = TransformerDecoderLayer(
+            self_attention=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim),
+            mlp_norm=RMSNorm(dim=embed_dim),
         )
         init_weights_with_constant(transformer_layer, constant=0.05)
         transformer_layer.eval()
@@ -145,7 +171,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = Llama2(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -170,7 +196,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = Llama2(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -188,7 +214,7 @@ class TestTransformerDecoder:
         self,
         input: Tensor,
         input_params: Tuple[int, int, int],
-        decoder: Llama2,
+        decoder: TransformerDecoder,
     ) -> None:
         batch_size, seq_len, vocab_size = input_params
         with torch.no_grad():
@@ -199,7 +225,7 @@ class TestTransformerDecoder:
     def test_max_seq_len_exceeded(
         self,
         input_max_len_exceeded: Tensor,
-        decoder: Llama2,
+        decoder: TransformerDecoder,
     ) -> None:
         with pytest.raises(Exception):
             output = decoder(input_max_len_exceeded)
@@ -207,8 +233,8 @@ class TestTransformerDecoder:
     def test_kv_cache(
         self,
         input: Tensor,
-        decoder_with_kv_cache_enabled: Llama2,
-        decoder: Llama2,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+        decoder: TransformerDecoder,
     ) -> None:
         with torch.no_grad():
             output_cache = decoder_with_kv_cache_enabled(input, 0)
@@ -218,7 +244,7 @@ class TestTransformerDecoder:
     def test_kv_cache_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,
-        decoder_with_kv_cache_enabled: Llama2,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
     ) -> None:
         with pytest.raises(ValueError):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
