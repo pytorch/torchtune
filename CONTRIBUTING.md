@@ -5,6 +5,12 @@ possible.
 ## Our Development Process
 ... (in particular how this is synced with internal changes to the project)
 
+## Unit Tests and Recipe Tests
+For running unit tests locally:
+```pytest tests```
+For running recipe tests locally:
+```./recipes/tests/run_test.sh```
+
 ## Pull Requests
 We actively welcome your pull requests.
 
