@@ -19,8 +19,8 @@ class TransformerDecoderLayer(nn.Module):
     """
     Transformer layer used by the Llama2 model. This has a few
     differences compared to the original Transformer architecture.
-        1) Uses RMSNorm instead of LayerNorm
-        2) Normalization is applied before the attention and FF layer
+    1) Uses RMSNorm instead of LayerNorm
+    2) Normalization is applied before the attention and FF layer
 
     Args:
         embed_dim (int): embedding dimension for the model
@@ -111,8 +111,8 @@ class TransformerDecoder(nn.Module):
     """
     Transformer Decoder used by the Llama2 model. This has a few
     differences compared to the original Transformer architecture.
-        1) Uses RMSNorm instead of LayerNorm
-        2) Normalization is applied before the attention and FF layer
+    1) Uses RMSNorm instead of LayerNorm
+    2) Normalization is applied before the attention and FF layer
 
     Args:
         vocab_size (int): Size of the vocabulary supported by the model. This

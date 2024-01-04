@@ -10,7 +10,10 @@ from sentencepiece import SentencePieceProcessor
 
 
 class Tokenizer:
-    """A wrapper around SentencePieceProcessor.
+    """A text tokenizer backed by a `SentencePiece` model.
+
+    NOTE: `Tokenizer` instances are not meant to be directly initialized. Users
+        should use the `from_file` class method to create a `Tokenizer` instance.
 
     Args:
         spm_model (SentencePieceProcessor): The SentencePiece model.
