@@ -87,7 +87,7 @@ class TestTransformerDecoderLayer:
         hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
         mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
         transformer_layer = TransformerDecoderLayer(
-            self_attention=self_attn,
+            attn=self_attn,
             mlp=mlp,
             sa_norm=RMSNorm(dim=embed_dim),
             mlp_norm=RMSNorm(dim=embed_dim),

@@ -55,7 +55,7 @@ def llama2(
     max_batch_size=None,
     norm_eps=1e-5,
 ):
-    token_embeddings = nn.Embedding(vocab_size, embed_dim)
+    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
@@ -90,14 +90,14 @@ def llama2(
     hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
     mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim, linear_class=nn.Linear)
     layer = TransformerDecoderLayer(
-        self_attention=self_attn,
+        attn=self_attn,
         mlp=mlp,
         sa_norm=RMSNorm(dim=embed_dim),
         mlp_norm=RMSNorm(dim=embed_dim),
     )
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
-        token_embeddings=token_embeddings,
+        tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
         norm=RMSNorm(embed_dim, eps=norm_eps),

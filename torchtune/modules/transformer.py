@@ -9,31 +9,30 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 
-from torchtune.modules import CausalSelfAttention, FeedForward
+from torchtune.modules import CausalSelfAttention
 
 
 class TransformerDecoderLayer(nn.Module):
     """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
     Args:
-        self_attention (CausalSelfAttention): Attention module.
-        mlp (FeedForward): Feed-forward module.
+        attn (CausalSelfAttention): Attention module.
+        mlp (nn.Module): Feed-forward module.
         sa_norm (nn.Module): Normalization to be applied before self-attention.
         mlp_norm (nn.Module): Normalization to be applied before the feed-forward layer.
     """
 
     def __init__(
         self,
-        self_attention: CausalSelfAttention,
-        mlp: FeedForward,
+        attn: CausalSelfAttention,
+        mlp: nn.Module,
         sa_norm: nn.Module,
         mlp_norm: nn.Module,
     ) -> None:
         super().__init__()
         # Norm applied before self-attention
         self.sa_norm = sa_norm
-        self.attn = self_attention
-
+        self.attn = attn
         # Norm applied before the feedforward layer
         self.mlp_norm = mlp_norm
         self.mlp = mlp
@@ -83,7 +82,7 @@ class TransformerDecoder(nn.Module):
     https://arxiv.org/abs/2307.09288
 
     Args:
-        token_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
+        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
         layer (TransformerDecoderLayer): Instantiation of a single TransformerDecoderLayer, to be used in the decoder.
         num_layers (int): Number of ``layers`` in the decoder.
         norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
@@ -97,14 +96,14 @@ class TransformerDecoder(nn.Module):
 
     def __init__(
         self,
-        token_embeddings: nn.Embedding,
+        tok_embeddings: nn.Embedding,
         layer: TransformerDecoderLayer,
         num_layers: int,
         norm: nn.Module,
         output: nn.Linear,
     ) -> None:
         super().__init__()
-        self.tok_embeddings = token_embeddings
+        self.tok_embeddings = tok_embeddings
 
         self.layers = nn.ModuleList()
 
