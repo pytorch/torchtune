@@ -2,6 +2,7 @@ TorchTune
 =========
 
 Hello.
+Foo
 
 .. autosummary::
     :toctree: generated/
