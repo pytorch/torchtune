@@ -9,8 +9,7 @@ from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
-from torchtune import datasets, models
-from torchtune.datasets.alpaca import AlpacaDataset
+from torchtune import models
 
 from torchtune.models.llama2.transformer import TransformerDecoder
 
@@ -27,13 +26,7 @@ def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
     )
 
 
-class MiniAlpaca(AlpacaDataset):
-    def __len__(self):
-        return 1
-
-
 models._MODEL_DICT["small_test_ckpt"] = small_test_ckpt
-datasets._DATASET_DICT["mini_alpaca"] = MiniAlpaca
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -49,24 +42,49 @@ class TestFinetuneLLMRecipe:
                 loss_values[splits[0]] = loss_value
         return loss_values
 
-    def test_small_test_ckpt_finetune_loss(self, capsys):
-        expected_loss_values = {
-            "1|": 10.6901,
-            "2|": 10.6535,
-            "3|": 10.6169,
-            "4|": 10.5803,
+    def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
+        small_test_ckpt_loss_values = {
+            "1|1|": 10.5483,
+            "1|2|": 10.5776,
+            "2|1|": 10.5696,
+            "2|2|": 10.5647,
         }
+        llama2_7b_ckpt_loss_values = {
+            "1|1|": 12.5535,
+            "1|2|": 8.7051,
+            "2|1|": 7.7058,
+            "2|2|": 7.8551,
+        }
+        if ckpt == "small_test_ckpt":
+            return small_test_ckpt_loss_values
+        if ckpt == "llama2_7b":
+            return llama2_7b_ckpt_loss_values
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def _fetch_ckpt_model_path(self, ckpt) -> str:
+        if ckpt == "small_test_ckpt":
+            return "/tmp/test-artifacts/small_ckpt.model"
+        if ckpt == "llama2_7b":
+            return "/tmp/test-artifacts/llama2-7b-native-checkpoint"
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def test_finetune_llm_loss(self, capsys, pytestconfig):
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
         kwargs_values = {
-            "dataset": "mini_alpaca",
+            "dataset": "alpaca",
             "dataloader_seed": 9,
             "shuffle": True,
-            "model": "small_test_ckpt",
-            "model_checkpoint": "test-artifacts/small_ckpt.model",
+            "model": ckpt,
+            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": "llama2_tokenizer",
-            "tokenizer_checkpoint": "test-artifacts/tokenizer.model",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
             "batch_size": 8,
             "lr": 2e-5,
-            "epochs": 4,
+            "epochs": 2,
+            "max_steps_per_epoch": 2,
             "optimizer": "AdamW",
             "loss": "CrossEntropyLoss",
             "output_dir": "/tmp",

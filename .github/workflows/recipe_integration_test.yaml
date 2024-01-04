@@ -1,9 +1,8 @@
-name: recipe test
+name: recipe integration test
 
 on:
   push:
     branches: [ main ]
-  pull_request:
 
 permissions:
   id-token: write
@@ -14,11 +13,11 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_test:
-    runs-on: ubuntu-latest
+  recipe_integration_test:
+    runs-on: 32-core-ubuntu
     strategy:
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.11']
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -44,10 +43,15 @@ jobs:
           retry_on: error
           timeout_seconds: 14400
           command: |
+            sudo swapoff -a
+            sudo fallocate -l 64G /swapfile
+            sudo chmod 600 /swapfile
+            sudo mkswap /swapfile
+            sudo swapon /swapfile
             python3 -m pip install awscli==1.32.6
             mkdir -p /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small_ckpt.model /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b-native-checkpoint /tmp/test-artifacts
       - name: Install dependencies
         run: |
           conda install pytorch
@@ -55,6 +59,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run unit tests with coverage
-        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
