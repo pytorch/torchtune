@@ -42,19 +42,43 @@ class TestFinetuneLLMRecipe:
                 loss_values[splits[0]] = loss_value
         return loss_values
 
-    def test_small_test_ckpt_finetune_loss(self, capsys):
-        expected_loss_values = {
+    def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
+        small_test_ckpt_loss_values = {
             "1|1|": 10.5483,
             "1|2|": 10.5776,
             "2|1|": 10.5696,
             "2|2|": 10.5647,
         }
+        llama2_7b_ckpt_loss_values = {
+            "1|1|": 12.5535,
+            "1|2|": 8.7051,
+            "2|1|": 7.7058,
+            "2|2|": 7.8551,
+        }
+        if ckpt == "small_test_ckpt":
+            return small_test_ckpt_loss_values
+        if ckpt == "llama2_7b":
+            return llama2_7b_ckpt_loss_values
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def _fetch_ckpt_model_path(self, ckpt) -> str:
+        if ckpt == "small_test_ckpt":
+            return "/tmp/test-artifacts/small_ckpt.model"
+        if ckpt == "llama2_7b":
+            return "/tmp/test-artifacts/llama2-7b-native-checkpoint"
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def test_finetune_llm_loss(self, capsys, pytestconfig):
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
         kwargs_values = {
             "dataset": "alpaca",
             "dataloader_seed": 9,
             "shuffle": True,
-            "model": "small_test_ckpt",
-            "model_checkpoint": "/tmp/test-artifacts/small_ckpt.model",
+            "model": ckpt,
+            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": "llama2_tokenizer",
             "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
             "batch_size": 8,
