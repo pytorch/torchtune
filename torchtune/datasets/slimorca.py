@@ -20,7 +20,16 @@ class SlimOrcaDataset(Dataset):
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
 
     Data input format:
-        [ { "from": "system", "value": "You are an AI assistant. You will be given a task. You must generate a detailed and long answer." }, { "from": "human", "value": "Predecesorul său, primul îngrijitor al moscheii Et'hem Bey, a murit în timp ce era în moschee; sute de persoane au participat la funeraliile sale.\n\nWhich language is this?" }, { "from": "gpt", "value": "This text is written in Romanian. The passage discusses the predecessor of someone who was the first caretaker of the Et'hem Bey Mosque and mentions that they passed away while in the mosque. It also notes that hundreds of people attended their funeral." } ]
+        [ { "from": "system", "value": "You are an AI assistant. You will be
+        given a task. You must generate a detailed and long answer." },
+        { "from": "human", "value": "Predecesorul său, primul îngrijitor al
+        moscheii Et'hem Bey, a murit în timp ce era în moschee; sute de
+        persoane au participat la funeraliile sale.\n\nWhich language is this?
+        " }, { "from": "gpt", "value": "This text is written in Romanian.
+        The passage discusses the predecessor of someone who was the first
+        caretaker of the Et'hem Bey Mosque and mentions that they passed away
+        while in the mosque. It also notes that hundreds of people attended
+        their funeral." } ]
 
     Example:
     >>> slimorca_ds = SlimOrcaDataset(tokenizer=tokenizer)
@@ -39,23 +48,18 @@ class SlimOrcaDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         data = self._data[index]["conversations"]
         agent_text_dict = {}
-        # from : system (prompt), human (instruction), gpt (response)
+        # agents can be {system, human, gpt}
         for conversation in data:
             agent = conversation["from"]
             text = conversation["value"]
             agent_text_dict[agent] = text
-        return self.transform(
-            agent_text_dict["system"], agent_text_dict["human"], agent_text_dict["gpt"]
-        )
 
-    def transform(
-        self, prompt: str, instruction: str, response: str
-    ) -> Tuple[List[int], List[int]]:
-        # Add instruction and response tags to construct the input string
-        instruction_tag = "\n\n### Instruction:\n"
-        response_tag = "\n\n### Response:\n"
-        instructions_and_inputs = self._tokenizer.encode(
-            prompt + instruction_tag + instruction + response_tag
+        # If system value is present
+        if len(agent_text_dict["system"]) > 0:
+            prompt = f"<s>[INST] <<SYS>> {agent_text_dict['system']} <</SYS>> {agent_text_dict['human']} [/INST]"
+        else:
+            prompt = f"<s>[INST] {agent_text_dict['human']} [/INST]"
+
+        return self._tokenizer.encode(prompt), self._tokenizer.encode(
+            f"{agent_text_dict['gpt']} </s>"
         )
-        labels = self._tokenizer.encode(response)
-        return instructions_and_inputs, labels
