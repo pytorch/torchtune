@@ -19,6 +19,11 @@ from torchtune.modules import (
 
 
 def llama2_7b() -> TransformerDecoder:
+    """Builder functions for creating a Llama2 model initialized w/ the default 7b parameter values.
+
+    Returns:
+        A ``TransformerDecoder`` instance for the Llama2 model.
+    """
     return llama2(
         vocab_size=32_000,
         num_layers=32,

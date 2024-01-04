@@ -10,12 +10,13 @@ from typing import Dict
 import pytest
 import recipes.finetune_llm as finetune_llm
 from torchtune import models
+from torchtune.models import llama2
 
 from torchtune.modules import TransformerDecoder
 
 
-def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
-    return TransformerDecoder(
+def small_test_ckpt() -> TransformerDecoder:
+    return llama2(
         vocab_size=32_000,
         num_layers=4,
         num_heads=16,

@@ -75,7 +75,6 @@ def recipe(kwargs):
     model = get_model(
         kwargs["model"],
         "meta" if kwargs["fsdp"] else device,
-        vocab_size=tokenizer.vocab_size,
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
