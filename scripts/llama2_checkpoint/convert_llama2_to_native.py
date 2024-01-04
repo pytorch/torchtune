@@ -152,6 +152,7 @@ if __name__ == "__main__":
         num_kv_heads=llama_7b_args.num_kv_heads,
         embed_dim=llama_7b_args.embed_dim,
         max_seq_len=llama_7b_args.max_seq_len,
+        norm_eps=1e-6,
     )
 
     tformer = Transformer(
