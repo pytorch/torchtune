@@ -288,7 +288,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         for _ in range(10):
             toks = torch.randint(
-                low=0, high=llama_7b_args.vocab_size + 1, size=(bsz, seqlen)
+                low=0, high=llama_7b_args.vocab_size, size=(bsz, seqlen)
             )
             y = decoder(toks).sum()
             x = tformer(toks).sum()
