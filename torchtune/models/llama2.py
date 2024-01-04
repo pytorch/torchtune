@@ -88,7 +88,7 @@ def llama2(
     # Round hidden dimension to nearest multiple of `multiple_of`
     multiple_of = 256
     hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim, linear_class=nn.Linear)
+    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,

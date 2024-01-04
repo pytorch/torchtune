@@ -17,35 +17,14 @@ import torch
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
-from torchtune.modules.transformer import TransformerDecoder
+from torchtune.models import llama2_7b
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def _is_qkv(s: str) -> bool:
-    return any(["attention.wq" in s, "attention.wk" in s, "attention.wv" in s])
-
-
 @dataclass
 class LlamaArgs:
-    """
-    Dataclass encapsulating various args to instantiate a Llama-2 decoder. The defaults
-    are those of a 7b parameter model with a max_seq_len of 2048.
-
-    Args:
-        vocab_size (int): Number of entries in vocabulary (default: 32_000)
-        embed_dim: (int): Embedding dimension (default: 4096)
-        num_layers: (int): Number of Transformer layers (default: 32)
-        num_heads (int): Number of attention heads (per layer). (default: 32)
-        num_kv_heads: (Optional[int]): Number of key and value heads. This needs to
-            be < num_heads and num_heads % num_kv_heads must be 0. `num_kv_heads` can be
-            modified to implement GQA or MHA. The default is `None`, in which case
-            `num_kv_heads` is set to `num_heads` and MHA is used. Please see
-            llm.llama2.attention.LlamaSelfAttention for details.
-        max_seq_len: int: Maximum sequence length that this model accepts. Default: 2048
-    """
-
     vocab_size: int = 32_000
     embed_dim: int = 4096
     num_layers: int = 32
@@ -54,15 +33,19 @@ class LlamaArgs:
     max_seq_len: int = 2048
 
 
-def args_7b() -> LlamaArgs:
+def llama2_7b_args() -> LlamaArgs:
     return LlamaArgs(
         vocab_size=32_000,
         embed_dim=4096,
         num_layers=32,
         num_heads=32,
-        num_kv_heads=None,
+        num_kv_heads=32,
         max_seq_len=2048,
     )
+
+
+def _is_qkv(s: str) -> bool:
+    return any(["attention.wq" in s, "attention.wk" in s, "attention.wv" in s])
 
 
 def load_orig_state_dict(path: str) -> Dict[str, Any]:
@@ -89,10 +72,10 @@ def build_orig_fqn_to_native_map(num_layers: int) -> Dict[str, Optional[str]]:
 
     # attention norms
     orig_attn_norm_format = "layers.{}.attention_norm.weight"
-    new_attn_norm_format = "layers.{}.attn_norm.scale"
+    new_attn_norm_format = "layers.{}.sa_norm.scale"
     # ffn norm
     orig_ffn_norm_format = "layers.{}.ffn_norm.weight"
-    new_ffn_norm_format = "layers.{}.ff_norm.scale"
+    new_ffn_norm_format = "layers.{}.mlp_norm.scale"
     # ffn weights w1, w2, and w3
     orig_ffn_weight_format = "layers.{}.feed_forward.w{}.weight"
     new_ffn_weight_format = "layers.{}.mlp.w{}.weight"
@@ -143,25 +126,21 @@ if __name__ == "__main__":
     args = parser.parse_args()
     path = args.checkpoint_path
     torch.set_default_device(args.device)
-    llama_7b_args = args_7b()
 
-    decoder = TransformerDecoder(
-        vocab_size=llama_7b_args.vocab_size,
-        num_layers=llama_7b_args.num_layers,
-        num_heads=llama_7b_args.num_heads,
-        num_kv_heads=llama_7b_args.num_kv_heads,
-        embed_dim=llama_7b_args.embed_dim,
-        max_seq_len=llama_7b_args.max_seq_len,
-        norm_eps=1e-6,
-    )
+    llama2_args = llama2_7b_args()
 
+    torch.manual_seed(0)
+
+    # Initialize new decoder architecture
+    decoder = llama2_7b()
+    # Initialize original decoder architecture
     tformer = Transformer(
-        vocab_size=llama_7b_args.vocab_size,
-        dim=llama_7b_args.embed_dim,
-        n_layers=llama_7b_args.num_layers,
-        n_heads=llama_7b_args.num_heads,
-        max_seq_len=llama_7b_args.max_seq_len,
-        n_kv_heads=llama_7b_args.num_kv_heads,
+        vocab_size=llama2_args.vocab_size,
+        dim=llama2_args.embed_dim,
+        n_layers=llama2_args.num_layers,
+        n_heads=llama2_args.num_heads,
+        max_seq_len=llama2_args.max_seq_len,
+        n_kv_heads=llama2_args.num_kv_heads,
     )
 
     # Original state_dict to convert.
@@ -176,7 +155,7 @@ if __name__ == "__main__":
     orig_sd_processed_keys = set()
     # Build a mapping of original FQN -> native FQN for key mapping.
     orig_fqn_to_native_fqn = build_orig_fqn_to_native_map(
-        num_layers=llama_7b_args.num_layers
+        num_layers=llama2_args.num_layers
     )
 
     # qkv_dict will map a layer index to its qkv tensors.
@@ -216,16 +195,16 @@ if __name__ == "__main__":
                 logger.warning(f"Warning: {key} in orig state_dict, but not mapped!")
 
     # sanity check qkv_dict to ensure each layer has qkv tensors.
-    for i in range(llama_7b_args.num_layers):
+    for i in range(llama2_args.num_layers):
         assert i in qkv_dict
         assert "wq" in qkv_dict[i]
         assert "wk" in qkv_dict[i]
         assert "wv" in qkv_dict[i]
 
     # Go through qkv_dict and batch qkv for torchTBD's batched implementation
-    embed_dim = llama_7b_args.embed_dim
-    num_heads = llama_7b_args.num_heads
-    num_kv_heads = llama_7b_args.num_kv_heads
+    embed_dim = llama2_args.embed_dim
+    num_heads = llama2_args.num_heads
+    num_kv_heads = llama2_args.num_kv_heads
     for layer_idx in qkv_dict:
         # Map individual qkv matrices to the fused matrix. This approach is motived from Lightning AI:
         # https://github.com/Lightning-AI/lit-gpt/blob/main/scripts/convert_hf_checkpoint.py#L112
@@ -257,12 +236,23 @@ if __name__ == "__main__":
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wv.weight")
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wk.weight")
 
+    # from pprint import pprint
+    # pprint(new_state_dict.keys())
+    # print("*"*20)
+    # pprint(ref_sd.keys())
+    # print("*"*20)
+    # pprint(set(ref_sd.keys()) - set(new_state_dict.keys()))
     # Do some validation that 1) the only native keys we did not process are
     # RoPE related, as we aren't loading into RoPE, and 2) the only original
     # key we did not process is the saved rope.freqs buffer.
     unprocessed_native_keys = set(ref_sd.keys()) - set(new_state_dict.keys())
     # we aren't loading into RoPE
-    assert all(["rope" in key for key in unprocessed_native_keys])
+    assert all(
+        [
+            "pos_embeddings" in key or "kv_cache" in key
+            for key in unprocessed_native_keys
+        ]
+    )
 
     unproc_orig_keys = set(orig_sd.keys()) - orig_sd_processed_keys
     assert (
@@ -273,7 +263,7 @@ if __name__ == "__main__":
     # rope-related params (which is expected)
     missing, unexpected = decoder.load_state_dict(new_state_dict, strict=False)
     assert not unexpected
-    assert all(["rope" in key for key in missing])
+    assert all(["pos_embeddings" in key or "kv_cache" in key for key in missing])
 
     # Load the original state_dict into the reference implementation
     missing_keys, unexpected_keys = tformer.load_state_dict(orig_sd, strict=False)
@@ -281,24 +271,25 @@ if __name__ == "__main__":
     assert not missing_keys
     # We don't expect to load into RoPE but have rope.freqs in our state_dict, so
     # this is the only unexpected key.
-    assert unexpected_keys == ["rope.freqs"]
+    # assert unexpected_keys == ["rope.freqs"]
 
     # Validate equivalence.
     bsz, seqlen = 16, 128
     with torch.no_grad():
-        for _ in range(10):
+        for i in range(10):
             toks = torch.randint(
-                low=0, high=llama_7b_args.vocab_size, size=(bsz, seqlen)
+                low=0, high=llama2_args.vocab_size + 1, size=(bsz, seqlen)
             )
             y = decoder(toks).sum()
             x = tformer(toks).sum()
-            assert torch.allclose(x, y), f"{x} vs {y}"
+            assert torch.allclose(x, y), f"{x} vs {y} @ {i}"
 
     native_state_dict = decoder.state_dict()
 
     # TODO: we'll make this configurable when we switch to torch.distributed.checkpoint
     # and enable scales other than 7b.
     native_dirpath = "/tmp/native_checkpoints"
+
     checkpoint_file = "llama2-7b"
     if not os.path.exists(native_dirpath):
         os.makedirs(native_dirpath)

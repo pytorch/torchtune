@@ -12,7 +12,7 @@ from tests.test_utils import init_weights_with_constant
 
 from torch import nn
 
-from torchtune.modules.attention import LlamaSelfAttention
+from torchtune.modules.attention import CausalSelfAttention
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 
 
@@ -202,7 +202,7 @@ def compare_attention(
         attn_out_ref = attn_ref(input_t, freq_cis, mask)
 
     # current implementation; initialize with constant to compare outputs
-    attn = LlamaSelfAttention(
+    attn = CausalSelfAttention(
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
         embed_dim=embed_dim,

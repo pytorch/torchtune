@@ -16,7 +16,7 @@ from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
 
 from torch import nn
 
-from torchtune.modules.transformer import TransformerDecoder
+from torchtune.models import llama2
 
 """
 Reference implementation of Transformer from:
@@ -91,8 +91,6 @@ def compare_decoder(
     # unit test
     torch.manual_seed(16)
 
-    head_dim = embed_dim // num_heads
-
     # generate input tensor used by both implementations
     x_input = torch.randint(low=0, high=vocab_size, size=(bsz, seq_len))
 
@@ -111,7 +109,7 @@ def compare_decoder(
         output_ref = decoder_ref(x_input)
 
     # current implementation; initialize with constant to compare outputs
-    decoder = TransformerDecoder(
+    decoder = llama2(
         vocab_size=vocab_size,
         embed_dim=embed_dim,
         num_layers=num_layers,
