@@ -33,7 +33,7 @@ def llama2_7b() -> TransformerDecoder:
         max_seq_len=2048,
         max_batch_size=32,  # Need to figure out the actual default used by Llama2
         attn_dropout=0.0,
-        norm_eps=1e-5,
+        norm_eps=1e-6,
     )
 
 
@@ -53,7 +53,7 @@ def llama2(
     max_seq_len,
     attn_dropout=0.0,
     max_batch_size=None,
-    norm_eps=1e-5,
+    norm_eps=1e-6,
 ):
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     head_dim = embed_dim // num_heads
@@ -92,8 +92,8 @@ def llama2(
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim),
-        mlp_norm=RMSNorm(dim=embed_dim),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     return TransformerDecoder(
