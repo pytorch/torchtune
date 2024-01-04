@@ -11,6 +11,7 @@ import pytest
 import torch
 
 from torch import Tensor
+from torchtune.models.llama2.rms_norm import RMSNorm
 
 from torchtune.models.llama2.transformer import (
     TransformerDecoder,
@@ -223,3 +224,29 @@ class TestTransformerDecoder:
     ) -> None:
         with pytest.raises(ValueError):
             decoder_with_kv_cache_enabled(input_max_bs_exceeded)
+
+    def test_rms_norm_propagation(
+        self, decoder_params: Tuple[int, int, int, int, int, int]
+    ):
+        (
+            vocab_size,
+            embed_dim,
+            num_layers,
+            num_heads,
+            max_seq_len,
+            num_kv_heads,
+        ) = decoder_params
+        rms_norm_eps = 1e-2
+        decoder = TransformerDecoder(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            embed_dim=embed_dim,
+            max_seq_len=max_seq_len,
+            norm_eps=rms_norm_eps,
+        )
+        rms_norms = [m for m in decoder.modules() if isinstance(m, RMSNorm)]
+        assert len(rms_norms) > 0
+        for rms_norm in rms_norms:
+            assert rms_norm.eps == rms_norm_eps
