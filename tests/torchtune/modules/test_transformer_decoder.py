@@ -261,7 +261,7 @@ class TestTransformerDecoder:
             num_kv_heads,
         ) = decoder_params
         rms_norm_eps = 1e-2
-        decoder = TransformerDecoder(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
