@@ -152,6 +152,7 @@ if __name__ == "__main__":
         num_kv_heads=llama_7b_args.num_kv_heads,
         embed_dim=llama_7b_args.embed_dim,
         max_seq_len=llama_7b_args.max_seq_len,
+        norm_eps=1e-6,
     )
 
     tformer = Transformer(
@@ -287,7 +288,7 @@ if __name__ == "__main__":
     with torch.no_grad():
         for _ in range(10):
             toks = torch.randint(
-                low=0, high=llama_7b_args.vocab_size + 1, size=(bsz, seqlen)
+                low=0, high=llama_7b_args.vocab_size, size=(bsz, seqlen)
             )
             y = decoder(toks).sum()
             x = tformer(toks).sum()

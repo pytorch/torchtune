@@ -5,6 +5,14 @@
 
 The torchtune package contains tools and utilities to finetune generative models with native PyTorch techniques.
 
+# Unit Tests Status
+
+[![Unit Test](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml)
+
+# Recipe Integration Test Status
+
+![Recipe Integration Test](https://github.com/pytorch-labs/torchtune/actions/workflows/recipe_integration_test.yaml/badge.svg)
+
 # Installation
 
 This library requires PyTorch >= 2.0. Please install locally using [this guide](https://pytorch.org/get-started/locally/).
