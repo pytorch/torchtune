@@ -31,7 +31,7 @@ def llama2_7b() -> TransformerDecoder:
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=2048,
-        max_batch_size=32,  # Need to figure out the actual default used by Llama2
+        max_batch_size=None,  # Need to figure out the actual default used by Llama2
         attn_dropout=0.0,
         norm_eps=1e-6,
     )
