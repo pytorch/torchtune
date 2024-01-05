@@ -34,7 +34,7 @@ tune recipe list
 And as an example, the following import should work:
 
 ```
-from torchtune.modules.transformer import TransformerDecoder
+from torchtune.modules import TransformerDecoder
 ```
 
 # Quickstart

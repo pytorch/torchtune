@@ -266,9 +266,7 @@ if __name__ == "__main__":
     bsz, seqlen = 16, 128
     with torch.no_grad():
         for i in range(10):
-            toks = torch.randint(
-                low=0, high=llama2_args.vocab_size, size=(bsz, seqlen)
-            )
+            toks = torch.randint(low=0, high=llama2_args.vocab_size, size=(bsz, seqlen))
             y = decoder(toks).sum()
             x = tformer(toks).sum()
             assert torch.allclose(x, y), f"{x} vs {y} @ {i}"
