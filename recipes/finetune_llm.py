@@ -128,20 +128,15 @@ def recipe(kwargs):
             input_ids, labels = batch
             input_ids = input_ids.to(device)
             labels = labels.to(device)
-
             # Note: context manager for autocast is only applied in forward pass.
             # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
             # for more details.
             with autocast_mgr:
                 logits = model(input_ids)
-                # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                shift_labels = shift_labels.view(-1)
-                # Compute loss
-                loss = loss_fn(shift_logits, shift_labels)
+                # logits are (batch_size, sequence_length, num_classes), transpose to
+                # (batch_size, num_classes, sequence_length)
+                logits = logits.transpose(1, 2)
+                loss = loss_fn(logits, labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
@@ -158,15 +153,57 @@ def recipe(kwargs):
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
         output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
-        torch.save(
-            {
-                "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": opt.state_dict(),
-                "loss": loss.mean().item(),
-            },
-            output_loc,
-        )
+
+        # llama_7b_base_state_dict
+        # state_dict = distributed_state_dict(model, checkpoint_frozen_params=False, use_dtensor=False)
+        # torch.save(state_dict)
+
+        # # load
+        # model = Lora7b()
+        # # load base LLM
+        # load_distributed_state_dict(7b_base_state_dict, strict=False)
+        # mode.load_state_dict(delta_checkpoint, strict=False)
+        # if not fsdp:
+        #     if rank == 0:
+        #         torch.save(
+        #             {
+        #                 "epoch": epoch,
+        #                 "model": model.state_dict(),
+        #                 "optimizer": opt.state_dict(),
+        #                 "loss": loss.mean().item(),
+        #             },
+        #             output_loc,
+        #         )
+        #         # distributed_state_dict
+        #         logger(
+        #             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
+        #         )
+        # else:
+        #     if rank == 0:
+        #         torch.save(
+        #             {
+        #                 "epoch": epoch,
+        #                 "model": model.state_dict(),
+        #                 "optimizer": FSDP.optim_state_dict(optim),
+        #                 "loss": loss.mean().item(),
+        #             },
+        #             output_loc,
+        #         )
+        #         # distributed_state_dict
+        #         logger(
+        #             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
+        #         )
+
+        # torch.save(
+        #     {
+        #         "epoch": epoch,
+        #         "model": model.state_dict(),
+        #         "optimizer": opt.state_dict(),
+        #         "loss": loss.mean().item(),
+        #     },
+        #     output_loc,
+        # )
+        # # distributed_state_dict
         logger(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
