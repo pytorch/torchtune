@@ -14,7 +14,7 @@ def llama2_7b(vocab_size: int) -> TransformerDecoder:
         num_layers=32,
         num_heads=32,
         embed_dim=4096,
-        max_seq_len=2048,
+        max_seq_len=4096,
         norm_eps=1e-5,
     )
 

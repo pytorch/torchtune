@@ -57,12 +57,33 @@ class AlpacaDataset(Dataset):
         Returns:
             Tuple of encoded inputs and labels.
         """
+        # import pdb ; pdb.set_trace()
+        # response_tag = "\n\n### Response:\n"
+        # split_text = sample.split(response_tag)
+        # instructions_and_inputs = self._tokenizer.encode(split_text[0] + response_tag)
+        # labels = self._tokenizer.encode(split_text[1])
+        # return (
+        #     instructions_and_inputs + labels,
+        #     [_CROSS_ENTROPY_IGNORE_IDX for _ in range(len(instructions_and_inputs))]
+        #     + labels,
+        # )
         response_tag = "\n\n### Response:\n"
-        split_text = sample.split(response_tag)
-        instructions_and_inputs = self._tokenizer.encode(split_text[0] + response_tag)
-        labels = self._tokenizer.encode(split_text[1])
-        return (
-            instructions_and_inputs + labels,
-            [_CROSS_ENTROPY_IGNORE_IDX for _ in range(len(instructions_and_inputs))]
-            + labels,
-        )
+        inst_inp_response_tag = sample[:sample.index(response_tag) + len(response_tag)]
+        response = sample[sample.index(response_tag) + len(response_tag):]
+
+        inst_inp_response_tag = self._tokenizer.encode(inst_inp_response_tag)
+        response = self._tokenizer.encode(response)
+        input = inst_inp_response_tag + response
+        label = [_CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))] + response
+        assert len(input) == len(label)
+        return input, label
+        # input = self._tokenizer.encode(sample)
+
+        # split_text = sample.split(response_tag)
+        # instructions_and_inputs = self._tokenizer.encode(split_text[0] + response_tag)
+        # labels = self._tokenizer.encode(split_text[1])
+        # return (
+        #     instructions_and_inputs + labels,
+        #     [_CROSS_ENTROPY_IGNORE_IDX for _ in range(len(instructions_and_inputs))]
+        #     + labels,
+        # )

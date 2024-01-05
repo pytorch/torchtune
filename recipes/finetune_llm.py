@@ -10,10 +10,12 @@ from functools import partial
 from typing import Callable
 
 import torch
+import torch.distributed as dist
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision
+from torchtune.utils.generation import GenerationUtils
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
 
@@ -82,6 +84,9 @@ def recipe(kwargs):
             auto_wrap_policy=auto_wrap_policy,
             device_id=device,
             param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
+            mixed_precision=MixedPrecision(
+                param_dtype=torch.bfloat16, reduce_dtype=torch.bfloat16
+            ),
         )
     if kwargs["activation_checkpointing"]:
         apply_activation_checkpointing(
@@ -95,8 +100,15 @@ def recipe(kwargs):
     loaded_ckpt = torch.load(
         kwargs["model_checkpoint"], map_location="cpu", weights_only=True
     )
-    model.load_state_dict(loaded_ckpt)
-    logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
+    ### BEGIN HACK: remove rope prefix from loaded checkpoint ---- #
+    keys_to_del = [k for k in loaded_ckpt.keys() if "rope" in k]
+    for k in keys_to_del:
+        del loaded_ckpt[k]
+    ### END HACK: remove rope prefix from loaded checkpoint ---- #
+    missing_keys, unexpected_keys = model.load_state_dict(loaded_ckpt, strict=False)
+    logger(
+        msg=f"Loaded model from {kwargs['model_checkpoint']}. Keys missing = {missing_keys}, unexpected = {unexpected_keys}"
+    )
 
     opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
     # TODO add lr schedule option
@@ -117,6 +129,7 @@ def recipe(kwargs):
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 
+    mean_loss = None
     # ---- Train loop ---- #
     for epoch in range(kwargs["epochs"]):
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
@@ -138,10 +151,6 @@ def recipe(kwargs):
                 logits = logits.transpose(1, 2)
                 loss = loss_fn(logits, labels)
 
-            pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
-            )  # TODO: add terminal logger
-
             if grad_scaler:
                 grad_scaler.scale(loss).backward()
                 grad_scaler.step(opt)
@@ -150,63 +159,50 @@ def recipe(kwargs):
                 loss.backward()
                 opt.step()
 
+            if mean_loss is None:
+                mean_loss = loss.item()
+            else:
+                mean_loss = (mean_loss * idx + loss) / (idx + 1)
+            pbar.set_description(
+                f"{epoch+1}|{idx+1}|Loss: {mean_loss}"
+            )  # TODO: add terminal logger
+
+            if idx % 50 == 0:
+                # Log a sample generation for the instruction.
+                if not torch.distributed.is_initialized() or dist.get_rank() == 0: print(f"RV: Running generation at index {idx}", flush=True)
+                response_tag = "\n\n### Response:\n"
+                prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:"
+                prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
+                with torch.no_grad():
+                    generations_no_kv_cache, _ = GenerationUtils(
+                        decoder_lm=model,
+                        eos_id=tokenizer.eos_id,
+                        pad_id=tokenizer.pad_id,
+                    ).generate(
+                        prompt_tokens=prompt_tokens,
+                        incremental_decode=False,
+                        min_gen_len=1,
+                        max_gen_len=256,
+                        top_k=3,
+                        device=torch.cuda.current_device(),
+                    )
+
+                    gens = generations_no_kv_cache.tolist()[0]
+                    print(f"RV: got gen tokens {gens}", flush=True)
+                    gens = gens[:gens.index(2)] if 2 in gens else gens
+                    if not torch.distributed.is_initialized() or dist.get_rank() == 0: print(f"RV: generation {tokenizer.decode(gens)}", flush=True)
+
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
-        output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
-
-        # llama_7b_base_state_dict
-        # state_dict = distributed_state_dict(model, checkpoint_frozen_params=False, use_dtensor=False)
-        # torch.save(state_dict)
-
-        # # load
-        # model = Lora7b()
-        # # load base LLM
-        # load_distributed_state_dict(7b_base_state_dict, strict=False)
-        # mode.load_state_dict(delta_checkpoint, strict=False)
-        # if not fsdp:
-        #     if rank == 0:
-        #         torch.save(
-        #             {
-        #                 "epoch": epoch,
-        #                 "model": model.state_dict(),
-        #                 "optimizer": opt.state_dict(),
-        #                 "loss": loss.mean().item(),
-        #             },
-        #             output_loc,
-        #         )
-        #         # distributed_state_dict
-        #         logger(
-        #             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        #         )
-        # else:
-        #     if rank == 0:
-        #         torch.save(
-        #             {
-        #                 "epoch": epoch,
-        #                 "model": model.state_dict(),
-        #                 "optimizer": FSDP.optim_state_dict(optim),
-        #                 "loss": loss.mean().item(),
-        #             },
-        #             output_loc,
-        #         )
-        #         # distributed_state_dict
-        #         logger(
-        #             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        #         )
-
-        # torch.save(
-        #     {
-        #         "epoch": epoch,
-        #         "model": model.state_dict(),
-        #         "optimizer": opt.state_dict(),
-        #         "loss": loss.mean().item(),
-        #     },
-        #     output_loc,
-        # )
-        # # distributed_state_dict
-        logger(
-            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        )
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            output_loc = (
+                f"{kwargs['output_dir']}/model_{epoch}_rank{dist.get_rank()}.ckpt"
+            )
+            torch.save(model.state_dict(), output_loc)
+            # # distributed_state_dict
+            logger(
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
+            )
 
 
 if __name__ == "__main__":
