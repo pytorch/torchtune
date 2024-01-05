@@ -35,6 +35,7 @@ class TransformerDecoderLayer(nn.Module):
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
         max_batch_size (Optional[int]): max batch size
+        norm_eps (float): eps value of for RMS Norm. Default value is 1e-6.
 
     Implementation Note:
         Arg values (eg: attn_dropout) are checked for correctness (eg: belongs to [0,1])
@@ -50,11 +51,12 @@ class TransformerDecoderLayer(nn.Module):
         num_kv_heads: Optional[int] = None,
         attn_dropout: float = 0.0,
         max_batch_size: Optional[int] = None,
+        norm_eps: float = 1e-6,
     ) -> None:
         super().__init__()
         self.max_batch_size = max_batch_size
         # norm applied before self-attention
-        self.attn_norm = RMSNorm(dim=embed_dim)
+        self.attn_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
         self.attn = LlamaSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
@@ -65,7 +67,7 @@ class TransformerDecoderLayer(nn.Module):
         )
 
         # norm applied before the feedforward layer
-        self.ff_norm = RMSNorm(dim=embed_dim)
+        self.ff_norm = RMSNorm(dim=embed_dim, eps=norm_eps)
         self.mlp = FeedForward(dim=embed_dim, hidden_dim=embed_dim)
 
     def forward(
@@ -129,7 +131,7 @@ class TransformerDecoder(nn.Module):
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0
-        norm_eps (float): eps value of for RMS Norm
+        norm_eps (float): eps value of for RMS Norm. Default value is 1e-6.
         max_batch_size (Optional[int]): max batch size
 
     TODO: A few TODOs
@@ -168,6 +170,7 @@ class TransformerDecoder(nn.Module):
                     max_seq_len=max_seq_len,
                     attn_dropout=attn_dropout,
                     max_batch_size=self.max_batch_size,
+                    norm_eps=norm_eps,
                 )
             )
 
