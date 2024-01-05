@@ -166,7 +166,9 @@ if __name__ == "__main__":
             temperature=1.0,
             device=torch.device("cuda"),
         )
-        import pdb ; pdb.set_trace() # /tmp/alpaca-llama2-finetune/model_0.ckpt
+        import pdb
+
+        pdb.set_trace()  # /tmp/alpaca-llama2-finetune/model_0.ckpt
 
     del decoder_kv
 

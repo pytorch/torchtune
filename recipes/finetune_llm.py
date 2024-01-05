@@ -15,7 +15,6 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision
-from torchtune.utils.generation import GenerationUtils
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
 
@@ -26,6 +25,7 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
+from torchtune.utils.generation import GenerationUtils
 from torchtune.utils.precision import (
     get_autocast_manager,
     get_grad_scaler,
@@ -146,6 +146,8 @@ def recipe(kwargs):
             # for more details.
             with autocast_mgr:
                 logits = model(input_ids)
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
                 # logits are (batch_size, sequence_length, num_classes), transpose to
                 # (batch_size, num_classes, sequence_length)
                 logits = logits.transpose(1, 2)
@@ -169,7 +171,8 @@ def recipe(kwargs):
 
             if idx % 50 == 0:
                 # Log a sample generation for the instruction.
-                if not torch.distributed.is_initialized() or dist.get_rank() == 0: print(f"RV: Running generation at index {idx}", flush=True)
+                if not torch.distributed.is_initialized() or dist.get_rank() == 0:
+                    print(f"RV: Running generation at index {idx}", flush=True)
                 response_tag = "\n\n### Response:\n"
                 prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:"
                 prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
@@ -189,8 +192,9 @@ def recipe(kwargs):
 
                     gens = generations_no_kv_cache.tolist()[0]
                     print(f"RV: got gen tokens {gens}", flush=True)
-                    gens = gens[:gens.index(2)] if 2 in gens else gens
-                    if not torch.distributed.is_initialized() or dist.get_rank() == 0: print(f"RV: generation {tokenizer.decode(gens)}", flush=True)
+                    gens = gens[: gens.index(2)] if 2 in gens else gens
+                    if not torch.distributed.is_initialized() or dist.get_rank() == 0:
+                        print(f"RV: generation {tokenizer.decode(gens)}", flush=True)
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)

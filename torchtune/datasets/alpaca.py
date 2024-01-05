@@ -68,13 +68,15 @@ class AlpacaDataset(Dataset):
         #     + labels,
         # )
         response_tag = "\n\n### Response:\n"
-        inst_inp_response_tag = sample[:sample.index(response_tag) + len(response_tag)]
-        response = sample[sample.index(response_tag) + len(response_tag):]
-
-        inst_inp_response_tag = self._tokenizer.encode(inst_inp_response_tag)
-        response = self._tokenizer.encode(response)
+        inst_inp_response_tag = sample[: sample.index(response_tag) + len(response_tag)]
+        response = sample[sample.index(response_tag) + len(response_tag) :]
+        # import pdb ; pdb.set_trace()
+        inst_inp_response_tag = self._tokenizer.encode(inst_inp_response_tag, add_bos=True, add_eos=False)
+        response = self._tokenizer.encode(response, add_bos=False, add_eos=True)
         input = inst_inp_response_tag + response
-        label = [_CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))] + response
+        label = [
+            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))
+        ] + response
         assert len(input) == len(label)
         return input, label
         # input = self._tokenizer.encode(sample)
