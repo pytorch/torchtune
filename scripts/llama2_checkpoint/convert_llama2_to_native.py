@@ -129,8 +129,6 @@ if __name__ == "__main__":
 
     llama2_args = llama2_7b_args()
 
-    torch.manual_seed(0)
-
     # Initialize new decoder architecture
     decoder = llama2_7b()
     # Initialize original decoder architecture
@@ -236,12 +234,6 @@ if __name__ == "__main__":
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wv.weight")
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wk.weight")
 
-    # from pprint import pprint
-    # pprint(new_state_dict.keys())
-    # print("*"*20)
-    # pprint(ref_sd.keys())
-    # print("*"*20)
-    # pprint(set(ref_sd.keys()) - set(new_state_dict.keys()))
     # Do some validation that 1) the only native keys we did not process are
     # RoPE related, as we aren't loading into RoPE, and 2) the only original
     # key we did not process is the saved rope.freqs buffer.
@@ -269,16 +261,13 @@ if __name__ == "__main__":
     missing_keys, unexpected_keys = tformer.load_state_dict(orig_sd, strict=False)
     # We don't expect any keys to be missing (not loaded into)
     assert not missing_keys
-    # We don't expect to load into RoPE but have rope.freqs in our state_dict, so
-    # this is the only unexpected key.
-    # assert unexpected_keys == ["rope.freqs"]
 
     # Validate equivalence.
     bsz, seqlen = 16, 128
     with torch.no_grad():
         for i in range(10):
             toks = torch.randint(
-                low=0, high=llama2_args.vocab_size + 1, size=(bsz, seqlen)
+                low=0, high=llama2_args.vocab_size, size=(bsz, seqlen)
             )
             y = decoder(toks).sum()
             x = tformer(toks).sum()

@@ -66,7 +66,7 @@ class TestFinetuneLLMRecipe:
         if ckpt == "small_test_ckpt":
             return "/tmp/test-artifacts/small_ckpt.model"
         if ckpt == "llama2_7b":
-            return "/tmp/test-artifacts/llama2-7b-native-checkpoint"
+            return "/tmp/test-artifacts/llama2-7b-01052024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):

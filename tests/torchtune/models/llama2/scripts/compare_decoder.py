@@ -10,7 +10,7 @@ from tests.test_utils import init_weights_with_constant
 
 from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
 from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
-    RMSNorm,
+    RMSNormRef,
     TransformerBlock,
 )
 
@@ -50,7 +50,7 @@ class Transformer(nn.Module):
                 TransformerBlock(n_heads=n_heads, dim=dim, n_kv_heads=n_kv_heads)
             )
 
-        self.norm = RMSNorm(dim)
+        self.norm = RMSNormRef(dim)
         self.output = nn.Linear(dim, vocab_size, bias=False)
 
         self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2)

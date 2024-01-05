@@ -9,7 +9,7 @@ PYTEST_COMMAND="pytest recipes/tests"
 
 if [[ $# -gt 0 ]]; then
     if [ "$1" = "--large-scale" ]; then
-        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-native-checkpoint")
+        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-01052024")
         PYTEST_COMMAND+=" --large-scale True"
     fi
 fi

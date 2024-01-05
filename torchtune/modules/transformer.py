@@ -83,8 +83,7 @@ class TransformerDecoder(nn.Module):
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
-        layer (TransformerDecoderLayer): Instantiation of a single TransformerDecoderLayer, to be used in the decoder.
-        num_layers (int): Number of ``layers`` in the decoder.
+        layers (nn.ModuleList): List of Transformer Decoder layers.
         norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of the decoder.
 
@@ -97,19 +96,13 @@ class TransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layer: TransformerDecoderLayer,
-        num_layers: int,
+        layers: nn.ModuleList,
         norm: nn.Module,
         output: nn.Linear,
     ) -> None:
         super().__init__()
         self.tok_embeddings = tok_embeddings
-
-        self.layers = nn.ModuleList()
-
-        for _ in range(num_layers):
-            self.layers.append(layer)
-
+        self.layers = layers
         self.norm = norm
         self.output = output
 

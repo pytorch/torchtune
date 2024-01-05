@@ -18,7 +18,13 @@ from tests.torchtune.models.llama2.scripts.compare_feed_forward import FeedForwa
 
 from torch import nn
 
-from torchtune.modules.transformer import TransformerDecoderLayer
+from torchtune.modules import (
+    CausalSelfAttention,
+    FeedForward,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
+    TransformerDecoderLayer,
+)
 
 
 """
@@ -30,7 +36,7 @@ include params for the constructor and remove start_pos (not supported).
 """
 
 
-class RMSNorm(torch.nn.Module):
+class RMSNormRef(torch.nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
         super().__init__()
         self.eps = eps
@@ -61,8 +67,8 @@ class TransformerBlock(nn.Module):
         # self.head_dim = args.dim // args.n_heads
         self.attention = Attention(n_heads=n_heads, n_kv_heads=n_kv_heads, dim=dim)
         self.feed_forward = FeedForwardRef(dim=dim, hidden_dim=4 * dim)
-        self.attention_norm = RMSNorm(dim=dim)
-        self.ffn_norm = RMSNorm(dim=dim)
+        self.attention_norm = RMSNormRef(dim=dim)
+        self.ffn_norm = RMSNormRef(dim=dim)
 
     def forward(
         self,
@@ -113,11 +119,37 @@ def compare_decoder_layer(
         block_out = transformer_block(x=input_t, freqs_cis=freq_cis, mask=mask)
 
     # current implementation; initialize with constant to compare outputs
-    transformer_layer = TransformerDecoderLayer(
+    norm_eps = 1e-6
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
+        head_dim=head_dim,
+        qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        pos_embeddings=rope,
+        kv_cache=None,
         max_seq_len=max_seq_len,
+        attn_dropout=0.0,
+    )
+    # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
+    # parameters and computation constant
+    hidden_dim = 4 * int(2 * embed_dim / 3)
+    # Round hidden dimension to nearest multiple of `multiple_of`
+    multiple_of = 256
+    hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+    mlp = FeedForward(
+        dim=embed_dim, hidden_dim=hidden_dim, linear_class=torch.nn.Linear
+    )
+    transformer_layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     init_weights_with_constant(transformer_layer, constant=0.05)
 
