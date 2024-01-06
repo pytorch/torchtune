@@ -25,7 +25,7 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
-from torchtune.utils.generation import GenerationUtils
+from torchtune.utils.generation import generate_from_prompt, GenerationUtils
 from torchtune.utils.precision import (
     get_autocast_manager,
     get_grad_scaler,
@@ -72,7 +72,7 @@ def recipe(kwargs):
         kwargs["model"],
         "meta" if kwargs["fsdp"] else kwargs["device"],
         vocab_size=tokenizer.vocab_size,
-        max_seq_len=4096
+        max_seq_len=4096,
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
@@ -168,31 +168,16 @@ def recipe(kwargs):
                 f"{epoch+1}|{idx+1}|Loss: {mean_loss}"
             )  # TODO: add terminal logger
 
-            if idx % 50 == 0:
+            run_generation = kwargs.get("run_generation", None)
+            if run_generation and idx % run_generation == 0:
                 # Log a sample generation for the instruction.
-                # TODO: separate this out into a util and make it optionally callable via a config.
-                response_tag = "\n\n### Response:\n"
+                # Just using a hardcoded prompt for now
                 prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:"
-                prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
-                with torch.no_grad():
-                    generations_no_kv_cache, _ = GenerationUtils(
-                        decoder_lm=model,
-                        eos_id=tokenizer.eos_id,
-                        pad_id=tokenizer.pad_id,
-                    ).generate(
-                        prompt_tokens=prompt_tokens,
-                        incremental_decode=False,
-                        min_gen_len=1,
-                        max_gen_len=256,
-                        top_k=3,
-                        device=torch.cuda.current_device(),
-                    )
-
-                    gens = generations_no_kv_cache.tolist()[0]
-                    logger(f"Generation tokens: {gens}", flush=True)
-                    gens = gens[: gens.index(2)] if 2 in gens else gens
-                    if not torch.distributed.is_initialized() or dist.get_rank() == 0:
-                        logger(f"Generation: {tokenizer.decode(gens)}", flush=True)
+                generation_str, decoded_tokens = generate_from_prompt(
+                    prompt=prompt, tokenizer=tokenizer, decoder=model
+                )
+                logger(f"Generation tokens: {decoded_tokens}", flush=True)
+                logger(f"Generation: {generation_str}", flush=True)
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
@@ -201,9 +186,7 @@ def recipe(kwargs):
                 f"{kwargs['output_dir']}/model_{epoch}_rank{dist.get_rank()}.ckpt"
             )
         else:
-            output_loc = (
-                f"{kwargs['output_dir']}/model_{epoch}.ckpt"
-            )
+            output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
 
         torch.save(model.state_dict(), output_loc)
         logger(
@@ -303,6 +286,13 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+
+    parser.add_argument(
+        "--run-generation",
+        type=int,
+        default=None,
+        help="Run a dummy alpaca generation every 50 iterations.",
     )
     parser.add_argument(
         "--max-steps-per-epoch",
