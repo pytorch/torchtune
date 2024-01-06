@@ -17,6 +17,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+class ConvertNewlinesAction(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        # Convert the string "\\n" to an actual newline character "\n"
+        # Needed to allow passing newlines into argparse
+        values = values.replace("\\n", "\n")
+        setattr(namespace, self.dest, values)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="""
@@ -27,38 +35,46 @@ if __name__ == "__main__":
         "--native-checkpoint-path", type=str, help="Path to native checkpoint file."
     )
     parser.add_argument("--tokenizer-path", type=str, help="Path to tokenization file.")
+    parser.add_argument(
+        "--prompt",
+        action=ConvertNewlinesAction,
+        type=str,
+        # the default is an example for the alpaca dataset
+        default="Below is an instruction that describes a task, paired with an input that provides further context. "
+        "Write a response that appropriately completes the request.\n\n### Instruction:\nAnswer the question.\n\n### "
+        "Input:\nWhat is some cool music from the 1920s?\n\n### Response:",
+        help="Input to the model",
+    )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="cuda",
+        help="`cuda` or `cpu`",
+    )
     args = parser.parse_args()
-
     # Inference setup
     tokenizer = llama2_tokenizer(args.tokenizer_path)
 
-    prompts = [
-        # Few shot prompt (providing a few examples before asking model to complete more);
-        """Translate English to French:
-
-        sea otter => loutre de mer
-        peppermint => menthe poivrée
-        plush girafe => girafe peluche
-        cheese =>""",
-    ]
-    tokens = torch.tensor(tokenizer.encode(prompts[0], add_eos=False), dtype=torch.long)
-    token_for_generation = [
-        tokenizer.encode(prompt, add_eos=False) for prompt in prompts
-    ]
+    tokens = torch.tensor(
+        tokenizer.encode(args.prompt, add_eos=False), dtype=torch.long
+    )
+    token_for_generation = [tokenizer.encode(args.prompt, add_eos=False)]
 
     seed(0)
 
     # --------- Initialize a decoder w/o kv-caching -------- #
-    with torch.device("cuda"):
+    with torch.device(args.device):
         decoder = llama2_7b(vocab_size=tokenizer.vocab_size)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
-    # Note: If using model finetuned with finetune_llm recipe, replace native_state_dict with native_state_dict["model"]
-    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
+    # Note: If using pretrained model, replace native_state_dict["model"] with native_state_dict
+    missing, unexpected = decoder.load_state_dict(
+        native_state_dict["model"], strict=False
+    )
     # Nothing should be missing or unexpected
-    assert not missing, missing
-    assert not unexpected, unexpected
+    assert not missing, f"Missing the following keys: {missing}"
+    assert not unexpected, f"Found the following unexpected keys: {unexpected}"
     decoder.eval()
 
     with torch.no_grad():
@@ -77,6 +93,6 @@ if __name__ == "__main__":
             temperature=1.0,
             device=torch.device("cuda"),
         )
-        print(generations_no_kv_cache)
-        generated_tokens = tokenizer.decode(generations_no_kv_cache.tolist()[0:1])
-    print(generated_tokens)
+
+        generated_tokens = tokenizer.decode(generations_no_kv_cache.tolist())
+    print(generated_tokens[0])
