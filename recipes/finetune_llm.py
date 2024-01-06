@@ -72,6 +72,7 @@ def recipe(kwargs):
         kwargs["model"],
         "meta" if kwargs["fsdp"] else kwargs["device"],
         vocab_size=tokenizer.vocab_size,
+        max_seq_len=4096
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
@@ -143,6 +144,7 @@ def recipe(kwargs):
             # for more details.
             with autocast_mgr:
                 logits = model(input_ids)
+                # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 # logits are (batch_size, sequence_length, num_classes), transpose to
