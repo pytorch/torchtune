@@ -87,7 +87,7 @@ class TransformerDecoder(nn.Module):
         norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of the decoder.
 
-    Implementation Note:
+    Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
         in the module where they are used. This helps reduces the number of raise
         statements in code and improves readability.

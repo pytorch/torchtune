@@ -14,7 +14,7 @@ class FeedForward(nn.Module):
     Args:
         dim (int): Input dimension.
         hidden_dim (int): Hidden dimension.
-        linear_class (nn.Module): Linear module, can we switch with a custom implementation, e.g. LoRALinear.
+        linear_class (nn.Module): Linear module, can be switched with a custom implementation, e.g. LoRALinear.
     """
 
     def __init__(

@@ -7,7 +7,7 @@
 from typing import Tuple
 
 import torch
-from torch import Tensor
+from torch import nn, Tensor
 
 
 class KVCache(torch.nn.Module):
@@ -32,8 +32,8 @@ class KVCache(torch.nn.Module):
     ):
         super().__init__()
         cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
-        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
+        self.k_cache = nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
+        self.v_cache = nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
         self.max_batch_size = max_batch_size
 
     def update(
