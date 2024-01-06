@@ -134,7 +134,6 @@ class GenerationUtils:
             >>> print(tokens)
             ["I love to eat ice cream"]
         """
-        # torch.manual_seed(1337)
 
         batch_size = len(prompt_tokens)
         max_prompt_len = max(len(p) for p in prompt_tokens)

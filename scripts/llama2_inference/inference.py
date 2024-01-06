@@ -104,32 +104,32 @@ if __name__ == "__main__":
             num_kv_heads=llama_7b_args.num_kv_heads,
             embed_dim=llama_7b_args.embed_dim,
             max_seq_len=llama_7b_args.max_seq_len,
-            norm_eps=1e-6,
+            norm_eps=1e-5,
         )
 
     # Load state_dict into decoder
     native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
-    # missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
-    # # Nothing should be missing or unexpected
-    # assert not missing and not unexpected
-    # decoder.eval()
+    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
+    # Nothing should be missing or unexpected
+    assert not missing and not unexpected
+    decoder.eval()
 
-    # with torch.no_grad():
-    #     decoder_out = decoder(tokens.unsqueeze(0).cuda(), 0).sum()
-    #     generations_no_kv_cache, _ = GenerationUtils(
-    #         decoder_lm=decoder,
-    #         eos_id=tokenizer.eos_id,
-    #         pad_id=tokenizer.pad_id,
-    #     ).generate(
-    #         prompt_tokens=token_for_generation,
-    #         incremental_decode=False,  # Since we aren't caching past keys and values
-    #         min_gen_len=1,
-    #         max_gen_len=64,
-    #         top_p=0,
-    #         top_k=1,
-    #         temperature=1.0,
-    #         device=torch.device("cuda"),
-    #     )
+    with torch.no_grad():
+        decoder_out = decoder(tokens.unsqueeze(0).cuda(), 0).sum()
+        generations_no_kv_cache, _ = GenerationUtils(
+            decoder_lm=decoder,
+            eos_id=tokenizer.eos_id,
+            pad_id=tokenizer.pad_id,
+        ).generate(
+            prompt_tokens=token_for_generation,
+            incremental_decode=False,  # Since we aren't caching past keys and values
+            min_gen_len=1,
+            max_gen_len=64,
+            top_p=0,
+            top_k=1,
+            temperature=1.0,
+            device=torch.device("cuda"),
+        )
 
     # Remove from memory to allow to run on single A100
     del decoder
@@ -143,7 +143,7 @@ if __name__ == "__main__":
             num_kv_heads=llama_7b_args.num_kv_heads,
             embed_dim=llama_7b_args.embed_dim,
             max_seq_len=llama_7b_args.max_seq_len,
-            norm_eps=1e-6,
+            norm_eps=1e-5,
             max_batch_size=2,
         )
     missing, unexpected = decoder_kv.load_state_dict(native_state_dict, strict=False)
@@ -166,9 +166,6 @@ if __name__ == "__main__":
             temperature=1.0,
             device=torch.device("cuda"),
         )
-        import pdb
-
-        pdb.set_trace()  # /tmp/alpaca-llama2-finetune/model_0.ckpt
 
     del decoder_kv
 

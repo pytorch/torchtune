@@ -14,7 +14,7 @@ import torch.distributed as dist
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
 
@@ -84,9 +84,6 @@ def recipe(kwargs):
             auto_wrap_policy=auto_wrap_policy,
             device_id=device,
             param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
-            mixed_precision=MixedPrecision(
-                param_dtype=torch.bfloat16, reduce_dtype=torch.bfloat16
-            ),
         )
     if kwargs["activation_checkpointing"]:
         apply_activation_checkpointing(
@@ -171,8 +168,7 @@ def recipe(kwargs):
 
             if idx % 50 == 0:
                 # Log a sample generation for the instruction.
-                if not torch.distributed.is_initialized() or dist.get_rank() == 0:
-                    print(f"RV: Running generation at index {idx}", flush=True)
+                # TODO: separate this out into a util and make it optionally callable via a config.
                 response_tag = "\n\n### Response:\n"
                 prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:"
                 prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
@@ -191,10 +187,10 @@ def recipe(kwargs):
                     )
 
                     gens = generations_no_kv_cache.tolist()[0]
-                    print(f"RV: got gen tokens {gens}", flush=True)
+                    logger(f"Generation tokens: {gens}", flush=True)
                     gens = gens[: gens.index(2)] if 2 in gens else gens
                     if not torch.distributed.is_initialized() or dist.get_rank() == 0:
-                        print(f"RV: generation {tokenizer.decode(gens)}", flush=True)
+                        logger(f"Generation: {tokenizer.decode(gens)}", flush=True)
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
@@ -202,11 +198,15 @@ def recipe(kwargs):
             output_loc = (
                 f"{kwargs['output_dir']}/model_{epoch}_rank{dist.get_rank()}.ckpt"
             )
-            torch.save(model.state_dict(), output_loc)
-            # # distributed_state_dict
-            logger(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
+        else:
+            output_loc = (
+                f"{kwargs['output_dir']}/model_{epoch}.ckpt"
             )
+
+        torch.save(model.state_dict(), output_loc)
+        logger(
+            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
+        )
 
 
 if __name__ == "__main__":
