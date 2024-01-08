@@ -64,7 +64,7 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
-            return "/tmp/test-artifacts/small_ckpt.model"
+            return "/tmp/test-artifacts/small_ckpt_01052024.model"
         if ckpt == "llama2_7b":
             return "/tmp/test-artifacts/llama2-7b-01052024"
         raise ValueError(f"Unknown ckpt {ckpt}")

@@ -78,8 +78,7 @@ class TransformerDecoderLayer(nn.Module):
 
 class TransformerDecoder(nn.Module):
     """
-    Transformer Decoder derived from the Llama2 architecture:
-    https://arxiv.org/abs/2307.09288
+    Transformer Decoder derived from the Llama2 architecture.
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
@@ -111,15 +110,13 @@ class TransformerDecoder(nn.Module):
     ) -> Tensor:
         """
         Args:
-            tokens (Tensor): input tensor with shape
-                [batch_size x seq_length]
+            tokens (Tensor): input tensor with shape [b x s]
             mask (Optional[Tensor]): attention mask tensor, defaults to None.
             curr_pos (int): current position in the seq, defaults to 0.
                 Only relevant when incrementally decoding.
 
         Returns:
-            Tensor: output tensor with same shape as input
-                [batch_size x seq_length x vocab_size]
+            Tensor: output tensor with shape [b x s x v]
 
         Notation used for tensor shapes:
             - b: batch size
