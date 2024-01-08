@@ -32,9 +32,8 @@ class KVCache(torch.nn.Module):
     ):
         super().__init__()
         cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
-        self.k_cache = nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-        self.v_cache = nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-        self.max_batch_size = max_batch_size
+        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
 
     def update(
         self, bsz: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
