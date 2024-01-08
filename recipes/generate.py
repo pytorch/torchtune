@@ -55,9 +55,6 @@ if __name__ == "__main__":
     # Inference setup
     tokenizer = llama2_tokenizer(args.tokenizer_path)
 
-    tokens = torch.tensor(
-        tokenizer.encode(args.prompt, add_eos=False), dtype=torch.long
-    )
     token_for_generation = [tokenizer.encode(args.prompt, add_eos=False)]
 
     seed(0)
@@ -78,7 +75,6 @@ if __name__ == "__main__":
     decoder.eval()
 
     with torch.no_grad():
-        decoder_out = decoder(tokens.unsqueeze(0).cuda(), 0).sum()
         generations_no_kv_cache, _ = GenerationUtils(
             decoder_lm=decoder,
             eos_id=tokenizer.eos_id,
