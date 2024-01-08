@@ -21,7 +21,7 @@ from torchtune.modules import (
 
 def llama2_7b() -> TransformerDecoder:
     """Builder for creating a Llama2 model initialized w/ the default 7b parameter values.
-    From the paper (https://arxiv.org/abs/2307.09288), these default values are:
+    From the [Llama2 paper]_, these default values are:
     - vocab_size: 32,000
     - embed_dim: 4,096
     - num_layers: 32
@@ -31,7 +31,7 @@ def llama2_7b() -> TransformerDecoder:
     - norm_eps: 1e-6
 
     Returns:
-        A ``TransformerDecoder`` instance for the Llama2 model.
+        A ``TransformerDecoder`` instance of the Llama2 model.
     """
     return llama2(
         vocab_size=32_000,
