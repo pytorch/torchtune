@@ -19,6 +19,7 @@ setup(
     install_requires=[
         "torch",
     ],
+    scripts=["scripts/cli_utils/tune"],
     description="Package for finetuning LLMs and diffusion models using native PyTorch",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
