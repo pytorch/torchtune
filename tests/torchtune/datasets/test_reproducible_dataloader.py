@@ -88,7 +88,7 @@ class TestReproducibleDataLoader:
 
     @pytest.mark.parametrize("shuffle", [False, True])
     def test_map_dataset_order_with_no_fixed_seed(self, shuffle):
-        dataset_size = 5
+        dataset_size = 100
         map_dataset = InMemoryMapDataset(dataset_size)
         results = []
         compare = []
