@@ -29,6 +29,12 @@ def print_recipes(args):
     print(*list_recipes(), sep="\n")
 
 
+def get_recipe_path(name):
+    pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
+    recipe_path = os.path.join(pkg_path, "recipes", f"{name}.py")
+    return recipe_path
+
+
 def copy_recipe(args):
     recipe = args.recipe
     path = args.path
@@ -36,8 +42,7 @@ def copy_recipe(args):
         path = os.path.join(os.getcwd(), f"{recipe}.py")
 
     # Get recipe path
-    pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
-    recipe_path = os.path.join(pkg_path, "recipes", f"{recipe}.py")
+    recipe_path = get_recipe_path(recipe)
 
     # Copy recipe
     try:
@@ -65,10 +70,14 @@ if __name__ == "__main__":
 
     # Parser for copy command
     list_parser = subparsers.add_parser("cp", help="Copy recipe to local path")
+    list_parser.add_argument("recipe", type=str, help="Name of recipe to copy")
     list_parser.add_argument(
-        "--recipe", "-r", type=str, required=True, help="Name of recipe to copy"
+        "path",
+        nargs="?",
+        default=None,
+        type=str,
+        help="Path to copy recipe to (defaults to current directory and name)",
     )
-    list_parser.add_argument("--path", "-p", type=str, help="Path to copy recipe to")
     list_parser.set_defaults(func=copy_recipe)
 
     # Parse arguments and run command

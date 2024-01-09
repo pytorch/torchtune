@@ -30,6 +30,12 @@ def print_configs(args):
     print(*list_configs(recipe_name), sep="\n")
 
 
+def get_config_path(name):
+    pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
+    config_path = os.path.join(pkg_path, "recipes", "configs", f"{name}.yaml")
+    return config_path
+
+
 def copy_config(args):
     config = args.config
     path = args.path
@@ -37,8 +43,7 @@ def copy_config(args):
         path = os.path.join(os.getcwd(), f"{config}.yaml")
 
     # Get recipe path
-    pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
-    config_path = os.path.join(pkg_path, "recipes", "configs", f"{config}.yaml")
+    config_path = get_config_path(config)
 
     # Copy recipe
     try:
@@ -74,10 +79,14 @@ if __name__ == "__main__":
 
     # Parser for copy command
     list_parser = subparsers.add_parser("cp", help="Copy config to local path")
+    list_parser.add_argument("config", type=str, help="Name of config to copy")
     list_parser.add_argument(
-        "--config", "-c", type=str, required=True, help="Name of config to copy"
+        "path",
+        nargs="?",
+        default=None,
+        type=str,
+        help="Path to copy config to (defaults to current directory and name)",
     )
-    list_parser.add_argument("--path", "-p", type=str, help="Path to copy config to")
     list_parser.set_defaults(func=copy_config)
 
     # Parse arguments and run command
