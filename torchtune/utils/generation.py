@@ -11,6 +11,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
+from torchtune.models.llama2.tokenizer import Tokenizer
+from torchtune.models.llama2.transformer import TransformerDecoder
+
 from torchtune.utils.logits_transforms import (
     LogitsTransform,
     TemperatureTransform,
@@ -215,7 +218,11 @@ def generate_from_prompt(
     prompt: str, tokenizer: Tokenizer, decoder: TransformerDecoder
 ) -> Tuple[str, List[int]]:
     """
-    Generate a response from a prompt.
+    Generate a response from a prompt and a decoder.
+
+    Args:
+        prompt (str): Prompt to generate from.
+        tokenizer (Tokenizer)
     """
     prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
     with torch.no_grad():

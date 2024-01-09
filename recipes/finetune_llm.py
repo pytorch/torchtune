@@ -176,8 +176,8 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                logger(f"Generation tokens: {decoded_tokens}", flush=True)
-                logger(f"Generation: {generation_str}", flush=True)
+                logger(f"Generation tokens: {decoded_tokens}")
+                logger(f"Generation: {generation_str}")
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
