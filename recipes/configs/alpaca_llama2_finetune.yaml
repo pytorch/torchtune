@@ -20,3 +20,7 @@ device: cuda
 dtype: fp32
 fsdp: False
 activation_checkpointing: False
+
+# Metrics arguments
+metric_logger: wandb
+project: test-proj-1

@@ -123,9 +123,18 @@ def recipe(
                 # Compute loss
                 loss = loss_fn(logits, labels)
 
-            pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
-            )  # TODO: add terminal logger
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
+
+            # Log metrics
+            metric_logger.log_dict(
+                {
+                    "loss": loss.item(),
+                    "lr": opt.param_groups[0]["lr"],
+                    "gpu_resources": torch.cuda.get_device_properties(
+                        device
+                    ).total_memory,
+                }
+            )
 
             grad_scaler.scale(loss).backward()
             grad_scaler.step(opt)
@@ -164,6 +173,8 @@ def recipe(
         logger.info(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
+
+    metric_logger.close()
 
 
 if __name__ == "__main__":
@@ -296,6 +307,15 @@ if __name__ == "__main__":
         choices=utils.list_dtypes(),
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
+    )
+
+    # Metric logger arguments
+    parser.add_argument(
+        "--metric-logger",
+        type=str,
+        default="wandb",
+        choices=["wandb", "tensorboard"],
+        help="Metric logger to use.",
     )
 
     kwargs = vars(parser.parse_args())
