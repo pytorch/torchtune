@@ -6,6 +6,4 @@
 
 from .argparse import TuneArgumentParser
 
-__all__ = [
-    "TuneArgumentParser",
-]
+__all__ = ["TuneArgumentParser", "get_device", "set_seed"]

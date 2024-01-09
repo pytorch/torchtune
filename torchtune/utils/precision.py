@@ -14,15 +14,57 @@ from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 _precision_str_to_dtype: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
     "bf16": torch.bfloat16,
-    "fp32": None,
+    "fp32": torch.float32,
+    "tf32": torch.float32,
+    "fp64": torch.float64,
 }
 
 
-def _validate_precision(precision: Optional[str]) -> None:
-    if precision is not None and precision not in _precision_str_to_dtype.keys():
+def _get_dtype(precision: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
+    """Get the torch.dtype corresponding to the given precision string.
+
+    Args:
+        precision (Optional[Union[str, torch.dtype]]): The precision dtype.
+
+    Raises:
+        ValueError: if precision isn't supported by the precision utils
+
+    Returns:
+        torch.dtype: The corresponding torch.dtype.
+    """
+    if precision is None:
+        return torch.float32
+    if type(precision) == torch.dtype:
+        return precision
+    try:
+        if precision == "tf32":
+            _set_float32_precision("highest")
+        return _precision_str_to_dtype[precision]
+    except ValueError as e:
         raise ValueError(
-            f"`precision` must be one of None, {','.join(_precision_str_to_dtype.keys())}."
-        )
+            f"Precision must be one of {','.join(_precision_str_to_dtype.keys())}"
+        ) from e
+
+
+def _set_float32_precision(precision: str = "high") -> None:
+    """Sets the precision of float32 matrix multiplications and convolution operations.
+
+    For more information, see the PyTorch docs:
+    - https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
+    - https://pytorch.org/docs/stable/backends.html#torch.backends.cudnn.allow_tf32
+
+    Args:
+        precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.
+    """
+    if not torch.cuda.is_available():  # Not relevant for non-CUDA devices
+        return
+    # set precision for matrix multiplications
+    torch.set_float32_matmul_precision(precision)
+    # set precision for convolution operations
+    if precision == "highest":
+        torch.backends.cudnn.allow_tf32 = False
+    else:
+        torch.backends.cudnn.allow_tf32 = True
 
 
 def get_supported_dtypes() -> List[str]:
@@ -33,40 +75,41 @@ def get_supported_dtypes() -> List[str]:
 
 
 def get_grad_scaler(
-    precision: Optional[str], fsdp: bool
+    dtype: Optional[Union[str, torch.dtype]], fsdp: bool
 ) -> Optional[Union[GradScaler, ShardedGradScaler]]:
     """
     Returns a gradient scaler for mixed-precision training.
     Args:
-        precision (Optional[str]): Low precision used for CUDA automatic mixed precision.
+        dtype (Optional[Union[str, torch.dtype]]): dtype used to determine if mixed precision training is used.
         fsdp (bool): Whether FSDP is being used for training, in which case a shard-aware gradient scaler is returned.
     Returns:
         Optional[Union[GradScaler, ShardedGradScaler]]: Gradient scaler object if using one of the supported
         precision types, else `None`.
     """
-    _validate_precision(precision)
+    dtype = _get_dtype(dtype)
 
-    if precision == "fp16":
+    if precision == torch.float16:
         return GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
 
     return None
 
 
-def get_autocast_manager(device_type: str, precision: Optional[str]) -> ContextManager:
+def get_precision_manager(
+    device: torch.device, dtype: Optional[Union[str, torch.dtype]]
+) -> ContextManager:
     """
     Returns an autocast manager for mixed-precision training.
     Args:
-        device_type (str): Device type. Must be 'cpu' or 'cuda'.
-        precision (Optional[str]): Low precision used for CUDA automatic mixed precision.
+        device (torch.device): Pytorch device.
+        dtype (Optional[Union[str, torch.dtype]]): dtype used to determine if mixed precision training is used.
     Returns:
-        Generator: Autocast manager object if using fp16 precision, otherwise an instance of
+        Generator: Autocast manager object if using half precision, otherwise an instance of
             `contextlib.nullcontext`.
     """
-
-    _validate_precision(precision)
-
+    dtype = _get_dtype(dtype)
+    enabled = dtype in (torch.float16, torch.bfloat16)
     return torch.autocast(
-        device_type=device_type,
-        dtype=_precision_str_to_dtype.get(precision, None),
-        enabled=(precision is not None),
+        device_type=device.type,
+        dtype=dtype,
+        enabled=enabled,
     )

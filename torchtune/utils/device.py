@@ -12,7 +12,7 @@ import torch
 def _get_device_from_env() -> torch.device:
     """Function that gets the torch.device based on the current environment.
 
-    This currently supports only CPU and GPU devices. If CUDA is available, this function also sets the CUDA device.
+    This currently supports CPU, GPU and MPS. If CUDA is available, this function also sets the CUDA device.
 
     Within a distributed context, this function relies on the ``LOCAL_RANK`` environment variable
     to be made available by the program launcher for setting the appropriate device index.
@@ -31,27 +31,40 @@ def _get_device_from_env() -> torch.device:
             )
         device = torch.device(f"cuda:{local_rank}")
         torch.cuda.set_device(device)
+    elif torch.backends.mps.is_available():
+        device = torch.device("mps")
     else:
         device = torch.device("cpu")
     return device
 
 
-def set_float32_precision(precision: str = "high") -> None:
-    """Sets the precision of float32 matrix multiplications and convolution operations.
+def get_device(name: Optional[str] = None) -> torch.device:
+    """Function that gets the torch.device based on the input string.
 
-    For more information, see the PyTorch docs:
-    - https://pytorch.org/docs/stable/generated/torch.set_float32_matmul_precision.html
-    - https://pytorch.org/docs/stable/backends.html#torch.backends.cudnn.allow_tf32
+    This currently supports only CPU and GPU devices. If CUDA is available, this function also sets the CUDA device.
 
     Args:
-        precision (str): The setting to determine which datatypes to use for matrix multiplication and convolution operations.
+        name (Optional[str]): The name of the device to use.
+
+    Raises:
+        ValueError: If the device is not supported.
+
+    Returns:
+        device
     """
-    if not torch.cuda.is_available():  # Not relevant for non-CUDA devices
-        return
-    # set precision for matrix multiplications
-    torch.set_float32_matmul_precision(precision)
-    # set precision for convolution operations
-    if precision == "highest":
-        torch.backends.cudnn.allow_tf32 = False
-    else:
-        torch.backends.cudnn.allow_tf32 = True
+    device = torch.device(name) if name is not None else _get_device_from_env()
+    if device.type == "cuda" and device.index is None:
+        device = _get_device_from_env()
+
+    if name is not None and device.type != device_type:
+        raise RuntimeError(
+            f"Device type is specified to {name} but got {device.type} from env"
+        )
+
+    local_rank = int(os.environ.get("LOCAL_RANK", None))
+    if device.type == "cuda" and device.index != local_rank:
+        raise RuntimeError(
+            f"You can't specify a device index when using distributed training. \
+            Device specified is {name} but was assigned cuda:{local_rank}"
+        )
+    return device
