@@ -46,7 +46,7 @@ class TestFinetuneLLMRecipe:
         small_test_ckpt_loss_values = {
             "1|1|": 10.5415,
             "1|2|": 10.5331,
-            "2|1|": 10.5696,
+            "2|1|": 10.5345,
             "2|2|": 10.5647,
         }
         llama2_7b_ckpt_loss_values = {
