@@ -24,6 +24,7 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
+from torchtune.utils.generation import generate_from_prompt
 from torchtune.utils.precision import (
     get_autocast_manager,
     get_grad_scaler,
@@ -155,6 +156,22 @@ def recipe(kwargs):
                 loss.backward()
                 opt.step()
 
+            run_generation = kwargs.get("run_generation", None)
+            if run_generation and idx % run_generation == 0:
+                # Log a sample generation for the instruction.
+                # Just using a hardcoded prompt for now
+                prompt = (
+                    "Below is an instruction that describes a task, paired with an input that provides further context. "
+                    "Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task "
+                    "by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n"
+                    "### Response:"
+                )
+                generation_str, decoded_tokens = generate_from_prompt(
+                    prompt=prompt, tokenizer=tokenizer, decoder=model
+                )
+                logger(f"Generation tokens: {decoded_tokens}")
+                logger(f"Generation: {generation_str}")
+
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
         output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
@@ -264,6 +281,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+    parser.add_argument(
+        "--run-generation",
+        type=int,
+        default=None,
+        help="Run a dummy alpaca generation every n iterations.",
     )
     parser.add_argument(
         "--max-steps-per-epoch",
