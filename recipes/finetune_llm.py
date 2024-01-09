@@ -160,10 +160,12 @@ def recipe(kwargs):
             if run_generation and idx % run_generation == 0:
                 # Log a sample generation for the instruction.
                 # Just using a hardcoded prompt for now
-                prompt = "Below is an instruction that describes a task, paired with an input that provides further context. "
-                "Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task "
-                "by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n"
-                "### Response:"
+                prompt = (
+                    "Below is an instruction that describes a task, paired with an input that provides further context. "
+                    "Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task "
+                    "by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n"
+                    "### Response:"
+                )
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
