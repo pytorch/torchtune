@@ -42,10 +42,10 @@ def copy_config(args):
     if path is None:
         path = os.path.join(os.getcwd(), f"{config}.yaml")
 
-    # Get recipe path
+    # Get config path
     config_path = get_config_path(config)
 
-    # Copy recipe
+    # Copy config
     try:
         if not os.path.exists(path):
             shutil.copyfile(config_path, path)
