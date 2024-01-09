@@ -49,7 +49,6 @@ class ReproducibleDataLoader(DataLoader):
         drop_last: bool = False,
         generator=None,
         *args,
-        seed: Optional[int] = None,
         **kwargs,
     ):
         """
@@ -61,17 +60,21 @@ class ReproducibleDataLoader(DataLoader):
 
         self._epoch = 0
         self._is_custom_sampler = sampler is not None
-        # If seed is not set, set it to a random number
-        if seed is None:
-            seed = torch.empty((), dtype=torch.int64).random_().item()
+        world_size, rank = _get_distributed_settings()
+
+        # Set the seed based on torch initial seed and current rank id
+        base_seed = torch.initial_seed()
         # TODO: Log the seed value for debugging purposes
 
-        # Use the seed as base_seed for all workers to ensure transforms are repeatable
+        # Use the seed as rank_specific_seed for all workers to ensure
+        # transforms are repeatable
         if generator is None:
             generator = torch.Generator()
-            generator.manual_seed(seed)
+            # Worker seed is set based on generator seed and local worker id
+            # Rather we want seed to be different in workers across ranks
+            # In order to achieve that, add rank to the base_seed
+            generator.manual_seed(base_seed + rank)
 
-        world_size, rank = _get_distributed_settings()
         if not self._is_custom_sampler:
             # For map-style dataset, use DistributedSampler that ensures that
             # seed can be provided and shuffling order can be different at
@@ -81,7 +84,7 @@ class ReproducibleDataLoader(DataLoader):
                 num_replicas=world_size,
                 rank=rank,
                 shuffle=shuffle,
-                seed=seed,
+                seed=base_seed,
                 drop_last=drop_last,
             )
 

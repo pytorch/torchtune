@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import torch
 
 from torch.utils.data import Dataset, IterableDataset
 from torchtune.trainer import ReproducibleDataLoader
@@ -49,8 +50,9 @@ class TestReproducibleDataLoader:
         results = []
 
         for run in range(4):
+            torch.manual_seed(seed)
             dataloader = ReproducibleDataLoader(
-                map_dataset, batch_size=2, shuffle=True, num_workers=4, seed=seed
+                map_dataset, batch_size=2, shuffle=True, num_workers=4
             )
             for idx, batch in enumerate(dataloader):
                 assert_expected(dataloader.sampler.seed, seed)
@@ -71,7 +73,6 @@ class TestReproducibleDataLoader:
             batch_size=batch_size,
             shuffle=True,
             num_workers=num_workers,
-            seed=None,
             collate_fn=lambda x: x,
         )
         for run in range(4):
@@ -87,13 +88,14 @@ class TestReproducibleDataLoader:
 
     @pytest.mark.parametrize("shuffle", [False, True])
     def test_map_dataset_order_with_no_fixed_seed(self, shuffle):
-        dataset_size = 100
+        dataset_size = 5
         map_dataset = InMemoryMapDataset(dataset_size)
         results = []
         compare = []
 
         seed = None
         for run in range(4):
+            torch.manual_seed(run)
             dataloader = ReproducibleDataLoader(map_dataset, shuffle=shuffle)
             for idx, batch in enumerate(dataloader):
                 if run == 0:

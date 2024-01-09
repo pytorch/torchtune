@@ -76,7 +76,7 @@ class TestFinetuneLLMRecipe:
 
         kwargs_values = {
             "dataset": "alpaca",
-            "dataloader_seed": 9,
+            "seed": 9,
             "shuffle": True,
             "model": ckpt,
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),

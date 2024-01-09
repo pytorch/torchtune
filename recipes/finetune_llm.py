@@ -23,7 +23,7 @@ from torchtune.modules import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.env import init_from_env
+from torchtune.utils.env import init_from_env, seed
 from torchtune.utils.generation import generate_from_prompt
 from torchtune.utils.precision import (
     get_autocast_manager,
@@ -53,6 +53,9 @@ def get_logger():
 def recipe(kwargs):
     # ---- Initialize components ---- #
     logger = get_logger()
+
+    # ---- Initialize seed ---- #
+    seed(kwargs["seed"])
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
@@ -118,7 +121,6 @@ def recipe(kwargs):
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
-        seed=kwargs["dataloader_seed"],
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 
@@ -209,13 +211,13 @@ if __name__ == "__main__":
         help="Dataset name.",
     )
     parser.add_argument(
-        "--dataloader-seed",
+        "--seed",
         type=int,
         default=None,
         help="""
-            Seed for dataset shuffling order and multiprocessing
-            worker base_seed. Same seed value will provide the
-            same ordering and transforms of samples across runs.
+            Seed for dataset shuffling order and setting trainer and dataloader
+            workers random number generator state. Using same seed value will
+            provide the same ordering and transforms of samples across runs.
             """,
     )
     parser.add_argument("--shuffle", help="Shuffle dataset.", default=True)
