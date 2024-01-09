@@ -62,7 +62,6 @@ class ReproducibleDataLoader(DataLoader):
         self._is_custom_sampler = sampler is not None
         world_size, rank = _get_distributed_settings()
 
-        # Set the seed based on torch initial seed and current rank id
         base_seed = torch.initial_seed()
         # TODO: Log the seed value for debugging purposes
 
@@ -70,9 +69,11 @@ class ReproducibleDataLoader(DataLoader):
         # transforms are repeatable
         if generator is None:
             generator = torch.Generator()
-            # Worker seed is set based on generator seed and local worker id
-            # Rather we want seed to be different in workers across ranks
-            # In order to achieve that, add rank to the base_seed
+            # In OSS DataLoader, worker seed is by default set based on
+            # generator seed and local worker id. Because torch initial seed
+            # will be the same for all ranks and we want seed to be different in
+            # workers across ranks, we add the rank id to the base_seed to
+            # make sure random number state is different in each worker process
             generator.manual_seed(base_seed + rank)
 
         if not self._is_custom_sampler:
