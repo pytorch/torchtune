@@ -50,13 +50,20 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.duration",
+    "myst_parser",
+    "sphinx_design",
     "sphinx_gallery.gen_gallery",
     "sphinx_copybutton",
 ]
 
+myst_enable_extensions = [
+    "colon_fence",
+]
+
 sphinx_gallery_conf = {
-    "examples_dirs": "../../examples/",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "examples_dirs": ["tutorials_source"],
+    "gallery_dirs": ["tutorials"],
+    "filename_pattern": "/tutorials/",
     "backreferences_dir": "gen_modules/backreferences",
     "doc_module": ("torchtune",),
     "remove_config_comments": True,
@@ -73,9 +80,8 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = {
-    ".rst": "restructuredtext",
-}
+source_suffix = [".rst", ".md"]
+
 
 # The master toctree document.
 master_doc = "index"
@@ -245,3 +251,25 @@ def inject_minigalleries(app, what, name, obj, options, lines):
 def setup(app):
 
     app.connect("autodoc-process-docstring", inject_minigalleries)
+
+
+
+# Custom directives defintions to create cards on main torchtune page
+
+from custom_directives import (
+    CustomCardEnd,
+    CustomCardItem,
+    CustomCardStart,
+    SupportedDevices,
+    SupportedProperties,
+)
+from docutils.parsers import rst
+
+# Register custom directives
+
+
+rst.directives.register_directive("devices", SupportedDevices)
+rst.directives.register_directive("properties", SupportedProperties)
+rst.directives.register_directive("customcardstart", CustomCardStart)
+rst.directives.register_directive("customcarditem", CustomCardItem)
+rst.directives.register_directive("customcardend", CustomCardEnd)

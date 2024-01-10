@@ -1,8 +1,40 @@
 {% extends "!layout.html" %}
 
 {% block sidebartitle %}
-    <div class="version">
-      <a href='https://pytorch.org/torchtune/versions.html'>{{ version }} &#x25BC</a>
-    </div>
     {% include "searchbox.html" %}
+{% endblock %}
+
+{%- block content %}
+    {% if 'tutorials' in pagename %}
+
+    <div class="pytorch-call-to-action-links">
+      <div id="tutorial-type">{{ pagename }}</div>
+
+      <div id="google-colab-link">
+        <img class="call-to-action-img" src="{{ pathto('_static/images/pytorch-colab.svg', 1) }}"/>
+        <div class="call-to-action-desktop-view">Run in Google Colab</div>
+        <div class="call-to-action-mobile-view">Colab</div>
+      </div>
+      <div id="download-notebook-link">
+        <img class="call-to-action-notebook-img" src="{{ pathto('_static/images/pytorch-download.svg', 1) }}"/>
+        <div class="call-to-action-desktop-view">Download Notebook</div>
+        <div class="call-to-action-mobile-view">Notebook</div>
+      </div>
+      <div id="github-view-link">
+        <img class="call-to-action-img" src="{{ pathto('_static/images/pytorch-github.svg', 1) }}"/>
+        <div class="call-to-action-desktop-view">View on GitHub</div>
+        <div class="call-to-action-mobile-view">GitHub</div>
+      </div>
+    </div>
+
+    {% endif %}
+    {{ super() }}
+
+{% endblock %}
+
+{% block footer %}
+{{ super() }}
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script>
 {% endblock %}
