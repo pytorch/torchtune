@@ -66,10 +66,12 @@ def init_from_env(
     if device_type == "cpu":
         device = torch.device("cpu")
     else:
-        # device is "cuda" / "cuda:0" / "cuda:1", etc.
+        # device is None, "cuda" / "cuda:0" / "cuda:1", etc.
         # In non-distributed setting, _get_device_from_env() will always use GPU 0 if cuda is available, so bypass
         # the call to support non 0th device.
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
+        if device_type is None or (
+            torch.distributed.is_available() and torch.distributed.is_initialized()
+        ):
             if "cuda:" in device_type:
                 raise RuntimeError(
                     """
