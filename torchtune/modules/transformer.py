@@ -75,19 +75,21 @@ class TransformerDecoderLayer(nn.Module):
         out = h + mlp_out
         return out
 
-def _get_clones(module: nn.Module, N: int) -> nn.ModuleList:
+
+def _get_clones(module: nn.Module, n: int) -> nn.ModuleList:
     """
-    Return a list of N identical layers.
+    Return a list of ``n`` identical layers.
 
     Args:
         module (nn.Module): module to be cloned
-        N (int): number of clones
+        n (int): number of clones
 
     Returns:
-        nn.ModuleList: list of N identical layers
+        nn.ModuleList: list of ``n`` identical layers
     """
     # FIXME: copy.deepcopy() is not defined on nn.module
-    return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
+    return nn.ModuleList([copy.deepcopy(module) for i in range(n)])
+
 
 class TransformerDecoder(nn.Module):
     """
@@ -95,7 +97,8 @@ class TransformerDecoder(nn.Module):
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
-        layers (nn.ModuleList): List of Transformer Decoder layers.
+        layer (TransformerDecoderLayer): Transformer Decoder layer.
+        num_layers (int): Number of Transformer Decoder layers.
         norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of the decoder.
 

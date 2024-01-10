@@ -12,7 +12,7 @@ import torch
 
 from torch import nn, Tensor
 
-from torchtune.models.llama2 import llama2, _scale_hidden_dim_for_mlp
+from torchtune.models.llama2 import _scale_hidden_dim_for_mlp, llama2
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,

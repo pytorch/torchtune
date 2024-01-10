@@ -54,8 +54,7 @@ class CausalSelfAttention(nn.Module):
         head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
         qkv_proj (nn.Module): projection layer for query, key and value.
         output_proj (nn.Module): projection layer for output.
-        pos_embeddings (Optional[nn.Module]): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
-            If not specified, then no positional embeddings are used.
+        pos_embeddings (nn.Module): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
         kv_cache (Optional[KVCache]): KVCache object used to cache key and value.
             If not specified, then no caching is used.
         max_seq_len (int): maximum sequence length supported by the model.
@@ -78,7 +77,7 @@ class CausalSelfAttention(nn.Module):
         head_dim: int,
         qkv_proj: nn.Module,
         output_proj: nn.Module,
-        pos_embeddings: Optional[nn.Module] = None,
+        pos_embeddings: nn.Module,
         kv_cache: Optional[KVCache] = None,
         max_seq_len: int = 4096,
         attn_dropout: float = 0.0,
@@ -141,8 +140,9 @@ class CausalSelfAttention(nn.Module):
             - h_d: head dim
             - qkv_d: qkv_dim computed as (n_h + 2 * n_kv) * h_d
 
-        TODO: A few TODOs
+        TODO:
             - Return the attention weights
+            - Make application of positional embeddings optional
         """
 
         # input has shape [b, s, d]
@@ -180,8 +180,6 @@ class CausalSelfAttention(nn.Module):
             k = k.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
             v = v.expand(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
 
-        # Apply RoPE embeddings
-        # if self.pos_embeddings is not None:
         # llama2 applies the RoPE embeddings on tensors with shape
         # [b, s, n_h, h_d]
         # Reshape the tensors before we apply RoPE
@@ -189,6 +187,7 @@ class CausalSelfAttention(nn.Module):
         k = k.reshape(bsz, seq_len, -1, self.head_dim)
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
+        # Apply positional embeddings
         q = self.pos_embeddings(q, curr_pos)
         k = self.pos_embeddings(k, curr_pos)
 

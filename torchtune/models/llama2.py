@@ -70,6 +70,7 @@ def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
     hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
     return hidden_dim
 
+
 def llama2(
     vocab_size: int,
     num_layers: int,
