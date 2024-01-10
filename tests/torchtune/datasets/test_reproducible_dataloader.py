@@ -45,14 +45,17 @@ class DummyIterableDataset(IterableDataset):
 class TestReproducibleDataLoader:
     @pytest.mark.parametrize("batch_size,num_workers", [(1, 2), (4, 0), (3, 3)])
     def test_map_dataset_determinism_with_same_seed(self, batch_size, num_workers):
-        seed = 12
         map_dataset = InMemoryMapDataset(100)
         results = []
+        seed = 12
 
         for run in range(4):
-            torch.manual_seed(seed)
             dataloader = ReproducibleDataLoader(
-                map_dataset, batch_size=2, shuffle=True, num_workers=4
+                map_dataset,
+                batch_size=2,
+                shuffle=True,
+                num_workers=4,
+                seed=seed,
             )
             for idx, batch in enumerate(dataloader):
                 assert_expected(dataloader.sampler.seed, seed)
@@ -74,6 +77,7 @@ class TestReproducibleDataLoader:
             shuffle=True,
             num_workers=num_workers,
             collate_fn=lambda x: x,
+            seed=10,
         )
         for run in range(4):
             for idx, batch in enumerate(dataloader):
@@ -93,10 +97,9 @@ class TestReproducibleDataLoader:
         results = []
         compare = []
 
-        seed = None
         for run in range(4):
-            torch.manual_seed(run)
-            dataloader = ReproducibleDataLoader(map_dataset, shuffle=shuffle)
+            seed = torch.empty((), dtype=torch.int64).random_().item()
+            dataloader = ReproducibleDataLoader(map_dataset, shuffle=shuffle, seed=seed)
             for idx, batch in enumerate(dataloader):
                 if run == 0:
                     results.append(batch)
@@ -114,4 +117,4 @@ class TestReproducibleDataLoader:
         # For now make sure initialization with iterable dataset fails
         with pytest.raises(ValueError):
             iterable_dataset = DummyIterableDataset(100)
-            dataloader = ReproducibleDataLoader(iterable_dataset)
+            dataloader = ReproducibleDataLoader(iterable_dataset, seed=10)
