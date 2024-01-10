@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
+import copy
 from typing import Optional
 
 import torch
@@ -30,10 +30,8 @@ class TransformerDecoderLayer(nn.Module):
         mlp_norm: nn.Module,
     ) -> None:
         super().__init__()
-        # Norm applied before self-attention
         self.sa_norm = sa_norm
         self.attn = attn
-        # Norm applied before the feedforward layer
         self.mlp_norm = mlp_norm
         self.mlp = mlp
 
@@ -59,22 +57,37 @@ class TransformerDecoderLayer(nn.Module):
             - s: sequence length
             - d: embed dim
 
-        TODO: A few TODOs
+        TODO:
             - Make position of norm configurable
         """
-        # input tensor and attention output have the same shape
+        # Input tensor and attention output have the same shape
         # [b, s, d]
+        # Norm applied before self-attention
         attn_out = self.attn(self.sa_norm(x), mask, curr_pos)
 
-        # residual connection; shape: [b, s, d]
+        # Residual connection; shape: [b, s, d]
         h = attn_out + x
 
+        # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
 
-        # residual connection; shape: [b, s, d]
+        # Residual connection; shape: [b, s, d]
         out = h + mlp_out
         return out
 
+def _get_clones(module: nn.Module, N: int) -> nn.ModuleList:
+    """
+    Return a list of N identical layers.
+
+    Args:
+        module (nn.Module): module to be cloned
+        N (int): number of clones
+
+    Returns:
+        nn.ModuleList: list of N identical layers
+    """
+    # FIXME: copy.deepcopy() is not defined on nn.module
+    return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
 
 class TransformerDecoder(nn.Module):
     """
@@ -95,13 +108,14 @@ class TransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layers: nn.ModuleList,
+        layer: TransformerDecoderLayer,
+        num_layers: int,
         norm: nn.Module,
         output: nn.Linear,
     ) -> None:
         super().__init__()
         self.tok_embeddings = tok_embeddings
-        self.layers = layers
+        self.layers = _get_clones(layer, num_layers)
         self.norm = norm
         self.output = output
 
