@@ -10,6 +10,7 @@ from functools import partial
 from typing import Callable
 
 import torch
+from torchtune.utils.generation import GenerationUtils
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
@@ -138,17 +139,17 @@ def recipe(kwargs):
             # Note: context manager for autocast is only applied in forward pass.
             # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
             # for more details.
+
             with autocast_mgr:
                 logits = model(input_ids)
-                # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                # shift_labels = shift_labels.view(-1)
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = loss_fn(logits, labels)
+                shift_logits = logits.view(-1, tokenizer.vocab_size)
+                shift_labels = labels.view(-1)
+                # logits are (batch_size, sequence_length, num_classes), transpose to
+                # (batch_size, num_classes, sequence_length)
+                # logits = logits.transpose(1, 2)
+                loss = loss_fn(shift_logits, shift_labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
@@ -163,20 +164,33 @@ def recipe(kwargs):
                 opt.step()
 
             run_generation = kwargs.get("run_generation", None)
-            if run_generation and idx % run_generation == 0:
+            if idx % 50 == 0:
                 # Log a sample generation for the instruction.
-                # Just using a hardcoded prompt for now
-                prompt = (
-                    "Below is an instruction that describes a task, paired with an input that provides further context. "
-                    "Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task "
-                    "by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n"
-                    "### Response:"
-                )
-                generation_str, decoded_tokens = generate_from_prompt(
-                    prompt=prompt, tokenizer=tokenizer, decoder=model
-                )
-                logger(f"Generation tokens: {decoded_tokens}")
-                logger(f"Generation: {generation_str}")
+                if not torch.distributed.is_initialized() or dist.get_rank() == 0:
+                    print(f"RV: Running generation at index {idx}", flush=True)
+                response_tag = "\n\n### Response:\n"
+                prompt = "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:"
+                prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
+                with torch.no_grad():
+                    generations_no_kv_cache, _ = GenerationUtils(
+                        decoder_lm=model,
+                        eos_id=tokenizer.eos_id,
+                        pad_id=tokenizer.pad_id,
+                    ).generate(
+                        prompt_tokens=prompt_tokens,
+                        incremental_decode=False,
+                        min_gen_len=1,
+                        max_gen_len=256,
+                        top_k=3,
+                        device=torch.cuda.current_device(),
+                    )
+
+                    gens = generations_no_kv_cache.tolist()[0]
+                    if not torch.distributed.is_initialized() or dist.get_rank() == 0:
+                        print(f"RV: got gen tokens {gens}", flush=True)
+                    gens = gens[: gens.index(2)] if 2 in gens else gens
+                    if not torch.distributed.is_initialized() or dist.get_rank() == 0:
+                        print(f"RV: generation {tokenizer.decode(gens)}", flush=True)
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
