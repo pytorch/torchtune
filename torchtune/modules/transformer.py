@@ -147,6 +147,7 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
+        # TODO: Fix the masking logic to not rely on checking kv_cache
         if seq_len > 1 and self.layers[0].attn.kv_cache is not None:
             mask = torch.full(
                 (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
