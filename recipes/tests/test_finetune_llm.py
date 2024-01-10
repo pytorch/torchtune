@@ -10,7 +10,7 @@ from typing import Dict
 import pytest
 import recipes.finetune_llm as finetune_llm
 from torchtune import models
-from torchtune.models import llama2
+from torchtune.models.llama2 import llama2
 
 from torchtune.modules import TransformerDecoder
 
