@@ -175,8 +175,12 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                logger(f"Generation tokens: {decoded_tokens}")
-                logger(f"Generation: {generation_str}")
+                if (
+                    not torch.distributed.is_initialized()
+                    or torch.distributed.get_rank() == 0
+                ):
+                    logger(f"Generation tokens: {decoded_tokens}")
+                    logger(f"Generation: {generation_str}")
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
