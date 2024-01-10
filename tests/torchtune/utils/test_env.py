@@ -19,10 +19,18 @@ from torchtune.utils.env import (
     seed,
 )
 
-from tests.test_utils import get_pet_launch_config
+from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
 
 
 class TestEnv:
+    @skip_if_cuda_not_available
+    def test_init_from_env_non_zero_device(self) -> None:
+        device = init_from_env(device_type="cuda:1")
+        assert device == torch.device("cuda:1")
+        device_idx = torch.cuda.current_device()
+        set_device = torch.device(device_idx)
+        assert set_device == device
+
     def test_init_from_env(self) -> None:
         """Integration test to confirm consistency across device initialization utilities."""
         device = init_from_env()
