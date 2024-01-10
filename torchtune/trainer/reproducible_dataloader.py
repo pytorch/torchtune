@@ -49,7 +49,7 @@ class ReproducibleDataLoader(DataLoader):
         sampler: Union[Sampler, Iterable, None] = None,
         drop_last: bool = False,
         *args,
-        seed: int,
+        sampler_seed: int,
         **kwargs,
     ):
         """
@@ -61,14 +61,14 @@ class ReproducibleDataLoader(DataLoader):
 
         # Ensure that the seed provided is the same across all ranks
         if dist.is_available() and dist.is_initialized():
-            seed_tensor = torch.tensor(seed)
+            seed_tensor = torch.tensor(sampler_seed)
             dist.barrier()
             output_max = dist.all_reduce(seed_tensor, op=ReduceOp.MAX)
             dist.barrier()
             output_min = dist.all_reduce(seed_tensor, op=ReduceOp.MIN)
-            if output_max.item() != seed or output_min.item() != seed:
+            if output_max.item() != sampler_seed or output_min.item() != sampler_seed:
                 raise ValueError(
-                    f"Seed {seed} is not the same across all ranks. "
+                    f"Seed {sampler_seed} is not the same across all ranks. "
                     f"Max: {output_max.item()}, Min: {output_min.item()}"
                 )
         # TODO: Log warning that seed check is not being performed
@@ -86,7 +86,7 @@ class ReproducibleDataLoader(DataLoader):
                 num_replicas=world_size,
                 rank=rank,
                 shuffle=shuffle,
-                seed=seed,
+                seed=sampler_seed,
                 drop_last=drop_last,
             )
 

@@ -55,7 +55,7 @@ class TestReproducibleDataLoader:
                 batch_size=2,
                 shuffle=True,
                 num_workers=4,
-                seed=seed,
+                sampler_seed=seed,
             )
             for idx, batch in enumerate(dataloader):
                 assert_expected(dataloader.sampler.seed, seed)
@@ -77,7 +77,7 @@ class TestReproducibleDataLoader:
             shuffle=True,
             num_workers=num_workers,
             collate_fn=lambda x: x,
-            seed=10,
+            sampler_seed=10,
         )
         for run in range(4):
             for idx, batch in enumerate(dataloader):
@@ -99,7 +99,9 @@ class TestReproducibleDataLoader:
 
         for run in range(4):
             seed = torch.empty((), dtype=torch.int64).random_().item()
-            dataloader = ReproducibleDataLoader(map_dataset, shuffle=shuffle, seed=seed)
+            dataloader = ReproducibleDataLoader(
+                map_dataset, shuffle=shuffle, sampler_seed=seed
+            )
             for idx, batch in enumerate(dataloader):
                 if run == 0:
                     results.append(batch)
@@ -117,4 +119,4 @@ class TestReproducibleDataLoader:
         # For now make sure initialization with iterable dataset fails
         with pytest.raises(ValueError):
             iterable_dataset = DummyIterableDataset(100)
-            dataloader = ReproducibleDataLoader(iterable_dataset, seed=10)
+            dataloader = ReproducibleDataLoader(iterable_dataset, sampler_seed=10)

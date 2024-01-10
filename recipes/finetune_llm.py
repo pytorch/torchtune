@@ -126,7 +126,7 @@ def recipe(kwargs):
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
-        seed=base_seed,
+        sampler_seed=base_seed,
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 

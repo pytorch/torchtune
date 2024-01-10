@@ -33,7 +33,7 @@ def print_batches(base_seed, rank, num_workers):
         batch_size=1,
         shuffle=True,
         collate_fn=lambda x: x,
-        seed=base_seed,
+        sampler_seed=base_seed,
     )
     for batch in dl:
         print(batch[0])
