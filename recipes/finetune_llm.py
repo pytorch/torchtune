@@ -141,13 +141,14 @@ def recipe(kwargs):
             with autocast_mgr:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
                 # Flatten the tokens
-                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                shift_labels = shift_labels.view(-1)
+                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                # shift_labels = shift_labels.view(-1)
+                logits = logits.transpose(1, 2)
                 # Compute loss
-                loss = loss_fn(shift_logits, shift_labels)
+                loss = loss_fn(logits, labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
