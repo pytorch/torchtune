@@ -24,6 +24,7 @@ from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import init_from_env
+from torchtune.utils.generation import generate_from_prompt
 from torchtune.utils.precision import (
     get_autocast_manager,
     get_grad_scaler,
@@ -55,20 +56,25 @@ def recipe(kwargs):
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
-
+    # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
+    device_type = (
+        kwargs["device"]
+        if kwargs["device"] in ("cpu", "cuda")
+        else kwargs["device"].split(":")[0]
+    )
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
     autocast_precision = kwargs.get("autocast_precision", None)
     autocast_mgr = get_autocast_manager(
-        device_type=kwargs["device"], precision=autocast_precision
+        device_type=device_type, precision=autocast_precision
     )
     grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
 
     # When using fsdp, init on meta device to avoid OOM
     model = get_model(
         kwargs["model"],
-        "meta" if kwargs["fsdp"] else kwargs["device"],
+        "meta" if kwargs["fsdp"] else device,
         vocab_size=tokenizer.vocab_size,
     )
 
@@ -135,13 +141,14 @@ def recipe(kwargs):
             with autocast_mgr:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
                 # Flatten the tokens
-                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                shift_labels = shift_labels.view(-1)
+                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                # shift_labels = shift_labels.view(-1)
+                logits = logits.transpose(1, 2)
                 # Compute loss
-                loss = loss_fn(shift_logits, shift_labels)
+                loss = loss_fn(logits, labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
@@ -154,6 +161,22 @@ def recipe(kwargs):
             else:
                 loss.backward()
                 opt.step()
+
+            run_generation = kwargs.get("run_generation", None)
+            if run_generation and idx % run_generation == 0:
+                # Log a sample generation for the instruction.
+                # Just using a hardcoded prompt for now
+                prompt = (
+                    "Below is an instruction that describes a task, paired with an input that provides further context. "
+                    "Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task "
+                    "by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n"
+                    "### Response:"
+                )
+                generation_str, decoded_tokens = generate_from_prompt(
+                    prompt=prompt, tokenizer=tokenizer, decoder=model
+                )
+                logger(f"Generation tokens: {decoded_tokens}")
+                logger(f"Generation: {generation_str}")
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)
@@ -264,6 +287,12 @@ if __name__ == "__main__":
         type=bool,
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+    parser.add_argument(
+        "--run-generation",
+        type=int,
+        default=None,
+        help="Run a dummy alpaca generation every n iterations.",
     )
     parser.add_argument(
         "--max-steps-per-epoch",

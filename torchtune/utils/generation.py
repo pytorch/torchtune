@@ -11,6 +11,8 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
+from torchtune.models.llama2.tokenizer import Tokenizer
+from torchtune.models.llama2.transformer import TransformerDecoder
 from torchtune.utils.logits_transforms import (
     LogitsTransform,
     TemperatureTransform,
@@ -210,3 +212,35 @@ class GenerationUtils:
                 token_logprobs = token_logprobs[:, max_prompt_len:]
 
         return tokens, token_logprobs if logprobs else None
+
+
+def generate_from_prompt(
+    prompt: str, tokenizer: Tokenizer, decoder: TransformerDecoder
+) -> Tuple[str, List[int]]:
+    """
+    Generate a response from a prompt and a decoder.
+    Args:
+        prompt (str): Prompt to generate from.
+        tokenizer (Tokenizer): Tokenizer to use for generation.
+        decoder (TransformerDecoder): Model to use for generation.
+
+    Returns:
+        Tuple[str, List[int]]: Generated response and corresponding tokenized response.
+    """
+    prompt_tokens = [tokenizer.encode(prompt, add_eos=False)]
+    with torch.no_grad():
+        generations_no_kv_cache, _ = GenerationUtils(
+            decoder_lm=decoder,
+            eos_id=tokenizer.eos_id,
+            pad_id=tokenizer.pad_id,
+        ).generate(
+            prompt_tokens=prompt_tokens,
+            incremental_decode=False,
+            min_gen_len=1,
+            max_gen_len=256,
+            top_k=3,
+            device=torch.cuda.current_device(),
+        )
+    gens = generations_no_kv_cache.tolist()[0]
+    gen_str = tokenizer.decode(gens)
+    return gens, gen_str

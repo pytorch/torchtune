@@ -44,16 +44,16 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
-            "1|1|": 10.5483,
-            "1|2|": 10.5776,
-            "2|1|": 10.5696,
-            "2|2|": 10.5647,
+            "1|1|": 10.5415,
+            "1|2|": 10.5331,
+            "2|1|": 10.5345,
+            "2|2|": 10.4700,
         }
         llama2_7b_ckpt_loss_values = {
-            "1|1|": 12.5535,
-            "1|2|": 8.7051,
-            "2|1|": 7.7058,
-            "2|2|": 7.8551,
+            "1|1|": 1.3078,
+            "1|2|": 1.2878,
+            "2|1|": 1.1373,
+            "2|2|": 0.8572,
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
