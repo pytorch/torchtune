@@ -41,7 +41,6 @@ class AlpacaDataset(Dataset):
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
         self._data = load_dataset("tatsu-lab/alpaca", split="train")
         self._tokenizer = tokenizer
-        self._max_len = 0
 
     def __len__(self):
         return len(self._data)
@@ -70,6 +69,4 @@ class AlpacaDataset(Dataset):
             _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))
         ] + response
         assert len(input) == len(label)
-        self._max_len = max(self._max_len, len(input))
-        print(f"RV {self._max_len}", flush=True)
         return input, label
