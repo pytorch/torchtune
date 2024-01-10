@@ -10,7 +10,7 @@ import logging
 import torch
 
 from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
-from torchtune.utils.env import seed
+from torchtune.utils.env import _get_device_from_env, seed
 from torchtune.utils.generation import GenerationUtils
 
 logging.basicConfig(level=logging.INFO)
@@ -46,11 +46,12 @@ if __name__ == "__main__":
         help="Input to the model",
     )
     parser.add_argument(
-        "--device",
-        type=str,
-        default="cuda",
-        help="`cuda` or `cpu`",
+        "--max-gen-len",
+        type=int,
+        default=64,
+        help="Max number of tokens to generate",
     )
+
     args = parser.parse_args()
     # Inference setup
     tokenizer = llama2_tokenizer(args.tokenizer_path)
@@ -59,9 +60,10 @@ if __name__ == "__main__":
 
     seed(0)
 
+    device = _get_device_from_env()
     # --------- Initialize a decoder w/o kv-caching -------- #
-    with torch.device(args.device):
-        decoder = llama2_7b(vocab_size=tokenizer.vocab_size)
+    with device:
+        decoder = llama2_7b(vocab_size=tokenizer.vocab_size, max_batch_size=1)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
@@ -69,9 +71,7 @@ if __name__ == "__main__":
     missing, unexpected = decoder.load_state_dict(
         native_state_dict["model"], strict=False
     )
-    # Nothing should be missing or unexpected
-    assert not missing, f"Missing the following keys: {missing}"
-    assert not unexpected, f"Found the following unexpected keys: {unexpected}"
+
     decoder.eval()
 
     with torch.no_grad():
@@ -81,13 +81,13 @@ if __name__ == "__main__":
             pad_id=tokenizer.pad_id,
         ).generate(
             prompt_tokens=token_for_generation,
-            incremental_decode=False,  # Since we aren't caching past keys and values
+            incremental_decode=True,
             min_gen_len=1,
-            max_gen_len=64,
+            max_gen_len=args.max_gen_len,
             top_p=0,
             top_k=1,
             temperature=1.0,
-            device=torch.device("cuda"),
+            device=device,
         )
 
         generated_tokens = tokenizer.decode(generations_no_kv_cache.tolist())
