@@ -11,8 +11,7 @@ import torch
 import torch.nn.functional as F
 from torch import nn, Tensor
 
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.utils.logits_transforms import (
     LogitsTransform,
     TemperatureTransform,
