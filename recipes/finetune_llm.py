@@ -56,9 +56,10 @@ def recipe(kwargs):
 
     # ---- Initialize seed ---- #
     _, rank = get_world_size_and_rank()
-    base_seed = kwargs["seed"]
-    if base_seed is None:
-        base_seed = torch.empty((), dtype=torch.int64).random_().item()
+    if "seed" not in kwargs or kwargs["seed"] is None:
+        base_seed = torch.empty((), dtype=torch.int32).random_().item()
+    else:
+        base_seed = kwargs["seed"]
     seed(base_seed + rank)
 
     # ---- Initialize distributed process group ---- #
