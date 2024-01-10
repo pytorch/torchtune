@@ -17,7 +17,7 @@ This is the best example in the world.
 #
 # With rst syntax in it.
 # Let's use :class:`~torchtune.modules import CausalSelfAttention`. <-- This
-# should be a link to the class, and you should see a "Examples using CausalSelfAttetnion" backlink on that docstring.
+# should be a link to the class, and you should see a "Examples using CausalSelfAttention" backlink on that docstring.
 
 # %%
 # Another cell, with code this time:
