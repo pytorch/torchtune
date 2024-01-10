@@ -13,6 +13,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 
 from torchtune.modules import FeedForward
+from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
 
 
 """
@@ -63,11 +64,7 @@ def compare_feed_forward(embed_dim: int, hidden_dim: int) -> None:
     with torch.no_grad():
         ff_out_ref = ff_ref(input_t)
 
-    # current implementation; initialize with constant to compare outputs
-    hidden_dim = 4 * int(2 * embed_dim / 3)
-    # Round hidden dimension to nearest multiple of `multiple_of`
-    multiple_of = 256
-    hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
     ff = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=torch.nn.Linear)
     fixed_init_model(ff)
 

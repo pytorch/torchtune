@@ -12,7 +12,7 @@ import torch
 
 from torch import nn, Tensor
 
-from torchtune.models.llama2 import llama2
+from torchtune.models.llama2 import llama2, _scale_hidden_dim_for_mlp
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
@@ -79,12 +79,7 @@ class TestTransformerDecoderLayer:
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
-        # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
-        # parameters and computation constant
-        hidden_dim = 4 * int(2 * embed_dim / 3)
-        # Round hidden dimension to nearest multiple of `multiple_of`
-        multiple_of = 256
-        hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
+        hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
         mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
         transformer_layer = TransformerDecoderLayer(
             attn=self_attn,
