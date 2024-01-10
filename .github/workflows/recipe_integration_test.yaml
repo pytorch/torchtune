@@ -51,7 +51,7 @@ jobs:
             python3 -m pip install awscli==1.32.6
             mkdir -p /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b-native-checkpoint /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b-01052024 /tmp/test-artifacts
       - name: Install dependencies
         run: |
           conda install pytorch

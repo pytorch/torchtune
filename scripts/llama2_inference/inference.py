@@ -12,9 +12,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 import torch
+from torchtune.models.llama2 import llama2
 
-from torchtune.models.llama2.tokenizer import Tokenizer
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.modules import Tokenizer
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 from transformers import LlamaForCausalLM
@@ -97,13 +97,13 @@ if __name__ == "__main__":
     # --------- Initialize a decoder w/o kv-caching -------- #
     llama_7b_args = args_7b()
     with torch.device("cuda"):
-        decoder = TransformerDecoder(
+        decoder = llama2(
             vocab_size=llama_7b_args.vocab_size,
             num_layers=llama_7b_args.num_layers,
             num_heads=llama_7b_args.num_heads,
+            max_seq_len=llama_7b_args.max_seq_len,
             num_kv_heads=llama_7b_args.num_kv_heads,
             embed_dim=llama_7b_args.embed_dim,
-            max_seq_len=llama_7b_args.max_seq_len,
             norm_eps=1e-5,
         )
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     decoder.eval()
 
     with torch.no_grad():
-        decoder_out = decoder(tokens.unsqueeze(0).cuda(), 0).sum()
+        decoder_out = decoder(tokens.unsqueeze(0).cuda()).sum()
         generations_no_kv_cache, _ = GenerationUtils(
             decoder_lm=decoder,
             eos_id=tokenizer.eos_id,
@@ -136,13 +136,13 @@ if __name__ == "__main__":
 
     # --------- Do the same initialization process, but with a kv-caching decoder. ------- #
     with torch.device("cuda"):
-        decoder_kv = TransformerDecoder(
+        decoder_kv = llama2(
             vocab_size=llama_7b_args.vocab_size,
             num_layers=llama_7b_args.num_layers,
             num_heads=llama_7b_args.num_heads,
+            max_seq_len=llama_7b_args.max_seq_len,
             num_kv_heads=llama_7b_args.num_kv_heads,
             embed_dim=llama_7b_args.embed_dim,
-            max_seq_len=llama_7b_args.max_seq_len,
             norm_eps=1e-5,
             max_batch_size=2,
         )
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     decoder_kv.eval()
 
     with torch.no_grad():
-        decoder_kv_out = decoder_kv(tokens.unsqueeze(0).cuda(), 0).sum()
+        decoder_kv_out = decoder_kv(tokens.unsqueeze(0).cuda()).sum()
         generations_kv_cache, _ = GenerationUtils(
             decoder_lm=decoder_kv, eos_id=tokenizer.eos_id, pad_id=tokenizer.pad_id
         ).generate(

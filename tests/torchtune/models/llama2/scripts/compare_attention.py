@@ -8,12 +8,11 @@ import math
 
 import torch
 
+from tests.test_utils import init_weights_with_constant
+
 from torch import nn
 
-from torchtune.models.llama2.attention import LlamaSelfAttention
-from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddings
-
-from tests.test_utils import init_weights_with_constant
+from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings
 
 
 """
@@ -202,11 +201,21 @@ def compare_attention(
         attn_out_ref = attn_ref(input_t, freq_cis, mask)
 
     # current implementation; initialize with constant to compare outputs
-    attn = LlamaSelfAttention(
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+    attn = CausalSelfAttention(
+        embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
-        embed_dim=embed_dim,
+        head_dim=head_dim,
+        qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        pos_embeddings=rope,
+        kv_cache=None,
         max_seq_len=max_seq_len,
+        attn_dropout=0.0,
     )
     init_weights_with_constant(attn, constant=0.05)
 
