@@ -10,10 +10,15 @@ from torchtune import models
 class TestModelTokenizerGetter:
     def test_get_model(self):
         """
-        Test getting a named models
+        Test getting a named model
         """
         models._MODEL_DICT["test"] = lambda x: x
         model = models.get_model("test", "cpu", x=1)
+        assert model == 1
+
+    def test_get_model_device(self):
+        models._MODEL_DICT["test"] = lambda x: x
+        model = models.get_model("test", device=torch.device("cpu"), x=1)
         assert model == 1
 
     def test_list_models(self):

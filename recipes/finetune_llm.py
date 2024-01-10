@@ -56,20 +56,25 @@ def recipe(kwargs):
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
-
+    # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
+    device_type = (
+        kwargs["device"]
+        if kwargs["device"] in ("cpu", "cuda")
+        else kwargs["device"].split(":")[0]
+    )
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
     autocast_precision = kwargs.get("autocast_precision", None)
     autocast_mgr = get_autocast_manager(
-        device_type=kwargs["device"], precision=autocast_precision
+        device_type=device_type, precision=autocast_precision
     )
     grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
 
     # When using fsdp, init on meta device to avoid OOM
     model = get_model(
         kwargs["model"],
-        "meta" if kwargs["fsdp"] else kwargs["device"],
+        "meta" if kwargs["fsdp"] else device,
         vocab_size=tokenizer.vocab_size,
     )
 

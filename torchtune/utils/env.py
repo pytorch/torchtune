@@ -63,7 +63,33 @@ def init_from_env(
     Raises:
         RuntimeError: If the device type is specified but does not match the device type from the environment.
     """
-    device = torch.device("cpu") if device_type == "cpu" else _get_device_from_env()
+    if device_type == "cpu":
+        device = torch.device("cpu")
+    else:
+        # device is "cuda" / "cuda:0" / "cuda:1", etc.
+        # In non-distributed setting, _get_device_from_env() will always use GPU 0 if cuda is available, so bypass
+        # the call to support non 0th device.
+        if torch.distributed.is_available() and torch.distributed.is_initialized():
+            if "cuda:" in device_type:
+                raise RuntimeError(
+                    """
+                    Indexed cuda devices not supported in distributed setting.
+                    Each rank will use device correspond to its local rank ID.
+                    """
+                )
+            device = _get_device_from_env()
+        else:
+            if not torch.cuda.is_available():
+                # TODO: This will break when we need to support devices other than {CPU, CUDA}.
+                raise RuntimeError(
+                    f"CUDA is not available, but device specified is {device_type}"
+                )
+            if "cuda:" in device_type:
+                device_type, device_str = device_type.split(":")
+                device = torch.device(f"{device_type}:{device_str}")
+            else:
+                device = torch.device(device_type)
+            torch.cuda.set_device(device)
 
     if device_type is not None and device.type != device_type:
         raise RuntimeError(
