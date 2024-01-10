@@ -65,35 +65,19 @@ def init_from_env(
         RuntimeError: If torch.distributed is in use, but an indexed device is specified.
         RuntimeError: If the device type is specified but does not match the device type from the environment.
     """
-    if device_type == "cpu":
+    # Note: This will break when we need to support devices other than {CPU, CUDA}.
+    if device_type is None or device_type == "cuda":
+        device = _get_device_from_env()
+    elif device_type == "cpu":
         device = torch.device("cpu")
-    else:
-        if device_type is not None and not torch.cuda.is_available():
-            # TODO: This will break when we need to support devices other than {CPU, CUDA}.
+    elif "cuda:" in device_type:
+        if not torch.cuda.is_available():
             raise RuntimeError(
                 f"CUDA is not available, but device specified is {device_type}"
             )
-        # device is None, "cuda" / "cuda:0" / "cuda:1", etc.
-        # In non-distributed setting, _get_device_from_env() will always use GPU 0 if cuda is available, so bypass
-        # the call to support non 0th device.
-        if device_type is None or (
-            torch.distributed.is_available() and torch.distributed.is_initialized()
-        ):
-            if device_type is not None and "cuda:" in device_type:
-                raise RuntimeError(
-                    """
-                    Indexed cuda devices not supported in distributed setting.
-                    Each rank will use device corresponding to its local rank ID. Please specify
-                    "cuda" as device_type.
-                    """
-                )
-            device = _get_device_from_env()
         else:
-            if "cuda:" in device_type:
-                device_type, device_index = device_type.split(":")
-                device = torch.device(type=device_type, index=int(device_index))
-            else:
-                device = torch.device(type=device_type, index=0)
+            device_type, device_index = device_type.split(":")
+            device = torch.device(type=device_type, index=int(device_index))
             torch.cuda.set_device(device)
 
     if device_type is not None and device.type != device_type:

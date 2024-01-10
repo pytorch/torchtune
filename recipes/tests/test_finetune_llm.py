@@ -50,10 +50,10 @@ class TestFinetuneLLMRecipe:
             "2|2|": 10.4700,
         }
         llama2_7b_ckpt_loss_values = {
-            "1|1|": 1.3078,
-            "1|2|": 1.2878,
-            "2|1|": 1.1373,
-            "2|2|": 0.8572,
+            "1|1|": 1.3008,
+            "1|2|": 1.3043,
+            "2|1|": 1.1492,
+            "2|2|": 0.9153,
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
