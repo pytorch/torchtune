@@ -23,7 +23,7 @@ from torchtune.modules import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.env import init_from_env, seed
+from torchtune.utils.env import get_world_size_and_rank, init_from_env, seed
 from torchtune.utils.generation import generate_from_prompt
 from torchtune.utils.precision import (
     get_autocast_manager,
@@ -55,7 +55,11 @@ def recipe(kwargs):
     logger = get_logger()
 
     # ---- Initialize seed ---- #
-    seed(kwargs["seed"])
+    _, rank = get_world_size_and_rank()
+    base_seed = kwargs["seed"]
+    if base_seed is None:
+        base_seed = torch.empty((), dtype=torch.int64).random_().item()
+    seed(base_seed + rank)
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
@@ -121,6 +125,7 @@ def recipe(kwargs):
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
+        seed=base_seed,
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 
@@ -212,7 +217,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--seed",
-        type=int,
+        type=torch.int64,
         default=None,
         help="""
             Seed for dataset shuffling order and setting trainer and dataloader

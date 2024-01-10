@@ -8,7 +8,7 @@ import logging
 import os
 import random
 from datetime import timedelta
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -108,6 +108,18 @@ def init_from_env(
 def _get_process_group_backend_from_device(device: torch.device) -> str:
     """Function that gets the default process group backend from the device."""
     return "nccl" if device.type == "cuda" else "gloo"
+
+
+def get_world_size_and_rank() -> Tuple[int, int]:
+    """Function that gets the current world size (aka total number
+    of ranks) and rank number of the current trainer.
+
+    Returns:
+        Tuple[int, int]: world size, rank
+    """
+    if not torch.distributed.is_available() or not torch.distributed.is_initialized():
+        return 1, 0
+    return torch.distributed.world_size(), torch.distributed.get_rank()
 
 
 def seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None:

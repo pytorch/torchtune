@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Iterable, Optional, Union
 
-import torch
 from torch.utils.data import (
     DataLoader,
     Dataset,
@@ -13,7 +12,8 @@ from torch.utils.data import (
     IterableDataset,
     Sampler,
 )
-from torch.utils.data.dataloader import _get_distributed_settings
+
+from torchtune.utils.env import get_world_size_and_rank
 
 
 class ReproducibleDataLoader(DataLoader):
@@ -35,9 +35,7 @@ class ReproducibleDataLoader(DataLoader):
     Args:
         seed (int, optional): Seed used to initialize a :class:`~torch.utils.
         data.DistributedSampler` sampler if no custom sampler is provided by the
-        user. If no generator is provided, seed is also used to set the
-        base_seed for all dataloader workers to ensure transforms are
-        repeatable. If no seed is provided, a random number is used as the seed.
+        user. If no seed is provided, a random number is used as the seed.
         (default: ``None``)
     """
 
@@ -47,8 +45,8 @@ class ReproducibleDataLoader(DataLoader):
         shuffle: Optional[bool] = None,
         sampler: Union[Sampler, Iterable, None] = None,
         drop_last: bool = False,
-        generator=None,
         *args,
+        seed: int,
         **kwargs,
     ):
         """
@@ -60,21 +58,7 @@ class ReproducibleDataLoader(DataLoader):
 
         self._epoch = 0
         self._is_custom_sampler = sampler is not None
-        world_size, rank = _get_distributed_settings()
-
-        base_seed = torch.initial_seed()
-        # TODO: Log the seed value for debugging purposes
-
-        # Use the seed as rank_specific_seed for all workers to ensure
-        # transforms are repeatable
-        if generator is None:
-            generator = torch.Generator()
-            # In OSS DataLoader, worker seed is by default set based on
-            # generator seed and local worker id. Because torch initial seed
-            # will be the same for all ranks and we want seed to be different in
-            # workers across ranks, we add the rank id to the base_seed to
-            # make sure random number state is different in each worker process
-            generator.manual_seed(base_seed + rank)
+        world_size, rank = get_world_size_and_rank()
 
         if not self._is_custom_sampler:
             # For map-style dataset, use DistributedSampler that ensures that
@@ -85,7 +69,7 @@ class ReproducibleDataLoader(DataLoader):
                 num_replicas=world_size,
                 rank=rank,
                 shuffle=shuffle,
-                seed=base_seed,
+                seed=seed,
                 drop_last=drop_last,
             )
 
@@ -94,7 +78,6 @@ class ReproducibleDataLoader(DataLoader):
             shuffle=None,  # shuffle is handled by sampler
             sampler=sampler,
             drop_last=drop_last,
-            generator=generator,
             *args,
             **kwargs,
         )
