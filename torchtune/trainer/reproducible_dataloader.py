@@ -5,6 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 from typing import Iterable, Optional, Union
 
+import torch
+import torch.distributed as dist
+
 from torch.utils.data import (
     DataLoader,
     Dataset,
@@ -55,6 +58,20 @@ class ReproducibleDataLoader(DataLoader):
         """
         if isinstance(dataset, IterableDataset):
             raise ValueError("ReproducibleDataLoader only supports Map style datasets.")
+
+        # Ensure that the seed provided is the same across all ranks
+        if dist.is_available() and dist.is_initialized():
+            seed_tensor = torch.tensor(seed)
+            dist.barrier()
+            output_max = dist.all_reduce(seed_tensor, op=ReduceOp.MAX)
+            dist.barrier()
+            output_min = dist.all_reduce(seed_tensor, op=ReduceOp.MIN)
+            if output_max.item() != seed or output_min.item() != seed:
+                raise ValueError(
+                    f"Seed {seed} is not the same across all ranks. "
+                    f"Max: {output_max.item()}, Min: {output_min.item()}"
+                )
+        # TODO: Log warning that seed check is not being performed
 
         self._epoch = 0
         self._is_custom_sampler = sampler is not None
