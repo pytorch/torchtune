@@ -217,7 +217,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--seed",
-        type=torch.int64,
+        type=int,
         default=None,
         help="""
             Seed for dataset shuffling order and setting trainer and dataloader
