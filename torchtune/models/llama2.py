@@ -27,7 +27,7 @@ def llama2_7b() -> TransformerDecoder:
     - num_layers: 32
     - num_heads: 32
     - num_kv_heads: 32
-    - max_seq_len: 2,048
+    - max_seq_len: 4,096
     - norm_eps: 1e-6
 
     Returns:
@@ -39,8 +39,7 @@ def llama2_7b() -> TransformerDecoder:
         num_heads=32,
         num_kv_heads=32,
         embed_dim=4096,
-        # TODO: Change max_seq_len to 4096, which is the default in the original Llama2 implementation
-        max_seq_len=2048,
+        max_seq_len=4096,
         max_batch_size=None,
         attn_dropout=0.0,
         norm_eps=1e-6,
