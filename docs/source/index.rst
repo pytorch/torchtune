@@ -23,3 +23,4 @@ Modeling Components and Building Blocks
     torchtune.modules.Tokenizer
     torchtune.modules.TransformerDecoderLayer
     torchtune.modules.TransformerDecoder
+    torchtune.modules.peft.lora.LoRALinear
