@@ -8,7 +8,7 @@ endif
 # You can set these variables from the command line.
 SPHINXOPTS    = -W -j auto $(EXAMPLES_PATTERN_OPTS)
 SPHINXBUILD   = sphinx-build
-SPHINXPROJ    = torchvision
+SPHINXPROJ    = torchtune
 SOURCEDIR     = source
 BUILDDIR      = build
 

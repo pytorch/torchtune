@@ -4,18 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable
+from typing import Callable, Union
 
 import torch
 from torch.nn import Module
 
-from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
+from .llama2 import llama2_7b, llama2_tokenizer  # noqa
+
+__all__ = ["llama2_7b", "llama2_tokenizer"]
 
 _MODEL_DICT = {"llama2_7b": llama2_7b}
 _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
 
 
-def get_model(name: str, device: str, **kwargs) -> Module:
+def get_model(name: str, device: Union[str, torch.device], **kwargs) -> Module:
     """Get known supported models by name"""
     if name in _MODEL_DICT:
         with torch.device(device):

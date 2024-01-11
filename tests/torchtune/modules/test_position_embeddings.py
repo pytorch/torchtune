@@ -10,7 +10,7 @@ import pytest
 import torch
 from torch import tensor
 
-from torchtune.models.llama2.position_embeddings import RotaryPositionalEmbeddings
+from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 from torchtune.utils.env import seed
 
 from tests.test_utils import assert_expected

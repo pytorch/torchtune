@@ -3,7 +3,6 @@ Welcome to the TorchTune Documentation
 
 **TorchTune** is a Native-PyTorch library for LLM fine-tuning.
 
-
 Getting Started
 ~~~~~~~~~~~~~~~
 
@@ -77,3 +76,24 @@ TorchTune tutorials.
    :tags: Template
 
 .. customcardend::
+
+Model Architectures
+===================
+    torchtune.models.llama2_7b
+
+Modeling Components and Building Blocks
+=======================================
+
+
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    torchtune.modules.CausalSelfAttention
+    torchtune.modules.FeedForward
+    torchtune.modules.KVCache
+    torchtune.modules.RotaryPositionalEmbeddings
+    torchtune.modules.RMSNorm
+    torchtune.modules.Tokenizer
+    torchtune.modules.TransformerDecoderLayer
+    torchtune.modules.TransformerDecoder

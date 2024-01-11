@@ -12,18 +12,18 @@ from torch import nn, Tensor
 class RotaryPositionalEmbeddings(nn.Module):
     """
     This class implements Rotary Positional Embeddings (RoPE)
-    proposed in: https://arxiv.org/abs/2104.09864
+    proposed in https://arxiv.org/abs/2104.09864.
 
     Reference implementation (used for correctness verfication)
     can be found here:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
 
     In this implementation we cache the embeddings for each position upto
-    ```max_seq_len``` by computing this during init.
+    ``max_seq_len`` by computing this during init.
 
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
-            head in the attention module computed as ```embed_dim``` // ```num_heads```
+            head in the attention module computed as ````embed_dim`` // ``num_heads````
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute

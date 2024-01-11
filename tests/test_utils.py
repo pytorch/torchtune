@@ -5,12 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+import unittest
 import uuid
 from typing import Any, Union
 
 import torch
 import torch.distributed.launcher as pet
 from torch import nn
+
+
+skip_if_cuda_not_available = unittest.skipIf(
+    not torch.cuda.is_available(), "CUDA is not available"
+)
 
 
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:

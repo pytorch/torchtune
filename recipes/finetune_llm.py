@@ -19,7 +19,7 @@ from torch.optim.optimizer import Optimizer
 
 from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-from torchtune.models.llama2.transformer import TransformerDecoderLayer
+from torchtune.modules import TransformerDecoderLayer
 from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
@@ -56,21 +56,25 @@ def recipe(kwargs):
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
-
+    # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
+    device_type = (
+        kwargs["device"]
+        if kwargs["device"] in ("cpu", "cuda")
+        else kwargs["device"].split(":")[0]
+    )
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
     autocast_precision = kwargs.get("autocast_precision", None)
     autocast_mgr = get_autocast_manager(
-        device_type=kwargs["device"], precision=autocast_precision
+        device_type=device_type, precision=autocast_precision
     )
     grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
 
     # When using fsdp, init on meta device to avoid OOM
     model = get_model(
         kwargs["model"],
-        "meta" if kwargs["fsdp"] else kwargs["device"],
-        vocab_size=tokenizer.vocab_size,
+        "meta" if kwargs["fsdp"] else device,
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
@@ -136,13 +140,14 @@ def recipe(kwargs):
             with autocast_mgr:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
                 # Flatten the tokens
-                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                shift_labels = shift_labels.view(-1)
+                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                # shift_labels = shift_labels.view(-1)
+                logits = logits.transpose(1, 2)
                 # Compute loss
-                loss = loss_fn(shift_logits, shift_labels)
+                loss = loss_fn(logits, labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
@@ -169,8 +174,12 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                logger(f"Generation tokens: {decoded_tokens}")
-                logger(f"Generation: {generation_str}")
+                if (
+                    not torch.distributed.is_initialized()
+                    or torch.distributed.get_rank() == 0
+                ):
+                    logger(f"Generation tokens: {decoded_tokens}")
+                    logger(f"Generation: {generation_str}")
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)

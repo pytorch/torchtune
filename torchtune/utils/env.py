@@ -51,7 +51,7 @@ def init_from_env(
 
     Args:
         device_type (Optional[str], optional): Device type to initialize. If None, device will be initialized
-                                  based on environment
+                                  based on environment. Supported device_types: "cpu", "cuda", "cuda:0", "cuda:1", etc.
         pg_backend (Optional[str], optional): The process group backend to use. If None, it will use the
                                     default process group backend from the device
         pg_timeout (timedelta, optional): Timeout for operations executed against the process
@@ -61,9 +61,24 @@ def init_from_env(
         The current device.
 
     Raises:
+        RuntimeError: If CUDA device type is specified, but CUDA is not available.
+        RuntimeError: If torch.distributed is in use, but an indexed device is specified.
         RuntimeError: If the device type is specified but does not match the device type from the environment.
     """
-    device = torch.device("cpu") if device_type == "cpu" else _get_device_from_env()
+    # Note: This will break when we need to support devices other than {CPU, CUDA}.
+    if device_type is None or device_type == "cuda":
+        device = _get_device_from_env()
+    elif device_type == "cpu":
+        device = torch.device("cpu")
+    elif "cuda:" in device_type:
+        if not torch.cuda.is_available():
+            raise RuntimeError(
+                f"CUDA is not available, but device specified is {device_type}"
+            )
+        else:
+            device_type, device_index = device_type.split(":")
+            device = torch.device(type=device_type, index=int(device_index))
+            torch.cuda.set_device(device)
 
     if device_type is not None and device.type != device_type:
         raise RuntimeError(
