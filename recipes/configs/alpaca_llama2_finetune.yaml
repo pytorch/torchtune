@@ -17,5 +17,6 @@ optimizer: SGD
 loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
+dtype: bf16
 fsdp: False
 activation_checkpointing: False

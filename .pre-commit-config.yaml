@@ -47,4 +47,4 @@ repos:
   rev: d88180a8632bb1602a4d81344085cf320f288c5a
   hooks:
     - id: pydoclint
-      args: [--style=google, --check-return-types=False, --exclude=torchtune/trainer/reproducible_dataloader.py]
+      args: [--style=google, --check-return-types=False]

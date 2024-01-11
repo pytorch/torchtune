@@ -9,14 +9,14 @@ import pytest
 import torch
 from torch.nn.functional import normalize
 from torchtune.models.llama2.rms_norm import RMSNorm
-from torchtune.utils.env import seed
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(0)
+    set_seed(0)
 
 
 class TestRMSNorm:

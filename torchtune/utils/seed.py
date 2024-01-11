@@ -6,6 +6,8 @@
 
 import logging
 import os
+
+import random
 from typing import Optional, Union
 
 import numpy as np
@@ -14,14 +16,16 @@ import torch
 _log: logging.Logger = logging.getLogger(__name__)
 
 
-def set_seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None:
+def set_seed(
+    seed: Optional[int] = None, deterministic: Optional[Union[str, int]] = None
+) -> int:
     """Function that sets seed for pseudo-random number generators across commonly used libraries.
 
     This seeds PyTorch, NumPy, and the python.random module.
     For more details, see https://pytorch.org/docs/stable/notes/randomness.html.
 
     Args:
-        seed (int): the integer value seed.
+        seed (Optional[int]): the integer value seed. If `None`, a random seed will be generated and set.
         deterministic (Optional[Union[str, int]]): Controls determinism settings within PyTorch.
             If `None`, don't set any PyTorch global values.
             If "default" or 0, don't error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.
@@ -30,9 +34,14 @@ def set_seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None
             For more details, see :func:`torch.set_deterministic_debug_mode` and
             https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms.
 
+    Returns:
+        The current seed int
+
     Raises:
         ValueError: If the input seed value is outside the required range.
     """
+    if seed is None:
+        seed = random.randint(0, 2**31)
     max_val = np.iinfo(np.uint32).max
     min_val = np.iinfo(np.uint32).min
     if seed < min_val or seed > max_val:
@@ -59,3 +68,5 @@ def set_seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None
             torch.backends.cudnn.benchmark = False
             # reference: https://docs.nvidia.com/cuda/cublas/index.html#cublasApi_reproducibility
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+
+    return seed

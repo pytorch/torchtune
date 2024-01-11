@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+from typing import Optional, Union
 
 import torch
 
@@ -30,7 +31,6 @@ def _get_device_from_env() -> torch.device:
                 "The local rank is larger than the number of available GPUs."
             )
         device = torch.device(f"cuda:{local_rank}")
-        torch.cuda.set_device(device)
     elif torch.backends.mps.is_available():
         device = torch.device("mps")
     else:
@@ -38,33 +38,48 @@ def _get_device_from_env() -> torch.device:
     return device
 
 
-def get_device(name: Optional[str] = None) -> torch.device:
-    """Function that gets the torch.device based on the input string.
+def get_device(device: Optional[Union[str, torch.device]] = None) -> torch.device:
+    """Function that takes or device or device string, verifies it's correct and availabe given the machine and
+    distributed settings, and returns a torch.device.
 
-    This currently supports only CPU and GPU devices. If CUDA is available, this function also sets the CUDA device.
+    If CUDA is available and being used, this function also sets the CUDA device.
 
     Args:
-        name (Optional[str]): The name of the device to use.
+        device (Optional[Union[str, torch.device]]): The name of the device to use.
 
     Raises:
-        ValueError: If the device is not supported.
+        RuntimeError: If the wrong device index is set during distributed training.
 
     Returns:
         device
     """
-    device = torch.device(name) if name is not None else _get_device_from_env()
-    if device.type == "cuda" and device.index is None:
-        device = _get_device_from_env()
+    # Convert device string to torch.device
+    if type(device) != torch.device:
+        if device is None:
+            device = _get_device_from_env()
+        else:
+            device = torch.device(device)
 
-    if name is not None and device.type != device_type:
-        raise RuntimeError(
-            f"Device type is specified to {name} but got {device.type} from env"
-        )
+    # Get device rank for cuda devices if not provided, and set Cuda device
+    if device.type == "cuda":
+        if device.index is None:
+            device = _get_device_from_env()
+        torch.cuda.set_device(device)
 
-    local_rank = int(os.environ.get("LOCAL_RANK", None))
-    if device.type == "cuda" and device.index != local_rank:
+        # Check if the device index is correct when distributed training
+        local_rank = os.environ.get("LOCAL_RANK", None)
+        if local_rank is not None and device.index != int(local_rank):
+            raise RuntimeError(
+                f"You can't specify a device index when using distributed training. \
+                Device specified is {device} but was assigned cuda:{local_rank}"
+            )
+
+    try:
+        # Check if the device is available on this machine
+        torch.empty(0, device=device)
+    except RuntimeError as e:
         raise RuntimeError(
-            f"You can't specify a device index when using distributed training. \
-            Device specified is {name} but was assigned cuda:{local_rank}"
-        )
+            f"The device {device} is not available on this machine."
+        ) from e
+
     return device

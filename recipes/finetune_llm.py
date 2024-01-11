@@ -16,20 +16,12 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
+from torchtune import utils
 
 from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
 from torchtune.models.llama2.transformer import TransformerDecoderLayer
-from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils import TuneArgumentParser
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.env import init_from_env
 from torchtune.utils.generation import generate_from_prompt
-from torchtune.utils.precision import (
-    get_autocast_manager,
-    get_grad_scaler,
-    get_supported_dtypes,
-)
 from tqdm import tqdm
 
 
@@ -53,23 +45,16 @@ def get_logger():
 def recipe(kwargs):
     # ---- Initialize components ---- #
     logger = get_logger()
-
-    # ---- Initialize distributed process group ---- #
-    device = init_from_env(device_type=kwargs["device"])
+    device = utils.get_device(kwargs["device"])
+    dtype = utils.get_dtype(kwargs["dtype"])
 
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
-    autocast_precision = kwargs.get("autocast_precision", None)
-    autocast_mgr = get_autocast_manager(
-        device_type=kwargs["device"], precision=autocast_precision
-    )
-    grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
-
     # When using fsdp, init on meta device to avoid OOM
     model = get_model(
         kwargs["model"],
-        "meta" if kwargs["fsdp"] else kwargs["device"],
+        "meta" if kwargs["fsdp"] else device,
         vocab_size=tokenizer.vocab_size,
     )
 
@@ -78,6 +63,7 @@ def recipe(kwargs):
             {TransformerDecoderLayer}
         )  # TODO: remove model specific components
     if kwargs["fsdp"]:
+        utils.init_distributed(device)
         model = FSDP(
             model,
             auto_wrap_policy=auto_wrap_policy,
@@ -100,17 +86,18 @@ def recipe(kwargs):
     logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
 
     opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
+    autoscale = utils.get_gradient_autoscaler(dtype, fsdp=kwargs["fsdp"])
     # TODO add lr schedule option
     loss_fn = get_loss(kwargs["loss"])
 
     # ---- Load dataset ---- #
     dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
-    dataloader = ReproducibleDataLoader(
+    dataloader = utils.ReproducibleDataLoader(
         dataset=dataset,
         batch_size=kwargs["batch_size"],
         shuffle=kwargs["shuffle"],
         collate_fn=partial(
-            batch_pad_to_longest_seq,
+            utils.batch_pad_to_longest_seq,
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
@@ -130,10 +117,10 @@ def recipe(kwargs):
             input_ids = input_ids.to(device)
             labels = labels.to(device)
 
-            # Note: context manager for autocast is only applied in forward pass.
+            # Automatically handles mixed precision when given a low precision dtype.
             # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
             # for more details.
-            with autocast_mgr:
+            with utils.autocast(device, dtype):
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
                 shift_logits = logits[..., :-1, :].contiguous()
@@ -148,13 +135,9 @@ def recipe(kwargs):
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
             )  # TODO: add terminal logger
 
-            if grad_scaler:
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(opt)
-                grad_scaler.update()
-            else:
-                loss.backward()
-                opt.step()
+            autoscale.scale(loss).backward()
+            autoscale.step(opt)
+            autoscale.update()
 
             run_generation = kwargs.get("run_generation", None)
             if run_generation and idx % run_generation == 0:
@@ -190,7 +173,7 @@ def recipe(kwargs):
 
 
 if __name__ == "__main__":
-    parser = TuneArgumentParser(description="Fine-tune an LLM model.")
+    parser = utils.TuneArgumentParser(description="Fine-tune an LLM model.")
 
     # Dataset and DataLoader arguments
     parser.add_argument(
@@ -295,13 +278,11 @@ if __name__ == "__main__":
         help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
     )
     parser.add_argument(
-        "--autocast-precision",
+        "--dtype",
         type=str,
-        choices=get_supported_dtypes(),
+        choices=utils.list_dtypes(),
         default=None,
-        help=f"""Low precision used for CUDA automatic mixed precision.
-            If specified, must be one of {get_supported_dtypes()}.
-        """,
+        help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
 
     kwargs = vars(parser.parse_args())

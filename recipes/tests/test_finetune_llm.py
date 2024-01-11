@@ -89,6 +89,7 @@ class TestFinetuneLLMRecipe:
             "loss": "CrossEntropyLoss",
             "output_dir": "/tmp",
             "device": "cpu",
+            "dtype": "fp32",
             "fsdp": False,
             "activation_checkpointing": False,
         }

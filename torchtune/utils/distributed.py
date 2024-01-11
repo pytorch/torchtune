@@ -7,12 +7,11 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 from torch.distributed.constants import default_pg_timeout
 
-from torchtune.utils.device import _get_device_from_env
 
 _log: logging.Logger = logging.getLogger(__name__)
 
@@ -31,9 +30,9 @@ def _check_dist_env() -> bool:
     return all(env is not None for env in env_required)
 
 
-def init_from_env(
+def init_distributed(
+    device: Union[str, torch.device],
     *,
-    device_type: Optional[str] = None,
     pg_backend: Optional[str] = None,
     pg_timeout: timedelta = default_pg_timeout,
 ) -> torch.device:
@@ -48,8 +47,7 @@ def init_from_env(
 
 
     Args:
-        device_type (Optional[str], optional): Device type to initialize. If None, device will be initialized
-                                  based on environment
+        device (Union[str, torch.device]): Device type to initialize.
         pg_backend (Optional[str], optional): The process group backend to use. If None, it will use the
                                     default process group backend from the device
         pg_timeout (timedelta, optional): Timeout for operations executed against the process
@@ -57,35 +55,24 @@ def init_from_env(
 
     Returns:
         The current device.
-
-    Raises:
-        RuntimeError: If the device type is specified but does not match the device type from the environment.
     """
-    device = torch.device("cpu") if device_type == "cpu" else _get_device_from_env()
-
-    if device_type is not None and device.type != device_type:
-        raise RuntimeError(
-            f"Device type is specified to {device_type} but got {device.type} from env"
-        )
-
     if _check_dist_env():
         if not torch.distributed.is_available():
             _log.warning(
                 "torch.distributed is not available. Skipping initializing the process group."
             )
-            return device
+            return
         if torch.distributed.is_initialized():
             _log.warning(
                 "torch.distributed is already initialized. Skipping initializing the process group."
             )
-            return device
+            return
         pg_backend = (
             pg_backend
             if pg_backend is not None
             else _get_process_group_backend_from_device(device)
         )
         torch.distributed.init_process_group(backend=pg_backend, timeout=pg_timeout)
-    return device
 
 
 def _get_process_group_backend_from_device(device: torch.device) -> str:

@@ -15,8 +15,8 @@ import torch
 
 from torchtune.models.llama2.tokenizer import Tokenizer
 from torchtune.models.llama2.transformer import TransformerDecoder
-from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
+from torchtune.utils.seed import set_seed
 from transformers import LlamaForCausalLM
 
 logging.basicConfig(level=logging.INFO)
@@ -74,6 +74,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--tokenizer-path", type=str, help="Path to tokenization file.")
     parser.add_argument("--hf-auth-token", type=str, help="HuggingFace auth token")
+    parser.add_argument("--seed", type=int, help="Random seed")
     args = parser.parse_args()
 
     # Inference setup
@@ -92,7 +93,8 @@ if __name__ == "__main__":
         tokenizer.encode(prompt, add_eos=False) for prompt in prompts
     ]
 
-    seed(0)
+    # Set seed, defaults to None
+    set_seed(args.seed)
 
     # --------- Initialize a decoder w/o kv-caching -------- #
     llama_7b_args = args_7b()

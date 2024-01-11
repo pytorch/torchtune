@@ -8,7 +8,7 @@
 
 import torch
 
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils.data import batch_pad_to_longest_seq
 
 
 class TestBatchPadSequence:
