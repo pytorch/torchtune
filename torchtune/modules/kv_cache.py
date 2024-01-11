@@ -10,7 +10,7 @@ import torch
 from torch import nn, Tensor
 
 
-class KVCache(torch.nn.Module):
+class KVCache(nn.Module):
     """
     Standalone nn.Module containing a kv-cache to cache past key and values during inference.
 
