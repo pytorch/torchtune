@@ -39,10 +39,10 @@ if __name__ == "__main__":
         "--prompt",
         action=ConvertNewlinesAction,
         type=str,
-        # the default is an example for the alpaca dataset
-        default="Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n### Instruction:\nAnswer the question.\n\n### "
-        "Input:\nWhat is some cool music from the 1920s?\n\n### Response:",
+        # example prompt for the alpaca dataset:
+        # "Below is an instruction that describes a task, paired with an input that provides further context. "
+        # "Write a response that appropriately completes the request.\n\n### Instruction:\nAnswer the question.\n\n### "
+        # "Input:\nWhat is some cool music from the 1920s?\n\n### Response:"
         help="Input to the model",
     )
     parser.add_argument(
