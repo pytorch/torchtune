@@ -10,7 +10,9 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 
 # Not ideal to import this type here but it's needed for the transform function
-from torchtune.models.llama2.tokenizer import Tokenizer
+from torchtune.modules import Tokenizer
+
+_CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class SlimOrcaDataset(Dataset):
@@ -60,13 +62,23 @@ class SlimOrcaDataset(Dataset):
         else:
             prompt = f"<s>[INST] {agent_text_dict['human']} [/INST]"
 
-        # prompt_and_response = prompt +
-        input_tokens = self._tokenizer(prompt_and_response)
-        reponse_tokens = self._tokenizer(f" {agent_text_dict['gpt']} </s>")
-        length_input_tokens = len(input_tokens)
+        response = f"{agent_text_dict['gpt']} </s>"
+        prompt_and_response = prompt + f"{response}"
 
-        labe = [_CROSS_ENTROPY_IGNORE_IDX for _ in ramge(len(As))]
-
-        return self._tokenizer.encode(prompt), self._tokenizer.encode(
-            f"{agent_text_dict['gpt']} </s>"
+        prompt_tokens = self._tokenizer.encode(prompt, add_bos=False, add_eos=False)
+        print("Prompt Token len ", len(prompt_tokens))
+        input = self._tokenizer.encode(
+            prompt_and_response, add_bos=False, add_eos=False
         )
+        print("Prompt and Response Token len ", len(input))
+        label_tokens = self._tokenizer.encode(response, add_bos=False, add_eos=False)
+        print("Label Token len ", len(label_tokens))
+
+        length_input_tokens = len(prompt)
+        label = [
+            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(prompt_tokens))
+        ] + label_tokens
+        print("input length ", len(input), " label length ", len(label))
+        assert len(input) == len(label)
+
+        return input, label
