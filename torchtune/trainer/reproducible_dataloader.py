@@ -51,7 +51,7 @@ class ReproducibleDataLoader(DataLoader):
         sampler: Union[Sampler, Iterable, None] = None,
         drop_last: bool = False,
         *args,
-        sampler_seed: int,
+        sampler_seed: Optional[int] = None,
         **kwargs,
     ):
         """
@@ -62,8 +62,8 @@ class ReproducibleDataLoader(DataLoader):
             raise ValueError("ReproducibleDataLoader only supports Map style datasets.")
 
         # If seed is not set, set it to a random number
-        if seed is None:
-            seed = torch.empty((), dtype=torch.int32).random_().item()
+        if sampler_seed is None:
+            sampler_seed = torch.empty((), dtype=torch.int32).random_().item()
 
         # Ensure that the seed provided is the same across all ranks
         if dist.is_available() and dist.is_initialized():
