@@ -38,6 +38,7 @@ class KVCache(nn.Module):
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
+        self.max_batch_size = max_batch_size
 
     def update(
         self, bsz: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
