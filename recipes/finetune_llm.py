@@ -16,11 +16,11 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
 from torchtune.modules import TransformerDecoderLayer
-from torchtune.trainer import ReproducibleDataLoader
 from torchtune.utils import TuneArgumentParser
 from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
 from torchtune.utils.env import get_world_size_and_rank, init_from_env, seed
@@ -55,11 +55,12 @@ def recipe(kwargs):
     logger = get_logger()
 
     # ---- Initialize seed ---- #
-    _, rank = get_world_size_and_rank()
-    if kwargs.get("seed", None) is None:
-        base_seed = torch.empty((), dtype=torch.int32).random_().item()
-    else:
-        base_seed = kwargs["seed"]
+    world_size, rank = get_world_size_and_rank()
+    if world_size > 1 and "seed" not in kwargs:
+        raise ValueError("Must set seed during distributed training. ")
+
+    base_seed = kwargs["seed"] or torch.empty((), dtype=torch.int32).random_().item()
+
     # Ensure that seed is different per rank (and its dataloader workers)
     seed(base_seed + rank)
 
@@ -116,23 +117,32 @@ def recipe(kwargs):
     # TODO add lr schedule option
     loss_fn = get_loss(kwargs["loss"])
 
-    # ---- Load dataset ---- #
+    # ---- Load dataset, set up sampler, and dataloader ---- #
     dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
-    dataloader = ReproducibleDataLoader(
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=kwargs["shuffle"],
+        seed=base_seed,
+    )
+    dataloader = DataLoader(
         dataset=dataset,
         batch_size=kwargs["batch_size"],
         shuffle=kwargs["shuffle"],
+        sampler=sampler,
         collate_fn=partial(
             batch_pad_to_longest_seq,
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
-        sampler_seed=base_seed,
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 
     # ---- Train loop ---- #
     for epoch in range(kwargs["epochs"]):
+        # Need to set the epoch for changing sample ordering in each epoch
+        dataloader.sampler.set_epoch(epoch)
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
             max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
