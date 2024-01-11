@@ -129,7 +129,6 @@ def recipe(kwargs):
     dataloader = DataLoader(
         dataset=dataset,
         batch_size=kwargs["batch_size"],
-        shuffle=kwargs["shuffle"],
         sampler=sampler,
         collate_fn=partial(
             batch_pad_to_longest_seq,
