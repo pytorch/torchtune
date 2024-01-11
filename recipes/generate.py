@@ -30,11 +30,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--prompt",
         type=str,
-        # example prompt for the alpaca dataset:
-        # "Below is an instruction that describes a task, paired with an input that provides further context. "
-        # "Write a response that appropriately completes the request.\n\n### Instruction:\nAnswer the question.\n\n### "
-        # "Input:\nWhat is some cool music from the 1920s?\n\n### Response:"
         help="Input to the model",
+        # for alpaca format see: https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release
     )
     parser.add_argument(
         "--max-gen-len",
