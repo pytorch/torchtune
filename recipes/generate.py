@@ -17,14 +17,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class ConvertNewlinesAction(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        # Convert the string "\\n" to an actual newline character "\n"
-        # Needed to allow passing newlines into argparse
-        values = values.replace("\\n", "\n")
-        setattr(namespace, self.dest, values)
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="""
@@ -37,7 +29,6 @@ if __name__ == "__main__":
     parser.add_argument("--tokenizer-path", type=str, help="Path to tokenization file.")
     parser.add_argument(
         "--prompt",
-        action=ConvertNewlinesAction,
         type=str,
         # example prompt for the alpaca dataset:
         # "Below is an instruction that describes a task, paired with an input that provides further context. "
