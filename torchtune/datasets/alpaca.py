@@ -57,13 +57,16 @@ class AlpacaDataset(Dataset):
         Returns:
             Tuple of encoded inputs and labels.
         """
-        response_tag = "\n\n### Response:"
+        response_tag = "\n\n### Response:\n"
         inst_inp_response_tag = sample[: sample.index(response_tag) + len(response_tag)]
-
-        encoded_full_prompt_and_response = self._tokenizer.encode(sample, add_bos=True, add_eos=True)
-        encoded_full_prompt = self._tokenizer.encode(inst_inp_response_tag, add_bos=True, add_eos=False)
-        labels = encoded_full_prompt_and_response.copy()
-        for i in range(len(encoded_full_prompt)):
-            labels[i] = _CROSS_ENTROPY_IGNORE_IDX
-
-        return encoded_full_prompt_and_response, labels
+        response = sample[sample.index(response_tag) + len(response_tag) :]
+        inst_inp_response_tag = self._tokenizer.encode(
+            inst_inp_response_tag, add_bos=True, add_eos=False
+        )
+        response = self._tokenizer.encode(response, add_bos=False, add_eos=True)
+        input = inst_inp_response_tag + response
+        label = [
+            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))
+        ] + response
+        assert len(input) == len(label)
+        return input, label
