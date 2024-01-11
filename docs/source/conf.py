@@ -50,18 +50,13 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.duration",
-    "myst_parser",
     "sphinx_design",
     "sphinx_gallery.gen_gallery",
     "sphinx_copybutton",
 ]
 
-myst_enable_extensions = [
-    "colon_fence",
-]
-
 sphinx_gallery_conf = {
-    "examples_dirs": ["tutorials_source"],
+    "examples_dirs": ["../../examples"],
     "gallery_dirs": ["tutorials"],
     "filename_pattern": "/tutorials/",
     "backreferences_dir": "gen_modules/backreferences",
@@ -80,8 +75,7 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = [".rst", ".md"]
-
+source_suffix = [".rst"]
 
 # The master toctree document.
 master_doc = "index"

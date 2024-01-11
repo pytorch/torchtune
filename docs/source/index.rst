@@ -59,10 +59,10 @@ Topics in this section will help you get started with TorchTune.
    :caption: API Reference
    :hidden:
 
-   generated/torchtune.models.llama2.attention.LlamaSelfAttention
+   llama-self-attention
 
-Tutorials and Examples
-~~~~~~~~~~~~~~~~~~~~~~
+Tutorials
+~~~~~~~~~
 
 Ready to experiment? Check out some of the interactive
 TorchTune tutorials.
