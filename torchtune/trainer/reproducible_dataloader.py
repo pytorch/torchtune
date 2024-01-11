@@ -24,7 +24,7 @@ class ReproducibleDataLoader(DataLoader):
     A version of :class:`~torch.utils.data.DataLoader` that supports
     reproducing the order of iteration over the dataset and shuffling the
     iteration order across epoch boundaries through the ``seed`` parameter.
-    This provides repeatability in dataloading and transforms executed in dataloader workers.
+    This provides repeatability in dataloading executed in dataloader workers.
 
     [Typical usage] If users don't pass in a sampler, then :class:`~torch.utils.
     data.DistributedSampler` is used and its `set_epoch` method is called every time iter is called on the `DataLoader.
@@ -38,7 +38,9 @@ class ReproducibleDataLoader(DataLoader):
     Args:
         seed (int, optional): Seed used to initialize a :class:`~torch.utils.
         data.DistributedSampler` sampler if no custom sampler is provided by the
-        user. If no seed is provided, a random number is used as the seed.
+        user. If no generator is provided, seed is also used to set the
+        base_seed for all dataloader workers to ensure transforms are
+        repeatable. If no seed is provided, a random number is used as the seed.
         (default: ``None``)
     """
 
@@ -59,6 +61,10 @@ class ReproducibleDataLoader(DataLoader):
         if isinstance(dataset, IterableDataset):
             raise ValueError("ReproducibleDataLoader only supports Map style datasets.")
 
+        # If seed is not set, set it to a random number
+        if seed is None:
+            seed = torch.empty((), dtype=torch.int32).random_().item()
+
         # Ensure that the seed provided is the same across all ranks
         if dist.is_available() and dist.is_initialized():
             seed_tensor = torch.tensor(sampler_seed)
@@ -69,6 +75,8 @@ class ReproducibleDataLoader(DataLoader):
             if output_max.item() != sampler_seed or output_min.item() != sampler_seed:
                 raise ValueError(
                     f"Seed {sampler_seed} is not the same across all ranks. "
+                    f"For distributed training, make sure --seed param is set "
+                    f"and has the same value for all ranks."
                     f"Max: {output_max.item()}, Min: {output_min.item()}"
                 )
         # TODO: Log warning that seed check is not being performed
