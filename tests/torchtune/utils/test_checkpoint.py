@@ -12,8 +12,6 @@ import tempfile
 import numpy as np
 import pytest
 import torch
-
-from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
@@ -23,6 +21,8 @@ from torchtune.utils.env import (
     init_from_env,
     seed,
 )
+
+from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
 
 
 class TestCheckpoint:
@@ -34,6 +34,10 @@ class TestCheckpoint:
 
     def _get_model_and_optim(self, zero_model, fsdp):
         model = torch.nn.Linear(10, 10)
+        if zero_model:
+            with torch.no_grad():
+                for p in model.parameters():
+                    p.zero_()
         if fsdp:
             model = FSDP(model)
         optim = torch.optim.SGD(model.parameters(), lr=0.01)
@@ -60,9 +64,7 @@ class TestCheckpoint:
         checkpoint = {"model": model, "optimizer": optim, "lr": 0.01}
         loaded_ckpt = self._save_and_load(checkpoint)
         assert "lr" in loaded_ckpt and loaded_ckpt["lr"] == 0.01
-        model_new, optim_new = self._get_model_and_optim(
-            zero_model=True, fsdp=False
-        )
+        model_new, optim_new = self._get_model_and_optim(zero_model=True, fsdp=False)
         load_checkpoint(ckpt_dict=loaded_ckpt, model=model_new, optimizer=optim_new)
         # model_new and model params should match
         for p1, p2 in zip(model.parameters(), model_new.parameters()):
