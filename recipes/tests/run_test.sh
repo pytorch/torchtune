@@ -4,12 +4,12 @@
 # Longer Test using llama 7b checkpoint: ./run_test.sh --large-scale
 
 LOCAL_DIR="/tmp/test-artifacts"
-S3_URLS=("s3://pytorch-multimodal/llama2-7b/tokenizer.model" "s3://pytorch-multimodal/small_ckpt_01052024.model")
+S3_URLS=("s3://pytorch-multimodal/llama2-7b/tokenizer.model" "s3://pytorch-multimodal/small-ckpt-01112024")
 PYTEST_COMMAND="pytest recipes/tests"
 
 if [[ $# -gt 0 ]]; then
     if [ "$1" = "--large-scale" ]; then
-        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-01052024")
+        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-01112024")
         PYTEST_COMMAND+=" --large-scale True"
     fi
 fi
