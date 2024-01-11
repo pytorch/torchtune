@@ -12,7 +12,14 @@ import torch
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.datasets import get_dataset, list_datasets
+from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
+from torchtune.modules import TransformerDecoderLayer
+from torchtune.trainer import ReproducibleDataLoader
+from torchtune.utils import TuneArgumentParser
+from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
+from torchtune.utils.env import init_from_env
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -65,12 +72,32 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
+<<<<<<< HEAD
     loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
     model.load_state_dict(loaded_ckpt)
     logger.info(msg=f"Loaded model from {model_checkpoint}")
 
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
+    if not args.resume_from_ckpt:
+        # Load pretrained model
+        loaded_ckpt = torch.load(
+            kwargs["model_checkpoint"], map_location="cpu", weights_only=True
+        )
+        logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
+
+    opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
+
+    if args.resume_from_ckpt:
+        # Load in previously saved model and optimizer states from previous finetuning job.
+        ckpt_dict = torch.load(
+            kwargs["model_checkpoint"], map_location="cpu", weights_only=True
+        )
+        load_checkpoint(ckpt_dict=ckpt_dict, model=model, optimizer=opt)
+        logger(
+            msg=f"Loaded model and optimizer from previous finetune {kwargs['model_checkpoint']}"
+        )
+
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
 
@@ -152,6 +179,7 @@ def recipe(
                     logger.info(f"Generation: {generation_str}")
             # --- TODO TEMPORARY EVAL Code Ends ---- #
 
+<<<<<<< HEAD
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
@@ -299,6 +327,12 @@ if __name__ == "__main__":
         choices=utils.list_dtypes(),
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
+    )
+    parser.add_argument(
+        "--resume-from-ckpt",
+        help="Resume training from checkpointed model and optimizer states. Note that to use this flag, checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility.",
+        default=False,
+        action="store_true",
     )
 
     kwargs = vars(parser.parse_args())
