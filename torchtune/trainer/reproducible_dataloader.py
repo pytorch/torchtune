@@ -6,6 +6,7 @@
 from typing import Iterable, Optional, Union
 
 import torch
+from torch.distributed.checkpoint.stateful import Stateful
 from torch.utils.data import (
     DataLoader,
     Dataset,
@@ -16,7 +17,7 @@ from torch.utils.data import (
 from torch.utils.data.dataloader import _get_distributed_settings
 
 
-class ReproducibleDataLoader(DataLoader):
+class ReproducibleDataLoader(DataLoader, Stateful):
     """
     A version of :class:`~torch.utils.data.DataLoader` that supports
     reproducing the order of iteration over the dataset and shuffling the
@@ -41,6 +42,13 @@ class ReproducibleDataLoader(DataLoader):
         (default: ``None``)
     """
 
+    VERSION_KEY = "state_dict_version"
+    EPOCH_COUNT_KEY = "epoch_count"
+    SAMPLER_SEED_KEY = "sampler_seed"
+    WORLD_SIZE_KEY = "world_size"
+    SKIP_NUM_SAMPLES_KEY = "skip_num_samples"
+    VERSION_V1 = "v1"
+
     def __init__(  # noqa: DOC101
         self,
         dataset: Dataset,
@@ -64,6 +72,7 @@ class ReproducibleDataLoader(DataLoader):
         # If seed is not set, set it to a random number
         if seed is None:
             seed = torch.empty((), dtype=torch.int64).random_().item()
+        self._seed = seed
         # TODO: Log the seed value for debugging purposes
 
         # Use the seed as base_seed for all workers to ensure transforms are repeatable
@@ -71,14 +80,14 @@ class ReproducibleDataLoader(DataLoader):
             generator = torch.Generator()
             generator.manual_seed(seed)
 
-        world_size, rank = _get_distributed_settings()
+        self._world_size, rank = _get_distributed_settings()
         if not self._is_custom_sampler:
             # For map-style dataset, use DistributedSampler that ensures that
             # seed can be provided and shuffling order can be different at
             # epoch intervals
             sampler = DistributedSampler(
                 dataset,
-                num_replicas=world_size,
+                num_replicas=self._world_size,
                 rank=rank,
                 shuffle=shuffle,
                 seed=seed,
@@ -105,3 +114,32 @@ class ReproducibleDataLoader(DataLoader):
             self.sampler.set_epoch(self._epoch)
             self._epoch += 1
         return super().__iter__()
+
+    def state_dict(self) -> Dict[str, Any]:
+        sd = {
+            self.VERSION_KEY: self.VERSION_V1,
+            self.EPOCH_COUNT_KEY: self._epoch,
+            self.SAMPLER_SEED_KEY: self._seed,
+            self.WORLD_SIZE_KEY: self._world_size,
+            self.SKIP_NUM_SAMPLES_KEY: 0,
+        }
+        return sd
+
+    def load_state_dict(self, state_dict: Dict[str, Any]):
+        version = state_dict.get(self.VERSION_KEY, None)
+        if version != self.VERSION_V1:
+            raise ValueError(f"Version key {version} unknown")
+        self._epoch = state_dict.get(self.EPOCH_COUNT_KEY)
+        seed = state_dict.get(self.SAMPLER_SEED_KEY)
+        if seed != self._seed:
+            raise ValueError(
+                f"Seed {seed} in state_dict does not match seed {self._seed} in loader"
+            )
+
+        world_size = state_dict.get(self.WORLD_SIZE_KEY)
+        if world_size != self._world_size:
+            raise ValueError(
+                f"World size {world_size} in state_dict does not match world size {self._world_size} in loader"
+            )
+
+        skip_num_samples = state_dict.get(self.SKIP_NUM_SAMPLES_KEY)
