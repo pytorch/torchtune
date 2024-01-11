@@ -60,6 +60,13 @@ class SlimOrcaDataset(Dataset):
         else:
             prompt = f"<s>[INST] {agent_text_dict['human']} [/INST]"
 
+        # prompt_and_response = prompt +
+        input_tokens = self._tokenizer(prompt_and_response)
+        reponse_tokens = self._tokenizer(f" {agent_text_dict['gpt']} </s>")
+        length_input_tokens = len(input_tokens)
+
+        labe = [_CROSS_ENTROPY_IGNORE_IDX for _ in ramge(len(As))]
+
         return self._tokenizer.encode(prompt), self._tokenizer.encode(
             f"{agent_text_dict['gpt']} </s>"
         )
