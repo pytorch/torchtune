@@ -45,16 +45,16 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
-            "1|1|": 10.5415,
-            "1|2|": 10.5331,
-            "2|1|": 10.5345,
-            "2|2|": 10.4700,
+            "1|1|": 10.5011,
+            "1|2|": 10.5740,
+            "2|1|": 10.5221,
+            "2|2|": 10.4835,
         }
         llama2_7b_ckpt_loss_values = {
-            "1|1|": 1.3008,
-            "1|2|": 1.3043,
-            "2|1|": 1.1492,
-            "2|2|": 0.9153,
+            "1|1|": 1.2381,
+            "1|2|": 1.1042,
+            "2|1|": 1.3086,
+            "2|2|": 0.9908,
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
@@ -64,9 +64,9 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
-            return "/tmp/test-artifacts/small_ckpt_01052024.model"
+            return "/tmp/test-artifacts/small-ckpt-01112024"
         if ckpt == "llama2_7b":
-            return "/tmp/test-artifacts/llama2-7b-01052024"
+            return "/tmp/test-artifacts/llama2-7b-01112024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):
@@ -76,7 +76,7 @@ class TestFinetuneLLMRecipe:
 
         kwargs_values = {
             "dataset": "alpaca",
-            "dataloader_seed": 9,
+            "seed": 9,
             "shuffle": True,
             "model": ckpt,
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),

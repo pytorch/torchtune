@@ -94,3 +94,12 @@ Modeling Components and Building Blocks
     torchtune.modules.Tokenizer
     torchtune.modules.TransformerDecoderLayer
     torchtune.modules.TransformerDecoder
+
+
+PEFT Components
+
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
+
+    torchtune.modules.peft.LoRALinear

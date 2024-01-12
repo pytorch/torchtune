@@ -1,11 +1,11 @@
 # Dataset and Dataloader
 dataset: alpaca
-dataloader_seed: null
+seed: null
 shuffle: True
 
 # Model Arguments
 model: llama2_7b
-model_checkpoint: /tmp/llama2-7b-01052024
+model_checkpoint: /tmp/llama2-7b-01112024
 tokenizer: llama2_tokenizer
 tokenizer_checkpoint: /tmp/tokenizer.model
 
