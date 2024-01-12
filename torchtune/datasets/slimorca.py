@@ -16,7 +16,9 @@ _CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class SlimOrcaDataset(Dataset):
-    """PyTorch Representation of the SlimOrca Dataset from Hugging Face.
+    """PyTorch Representation of the SlimOrca Dataset
+    https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
+    from Hugging Face.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
