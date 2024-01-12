@@ -78,6 +78,13 @@ does with the following additional functionalities:
 5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
 
 # Contributing
+### Dev install
+To install additional dependencies for contributing, run the following:
+
+```
+pip install -e ".[dev]"
+```
+
 ### Coding Style
 `torchtune` uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
 
