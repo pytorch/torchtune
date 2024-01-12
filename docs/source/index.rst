@@ -48,7 +48,7 @@ TorchTune tutorials.
 
 .. toctree::
    :glob:
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Introduction
    :hidden:
 
@@ -56,7 +56,7 @@ TorchTune tutorials.
 
 .. toctree::
    :glob:
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Getting Started
    :hidden:
 
@@ -64,7 +64,7 @@ TorchTune tutorials.
 
 .. toctree::
    :glob:
-   :maxdepth: 1
+   :maxdepth: 2
    :caption: Tutorials
    :hidden:
 

@@ -5,30 +5,6 @@
 Examples and tutorials
 ======================
 
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbnails">
-
-
-.. raw:: html
-
-    <div class="sphx-glr-thumbcontainer" tooltip="This is the best example in the world.">
-
-.. only:: html
-
-  .. image:: /tutorials/images/thumb/sphx_glr_plot_the_best_example_in_the_world_thumb.png
-    :alt:
-
-  :ref:`sphx_glr_tutorials_plot_the_best_example_in_the_world.py`
-
-.. raw:: html
-
-      <div class="sphx-glr-thumbnail-title">The Best Example in the World</div>
-    </div>
-
-
 .. raw:: html
 
     <div class="sphx-glr-thumbcontainer" tooltip="Author: FirstName LastName">
@@ -54,7 +30,6 @@ Examples and tutorials
 .. toctree::
    :hidden:
 
-   /tutorials/plot_the_best_example_in_the_world
    /tutorials/template_tutorial
 
 
