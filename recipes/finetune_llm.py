@@ -20,7 +20,7 @@ from torchtune import utils
 
 from torchtune.datasets import get_dataset, list_datasets
 from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-from torchtune.models.llama2.transformer import TransformerDecoderLayer
+from torchtune.modules import TransformerDecoderLayer
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -55,7 +55,6 @@ def recipe(kwargs):
     model = get_model(
         kwargs["model"],
         "meta" if kwargs["fsdp"] else device,
-        vocab_size=tokenizer.vocab_size,
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
@@ -123,13 +122,14 @@ def recipe(kwargs):
             with utils.autocast(device, dtype):
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
-                shift_logits = logits[..., :-1, :].contiguous()
-                shift_labels = labels[..., 1:].contiguous()
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
                 # Flatten the tokens
-                shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                shift_labels = shift_labels.view(-1)
+                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
+                # shift_labels = shift_labels.view(-1)
+                logits = logits.transpose(1, 2)
                 # Compute loss
-                loss = loss_fn(shift_logits, shift_labels)
+                loss = loss_fn(logits, labels)
 
             pbar.set_description(
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
@@ -152,8 +152,12 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                logger(f"Generation tokens: {decoded_tokens}")
-                logger(f"Generation: {generation_str}")
+                if (
+                    not torch.distributed.is_initialized()
+                    or torch.distributed.get_rank() == 0
+                ):
+                    logger(f"Generation tokens: {decoded_tokens}")
+                    logger(f"Generation: {generation_str}")
 
         # Save checkpoint at end of each epoch (to be changed later)
         os.makedirs(kwargs["output_dir"], exist_ok=True)

@@ -7,10 +7,10 @@
 from typing import Tuple
 
 import torch
-from torch import Tensor
+from torch import nn, Tensor
 
 
-class KVCache(torch.nn.Module):
+class KVCache(nn.Module):
     """
     Standalone nn.Module containing a kv-cache to cache past key and values during inference.
 
@@ -32,8 +32,13 @@ class KVCache(torch.nn.Module):
     ):
         super().__init__()
         cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
-        self.k_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
-        self.v_cache = torch.nn.Parameter(torch.zeros(cache_shape, dtype=dtype))
+        self.register_buffer(
+            "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+        )
+        self.register_buffer(
+            "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
+        )
+        self.max_batch_size = max_batch_size
 
     def update(
         self, bsz: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
@@ -48,9 +53,17 @@ class KVCache(torch.nn.Module):
             k_val (Tensor): New k value.
             v_val (Tensor): New v value.
 
+        Raises:
+            ValueError: if bsz is greater than the ``max_batch_size`` supported by the model
+
         Returns:
-            Tuple[Tensor, Tensor]: the k-cache and v-cache
+            Tuple[Tensor, Tensor]: the key-cache and value-cache
         """
+        if bsz > self.max_batch_size:
+            raise ValueError(
+                f"Batch size {bsz} greater than max batch size {self.max_batch_size}"
+            )
+
         self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k_val
         self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v_val
         return (

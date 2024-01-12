@@ -6,17 +6,17 @@
 
 import torch
 
-from torch import nn
-
-from torchtune.models.llama2.transformer import TransformerDecoder
-
 from tests.test_utils import init_weights_with_constant
 
 from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
 from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
-    RMSNorm,
+    RMSNormRef,
     TransformerBlock,
 )
+
+from torch import nn
+
+from torchtune.models import llama2
 
 """
 Reference implementation of Transformer from:
@@ -50,7 +50,7 @@ class Transformer(nn.Module):
                 TransformerBlock(n_heads=n_heads, dim=dim, n_kv_heads=n_kv_heads)
             )
 
-        self.norm = RMSNorm(dim)
+        self.norm = RMSNormRef(dim)
         self.output = nn.Linear(dim, vocab_size, bias=False)
 
         self.freqs_cis = precompute_freqs_cis(dim // n_heads, max_seq_len * 2)
@@ -91,8 +91,6 @@ def compare_decoder(
     # unit test
     torch.manual_seed(16)
 
-    head_dim = embed_dim // num_heads
-
     # generate input tensor used by both implementations
     x_input = torch.randint(low=0, high=vocab_size, size=(bsz, seq_len))
 
@@ -111,7 +109,7 @@ def compare_decoder(
         output_ref = decoder_ref(x_input)
 
     # current implementation; initialize with constant to compare outputs
-    decoder = TransformerDecoder(
+    decoder = llama2(
         vocab_size=vocab_size,
         embed_dim=embed_dim,
         num_layers=num_layers,

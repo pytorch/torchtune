@@ -1,17 +1,25 @@
 TorchTune
 =========
 
-Hello.
+Model Architectures
 
 .. autosummary::
     :toctree: generated/
     :template: class.rst
 
-    torchtune.models.llama2.attention.LlamaSelfAttention
+    torchtune.models.llama2_7b
 
+Modeling Components and Building Blocks
 
-.. toctree::
-    :maxdepth: 1
-    :caption: Examples and tutorials
+.. autosummary::
+    :toctree: generated/
+    :template: class.rst
 
-    auto_examples/index
+    torchtune.modules.CausalSelfAttention
+    torchtune.modules.FeedForward
+    torchtune.modules.KVCache
+    torchtune.modules.RotaryPositionalEmbeddings
+    torchtune.modules.RMSNorm
+    torchtune.modules.Tokenizer
+    torchtune.modules.TransformerDecoderLayer
+    torchtune.modules.TransformerDecoder

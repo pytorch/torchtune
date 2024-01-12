@@ -10,12 +10,13 @@ from typing import Dict
 import pytest
 import recipes.finetune_llm as finetune_llm
 from torchtune import models
+from torchtune.models.llama2 import llama2
 
-from torchtune.models.llama2.transformer import TransformerDecoder
+from torchtune.modules import TransformerDecoder
 
 
-def small_test_ckpt(vocab_size: int) -> TransformerDecoder:
-    return TransformerDecoder(
+def small_test_ckpt() -> TransformerDecoder:
+    return llama2(
         vocab_size=32_000,
         num_layers=4,
         num_heads=16,
@@ -50,10 +51,10 @@ class TestFinetuneLLMRecipe:
             "2|2|": 10.4700,
         }
         llama2_7b_ckpt_loss_values = {
-            "1|1|": 12.5535,
-            "1|2|": 8.7051,
-            "2|1|": 7.7058,
-            "2|2|": 7.8551,
+            "1|1|": 1.3008,
+            "1|2|": 1.3043,
+            "2|1|": 1.1492,
+            "2|2|": 0.9153,
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
@@ -63,9 +64,9 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
-            return "/tmp/test-artifacts/small_ckpt.model"
+            return "/tmp/test-artifacts/small-ckpt-01112024"
         if ckpt == "llama2_7b":
-            return "/tmp/test-artifacts/llama2-7b-native-checkpoint"
+            return "/tmp/test-artifacts/llama2-7b-01112024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):

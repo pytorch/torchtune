@@ -10,10 +10,14 @@ import pytest
 
 import torch
 
-from torch import Tensor
-from torchtune.models.llama2.rms_norm import RMSNorm
+from torch import nn, Tensor
 
-from torchtune.models.llama2.transformer import (
+from torchtune.models.llama2 import _scale_hidden_dim_for_mlp, llama2
+from torchtune.modules import (
+    CausalSelfAttention,
+    FeedForward,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
@@ -62,11 +66,26 @@ class TestTransformerDecoderLayer:
         self, layer_params: Tuple[int, int, int, int]
     ) -> TransformerDecoderLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
-        transformer_layer = TransformerDecoderLayer(
+        head_dim = embed_dim // num_heads
+        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+        self_attn = CausalSelfAttention(
+            embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
-            embed_dim=embed_dim,
+            head_dim=head_dim,
+            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+            pos_embeddings=rope,
             max_seq_len=max_seq_len,
+        )
+        hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+        mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+        transformer_layer = TransformerDecoderLayer(
+            attn=self_attn,
+            mlp=mlp,
+            sa_norm=RMSNorm(dim=embed_dim),
+            mlp_norm=RMSNorm(dim=embed_dim),
         )
         init_weights_with_constant(transformer_layer, constant=0.05)
         transformer_layer.eval()
@@ -147,7 +166,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = TransformerDecoder(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -172,7 +191,7 @@ class TestTransformerDecoder:
             max_seq_len,
             num_kv_heads,
         ) = decoder_params
-        decoder = TransformerDecoder(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,
@@ -237,7 +256,7 @@ class TestTransformerDecoder:
             num_kv_heads,
         ) = decoder_params
         rms_norm_eps = 1e-2
-        decoder = TransformerDecoder(
+        decoder = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=num_heads,

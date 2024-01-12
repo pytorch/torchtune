@@ -11,7 +11,7 @@ import pytest
 import torch
 from torch import Tensor
 
-from torchtune.models.llama2.feed_forward import FeedForward
+from torchtune.modules import FeedForward
 from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -28,7 +28,7 @@ class TestFeedForward:
     @pytest.fixture
     def input_params(self) -> Tuple[int, int]:
         dim = 4096
-        hidden_dim = 4096
+        hidden_dim = 11008  # Scaled for SwiGLU
         return dim, hidden_dim
 
     @pytest.fixture
@@ -39,7 +39,7 @@ class TestFeedForward:
     @pytest.fixture
     def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
-        ff = FeedForward(dim, hidden_dim).eval()
+        ff = FeedForward(dim, hidden_dim, linear_class=torch.nn.Linear).eval()
         fixed_init_model(ff)
         ff.eval()
         return ff

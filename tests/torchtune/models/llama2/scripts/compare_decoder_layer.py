@@ -8,10 +8,6 @@ from typing import Optional
 
 import torch
 
-from torch import nn
-
-from torchtune.models.llama2.transformer import TransformerDecoderLayer
-
 from tests.test_utils import init_weights_with_constant
 
 from tests.torchtune.models.llama2.scripts.compare_attention import (
@@ -19,6 +15,17 @@ from tests.torchtune.models.llama2.scripts.compare_attention import (
     precompute_freqs_cis,
 )
 from tests.torchtune.models.llama2.scripts.compare_feed_forward import FeedForwardRef
+
+from torch import nn
+from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
+
+from torchtune.modules import (
+    CausalSelfAttention,
+    FeedForward,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
+    TransformerDecoderLayer,
+)
 
 
 """
@@ -30,7 +37,7 @@ include params for the constructor and remove start_pos (not supported).
 """
 
 
-class RMSNorm(torch.nn.Module):
+class RMSNormRef(torch.nn.Module):
     def __init__(self, dim: int, eps: float = 1e-6):
         super().__init__()
         self.eps = eps
@@ -61,8 +68,8 @@ class TransformerBlock(nn.Module):
         # self.head_dim = args.dim // args.n_heads
         self.attention = Attention(n_heads=n_heads, n_kv_heads=n_kv_heads, dim=dim)
         self.feed_forward = FeedForwardRef(dim=dim, hidden_dim=4 * dim)
-        self.attention_norm = RMSNorm(dim=dim)
-        self.ffn_norm = RMSNorm(dim=dim)
+        self.attention_norm = RMSNormRef(dim=dim)
+        self.ffn_norm = RMSNormRef(dim=dim)
 
     def forward(
         self,
@@ -113,11 +120,32 @@ def compare_decoder_layer(
         block_out = transformer_block(x=input_t, freqs_cis=freq_cis, mask=mask)
 
     # current implementation; initialize with constant to compare outputs
-    transformer_layer = TransformerDecoderLayer(
+    norm_eps = 1e-6
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
+        head_dim=head_dim,
+        qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        pos_embeddings=rope,
+        kv_cache=None,
         max_seq_len=max_seq_len,
+        attn_dropout=0.0,
+    )
+    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    mlp = FeedForward(
+        dim=embed_dim, hidden_dim=hidden_dim, linear_class=torch.nn.Linear
+    )
+    transformer_layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     init_weights_with_constant(transformer_layer, constant=0.05)
 
