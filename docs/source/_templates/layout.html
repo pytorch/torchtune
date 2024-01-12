@@ -4,34 +4,6 @@
     {% include "searchbox.html" %}
 {% endblock %}
 
-<!-- Commenting out download tutorial links for initial release -->
-<!-- {%- block content %}
-    {% if 'tutorial' in pagename %}
-
-    <div class="pytorch-call-to-action-links">
-      <div id="tutorial-type">{{ pagename }}</div>
-
-      <div id="google-colab-link">
-        <img class="call-to-action-img" src="{{ pathto('_static/images/pytorch-colab.svg', 1) }}"/>
-        <div class="call-to-action-desktop-view">Run in Google Colab</div>
-        <div class="call-to-action-mobile-view">Colab</div>
-      </div>
-      <div id="download-notebook-link">
-        <img class="call-to-action-notebook-img" src="{{ pathto('_static/images/pytorch-download.svg', 1) }}"/>
-        <div class="call-to-action-desktop-view">Download Notebook</div>
-        <div class="call-to-action-mobile-view">Notebook</div>
-      </div>
-      <div id="github-view-link">
-        <img class="call-to-action-img" src="{{ pathto('_static/images/pytorch-github.svg', 1) }}"/>
-        <div class="call-to-action-desktop-view">View on GitHub</div>
-        <div class="call-to-action-mobile-view">GitHub</div>
-      </div>
-    </div>
-
-    {% endif %}
-    {{ super() }}
-
-{% endblock %} -->
 
 {% block footer %}
 <!-- Commenting out to turn off TOC expansion while developing docs content -->
