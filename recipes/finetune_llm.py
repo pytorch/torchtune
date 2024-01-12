@@ -141,7 +141,7 @@ def recipe(kwargs):
     # ---- Train loop ---- #
     for epoch in range(kwargs["epochs"]):
         # Need to set the epoch for changing sample ordering in each epoch
-        dataloader.sampler.set_epoch(epoch)
+        sampler.set_epoch(epoch)
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
             max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
