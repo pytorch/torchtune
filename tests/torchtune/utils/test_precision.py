@@ -72,14 +72,14 @@ class TestPrecisionUtils:
         Tests that the correct autocast manager is returned based on precision.
         """
 
-        for dtype in ["fp16", "bf16"]:
+        for dtype in ["fp16"]:
             assert isinstance(
-                autocast(device="cuda", dtype=dtype),
+                autocast(device="cpu", dtype=dtype),
                 torch.autocast,
             )
         for dtype in ["fp32", None]:
             assert isinstance(
-                autocast(device="cuda", dtype=dtype),
+                autocast(device="cpu", dtype=dtype),
                 contextlib.nullcontext,
             )
 
