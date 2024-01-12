@@ -56,7 +56,7 @@ def recipe(kwargs):
 
     # ---- Initialize seed ---- #
     world_size, rank = get_world_size_and_rank()
-    if "seed" in kwargs:
+    if kwargs["seed"] is not None:
         # Ensure that seed is different per rank (and its dataloader workers)
         seed(kwargs["seed"] + rank)
 
