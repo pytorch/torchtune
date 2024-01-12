@@ -56,9 +56,9 @@ def recipe(kwargs):
 
     # ---- Initialize seed ---- #
     world_size, rank = get_world_size_and_rank()
-    base_seed = kwargs["seed"]
-    # Ensure that seed is different per rank (and its dataloader workers)
-    seed(base_seed + rank)
+    if "seed" in kwargs:
+        # Ensure that seed is different per rank (and its dataloader workers)
+        seed(kwargs["seed"] + rank)
 
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
@@ -120,7 +120,7 @@ def recipe(kwargs):
         num_replicas=world_size,
         rank=rank,
         shuffle=kwargs["shuffle"],
-        seed=base_seed,
+        seed=0,
     )
     dataloader = DataLoader(
         dataset=dataset,
@@ -225,12 +225,10 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed",
         type=int,
-        default=0,
+        default=None,
         help="""
-            Seed for dataset shuffling order and setting trainer and dataloader
-            workers random number generator state. Using same seed value will
-            provide the same ordering and transforms of samples across runs.
-            Defaults to 0.
+            Seed for setting trainer and dataloader workers random number generator state. Using same seed value will
+            provide the same transforms of samples across runs.
             """,
     )
     parser.add_argument("--shuffle", help="Shuffle dataset.", default=True)

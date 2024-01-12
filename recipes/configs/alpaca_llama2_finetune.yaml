@@ -1,6 +1,6 @@
 # Dataset and Dataloader
 dataset: alpaca
-seed: 0
+seed: null
 shuffle: True
 
 # Model Arguments
