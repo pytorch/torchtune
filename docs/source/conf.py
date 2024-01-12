@@ -128,7 +128,7 @@ html_theme_options = {
 html_logo = "_static/img/pytorch-logo-dark.svg"
 
 html_css_files = [
-    "css/custom_torchtune.css",
+    "css/custom_torchtune.css"
 ]
 
 # Add any paths that contain custom static files (such as style sheets) here,
