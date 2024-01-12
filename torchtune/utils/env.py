@@ -122,7 +122,7 @@ def get_world_size_and_rank() -> Tuple[int, int]:
     return torch.distributed.world_size(), torch.distributed.get_rank()
 
 
-def seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None:
+def seed(seed: int, debug_mode: Optional[Union[str, int]] = None) -> None:
     """Function that sets seed for pseudo-random number generators across commonly used libraries.
 
     This seeds PyTorch, NumPy, and the python.random module.
@@ -130,7 +130,7 @@ def seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None:
 
     Args:
         seed (int): the integer value seed.
-        deterministic (Optional[Union[str, int]]): Controls determinism settings within PyTorch.
+        debug_mode (Optional[Union[str, int]]): Controls debug_mode settings for deterministic operations within PyTorch.
             If `None`, don't set any PyTorch global values.
             If "default" or 0, don't error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.
             If "warn" or 1, warn on nondeterministic operations and disable PyTorch CuDNN benchmark.
@@ -153,9 +153,9 @@ def seed(seed: int, deterministic: Optional[Union[str, int]] = None) -> None:
     np.random.seed(seed)
     random.seed(seed)
 
-    if deterministic is not None:
-        _log.debug(f"Setting deterministic debug mode to {deterministic}")
-        torch.set_deterministic_debug_mode(deterministic)
+    if debug_mode is not None:
+        _log.debug(f"Setting deterministic debug mode to {debug_mode}")
+        torch.set_deterministic_debug_mode(debug_mode)
         deterministic_debug_mode = torch.get_deterministic_debug_mode()
         if deterministic_debug_mode == 0:
             _log.debug("Disabling cuDNN deterministic mode")
