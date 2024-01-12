@@ -30,7 +30,14 @@ If you have a video, add it here like this:
 .. raw:: html
 
    <div style="margin-top:10px; margin-bottom:10px;">
-     <iframe width="560" height="315" src="https://www.youtube.com/embed/IC0_FRiX-sw" frameborder="0" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+     <iframe
+        width="560"
+        height="315"
+        src="https://www.youtube.com/embed/IC0_FRiX-sw"
+        frameborder="0"
+        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>
    </div>
 
 To test your tutorial locally, you can do one of the following:
