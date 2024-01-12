@@ -41,14 +41,14 @@ TorchTune tutorials.
    :header: Template Tutorial
    :card_description: A template tutorial. To be deleted.
    :image: _static/img/generic-pytorch-logo.png
-   :link: tutorials/template_tutorial.html
+   :link: auto_examples/template_tutorial.html
    :tags: Template
 
 .. customcardend::
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Introduction
    :hidden:
 
@@ -56,7 +56,7 @@ TorchTune tutorials.
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Getting Started
    :hidden:
 
@@ -64,11 +64,11 @@ TorchTune tutorials.
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
-   tutorials/template_tutorial
+   auto_examples/template_tutorial
 
 Model Architectures
 -------------------

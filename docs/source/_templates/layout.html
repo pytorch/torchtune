@@ -4,8 +4,9 @@
     {% include "searchbox.html" %}
 {% endblock %}
 
-{%- block content %}
-    {% if 'tutorials' in pagename %}
+<!-- Commenting out download tutorial links for initial release -->
+<!-- {%- block content %}
+    {% if 'tutorial' in pagename %}
 
     <div class="pytorch-call-to-action-links">
       <div id="tutorial-type">{{ pagename }}</div>
@@ -30,11 +31,12 @@
     {% endif %}
     {{ super() }}
 
-{% endblock %}
+{% endblock %} -->
 
 {% block footer %}
-{{ super() }}
+<!-- Commenting out to turn off TOC expansion while developing docs content -->
+<!-- {{ super() }}
 <script script type="text/javascript">
     var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
-</script>
+</script> -->
 {% endblock %}
