@@ -262,7 +262,7 @@ if __name__ == "__main__":
         "--lr", type=float, default=2e-5, help="Learning rate for fine-tuning."
     )
     parser.add_argument(
-        "--epochs", type=int, default=3, help="Number of epochs for fine-tuning"
+        "--epochs", type=int, default=100, help="Number of epochs for fine-tuning"
     )
     parser.add_argument(
         "--optimizer",
