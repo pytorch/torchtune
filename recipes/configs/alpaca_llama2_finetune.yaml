@@ -13,7 +13,7 @@ tokenizer_checkpoint: /tmp/tokenizer.model
 batch_size: 2
 lr: 2e-5
 epochs: 3
-optimizer: AdamW
+optimizer: SGD
 loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
