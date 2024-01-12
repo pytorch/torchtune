@@ -96,6 +96,7 @@ class TestFinetuneLLMRecipe:
             "metric_logger_type": "disk",
             "project": None,
             "resume_from_previous_checkpoint": False,
+            "cpu_offload": False,
         }
 
         finetune_llm.recipe(**kwargs_values)
