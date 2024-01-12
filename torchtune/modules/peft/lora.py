@@ -10,7 +10,7 @@ from torch import nn, Tensor
 
 
 class LoRALinear(nn.Module):
-    """LoRA linear layer as introduced in https://arxiv.org/abs/2106.09685.
+    """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
     LoRA perturbs a given layer via a low-rank approximation where only
     the rank decomposition matrices are trainable. In a linear layer instead of
