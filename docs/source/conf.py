@@ -127,9 +127,7 @@ html_theme_options = {
 
 html_logo = "_static/img/pytorch-logo-dark.svg"
 
-html_css_files = [
-    "css/custom_torchtune.css"
-]
+html_css_files = ["css/custom_torchtune.css"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -245,7 +243,6 @@ def inject_minigalleries(app, what, name, obj, options, lines):
 def setup(app):
 
     app.connect("autodoc-process-docstring", inject_minigalleries)
-
 
 
 # Custom directives defintions to create cards on main torchtune page
