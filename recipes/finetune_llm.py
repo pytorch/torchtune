@@ -114,7 +114,9 @@ def recipe(kwargs):
     loss_fn = get_loss(kwargs["loss"])
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
+    dataset = get_dataset(
+        kwargs["dataset"], tokenizer=tokenizer, split="train", preprocess_data=True
+    )
     sampler = DistributedSampler(
         dataset,
         num_replicas=world_size,

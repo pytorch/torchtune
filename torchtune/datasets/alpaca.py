@@ -4,14 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import pickle
 from typing import List, Tuple
+
+import numpy as np
+
+import torch
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.modules import Tokenizer
-
 
 _CROSS_ENTROPY_IGNORE_IDX = -100
 
@@ -39,13 +43,30 @@ class AlpacaDataset(Dataset):
     """
 
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
-        self._data = load_dataset("tatsu-lab/alpaca", split="train")
+        self._data = load_dataset("tatsu-lab/alpaca", split=kwargs["split"])
         self._tokenizer = tokenizer
+        self._preprocess_data = kwargs.get("preprocess_data", False)
+
+        def _serialize(data):
+            buffer = pickle.dumps(data, protocol=-1)
+            return np.frombuffer(buffer, dtype=np.uint8)
+
+        if self._preprocess_data:
+            self._lst = [self._transform(sample["text"]) for sample in self._data]
+            self._lst = [_serialize(x) for x in self._lst]
+            self._addr = np.asarray([len(x) for x in self._lst], dtype=np.int64)
+            self._addr = torch.from_numpy(np.cumsum(self._addr))
+            self._lst = torch.from_numpy(np.concatenate(self._lst))
 
     def __len__(self):
         return len(self._data)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+        if self._preprocess_data:
+            start_addr = 0 if index == 0 else self._addr[index - 1].item()
+            end_addr = self._addr[index].item()
+            bytes = memoryview(self._lst[start_addr:end_addr].numpy())
+            return pickle.loads(bytes)
         return self._transform(self._data[index]["text"])
 
     def _transform(self, sample: str) -> Tuple[List[int], List[int]]:
