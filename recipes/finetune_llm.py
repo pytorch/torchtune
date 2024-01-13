@@ -125,7 +125,8 @@ def recipe(
 
             pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-            # Log metrics
+            # Log metrics at each step
+            # If no metric logger is specified, this is a no-op
             metric_logger.log_dict(
                 {
                     "loss": loss.item(),
@@ -133,7 +134,8 @@ def recipe(
                     "gpu_resources": torch.cuda.get_device_properties(
                         device
                     ).total_memory,
-                }
+                },
+                step=idx,
             )
 
             grad_scaler.scale(loss).backward()
@@ -308,14 +310,24 @@ if __name__ == "__main__":
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
-
-    # Metric logger arguments
     parser.add_argument(
         "--metric-logger",
         type=str,
         default="wandb",
         choices=["wandb", "tensorboard"],
         help="Metric logger to use.",
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="Project name for metric logger.",
+    )
+    parser.add_argument(
+        "--log-dir",
+        type=str,
+        default=None,
+        help="Log directory for metric logger.",
     )
 
     kwargs = vars(parser.parse_args())

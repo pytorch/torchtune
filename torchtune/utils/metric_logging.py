@@ -79,7 +79,7 @@ class TensorBoardLogger(MetricLogger):
     TensorBoard logger.
     """
 
-    def __init__(self, log_dir: str):
+    def __init__(self, log_dir: str, **kwargs):
         """
         Args:
             log_dir (str): TensorBoard log directory
