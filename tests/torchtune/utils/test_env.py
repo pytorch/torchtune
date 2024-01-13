@@ -19,11 +19,11 @@ from torchtune.utils.env import (
     seed,
 )
 
-from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
+from tests.test_utils import get_pet_launch_config, skip_if_lt_x_gpu
 
 
 class TestEnv:
-    @skip_if_cuda_not_available
+    @skip_if_lt_x_gpu(2)
     def test_init_from_env_non_zero_device(self) -> None:
         device = init_from_env(device_type="cuda:1")
         assert device == torch.device("cuda:1")
@@ -72,11 +72,13 @@ class TestEnv:
         lc = get_pet_launch_config(num_processes)
         launcher.elastic_launch(lc, entrypoint=self._test_worker_fn)(init_pg_explicit)
 
+    @skip_if_lt_x_gpu(2)
     def test_init_from_env_no_dup(self) -> None:
         self._test_launch_worker(2, init_pg_explicit=False)
         # trivial test case to ensure test passes with no exceptions
         assert True
 
+    @skip_if_lt_x_gpu(2)
     def test_init_from_env_dup(self) -> None:
         self._test_launch_worker(2, init_pg_explicit=True)
         # trivial test case to ensure test passes with no exceptions

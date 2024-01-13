@@ -18,6 +18,21 @@ skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
 )
 
+from functools import wraps
+
+
+def skip_if_lt_x_gpu(x):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            if torch.cuda.is_available() and torch.cuda.device_count() >= x:
+                return func(*args, **kwargs)
+            raise unittest.SkipTest(f"Need {x} CUDA devices to run test.")
+
+        return wrapper
+
+    return decorator
+
 
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
     for p in model.parameters():
