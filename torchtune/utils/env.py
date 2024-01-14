@@ -119,7 +119,7 @@ def get_world_size_and_rank() -> Tuple[int, int]:
     """
     if not torch.distributed.is_available() or not torch.distributed.is_initialized():
         return 1, 0
-    return torch.distributed.world_size(), torch.distributed.get_rank()
+    return torch.distributed.get_world_size(), torch.distributed.get_rank()
 
 
 def seed(seed: int, debug_mode: Optional[Union[str, int]] = None) -> None:
