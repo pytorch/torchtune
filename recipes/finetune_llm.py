@@ -54,14 +54,15 @@ def recipe(kwargs):
     # ---- Initialize components ---- #
     logger = get_logger()
 
+    # ---- Initialize distributed process group ---- #
+    device = init_from_env(device_type=kwargs["device"])
+
     # ---- Initialize seed ---- #
     world_size, rank = get_world_size_and_rank()
     if kwargs["seed"] is not None:
         # Ensure that seed is different per rank (and its dataloader workers)
         seed(kwargs["seed"] + rank)
 
-    # ---- Initialize distributed process group ---- #
-    device = init_from_env(device_type=kwargs["device"])
     # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
     device_type = (
         kwargs["device"]

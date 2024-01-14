@@ -40,7 +40,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
 
         theta = 1.0 / (base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
-        self.register_buffer("theta", theta, persistent=False)
+        self.register_buffer("theta", theta, persistent=True)
         self.build_rope_cache(max_seq_len)
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
@@ -56,7 +56,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         # cache includes both the cos and sin components and so the output shape is
         # [max_seq_len, dim // 2, 2]
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
-        self.register_buffer("cache", cache, persistent=False)
+        self.register_buffer("cache", cache, persistent=True)
 
     def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
         """
