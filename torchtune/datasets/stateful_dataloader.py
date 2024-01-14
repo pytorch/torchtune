@@ -8,8 +8,6 @@ import itertools
 
 from typing import Any, Dict, Iterator
 
-from torch.distributed.checkpoint.stateful import Stateful
-
 from torch.utils.data import DataLoader, Dataset, IterableDataset, Sampler
 
 
@@ -56,7 +54,7 @@ class _StatefulSampler:
         self._iterator = None
 
 
-class StatefulDataLoader(DataLoader, Stateful):
+class StatefulDataLoader(DataLoader):
     RESUME_INDEX_KEY = "resume_index"
 
     def __init__(self, dataset: Dataset, *args, **kwargs):
