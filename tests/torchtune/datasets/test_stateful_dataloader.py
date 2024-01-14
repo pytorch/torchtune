@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import torch
 from torch.utils.data import Dataset
 from torchtune.datasets import StatefulDataLoader
 
@@ -81,6 +82,26 @@ class TestStatefulDataLoader:
                 assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 0
             for idx, data in enumerate(iter(dataloader)):
                 assert data == idx
+
+    def test_larger_batch_size(self):
+        dataset = _IdentityMapDataset(4)
+        dataloader = StatefulDataLoader(dataset, batch_size=2)
+
+        it = iter(dataloader)
+        data = next(it)
+        assert torch.equal(data, torch.tensor([0, 1]))
+        state = dataloader.state_dict()
+        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+        data = next(it)
+        assert torch.equal(data, torch.tensor([2, 3]))
+        state = dataloader.state_dict()
+        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 2
+
+        with pytest.raises(StopIteration):
+            dataloader2 = StatefulDataLoader(dataset, batch_size=2)
+            dataloader2.load_state_dict(state)
+            it = iter(dataloader2)
+            data = next(it)
 
     def test_save_load_checkpoint_at_end(self):
         dataset = _IdentityMapDataset(2)
