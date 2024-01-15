@@ -7,7 +7,7 @@
 import logging
 import os
 from datetime import timedelta
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import torch
 from torch.distributed.constants import default_pg_timeout
@@ -28,6 +28,11 @@ def _check_dist_env() -> bool:
         os.environ.get("RANK"),
     )
     return all(env is not None for env in env_required)
+
+
+def _get_process_group_backend_from_device(device: torch.device) -> str:
+    """Function that gets the default process group backend from the device."""
+    return "nccl" if device.type == "cuda" else "gloo"
 
 
 def init_distributed(
@@ -75,6 +80,13 @@ def init_distributed(
         torch.distributed.init_process_group(backend=pg_backend, timeout=pg_timeout)
 
 
-def _get_process_group_backend_from_device(device: torch.device) -> str:
-    """Function that gets the default process group backend from the device."""
-    return "nccl" if device.type == "cuda" else "gloo"
+def get_world_size_and_rank() -> Tuple[int, int]:
+    """Function that gets the current world size (aka total number
+    of ranks) and rank number of the current trainer.
+
+    Returns:
+        Tuple[int, int]: world size, rank
+    """
+    if not torch.distributed.is_available() or not torch.distributed.is_initialized():
+        return 1, 0
+    return torch.distributed.world_size(), torch.distributed.get_rank()

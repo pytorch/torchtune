@@ -29,16 +29,16 @@ class TestDistributed:
         init_distributed(device=device)
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
-        # pg_backend = torch.distributed.get_backend()
-        # expected_pg_backend = (
-        #     _get_process_group_backend_from_device(device)
-        #     if not init_pg_explicit
-        #     else "gloo"
-        # )
-        # if pg_backend != expected_pg_backend:
-        #     raise AssertionError(
-        #         f"Expected different process group backend: received {pg_backend}, expected {expected_pg_backend}"
-        #     )
+        pg_backend = torch.distributed.get_backend()
+        expected_pg_backend = (
+            _get_process_group_backend_from_device(device)
+            if not init_pg_explicit
+            else "gloo"
+        )
+        if pg_backend != expected_pg_backend:
+            raise AssertionError(
+                f"Expected different process group backend: received {pg_backend}, expected {expected_pg_backend}"
+            )
         return device
 
     def _test_launch_worker(

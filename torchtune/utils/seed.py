@@ -13,20 +13,23 @@ from typing import Optional, Union
 import numpy as np
 import torch
 
+from torchtune.utils.distributed import get_world_size_and_rank
+
 _log: logging.Logger = logging.getLogger(__name__)
 
 
 def set_seed(
-    seed: Optional[int] = None, deterministic: Optional[Union[str, int]] = None
+    seed: Optional[int] = None, debug_mode: Optional[Union[str, int]] = None
 ) -> int:
     """Function that sets seed for pseudo-random number generators across commonly used libraries.
 
-    This seeds PyTorch, NumPy, and the python.random module.
+    This seeds PyTorch, NumPy, and the python.random module. For distributed jobs, each local process
+    sets its own seed, computed seed + rank.
     For more details, see https://pytorch.org/docs/stable/notes/randomness.html.
 
     Args:
         seed (Optional[int]): the integer value seed. If `None`, a random seed will be generated and set.
-        deterministic (Optional[Union[str, int]]): Controls determinism settings within PyTorch.
+        debug_mode (Optional[Union[str, int]]): Controls debug_mode settings for deterministic operations within PyTorch.
             If `None`, don't set any PyTorch global values.
             If "default" or 0, don't error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.
             If "warn" or 1, warn on nondeterministic operations and disable PyTorch CuDNN benchmark.
@@ -40,23 +43,26 @@ def set_seed(
     Raises:
         ValueError: If the input seed value is outside the required range.
     """
-    if seed is None:
-        seed = random.randint(0, 2**31)
-    max_val = np.iinfo(np.uint32).max
+    world_size, rank = get_world_size_and_rank()
+    max_val = np.iinfo(np.uint32).max - world_size + 1
     min_val = np.iinfo(np.uint32).min
     if seed < min_val or seed > max_val:
         raise ValueError(
             f"Invalid seed value provided: {seed}. Value must be in the range [{min_val}, {max_val}]"
         )
-    _log.debug(f"Setting seed to {seed}")
 
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
+    if seed is None:
+        seed = random.randint(min_val, max_val)
+    local_seed = seed + rank
+    _log.debug(f"Setting seed to {seed} and rank local seed to {local_seed}")
 
-    if deterministic is not None:
-        _log.debug(f"Setting deterministic debug mode to {deterministic}")
-        torch.set_deterministic_debug_mode(deterministic)
+    torch.manual_seed(local_seed)
+    np.random.seed(local_seed)
+    random.seed(local_seed)
+
+    if debug_mode is not None:
+        _log.debug(f"Setting deterministic debug mode to {debug_mode}")
+        torch.set_deterministic_debug_mode(debug_mode)
         deterministic_debug_mode = torch.get_deterministic_debug_mode()
         if deterministic_debug_mode == 0:
             _log.debug("Disabling cuDNN deterministic mode")

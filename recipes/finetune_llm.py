@@ -16,6 +16,7 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim.optimizer import Optimizer
+from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import utils
 
 from torchtune.datasets import get_dataset, list_datasets
@@ -47,6 +48,8 @@ def recipe(kwargs):
     logger = get_logger()
     device = utils.get_device(kwargs["device"])
     dtype = utils.get_dtype(kwargs["dtype"])
+    world_size, rank = utils.get_world_size_and_rank()
+    seed = utils.set_seed(kwargs["seed"])
 
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
@@ -89,23 +92,31 @@ def recipe(kwargs):
     # TODO add lr schedule option
     loss_fn = get_loss(kwargs["loss"])
 
-    # ---- Load dataset ---- #
+    # ---- Load dataset, set up sampler, and dataloader ---- #
     dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
-    dataloader = utils.ReproducibleDataLoader(
+    sampler = DistributedSampler(
+        dataset,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=kwargs["shuffle"],
+        seed=0,
+    )
+    dataloader = DataLoader(
         dataset=dataset,
         batch_size=kwargs["batch_size"],
-        shuffle=kwargs["shuffle"],
+        sampler=sampler,
         collate_fn=partial(
             utils.batch_pad_to_longest_seq,
             input_padding_idx=tokenizer.pad_id,
             label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
-        seed=kwargs["dataloader_seed"],
     )
     logger(msg=f"Loaded dataset {kwargs['dataset']}")
 
     # ---- Train loop ---- #
     for epoch in range(kwargs["epochs"]):
+        # Need to set the epoch for changing sample ordering in each epoch
+        sampler.set_epoch(epoch)
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
             max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
@@ -187,13 +198,12 @@ if __name__ == "__main__":
         help="Dataset name.",
     )
     parser.add_argument(
-        "--dataloader-seed",
+        "--seed",
         type=int,
         default=None,
         help="""
-            Seed for dataset shuffling order and multiprocessing
-            worker base_seed. Same seed value will provide the
-            same ordering and transforms of samples across runs.
+            Seed for setting trainer and dataloader workers random number generator state. Using same seed value will
+            provide the same transforms of samples across runs.
             """,
     )
     parser.add_argument("--shuffle", help="Shuffle dataset.", default=True)

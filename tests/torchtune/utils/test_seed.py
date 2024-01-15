@@ -32,8 +32,8 @@ class TestSeed:
     def test_deterministic_true(self) -> None:
         for det_debug_mode, det_debug_mode_str in [(1, "warn"), (2, "error")]:
             warn_only = det_debug_mode == 1
-            for deterministic in (det_debug_mode, det_debug_mode_str):
-                set_seed(42, deterministic=deterministic)
+            for debug_mode in (det_debug_mode, det_debug_mode_str):
+                set_seed(42, debug_mode=debug_mode)
                 assert torch.backends.cudnn.deterministic
                 assert not torch.backends.cudnn.benchmark
                 assert det_debug_mode == torch.get_deterministic_debug_mode()
@@ -44,8 +44,8 @@ class TestSeed:
                 assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
 
     def test_deterministic_false(self) -> None:
-        for deterministic in ("default", 0):
-            set_seed(42, deterministic=deterministic)
+        for debug_mode in ("default", 0):
+            set_seed(42, debug_mode=debug_mode)
             assert not torch.backends.cudnn.deterministic
             assert torch.backends.cudnn.benchmark
             assert 0 == torch.get_deterministic_debug_mode()
@@ -60,7 +60,7 @@ class TestSeed:
         det_algo_warn_only_enabled = (
             torch.is_deterministic_algorithms_warn_only_enabled()
         )
-        set_seed(42, deterministic=None)
+        set_seed(42, debug_mode=None)
         assert det == torch.backends.cudnn.deterministic
         assert benchmark == torch.backends.cudnn.benchmark
         assert det_debug_mode == torch.get_deterministic_debug_mode()
