@@ -32,3 +32,4 @@ PEFT Components
     :template: class.rst
 
     torchtune.modules.peft.LoRALinear
+    torchtune.modules.peft.LoRAFusedLinear
