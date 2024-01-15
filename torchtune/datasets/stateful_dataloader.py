@@ -89,9 +89,7 @@ class StatefulDataLoader(DataLoader):
             if self._wrapped_iterator
             else self._resume_index
         )
-        sd = {
-            self.RESUME_INDEX_KEY: resume_index,
-        }
+        sd = {self.RESUME_INDEX_KEY: resume_index}
         return sd
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
