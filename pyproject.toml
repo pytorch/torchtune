@@ -1,4 +1,4 @@
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
-exclude = 'torchtune/trainer/reproducible_dataloader.py|tests/torchtune/models/llama2/scripts/*.py'
+exclude = 'torchtune/trainer/reproducible_dataloader.py|tests/torchtune/models/llama2/scripts/'
