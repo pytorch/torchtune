@@ -9,7 +9,7 @@ import logging
 
 import torch
 
-from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
+from torchtune.models.llama2 import llama2_7b, llama2_tokenizer
 from torchtune.utils.env import _get_device_from_env, seed
 from torchtune.utils.generation import GenerationUtils
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     device = _get_device_from_env()
     # --------- Initialize a decoder w/o kv-caching -------- #
     with device:
-        decoder = llama2_7b(vocab_size=tokenizer.vocab_size, max_batch_size=1)
+        decoder = llama2_7b(max_batch_size=1)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)

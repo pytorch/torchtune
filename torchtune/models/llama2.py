@@ -19,7 +19,7 @@ from torchtune.modules import (
 )
 
 
-def llama2_7b() -> TransformerDecoder:
+def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     """Builder for creating a Llama2 model initialized w/ the default 7b parameter values.
     From https://arxiv.org/abs/2307.09288, these default values are:
     - vocab_size: 32,000
@@ -29,6 +29,9 @@ def llama2_7b() -> TransformerDecoder:
     - num_kv_heads: 32
     - max_seq_len: 4,096
     - norm_eps: 1e-6
+
+    Args:
+        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
 
     Returns:
         A ``TransformerDecoder`` instance of the Llama2 model.
@@ -40,7 +43,7 @@ def llama2_7b() -> TransformerDecoder:
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=4096,
-        max_batch_size=None,
+        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-6,
     )
