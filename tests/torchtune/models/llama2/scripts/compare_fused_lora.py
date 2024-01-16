@@ -14,7 +14,7 @@ from torch.nn import functional as F
 from torchtune.modules.peft import LoRAFusedLinear
 
 # Reference implementation:
-# https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/lora.py
+# https://github.com/Lightning-AI/lit-gpt/blob/423b1a85c53eb5291f7f3ec93451716949975992/lit_gpt/lora.py
 class LoRALayer(nn.Module):
     def __init__(self, r: int, lora_alpha: int, lora_dropout: float):
         """Store LoRA specific attributes in a class.
@@ -431,12 +431,12 @@ def compare_fused_lora(
 
     for out_dims, apply_lora in zip(test_out_dims, test_apply_loras):
         # note: this is a constraint from the reference codebase
-        # https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/lora.py#L240
+        # https://github.com/Lightning-AI/lit-gpt/blob/423b1a85c53eb5291f7f3ec93451716949975992/lit_gpt/lora.py#L240
         in_dim = out_dims[0]
 
         # make sure we have the right seed for generating outputs
-        # this should match up the seed value set in the corresponding
-        # unit test
+        # this should match up the seed value set in
+        # tests/torchtune/modules/peft/test_lora.py
         torch.manual_seed(16)
 
         # generate input tensor used by both implementations
@@ -457,7 +457,7 @@ def compare_fused_lora(
             output = lora_fused(x_input)
 
         # lit-gpt uses n_head and n_query_groups args so we derive them here
-        # see https://github.com/Lightning-AI/lit-gpt/blob/main/lit_gpt/lora.py#L237
+        # see https://github.com/Lightning-AI/lit-gpt/blob/423b1a85c53eb5291f7f3ec93451716949975992/lit_gpt/lora.py#L237
         q_dim = in_dim
         kv_dim = (sum(out_dims) - q_dim) // 2
         n_head = q_dim // kv_dim
@@ -485,7 +485,7 @@ def compare_fused_lora(
             output_ref = lora_fused_ref(x_input)
 
         print(out_dims, apply_lora, output_ref.mean())
-        assert torch.allclose(output_ref, output, atol=1e-6, rtol=1e-6)
+        torch.testing.assert_close(output_ref, output, atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":

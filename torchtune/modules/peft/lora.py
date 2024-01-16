@@ -55,7 +55,7 @@ class LoRALinear(nn.Module):
 
     def reset_lora_parameters(self):
         # Initialize as in
-        # https://github.com/microsoft/LoRA/blob/main/loralib/layers.py#L119
+        # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
 
@@ -78,13 +78,16 @@ class LoRAFusedLinear(nn.Module):
     enable LoRA for only Q and V matrices of a fused QKV projection in self-attention).
 
     This class supports application of LoRA to arbitrary subsets of a fused linear
-    layer. See the example given below. For more details on LoRA, see the documentation
-    for :func:`~torchtune.modules.peft.LoRALinear`.
+    layer. It is assumed that the input to the fused linear layer has shape
+    ``(bsz, seq_len, embed_dim)`` and the fusion occurs along the embedding dimension.
+    See below for an example application to a fused QKV projection.
+    For more details on LoRA, see the documentation for
+    :func:`~torchtune.modules.peft.LoRALinear`.
 
     Suppose we have a fused QKV projection mapping input dimension 32 to dimensions
     128, 64, and 64 for Q, K and V respectively (so that the fused projection is
-    ``qkv_proj = nn.Linear(32, 256, bias=False)``). If we want to apply LoRA to decompose just the Q and V
-    matrices via rank 4 decompositions, we can construct e.g.
+    ``qkv_proj = nn.Linear(32, 256, bias=False)``). If we want to apply LoRA to
+    decompose just the Q and V matrices via rank 4 decompositions, we can define e.g.
 
     .. code-block:: python
 
@@ -117,6 +120,9 @@ class LoRAFusedLinear(nn.Module):
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability
 
+    Raises:
+        ValueError: If `len(out_dims) != len(apply_lora)`
+
     """
 
     def __init__(
@@ -129,9 +135,10 @@ class LoRAFusedLinear(nn.Module):
         dropout: float = 0.0,
     ):
         super().__init__()
-        assert len(out_dims) == len(
-            apply_lora
-        ), "Must have same number of output dims and LORA splits"
+        if len(out_dims) != len(apply_lora):
+            raise ValueError(
+                f"Must have same number of output dims ({len(out_dims)=}) and LoRA splits ({len(apply_lora)=})"
+            )
         self.rank = rank
         self.alpha = alpha
         self.in_dim = in_dim
@@ -154,7 +161,7 @@ class LoRAFusedLinear(nn.Module):
 
     def reset_lora_parameters(self):
         # Initialize as in
-        # https://github.com/microsoft/LoRA/blob/main/loralib/layers.py#L119
+        # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b)
         nn.init.kaiming_uniform_(self.lora_a, a=math.sqrt(5))
 
@@ -162,8 +169,8 @@ class LoRAFusedLinear(nn.Module):
         """
         This method constructs the indices (along embedding dimension)
         that should have LoRA applied. E.g. if
-        ``out_dims = [1, 3, 5, 6]`` and ``apply_lora = [True, False, False, True]``
-        then _get_lora_indices will return ``[0, 9, 10, 11, 12, 13, 14]``
+        out_dims = [1, 3, 5, 6] and apply_lora = [True, False, False, True]
+        then _get_lora_indices will return [0, 9, 10, 11, 12, 13, 14]
         """
         split_indices = [0] + list(np.cumsum(self.out_dims)[:-1])
         lora_indices = []
@@ -178,53 +185,46 @@ class LoRAFusedLinear(nn.Module):
 
     def _parallel_matmul(self, ax: Tensor, b: Tensor) -> Tensor:
         """
-        Return parallel ``B @ Ax.T`` along rank dim in ``Ax`` and embed dim in ``B``.
-        This can be accomplished using either ``F.linear`` or ``F.conv1d``. We use
-        ``F.linear`` in cases where the performance is comparable for clarity, but in
+        Return parallel B @ Ax.T along rank dim in Ax and embed dim in B.
+        This can be accomplished using either F.linear or F.conv1d. We use
+        F.linear in cases where the performance is comparable for clarity, but in
         the case that all output dimensions are equal we use conv1d since it is
         more performant.
 
         **Detailed discussion on the usage of F.conv1d**
 
-        Suppose we have two tensors X and Y with ``X.shape = (bsz, m, n)`` and
-        ``Y.shape = (k, n)``. Then in general
+        Suppose we have two tensors X and Y with X.shape = (bsz, m, n) and
+        Y.shape = (k, n). Then in general
 
-        .. code-block:: python
+        (X @ Y.T).transpose(-2, -1) = F.conv1d(X.transpose(-2, -1), Y.unsqueeze(-1)).
 
-            (X @ Y.T).transpose(-2, -1) = F.conv1d(X.transpose(-2, -1), Y.unsqueeze(-1)).
-
-        (See e.g. `this blog post <https://sebastianraschka.com/faq/docs/fc-to-conv.html>`_.)
+        (See e.g. https://sebastianraschka.com/faq/docs/fc-to-conv.html.)
         As applied to a LoRA linear layer we can instead represent
 
-        .. code-block:: python
+        B @ (Ax.T) = F.conv1d(Ax.transpose(-2, -1), B.unsqueeze(-1)).transpose(-2, -1),
 
-            B @ (Ax.T) = F.conv1d(Ax.transpose(-2, -1), B.unsqueeze(-1)).transpose(-2, -1),
+        with the input x having x.shape = (bsz, seq_len, embed_dim) and A and B rank
+        decomposition matrices such that Ax.shape = (bsz, seq_len, rank) and
+        B.shape = (out_dim, rank).
 
-        with the input x having ``x.shape = (bsz, seq_len, embed_dim)`` and A and B rank
-        decomposition matrices such that ``Ax.shape = (bsz, seq_len, rank)`` and
-        ``B.shape = (out_dim, rank)``.
-
-        Suppose instead we are calculating ``B @ Ax.T`` in parallel for a fused linear
+        Suppose instead we are calculating B @ Ax.T in parallel for a fused linear
         layer with LoRA applied to k linear blocks each having dimension d. Then
-        ``Ax.shape = (bsz, seq_len, k * rank)`` and ``B.shape = (k * d, rank)``.
-        Then our :math:`i^{th}` matmul should be
+        Ax.shape = (bsz, seq_len, k * rank) and B.shape = (k * d, rank).
+        Then our i^{th} matmul should be
 
-        .. code-block:: python
+        [B @ Ax.T]_i = B[i * d: (i + 1) * d, :] @ Ax[:, :, i * rank : (i + 1) * rank].
 
-            [B @ Ax.T]_i = B[i * d: (i + 1) * d, :] @ Ax[:, :, i * rank : (i + 1) * rank].
+        Treating Ax as a conv1d input and B as its filter with kernel size 1,
+        we see that A.transpose(-1, -2) has k * rank as its in_channels,
+        dimension, while B.unsqueeze(-1) has k * out_dim as its out_channels
+        dimension (see the conv1d docs here:
+        https://github.com/pytorch/pytorch/blob/1993956da33376f34125306209930ed00c486abd/torch/nn/functional.py#L59-L60).
 
-        Treating ``Ax`` as a conv1d input and ``B`` as its filter with kernel size 1,
-        we see that ``A.transpose(-1, -2)`` has ``k * rank`` as its in_channels ,
-        dimension, while ``B.unsqueeze(-1)`` has ``k * out_dim`` as its out_channels
-        dimension (see the conv1d docs `here <https://github.com/pytorch/pytorch/blob/main/torch/nn/functional.py#L59-L60>`__).
+        Combining this with the usage of the groups parameter (as explained here:
+        https://github.com/pytorch/pytorch/blob/1993956da33376f34125306209930ed00c486abd/torch/nn/modules/conv.py#L24-L33
+        it follows that the parallel matmul of B @ Ax.T over k blocks is given by
 
-        Combining this with the usage of the groups parameter (as explained
-        `here <https://github.com/pytorch/pytorch/blob/main/torch/nn/modules/conv.py#L24-L33>`__),
-        it follows that the parallel matmul of ``B @ Ax.T`` over k blocks is given by
-
-        .. code-block:: python
-
-            F.conv1d(Ax.transpose(-1, -2), B.unsqueeze(-1), groups=k).
+        F.conv1d(Ax.transpose(-1, -2), B.unsqueeze(-1), groups=k).
 
         """
         # Single block is just usual matmul
@@ -288,7 +288,7 @@ class LoRAFusedLinear(nn.Module):
             x (Tensor): input tensor with shape ``(bsz, seq_len, in_dim)``
 
         Returns:
-            Tensor: output tensor with shape ``(bsz, seq_len, out_dim)``
+            Tensor: output tensor with shape ``(bsz, seq_len, self.out_dim)``
         """
         out = self.linear(x)
         # No LoRA blocks -> directly return nn.Linear
