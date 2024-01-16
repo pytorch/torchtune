@@ -9,7 +9,7 @@ import os
 import torch
 
 
-def _get_device_from_env() -> torch.device:
+def get_device_from_env() -> torch.device:
     """Function that gets the torch.device based on the current environment.
 
     This currently supports only CPU and GPU devices. If CUDA is available, this function also sets the CUDA device.

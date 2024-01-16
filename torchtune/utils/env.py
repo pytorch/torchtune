@@ -14,7 +14,7 @@ import numpy as np
 import torch
 from torch.distributed.constants import default_pg_timeout
 
-from torchtune.utils.device import _get_device_from_env
+from torchtune.utils.device import get_device_from_env
 
 _log: logging.Logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def init_from_env(
     """
     # Note: This will break when we need to support devices other than {CPU, CUDA}.
     if device_type is None or device_type == "cuda":
-        device = _get_device_from_env()
+        device = get_device_from_env()
     elif device_type == "cpu":
         device = torch.device("cpu")
     elif "cuda:" in device_type:

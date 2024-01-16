@@ -10,7 +10,7 @@ import logging
 import torch
 
 from torchtune.models.llama2.models import llama2_7b, llama2_tokenizer
-from torchtune.utils.env import _get_device_from_env, seed
+from torchtune.utils.env import get_device_from_env, seed
 from torchtune.utils.generation import GenerationUtils
 
 logging.basicConfig(level=logging.INFO)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     seed(0)
 
-    device = _get_device_from_env()
+    device = get_device_from_env()
     # --------- Initialize a decoder w/o kv-caching -------- #
     with device:
         decoder = llama2_7b(vocab_size=tokenizer.vocab_size, max_batch_size=1)

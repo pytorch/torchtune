@@ -12,7 +12,7 @@ from unittest.mock import patch
 import pytest
 
 import torch
-from torchtune.utils.device import _get_device_from_env, set_float32_precision
+from torchtune.utils.device import get_device_from_env, set_float32_precision
 
 
 class TestDevice:
@@ -21,7 +21,7 @@ class TestDevice:
 
     @patch("torch.cuda.is_available", return_value=False)
     def test_get_cpu_device(self, _) -> None:
-        device = _get_device_from_env()
+        device = get_device_from_env()
         assert device.type == "cpu"
         assert device.index is None
 
@@ -30,7 +30,7 @@ class TestDevice:
         device_idx = torch.cuda.device_count() - 1
         assert device_idx >= 0
         with mock.patch.dict(os.environ, {"LOCAL_RANK": str(device_idx)}, clear=True):
-            device = _get_device_from_env()
+            device = get_device_from_env()
             assert device.type == "cuda"
             assert device.index == device_idx
             assert device.index == torch.cuda.current_device()
@@ -41,10 +41,10 @@ class TestDevice:
                 RuntimeError,
                 match="The local rank is larger than the number of available GPUs",
             ):
-                device = _get_device_from_env()
+                device = get_device_from_env()
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
-        device = _get_device_from_env()
+        device = get_device_from_env()
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()

@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import torch
 from torch.distributed import launcher
-from torchtune.utils.device import _get_device_from_env
+from torchtune.utils.device import get_device_from_env
 from torchtune.utils.env import (
     _get_process_group_backend_from_device,
     init_from_env,
@@ -34,7 +34,7 @@ class TestEnv:
     def test_init_from_env(self) -> None:
         """Integration test to confirm consistency across device initialization utilities."""
         device = init_from_env()
-        assert device == _get_device_from_env()
+        assert device == get_device_from_env()
         assert not torch.distributed.is_initialized()
 
     @staticmethod
@@ -47,7 +47,7 @@ class TestEnv:
         device = init_from_env()
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
-        device_from_env = _get_device_from_env()
+        device_from_env = get_device_from_env()
         if device != device_from_env:
             raise AssertionError(
                 f"Expected different device: received {device}, expected {device_from_env}"
