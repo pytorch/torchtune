@@ -20,6 +20,9 @@ class SlimOrcaDataset(Dataset):
     https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
     from Hugging Face.
 
+    The data is formatted to adhere to Llama2 Chat Format.
+    It will work only for Llama2 models.
+
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
 
