@@ -15,6 +15,7 @@ from torch.distributed import launcher
 from torchtune.utils.device import _get_device_from_env
 from torchtune.utils.env import (
     _get_process_group_backend_from_device,
+    get_world_size_and_rank,
     init_from_env,
     seed,
 )
@@ -64,6 +65,16 @@ class TestEnv:
             )
         return device
 
+    @staticmethod
+    def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
+        torch.distributed.init_process_group(backend="gloo")
+        init_from_env(device_type="cpu")
+        world_size, _ = get_world_size_and_rank()
+        if world_size != expected_world_size:
+            raise AssertionError(
+                f"Expected different world size: received {world_size}, expected {expected_world_size}"
+            )
+
     def _test_launch_worker(
         self,
         num_processes: int,
@@ -91,6 +102,13 @@ class TestEnv:
         device = torch.device("cuda:0")
         pg_backend = _get_process_group_backend_from_device(device)
         assert pg_backend == "nccl"
+
+    def test_world_size_with_cpu(self) -> None:
+        desired_world_size = 4
+        lc = get_pet_launch_config(desired_world_size)
+        launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(
+            desired_world_size
+        )
 
     def test_seed_range(self) -> None:
         """
