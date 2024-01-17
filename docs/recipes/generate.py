@@ -18,11 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="""
+    parser = argparse.ArgumentParser(description="""
         Example 7B native Llama-2 inference.
-        """
-    )
+        """)
     parser.add_argument(
         "--native-checkpoint-path", type=str, help="Path to native checkpoint file."
     )

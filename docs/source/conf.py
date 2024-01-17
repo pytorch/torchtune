@@ -27,7 +27,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import os
-import sys; print(sys.path)
+import sys
 
 import pytorch_sphinx_theme
 
@@ -247,11 +247,7 @@ def setup(app):
 
 # Custom directives defintions to create cards on main torchtune page
 
-from custom_directives import (
-    CustomCardEnd,
-    CustomCardItem,
-    CustomCardStart,
-)
+from custom_directives import CustomCardEnd, CustomCardItem, CustomCardStart
 from docutils.parsers import rst
 
 # Register custom directives
