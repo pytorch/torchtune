@@ -21,7 +21,7 @@ class SlimOrcaDataset(Dataset):
     from Hugging Face.
 
     The data is formatted to adhere to Llama2 Chat Format.
-    It will work only for Llama2 models.
+    This format is required if the base model is Llama2 Chat Model.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
@@ -45,12 +45,21 @@ class SlimOrcaDataset(Dataset):
         Batch size: 8
     """
 
+    B_INST, E_INST = "[INST]", "[/INST]"
+    B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
         self._data = load_dataset("Open-Orca/SlimOrca-Dedup", split="train")
         self._tokenizer = tokenizer
 
     def __len__(self):
         return len(self._data)
+
+    def prompt_with_system(self, content: str) -> str:
+        return f"{self.B_INST} {self.B_SYS}{content}{self.E_SYS} {self.E_INST}"
+
+    def prompt_without_system(self, content: str) -> str:
+        return f"{self.B_INST} {content} {self.E_INST}"
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         data = self._data[index]["conversations"]
@@ -63,11 +72,11 @@ class SlimOrcaDataset(Dataset):
 
         # Llama2 Chat Format - https://github.com/facebookresearch/llama/blob/main/llama/generation.py#L284
         if len(agent_text_dict["system"]) > 0:
-            prompt = f"[INST] <<SYS>> {agent_text_dict['system']} <</SYS>> {agent_text_dict['human']} [/INST] "
+            prompt = f"{self.B_INST} {self.B_SYS}{agent_text_dict['system']}{self.E_SYS}{agent_text_dict['human']} {self.E_INST}"
         else:
-            prompt = f"[INST] {agent_text_dict['human']} [/INST] "
+            prompt = f"{self.B_INST} {agent_text_dict['human']} {self.E_INST}"
 
-        response = f"{agent_text_dict['gpt']} "
+        response = f" {agent_text_dict['gpt']} "
 
         prompt_tokens = self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
         label_tokens = self._tokenizer.encode(response, add_bos=False, add_eos=True)
