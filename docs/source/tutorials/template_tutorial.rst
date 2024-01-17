@@ -109,11 +109,11 @@ Example code (the output below is generated automatically):
 
  .. code-block:: none
 
-    tensor([[0.9711, 0.8637, 0.3099],
-            [0.4464, 0.3356, 0.1107],
-            [0.7764, 0.1074, 0.4877],
-            [0.3049, 0.7267, 0.3659],
-            [0.6040, 0.1358, 0.0107]])
+    tensor([[0.3644, 0.1857, 0.8036],
+            [0.2013, 0.9246, 0.8441],
+            [0.2557, 0.0550, 0.5429],
+            [0.6989, 0.5274, 0.9828],
+            [0.0479, 0.1917, 0.4686]])
 
 
 
@@ -133,7 +133,7 @@ Conclusion
 ----------
 
 
-.. GENERATED FROM PYTHON SOURCE LINES 99-107
+.. GENERATED FROM PYTHON SOURCE LINES 99-108
 
 .. code-block:: Python
 
@@ -153,9 +153,45 @@ Conclusion
 
 
 
+.. GENERATED FROM PYTHON SOURCE LINES 109-116
+
+%%
+Include API
+-----------
+
+With rst syntax in it.
+Let's use :class:`~torchtune.modules import CausalSelfAttention`. <-- This
+should be a link to the class, and you should see a "Examples using CausalSelfAttention" backlink on that docstring.
+
+.. GENERATED FROM PYTHON SOURCE LINES 118-119
+
+Another cell, with code this time:
+
+.. GENERATED FROM PYTHON SOURCE LINES 119-123
+
+.. code-block:: Python
+
+
+    from torchtune.modules import CausalSelfAttention
+
+    print(CausalSelfAttention)
+
+
+
+
+.. rst-class:: sphx-glr-script-out
+
+ .. code-block:: none
+
+    <class 'torchtune.modules.attention.CausalSelfAttention'>
+
+
+
+
+
 .. rst-class:: sphx-glr-timing
 
-   **Total running time of the script:** (0 minutes 0.029 seconds)
+   **Total running time of the script:** (0 minutes 0.042 seconds)
 
 
 .. _sphx_glr_download_tutorials_template_tutorial.py:
