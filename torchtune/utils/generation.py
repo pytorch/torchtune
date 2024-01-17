@@ -100,6 +100,7 @@ class GenerationUtils:
         incremental_decode: bool = True,
         logits_accessor: Optional[Callable] = None,
         device: Optional[torch.device] = torch.device("cpu"),
+        random_seed: int = 0,
     ) -> Tuple[Tensor, Optional[Tensor]]:
         """
         Interface for generation supporting temperature, top-k, and top-p sampling.
@@ -117,6 +118,7 @@ class GenerationUtils:
             logits_accessor (Optional[Callable]): Function to transform logits before sampling. Defaults to None.
             device (Optional[torch.device]): Device on which to initialize prompt token tensors (should match device of model).
                 Defaults to torch.device("cpu").
+            random_seed (int): Random seed for reproducibility. Defaults to 0.
 
         Returns:
             Tuple[Tensor, Optional[Tensor]]: Tuple of generated tokens and optional log probabilities if `logprobs=True`,
@@ -135,7 +137,7 @@ class GenerationUtils:
             >>> print(tokens)
             ["I love to eat ice cream"]
         """
-        torch.manual_seed(1337)
+        torch.manual_seed(random_seed)
 
         batch_size = len(prompt_tokens)
         max_prompt_len = max(len(p) for p in prompt_tokens)
