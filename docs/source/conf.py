@@ -256,7 +256,6 @@ from docutils.parsers import rst
 
 # Register custom directives
 
-
 rst.directives.register_directive("customcardstart", CustomCardStart)
 rst.directives.register_directive("customcarditem", CustomCardItem)
 rst.directives.register_directive("customcardend", CustomCardEnd)
