@@ -49,7 +49,7 @@ if __name__ == "__main__":
     seed(0)
 
     device = _get_device_from_env()
-    # --------- Initialize a decoder w/o kv-caching -------- #
+
     with device:
         decoder = llama2_7b(max_batch_size=1)
 
