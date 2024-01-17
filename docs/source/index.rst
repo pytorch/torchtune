@@ -68,7 +68,7 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   auto_examples/template_tutorial
+   tutorials/template_tutorial
 
 Model Architectures
 -------------------

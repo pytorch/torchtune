@@ -27,7 +27,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 
 import os
-import sys
+import sys; print(sys.path)
 
 import pytorch_sphinx_theme
 
@@ -56,9 +56,9 @@ extensions = [
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../../examples/",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/tutorials/",
+    "examples_dirs": "../examples",  # path to your example scripts
+    "gallery_dirs": "tutorials",  # path to where to save gallery generated output
+    "filename_pattern": "./*tutorial*",
     "backreferences_dir": "gen_modules/backreferences",
     "doc_module": ("torchtune",),
     "remove_config_comments": True,
