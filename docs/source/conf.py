@@ -251,16 +251,12 @@ from custom_directives import (
     CustomCardEnd,
     CustomCardItem,
     CustomCardStart,
-    SupportedDevices,
-    SupportedProperties,
 )
 from docutils.parsers import rst
 
 # Register custom directives
 
 
-rst.directives.register_directive("devices", SupportedDevices)
-rst.directives.register_directive("properties", SupportedProperties)
 rst.directives.register_directive("customcardstart", CustomCardStart)
 rst.directives.register_directive("customcarditem", CustomCardItem)
 rst.directives.register_directive("customcardend", CustomCardEnd)

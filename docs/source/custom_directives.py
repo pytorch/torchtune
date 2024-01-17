@@ -72,68 +72,6 @@ class BaseShield(Image, SphinxDirective):
         return super().run()
 
 
-def _parse_devices(arg: str):
-    devices = sorted(arg.strip().split())
-
-    valid_values = {"CPU", "CUDA"}
-    if any(val not in valid_values for val in devices):
-        raise ValueError(
-            f"One or more device values are not valid. The valid values are {valid_values}. Given value: '{arg}'"
-        )
-    return ", ".join(sorted(devices))
-
-
-def _parse_properties(arg: str):
-    properties = sorted(arg.strip().split())
-
-    valid_values = {"Autograd", "TorchScript"}
-    if any(val not in valid_values for val in properties):
-        raise ValueError(
-            "One or more property values are not valid. "
-            f"The valid values are {valid_values}. "
-            f"Given value: '{arg}'"
-        )
-    return ", ".join(sorted(properties))
-
-
-class SupportedDevices(BaseShield):
-    """List the supported devices"""
-
-    required_arguments = 1
-    final_argument_whitespace = True
-
-    def run(self) -> List[nodes.Node]:
-        devices = _parse_devices(self.arguments[0])
-        alt = f"This feature supports the following devices: {devices}"
-        params = {
-            "label": "Devices",
-            "message": devices,
-            "labelColor": GRAY,
-            "color": BLUE,
-            "style": "flat-square",
-        }
-        return super().run(params, alt, "devices")
-
-
-class SupportedProperties(BaseShield):
-    """List the supported properties"""
-
-    required_arguments = 1
-    final_argument_whitespace = True
-
-    def run(self) -> List[nodes.Node]:
-        properties = _parse_properties(self.arguments[0])
-        alt = f"This API supports the following properties: {properties}"
-        params = {
-            "label": "Properties",
-            "message": properties,
-            "labelColor": GRAY,
-            "color": GREEN,
-            "style": "flat-square",
-        }
-        return super().run(params, alt, "properties")
-
-
 _CARDLIST_START = """
 .. raw:: html
 
