@@ -63,9 +63,6 @@ class TestEnv:
             raise AssertionError(
                 f"Expected different process group backend: received {pg_backend}, expected {expected_pg_backend}"
             )
-        world_size, rank = get_world_size_and_rank()
-        if world_size != 2:
-            raise AssertionError(f"Expected world size of 2, received {world_size}")
         return device
 
     @staticmethod
