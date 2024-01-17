@@ -64,6 +64,7 @@ def recipe(kwargs):
     )
 
     # ---- Initialize seed ---- #
+    # Fetch world size and rank after distributed process group initialization
     world_size, rank = get_world_size_and_rank()
     if kwargs["seed"] is not None:
         # Ensure that seed is different per rank (and its dataloader workers)
