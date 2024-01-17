@@ -213,7 +213,7 @@ def recipe(kwargs):
 
 
 if __name__ == "__main__":
-    parser = TuneArgumentParser(description="Fine-tune an LLM model.")
+    parser = TuneArgumentParser(description="Fine-tune an LLM.")
 
     # Dataset and DataLoader arguments
     parser.add_argument(
