@@ -74,5 +74,4 @@ class SlimOrcaDataset(Dataset):
             _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(prompt_tokens))
         ] + label_tokens
         assert len(input) == len(label)
-
         return input, label
