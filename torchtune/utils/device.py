@@ -23,6 +23,7 @@ def _get_device_from_env() -> torch.device:
     Returns:
         device
     """
+    return torch.device("cpu")
     if torch.cuda.is_available():
         local_rank = int(os.environ.get("LOCAL_RANK", "0"))
         if local_rank >= torch.cuda.device_count():

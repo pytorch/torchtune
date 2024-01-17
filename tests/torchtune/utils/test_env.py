@@ -15,6 +15,7 @@ from torch.distributed import launcher
 from torchtune.utils.device import _get_device_from_env
 from torchtune.utils.env import (
     _get_process_group_backend_from_device,
+    get_world_size_and_rank,
     init_from_env,
     seed,
 )
@@ -62,6 +63,9 @@ class TestEnv:
             raise AssertionError(
                 f"Expected different process group backend: received {pg_backend}, expected {expected_pg_backend}"
             )
+        world_size, rank = get_world_size_and_rank()
+        if world_size != 2:
+            raise AssertionError(f"Expected world size of 2, received {world_size}")
         return device
 
     def _test_launch_worker(
