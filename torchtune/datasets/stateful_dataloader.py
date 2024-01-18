@@ -89,6 +89,6 @@ class StatefulDataLoader(DataLoader):
         # Ensure that the seed of DistributedSampler hasn't changed
         if checkpoint_seed != self.sampler.seed:
             raise AssertionError(
-                f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa
+                f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa: B950
             )
         self._index_sampler.set_state(self._checkpoint_index)
