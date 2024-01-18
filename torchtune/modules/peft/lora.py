@@ -112,9 +112,9 @@ class LoRAFusedLinear(nn.Module):
     .. code-block:: python
 
         fused_lora_dims = [
-            FusedLoRADim(128, True),
-            FusedLoRADim(64, False),
-            FusedLoRADim(64, True)
+            FusedLoRADim(128, True), # Apply LoRA to Q with dim 128
+            FusedLoRADim(64, False), # Don't apply LoRA to K with dim 64
+            FusedLoRADim(64, True)  # Apply LoRA to V with dim 64
         ]
         lora_qv_only = LoRAFusedLinear(
             in_dim=32,
