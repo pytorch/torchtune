@@ -61,7 +61,6 @@ TorchTune tutorials.
    :hidden:
 
    generated_examples/template_tutorial
-   generated_examples/plot_the_best_example_in_the_world
 
 Model Architectures
 -------------------
