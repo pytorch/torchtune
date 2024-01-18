@@ -12,7 +12,11 @@ from unittest.mock import patch
 import pytest
 
 import torch
-from torchtune.utils.device import _get_device_from_env, get_device
+from torchtune.utils.device import (
+    _get_device_type_from_env,
+    _setup_cuda_device,
+    get_device,
+)
 
 
 class TestDevice:
@@ -61,7 +65,8 @@ class TestDevice:
                 device = get_device("cuda")
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
-        device = _get_device_from_env()
+        device = _get_device_type_from_env()
+        device = _setup_cuda_device(device)
         assert device.type == "cuda"
         assert device.index == 0
         assert device.index == torch.cuda.current_device()

@@ -6,7 +6,6 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
-import contextlib
 
 import pytest
 import torch
@@ -15,9 +14,9 @@ from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 from torchtune.utils.precision import (
     _set_float32_precision,
-    autocast,
+    get_autocast,
     get_dtype,
-    get_gradient_autoscaler,
+    get_gradient_scaler,
     list_dtypes,
 )
 
@@ -39,7 +38,6 @@ class TestPrecisionUtils:
             torch.float16,
             torch.bfloat16,
             torch.float32,
-            torch.float32,
             torch.float64,
         ]
         for dtype, expected_dtype in zip(dtypes, expected_dtypes):
@@ -47,25 +45,21 @@ class TestPrecisionUtils:
                 get_dtype(dtype) == expected_dtype
             ), f"{dtype} should return {expected_dtype}"
 
-    def test_grad_autoscaler(self):
+    def test_grad_scaler(self):
         """
         Tests that the correct gradient scaler is returned based on precision.
         """
         for dtype in [None, "bf16"]:
-            assert_expected(
-                get_gradient_autoscaler(dtype=dtype, fsdp=False)._enabled, False
-            )
-            assert_expected(
-                get_gradient_autoscaler(dtype=dtype, fsdp=True)._enabled, False
-            )
+            assert_expected(get_gradient_scaler(dtype=dtype, fsdp=False), None)
+            assert_expected(get_gradient_scaler(dtype=dtype, fsdp=True), None)
 
         assert isinstance(
-            get_gradient_autoscaler("fp16", fsdp=False), torch.cuda.amp.GradScaler
+            get_gradient_scaler("fp16", fsdp=False), torch.cuda.amp.GradScaler
         )
-        assert isinstance(get_gradient_autoscaler("fp16", fsdp=True), ShardedGradScaler)
+        assert isinstance(get_gradient_scaler("fp16", fsdp=True), ShardedGradScaler)
 
         with pytest.raises(ValueError):
-            get_gradient_autoscaler("foo", fsdp=False)
+            get_gradient_scaler("foo", fsdp=False)
 
     def test_autocast(self):
         """
@@ -74,17 +68,14 @@ class TestPrecisionUtils:
 
         for dtype in ["fp16"]:
             assert isinstance(
-                autocast(device="cpu", dtype=dtype),
+                get_autocast(device="cpu", dtype=dtype),
                 torch.autocast,
             )
         for dtype in ["fp32", None]:
-            assert isinstance(
-                autocast(device="cpu", dtype=dtype),
-                contextlib.nullcontext,
-            )
+            assert get_autocast(device="cpu", dtype=dtype) is None
 
     def test_list_dtyes(self):
-        assert set(list_dtypes()) == {"fp16", "bf16", "fp32", "tf32", "fp64"}
+        assert set(list_dtypes()) == {"fp16", "bf16", "fp32", "fp64"}
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     def test_set_float32_precision(self) -> None:

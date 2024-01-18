@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 from typing import ContextManager, Dict, List, Optional, Union
 
 import torch
@@ -12,13 +11,12 @@ import torch
 from torch.cuda.amp import GradScaler
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-from torchtune.utils import get_device
+from torchtune.utils.device import get_device
 
 _precision_str_to_dtype: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
     "bf16": torch.bfloat16,
     "fp32": torch.float32,
-    "tf32": torch.float32,
     "fp64": torch.float64,
 }
 
@@ -66,11 +64,11 @@ def get_dtype(dtype: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
     # None defaults to float32
     if dtype is None:
         return torch.float32
-    # tf32 is float32 with special high precision cuda settings
-    if dtype == "tf32":
-        _set_float32_precision("highest")
+
+    # Convert to torch.dtype
     if type(dtype) == str:
-        dtype = _precision_str_to_dtype.get(dtype, None)
+        dtype = _precision_str_to_dtype.get(dtype, dtype)
+
     # dtype must be one of the supported precisions
     if dtype not in _precision_str_to_dtype.values():
         raise ValueError(
@@ -79,9 +77,9 @@ def get_dtype(dtype: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
     return dtype
 
 
-def get_gradient_autoscaler(
+def get_gradient_scaler(
     dtype: Optional[Union[str, torch.dtype]], fsdp: bool = False
-) -> Union[GradScaler, ShardedGradScaler]:
+) -> Union[GradScaler, ShardedGradScaler, None]:
     """
     Returns a gradient scaler for mixed-precision training.
     Args:
@@ -92,16 +90,17 @@ def get_gradient_autoscaler(
         precision types, else `None`.
     """
     dtype = get_dtype(dtype)
-
+    scaler = None
     if dtype == torch.float16:
-        return GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
+        scaler = (
+            GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
+        )
+    return scaler
 
-    return GradScaler(enabled=False)
 
-
-def autocast(
-    device: Union[str, torch.dtype], dtype: Optional[Union[str, torch.dtype]]
-) -> ContextManager:
+def get_autocast(
+    dtype: Optional[Union[str, torch.dtype]], device: Union[str, torch.dtype]
+) -> Union[ContextManager, None]:
     """
     Intelligently determines, based on the dtype if mixed precision training is supported and
     returns the builtin torch.autocast if applicable.
@@ -109,19 +108,18 @@ def autocast(
     Reference: https://pytorch.org/docs/stable/amp.html#torch.autocast
 
     Args:
-        device (Union[str, torch.dtype]): Pytorch device.
         dtype (Optional[Union[str, torch.dtype]]): dtype used to determine if mixed precision training is used.
+        device (Union[str, torch.dtype]): Pytorch device.
     Returns:
-        Generator: Autocast manager object if using half precision, otherwise an instance of
-            `contextlib.nullcontext`.
+        Autocast manager object if using half precision, otherwise None
     """
     dtype = get_dtype(dtype)
+    manager = None
     if dtype in (torch.float16, torch.bfloat16):
         # Note some devices do not support autocasting, and will raise an error.
         device = get_device(device)
-        return torch.autocast(
+        manager = torch.autocast(
             device_type=device.type,
             dtype=dtype,
         )
-    else:
-        return contextlib.nullcontext()
+    return manager

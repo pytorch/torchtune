@@ -49,7 +49,10 @@ class TuneArgumentParser(argparse.ArgumentParser):
                 c in namespace for c in config
             ), "Provided config contains unrecognized arguments"
             self.set_defaults(**config)
-        return super().parse_known_args(*args, **kwargs)
+        namespace, unknown_args = super().parse_known_args(*args, **kwargs)
+        if namespace.config is not None:
+            del namespace.config
+        return namespace, unknown_args
 
     def add_argument(self, *args, **kwargs):
         """This calls the base method but throws an error if the required flag is set or the name used is config.

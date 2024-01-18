@@ -8,16 +8,16 @@
 
 import torch
 
-from torchtune.utils.data import batch_pad_to_longest_seq
+from torchtune.utils.data import padded_collate
 
 
 class TestBatchPadSequence:
-    def test_batch_pad(self):
+    def test_padded_collate(self):
         """
         Tests that shorter input, label sequences are padded to the max seq len.
         """
-        input_padding_idx = -8
-        label_padding_idx = -9
+        padding_idx = -8
+        ignore_idx = -9
         token_pairs = [
             ([1, 2, 3], [4, 5, 6]),
             (
@@ -29,16 +29,12 @@ class TestBatchPadSequence:
                 ],
             ),
         ]
-        inputs, labels = batch_pad_to_longest_seq(
+        inputs, labels = padded_collate(
             batch=token_pairs,
-            input_padding_idx=input_padding_idx,
-            label_padding_idx=label_padding_idx,
+            padding_idx=padding_idx,
+            ignore_idx=ignore_idx,
         )
         padded_input = inputs[1]
         padded_label = labels[1]
-        assert torch.allclose(
-            padded_input, torch.tensor([7, input_padding_idx, input_padding_idx])
-        )
-        assert torch.allclose(
-            padded_label, torch.tensor([10, label_padding_idx, label_padding_idx])
-        )
+        assert torch.allclose(padded_input, torch.tensor([7, padding_idx, padding_idx]))
+        assert torch.allclose(padded_label, torch.tensor([10, ignore_idx, ignore_idx]))

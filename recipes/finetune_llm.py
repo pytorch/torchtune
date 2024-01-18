@@ -4,121 +4,107 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
+import logging
 import os
-import sys
 from functools import partial
-from typing import Callable
 
 import torch
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    apply_activation_checkpointing,
-)
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torch.optim.optimizer import Optimizer
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import utils
 
-from torchtune.datasets import get_dataset, list_datasets
-from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-from torchtune.modules import TransformerDecoderLayer
+from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
 
-def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
-    return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
-
-
-def get_loss(loss_fn: str) -> Callable:
-    return getattr(torch.nn, loss_fn)()
-
-
-def get_logger():
-    import logging
-
-    logger = logging.getLogger(__name__)
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
-    return logger.info
-
-
-def recipe(kwargs):
+def recipe(
+    device,
+    dtype,
+    seed,
+    model,
+    model_checkpoint,
+    tokenizer,
+    tokenizer_checkpoint,
+    dataset,
+    shuffle,
+    batch_size,
+    distributed,
+    epochs,
+    optimizer,
+    loss,
+    lr,
+    activation_checkpointing,
+    output_dir,
+    run_generation,
+    max_steps_per_epoch,
+):
     # ---- Initialize components ---- #
-    logger = get_logger()
-    device = utils.get_device(kwargs["device"])
-    dtype = utils.get_dtype(kwargs["dtype"])
-    world_size, rank = utils.get_world_size_and_rank()
-    seed = utils.set_seed(kwargs["seed"])
+    logger = logging.getLogger()
+    device = utils.get_device(device)
+    dtype = utils.get_dtype(dtype)
+    seed = utils.set_seed(seed)
 
-    tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
-    logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
+    # ---- Setup model and load checkpoint ---- #
+    tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+    logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
 
-    # When using fsdp, init on meta device to avoid OOM
-    model = get_model(
-        kwargs["model"],
-        "meta" if kwargs["fsdp"] else device,
-    )
-
-    if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
-        auto_wrap_policy = ModuleWrapPolicy(
-            {TransformerDecoderLayer}
-        )  # TODO: remove model specific components
-    if kwargs["fsdp"]:
-        utils.init_distributed(device)
-        model = FSDP(
+    model = models.get_model(model, device=device)
+    if (
+        distributed
+    ):  # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
+        model = utils.get_distributed(
             model,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=device,
-            param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
+            device,
+            dtype,
+            "FUll_SHARD",
+            auto_wrap_policy={modules.TransformerDecoderLayer},
         )
-    if kwargs["activation_checkpointing"]:
-        apply_activation_checkpointing(
-            model,
-            check_fn=lambda mod: isinstance(
-                mod, TransformerDecoderLayer
-            ),  # TODO: remove model specific components
-            auto_wrap_policy=auto_wrap_policy,
+    if activation_checkpointing:
+        utils.set_activation_checkpointing(
+            model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-    loaded_ckpt = torch.load(
-        kwargs["model_checkpoint"], map_location="cpu", weights_only=True
-    )
+    loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
     model.load_state_dict(loaded_ckpt)
-    logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
+    logger.info(msg=f"Loaded model from {model_checkpoint}")
 
-    opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
-    autoscale = utils.get_gradient_autoscaler(dtype, fsdp=kwargs["fsdp"])
+    # ---- Setup optimization functions ---- #
+    opt = optim.get_optimizer(optimizer, model, lr)
     # TODO add lr schedule option
-    loss_fn = get_loss(kwargs["loss"])
+    loss_fn = losses.get_loss(loss)
+
+    grad_scaler = utils.get_gradient_scaler(dtype, distributed) or GradScaler(
+        enabled=False
+    )
+    autocast = utils.get_autocast(dtype, device) or contextlib.nullcontext()
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
+    world_size, rank = utils.get_world_size_and_rank()
+    ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
-        dataset,
+        ds,
         num_replicas=world_size,
         rank=rank,
-        shuffle=kwargs["shuffle"],
+        shuffle=shuffle,
         seed=0,
     )
     dataloader = DataLoader(
-        dataset=dataset,
-        batch_size=kwargs["batch_size"],
+        dataset=ds,
+        batch_size=batch_size,
         sampler=sampler,
         collate_fn=partial(
-            utils.batch_pad_to_longest_seq,
-            input_padding_idx=tokenizer.pad_id,
-            label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
+            utils.padded_collate,
+            padding_idx=tokenizer.pad_id,
+            ignore_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
     )
-    logger(msg=f"Loaded dataset {kwargs['dataset']}")
+    logger.info(msg=f"Loaded dataset {dataset}")
 
     # ---- Train loop ---- #
-    for epoch in range(kwargs["epochs"]):
-        # Need to set the epoch for changing sample ordering in each epoch
-        sampler.set_epoch(epoch)
+    for epoch in range(epochs):
+        sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
         for idx, batch in enumerate(pbar := tqdm(dataloader)):
-            max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -127,10 +113,7 @@ def recipe(kwargs):
             input_ids = input_ids.to(device)
             labels = labels.to(device)
 
-            # Automatically handles mixed precision when given a low precision dtype.
-            # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
-            # for more details.
-            with utils.autocast(device, dtype):
+            with autocast:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -146,11 +129,11 @@ def recipe(kwargs):
                 f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
             )  # TODO: add terminal logger
 
-            autoscale.scale(loss).backward()
-            autoscale.step(opt)
-            autoscale.update()
+            grad_scaler.scale(loss).backward()
+            grad_scaler.step(opt)
+            grad_scaler.update()
 
-            run_generation = kwargs.get("run_generation", None)
+            # --- TODO TEMPORARY EVAL Code ---- #
             if run_generation and idx % run_generation == 0:
                 # Log a sample generation for the instruction.
                 # Just using a hardcoded prompt for now
@@ -163,16 +146,14 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                if (
-                    not torch.distributed.is_initialized()
-                    or torch.distributed.get_rank() == 0
-                ):
-                    logger(f"Generation tokens: {decoded_tokens}")
-                    logger(f"Generation: {generation_str}")
+                if rank == 0:
+                    logger.info(f"Generation tokens: {decoded_tokens}")
+                    logger.info(f"Generation: {generation_str}")
+            # --- TODO TEMPORARY EVAL Code Ends ---- #
 
-        # Save checkpoint at end of each epoch (to be changed later)
-        os.makedirs(kwargs["output_dir"], exist_ok=True)
-        output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
+        # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
+        os.makedirs(output_dir, exist_ok=True)
+        output_loc = f"{output_dir}/model_{epoch}.ckpt"
         torch.save(
             {
                 "epoch": epoch,
@@ -182,7 +163,7 @@ def recipe(kwargs):
             },
             output_loc,
         )
-        logger(
+        logger.info(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
 
@@ -194,7 +175,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=list_datasets(),
+        choices=datasets.list_datasets(),
         help="Dataset name.",
     )
     parser.add_argument(
@@ -212,7 +193,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        choices=list_models(),
+        choices=models.list_models(),
         help="Model to finetune.",
     )
     parser.add_argument(
@@ -223,7 +204,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tokenizer",
         type=str,
-        choices=list_tokenizers(),
+        choices=models.list_tokenizers(),
         help="Model tokenizer.",
     )
     parser.add_argument(
@@ -268,7 +249,7 @@ if __name__ == "__main__":
         help="`cuda` or `cpu`",
     )
     parser.add_argument(
-        "--fsdp",
+        "--distributed",
         type=bool,
         default=False,
         help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
@@ -300,4 +281,4 @@ if __name__ == "__main__":
     )
 
     kwargs = vars(parser.parse_args())
-    sys.exit(recipe(kwargs))
+    recipe(**kwargs)

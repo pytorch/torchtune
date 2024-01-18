@@ -91,11 +91,12 @@ class TestFinetuneLLMRecipe:
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
-            "fsdp": False,
+            "distributed": False,
             "activation_checkpointing": False,
+            "run_generation": False,
         }
 
-        finetune_llm.recipe(kwargs_values)
+        finetune_llm.recipe(**kwargs_values)
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
         logger.info("Expected loss values : ", expected_loss_values)
         logger.info("Loss values from Finetune : ", loss_values)

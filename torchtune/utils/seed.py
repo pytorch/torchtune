@@ -13,7 +13,7 @@ from typing import Optional, Union
 import numpy as np
 import torch
 
-from torchtune.utils.distributed import get_world_size_and_rank
+from torchtune.utils.distributed import _broadcast_tensor, get_world_size_and_rank
 
 _log: logging.Logger = logging.getLogger(__name__)
 
@@ -46,13 +46,14 @@ def set_seed(
     world_size, rank = get_world_size_and_rank()
     max_val = np.iinfo(np.uint32).max - world_size + 1
     min_val = np.iinfo(np.uint32).min
+    if seed is None:
+        seed = torch.randint(min_val, max_val, (1,))
+        _broadcast_tensor(seed, 0)  # broadcast the seed to all ranks
+        seed = seed.item()
     if seed < min_val or seed > max_val:
         raise ValueError(
             f"Invalid seed value provided: {seed}. Value must be in the range [{min_val}, {max_val}]"
         )
-
-    if seed is None:
-        seed = random.randint(min_val, max_val)
     local_seed = seed + rank
     _log.debug(f"Setting seed to {seed} and rank local seed to {local_seed}")
 
