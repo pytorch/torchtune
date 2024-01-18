@@ -1,0 +1,4 @@
+[tool.pydoclint]
+style = 'google'
+check-return-types = 'False'
+exclude = 'tests/torchtune/models/llama2/scripts/'
