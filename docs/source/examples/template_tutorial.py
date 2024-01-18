@@ -26,9 +26,7 @@ Template Tutorial
 For instructions on how to build the docs and write that kind of examples,
 please follow the instructions on the torchtune README:
 https://github.com/pytorch-labs/torchtune. Reach out to Nicolas if anything is
-confusing. If you're developing on a remote machine, look at
-https://github.com/pytorch-labs/torchtune/pull/149/files
-
+confusing.
 """
 
 
