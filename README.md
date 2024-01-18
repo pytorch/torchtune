@@ -126,7 +126,7 @@ If the doc build starts failing for a weird reason, try `make clean`.
 
 #### Iterate and Serve docs locally
 
-If you're developing locally, you can just open the generated `index.html` file in your browser. 
+If you're developing locally, you can just open the generated `index.html` file in your browser.
 
 If instead you're using a remote machine, you can use a combination of a simple python HTTP server and port forwarding to serve the docs locally.
 This allows you to iterate on the documentation much more quickly than relying on PR
