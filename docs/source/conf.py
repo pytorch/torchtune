@@ -58,8 +58,8 @@ extensions = [
 sphinx_gallery_conf = {
     "examples_dirs": "examples/",  # path to your sphinx-gallery examples
     "gallery_dirs": "generated_examples",  # path to where to save shpinx-gallery generated output
-    "filename_pattern": "./*.py",  # any file
-    "backreferences_dir": "gen_modules/backreferences",
+    "filename_pattern": "./*.py",  # any .py file in docs/source/examples will be built by sphinx-gallery
+    "backreferences_dir": "gen_modules/backreferences",  # path to store the backreferences
     "doc_module": ("torchtune",),
     "remove_config_comments": True,
 }
@@ -245,12 +245,10 @@ def setup(app):
     app.connect("autodoc-process-docstring", inject_minigalleries)
 
 
-# Custom directives defintions to create cards on main torchtune page
+# Custom directives definitions to create cards on main torchtune page
 
 from custom_directives import CustomCardEnd, CustomCardItem, CustomCardStart
 from docutils.parsers import rst
-
-# Register custom directives
 
 rst.directives.register_directive("customcardstart", CustomCardStart)
 rst.directives.register_directive("customcarditem", CustomCardItem)
