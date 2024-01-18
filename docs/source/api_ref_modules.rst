@@ -28,5 +28,6 @@ PEFT Components
     :toctree: generated/
     :template: class.rst
 
+    peft.FusedLoRADim
     peft.LoRALinear
     peft.LoRAFusedLinear
