@@ -11,7 +11,7 @@ Topics in this section will help you get started with TorchTune.
 .. grid:: 2
 
      .. grid-item-card:: :octicon:`file-code;1em`
-        Overview - What is TorchTune?
+        What is TorchTune?
         :img-top: _static/img/card-background.svg
         :link: overview.html
         :link-type: url
