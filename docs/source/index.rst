@@ -11,9 +11,9 @@ Topics in this section will help you get started with TorchTune.
 .. grid:: 2
 
      .. grid-item-card:: :octicon:`file-code;1em`
-        What is TorchTune?
+        Overview - What is TorchTune?
         :img-top: _static/img/card-background.svg
-        :link: intro-overview.html
+        :link: overview.html
         :link-type: url
 
         A gentle introduction to TorchTune. In this section,
@@ -21,13 +21,12 @@ Topics in this section will help you get started with TorchTune.
         and how you can use them in your projects.
 
      .. grid-item-card:: :octicon:`file-code;1em`
-        Getting started with TorchTune
+        Installation instructions
         :img-top: _static/img/card-background.svg
-        :link: getting-started-setup.html
+        :link: install.html
         :link-type: url
 
-        A step-by-step tutorial on how to get started with
-        TorchTune.
+        A step-by-step tutorial on how to install TorchTune.
 
 Tutorials
 ~~~~~~~~~
@@ -49,18 +48,11 @@ TorchTune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
-   :caption: Introduction
-   :hidden:
-
-   intro-overview
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
    :caption: Getting Started
    :hidden:
 
-   getting-started-setup
+   overview
+   install
 
 .. toctree::
    :glob:
