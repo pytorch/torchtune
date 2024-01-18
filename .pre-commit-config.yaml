@@ -15,6 +15,7 @@ repos:
     -   id: check-added-large-files
         args: ['--maxkb=500']
     -   id: end-of-file-fixer
+        exclude: '^(.*\.svg)$'
 
 -   repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.4
@@ -47,4 +48,4 @@ repos:
   rev: d88180a8632bb1602a4d81344085cf320f288c5a
   hooks:
     - id: pydoclint
-      args: [--style=google, --check-return-types=False]
+      args: [--config=pyproject.toml]

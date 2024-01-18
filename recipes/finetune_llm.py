@@ -50,14 +50,13 @@ def recipe(
     logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
 
     model = models.get_model(model, device=device)
-    if (
-        distributed
-    ):  # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
+    if distributed:
+        # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
         model = utils.get_distributed(
-            model,
-            device,
-            dtype,
-            "FUll_SHARD",
+            model=model,
+            device=device,
+            dtype=dtype,
+            strategy="FUll_SHARD",
             auto_wrap_policy={modules.TransformerDecoderLayer},
         )
     if activation_checkpointing:
