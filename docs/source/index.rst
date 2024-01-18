@@ -41,7 +41,7 @@ TorchTune tutorials.
    :header: Template Tutorial
    :card_description: A template tutorial. To be deleted.
    :image: _static/img/generic-pytorch-logo.png
-   :link: tutorials/template_tutorial.html
+   :link: generated_examples/template_tutorial.html
    :tags: Template
 
 .. customcardend::
@@ -68,7 +68,8 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   tutorials/template_tutorial
+   generated_examples/template_tutorial
+   generated_examples/plot_the_best_example_in_the_world
 
 Model Architectures
 -------------------
