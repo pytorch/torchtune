@@ -14,10 +14,24 @@ ASSETS = Path(__file__).parent.parent.parent / "assets"
 
 class TestTokenizer:
     @pytest.fixture
-    def tokenizer(self):
+    def tokenizer(self, request):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return Tokenizer.from_file(str(ASSETS / "m.model"))
+        return Tokenizer.from_file(str(ASSETS / "m.model"), request.param)
+
+    @pytest.mark.parametrize("tokenizer", [4, 100], indirect=["tokenizer"])
+    def test_truncation(self, tokenizer):
+        token_list = [
+            tokenizer.bos_id,
+            12,
+            1803,
+            1024,
+            103,
+            tokenizer.eos_id,
+        ]
+        if tokenizer.max_len < 6:
+            token_list = token_list[: tokenizer.max_len]
+        assert tokenizer.encode("Hello world!", truncate=True) == token_list
 
     def test_encode(self, tokenizer):
         assert tokenizer.encode("Hello world!") == [
