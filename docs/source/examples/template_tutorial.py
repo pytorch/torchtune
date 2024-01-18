@@ -22,7 +22,7 @@ Template Tutorial
       * Do not feel obliged to fill those boxes if it's not relevant.
       * This is just an example
 
-      
+
 For instructions on how to build the docs and write that kind of examples,
 please follow the instructions on the torchtune README:
 https://github.com/pytorch-labs/torchtune. Reach out to Nicolas if anything is
@@ -54,9 +54,9 @@ print("OK cool.")
 
 # %%
 # If you have a video, add it here like this:
-# 
+#
 # .. raw:: html
-# 
+#
 #    <div style="margin-top:10px; margin-bottom:10px;">
 #      <iframe
 #         width="560"
