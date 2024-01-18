@@ -4,9 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
 # python -m recipes.evaluate --native-checkpoint-path /tmp/finetune-llm/model_2.ckpt --tokenizer-path ~/llama/tokenizer.model
 
 import argparse
@@ -14,17 +11,13 @@ import logging
 import time
 from typing import List, Optional
 
-import lm_eval
-
 import torch
-import torch._dynamo.config
-import torch._inductor.config
 import torch.nn.functional as F
 from accelerate import find_executable_batch_size
-from lm_eval import utils
+from lm_eval import evaluator, utils
 from lm_eval.api.instance import Instance
 from lm_eval.api.model import LM
-
+from lm_eval.tasks import get_task_dict, initialize_tasks
 from torchtune.models.llama2 import llama2_7b, llama2_tokenizer
 from torchtune.modules.tokenizer import Tokenizer
 from torchtune.modules.transformer import TransformerDecoder
@@ -32,7 +25,6 @@ from torchtune.utils.device import _get_device_from_env
 from torchtune.utils.env import seed
 from torchtune.utils.generation import GenerationUtils
 from tqdm import tqdm
-
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -393,10 +385,10 @@ def main(
             max_seq_length,
         )
 
-        lm_eval.tasks.initialize_tasks()
-        task_dict = lm_eval.tasks.get_task_dict(tasks)
+        initialize_tasks()
+        task_dict = get_task_dict(tasks)
 
-        eval_results = lm_eval.evaluator.evaluate(
+        eval_results = evaluator.evaluate(
             model_eval_wrapper,
             task_dict,
             limit=10,
