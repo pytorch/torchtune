@@ -55,7 +55,9 @@ def set_seed(
             f"Invalid seed value provided: {seed}. Value must be in the range [{min_val}, {max_val}]"
         )
     local_seed = seed + rank
-    _log.debug(f"Setting seed to {seed} and rank local seed to {local_seed}")
+    _log.debug(
+        f"Setting manual seed to local seed {local_seed}. Local seed is seed + rank = {seed} + {rank}"
+    )
 
     torch.manual_seed(local_seed)
     np.random.seed(local_seed)

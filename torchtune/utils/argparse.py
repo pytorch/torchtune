@@ -50,8 +50,7 @@ class TuneArgumentParser(argparse.ArgumentParser):
             ), "Provided config contains unrecognized arguments"
             self.set_defaults(**config)
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
-        if namespace.config is not None:
-            del namespace.config
+        del namespace.config
         return namespace, unknown_args
 
     def add_argument(self, *args, **kwargs):
