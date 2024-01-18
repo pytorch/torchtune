@@ -45,6 +45,12 @@ TorchTune tutorials.
 
 .. customcardend::
 
+
+.. ----------------------------------------------------------------------
+.. Below is the toctree i.e. it defines the content of the left sidebar.
+.. Each of the entry below corresponds to a file.rst in docs/source/.
+.. ----------------------------------------------------------------------
+
 .. toctree::
    :glob:
    :maxdepth: 1
@@ -62,36 +68,11 @@ TorchTune tutorials.
 
    generated_examples/template_tutorial
 
-Model Architectures
--------------------
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: API Reference
+   :hidden:
 
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
-
-    torchtune.models.llama2_7b
-
-Modeling Components and Building Blocks
----------------------------------------
-
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
-
-    torchtune.modules.CausalSelfAttention
-    torchtune.modules.FeedForward
-    torchtune.modules.KVCache
-    torchtune.modules.RotaryPositionalEmbeddings
-    torchtune.modules.RMSNorm
-    torchtune.modules.Tokenizer
-    torchtune.modules.TransformerDecoderLayer
-    torchtune.modules.TransformerDecoder
-
-
-PEFT Components
-
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
-
-    torchtune.modules.peft.LoRALinear
+   api_ref_models
+   api_ref_modules
