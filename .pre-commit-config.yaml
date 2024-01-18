@@ -15,6 +15,7 @@ repos:
     -   id: check-added-large-files
         args: ['--maxkb=500']
     -   id: end-of-file-fixer
+        exclude: '^(.*\.svg)$'
 
 -   repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.4

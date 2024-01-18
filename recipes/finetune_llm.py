@@ -54,12 +54,6 @@ def recipe(kwargs):
     # ---- Initialize components ---- #
     logger = get_logger()
 
-    # ---- Initialize seed ---- #
-    world_size, rank = get_world_size_and_rank()
-    if kwargs["seed"] is not None:
-        # Ensure that seed is different per rank (and its dataloader workers)
-        seed(kwargs["seed"] + rank)
-
     # ---- Initialize distributed process group ---- #
     device = init_from_env(device_type=kwargs["device"])
     # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
@@ -68,6 +62,14 @@ def recipe(kwargs):
         if kwargs["device"] in ("cpu", "cuda")
         else kwargs["device"].split(":")[0]
     )
+
+    # ---- Initialize seed ---- #
+    # Fetch world size and rank after distributed process group initialization
+    world_size, rank = get_world_size_and_rank()
+    if kwargs["seed"] is not None:
+        # Ensure that seed is different per rank (and its dataloader workers)
+        seed(kwargs["seed"] + rank)
+
     tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
     logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
 
@@ -213,7 +215,7 @@ def recipe(kwargs):
 
 
 if __name__ == "__main__":
-    parser = TuneArgumentParser(description="Fine-tune an LLM model.")
+    parser = TuneArgumentParser(description="Fine-tune an LLM.")
 
     # Dataset and DataLoader arguments
     parser.add_argument(

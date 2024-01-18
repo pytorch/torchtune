@@ -15,6 +15,7 @@ from torch.distributed import launcher
 from torchtune.utils.device import _get_device_from_env
 from torchtune.utils.env import (
     _get_process_group_backend_from_device,
+    get_world_size_and_rank,
     init_from_env,
     seed,
 )
@@ -64,6 +65,16 @@ class TestEnv:
             )
         return device
 
+    @staticmethod
+    def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
+        torch.distributed.init_process_group(backend="gloo")
+        init_from_env(device_type="cpu")
+        world_size, _ = get_world_size_and_rank()
+        if world_size != expected_world_size:
+            raise AssertionError(
+                f"Expected different world size: received {world_size}, expected {expected_world_size}"
+            )
+
     def _test_launch_worker(
         self,
         num_processes: int,
@@ -92,6 +103,13 @@ class TestEnv:
         pg_backend = _get_process_group_backend_from_device(device)
         assert pg_backend == "nccl"
 
+    def test_world_size_with_cpu(self) -> None:
+        desired_world_size = 4
+        lc = get_pet_launch_config(desired_world_size)
+        launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(
+            desired_world_size
+        )
+
     def test_seed_range(self) -> None:
         """
         Verify that exceptions are raised on input values
@@ -106,11 +124,11 @@ class TestEnv:
         # should not raise any exceptions
         seed(42)
 
-    def test_deterministic_true(self) -> None:
+    def test_debug_mode_true(self) -> None:
         for det_debug_mode, det_debug_mode_str in [(1, "warn"), (2, "error")]:
             warn_only = det_debug_mode == 1
-            for deterministic in (det_debug_mode, det_debug_mode_str):
-                seed(42, deterministic=deterministic)
+            for debug_mode in (det_debug_mode, det_debug_mode_str):
+                seed(42, debug_mode=debug_mode)
                 assert torch.backends.cudnn.deterministic
                 assert not torch.backends.cudnn.benchmark
                 assert det_debug_mode == torch.get_deterministic_debug_mode()
@@ -120,16 +138,16 @@ class TestEnv:
                 )
                 assert os.environ["CUBLAS_WORKSPACE_CONFIG"] == ":4096:8"
 
-    def test_deterministic_false(self) -> None:
-        for deterministic in ("default", 0):
-            seed(42, deterministic=deterministic)
+    def test_debug_mode_false(self) -> None:
+        for debug_mode in ("default", 0):
+            seed(42, debug_mode=debug_mode)
             assert not torch.backends.cudnn.deterministic
             assert torch.backends.cudnn.benchmark
             assert 0 == torch.get_deterministic_debug_mode()
             assert not torch.are_deterministic_algorithms_enabled()
             assert not torch.is_deterministic_algorithms_warn_only_enabled()
 
-    def test_deterministic_unset(self) -> None:
+    def test_debug_mode_unset(self) -> None:
         det = torch.backends.cudnn.deterministic
         benchmark = torch.backends.cudnn.benchmark
         det_debug_mode = torch.get_deterministic_debug_mode()
@@ -137,7 +155,7 @@ class TestEnv:
         det_algo_warn_only_enabled = (
             torch.is_deterministic_algorithms_warn_only_enabled()
         )
-        seed(42, deterministic=None)
+        seed(42, debug_mode=None)
         assert det == torch.backends.cudnn.deterministic
         assert benchmark == torch.backends.cudnn.benchmark
         assert det_debug_mode == torch.get_deterministic_debug_mode()
