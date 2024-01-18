@@ -6,30 +6,15 @@
 
 import itertools
 
-from typing import Any, Dict, Iterator
+from typing import Any, Dict
 
-from torch.utils.data import DataLoader, Dataset, IterableDataset, Sampler
-
-
-class _DataLoaderIteratorWrapper(Iterator):
-    def __init__(self, base_iterator: Iterator, resume_index: int):
-        self.resume_index = resume_index
-        self.base_iterator = base_iterator
-
-    def __iter__(self):
-        return self
-
-    def __next__(self):
-        item = next(self.base_iterator)
-        # Increment the resume index as data is consumed
-        self.resume_index += 1
-        return item
-
-    def __len__(self):
-        return len(self.base_iterator)
-
-    def __getstate__(self):
-        return self.base_iterator.__getstate__()
+from torch.utils.data import (
+    DataLoader,
+    Dataset,
+    DistributedSampler,
+    IterableDataset,
+    Sampler,
+)
 
 
 class _StatefulSampler:
@@ -56,17 +41,24 @@ class _StatefulSampler:
 
 class StatefulDataLoader(DataLoader):
     RESUME_INDEX_KEY = "resume_index"
+    DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
 
     def __init__(self, dataset: Dataset, *args, **kwargs):
         self._wrapped_iterator = None
         self._stateful_index_sampler = None
-        self._resume_index = 0
+        self._checkpoint_index = 0
+        self._num_yielded = 0
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
                 "StatefulDataLoader currently supports only map-style dataset"
             )
+
         super().__init__(dataset, *args, **kwargs)
+        if not isinstance(self.sampler, DistributedSampler):
+            raise ValueError(
+                "StatefulDataLoader currently supports only DistributedSampler"
+            )
 
     @property
     def _index_sampler(self):
@@ -75,24 +67,28 @@ class StatefulDataLoader(DataLoader):
         return self._stateful_index_sampler
 
     def __iter__(self):
-        # Wrap the base iterator to keep track of the resume index
-        self._wrapped_iterator = _DataLoaderIteratorWrapper(
-            super().__iter__(), self._resume_index
-        )
-        self._resume_index = 0
-
-        return self._wrapped_iterator
+        self._num_yielded = self._checkpoint_index
+        self._checkpoint_index = 0
+        for batch in super().__iter__():
+            self._num_yielded += 1
+            yield batch
 
     def state_dict(self) -> Dict[str, Any]:
         resume_index = (
-            self._wrapped_iterator.resume_index
-            if self._wrapped_iterator
-            else self._resume_index
+            self._num_yielded if self._checkpoint_index == 0 else self._checkpoint_index
         )
-        sd = {self.RESUME_INDEX_KEY: resume_index}
-        return sd
+        return {
+            self.RESUME_INDEX_KEY: resume_index,
+            self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED: self.sampler.seed,
+        }
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
-        # TODO: Need a check that world size hasn't changed
-        self._resume_index = state_dict.get(self.RESUME_INDEX_KEY)
-        self._index_sampler.set_state(self._resume_index)
+        self._checkpoint_index = state_dict.get(self.RESUME_INDEX_KEY)
+        checkpoint_seed = state_dict.get(self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED)
+
+        # Ensure that the seed of DistributedSampler hasn't changed
+        if checkpoint_seed != self.sampler.seed:
+            raise AssertionError(
+                f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa
+            )
+        self._index_sampler.set_state(self._checkpoint_index)
