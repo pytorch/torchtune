@@ -1,12 +1,16 @@
 {% extends "!layout.html" %}
 
 {% block sidebartitle %}
+    <!-- TODO: uncomment below before release to enable the version selector -->
+    <!-- <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>{{ version }} &#x25BC</a>
+      </div> -->
     {% include "searchbox.html" %}
 {% endblock %}
 
 
 {% block footer %}
-<!-- Commenting out to turn off TOC expansion while developing docs content -->
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Un-comment to re-enable -->
 <!-- {{ super() }}
 <script script type="text/javascript">
     var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
