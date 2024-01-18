@@ -20,27 +20,85 @@ class TestTokenizer:
         return Tokenizer.from_file(str(ASSETS / "m.model"))
 
     @pytest.fixture
-    def tokenizer_with_max_len(self, request):
+    def tokenizer_with_max_token_len(self, request):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(ASSETS / "m.model"), request.param)
 
+    # Parameters - 2 = too small for truncation, truncate, full token list
     @pytest.mark.parametrize(
-        "tokenizer_with_max_len", [4, 100], indirect=["tokenizer_with_max_len"]
+        "tokenizer_with_max_token_len",
+        [2, 4, 100],
+        indirect=["tokenizer_with_max_token_len"],
     )
-    def test_truncation(self, tokenizer_with_max_len):
-        token_list = [
-            tokenizer_with_max_len.bos_id,
+    def test_truncation(self, tokenizer_with_max_token_len):
+        full_token_list = [
+            tokenizer_with_max_token_len.bos_id,
             12,
             1803,
             1024,
             103,
-            tokenizer_with_max_len.eos_id,
+            tokenizer_with_max_token_len.eos_id,
         ]
-        if tokenizer_with_max_len.max_len < 6:
-            token_list = token_list[: tokenizer_with_max_len.max_len]
+
+        truncated_token_list = [
+            tokenizer_with_max_token_len.bos_id,
+            12,
+            1803,
+            tokenizer_with_max_token_len.eos_id,
+        ]
+
+        token_list = (
+            truncated_token_list
+            if tokenizer_with_max_token_len.max_token_len == 4
+            else full_token_list
+        )
         assert (
-            tokenizer_with_max_len.encode("Hello world!", truncate=True) == token_list
+            tokenizer_with_max_token_len.encode("Hello world!", truncate=True)
+            == token_list
+        )
+
+    @pytest.mark.parametrize(
+        "tokenizer_with_max_token_len",
+        [1, 2, 4, 100],
+        indirect=["tokenizer_with_max_token_len"],
+    )
+    def test_truncation_without_eos(self, tokenizer_with_max_token_len):
+        full_token_list = [
+            tokenizer_with_max_token_len.bos_id,
+            12,
+            1803,
+            1024,
+            103,
+        ]
+
+        larger_truncated_token_list = [
+            tokenizer_with_max_token_len.bos_id,
+            12,
+            1803,
+            1024,
+        ]
+
+        smaller_truncated_token_list = [
+            tokenizer_with_max_token_len.bos_id,
+            12,
+        ]
+
+        if (
+            tokenizer_with_max_token_len.max_token_len == 100
+            or tokenizer_with_max_token_len.max_token_len == 1
+        ):
+            token_list = full_token_list
+        elif tokenizer_with_max_token_len.max_token_len == 4:
+            token_list = larger_truncated_token_list
+        else:
+            token_list = smaller_truncated_token_list
+
+        assert (
+            tokenizer_with_max_token_len.encode(
+                "Hello world!", add_eos=False, truncate=True
+            )
+            == token_list
         )
 
     def test_encode(self, tokenizer):
