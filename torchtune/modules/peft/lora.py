@@ -32,7 +32,8 @@ class LoRALinear(nn.Module):
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability
         use_bias (bool): whether to include bias in the original linear layer
-        lora_use_bias (bool): whether to include bias in the two low-rank matrices
+        use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
+            A and B
     """
 
     def __init__(
@@ -43,7 +44,7 @@ class LoRALinear(nn.Module):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
-        lora_use_bias: bool = False,
+        use_bias_in_lora_matrices: bool = False,
     ):
         super().__init__()
         self.rank = rank
@@ -52,10 +53,10 @@ class LoRALinear(nn.Module):
         self.linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=lora_use_bias
+            in_features=in_dim, out_features=rank, bias=use_bias_in_lora_matrices
         )
         self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=lora_use_bias
+            in_features=rank, out_features=out_dim, bias=use_bias_in_lora_matrices
         )
         self.reset_lora_parameters()
 
@@ -112,9 +113,9 @@ class LoRAFusedLinear(nn.Module):
     .. code-block:: python
 
         fused_lora_dims = [
-            FusedLoRADim(128, True), # Apply LoRA to Q with dim 128
-            FusedLoRADim(64, False), # Don't apply LoRA to K with dim 64
-            FusedLoRADim(64, True)  # Apply LoRA to V with dim 64
+            FusedLoRADim(dim=128, apply_lora=True), # Q has dim 128, apply LoRA to Q
+            FusedLoRADim(dim=64, apply_lora=False), # K has dim 64, don't apply LoRA to K
+            FusedLoRADim(dim=64, apply_lora=True)  # V has dim 64, apply LoRA to V
         ]
         lora_qv_only = LoRAFusedLinear(
             in_dim=32,
@@ -137,8 +138,7 @@ class LoRAFusedLinear(nn.Module):
         in_dim (int): input dimension
         fused_lora_dims (List[FusedLoRADim]): each element of the list
             contains information about a single linear layer's output dimension
-            and whether LoRA should be applied to that linear layer. See also
-            :class:`.FusedLoRADim`
+            and whether LoRA should be applied to that linear layer
         rank (int): rank of each low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability
@@ -159,11 +159,11 @@ class LoRAFusedLinear(nn.Module):
         self.rank = rank
         self.alpha = alpha
         self.in_dim = in_dim
+        self.fused_lora_dims = fused_lora_dims
         self.out_dims = [x.dim for x in fused_lora_dims]
         self.all_out_dims_equal = len(set(self.out_dims)) == 1
         self.out_dim = sum(self.out_dims)
-        self.apply_lora = [x.apply_lora for x in fused_lora_dims]
-        self.num_lora_blocks = sum(self.apply_lora)
+        self.num_lora_blocks = sum([x.apply_lora for x in fused_lora_dims])
         self.lora_dims = [
             lora_split.dim for lora_split in fused_lora_dims if lora_split.apply_lora
         ]
@@ -188,17 +188,23 @@ class LoRAFusedLinear(nn.Module):
         """
         This method constructs the indices (along embedding dimension)
         that should have LoRA applied. E.g. if
-        out_dims = [1, 3, 5, 6] and apply_lora = [True, False, False, True]
+        self.fused_lora_dims = [
+            FusedLoRADim(dim=1, apply_lora=True),
+            FusedLoRADim(dim=3, apply_lora=False),
+            FusedLoRADim(dim=5, apply_lora=False),
+            FusedLoRADim(dim=6, apply_lora=True)
+        ],
         then _get_lora_indices will return [0, 9, 10, 11, 12, 13, 14]
         """
         split_indices = [0] + list(np.cumsum(self.out_dims)[:-1])
         lora_indices = []
-        for split_size, split_start_idx, use in zip(
-            self.out_dims, split_indices, self.apply_lora
+        for fused_lora_dim, split_start_idx in zip(
+            self.fused_lora_dims,
+            split_indices,
         ):
-            if use:
+            if fused_lora_dim.apply_lora:
                 lora_indices.extend(
-                    range(split_start_idx, split_start_idx + split_size)
+                    range(split_start_idx, split_start_idx + fused_lora_dim.dim)
                 )
         return lora_indices
 
@@ -290,7 +296,7 @@ class LoRAFusedLinear(nn.Module):
 
         """
         # If all blocks have LoRA applied, return the tensor as-is (no padding needed)
-        if self.num_lora_blocks == len(self.out_dims):
+        if self.num_lora_blocks == len(self.fused_lora_dims):
             return x
 
         # Otherwise create a new tensor of zeros and only fill in LoRA-enabled indices
