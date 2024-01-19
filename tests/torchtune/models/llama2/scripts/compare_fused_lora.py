@@ -11,7 +11,7 @@ import torch
 import torch.nn as nn
 from tests.test_utils import fixed_init_model
 from torch.nn import functional as F
-from torchtune.modules.peft import LoRAFusedLinear
+from torchtune.modules.peft import FusedLoRADim, LoRAFusedLinear
 
 # Reference implementation:
 # https://github.com/Lightning-AI/lit-gpt/blob/423b1a85c53eb5291f7f3ec93451716949975992/lit_gpt/lora.py
@@ -428,11 +428,14 @@ def compare_fused_lora(
         [True, True, True],
         [True, False, True],
     ]
-
     for out_dims, apply_lora in zip(test_out_dims, test_apply_loras):
         # note: this is a constraint from the reference codebase
         # https://github.com/Lightning-AI/lit-gpt/blob/423b1a85c53eb5291f7f3ec93451716949975992/lit_gpt/lora.py#L240
         in_dim = out_dims[0]
+
+        fused_lora_dims = [
+            FusedLoRADim(dim, apply) for dim, apply in zip(out_dims, apply_lora)
+        ]
 
         # make sure we have the right seed for generating outputs
         # this should match up the seed value set in
@@ -445,11 +448,11 @@ def compare_fused_lora(
         # Initialize our implementation
         lora_fused = LoRAFusedLinear(
             in_dim=in_dim,
-            out_dims=out_dims,
-            apply_lora=apply_lora,
+            fused_lora_dims=fused_lora_dims,
             rank=rank,
             alpha=alpha,
             dropout=dropout,
+            use_bias=True,
         )
         fixed_init_model(lora_fused)
 
