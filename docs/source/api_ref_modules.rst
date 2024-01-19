@@ -30,3 +30,4 @@ PEFT Components
 
     peft.LoRALinear
     peft.LoRAFusedLinear
+    peft.FusedLoRADim
