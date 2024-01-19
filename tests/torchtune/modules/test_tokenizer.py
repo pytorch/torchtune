@@ -59,6 +59,24 @@ class TestTokenizer:
         )
 
     @pytest.mark.parametrize(
+        "tokenizer_with_max_token_len", [1], indirect=["tokenizer_with_max_token_len"]
+    )
+    def test_truncation_without_bos_eos(self, tokenizer_with_max_token_len):
+        truncated_token_list = [12]
+        assert (
+            tokenizer_with_max_token_len.encode(
+                "Hello world!", add_bos=False, add_eos=False, truncate=True
+            )
+            == truncated_token_list
+        )
+
+    def test_truncation_param_error(self):
+        with pytest.raises(ValueError):
+            Tokenizer.from_file(str(ASSETS / "m.model"), 0)
+        with pytest.raises(ValueError):
+            Tokenizer.from_file(str(ASSETS / "m.model"), -5)
+
+    @pytest.mark.parametrize(
         "tokenizer_with_max_token_len",
         [1, 2, 4, 100],
         indirect=["tokenizer_with_max_token_len"],

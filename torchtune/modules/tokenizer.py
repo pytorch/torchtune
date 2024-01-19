@@ -4,9 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import List, Optional
 
 from sentencepiece import SentencePieceProcessor
+
+logger = logging.getLogger(__name__)
 
 
 class Tokenizer:
@@ -19,6 +22,9 @@ class Tokenizer:
         eos_id (int): The ID of the end-of-sentence token.
         pad_id (int): The ID of the padding token.
         max_token_len (Optional[int]): maximum length of encoded token ID list during truncation. Default: None
+
+    Raises:
+        ValueError: If `max_token_len` is not greater than 0.
 
     Example:
         # Accepts only non-batched input for now
@@ -43,6 +49,12 @@ class Tokenizer:
         self.eos_id = eos_id
         self.pad_id = pad_id
         self.max_token_len = max_token_len
+        if self.max_token_len is None:
+            logger.warning(
+                "Max Token Length is not set. It is required to perform any truncation of token lsit during encode"
+            )
+        if self.max_token_len is not None and self.max_token_len < 1:
+            raise ValueError("Max Token Length must be greater than 0")
 
     @classmethod
     def from_file(cls, path: str, max_token_len: Optional[int] = None) -> "Tokenizer":
@@ -100,7 +112,9 @@ class Tokenizer:
             if add_eos:
                 minimum_token_list += 1
 
-            # Don't truncate if the input is too short
+            # After truncation, token list should contain at least
+            # one token from the source (ie, excluding BOS, EOS)
+            # If not enough tokens are available, return the original list
             if self.max_token_len < minimum_token_list:
                 return tokens
 
