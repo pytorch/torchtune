@@ -6,7 +6,7 @@
 
 import itertools
 
-from typing import Any, Dict
+from typing import Any, Dict, Iterator
 
 from torch.utils.data import (
     DataLoader,
@@ -15,6 +15,23 @@ from torch.utils.data import (
     IterableDataset,
     Sampler,
 )
+
+
+class _FinishedIterWrapper(Iterator):
+    def __init__(self, base_iter):
+        # Iterator that tracks when it's actually been exhausted
+        # (ie __next__ has been called and StopIteration was raised)
+        self.base_iter = base_iter
+        self.started = False
+        self.finished = False
+
+    def __next__(self):
+        self.started = True
+        try:
+            return next(self.base_iter)
+        except StopIteration:
+            self.finished = True
+            raise
 
 
 class _StatefulSampler:
@@ -27,11 +44,15 @@ class _StatefulSampler:
         return len(self._sampler)
 
     def __iter__(self):
-        self._iterator = iter(self._sampler)
-        # Fast-forward sampler to the resume index if necessary
-        if self.resume_index > 0:
-            self._iterator = itertools.islice(self._iterator, self.resume_index, None)
+        if self._iterator is None:
+            it = iter(self._sampler)
+            it = itertools.islice(it, self.resume_index, None)
+            self._iterator = _FinishedIterWrapper(it)
+        elif self._iterator.started:
+            # If iter() is called after iteration has started,
+            # reset the iterator to the beginning
             self.resume_index = 0
+            self._iterator = _FinishedIterWrapper(iter(self._sampler))
         return self._iterator
 
     def set_state(self, resume_index: int):
@@ -46,8 +67,8 @@ class StatefulDataLoader(DataLoader):
     def __init__(self, dataset: Dataset, *args, **kwargs):
         self._wrapped_iterator = None
         self._stateful_index_sampler = None
-        self._checkpoint_index = 0
         self._num_yielded = 0
+        self._super_iter = None
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
@@ -67,23 +88,31 @@ class StatefulDataLoader(DataLoader):
         return self._stateful_index_sampler
 
     def __iter__(self):
-        self._num_yielded = self._checkpoint_index
-        self._checkpoint_index = 0
-        for batch in super().__iter__():
+        self._super_iter = _FinishedIterWrapper(super().__iter__())
+        # Fetch the start index from the sampler's resume index
+        self._num_yielded = self._index_sampler.resume_index
+        for batch in self._super_iter:
+            # Keep track of the new steps iterated through
             self._num_yielded += 1
             yield batch
 
     def state_dict(self) -> Dict[str, Any]:
-        resume_index = (
-            self._num_yielded if self._checkpoint_index == 0 else self._checkpoint_index
-        )
+        if self._super_iter is None:
+            # If no iterator was ever created, return the resumption state
+            resume_index = self._index_sampler.resume_index
+        elif self._super_iter.finished:
+            # If iterator is exhausted, resumption should start from beginning
+            resume_index = 0
+        else:
+            resume_index = self._num_yielded
+
         return {
             self.RESUME_INDEX_KEY: resume_index,
             self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED: self.sampler.seed,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
-        self._checkpoint_index = state_dict.get(self.RESUME_INDEX_KEY)
+        resume_index = state_dict.get(self.RESUME_INDEX_KEY)
         checkpoint_seed = state_dict.get(self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED)
 
         # Ensure that the seed of DistributedSampler hasn't changed
@@ -91,4 +120,4 @@ class StatefulDataLoader(DataLoader):
             raise AssertionError(
                 f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa: B950
             )
-        self._index_sampler.set_state(self._checkpoint_index)
+        self._index_sampler.set_state(resume_index)

@@ -96,6 +96,103 @@ class TestStatefulDataLoader:
             for idx, data in enumerate(iter(dataloader)):
                 assert data == idx
 
+    @pytest.mark.parametrize("persistent_workers", [False, True])
+    def test_multiworker_dataloader_epoch_end(self, persistent_workers):
+        dataset = _IdentityMapDataset(8)
+        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
+        dataloader = StatefulDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+            num_workers=2,
+            persistent_workers=persistent_workers,
+            multiprocessing_context="forkserver",
+            prefetch_factor=2,
+        )
+
+        expected_data = {
+            0: [4, 0, 7, 3, 2, 5, 1, 6],
+            1: [5, 4, 2, 6, 7, 3, 1, 0],
+            2: [0, 4, 7, 2, 6, 5, 1, 3],
+        }
+
+        state = None
+        current_epoch = None
+        for epoch in range(2):
+            sampler.set_epoch(epoch)
+            current_epoch = epoch
+            for idx, data in enumerate(iter(dataloader)):
+                assert data == expected_data[epoch][idx]
+                state = dataloader.state_dict()
+        # Simulate taking a checkpoint
+
+        # New run starts with previously saved state
+        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
+        dataloader2 = StatefulDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+            num_workers=2,
+            persistent_workers=persistent_workers,
+            multiprocessing_context="forkserver",
+            prefetch_factor=2,
+        )
+        dataloader2.load_state_dict(state)
+        for epoch in range(current_epoch, current_epoch + 1):
+            sampler.set_epoch(epoch)
+            for idx, data in enumerate(iter(dataloader2)):
+                assert data == expected_data[epoch][idx]
+
+    @pytest.mark.parametrize("persistent_workers", [False, True])
+    def test_sample_data(self, persistent_workers):
+        dataset = _IdentityMapDataset(8)
+        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
+        dataloader = StatefulDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+            num_workers=2,
+            persistent_workers=persistent_workers,
+            multiprocessing_context="forkserver",
+            prefetch_factor=2,
+        )
+
+        expected_data = {
+            0: [4, 0, 7, 3, 2, 5, 1, 6],
+            1: [5, 4, 2, 6, 7, 3, 1, 0],
+            2: [0, 4, 7, 2, 6, 5, 1, 3],
+        }
+
+        state = None
+        for epoch in range(3):
+            sampler.set_epoch(epoch)
+            for idx, data in enumerate(iter(dataloader)):
+                assert data == expected_data[epoch][idx]
+                if epoch == 2 and idx == 3:
+                    state = dataloader.state_dict()
+                    break
+
+        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
+        dataloader2 = StatefulDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+            num_workers=2,
+            persistent_workers=persistent_workers,
+            multiprocessing_context="forkserver",
+            prefetch_factor=2,
+        )
+        dataloader2.load_state_dict(state)
+        sampler.set_epoch(2)
+
+        it = iter(dataloader2)
+        data = next(it)
+        assert data == expected_data[2][4]
+
     def test_larger_batch_size(self):
         dataset = _IdentityMapDataset(4)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
