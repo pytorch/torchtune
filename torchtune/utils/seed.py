@@ -14,8 +14,9 @@ import numpy as np
 import torch
 
 from torchtune.utils.distributed import _broadcast_tensor, get_world_size_and_rank
+from torchtune.utils.logging import get_logger
 
-_log: logging.Logger = logging.getLogger(__name__)
+_log: logging.Logger = get_logger()
 
 
 def set_seed(
@@ -47,9 +48,8 @@ def set_seed(
     max_val = np.iinfo(np.uint32).max - world_size + 1
     min_val = np.iinfo(np.uint32).min
     if seed is None:
-        seed = torch.randint(min_val, max_val, (1,))
-        _broadcast_tensor(seed, 0)  # broadcast the seed to all ranks
-        seed = seed.item()
+        rand_seed = torch.randint(min_val, max_val, (1,))
+        seed = _broadcast_tensor(rand_seed, 0).item()  # sync seed across ranks
     if seed < min_val or seed > max_val:
         raise ValueError(
             f"Invalid seed value provided: {seed}. Value must be in the range [{min_val}, {max_val}]"

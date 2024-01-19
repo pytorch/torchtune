@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 from typing import ContextManager, Dict, List, Optional, Union
 
 import torch
@@ -11,7 +12,7 @@ import torch
 from torch.cuda.amp import GradScaler
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-from torchtune.utils.device import get_device
+from torchtune.utils.device import _validate_device_from_env
 
 _precision_str_to_dtype: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
@@ -49,11 +50,11 @@ def list_dtypes() -> List[str]:
     return list(_precision_str_to_dtype.keys())
 
 
-def get_dtype(dtype: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
+def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
     Args:
-        dtype (Optional[Union[str, torch.dtype]]): The precision dtype.
+        dtype (Optional[str]): The precision dtype.
 
     Raises:
         ValueError: if precision isn't supported by the precision utils
@@ -66,8 +67,7 @@ def get_dtype(dtype: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
         return torch.float32
 
     # Convert to torch.dtype
-    if type(dtype) == str:
-        dtype = _precision_str_to_dtype.get(dtype, dtype)
+    dtype = _precision_str_to_dtype.get(dtype, dtype)
 
     # dtype must be one of the supported precisions
     if dtype not in _precision_str_to_dtype.values():
@@ -77,30 +77,18 @@ def get_dtype(dtype: Optional[Union[str, torch.dtype]] = None) -> torch.dtype:
     return dtype
 
 
-def get_gradient_scaler(
-    dtype: Optional[Union[str, torch.dtype]], fsdp: bool = False
-) -> Union[GradScaler, ShardedGradScaler, None]:
+def get_gradient_scaler(fsdp: bool = False) -> Union[GradScaler, ShardedGradScaler]:
     """
     Returns a gradient scaler for mixed-precision training.
     Args:
-        dtype (Optional[Union[str, torch.dtype]]): dtype used to determine if mixed precision training is used.
         fsdp (bool): Whether FSDP is being used for training, in which case a shard-aware gradient scaler is returned.
     Returns:
-        Optional[Union[GradScaler, ShardedGradScaler]]: Gradient scaler object if using one of the supported
-        precision types, else `None`.
+        Union[GradScaler, ShardedGradScaler]: Gradient scaler object
     """
-    dtype = get_dtype(dtype)
-    scaler = None
-    if dtype == torch.float16:
-        scaler = (
-            GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
-        )
-    return scaler
+    return GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
 
 
-def get_autocast(
-    dtype: Optional[Union[str, torch.dtype]], device: Union[str, torch.dtype]
-) -> Union[ContextManager, None]:
+def get_autocast(dtype: torch.dtype, device: torch.device) -> ContextManager:
     """
     Intelligently determines, based on the dtype if mixed precision training is supported and
     returns the builtin torch.autocast if applicable.
@@ -108,18 +96,18 @@ def get_autocast(
     Reference: https://pytorch.org/docs/stable/amp.html#torch.autocast
 
     Args:
-        dtype (Optional[Union[str, torch.dtype]]): dtype used to determine if mixed precision training is used.
-        device (Union[str, torch.dtype]): Pytorch device.
+        dtype (torch.dtype): dtype used to determine if mixed precision training is used.
+        device (torch.device): Pytorch device.
     Returns:
-        Autocast manager object if using half precision, otherwise None
+        Autocast manager object if using half precision, otherwise null context
     """
-    dtype = get_dtype(dtype)
     manager = None
     if dtype in (torch.float16, torch.bfloat16):
         # Note some devices do not support autocasting, and will raise an error.
-        device = get_device(device)
-        manager = torch.autocast(
+        _validate_device_from_env(device)
+        return torch.autocast(
             device_type=device.type,
             dtype=dtype,
         )
-    return manager
+    else:
+        return contextlib.nullcontext()

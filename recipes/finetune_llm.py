@@ -4,8 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
-import logging
+
 import os
 from functools import partial
 
@@ -29,7 +28,7 @@ def recipe(
     dataset,
     shuffle,
     batch_size,
-    distributed,
+    fsdp,
     epochs,
     optimizer,
     loss,
@@ -40,7 +39,12 @@ def recipe(
     max_steps_per_epoch,
 ):
     # ---- Initialize components ---- #
-    logger = logging.getLogger()
+    utils.init_distributed(fsdp)
+
+    # logger = logging.getLogger()
+    # logger.setLevel(logging.DEBUG) # test
+    logger = utils.get_logger("DEBUG")
+
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
     seed = utils.set_seed(seed)
@@ -50,13 +54,13 @@ def recipe(
     logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
 
     model = models.get_model(model, device=device)
-    if distributed:
+    if fsdp:
         # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
-        model = utils.get_distributed(
+        model = utils.get_fsdp(
             model=model,
             device=device,
             dtype=dtype,
-            strategy="FUll_SHARD",
+            strategy="FULL_SHARD",
             auto_wrap_policy={modules.TransformerDecoderLayer},
         )
     if activation_checkpointing:
@@ -73,10 +77,11 @@ def recipe(
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
 
-    grad_scaler = utils.get_gradient_scaler(dtype, distributed) or GradScaler(
-        enabled=False
-    )
-    autocast = utils.get_autocast(dtype, device) or contextlib.nullcontext()
+    autocast = utils.get_autocast(dtype, device)
+    if dtype == torch.float16:
+        grad_scaler = utils.get_gradient_scaler(fsdp=fsdp)
+    else:
+        grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
     world_size, rank = utils.get_world_size_and_rank()
@@ -168,7 +173,7 @@ def recipe(
 
 
 if __name__ == "__main__":
-    parser = utils.TuneArgumentParser(description="Fine-tune an LLM model.")
+    parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
 
     # Dataset and DataLoader arguments
     parser.add_argument(
@@ -248,7 +253,7 @@ if __name__ == "__main__":
         help="`cuda` or `cpu`",
     )
     parser.add_argument(
-        "--distributed",
+        "--fsdp",
         type=bool,
         default=False,
         help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",

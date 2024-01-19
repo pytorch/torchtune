@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-from typing import Optional, Union
+from typing import Optional
 
 import torch
 
@@ -20,21 +20,6 @@ def _get_local_rank() -> Optional[int]:
     if local_rank is not None:
         local_rank = int(local_rank)
     return local_rank
-
-
-def _get_device_type_from_env() -> torch.device:
-    """Function that gets the torch.device based on the current machine.
-
-    This currently only supports CPU, CUDA.
-
-    Returns:
-        device
-    """
-    if torch.cuda.is_available():
-        device = "cuda"
-    else:
-        device = "cpu"
-    return torch.device(device)
 
 
 def _setup_cuda_device(device: torch.device) -> torch.device:
@@ -59,7 +44,23 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
         raise RuntimeError(
             "The local rank is larger than the number of available GPUs."
         )
+
     torch.cuda.set_device(device)
+    return device
+
+
+def _get_device_type_from_env() -> str:
+    """Function that gets the torch.device based on the current machine.
+
+    This currently only supports CPU, CUDA.
+
+    Returns:
+        device
+    """
+    if torch.cuda.is_available():
+        device = "cuda"
+    else:
+        device = "cpu"
     return device
 
 
@@ -73,6 +74,9 @@ def _validate_device_from_env(device: torch.device) -> None:
 
     Raises:
         RuntimeError: If the device is not available or doesn't match the assigned process device.
+
+    Returns:
+        device
     """
     idx = device.index
     local_rank = _get_local_rank()
@@ -95,14 +99,14 @@ def _validate_device_from_env(device: torch.device) -> None:
         ) from e
 
 
-def get_device(device: Optional[Union[str, torch.device]] = None) -> torch.device:
+def get_device(device: Optional[str] = None) -> torch.device:
     """Function that takes or device or device string, verifies it's correct and availabe given the machine and
     distributed settings, and returns a torch.device.
 
     If CUDA is available and being used, this function also sets the CUDA device.
 
     Args:
-        device (Optional[Union[str, torch.device]]): The name of the device to use.
+        device (Optional[str]): The name of the device to use.
 
     Returns:
         device

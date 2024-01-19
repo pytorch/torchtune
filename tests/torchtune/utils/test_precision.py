@@ -7,6 +7,8 @@
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 
+import contextlib
+
 import pytest
 import torch
 
@@ -19,8 +21,6 @@ from torchtune.utils.precision import (
     get_gradient_scaler,
     list_dtypes,
 )
-
-from tests.test_utils import assert_expected
 
 
 class TestPrecisionUtils:
@@ -49,30 +49,24 @@ class TestPrecisionUtils:
         """
         Tests that the correct gradient scaler is returned based on precision.
         """
-        for dtype in [None, "bf16"]:
-            assert_expected(get_gradient_scaler(dtype=dtype, fsdp=False), None)
-            assert_expected(get_gradient_scaler(dtype=dtype, fsdp=True), None)
-
-        assert isinstance(
-            get_gradient_scaler("fp16", fsdp=False), torch.cuda.amp.GradScaler
-        )
-        assert isinstance(get_gradient_scaler("fp16", fsdp=True), ShardedGradScaler)
-
-        with pytest.raises(ValueError):
-            get_gradient_scaler("foo", fsdp=False)
+        assert isinstance(get_gradient_scaler(fsdp=False), torch.cuda.amp.GradScaler)
+        assert isinstance(get_gradient_scaler(fsdp=True), ShardedGradScaler)
 
     def test_autocast(self):
         """
         Tests that the correct autocast manager is returned based on precision.
         """
-
-        for dtype in ["fp16"]:
+        device = torch.device("cpu")
+        for dtype in [torch.float16]:
             assert isinstance(
-                get_autocast(device="cpu", dtype=dtype),
+                get_autocast(device=device, dtype=dtype),
                 torch.autocast,
             )
-        for dtype in ["fp32", None]:
-            assert get_autocast(device="cpu", dtype=dtype) is None
+        for dtype in [torch.float32, torch.float64]:
+            assert isinstance(
+                get_autocast(device=device, dtype=dtype),
+                contextlib.nullcontext,
+            )
 
     def test_list_dtyes(self):
         assert set(list_dtypes()) == {"fp16", "bf16", "fp32", "fp64"}

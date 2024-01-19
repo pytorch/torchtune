@@ -91,7 +91,7 @@ class TestFinetuneLLMRecipe:
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
-            "distributed": False,
+            "fsdp": False,
             "activation_checkpointing": False,
             "run_generation": False,
         }

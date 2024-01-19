@@ -24,14 +24,12 @@ class TestDevice:
     cuda_available: bool = torch.cuda.is_available()
 
     @patch("torch.cuda.is_available", return_value=False)
-    @patch("torch.backends.mps.is_available", return_value=False)
-    def test_get_cpu_device(self, mock_cuda, mock_mps):
-        devices = [None, "cpu", "meta", torch.device("cpu")]
+    def test_get_cpu_device(self, mock_cuda):
+        devices = [None, "cpu", "meta"]
         expected_devices = [
             torch.device("cpu"),
             torch.device("cpu"),
             torch.device("meta"),
-            torch.device("cpu"),
         ]
         for device, expected_device in zip(devices, expected_devices):
             device = get_device(device)
@@ -65,7 +63,7 @@ class TestDevice:
                 device = get_device("cuda")
 
         # Test that we fall back to 0 if LOCAL_RANK is not specified
-        device = _get_device_type_from_env()
+        device = torch.device(_get_device_type_from_env())
         device = _setup_cuda_device(device)
         assert device.type == "cuda"
         assert device.index == 0
