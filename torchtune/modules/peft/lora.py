@@ -30,10 +30,11 @@ class LoRALinear(nn.Module):
         out_dim (int): output dimension
         rank (int): rank of the low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
-        dropout (float): dropout probability
-        use_bias (bool): whether to include bias in the original linear layer
+        dropout (float): dropout probability. Default: 0.0
+        use_bias (bool): whether to include bias in the original linear layer.
+            Default: False
         use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
-            A and B
+            A and B. Default: False
     """
 
     def __init__(
@@ -141,8 +142,9 @@ class LoRAFusedLinear(nn.Module):
             and whether LoRA should be applied to that linear layer
         rank (int): rank of each low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
-        dropout (float): dropout probability
-        use_bias (bool): whether to include bias in the original linear layer
+        dropout (float): dropout probability. Default: 0.0
+        use_bias (bool): whether to include bias in the original linear layer.
+            Default: False
 
     """
 
