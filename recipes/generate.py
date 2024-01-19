@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if not args.prompt:
-        parser.error('--prompt is a required argument. Try setting it to any string.')
+        parser.error("--prompt is a required argument. Try setting it to any string.")
 
     # Inference setup
     tokenizer = llama2_tokenizer(args.tokenizer_path)
