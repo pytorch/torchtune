@@ -79,10 +79,9 @@ def recipe(kwargs):
     )
     grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
 
-    # When using fsdp, init on meta device to avoid OOM
     model = get_model(
         kwargs["model"],
-        "meta" if kwargs["fsdp"] else device,
+        device,
     )
 
     if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
