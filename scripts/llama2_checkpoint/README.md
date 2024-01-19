@@ -1,6 +1,6 @@
 ### Checkpoint conversion to native PyTorch format
 
-The original [Llama-2 models](https://github.com/facebookresearch/llama/blob/main/llama/model.py#L413) were trained using a different implementation (for example, non-fused QKV matrix, no SDPA) as well as [fairscale](https://github.com/facebookresearch/fairscale) based
+The original [Llama-2 models](https://github.com/facebookresearch/llama/blob/main/llama/model.py#L413) were trained using a different implementation (for example no SDPA) as well as [fairscale](https://github.com/facebookresearch/fairscale) based
 parallelism.
 
 TorchTune seeks to leverage the power of native PyTorch including PyTorch-native distributed APIs such as FSDP and Tensor Parallelism. To train Llama-2 models using TorchTune, checkpoints must be converted as a result.

@@ -67,14 +67,15 @@ class TestTransformerDecoderLayer:
     ) -> TransformerDecoderLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         self_attn = CausalSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             max_seq_len=max_seq_len,

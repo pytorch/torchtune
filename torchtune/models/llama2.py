@@ -87,7 +87,6 @@ def llama2(
 ):
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
     kv_cache = (
         KVCache(
             max_batch_size=max_batch_size,
@@ -104,7 +103,9 @@ def llama2(
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
         head_dim=head_dim,
-        qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=kv_cache,
