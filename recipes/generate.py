@@ -31,6 +31,7 @@ if __name__ == "__main__":
         "--prompt",
         type=str,
         help="Input to the model",
+        required=True,
         # for alpaca format see: https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release
     )
     parser.add_argument(
@@ -41,9 +42,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    if not args.prompt:
-        parser.error("--prompt is a required argument. Try setting it to any string.")
-
     # Inference setup
     tokenizer = llama2_tokenizer(args.tokenizer_path)
 

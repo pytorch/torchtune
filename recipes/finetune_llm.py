@@ -166,7 +166,7 @@ def recipe(kwargs):
                 loss = loss_fn(logits, labels)
 
             pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
+                f"{epoch}|{idx+1}|Loss: {loss.item()}"
             )  # TODO: add terminal logger
 
             if grad_scaler:
