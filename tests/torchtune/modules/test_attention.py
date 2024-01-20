@@ -12,14 +12,14 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
-from torchtune.utils.env import seed
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(16)
+    set_seed(16)
 
 
 class TestCausalSelfAttention:

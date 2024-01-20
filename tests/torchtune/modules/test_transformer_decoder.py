@@ -21,14 +21,14 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerDecoderLayer,
 )
-from torchtune.utils.env import seed
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(16)
+    set_seed(16)
 
 
 class TestTransformerDecoderLayer:

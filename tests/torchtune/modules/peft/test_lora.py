@@ -8,7 +8,7 @@ import pytest
 
 import torch
 from torchtune.modules.peft import FusedLoRADim, LoRAFusedLinear, LoRALinear
-from torchtune.utils.env import seed
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
 
@@ -20,7 +20,7 @@ SEQ_LEN = 32
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(16)
+    set_seed(16)
 
 
 class TestLoRALinear:
