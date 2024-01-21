@@ -36,7 +36,7 @@ class SlimOrcaDataset(Dataset):
 
     Keyword Arguments:
         max_token_length (int): Maximum number of tokens in the returned.
-        Default is 512.
+        Default is 4096.
 
     Data input format:
         [ { "from": "system", "value": "You are an AI assistant. You will be
@@ -63,7 +63,7 @@ class SlimOrcaDataset(Dataset):
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
         self._data = load_dataset("Open-Orca/SlimOrca-Dedup", split="train")
         self._tokenizer = tokenizer
-        self._max_token_length = kwargs.get("max_token_length", 512)
+        self._max_token_length = kwargs.get("max_token_length", 4096)
         if self._max_token_length < 4:
             # Input token needs to have 1 bos, 1 eos,
             # and 1 token from prompt, 1 from label
@@ -80,8 +80,8 @@ class SlimOrcaDataset(Dataset):
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         data = self._data[index]["conversations"]
-        prompt, label = generate_prompt_label(data)
-        return generate_tokens(prompt, label)
+        prompt, label = self.generate_prompt_label(data)
+        return self.generate_tokens(prompt, label)
 
     def generate_tokens(self, prompt: str, label: str) -> Tuple[List[int], List[int]]:
         prompt_tokens = self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
