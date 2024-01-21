@@ -6,8 +6,13 @@
 
 import pytest
 import torch
-from torch.utils.data import Dataset, DistributedSampler
+from torch.utils.data import Dataset, DistributedSampler, IterableDataset
 from torchtune.datasets import StatefulDataLoader
+
+
+class _DummyIterableDataset(IterableDataset):
+    def __iter__(self):
+        yield 1
 
 
 class _IdentityMapDataset(Dataset):
@@ -278,3 +283,14 @@ class TestStatefulDataLoader:
                 assert data == idx
                 state = dataloader.state_dict()
                 assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == idx + 1
+
+    def test_value_errors(self):
+        dataset = _IdentityMapDataset(10)
+        iterable_dataset = _DummyIterableDataset()
+
+        with pytest.raises(ValueError):
+            # Passing in an iterable dataset
+            dataloader = StatefulDataLoader(iterable_dataset)
+        with pytest.raises(ValueError):
+            # Not passing Distributed Sampler
+            dataloader = StatefulDataLoader(dataset)

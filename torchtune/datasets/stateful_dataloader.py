@@ -62,7 +62,7 @@ class _StatefulSampler:
 
 class StatefulDataLoader(DataLoader):
     """
-    Implements a stateful ``torch.utils.data.DataLoader`` whose state can be
+    Implements a ``torch.utils.data.DataLoader`` whose state can be
     saved to a checkpoint and restored to resume loading data.
 
     Currently supports only Map style ``torch.utils.data.Dataset`` and
