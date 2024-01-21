@@ -61,6 +61,52 @@ class _StatefulSampler:
 
 
 class StatefulDataLoader(DataLoader):
+    """
+    Implements a stateful ``torch.utils.data.DataLoader`` whose state can be
+    saved to a checkpoint and restored to resume loading data.
+
+    Currently supports only Map style ``torch.utils.data.Dataset`` and
+    ``torch.utils.data.DistributedSampler``.
+
+    Two methods are provided to save and restore the state:
+    load_state_dict(state: Dict[str, Any]):
+        Restores the state of the dataloader from the given state dict.
+        Should be invoked after constructing the DataLoader object.
+
+    state_dict() -> Dict[str, Any]
+        Returns a state of the DataLaoder as a dict.
+
+    Note: As this works only with ``torch.utils.data.DistributedSampler``,
+    the ``set_epoch`` method of that sampler should be invoked before
+    creating an iterator of this class.
+
+    Args:
+        dataset (Dataset): ``torch.utils.data.Dataset`` from which to load the data.
+        *args: Any arguments to pass to the base DataLoader.
+        **kwargs: Any keyword arguments to pass to the base DataLoader.
+
+    Raises:
+        ValueError: If the dataset is not a map-style ``torch.util.data.Dataset``.
+        ValueError: If the sampler is not a ``torch.utils.data.DistributedSampler``.
+
+    Example:
+    >>> # Fetch the state of the StatefulDataLoader
+    >>> dataloader = StatefulDataLoader(...)
+    >>> for epoch in range(...)
+    >>>     dataloader.set_epoch(epoch)
+    >>>     for batch in dataloader:
+    >>>         ...
+    >>> state = dataloader.state_dict()
+    >>>
+    >>> # Restore the state
+    >>> dataloader = StatefulDataLoader(...)
+    >>> dataloader.load_state_dict(state)
+    >>> for current_epoch in range(...)
+    >>>     dataloader.set_epoch(current_epoch)
+    >>>     for batch in dataloader:
+    >>>         ...
+    """
+
     RESUME_INDEX_KEY = "resume_index"
     DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
 
