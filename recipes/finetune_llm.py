@@ -10,7 +10,7 @@ from functools import partial
 
 import torch
 from torch.cuda.amp import GradScaler
-from torch.utils.data import DataLoader, DistributedSampler
+from torch.utils.data import DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.generation import generate_from_prompt
@@ -96,7 +96,7 @@ def recipe(
         shuffle=shuffle,
         seed=0,
     )
-    dataloader = DataLoader(
+    dataloader = StatefulDataLoader(
         dataset=ds,
         batch_size=batch_size,
         sampler=sampler,
