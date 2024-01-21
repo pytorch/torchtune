@@ -12,14 +12,14 @@ import torch
 from torch import Tensor
 
 from torchtune.modules import FeedForward
-from torchtune.utils.env import seed
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(0)
+    set_seed(0)
 
 
 class TestFeedForward:

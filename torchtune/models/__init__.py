@@ -9,7 +9,8 @@ from typing import Callable, Union
 import torch
 from torch.nn import Module
 
-from .llama2 import llama2_7b, llama2_tokenizer  # noqa
+from torchtune.utils import get_device
+from .llama2 import llama2_7b, llama2_tokenizer
 
 __all__ = ["llama2_7b", "llama2_tokenizer"]
 
@@ -20,7 +21,7 @@ _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
 def get_model(name: str, device: Union[str, torch.device], **kwargs) -> Module:
     """Get known supported models by name"""
     if name in _MODEL_DICT:
-        with torch.device(device):
+        with get_device(device):
             model = _MODEL_DICT[name](**kwargs)
         return model
     else:

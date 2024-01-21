@@ -5,7 +5,7 @@ shuffle: True
 
 # Model Arguments
 model: llama2_7b
-model_checkpoint: /tmp/llama2-7b-01112024
+model_checkpoint: /tmp/llama2-7b
 tokenizer: llama2_tokenizer
 tokenizer_checkpoint: /tmp/tokenizer.model
 
@@ -17,5 +17,6 @@ optimizer: SGD
 loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
+dtype: fp32
 fsdp: False
 activation_checkpointing: False
