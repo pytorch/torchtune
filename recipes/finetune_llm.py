@@ -96,7 +96,7 @@ def recipe(
         shuffle=shuffle,
         seed=0,
     )
-    dataloader = StatefulDataLoader(
+    dataloader = datasets.StatefulDataLoader(
         dataset=ds,
         batch_size=batch_size,
         sampler=sampler,
