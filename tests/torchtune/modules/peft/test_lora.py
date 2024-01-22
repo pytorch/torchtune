@@ -7,8 +7,8 @@
 import pytest
 
 import torch
-from torchtune.modules.peft.lora import LoRAFusedLinear, LoRALinear
-from torchtune.utils.env import seed
+from torchtune.modules.peft import FusedLoRADim, LoRAFusedLinear, LoRALinear
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
 
@@ -20,7 +20,7 @@ SEQ_LEN = 32
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(16)
+    set_seed(16)
 
 
 class TestLoRALinear:
@@ -49,6 +49,7 @@ class TestLoRALinear:
             out_dim=out_dim,
             rank=RANK,
             alpha=ALPHA,
+            use_bias=True,
         )
         fixed_init_model(lora_linear)
         return lora_linear
@@ -70,13 +71,16 @@ class TestLoRAFusedLinear:
         inputs = torch.randn(BSZ, SEQ_LEN, in_dim)
         return inputs
 
-    def get_lora_fused_linear(self, in_dim, out_dims, apply_lora):
+    def get_fused_lora_dims(self, out_dims, apply_lora):
+        return [FusedLoRADim(dim, apply) for dim, apply in zip(out_dims, apply_lora)]
+
+    def get_lora_fused_linear(self, in_dim, fused_lora_dims):
         lora_fused_linear = LoRAFusedLinear(
             in_dim=in_dim,
-            out_dims=out_dims,
-            apply_lora=apply_lora,
+            fused_lora_dims=fused_lora_dims,
             rank=RANK,
             alpha=ALPHA,
+            use_bias=True,
         )
         fixed_init_model(lora_fused_linear)
         return lora_fused_linear
@@ -86,17 +90,9 @@ class TestLoRAFusedLinear:
         in_dim = 2
         out_dims = [1, 3, 5, 6]
         apply_lora = [True, False, False, True]
-        toy_lora_fused_linear = self.get_lora_fused_linear(in_dim, out_dims, apply_lora)
+        fused_lora_dims = self.get_fused_lora_dims(out_dims, apply_lora)
+        toy_lora_fused_linear = self.get_lora_fused_linear(in_dim, fused_lora_dims)
         return toy_lora_fused_linear
-
-    def test_lora_invalid_inputs(self):
-        with pytest.raises(
-            ValueError,
-            match="Must have same number of output dims",
-        ):
-            _ = self.get_lora_fused_linear(
-                in_dim=2, out_dims=[4, 5, 6], apply_lora=[True, False]
-            )
 
     def test_get_lora_indices(self, toy_lora_fused_linear):
         expected = [0, 9, 10, 11, 12, 13, 14]
@@ -136,7 +132,8 @@ class TestLoRAFusedLinear:
         expected,
     ):
         inputs = self.get_inputs(in_dim)
-        lora_fused_linear = self.get_lora_fused_linear(in_dim, out_dims, apply_lora)
+        fused_lora_dims = self.get_fused_lora_dims(out_dims, apply_lora)
+        lora_fused_linear = self.get_lora_fused_linear(in_dim, fused_lora_dims)
         actual = lora_fused_linear(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, sum(out_dims)))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)

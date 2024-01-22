@@ -135,7 +135,7 @@ def compare_lora(
         out_dim=out_dim,
         rank=rank,
         alpha=alpha,
-        use_bias=False,
+        use_bias=True,
         dropout=dropout,
     )
     fixed_init_model(lora)
