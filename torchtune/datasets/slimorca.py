@@ -47,7 +47,7 @@ class SlimOrcaDataset(Dataset):
         **kwargs: Additional keyword arguments to pass to the SlimOrca Dataset.
 
     Keyword Arguments:
-        max_token_length (int): Maximum number of tokens in the returned input and label token id lists. This value needs to be at least 4 though it is generally set it to max sequence length accepted by the model.  Default is 1024.  # noqa
+        max_token_length (int): Maximum number of tokens in the returned input and label token id lists. This value needs to be at least 4 though it is generally set it to max sequence length accepted by the model.  Default is 1024.
 
     Raises:
         ValueError: If `max_token_length` is less than 4.
@@ -61,7 +61,7 @@ class SlimOrcaDataset(Dataset):
         >>> Sample Ouput:
         >>> [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]
         >>> [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]
-    """
+    """  # noqa
 
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
         self._data = load_dataset("Open-Orca/SlimOrca-Dedup", split="train")
