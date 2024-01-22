@@ -131,9 +131,7 @@ def recipe(
                 {
                     "loss": loss.item(),
                     "lr": opt.param_groups[0]["lr"],
-                    "gpu_resources": torch.cuda.get_device_properties(
-                        device
-                    ).total_memory,
+                    "gpu_resources": torch.cuda.memory_allocated(),
                 },
                 step=idx,
             )
