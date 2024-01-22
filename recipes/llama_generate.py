@@ -74,6 +74,7 @@ if __name__ == "__main__":
         "--prompt",
         type=str,
         help="Input to the model",
+        required=True,
         # for alpaca format see: https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release
     )
     parser.add_argument(
