@@ -23,7 +23,7 @@ Assuming your original checkpoint lives at `path_to_original_checkpoint`, invoki
 `/tmp/native_checkpoints/llama2-{x}b` where x is the model size. Currently, only the 7b parameter model is supported.
 
 ```bash
-cd torchtune # run next command from torchtune root
+cd torchtune
 python -m scripts.llama2_checkpoint.convert_llama2_to_native --checkpoint_path <path_to_original_checkpoint> --device cuda:0
 ```
 
