@@ -37,11 +37,16 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
+    metric_logger,
+    project,
+    log_dir,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
 
     logger = utils.get_logger("DEBUG")
+    metric_logger = utils.get_metric_logger(metric_logger, project, log_dir)
+
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
     seed = utils.set_seed(seed)
@@ -127,14 +132,16 @@ def recipe(
 
             # Log metrics at each step
             # If no metric logger is specified, this is a no-op
-            metric_logger.log_dict(
-                {
-                    "loss": loss.item(),
-                    "lr": opt.param_groups[0]["lr"],
-                    "gpu_resources": torch.cuda.memory_allocated(),
-                },
-                step=idx,
-            )
+            if rank == 0:
+                metric_logger.log_dict(
+                    {
+                        "loss": loss.item(),
+                        "lr": opt.param_groups[0]["lr"],
+                        "gpu_resources": torch.cuda.memory_allocated(),
+                    },
+                    step=epoch * len(dataloader)
+                    + idx,  # Each step is unique, not limited to each epoch
+                )
 
             grad_scaler.scale(loss).backward()
             grad_scaler.step(opt)
@@ -311,9 +318,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--metric-logger",
         type=str,
-        default="wandb",
-        choices=["wandb", "tensorboard"],
-        help="Metric logger to use.",
+        default="stdout",
+        choices=["wandb", "tensorboard", "stdout"],
+        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, or just plain stdout.",
     )
     parser.add_argument(
         "--project",

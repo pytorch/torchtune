@@ -5,10 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+import sys
 import unittest
 import uuid
 from pathlib import Path
-from typing import Any, Union
+from contextlib import contextmanager
+from io import StringIO
+from typing import Any, Generator, TextIO, Tuple, Union
 
 import torch
 import torch.distributed.launcher as pet
@@ -116,3 +119,14 @@ def get_pet_launch_config(nproc: int) -> pet.LaunchConfig:
         max_restarts=0,
         monitor_interval=1,
     )
+
+
+@contextmanager
+def captured_output() -> Generator[Tuple[TextIO, TextIO], None, None]:
+    new_out, new_err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err

@@ -9,10 +9,12 @@ from .device import get_device
 from .distributed import get_fsdp, get_world_size_and_rank, init_distributed
 from .logging import get_logger
 from .memory import set_activation_checkpointing
+from .metric_logging import get_metric_logger
 from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
 from .seed import set_seed
 
 __all__ = [
+    "get_metric_logger",
     "get_autocast",
     "get_device",
     "get_dtype",
