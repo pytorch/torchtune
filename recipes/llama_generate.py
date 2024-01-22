@@ -37,7 +37,7 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
     decoder.eval()
 
     with torch.no_grad():
-        generations_no_kv_cache, _ = GenerationUtils(
+        generations, _ = GenerationUtils(
             decoder_lm=decoder,
             eos_id=tokenizer.eos_id,
             pad_id=tokenizer.pad_id,
@@ -52,7 +52,7 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
             device=device,
         )
 
-        generated_tokens = tokenizer.decode(generations_no_kv_cache.tolist())
+        generated_tokens = tokenizer.decode(generations.tolist())
     print(generated_tokens[0])
 
 
