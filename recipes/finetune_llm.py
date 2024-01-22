@@ -37,6 +37,7 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
+    memory_profile,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
@@ -105,6 +106,9 @@ def recipe(
     )
     logger.info(msg=f"Loaded dataset {dataset}")
 
+    if memory_profile:
+        utils.start_record_memory_history()
+
     # ---- Train loop ---- #
     for epoch in range(epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
@@ -170,6 +174,12 @@ def recipe(
         logger.info(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
         )
+
+    # TODO: There's also an OOM memory handler so an alternative would be only do memory profiling on OOM
+    # TODO: Not sure how this interacts with distributed
+    if memory_profile:
+        utils.export_memory_snapshot()
+        utils.stop_record_memory_history()
 
 
 if __name__ == "__main__":
@@ -282,6 +292,13 @@ if __name__ == "__main__":
         choices=utils.list_dtypes(),
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
+    )
+
+    parser.add_argument(
+        "--memory-profile",
+        type=bool,
+        default=False,
+        help="Profile memory usage during finetuning",
     )
 
     kwargs = vars(parser.parse_args())

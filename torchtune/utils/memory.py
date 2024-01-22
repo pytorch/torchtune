@@ -48,6 +48,10 @@ def set_activation_checkpointing(
 
 
 def stop_record_memory_history() -> None:
+    """
+    Stops recording the memory history if CUDA is available.
+    Logs a message if CUDA is not available or when the recording is stopped.
+    """
     if not torch.cuda.is_available():
         logger.info("CUDA unavailable. Not recording memory history")
         return
@@ -57,6 +61,11 @@ def stop_record_memory_history() -> None:
 
 
 def start_record_memory_history() -> None:
+    """
+    Starts recording the memory history if CUDA is available.
+    The maximum number of memory events per snapshot is defined by MAX_NUM_OF_MEM_EVENTS_PER_SNAPSHOT.
+    Logs a message if CUDA is not available or when the recording is started.
+    """
     if not torch.cuda.is_available():
         logger.info("CUDA unavailable. Not recording memory history")
         return
@@ -67,15 +76,18 @@ def start_record_memory_history() -> None:
     )
 
 
-def export_memory_snapshot() -> None:
+def export_memory_snapshot(file_prefix=None) -> None:
+    """
+    Exports the memory snapshot to a local file if CUDA is available.
+    """
     if not torch.cuda.is_available():
         logger.info("CUDA unavailable. Not exporting memory snapshot")
         return
 
-    # Prefix for file names.
-    host_name = socket.gethostname()
-    timestamp = datetime.now().strftime(TIME_FORMAT_STR)
-    file_prefix = f"{host_name}_{timestamp}"
+    if not file_prefix:
+        host_name = socket.gethostname()
+        timestamp = datetime.now().strftime(TIME_FORMAT_STR)
+        file_prefix = f"{host_name}_{timestamp}"
 
     try:
         logger.info(f"Saving snapshot to local file: {file_prefix}.pickle")
