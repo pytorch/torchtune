@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from typing import Mapping, Union
 
 from numpy import ndarray
@@ -19,8 +25,8 @@ class MetricLogger(Protocol):
         """Log scalar data.
 
         Args:
-            name (string): tag name used to group scalars
-            data (float/int/Tensor): scalar data to log
+            name (str): tag name used to group scalars
+            data (Scalar): scalar data to log
             step (int): step value to record
         """
         pass
@@ -29,7 +35,7 @@ class MetricLogger(Protocol):
         """Log multiple scalar values.
 
         Args:
-            payload (dict): dictionary of tag name and scalar value
+            payload (Mapping[str, Scalar]): dictionary of tag name and scalar value
             step (int): step value to record
         """
         pass
@@ -64,12 +70,15 @@ class WandBLogger(MetricLogger):
         You can install it with `pip install wandb`.
         In order to use the logger, you need to login to your WandB account.
         You can do this by running `wandb login` in your terminal.
-
-    Returns:
-        WandBLogger: logger instance
     """
 
-    def __init__(self, project: str, entity: Optional[str] = None, group: Optional[str] = None, **kwargs):
+    def __init__(
+        self,
+        project: str,
+        entity: Optional[str] = None,
+        group: Optional[str] = None,
+        **kwargs
+    ):
         import wandb
 
         self._wandb = wandb
@@ -79,7 +88,7 @@ class WandBLogger(MetricLogger):
             group=group,
             reinit=True,
             resume="allow",
-            config=kwargs
+            config=kwargs,
         )
 
     def log(self, name: str, data: Scalar, step: int) -> None:
@@ -97,6 +106,7 @@ class TensorBoardLogger(MetricLogger):
 
     Args:
         log_dir (str): TensorBoard log directory
+        **kwargs: additional arguments
 
     Example:
         >>> from torchtune.utils.metric_logging import TensorBoardLogger
@@ -109,9 +119,6 @@ class TensorBoardLogger(MetricLogger):
         This utility requires the tensorboard package to be installed.
         You can install it with `pip install tensorboard`.
         In order to view TensorBoard logs, you need to run `tensorboard --logdir my_log_dir` in your terminal.
-
-    Returns:
-        TensorBoardLogger: logger instance
     """
 
     def __init__(self, log_dir: str, **kwargs):
