@@ -102,17 +102,9 @@ class TestSlimOrcaDataset:
         )
         index = random.randint(0, len(ds))
         input, label = ds[index]
-        assert (
-            len(input) <= max_token_length
-        ), f"{index} in slimorca fails input token length check"
-        assert (
-            len(label) <= max_token_length
-        ), f"{index} in slimorca fails label token length check"
-        assert len(input) == len(
-            label
-        ), f"{index} in slimorca fails token lists equality check"
-        assert input[0] == tokenizer.bos_id, f"{index} in slimorca fails bos check"
-        assert input[-1] == tokenizer.eos_id, f"{index} in slimorca fails eos check"
-        assert (
-            label[-1] == tokenizer.eos_id
-        ), f"{index} in slimorca fails label eos check"
+        assert len(input) <= max_token_length
+        assert len(label) <= max_token_length
+        assert len(input) == len(label)
+        assert input[0] == tokenizer.bos_id
+        assert input[-1] == tokenizer.eos_id
+        assert label[-1] == tokenizer.eos_id

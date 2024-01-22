@@ -14,9 +14,15 @@ from torchtune.modules import Tokenizer
 
 
 class Llama2ChatFormatConstants:
-    CROSS_ENTROPY_IGNORE_IDX = -100
+    """
+    Contains constants that are used in Llama2 Chat Format.
+    """
+
     B_INST, E_INST = "[INST]", "[/INST]"
     B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+
+
+_CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class SlimOrcaDataset(Dataset):
@@ -112,8 +118,7 @@ class SlimOrcaDataset(Dataset):
 
         input = prompt_tokens + label_tokens
         label = [
-            Llama2ChatFormatConstants.CROSS_ENTROPY_IGNORE_IDX
-            for _ in range(len(prompt_tokens))
+            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(prompt_tokens))
         ] + label_tokens
         return input, label
 
