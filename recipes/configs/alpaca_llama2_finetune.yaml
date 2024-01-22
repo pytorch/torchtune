@@ -5,12 +5,12 @@ shuffle: True
 
 # Model Arguments
 model: llama2_7b
-model_checkpoint: /tmp/llama2-7b-01112024
+model_checkpoint: /tmp/llama2-7b-01222024
 tokenizer: llama2_tokenizer
 tokenizer_checkpoint: /tmp/tokenizer.model
 
 # Fine-tuning arguments
-batch_size: 2
+batch_size: 8
 lr: 2e-5
 epochs: 3
 optimizer: SGD

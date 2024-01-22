@@ -16,7 +16,6 @@ from typing import Any, Dict, Optional
 import torch
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
-from torch import Tensor
 from torchtune.models import llama2_7b
 
 logging.basicConfig(level=logging.INFO)
@@ -44,10 +43,6 @@ def llama2_7b_args() -> LlamaArgs:
     )
 
 
-def _is_qkv(s: str) -> bool:
-    return any(["attention.wq" in s, "attention.wk" in s, "attention.wv" in s])
-
-
 def load_orig_state_dict(path: str) -> Dict[str, Any]:
     orig_sd = torch.load(path, weights_only=True)
     return orig_sd
@@ -58,13 +53,6 @@ def build_orig_fqn_to_native_map(num_layers: int) -> Dict[str, Optional[str]]:
     orig_fqn_to_native_fqn = {
         # Token embedding
         "tok_embeddings.weight": "tok_embeddings.weight",
-        # Attention weights. They map to `None` since we separately handle
-        # converting qkv tensors into the fused matrix used by the torchTBD
-        # implementation, so they don't need to be mapped to a native FQN
-        # here.
-        "layers.{}.attention.wq.weight": None,
-        "layers.{}.attention.wk.weight": None,
-        "layers.{}.attention.wv.weight": None,
         # Output norm and output weight
         "norm.weight": "norm.scale",
         "output.weight": "output.weight",
@@ -79,6 +67,15 @@ def build_orig_fqn_to_native_map(num_layers: int) -> Dict[str, Optional[str]]:
     # ffn weights w1, w2, and w3
     orig_ffn_weight_format = "layers.{}.feed_forward.w{}.weight"
     new_ffn_weight_format = "layers.{}.mlp.w{}.weight"
+    # attention q proj
+    orig_attn_q_proj_format = "layers.{}.attention.wq.weight"
+    new_attn_q_proj_format = "layers.{}.attn.q_proj.weight"
+    # attention k proj
+    orig_attn_k_proj_format = "layers.{}.attention.wk.weight"
+    new_attn_k_proj_format = "layers.{}.attn.k_proj.weight"
+    # attention v proj
+    orig_attn_v_proj_format = "layers.{}.attention.wv.weight"
+    new_attn_v_proj_format = "layers.{}.attn.v_proj.weight"
     # attention output proj
     orig_attn_output_proj_format = "layers.{}.attention.wo.weight"
     new_attn_output_proj_format = "layers.{}.attn.output_proj.weight"
@@ -97,6 +94,18 @@ def build_orig_fqn_to_native_map(num_layers: int) -> Dict[str, Optional[str]]:
             orig_fqn_to_native_fqn[
                 orig_ffn_weight_format.format(layer_idx, i)
             ] = new_ffn_weight_format.format(layer_idx, i)
+        # attn q proj
+        orig_fqn_to_native_fqn[
+            orig_attn_q_proj_format.format(layer_idx)
+        ] = new_attn_q_proj_format.format(layer_idx)
+        # attn k proj
+        orig_fqn_to_native_fqn[
+            orig_attn_k_proj_format.format(layer_idx)
+        ] = new_attn_k_proj_format.format(layer_idx)
+        # attn v proj
+        orig_fqn_to_native_fqn[
+            orig_attn_v_proj_format.format(layer_idx)
+        ] = new_attn_v_proj_format.format(layer_idx)
         # attn output proj
         orig_fqn_to_native_fqn[
             orig_attn_output_proj_format.format(layer_idx)
@@ -156,83 +165,23 @@ if __name__ == "__main__":
         num_layers=llama2_args.num_layers
     )
 
-    # qkv_dict will map a layer index to its qkv tensors.
-    qkv_dict: Dict[int, Dict[str, Tensor]] = {}
-
-    # Iterate through original state_dict, doing 1 of 2 things:
-    # 1) if the tensor is a QKV tensor, save it in qkv_dict.
-    # 2) Otherwise, copy over the tensor into the new state_dict, and validate
+    # Iterate through original state_dict.
+    # Copy each tensor into the new state_dict, and validate
     # the key is expected and the shape is expected.
     for key, tensor in orig_sd.items():
-        if _is_qkv(key):
-            # Process QKV tensor.
-            # Grab layer index from key. For example, key is
-            # layers.0.attention.wk.weight.
-            splits = key.split(".")
-            layer_index = splits[1]
-            layer_index = int(layer_index)
-            if layer_index not in qkv_dict:
-                qkv_dict[layer_index] = {}
-            # Grab wq/wk/wv string from split string.
-            weight_key = splits[-2]
-            assert weight_key not in qkv_dict[layer_index]
-            qkv_dict[layer_index][weight_key] = tensor
+        # Directly copy into the new state_dict.
+        if key in orig_fqn_to_native_fqn:
+            # Copy over
+            mapped_key = orig_fqn_to_native_fqn[key]
+            new_state_dict[mapped_key] = tensor.clone()
+            # do some sanity checks around shape
+            assert mapped_key in ref_sd, f"{mapped_key} not in reference state_dict"
+            ref_sd_tensor = ref_sd[mapped_key]
+            assert ref_sd_tensor.shape == new_state_dict[mapped_key].shape
+            # Successfully processed key
+            orig_sd_processed_keys.add(key)
         else:
-            # Process non QKV tensor. Here we can directly copy into the new state_dict.
-            if key in orig_fqn_to_native_fqn:
-                # Copy over
-                mapped_key = orig_fqn_to_native_fqn[key]
-                new_state_dict[mapped_key] = tensor.clone()
-                # do some sanity checks around shape
-                assert mapped_key in ref_sd, f"{mapped_key} not in reference state_dict"
-                ref_sd_tensor = ref_sd[mapped_key]
-                assert ref_sd_tensor.shape == new_state_dict[mapped_key].shape
-                # Successfully processed key
-                orig_sd_processed_keys.add(key)
-            else:
-                logger.warning(f"Warning: {key} in orig state_dict, but not mapped!")
-
-    # sanity check qkv_dict to ensure each layer has qkv tensors.
-    for i in range(llama2_args.num_layers):
-        assert i in qkv_dict
-        assert "wq" in qkv_dict[i]
-        assert "wk" in qkv_dict[i]
-        assert "wv" in qkv_dict[i]
-
-    # Go through qkv_dict and batch qkv for torchTBD's batched implementation
-    embed_dim = llama2_args.embed_dim
-    num_heads = llama2_args.num_heads
-    num_kv_heads = llama2_args.num_kv_heads
-    for layer_idx in qkv_dict:
-        # Map individual qkv matrices to the fused matrix. This approach is motived from Lightning AI:
-        # https://github.com/Lightning-AI/lit-gpt/blob/main/scripts/convert_hf_checkpoint.py#L112
-        head_dim = embed_dim // num_heads
-        q = qkv_dict[layer_idx]["wq"]
-        k = qkv_dict[layer_idx]["wk"]
-        v = qkv_dict[layer_idx]["wv"]
-        q_per_kv = num_heads // (num_kv_heads if num_kv_heads else num_heads)
-        qs = torch.split(q, head_dim * q_per_kv)
-        ks = torch.split(k, head_dim)
-        vs = torch.split(v, head_dim)
-        cycled = [t for group in zip(qs, ks, vs) for t in group]
-        qkv = torch.cat(cycled)
-        qkv_dict[layer_idx] = qkv
-
-    # Map qkv tensors into the native state_dict. qkv_dict now contains
-    # the fused QKV matrix for each layer, i.e. layer i's fused QKV matrix
-    # is given by qkv_dict[i]. We map this into the state_dict to be loaded
-    # into torchTBD's implementation by reconstructing the expected name based
-    # on the layer index.
-    for layer_idx in qkv_dict:
-        sd_key = f"layers.{layer_idx}.attn.qkv_proj.weight"
-        new_state_dict[sd_key] = qkv_dict[layer_idx].clone()
-        # Validate name and shape
-        assert sd_key in ref_sd, f"{sd_key} not in ref_sd!"
-        assert ref_sd[sd_key].shape == new_state_dict[sd_key].shape
-        # successfully processed the original qkv keys
-        orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wq.weight")
-        orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wv.weight")
-        orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wk.weight")
+            logger.warning(f"Warning: {key} in orig state_dict, but not mapped!")
 
     # Do some validation that 1) the only native keys we did not process are
     # RoPE related, as we aren't loading into RoPE, and 2) the only original
@@ -275,7 +224,7 @@ if __name__ == "__main__":
 
     # TODO: we'll make this configurable when we switch to torch.distributed.checkpoint
     # and enable scales other than 7b.
-    native_dirpath = "/tmp/native_checkpoints"
+    native_dirpath = "/data/users/ebs/checkpoints"
 
     checkpoint_file = "llama2-7b"
     if not os.path.exists(native_dirpath):
