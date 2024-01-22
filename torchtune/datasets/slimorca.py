@@ -26,7 +26,8 @@ _CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class SlimOrcaDataset(Dataset):
-    """PyTorch Representation of the SlimOrca Dataset
+    """
+    PyTorch Representation of the SlimOrca Dataset
     https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
     from Hugging Face.
 
@@ -39,37 +40,27 @@ class SlimOrcaDataset(Dataset):
     input token id list is ensured (by truncation if necessary) to be within
     that length.
 
+    Data input format: https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup#dataset-format
+
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         **kwargs: Additional keyword arguments to pass to the SlimOrca Dataset.
-        This value needs to be at least 4 though it is generally set it to
-        max sequence length accepted by the model.
 
     Keyword Arguments:
-        max_token_length (int): Maximum number of tokens in the returned input and label token id lists.
-        Default is 1024.
+        max_token_length (int): Maximum number of tokens in the returned input and label token id lists. This value needs to be at least 4 though it is generally set it to max sequence length accepted by the model.  Default is 1024.  # noqa
 
-    Data input format:
-        [ { "from": "system", "value": "You are an AI assistant. You will be
-        given a task. You must generate a detailed and long answer." },
-        { "from": "human", "value": "Predecesorul său, primul îngrijitor al
-        moscheii Et'hem Bey, a murit în timp ce era în moschee; sute de
-        persoane au participat la funeraliile sale.\n\nWhich language is this?
-        " }, { "from": "gpt", "value": "This text is written in Romanian.
-        The passage discusses the predecessor of someone who was the first
-        caretaker of the Et'hem Bey Mosque and mentions that they passed away
-        while in the mosque. It also notes that hundreds of people attended
-        their funeral." } ]
+    Raises:
+        ValueError: If `max_token_length` is less than 4.
 
     Example:
-    >>> ds = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=10)
-    >>> for input, label in ds:
-            print(input)
-            print(label)
-
-        Sample Ouput:
-        [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]
-        [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]
+        >>> ds = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=10)
+        >>> for input, label in ds:
+        >>>     print(input)
+        >>>     print(label)
+        >>>
+        >>> Sample Ouput:
+        >>> [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]
+        >>> [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]
     """
 
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:

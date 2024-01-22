@@ -13,29 +13,25 @@ from torch.utils.data import Dataset
 from torchtune.modules import Tokenizer
 
 
-_CROSS_ENTROPY_IGNORE_IDX = -100
-
-
 class AlpacaDataset(Dataset):
-    """PyTorch Representation of the Alpaca Dataset from Hugging Face.
+    """
+    PyTorch Representation of the Alpaca Dataset
+    https://huggingface.co/datasets/tatsu-lab/alpaca
+    from Hugging Face.
+
+    Data input format: https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances
+
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        **kwargs: Additional keyword arguments to pass to the Alpaca Dataset.
 
-    Data input format:
-    {
-        "instruction": "Create a classification task by clustering the given list of items.",
-        "input": "Apples, oranges, bananas, strawberries, pineapples",
-        "output": "Class 1: Apples, Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",
-        "text": "Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\nCreate a classification task by clustering the given list of items.\n\n### Input:\nApples, oranges, bananas, strawberries, pineapples\n\n### Response:\nClass 1: Apples,
-        Oranges\nClass 2: Bananas, Strawberries\nClass 3: Pineapples",  # noqa: B950
-    }
 
     Example:
-    >>> alpaca_ds = AlpacaDataset(tokenizer=tokenizer)
-    >>> for batch in Dataloader(alpaca_ds, batch_size=8):
-            print(f"Batch size: {len(batch)}")
-        Batch size: 8
+        >>> alpaca_ds = AlpacaDataset(tokenizer=tokenizer)
+        >>> for batch in Dataloader(alpaca_ds, batch_size=8):
+        >>>     print(f"Batch size: {len(batch)}")
+        >>> Batch size: 8
     """
 
     def __init__(self, tokenizer: Tokenizer, **kwargs) -> None:
@@ -49,7 +45,8 @@ class AlpacaDataset(Dataset):
         return self._transform(self._data[index]["text"])
 
     def _transform(self, sample: str) -> Tuple[List[int], List[int]]:
-        """Split a sample on 'response' tag to create input and labels.
+        """
+        Split a sample on ``response`` tag to create input and labels.
 
         Args:
             sample (str): Sample text.
@@ -65,8 +62,6 @@ class AlpacaDataset(Dataset):
         )
         response = self._tokenizer.encode(response, add_bos=False, add_eos=True)
         input = inst_inp_response_tag + response
-        label = [
-            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))
-        ] + response
+        label = [-100 for _ in range(len(inst_inp_response_tag))] + response
         assert len(input) == len(label)
         return input, label
