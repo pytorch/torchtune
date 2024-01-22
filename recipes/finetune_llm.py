@@ -188,10 +188,16 @@ if __name__ == "__main__":
             provide the same transforms of samples across runs.
             """,
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--shuffle", action="store_true", help="Shuffle dataset.", default=True
     )
-    parser.add_argument("--no-shuffle", dest="shuffle", action="store_false")
+    group.add_argument(
+        "--no-shuffle",
+        dest="shuffle",
+        action="store_false",
+        help="Don't shuffle dataset.",
+    )
 
     # Model arguments
     parser.add_argument(
@@ -252,23 +258,28 @@ if __name__ == "__main__":
         default="cpu",
         help="`cuda` or `cpu`",
     )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--fsdp",
         action="store_true",
         default=False,
         help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
     )
-    parser.add_argument("--no-fsdp", dest="fsdp", action="store_false")
-    parser.add_argument(
+    group.add_argument(
+        "--no-fsdp", dest="fsdp", action="store_false", help="Don't train with FSDP."
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--activation-checkpointing",
         action="store_true",
         default=False,
         help="Train the model with activation checkpointing.",
     )
-    parser.add_argument(
+    group.add_argument(
         "--no-activation-checkpointing",
         dest="activation_checkpointing",
         action="store_false",
+        help="Don't train the model with activation checkpointing.",
     )
     parser.add_argument(
         "--run-generation",
