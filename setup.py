@@ -24,6 +24,7 @@ setup(
     name="torchtune",
     version="0.0.1",
     packages=find_packages(),
+    python_requires=">=3.8",
     install_requires=read_requirements("requirements.txt"),
     scripts=["scripts/cli_utils/tune"],
     description="Package for finetuning LLMs and diffusion models using native PyTorch",
