@@ -126,7 +126,7 @@ class StatefulDataLoader(DataLoader):
 
         super().__init__(dataset, *args, **kwargs)
         if not isinstance(self.sampler, DistributedSampler):
-            raise RuntimeError(
+            raise ValueError(
                 "StatefulDataLoader currently supports only DistributedSampler"
             )
 
