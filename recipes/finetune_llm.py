@@ -319,7 +319,7 @@ if __name__ == "__main__":
         "--metric-logger-type",
         type=str,
         default="stdout",
-        choices=["wandb", "tensorboard", "stdout"],
+        choices=utils.list_metric_loggers(),
         help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, or just plain stdout.",
     )
     parser.add_argument(

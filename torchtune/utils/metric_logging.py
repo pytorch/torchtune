@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 import sys
 
-from typing import Mapping, Optional, Union
+from typing import List, Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
@@ -14,13 +14,24 @@ from typing_extensions import Protocol
 Scalar = Union[Tensor, ndarray, int, float]
 
 
+def list_metric_loggers() -> List[str]:
+    """List available metric loggers.
+
+    Returns:
+        List[str]: list of available metric loggers
+    """
+    return ["wandb", "tensorboard", "stdout"]
+
+
 def get_metric_logger(
-    metric_logger: str, project: Optional[str] = None, log_dir: Optional[str] = None
+    metric_logger_type: str,
+    project: Optional[str] = None,
+    log_dir: Optional[str] = None,
 ) -> "MetricLogger":
     """Get a metric logger based on provided arguments.
 
     Args:
-        metric_logger (str): name of the metric logger, options are "wandb", "tensorboard", "stdout".
+        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout".
         project (Optional[str]): WandB project name
         log_dir (Optional[str]): TensorBoard log directory
 
@@ -30,15 +41,15 @@ def get_metric_logger(
     Returns:
         MetricLogger: metric logger
     """
-    if metric_logger == "wandb":
+    if metric_logger_type == "wandb":
         return WandBLogger(project=project)
-    elif metric_logger == "tensorboard":
+    elif metric_logger_type == "tensorboard":
         return TensorBoardLogger(log_dir=log_dir)
-    elif metric_logger == "stdout":
+    elif metric_logger_type == "stdout":
         return StdoutLogger()
     else:
         raise ValueError(
-            f"Metric logger not recognized. Expected 'wandb', 'tensorboard', or 'stdout', received {metric_logger}."
+            f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
         )
 
 
@@ -110,6 +121,9 @@ class WandBLogger(MetricLogger):
         >>> logger.log_dict({"my_metric": 1.0}, 1)
         >>> logger.close()
 
+    Raises:
+        ImportError: If ``wandb`` package is not installed.
+
     Note:
         This logger requires the wandb package to be installed.
         You can install it with `pip install wandb`.
@@ -124,7 +138,13 @@ class WandBLogger(MetricLogger):
         group: Optional[str] = None,
         **kwargs,
     ):
-        import wandb
+        try:
+            import wandb
+        except ImportError as e:
+            raise ImportError(
+                "``wandb`` package not found. Please install wandb using `pip install wandb` to use WandBLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
 
         self._wandb = wandb
         self._wandb.init(
