@@ -44,7 +44,9 @@ def recipe(
     utils.init_distributed(fsdp)
 
     logger = utils.get_logger("DEBUG")
-    metric_logger = utils.get_metric_logger(metric_logger_type, project, output_dir)
+    metric_logger = utils.get_metric_logger(
+        metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
+    )
 
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
