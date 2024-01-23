@@ -12,14 +12,8 @@ import torch
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune.datasets import get_dataset, list_datasets
-from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-from torchtune.modules import TransformerDecoderLayer
-from torchtune.trainer import ReproducibleDataLoader
-from torchtune.utils import TuneArgumentParser
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
-from torchtune.utils.env import init_from_env
+from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.checkpoint import save_checkpoint, load_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -44,6 +38,7 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
+    resume_from_checkpoint
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
@@ -72,30 +67,21 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-    loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
-    model.load_state_dict(loaded_ckpt)
-    logger.info(msg=f"Loaded model from {model_checkpoint}")
+    if not resume_from_checkpoint:
+        loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
+        model.load_state_dict(loaded_ckpt)
+        logger.info(msg=f"Loaded model from {model_checkpoint}")
 
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
-    if not args.resume_from_ckpt:
-        # Load pretrained model
-        loaded_ckpt = torch.load(
-            kwargs["model_checkpoint"], map_location="cpu", weights_only=True
-        )
-        logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
 
-    opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
-
-    if args.resume_from_ckpt:
-        # Load in previously saved model and optimizer states from previous finetuning job.
-        ckpt_dict = torch.load(
-            kwargs["model_checkpoint"], map_location="cpu", weights_only=True
-        )
-        load_checkpoint(ckpt_dict=ckpt_dict, model=model, optimizer=opt)
-        logger(
-            msg=f"Loaded model and optimizer from previous finetune {kwargs['model_checkpoint']}"
-        )
+    # Load model and optimizer checkpoint from previous finetune if specified.
+    if resume_from_checkpoint:
+        # TODO (rohan-varma): Following load call assumes we're always loading in optimizer
+        # states when resuming from checkpoint. While this is the usual case, should make
+        # this configurable.
+        load_checkpoint(model_checkpoint, model, opt)
+        print(f"RV: loaded checkpoint!!!!")
 
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
@@ -181,18 +167,15 @@ def recipe(
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
-        torch.save(
-            {
-                "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": opt.state_dict(),
-                "loss": loss.mean().item(),
-            },
-            output_loc,
-        )
-        logger.info(
-            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        )
+        ckpt_dict = {
+            "model": model,
+            "optimizer": opt,
+        }
+        save_checkpoint(ckpt_dict, output_loc)
+        if rank == 0:
+            logger.info(
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+            )
 
 
 if __name__ == "__main__":
@@ -327,7 +310,7 @@ if __name__ == "__main__":
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
     parser.add_argument(
-        "--resume-from-ckpt",
+        "--resume-from-checkpoint",
         help="Resume training from checkpointed model and optimizer states. Note that to use this flag, checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility.",
         default=False,
         action="store_true",
