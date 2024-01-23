@@ -7,7 +7,7 @@
 from torch.utils.data import Dataset
 
 from .alpaca import AlpacaDataset
-from .slimorca import SlimOrcaDataset  # noqa
+from .slimorca import SlimOrcaDataset
 
 _DATASET_DICT = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
 
