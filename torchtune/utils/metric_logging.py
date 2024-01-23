@@ -93,7 +93,7 @@ class MetricLogger(Protocol):
 
 
 class DiskLogger(MetricLogger):
-    """Metric logger to disk.
+    """Logger to disk.
 
     Args:
         log_dir (str): directory to store logs
@@ -132,7 +132,7 @@ class DiskLogger(MetricLogger):
 
 
 class StdoutLogger(MetricLogger):
-    """Metric logger to standard output. This is the default logger."""
+    """Logger to standard output."""
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         print(f"Step {step} | {name}:{data}")
