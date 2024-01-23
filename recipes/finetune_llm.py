@@ -127,7 +127,7 @@ def recipe(
             # TODO: avoid recompute this every iteration as .item() triggers
             # a device sync
             mean_loss = (
-                mean_loss
+                loss.item()
                 if mean_loss is None
                 else (loss.item() + (idx - 1) * mean_loss) / idx
             )
