@@ -22,4 +22,4 @@ fsdp: False
 activation_checkpointing: False
 
 # Metrics arguments
-metric_logger: stdout
+metric_logger_type: stdout

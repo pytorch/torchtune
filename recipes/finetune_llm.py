@@ -37,14 +37,14 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
-    metric_logger,
+    metric_logger_type,
     project,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
 
     logger = utils.get_logger("DEBUG")
-    metric_logger = utils.get_metric_logger(metric_logger, project, output_dir)
+    metric_logger = utils.get_metric_logger(metric_logger_type, project, output_dir)
 
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
@@ -264,7 +264,7 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints.",
+        help="Directory in which to save checkpoints. If using a metric logger like Tensorboard, this dir will also contain those logs.",
     )
     parser.add_argument(
         "--device",
@@ -315,7 +315,7 @@ if __name__ == "__main__":
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
     parser.add_argument(
-        "--metric-logger",
+        "--metric-logger-type",
         type=str,
         default="stdout",
         choices=["wandb", "tensorboard", "stdout"],
