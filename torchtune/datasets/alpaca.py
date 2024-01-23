@@ -13,6 +13,9 @@ from torch.utils.data import Dataset
 from torchtune.modules import Tokenizer
 
 
+_CROSS_ENTROPY_IGNORE_IDX = -100
+
+
 class AlpacaDataset(Dataset):
     """
     PyTorch Representation of the Alpaca Dataset
@@ -62,6 +65,8 @@ class AlpacaDataset(Dataset):
         )
         response = self._tokenizer.encode(response, add_bos=False, add_eos=True)
         input = inst_inp_response_tag + response
-        label = [-100 for _ in range(len(inst_inp_response_tag))] + response
+        label = [
+            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(inst_inp_response_tag))
+        ] + response
         assert len(input) == len(label)
         return input, label
