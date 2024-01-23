@@ -104,6 +104,7 @@ def recipe(
 
     # ---- Train loop ---- #
     for epoch in range(epochs):
+        mean_loss = None
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
         for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
@@ -123,8 +124,15 @@ def recipe(
                 # Compute loss
                 loss = loss_fn(logits, labels)
 
+            # TODO: avoid recompute this every iteration as .item() triggers
+            # a device sync
+            mean_loss = (
+                mean_loss
+                if mean_loss is None
+                else (loss.item() + (idx - 1) * mean_loss) / idx
+            )
             pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
+                f"{epoch+1}|{idx+1}|Loss: {mean_loss}"
             )  # TODO: add terminal logger
 
             grad_scaler.scale(loss).backward()
