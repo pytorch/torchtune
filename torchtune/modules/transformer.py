@@ -87,7 +87,7 @@ def _get_clones(module: nn.Module, n: int) -> nn.ModuleList:
         nn.ModuleList: list of ``n`` identical layers
     """
     # FIXME: copy.deepcopy() is not defined on nn.module
-    return module
+    return nn.ModuleList([copy.deepcopy(module) for i in range(n)])
 
 
 class TransformerDecoder(nn.Module):
