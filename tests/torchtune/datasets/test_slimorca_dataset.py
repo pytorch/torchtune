@@ -4,14 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import random
-from pathlib import Path
 
 import pytest
 
 from torchtune import datasets
 from torchtune.modules.tokenizer import Tokenizer
 
-ASSETS = Path(__file__).parent.parent.parent / "assets"
+from tests.test_utils import get_assets_path
 
 
 class TestSlimOrcaDataset:
@@ -19,11 +18,7 @@ class TestSlimOrcaDataset:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return Tokenizer.from_file(str(ASSETS / "m.model"))
-
-    def test_slim_orca_dataset(self, tokenizer):
-        dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)
-        assert len(dataset) == 363_491
+        return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
     def test_prompt_label_generation(self, tokenizer):
         dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)

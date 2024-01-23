@@ -7,6 +7,7 @@
 import math
 import unittest
 import uuid
+from pathlib import Path
 from typing import Any, Union
 
 import torch
@@ -17,6 +18,10 @@ from torch import nn
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
 )
+
+
+def get_assets_path():
+    return Path(__file__).parent / "assets"
 
 
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
