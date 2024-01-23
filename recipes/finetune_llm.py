@@ -264,7 +264,8 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints. If using a metric logger like Tensorboard, this dir will also contain those logs.",
+        help="Directory in which to save checkpoints."
+        "If using a metric logger like Tensorboard, this dir will also contain those logs.",
     )
     parser.add_argument(
         "--device",
