@@ -83,7 +83,6 @@ def recipe(
         # states when resuming from checkpoint. While this is the usual case, should make
         # this configurable.
         load_checkpoint(model_checkpoint, model, opt)
-        print(f"RV: loaded checkpoint!!!!")
 
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
@@ -313,7 +312,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--resume-from-checkpoint",
-        help="Resume training from checkpointed model and optimizer states. Note that to use this flag, checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility.",
+        help="""
+            Resume training from checkpointed model and optimizer states. Note that to use this flag,
+            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility.
+            """,
         default=False,
         action="store_true",
     )

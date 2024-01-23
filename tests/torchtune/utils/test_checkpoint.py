@@ -4,17 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import tempfile
 
-import numpy as np
 import pytest
 import torch
 import torch.distributed as dist
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
-from torchtune.utils.distributed import get_world_size_and_rank
 
 from tests.test_utils import get_pet_launch_config
 
@@ -92,7 +89,10 @@ class TestCheckpoint:
             torch.save({"lr": 0.01}, f.name)
             with pytest.raises(
                 RuntimeError,
-                match="Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved with `save_checkpoint`.",
+                match="""
+                Expected loaded checkpoint to contain a `model` key,
+                but it does not. Ensure checkpoint was saved with `save_checkpoint`.
+                """,
             ):
                 load_checkpoint(f.name, model)
 
@@ -103,7 +103,9 @@ class TestCheckpoint:
             save_checkpoint({"model": model}, f.name)
             with pytest.raises(
                 RuntimeError,
-                match="Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`.",
+                match="""Expected loaded checkpoint to contain an `optimizer` key since an
+                optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`.
+                """,
             ):
                 load_checkpoint(f.name, model, optim)
 

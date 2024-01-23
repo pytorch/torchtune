@@ -32,8 +32,10 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     """
     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
-    (currently only objects specified by "model" and "optimizer" keys). For distributed jobs, only rank 0 will write out a checkpoint.
-    Only full checkpoints are supported currently, i.e. full checkpoints are taken even if model and optimizer are sharded with FSDP.
+    (currently only objects specified by "model" and "optimizer" keys). For distributed jobs, only rank 0
+    will write out a checkpoint.
+    Only full (unsharded) checkpoints are supported currently, i.e. full checkpoints are taken even if model and optimizer
+    are sharded with FSDP.
 
     Args:
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
@@ -71,8 +73,7 @@ def load_checkpoint(
     `save_checkpoint` and assumes the checkpoint was saved as such.
 
     Args:
-        ckpt_path (str): String indicating path to saved checkpoint file. The checkpoint file is expected
-        to have been saved with `save_checkpoint`.
+        ckpt_path (str): String indicating path to saved checkpoint file.
         model (torch.nn.Module): Model to load the checkpoint into.
         optimizer (Optional[torch.optim.Optimizer]): Optimizer to load the checkpoint into. If not specified,
             "optimizer" key in `ckpt_dict` will be ignored, if present. Default: `None`.
@@ -89,11 +90,13 @@ def load_checkpoint(
     ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
     if "model" not in ckpt_dict:
         raise RuntimeError(
-            "Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved with `save_checkpoint`."
+            """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved
+            with `save_checkpoint`."""
         )
     if optimizer is not None and "optimizer" not in ckpt_dict:
         raise RuntimeError(
-            "Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`."
+            """Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not.
+            Ensure checkpoint was saved with `save_checkpoint`."""
         )
 
     model.load_state_dict(ckpt_dict["model"])
