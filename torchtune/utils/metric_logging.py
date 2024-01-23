@@ -24,6 +24,9 @@ def get_metric_logger(
         project (Optional[str]): WandB project name
         log_dir (Optional[str]): TensorBoard log directory
 
+    Raises:
+        ValueError: If ``metric_logger`` str is unknown.
+
     Returns:
         MetricLogger: metric logger
     """
@@ -34,7 +37,9 @@ def get_metric_logger(
     elif metric_logger == "stdout":
         return StdoutLogger()
     else:
-        raise ValueError(f"Metric logger not recognized. Expected 'wandb', 'tensorboard', or 'stdout', received {metric_logger}.")
+        raise ValueError(
+            f"Metric logger not recognized. Expected 'wandb', 'tensorboard', or 'stdout', received {metric_logger}."
+        )
 
 
 class MetricLogger(Protocol):
