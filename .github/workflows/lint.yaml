@@ -3,6 +3,9 @@ name: Lint
 on:
   pull_request:
 
+concurrency:
+  group: ci-cpu-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
 
 defaults:
   run:
