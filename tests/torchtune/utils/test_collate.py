@@ -8,7 +8,7 @@
 
 import torch
 
-from torchtune.utils.data import padded_collate
+from torchtune.utils.collate import padded_collate
 
 
 class TestBatchPadSequence:

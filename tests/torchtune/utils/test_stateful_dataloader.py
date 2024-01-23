@@ -263,7 +263,7 @@ class TestStatefulDataLoader:
         with pytest.raises(ValueError, match=r".*map-style dataset"):
             # Passing in an iterable dataset
             dataloader = StatefulDataLoader(iterable_dataset)
-        with pytest.raises(ValueError, match=r".*DistributedSampler"):
+        with pytest.raises(RuntimeError, match=r".*DistributedSampler"):
             # Not passing Distributed Sampler
             dataloader = StatefulDataLoader(dataset)
 
