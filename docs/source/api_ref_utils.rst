@@ -1,5 +1,5 @@
 =================
-torchtune.modules
+torchtune.utils.checkpoint
 =================
 
 .. currentmodule:: torchtune.utils.checkpoint
