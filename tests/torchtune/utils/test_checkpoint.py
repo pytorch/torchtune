@@ -10,8 +10,8 @@ import tempfile
 import numpy as np
 import pytest
 import torch
-from torch.distributed import launcher
 import torch.distributed as dist
+from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.distributed import get_world_size_and_rank
@@ -79,7 +79,10 @@ class TestCheckpoint:
 
     def test_no_model_key_save(self) -> None:
         checkpoint = {"lr": 0.03}
-        with pytest.raises(RuntimeError, match="Expected `ckpt_dict` to contain a `model` key, but it does not."):
+        with pytest.raises(
+            RuntimeError,
+            match="Expected `ckpt_dict` to contain a `model` key, but it does not.",
+        ):
             with tempfile.NamedTemporaryFile() as f:
                 save_checkpoint(checkpoint, f.name)
 
@@ -87,7 +90,10 @@ class TestCheckpoint:
         model = torch.nn.Linear(1, 1)
         with tempfile.NamedTemporaryFile() as f:
             torch.save({"lr": 0.01}, f.name)
-            with pytest.raises(RuntimeError, match="Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved with `save_checkpoint`."):
+            with pytest.raises(
+                RuntimeError,
+                match="Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved with `save_checkpoint`.",
+            ):
                 load_checkpoint(f.name, model)
 
     def test_no_optim_key_load(self) -> None:
@@ -95,9 +101,11 @@ class TestCheckpoint:
         optim = torch.optim.SGD(model.parameters(), lr=0.01)
         with tempfile.NamedTemporaryFile() as f:
             save_checkpoint({"model": model}, f.name)
-            with pytest.raises(RuntimeError, match="Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`."):
+            with pytest.raises(
+                RuntimeError,
+                match="Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`.",
+            ):
                 load_checkpoint(f.name, model, optim)
-
 
     def _test_distributed_save_load(self) -> None:
         torch.distributed.init_process_group(backend="gloo")
@@ -119,7 +127,8 @@ class TestCheckpoint:
                     assert torch.allclose(p1, p2)
         # Verify optim state_dicts
         self._validate_dicts(
-            FSDP.optim_state_dict(model_new, optim_new), FSDP.optim_state_dict(model, optim)
+            FSDP.optim_state_dict(model_new, optim_new),
+            FSDP.optim_state_dict(model, optim),
         )
         torch.distributed.barrier()
 

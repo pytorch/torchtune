@@ -7,9 +7,9 @@
 from typing import Any, Dict, Optional
 
 import torch
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils.distributed import get_world_size_and_rank
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 
 def _contains_fsdp(model: torch.nn.Module) -> bool:
@@ -45,7 +45,11 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
         )
     model_state_dict = ckpt_dict["model"].state_dict()
     if "optimizer" in ckpt_dict:
-        optimizer_state_dict = FSDP.optim_state_dict(ckpt_dict["model"], ckpt_dict["optimizer"]) if _contains_fsdp(ckpt_dict["model"]) else ckpt_dict["optimizer"].state_dict()
+        optimizer_state_dict = (
+            FSDP.optim_state_dict(ckpt_dict["model"], ckpt_dict["optimizer"])
+            if _contains_fsdp(ckpt_dict["model"])
+            else ckpt_dict["optimizer"].state_dict()
+        )
         ckpt_dict["optimizer"] = optimizer_state_dict
 
     ckpt_dict["model"] = model_state_dict
@@ -75,7 +79,7 @@ def load_checkpoint(
             to further restore non model and optimizer states.
     """
 
-    ckpt_dict = torch.load(ckpt_path, map_location='cpu', weights_only=True)
+    ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
     if "model" not in ckpt_dict:
         raise RuntimeError(
             "Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved with `save_checkpoint`."
@@ -88,7 +92,11 @@ def load_checkpoint(
     model.load_state_dict(ckpt_dict["model"])
 
     if optimizer is not None:
-        optim_state_dict_to_load = FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"]) if _contains_fsdp(model) else ckpt_dict["optimizer"]
+        optim_state_dict_to_load = (
+            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"])
+            if _contains_fsdp(model)
+            else ckpt_dict["optimizer"]
+        )
 
         optimizer.load_state_dict(optim_state_dict_to_load)
 

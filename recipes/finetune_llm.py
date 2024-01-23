@@ -13,7 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
-from torchtune.utils.checkpoint import save_checkpoint, load_checkpoint
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -38,7 +38,7 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
-    resume_from_checkpoint
+    resume_from_checkpoint,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
@@ -68,7 +68,9 @@ def recipe(
         )
 
     if not resume_from_checkpoint:
-        loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
+        loaded_ckpt = torch.load(
+            model_checkpoint, map_location="cpu", weights_only=True
+        )
         model.load_state_dict(loaded_ckpt)
         logger.info(msg=f"Loaded model from {model_checkpoint}")
 
