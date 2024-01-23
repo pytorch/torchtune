@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import copy
 from typing import Optional
 
 import torch
@@ -88,7 +87,7 @@ def _get_clones(module: nn.Module, n: int) -> nn.ModuleList:
         nn.ModuleList: list of ``n`` identical layers
     """
     # FIXME: copy.deepcopy() is not defined on nn.module
-    return nn.ModuleList([copy.deepcopy(module) for i in range(n)])
+    return module
 
 
 class TransformerDecoder(nn.Module):

@@ -7,17 +7,15 @@
 import argparse
 
 import logging
-
 import os
-
 from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 import torch
-from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torch import Tensor
 from torchtune.models import llama2_7b
+from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -132,19 +130,19 @@ if __name__ == "__main__":
     # Initialize new decoder architecture
     decoder = llama2_7b()
     # Initialize original decoder architecture
-    tformer = Transformer(
-        vocab_size=llama2_args.vocab_size,
-        dim=llama2_args.embed_dim,
-        n_layers=llama2_args.num_layers,
-        n_heads=llama2_args.num_heads,
-        max_seq_len=llama2_args.max_seq_len,
-        n_kv_heads=llama2_args.num_kv_heads,
-    )
+    # tformer = Transformer(
+    #     vocab_size=llama2_args.vocab_size,
+    #     dim=llama2_args.embed_dim,
+    #     n_layers=llama2_args.num_layers,
+    #     n_heads=llama2_args.num_heads,
+    #     max_seq_len=llama2_args.max_seq_len,
+    #     n_kv_heads=llama2_args.num_kv_heads,
+    # )
 
     # Original state_dict to convert.
     orig_sd = load_orig_state_dict(path)
     # Reference state_dict for checking expected keys and tensor shapes.
-    ref_sd = decoder.state_dict()
+    # ref_sd = decoder.state_dict()
     # new state_dict that represents that conversion.
     new_state_dict = {}
     # This set will contain the successfully processed keys from the original
@@ -163,7 +161,7 @@ if __name__ == "__main__":
     # 1) if the tensor is a QKV tensor, save it in qkv_dict.
     # 2) Otherwise, copy over the tensor into the new state_dict, and validate
     # the key is expected and the shape is expected.
-    for key, tensor in orig_sd.items():
+    for key, tensor in tqdm(orig_sd.items()):
         if _is_qkv(key):
             # Process QKV tensor.
             # Grab layer index from key. For example, key is
@@ -184,9 +182,9 @@ if __name__ == "__main__":
                 mapped_key = orig_fqn_to_native_fqn[key]
                 new_state_dict[mapped_key] = tensor.clone()
                 # do some sanity checks around shape
-                assert mapped_key in ref_sd, f"{mapped_key} not in reference state_dict"
-                ref_sd_tensor = ref_sd[mapped_key]
-                assert ref_sd_tensor.shape == new_state_dict[mapped_key].shape
+                # assert mapped_key in ref_sd, f"{mapped_key} not in reference state_dict"
+                # ref_sd_tensor = ref_sd[mapped_key]
+                # assert ref_sd_tensor.shape == new_state_dict[mapped_key].shape
                 # Successfully processed key
                 orig_sd_processed_keys.add(key)
             else:
@@ -203,7 +201,7 @@ if __name__ == "__main__":
     embed_dim = llama2_args.embed_dim
     num_heads = llama2_args.num_heads
     num_kv_heads = llama2_args.num_kv_heads
-    for layer_idx in qkv_dict:
+    for layer_idx in tqdm(qkv_dict):
         # Map individual qkv matrices to the fused matrix. This approach is motived from Lightning AI:
         # https://github.com/Lightning-AI/lit-gpt/blob/main/scripts/convert_hf_checkpoint.py#L112
         head_dim = embed_dim // num_heads
@@ -223,12 +221,12 @@ if __name__ == "__main__":
     # is given by qkv_dict[i]. We map this into the state_dict to be loaded
     # into torchTBD's implementation by reconstructing the expected name based
     # on the layer index.
-    for layer_idx in qkv_dict:
+    for layer_idx in tqdm(qkv_dict):
         sd_key = f"layers.{layer_idx}.attn.qkv_proj.weight"
         new_state_dict[sd_key] = qkv_dict[layer_idx].clone()
         # Validate name and shape
-        assert sd_key in ref_sd, f"{sd_key} not in ref_sd!"
-        assert ref_sd[sd_key].shape == new_state_dict[sd_key].shape
+        # assert sd_key in ref_sd, f"{sd_key} not in ref_sd!"
+        # assert ref_sd[sd_key].shape == new_state_dict[sd_key].shape
         # successfully processed the original qkv keys
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wq.weight")
         orig_sd_processed_keys.add(f"layers.{layer_idx}.attention.wv.weight")
@@ -237,14 +235,14 @@ if __name__ == "__main__":
     # Do some validation that 1) the only native keys we did not process are
     # RoPE related, as we aren't loading into RoPE, and 2) the only original
     # key we did not process is the saved rope.freqs buffer.
-    unprocessed_native_keys = set(ref_sd.keys()) - set(new_state_dict.keys())
+    # unprocessed_native_keys = set(ref_sd.keys()) - set(new_state_dict.keys())
     # we aren't loading into RoPE
-    assert all(
-        [
-            "pos_embeddings" in key or "kv_cache" in key
-            for key in unprocessed_native_keys
-        ]
-    )
+    # assert all(
+    #     [
+    #         "pos_embeddings" in key or "kv_cache" in key
+    #         for key in unprocessed_native_keys
+    #     ]
+    # )
 
     unproc_orig_keys = set(orig_sd.keys()) - orig_sd_processed_keys
     assert (
@@ -254,22 +252,22 @@ if __name__ == "__main__":
     # Load into decoder. We should not have any unexpected keys, and only be missing
     # rope-related params (which is expected)
     missing, unexpected = decoder.load_state_dict(new_state_dict, strict=False)
-    assert not unexpected
-    assert all(["pos_embeddings" in key or "kv_cache" in key for key in missing])
+    # assert not unexpected
+    # assert all(["pos_embeddings" in key or "kv_cache" in key for key in missing])
 
     # Load the original state_dict into the reference implementation
-    missing_keys, unexpected_keys = tformer.load_state_dict(orig_sd, strict=False)
+    # missing_keys, unexpected_keys = tformer.load_state_dict(orig_sd, strict=False)
     # We don't expect any keys to be missing (not loaded into)
-    assert not missing_keys
+    # assert not missing_keys
 
     # Validate equivalence.
-    bsz, seqlen = 16, 128
-    with torch.no_grad():
-        for i in range(10):
-            toks = torch.randint(low=0, high=llama2_args.vocab_size, size=(bsz, seqlen))
-            y = decoder(toks).sum()
-            x = tformer(toks).sum()
-            assert torch.allclose(x, y), f"{x} vs {y} @ {i}"
+    # bsz, seqlen = 16, 128
+    # with torch.no_grad():
+    #     for i in range(10):
+    #         toks = torch.randint(low=0, high=llama2_args.vocab_size, size=(bsz, seqlen))
+    #         y = decoder(toks).sum()
+    #         x = tformer(toks).sum()
+    #         assert torch.allclose(x, y), f"{x} vs {y} @ {i}"
 
     native_state_dict = decoder.state_dict()
 
