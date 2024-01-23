@@ -86,23 +86,23 @@ class StatefulDataLoader(DataLoader):
         ValueError: If the sampler is not a ``torch.utils.data.DistributedSampler``.
 
     Example:
-    >>> sampler = DistributedSampler(...)
-    >>> dataloader = StatefulDataLoader(dataset, sampler=sampler)
-    >>> for epoch in range(0, max_epoch)
-    >>>     sampler.set_epoch(epoch)
-    >>>     for batch in iter(dataloader):
-    >>>         ...
-    >>> # Fetch the state of the StatefulDataLoader
-    >>> state = dataloader.state_dict()
-    >>>
-    >>> # Restore the state
-    >>> dataloader = StatefulDataLoader(...)
-    >>> dataloader.load_state_dict(state)
-    >>> current_epoch = state['epoch'] or 0
-    >>> for epoch in range(current_epoch, max_epoch)
-    >>>     sampler.set_epoch(epoch)
-    >>>     for batch in iter(dataloader):
-    >>>         ...
+        >>> sampler = DistributedSampler(...)
+        >>> dataloader = StatefulDataLoader(dataset, sampler=sampler)
+        >>> for epoch in range(0, max_epoch)
+        >>>     sampler.set_epoch(epoch)
+        >>>     for batch in iter(dataloader):
+        >>>         ...
+        >>> # Fetch the state of the StatefulDataLoader
+        >>> state = dataloader.state_dict()
+        >>>
+        >>> # Restore the state
+        >>> dataloader = StatefulDataLoader(...)
+        >>> dataloader.load_state_dict(state)
+        >>> current_epoch = state['epoch'] or 0
+        >>> for epoch in range(current_epoch, max_epoch)
+        >>>     sampler.set_epoch(epoch)
+        >>>     for batch in iter(dataloader):
+        >>>         ...
     """  # noqa
 
     RESUME_INDEX_KEY = "resume_index"
