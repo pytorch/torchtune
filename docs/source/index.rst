@@ -76,3 +76,4 @@ TorchTune tutorials.
 
    api_ref_models
    api_ref_modules
+   api_ref_utils
