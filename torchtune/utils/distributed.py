@@ -10,6 +10,7 @@ import os
 from typing import Optional, Set, Tuple
 
 import torch
+import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
@@ -38,7 +39,7 @@ def _is_distributed() -> bool:
     addr = os.environ.get("MASTER_ADDR", "")
     size = int(os.environ.get("WORLD_SIZE", 1))
     rank = int(os.environ.get("RANK", -1))
-    avlb = torch.distributed.is_available()
+    avlb = dist.is_available()
     return bool(port and addr and size >= 1 and rank >= 0 and avlb)
 
 
@@ -51,42 +52,33 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
 
     Returns:
         torch.Tensor: Broadcasted tensor.
-
-    Raises:
-        RuntimeError: If torch.distributed is not initialized.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         device = tensor.device
-        if torch.distributed.get_backend() == "nccl":
+        if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
-        torch.distributed.broadcast(tensor, src=src, group=None)
+        dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
         return tensor
 
 
-def init_distributed(distributed: bool = True, **kwargs):
+def init_distributed() -> bool:  # noqa: DOC106, DOC109
     """Initialize torch.distributed.
 
-    Args:
-        distributed (bool): Whether to initialize torch.distributed.
-        **kwargs: keyword arguments to pass to torch.distributed.init_process_group.
+    Returns:
+        bool: True if torch.distributed is initialized.
 
     Raises:
         RuntimeError: If torch.distributed is already initialized.
     """
-    if distributed:
-        if not _is_distributed():
-            raise RuntimeError(
-                "Environment not setup for distributed training. Please see documentation on launching a distributed job."
-            )
-        if torch.distributed.is_initialized():
+    if _is_distributed():
+        if dist.is_initialized():
             raise RuntimeError("torch.distributed already initialized.")
-        torch.distributed.init_process_group(**kwargs)
+        dist.init_process_group()
+        return True
+    else:
+        return False
 
 
 def get_world_size_and_rank() -> Tuple[int, int]:
@@ -95,15 +87,8 @@ def get_world_size_and_rank() -> Tuple[int, int]:
 
     Returns:
         Tuple[int, int]: world size, rank
-
-    Raises:
-        RuntimeError: If torch.distributed is not initialized.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
     else:
         return 1, 0
@@ -144,11 +129,7 @@ def get_fsdp(
     Raises:
         RuntimeError: If environment not setup for distributed training.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         if strategy is None:
             strategy = "NO_SHARD"
         _validate_device_from_env(device)
@@ -165,5 +146,5 @@ def get_fsdp(
         )
     else:
         raise RuntimeError(
-            "Environment not setup for distributed training. Please see documentation on launching a distributed job."
+            "Distributed environment is not setup. Please run init_distributed() first."
         )
