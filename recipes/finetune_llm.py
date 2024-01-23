@@ -13,6 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils import StatefulDataLoader
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -96,7 +97,7 @@ def recipe(
         shuffle=shuffle,
         seed=0,
     )
-    dataloader = datasets.StatefulDataLoader(
+    dataloader = StatefulDataLoader(
         dataset=ds,
         batch_size=batch_size,
         sampler=sampler,
@@ -111,7 +112,8 @@ def recipe(
     # ---- Train loop ---- #
     for epoch in range(epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
-        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
+        step_idx = dataloader.last_load_state_offset()
+        for batch in (pbar := tqdm(dataloader, initial=step_idx, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -149,7 +151,7 @@ def recipe(
             grad_scaler.update()
 
             # --- TODO TEMPORARY EVAL Code ---- #
-            if run_generation and idx % run_generation == 0:
+            if run_generation and step_idx % run_generation == 0:
                 # Log a sample generation for the instruction.
                 # Just using a hardcoded prompt for now
                 prompt = (
@@ -165,6 +167,7 @@ def recipe(
                     logger.info(f"Generation tokens: {decoded_tokens}")
                     logger.info(f"Generation: {generation_str}")
             # --- TODO TEMPORARY EVAL Code Ends ---- #
+            step_idx += 1
 
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)

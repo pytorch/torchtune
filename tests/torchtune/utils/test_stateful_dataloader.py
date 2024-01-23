@@ -7,7 +7,7 @@
 import pytest
 import torch
 from torch.utils.data import Dataset, DistributedSampler, IterableDataset
-from torchtune.datasets import StatefulDataLoader
+from torchtune.utils import StatefulDataLoader
 
 
 class _DummyIterableDataset(IterableDataset):
