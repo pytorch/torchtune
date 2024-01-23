@@ -94,6 +94,8 @@ class TestFinetuneLLMRecipe:
             "fsdp": False,
             "activation_checkpointing": False,
             "run_generation": False,
+            "metric_logger_type": "disk",
+            "project": None,
         }
 
         finetune_llm.recipe(**kwargs_values)
