@@ -38,6 +38,9 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     Args:
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
         output_loc (str): Path to save the checkpoint to.
+
+    Raises:
+        RuntimeError: If `ckpt_dict` does not contain a `model` key.
     """
     if "model" not in ckpt_dict:
         raise RuntimeError(
@@ -62,7 +65,7 @@ def load_checkpoint(
     ckpt_path: str,
     model: torch.nn.Module,
     optimizer: Optional[torch.optim.Optimizer] = None,
-) -> None:
+) -> Dict[str, Any]:
     """
     Loads a checkpoint from `ckpt_path` into `model` and optionally `optimizer`. This function is meant to be used in tandem with
     `save_checkpoint` and assumes the checkpoint was saved as such.
@@ -71,12 +74,16 @@ def load_checkpoint(
         ckpt_path (str): String indicating path to saved checkpoint file. The checkpoint file is expected
         to have been saved with `save_checkpoint`.
         model (torch.nn.Module): Model to load the checkpoint into.
-        optimizer (torch.optim.Optimizer, optional): Optimizer to load the checkpoint into. If not specified,
+        optimizer (Optional[torch.optim.Optimizer]): Optimizer to load the checkpoint into. If not specified,
             "optimizer" key in `ckpt_dict` will be ignored, if present. Default: `None`.
 
     Returns:
         ckpt_dict (Dict[str, Any]): Dictionary containing loaded objects. Objects in this dictionary can be used
             to further restore non model and optimizer states.
+
+    Raises:
+        RuntimeError: If `ckpt_dict` does not contain a `model` key.
+        RuntimeError: If `ckpt_dict` does not contain an `optimizer` key and an optimizer was passed in.
     """
 
     ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
