@@ -318,9 +318,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--metric-logger-type",
         type=str,
-        default="stdout",
+        default="disk",
         choices=utils.list_metric_loggers(),
-        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, or just plain stdout.",
+        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
     )
     parser.add_argument(
         "--project",

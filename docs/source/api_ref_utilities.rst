@@ -13,3 +13,5 @@ Utilities
 
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
+    metric_logging.StdoutLogger
+    metric_logging.DiskLogger

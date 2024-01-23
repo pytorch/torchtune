@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import sys
+import time
+from pathlib import Path
 
 from typing import List, Mapping, Optional, Union
 
@@ -20,7 +22,7 @@ def list_metric_loggers() -> List[str]:
     Returns:
         List[str]: list of available metric loggers
     """
-    return ["wandb", "tensorboard", "stdout"]
+    return ["wandb", "tensorboard", "stdout", "disk"]
 
 
 def get_metric_logger(
@@ -31,9 +33,9 @@ def get_metric_logger(
     """Get a metric logger based on provided arguments.
 
     Args:
-        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout".
+        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
         project (Optional[str]): WandB project name
-        log_dir (Optional[str]): TensorBoard log directory
+        log_dir (Optional[str]): TensorBoard log directory or Disk log directory
 
     Raises:
         ValueError: If ``metric_logger`` str is unknown.
@@ -47,6 +49,8 @@ def get_metric_logger(
         return TensorBoardLogger(log_dir=log_dir)
     elif metric_logger_type == "stdout":
         return StdoutLogger()
+    elif metric_logger_type == "disk":
+        return DiskLogger(log_dir=log_dir)
     else:
         raise ValueError(
             f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
@@ -86,6 +90,45 @@ class MetricLogger(Protocol):
         Logs should not be written after `close` is called.
         """
         pass
+
+
+class DiskLogger(MetricLogger):
+    """Metric logger to disk.
+
+    Args:
+        log_dir (str): directory to store logs
+
+    Warning:
+        This logger is not thread-safe.
+
+    Note:
+        This logger creates a new file based on the current time.
+    """
+
+    def __init__(self, log_dir: str):
+        self.log_dir = Path(log_dir)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
+        unix_timestamp = int(time.time())
+        self._file_name = self.log_dir / f"log_{unix_timestamp}.txt"
+        self._file = open(self._file_name, "a")
+        print(f"Writing logs to {self._file_name}")
+
+    @property
+    def log_file_path(self) -> str:
+        return str(self._file_name)
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        self._file.write(f"Step {step} | {name}:{data}\n")
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        for name, data in payload.items():
+            self.log(name, data, step)
+
+    def __del__(self) -> None:
+        self._file.close()
+
+    def close(self) -> None:
+        self._file.close()
 
 
 class StdoutLogger(MetricLogger):
@@ -162,6 +205,9 @@ class WandBLogger(MetricLogger):
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         self._wandb.log(payload, step=step)
 
+    def __del__(self) -> None:
+        self._wandb.finish()
+
     def close(self) -> None:
         self._wandb.finish()
 
@@ -197,6 +243,9 @@ class TensorBoardLogger(MetricLogger):
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         for name, data in payload.items():
             self.log(name, data, step)
+
+    def __del__(self) -> None:
+        self._writer.close()
 
     def close(self) -> None:
         self._writer.close()

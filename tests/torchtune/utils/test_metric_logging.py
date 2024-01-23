@@ -12,9 +12,46 @@ from unittest.mock import patch
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
-from torchtune.utils.metric_logging import StdoutLogger, TensorBoardLogger, WandBLogger
+from torchtune.utils.metric_logging import (
+    DiskLogger,
+    StdoutLogger,
+    TensorBoardLogger,
+    WandBLogger,
+)
 
 from tests.test_utils import captured_output
+
+
+class DiskLoggerTest:
+    def test_log(self) -> None:
+        with tempfile.TemporaryDirectory() as log_dir:
+            logger = DiskLogger(log_dir=log_dir)
+            for i in range(5):
+                logger.log("test_log", float(i) ** 2, i)
+            logger.close()
+
+            log_path = DiskLogger.get_log_path()
+            self.assertTrue(log_path.exists())
+            values = open(log_path).readlines()
+            self.assertEqual(len(values), 5)
+            for i in range(5):
+                self.assertEqual(values[i], f"Step {i} | test_log: {i ** 2}\n")
+
+    def test_log_dict(self) -> None:
+        with tempfile.TemporaryDirectory() as log_dir:
+            logger = DiskLogger(log_dir=log_dir)
+            for i in range(5):
+                logger.log_dict(step=i, payload={"metric_1": i, "metric_2": i**2})
+            logger.close()
+
+            log_path = DiskLogger.get_log_path()
+            self.assertTrue(log_path.exists())
+            values = open(log_path).readlines()
+            self.assertEqual(len(values), 5)
+            for i in range(5):
+                self.assertEqual(
+                    values[i], f"Step {i} | metric_1:{i} metric_2:{i ** 2}\n"
+                )
 
 
 class StdoutLoggerTest:
