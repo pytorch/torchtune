@@ -7,7 +7,12 @@
 import pytest
 
 import torch
-from torchtune.modules.peft import FusedLoRADim, LoRAFusedLinear, LoRALinear
+from torchtune.modules.peft import (
+    FusedLoRADim,
+    lora_llama_self_attention,
+    LoRAFusedLinear,
+    LoRALinear,
+)
 from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -136,4 +141,44 @@ class TestLoRAFusedLinear:
         lora_fused_linear = self.get_lora_fused_linear(in_dim, fused_lora_dims)
         actual = lora_fused_linear(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, sum(out_dims)))
+        assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
+
+
+class TestLoRALlamaSelfAttention:
+    @pytest.fixture
+    def in_dim(self) -> int:
+        return 64
+
+    @pytest.fixture
+    def inputs(self, in_dim) -> torch.Tensor:
+        inputs = torch.randn(BSZ, SEQ_LEN, in_dim)
+        return inputs
+
+    @pytest.mark.parametrize(
+        "lora_modules, expected",
+        [
+            ([], torch.tensor(44.8516)),
+            (["q_proj", "v_proj"], torch.tensor(51.3152)),
+            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(79.8887)),
+            (["k_proj"], torch.tensor(45.9261)),
+        ],
+    )
+    def test_forward(self, inputs, lora_modules, expected):
+        embed_dim = 64
+        num_heads = 4
+        num_kv_heads = 2
+        max_seq_len = 64
+
+        lora_llama_sa = lora_llama_self_attention(
+            lora_modules=lora_modules,
+            embed_dim=embed_dim,
+            num_heads=num_heads,
+            num_kv_heads=num_kv_heads,
+            max_seq_len=max_seq_len,
+            lora_rank=RANK,
+            lora_alpha=ALPHA,
+        )
+        fixed_init_model(lora_llama_sa)
+        actual = lora_llama_sa(inputs)
+        assert_expected(actual.shape, (BSZ, SEQ_LEN, embed_dim))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
