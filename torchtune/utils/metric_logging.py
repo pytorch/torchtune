@@ -143,6 +143,9 @@ class StdoutLogger(MetricLogger):
             print(f"{name}:{data} ", end="")
         print("\n", end="")
 
+    def __del__(self) -> None:
+        sys.stdout.flush()
+
     def close(self) -> None:
         sys.stdout.flush()
 
