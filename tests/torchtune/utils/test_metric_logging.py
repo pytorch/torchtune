@@ -33,6 +33,7 @@ class TestMetricLogger:
             "wandb",
         }
 
+    @patch("wandb.init")
     def test_get_metric_logger(self) -> None:
         fake_kwargs = {
             "log_dir": "/tmp/output",
