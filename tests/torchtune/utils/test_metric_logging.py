@@ -33,7 +33,6 @@ class TestMetricLogger:
             "wandb",
         }
 
-    @patch("wandb.init")
     def test_get_metric_logger(self) -> None:
         fake_kwargs = {
             "log_dir": "/tmp/output",
@@ -45,7 +44,8 @@ class TestMetricLogger:
         assert isinstance(
             get_metric_logger("tensorboard", **fake_kwargs), TensorBoardLogger
         )
-        assert isinstance(get_metric_logger("wandb", **fake_kwargs), WandBLogger)
+        with patch("wandb.init") as wandb_init:
+            assert isinstance(get_metric_logger("wandb", **fake_kwargs), WandBLogger)
 
 
 class TestDiskLogger:
