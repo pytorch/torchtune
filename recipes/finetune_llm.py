@@ -39,13 +39,12 @@ def recipe(
     max_steps_per_epoch,
     metric_logger,
     project,
-    log_dir,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
 
     logger = utils.get_logger("DEBUG")
-    metric_logger = utils.get_metric_logger(metric_logger, project, log_dir)
+    metric_logger = utils.get_metric_logger(metric_logger, project, output_dir)
 
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
@@ -326,13 +325,7 @@ if __name__ == "__main__":
         "--project",
         type=str,
         default=None,
-        help="Project name for metric logger.",
-    )
-    parser.add_argument(
-        "--log-dir",
-        type=str,
-        default=None,
-        help="Log directory for metric logger.",
+        help="Project name for WandB metric logger.",
     )
 
     kwargs = vars(parser.parse_args())

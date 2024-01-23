@@ -31,7 +31,10 @@ def get_metric_logger(
         return WandBLogger(project=project)
     elif metric_logger == "tensorboard":
         return TensorBoardLogger(log_dir=log_dir)
-    return StdoutLogger()
+    elif metric_logger == "stdout":
+        return StdoutLogger()
+    else:
+        raise ValueError(f"Metric logger not recognized. Expected 'wandb', 'tensorboard', or 'stdout', received {metric_logger}.")
 
 
 class MetricLogger(Protocol):
