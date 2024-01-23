@@ -13,7 +13,7 @@ from torch.utils.data import Dataset
 from torchtune.modules import Tokenizer
 
 
-class Llama2ChatFormatConstants:
+class _Llama2ChatFormatConstants:
     """
     Contains constants that are used in Llama2 Chat Format.
     """
@@ -127,9 +127,9 @@ class SlimOrcaDataset(Dataset):
 
         # Llama2 Chat Format - https://github.com/facebookresearch/llama/blob/main/llama/generation.py#L284
         if "system" in agent_text_dict:
-            prompt = f"{Llama2ChatFormatConstants.B_INST} {Llama2ChatFormatConstants.B_SYS}{agent_text_dict['system']}{Llama2ChatFormatConstants.E_SYS}{agent_text_dict['human']} {Llama2ChatFormatConstants.E_INST}"  # noqa: B950
+            prompt = f"{_Llama2ChatFormatConstants.B_INST} {_Llama2ChatFormatConstants.B_SYS}{agent_text_dict['system']}{_Llama2ChatFormatConstants.E_SYS}{agent_text_dict['human']} {_Llama2ChatFormatConstants.E_INST}"  # noqa: B950
         else:
-            prompt = f"{Llama2ChatFormatConstants.B_INST} {agent_text_dict['human']} {Llama2ChatFormatConstants.E_INST}"
+            prompt = f"{_Llama2ChatFormatConstants.B_INST} {agent_text_dict['human']} {_Llama2ChatFormatConstants.E_INST}"
 
         response = f" {agent_text_dict['gpt']} "
         return prompt, response

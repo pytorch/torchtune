@@ -7,7 +7,7 @@
 from torch.utils.data import Dataset
 
 from .alpaca import AlpacaDataset
-from .slimorca import Llama2ChatFormatConstants, SlimOrcaDataset  # noqa
+from .slimorca import SlimOrcaDataset  # noqa
 
 _DATASET_DICT = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
 

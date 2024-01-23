@@ -8,6 +8,7 @@ import random
 import pytest
 
 from torchtune import datasets
+from torchtune.datasets.slimorca import _Llama2ChatFormatConstants
 from torchtune.modules.tokenizer import Tokenizer
 
 from tests.test_utils import get_assets_path
@@ -39,7 +40,7 @@ class TestSlimOrcaDataset:
         prompt, label = dataset._generate_prompt_label(sample)
         assert (
             prompt
-            == f"{datasets.Llama2ChatFormatConstants.B_INST} {datasets.Llama2ChatFormatConstants.B_SYS}hi{datasets.Llama2ChatFormatConstants.E_SYS}mid {datasets.Llama2ChatFormatConstants.E_INST}"  # noqa: B950
+            == f"{_Llama2ChatFormatConstants.B_INST} {_Llama2ChatFormatConstants.B_SYS}hi{_Llama2ChatFormatConstants.E_SYS}mid {_Llama2ChatFormatConstants.E_INST}"  # noqa: B950
         )
         assert label == " lo "
 
@@ -56,7 +57,7 @@ class TestSlimOrcaDataset:
         prompt, label = dataset._generate_prompt_label(sample)
         assert (
             prompt
-            == f"{datasets.Llama2ChatFormatConstants.B_INST} mid {datasets.Llama2ChatFormatConstants.E_INST}"
+            == f"{_Llama2ChatFormatConstants.B_INST} mid {_Llama2ChatFormatConstants.E_INST}"
         )
         assert label == " lo "
 
