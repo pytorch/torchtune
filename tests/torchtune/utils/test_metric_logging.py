@@ -14,15 +14,40 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 
 from torchtune.utils.metric_logging import (
     DiskLogger,
+    get_metric_logger,
+    list_metric_loggers,
     StdoutLogger,
     TensorBoardLogger,
     WandBLogger,
 )
 
-from tests.test_utils import captured_output
+from tests.test_utils import assert_expected, captured_output
 
 
-class DiskLoggerTest:
+class TestMetricLogger:
+    def test_list_metric_loggers(self) -> None:
+        assert set(list_metric_loggers()) == {
+            "disk",
+            "stdout",
+            "tensorboard",
+            "wandb",
+        }
+
+    def test_get_metric_logger(self) -> None:
+        fake_kwargs = {
+            "log_dir": "/tmp/output",
+            "project": "test-project",
+            "extra_key": "bananas",
+        }
+        assert isinstance(get_metric_logger("disk", **fake_kwargs), DiskLogger)
+        assert isinstance(get_metric_logger("stdout", **fake_kwargs), StdoutLogger)
+        assert isinstance(
+            get_metric_logger("tensorboard", **fake_kwargs), TensorBoardLogger
+        )
+        assert isinstance(get_metric_logger("wandb", **fake_kwargs), WandBLogger)
+
+
+class TestDiskLogger:
     def test_log(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
             logger = DiskLogger(log_dir=log_dir)
@@ -30,12 +55,12 @@ class DiskLoggerTest:
                 logger.log("test_log", float(i) ** 2, i)
             logger.close()
 
-            log_path = DiskLogger.get_log_path()
-            self.assertTrue(log_path.exists())
+            log_path = logger.path_to_log_file()
+            assert log_path.exists()
             values = open(log_path).readlines()
-            self.assertEqual(len(values), 5)
+            assert_expected(len(values), 5)
             for i in range(5):
-                self.assertEqual(values[i], f"Step {i} | test_log: {i ** 2}\n")
+                assert values[i] == f"Step {i} | test_log:{float(i) ** 2}\n"
 
     def test_log_dict(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
@@ -44,67 +69,59 @@ class DiskLoggerTest:
                 logger.log_dict(step=i, payload={"metric_1": i, "metric_2": i**2})
             logger.close()
 
-            log_path = DiskLogger.get_log_path()
-            self.assertTrue(log_path.exists())
+            log_path = logger.path_to_log_file()
+            assert log_path.exists()
             values = open(log_path).readlines()
-            self.assertEqual(len(values), 5)
+            assert_expected(len(values), 5)
             for i in range(5):
-                self.assertEqual(
-                    values[i], f"Step {i} | metric_1:{i} metric_2:{i ** 2}\n"
-                )
+                assert values[i] == f"Step {i} | metric_1:{i} metric_2:{i ** 2} \n"
 
 
-class StdoutLoggerTest:
+class TestStdoutLogger:
     def test_stdout_log(self) -> None:
         logger = StdoutLogger()
         with captured_output() as (out, _):
             logger.log(step=0, name="metric_1", data=1.1)
             out = cast(StringIO, out)
-            self.assertTrue(
-                out.getvalue() == "Step 0 | metric_1:1.1\n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+            assert (
+                out.getvalue() == "Step 0 | metric_1:1.1\n"
+            ), f"Actual output: {out.getvalue()}"
 
             logger.log(step=1, name="metric_1", data=2.1)
-            self.assertTrue(
-                out.getvalue() == "Step 0 | metric_1:1.1\nStep 1 | metric_1:2.1\n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+            assert (
+                out.getvalue() == "Step 0 | metric_1:1.1\nStep 1 | metric_1:2.1\n"
+            ), f"Actual output: {out.getvalue()}"
 
             logger.close()
-            self.assertTrue(
-                out.getvalue() == "Step 0 | metric_1:1.1\nStep 1 | metric_1:2.1\n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+            assert (
+                out.getvalue() == "Step 0 | metric_1:1.1\nStep 1 | metric_1:2.1\n"
+            ), f"Actual output: {out.getvalue()}"
 
     def test_stdout_log_dict(self) -> None:
         logger = StdoutLogger()
         with captured_output() as (out, _):
             logger.log_dict(step=0, payload={"metric_1": 1, "metric_2": 1})
             out = cast(StringIO, out)
-            self.assertTrue(
-                out.getvalue() == "Step 0 | metric_1:1 metric_2:1 \n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+            assert (
+                out.getvalue() == "Step 0 | metric_1:1 metric_2:1 \n"
+            ), f"Actual output: {out.getvalue()}"
 
             logger.log_dict(
                 step=1, payload={"metric_1": 2, "metric_2": 2.2, "metric_3": 2.2344}
             )
-            self.assertTrue(
+            assert (
                 out.getvalue()
-                == "Step 0 | metric_1:1 metric_2:1 \nStep 1 | metric_1:2 metric_2:2.2 metric_3:2.2344 \n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+                == "Step 0 | metric_1:1 metric_2:1 \nStep 1 | metric_1:2 metric_2:2.2 metric_3:2.2344 \n"
+            ), f"Actual output: {out.getvalue()}"
 
             logger.close()
-            self.assertTrue(
+            assert (
                 out.getvalue()
-                == "Step 0 | metric_1:1 metric_2:1 \nStep 1 | metric_1:2 metric_2:2.2 metric_3:2.2344 \n",
-                msg=repr(f"Actual output: {out.getvalue()}"),
-            )
+                == "Step 0 | metric_1:1 metric_2:1 \nStep 1 | metric_1:2 metric_2:2.2 metric_3:2.2344 \n"
+            ), f"Actual output: {out.getvalue()}"
 
 
-class TensorBoardLoggerTest:
+class TestTensorBoardLogger:
     def test_log(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
             logger = TensorBoardLogger(log_dir=log_dir)
@@ -115,8 +132,8 @@ class TensorBoardLoggerTest:
             acc = EventAccumulator(log_dir)
             acc.Reload()
             for i, event in enumerate(acc.Tensors("test_log")):
-                self.assertAlmostEqual(event.tensor_proto.float_val[0], float(i) ** 2)
-                self.assertEqual(event.step, i)
+                assert_expected(event.tensor_proto.float_val[0], float(i) ** 2)
+                assert_expected(event.step, i)
 
     def test_log_dict(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
@@ -129,10 +146,8 @@ class TensorBoardLoggerTest:
             acc.Reload()
             for i in range(5):
                 tensor_tag = acc.Tensors(f"log_dict_{i}")[0]
-                self.assertAlmostEqual(
-                    tensor_tag.tensor_proto.float_val[0], float(i) ** 2
-                )
-                self.assertEqual(tensor_tag.step, 1)
+                assert_expected(tensor_tag.tensor_proto.float_val[0], float(i) ** 2)
+                assert_expected(tensor_tag.step, 1)
 
 
 class WandBLoggerTest:

@@ -7,54 +7,13 @@ import sys
 import time
 from pathlib import Path
 
-from typing import List, Mapping, Optional, Union
+from typing import Dict, List, Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
-
-
-def list_metric_loggers() -> List[str]:
-    """List available metric loggers.
-
-    Returns:
-        List[str]: list of available metric loggers
-    """
-    return ["wandb", "tensorboard", "stdout", "disk"]
-
-
-def get_metric_logger(
-    metric_logger_type: str,
-    project: Optional[str] = None,
-    log_dir: Optional[str] = None,
-) -> "MetricLogger":
-    """Get a metric logger based on provided arguments.
-
-    Args:
-        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
-        project (Optional[str]): WandB project name
-        log_dir (Optional[str]): TensorBoard log directory or Disk log directory
-
-    Raises:
-        ValueError: If ``metric_logger`` str is unknown.
-
-    Returns:
-        MetricLogger: metric logger
-    """
-    if metric_logger_type == "wandb":
-        return WandBLogger(project=project)
-    elif metric_logger_type == "tensorboard":
-        return TensorBoardLogger(log_dir=log_dir)
-    elif metric_logger_type == "stdout":
-        return StdoutLogger()
-    elif metric_logger_type == "disk":
-        return DiskLogger(log_dir=log_dir)
-    else:
-        raise ValueError(
-            f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
-        )
 
 
 class MetricLogger(Protocol):
@@ -97,6 +56,7 @@ class DiskLogger(MetricLogger):
 
     Args:
         log_dir (str): directory to store logs
+        **kwargs: additional arguments
 
     Warning:
         This logger is not thread-safe.
@@ -105,7 +65,7 @@ class DiskLogger(MetricLogger):
         This logger creates a new file based on the current time.
     """
 
-    def __init__(self, log_dir: str):
+    def __init__(self, log_dir: str, **kwargs):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
         unix_timestamp = int(time.time())
@@ -113,16 +73,17 @@ class DiskLogger(MetricLogger):
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
 
-    @property
-    def log_file_path(self) -> str:
-        return str(self._file_name)
+    def path_to_log_file(self) -> Path:
+        return self._file_name
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        self._file.write(f"Step {step} | ")
         for name, data in payload.items():
-            self.log(name, data, step)
+            self._file.write(f"{name}:{data} ")
+        self._file.write("\n")
 
     def __del__(self) -> None:
         self._file.close()
@@ -238,7 +199,7 @@ class TensorBoardLogger(MetricLogger):
     def __init__(self, log_dir: str, **kwargs):
         from torch.utils.tensorboard import SummaryWriter
 
-        self._writer = SummaryWriter(log_dir=log_dir, **kwargs)
+        self._writer = SummaryWriter(log_dir=log_dir)
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._writer.add_scalar(name, data, global_step=step, new_style=True)
@@ -252,3 +213,41 @@ class TensorBoardLogger(MetricLogger):
 
     def close(self) -> None:
         self._writer.close()
+
+
+_METRIC_LOGGER_DICT: Dict[str, "MetricLogger"] = {
+    "wandb": WandBLogger,
+    "tensorboard": TensorBoardLogger,
+    "stdout": StdoutLogger,
+    "disk": DiskLogger,
+}
+
+
+def list_metric_loggers() -> List[str]:
+    """List available metric loggers.
+
+    Returns:
+        List[str]: list of available metric loggers
+    """
+    return list(_METRIC_LOGGER_DICT.keys())
+
+
+def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLogger":
+    """Get a metric logger based on provided arguments.
+
+    Args:
+        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
+        **kwargs: additional arguments to pass to the metric logger
+
+    Raises:
+        ValueError: If ``metric_logger`` str is unknown.
+
+    Returns:
+        MetricLogger: metric logger
+    """
+    if metric_logger_type not in _METRIC_LOGGER_DICT:
+        raise ValueError(
+            f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
+        )
+
+    return _METRIC_LOGGER_DICT[metric_logger_type](**kwargs)
