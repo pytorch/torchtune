@@ -19,6 +19,8 @@ jobs:
       matrix:
         python-version: ['3.11']
     steps:
+      - name: get GPU info
+        run: nvidia-smi
       - name: Check out repo
         uses: actions/checkout@v3
       - name: Setup conda env
