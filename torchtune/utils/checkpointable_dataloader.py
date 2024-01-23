@@ -34,10 +34,14 @@ class _FinishedIterWrapper(Iterator):
             raise
 
 
-class _StatefulSampler:
+class _SkippableSampler:
+    """
+    Allows skipping a certain number of samples from the beginning of the sampler iterator
+    """
+
     def __init__(self, sampler: Sampler):
         self._sampler = sampler
-        self.resume_index = 0
+        self.skip_index = 0
         self._iterator = None
 
     def __len__(self):
@@ -46,17 +50,17 @@ class _StatefulSampler:
     def __iter__(self):
         if self._iterator is None:
             it = iter(self._sampler)
-            it = itertools.islice(it, self.resume_index, None)
+            it = itertools.islice(it, self.skip_index, None)
             self._iterator = _FinishedIterWrapper(it)
         elif self._iterator.started:
             # If iter() is called after iteration has started,
             # reset the iterator to the beginning
-            self.resume_index = 0
+            self.skip_index = 0
             self._iterator = _FinishedIterWrapper(iter(self._sampler))
         return self._iterator
 
-    def set_state(self, resume_index: int):
-        self.resume_index = resume_index
+    def set_skip_index(self, skip_index: int):
+        self.skip_index = skip_index
         self._iterator = None
 
 
@@ -105,12 +109,12 @@ class CheckpointableDataLoader(DataLoader):
         >>>         ...
     """  # noqa
 
-    _RESUME_INDEX_KEY = "resume_index"
+    _SKIP_INDEX_KEY = "skip_index"
     _DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
 
     def __init__(self, dataset: Dataset, *args, **kwargs):
         self._wrapped_iterator = None
-        self._stateful_index_sampler = None
+        self._skippable_index_sampler = None
         self._num_yielded = 0
         self._super_iter = None
 
@@ -127,16 +131,17 @@ class CheckpointableDataLoader(DataLoader):
                 f"{type(self.sampler)} instead."
             )
 
+    # Override the base dataloader implementation to return a skippable sampler
     @property
     def _index_sampler(self):
-        if self._stateful_index_sampler is None:
-            self._stateful_index_sampler = _StatefulSampler(super()._index_sampler)
-        return self._stateful_index_sampler
+        if self._skippable_index_sampler is None:
+            self._skippable_index_sampler = _SkippableSampler(super()._index_sampler)
+        return self._skippable_index_sampler
 
     def __iter__(self):
         self._super_iter = _FinishedIterWrapper(super().__iter__())
-        # Fetch the start index from the sampler's resume index
-        self._num_yielded = self._index_sampler.resume_index
+        # Fetch the start index from the sampler's skip index
+        self._num_yielded = self._index_sampler.skip_index
         for batch in self._super_iter:
             # Keep track of the new steps iterated through
             self._num_yielded += 1
@@ -145,20 +150,20 @@ class CheckpointableDataLoader(DataLoader):
     def state_dict(self) -> Dict[str, Any]:
         if self._super_iter is None:
             # If no iterator was ever created, return the resumption state
-            resume_index = self._index_sampler.resume_index
+            skip_index = self._index_sampler.skip_index
         elif self._super_iter.finished:
             # If iterator is exhausted, resumption should start from beginning
-            resume_index = 0
+            skip_index = 0
         else:
-            resume_index = self._num_yielded
+            skip_index = self._num_yielded
 
         return {
-            self._RESUME_INDEX_KEY: resume_index,
+            self._SKIP_INDEX_KEY: skip_index,
             self._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: self.sampler.seed,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
-        resume_index = state_dict[self._RESUME_INDEX_KEY]
+        skip_index = state_dict[self._SKIP_INDEX_KEY]
         checkpoint_seed = state_dict[self._DISTRIBUTED_SAMPLER_SHUFFLE_SEED]
 
         # Ensure that the seed of DistributedSampler hasn't changed
@@ -169,4 +174,4 @@ class CheckpointableDataLoader(DataLoader):
                 f"{checkpoint_seed}'. Start the run with the seed in the"
                 "checkpoint."
             )
-        self._index_sampler.set_state(resume_index)
+        self._index_sampler.set_skip_index(skip_index)

@@ -36,17 +36,17 @@ class TestCheckpointableDataLoader:
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 0
 
         it = iter(dataloader)
 
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 0
         for _ in range(3):
             data = next(it)
 
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 3
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 3
 
         dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
@@ -57,7 +57,7 @@ class TestCheckpointableDataLoader:
 
         assert data == 3
         state = dataloader2.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 4
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 4
 
         # Creating new iterator should reset state of the dataloader
         for _ in range(2):
@@ -65,7 +65,7 @@ class TestCheckpointableDataLoader:
             data = next(it)
             assert data == 0
             state = dataloader2.state_dict()
-            assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
+            assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
 
     def test_set_and_load_checkpoint_right_away(self):
         dataset = _IdentityMapDataset(10)
@@ -79,16 +79,16 @@ class TestCheckpointableDataLoader:
         data = next(it)
 
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
 
         dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         old_state = dataloader2.state_dict()
-        assert old_state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
+        assert old_state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 0
         dataloader2.load_state_dict(state)
         state = dataloader2.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
 
     @pytest.mark.parametrize("persistent_workers", [False, True])
     def test_multiworker_dataloader_epoch_end(self, persistent_workers):
@@ -220,11 +220,11 @@ class TestCheckpointableDataLoader:
         data = next(it)
         assert torch.equal(data, torch.tensor([0, 1]))
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
         data = next(it)
         assert torch.equal(data, torch.tensor([2, 3]))
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 2
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 2
 
         dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=2, shuffle=None, sampler=sampler
@@ -246,7 +246,7 @@ class TestCheckpointableDataLoader:
         data = next(it)
 
         state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 2
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 2
 
         dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
@@ -298,5 +298,5 @@ class TestCheckpointableDataLoader:
         # Check that the state contains the expected keys
         state = dataloader.state_dict()
         assert state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] == 5
-        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
+        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
         assert len(state) == 2
