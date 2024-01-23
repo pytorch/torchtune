@@ -72,7 +72,6 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-<<<<<<< HEAD
     loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
     model.load_state_dict(loaded_ckpt)
     logger.info(msg=f"Loaded model from {model_checkpoint}")
@@ -179,7 +178,6 @@ def recipe(
                     logger.info(f"Generation: {generation_str}")
             # --- TODO TEMPORARY EVAL Code Ends ---- #
 
-<<<<<<< HEAD
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
