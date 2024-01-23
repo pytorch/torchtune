@@ -13,6 +13,7 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import (
+    CPUOffload,
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
     ShardingStrategy,
@@ -103,6 +104,7 @@ def get_fsdp(
     dtype: torch.dtype,
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Set[nn.Module]] = None,
+    cpu_offload: bool = False,
     **kwargs
 ) -> nn.Module:
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
@@ -124,6 +126,7 @@ def get_fsdp(
         dtype (torch.dtype): dtype used to determine if mixed precision training is used.
         strategy (Optional[str]): Sharding strategy to use. The main options are (FULL_SHARD, SHARD_GRAD_OP, NO_SHARD)
         auto_wrap_policy (Optional[Set[nn.Module]]): Set of model blocks to shard for sharding.
+        cpu_offload (bool): Whether to offload sharded parameters to CPU.
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:
@@ -145,6 +148,7 @@ def get_fsdp(
             param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
+            cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
             **kwargs
         )
     else:

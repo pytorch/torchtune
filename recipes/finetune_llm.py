@@ -40,6 +40,7 @@ def recipe(
     metric_logger_type,
     project,
     resume_from_previous_checkpoint,
+    cpu_offload,
 ):
     # ---- Initialize components ---- #
     distributed = utils.init_distributed()
@@ -60,6 +61,15 @@ def recipe(
 
     # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
     model = models.get_model(model, device=device)
+
+    if cpu_offload and not distributed:
+        raise ValueError(
+            "CPU offload is only supported with FSDP in a distributed setting."
+            "Please launch in a distributed setting. If you do not wish to use > 1 GPU,"
+            "use ``tune --nnodes 1 --nproc_per_node 1 ...``. FSDP will not shard"
+            "any parameters."
+        )
+
     if distributed:  # Use FSDP model for distributed training
         model = utils.get_fsdp(
             model=model,
@@ -67,6 +77,7 @@ def recipe(
             dtype=dtype,
             strategy="FULL_SHARD",
             auto_wrap_policy={modules.TransformerDecoderLayer},
+            cpu_offload=cpu_offload,
         )
     if activation_checkpointing:
         utils.set_activation_checkpointing(
@@ -342,6 +353,12 @@ if __name__ == "__main__":
             """,
         default=False,
         action="store_true",
+    )
+    parser.add_argument(
+        "--cpu-offload",
+        action="store_true",
+        default=False,
+        help="Offload parameters and gradients to CPU when not involved in computation. Optimizer step runs on CPU.",
     )
 
     kwargs = vars(parser.parse_args())
