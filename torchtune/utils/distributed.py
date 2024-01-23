@@ -39,7 +39,7 @@ def _is_distributed() -> bool:
     size = int(os.environ.get("WORLD_SIZE", 1))
     rank = int(os.environ.get("RANK", -1))
     avlb = torch.distributed.is_available()
-    return bool(port and addr and size > 1 and rank >= 0 and avlb)
+    return bool(port and addr and size >= 1 and rank >= 0 and avlb)
 
 
 def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
