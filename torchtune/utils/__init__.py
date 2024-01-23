@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from .argparse import TuneArgumentParser
+from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .device import get_device
 from .distributed import get_fsdp, get_world_size_and_rank, init_distributed
@@ -12,7 +13,6 @@ from .memory import set_activation_checkpointing
 from .metric_logging import get_metric_logger, list_metric_loggers
 from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
 from .seed import set_seed
-from .stateful_dataloader import StatefulDataLoader
 
 __all__ = [
     "list_metric_loggers",
@@ -30,5 +30,5 @@ __all__ = [
     "set_activation_checkpointing",
     "set_seed",
     "TuneArgumentParser",
-    "StatefulDataLoader",
+    "CheckpointableDataLoader",
 ]

@@ -7,7 +7,7 @@
 import pytest
 import torch
 from torch.utils.data import Dataset, DistributedSampler, IterableDataset
-from torchtune.utils import StatefulDataLoader
+from torchtune.utils import CheckpointableDataLoader
 
 
 class _DummyIterableDataset(IterableDataset):
@@ -28,27 +28,27 @@ class _IdentityMapDataset(Dataset):
         return self._length
 
 
-class TestStatefulDataLoader:
+class TestCheckpointableDataLoader:
     def test_save_checkpoint_state(self):
         dataset = _IdentityMapDataset(10)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 0
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
 
         it = iter(dataloader)
 
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 0
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
         for _ in range(3):
             data = next(it)
 
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 3
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 3
 
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         dataloader2.load_state_dict(state)
@@ -57,7 +57,7 @@ class TestStatefulDataLoader:
 
         assert data == 3
         state = dataloader2.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 4
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 4
 
         # Creating new iterator should reset state of the dataloader
         for _ in range(2):
@@ -65,12 +65,12 @@ class TestStatefulDataLoader:
             data = next(it)
             assert data == 0
             state = dataloader2.state_dict()
-            assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+            assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
 
     def test_set_and_load_checkpoint_right_away(self):
         dataset = _IdentityMapDataset(10)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         state = dataloader.state_dict()
@@ -79,22 +79,22 @@ class TestStatefulDataLoader:
         data = next(it)
 
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
 
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         old_state = dataloader2.state_dict()
-        assert old_state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 0
+        assert old_state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 0
         dataloader2.load_state_dict(state)
         state = dataloader2.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
 
     @pytest.mark.parametrize("persistent_workers", [False, True])
     def test_multiworker_dataloader_epoch_end(self, persistent_workers):
         dataset = _IdentityMapDataset(8)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset,
             batch_size=1,
             shuffle=None,
@@ -121,7 +121,7 @@ class TestStatefulDataLoader:
 
         # New run starts with previously saved state
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset,
             batch_size=1,
             shuffle=None,
@@ -141,7 +141,7 @@ class TestStatefulDataLoader:
     def test_data_with_sampler_shuffle(self, persistent_workers):
         dataset = _IdentityMapDataset(8)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset,
             batch_size=1,
             shuffle=None,
@@ -169,7 +169,7 @@ class TestStatefulDataLoader:
                     break
 
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset,
             batch_size=1,
             shuffle=None,
@@ -206,7 +206,7 @@ class TestStatefulDataLoader:
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
 
         multiprocessing_context = "forkserver" if num_workers > 0 else None
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset,
             batch_size=2,
             shuffle=None,
@@ -220,13 +220,13 @@ class TestStatefulDataLoader:
         data = next(it)
         assert torch.equal(data, torch.tensor([0, 1]))
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
         data = next(it)
         assert torch.equal(data, torch.tensor([2, 3]))
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 2
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 2
 
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=2, shuffle=None, sampler=sampler
         )
         dataloader2.load_state_dict(state)
@@ -237,7 +237,7 @@ class TestStatefulDataLoader:
     def test_save_load_checkpoint_at_end(self):
         dataset = _IdentityMapDataset(2)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
 
@@ -246,9 +246,9 @@ class TestStatefulDataLoader:
         data = next(it)
 
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 2
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 2
 
-        dataloader2 = StatefulDataLoader(
+        dataloader2 = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         dataloader2.load_state_dict(state)
@@ -260,27 +260,27 @@ class TestStatefulDataLoader:
         dataset = _IdentityMapDataset(10)
         iterable_dataset = _DummyIterableDataset()
 
-        with pytest.raises(ValueError, match=r".*map-style dataset"):
+        with pytest.raises(ValueError, match=r".*map-style dataset.*"):
             # Passing in an iterable dataset
-            dataloader = StatefulDataLoader(iterable_dataset)
-        with pytest.raises(ValueError, match=r".*DistributedSampler"):
+            dataloader = CheckpointableDataLoader(iterable_dataset)
+        with pytest.raises(ValueError, match=r".*DistributedSampler.*"):
             # Not passing Distributed Sampler
-            dataloader = StatefulDataLoader(dataset)
+            dataloader = CheckpointableDataLoader(dataset)
 
     def test_seed_not_same_on_resume(self):
         dataset = _IdentityMapDataset(5)
         sampler = DistributedSampler(
             dataset, seed=5, num_replicas=1, rank=0, shuffle=True
         )
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.DISTRIBUTED_SAMPLER_SHUFFLE_SEED) == 5
+        assert state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] == 5
 
         # Modify the state and ensure assertion error is thrown on load
-        state[StatefulDataLoader.DISTRIBUTED_SAMPLER_SHUFFLE_SEED] = 10
-        with pytest.raises(AssertionError):
+        state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] = 10
+        with pytest.raises(AssertionError, match=r".*sampler seed is different"):
             dataloader.load_state_dict(state)
 
     def test_state_contains_expected_keys(self):
@@ -288,7 +288,7 @@ class TestStatefulDataLoader:
         sampler = DistributedSampler(
             dataset, seed=5, num_replicas=1, rank=0, shuffle=True
         )
-        dataloader = StatefulDataLoader(
+        dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
         # Perform one batch fetch
@@ -297,6 +297,6 @@ class TestStatefulDataLoader:
 
         # Check that the state contains the expected keys
         state = dataloader.state_dict()
-        assert state.get(StatefulDataLoader.DISTRIBUTED_SAMPLER_SHUFFLE_SEED) == 5
-        assert state.get(StatefulDataLoader.RESUME_INDEX_KEY) == 1
+        assert state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] == 5
+        assert state[CheckpointableDataLoader._RESUME_INDEX_KEY] == 1
         assert len(state) == 2

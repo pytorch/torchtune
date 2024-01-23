@@ -8,4 +8,4 @@ torchtune.utils
     :toctree: generated/
     :template: class.rst
 
-    StatefulDataLoader
+    CheckpointableDataLoader

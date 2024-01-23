@@ -60,7 +60,7 @@ class _StatefulSampler:
         self._iterator = None
 
 
-class StatefulDataLoader(DataLoader):
+class CheckpointableDataLoader(DataLoader):
     """
     Implements a ``torch.utils.data.DataLoader`` whose state can be
     saved to a checkpoint and restored to resume loading data.
@@ -70,7 +70,7 @@ class StatefulDataLoader(DataLoader):
 
     Two methods are provided to save and restore the state.
 
-    ``load_state_dict`` restores the state of the dataloader from the given state dict. It should be invoked after constructing the DataLoader object.
+    ``load_state_dict`` restores the state of the dataloader from the given state dict. It should be invoked right after constructing the DataLoader object before any iterator is created from it.
 
     ``state_dict`` returns the current state of the DataLaoder as a dict.
 
@@ -87,16 +87,16 @@ class StatefulDataLoader(DataLoader):
 
     Example:
         >>> sampler = DistributedSampler(...)
-        >>> dataloader = StatefulDataLoader(dataset, sampler=sampler)
+        >>> dataloader = CheckpointableDataLoader(dataset, sampler=sampler)
         >>> for epoch in range(0, max_epoch)
         >>>     sampler.set_epoch(epoch)
         >>>     for batch in iter(dataloader):
         >>>         ...
-        >>> # Fetch the state of the StatefulDataLoader
+        >>> # Fetch the state of the CheckpointableDataLoader
         >>> state = dataloader.state_dict()
         >>>
         >>> # Restore the state
-        >>> dataloader = StatefulDataLoader(...)
+        >>> dataloader = CheckpointableDataLoader(...)
         >>> dataloader.load_state_dict(state)
         >>> current_epoch = state['epoch'] or 0
         >>> for epoch in range(current_epoch, max_epoch)
@@ -105,8 +105,8 @@ class StatefulDataLoader(DataLoader):
         >>>         ...
     """  # noqa
 
-    RESUME_INDEX_KEY = "resume_index"
-    DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
+    _RESUME_INDEX_KEY = "resume_index"
+    _DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
 
     def __init__(self, dataset: Dataset, *args, **kwargs):
         self._wrapped_iterator = None
@@ -116,13 +116,15 @@ class StatefulDataLoader(DataLoader):
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
-                "StatefulDataLoader currently supports only map-style dataset"
+                "CheckpointableDataLoader currently supports only map-style dataset. Received an IterableDataset instead."
             )
 
         super().__init__(dataset, *args, **kwargs)
         if not isinstance(self.sampler, DistributedSampler):
             raise ValueError(
-                "StatefulDataLoader currently supports only DistributedSampler"
+                "CheckpointableDataLoader currently supports only "
+                "DistributedSampler. Received a sampler of type "
+                f"{type(self.sampler)} instead."
             )
 
     @property
@@ -151,17 +153,20 @@ class StatefulDataLoader(DataLoader):
             resume_index = self._num_yielded
 
         return {
-            self.RESUME_INDEX_KEY: resume_index,
-            self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED: self.sampler.seed,
+            self._RESUME_INDEX_KEY: resume_index,
+            self._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: self.sampler.seed,
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
-        resume_index = state_dict.get(self.RESUME_INDEX_KEY)
-        checkpoint_seed = state_dict.get(self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED)
+        resume_index = state_dict[self._RESUME_INDEX_KEY]
+        checkpoint_seed = state_dict[self._DISTRIBUTED_SAMPLER_SHUFFLE_SEED]
 
         # Ensure that the seed of DistributedSampler hasn't changed
         if checkpoint_seed != self.sampler.seed:
             raise AssertionError(
-                f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa: B950
+                "On dataloader state load, sampler seed is different - "
+                "in sampler '{self.sampler.seed}' != in checkpoint "
+                f"{checkpoint_seed}'. Start the run with the seed in the"
+                "checkpoint."
             )
         self._index_sampler.set_state(resume_index)
