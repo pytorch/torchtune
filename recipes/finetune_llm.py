@@ -105,7 +105,7 @@ def recipe(
     # ---- Train loop ---- #
     for epoch in range(epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
-        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not(rank==0))):
+        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
