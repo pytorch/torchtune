@@ -6,7 +6,6 @@
 
 
 import tempfile
-import unittest
 from io import StringIO
 from typing import cast
 from unittest.mock import patch
@@ -18,7 +17,7 @@ from torchtune.utils.metric_logging import StdoutLogger, TensorBoardLogger, Wand
 from tests.test_utils import captured_output
 
 
-class StdoutLoggerTest(unittest.TestCase):
+class StdoutLoggerTest:
     def test_stdout_log(self) -> None:
         logger = StdoutLogger()
         with captured_output() as (out, _):
@@ -68,7 +67,7 @@ class StdoutLoggerTest(unittest.TestCase):
             )
 
 
-class TensorBoardLoggerTest(unittest.TestCase):
+class TensorBoardLoggerTest:
     def test_log(self) -> None:
         with tempfile.TemporaryDirectory() as log_dir:
             logger = TensorBoardLogger(log_dir=log_dir)
@@ -99,7 +98,7 @@ class TensorBoardLoggerTest(unittest.TestCase):
                 self.assertEqual(tensor_tag.step, 1)
 
 
-class WandBLoggerTest(unittest.TestCase):
+class WandBLoggerTest:
     def test_log(self) -> None:
         with patch("wandb.init") as mock_init, patch("wandb.log") as mock_log:
             logger = WandBLogger(project="test_project")
