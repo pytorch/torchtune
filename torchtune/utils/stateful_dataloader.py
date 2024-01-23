@@ -113,7 +113,6 @@ class StatefulDataLoader(DataLoader):
         self._stateful_index_sampler = None
         self._num_yielded = 0
         self._super_iter = None
-        self._last_load_state_dict = None
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
@@ -157,7 +156,6 @@ class StatefulDataLoader(DataLoader):
         }
 
     def load_state_dict(self, state_dict: Dict[str, Any]):
-        self._last_load_state_dict = state_dict
         resume_index = state_dict.get(self.RESUME_INDEX_KEY)
         checkpoint_seed = state_dict.get(self.DISTRIBUTED_SAMPLER_SHUFFLE_SEED)
 
@@ -167,10 +165,3 @@ class StatefulDataLoader(DataLoader):
                 f"On dataloader state load, sampler seed is different - in sampler '{self.sampler.seed}' != in checkpoint '{checkpoint_seed}'. Start the run with the seed in the checkpoint."  # noqa: B950
             )
         self._index_sampler.set_state(resume_index)
-
-    def last_load_state_offset(self) -> int:
-        return (
-            0
-            if self._last_load_state_dict is None
-            else self._last_load_state_dict.get(self.RESUME_INDEX_KEY)
-        )
