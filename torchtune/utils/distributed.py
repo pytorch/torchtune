@@ -7,7 +7,7 @@
 
 import logging
 import os
-from typing import Optional, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 import torch
 import torch.distributed as dist
@@ -63,8 +63,11 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
-def init_distributed() -> bool:  # noqa: DOC106, DOC109
+def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
     """Initialize torch.distributed.
+
+    Args:
+        **kwargs (Dict): Additional arguments to pass to torch.distributed.init_process_group.
 
     Returns:
         bool: True if torch.distributed is initialized.
@@ -75,7 +78,7 @@ def init_distributed() -> bool:  # noqa: DOC106, DOC109
     if _is_distributed():
         if dist.is_initialized():
             raise RuntimeError("torch.distributed already initialized.")
-        dist.init_process_group()
+        dist.init_process_group(**kwargs)
         return True
     else:
         return False
