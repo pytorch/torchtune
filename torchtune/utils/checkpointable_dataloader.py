@@ -7,7 +7,7 @@
 import itertools
 from enum import Enum
 
-from typing import Any, Dict, Iterator
+from typing import Any, Dict
 
 from torch.utils.data import (
     DataLoader,
@@ -17,22 +17,7 @@ from torch.utils.data import (
     Sampler,
 )
 
-
-class _FinishedIterWrapper(Iterator):
-    def __init__(self, base_iter):
-        # Iterator that tracks when it's actually been exhausted
-        # (ie __next__ has been called and StopIteration was raised)
-        self.base_iter = base_iter
-        self.started = False
-        self.finished = False
-
-    def __next__(self):
-        self.started = True
-        try:
-            return next(self.base_iter)
-        except StopIteration:
-            self.finished = True
-            raise
+_EpochState = Enum("_EpochState", ("NOT_STARTED", "STARTED", "ENDED"))
 
 
 class _SkippableSampler:
@@ -43,29 +28,24 @@ class _SkippableSampler:
     def __init__(self, sampler: Sampler):
         self._sampler = sampler
         self._skip_index = 0
-        self._iterator = None
+        self._epoch_state = _EpochState.NOT_STARTED
 
     def __len__(self):
         return len(self._sampler)
 
     def __iter__(self):
-        if self._iterator is None:
-            it = iter(self._sampler)
+        it = iter(self._sampler)
+        if self._epoch_state == _EpochState.NOT_STARTED:
+            self._epoch_state = _EpochState.STARTED
             it = itertools.islice(it, self._skip_index, None)
-            self._iterator = _FinishedIterWrapper(it)
-        elif self._iterator.started:
-            # If iter() is called after iteration has started,
-            # reset the iterator to the beginning
-            self._skip_index = 0
-            self._iterator = _FinishedIterWrapper(iter(self._sampler))
-        return self._iterator
+
+        yield from it
+
+        self._epoch_state = _EpochState.ENDED
 
     def set_skip_index(self, skip_index: int):
         self._skip_index = skip_index
-        self._iterator = None
-
-
-_EpochState = Enum("_EpochState", ("NOT_STARTED", "STARTED", "ENDED"))
+        self._epoch_state = _EpochState.NOT_STARTED
 
 
 class CheckpointableDataLoader(DataLoader):
