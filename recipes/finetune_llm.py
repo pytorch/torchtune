@@ -28,7 +28,6 @@ def recipe(
     dataset,
     shuffle,
     batch_size,
-    fsdp,
     epochs,
     optimizer,
     loss,
@@ -41,7 +40,7 @@ def recipe(
     project,
 ):
     # ---- Initialize components ---- #
-    utils.init_distributed(fsdp)
+    distributed = utils.init_distributed()
 
     logger = utils.get_logger("DEBUG")
     metric_logger = utils.get_metric_logger(
@@ -56,9 +55,9 @@ def recipe(
     tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
     logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
 
+    # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
     model = models.get_model(model, device=device)
-    if fsdp:
-        # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
+    if distributed:  # Use FSDP model for distributed training
         model = utils.get_fsdp(
             model=model,
             device=device,
@@ -82,7 +81,7 @@ def recipe(
 
     autocast = utils.get_autocast(dtype, device)
     if dtype == torch.float16:
-        grad_scaler = utils.get_gradient_scaler(fsdp=fsdp)
+        grad_scaler = utils.get_gradient_scaler(distributed)
     else:
         grad_scaler = GradScaler(enabled=False)
 
@@ -274,16 +273,6 @@ if __name__ == "__main__":
         type=str,
         default="cpu",
         help="`cuda` or `cpu`",
-    )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--fsdp",
-        action="store_true",
-        default=False,
-        help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
-    )
-    group.add_argument(
-        "--no-fsdp", dest="fsdp", action="store_false", help="Don't train with FSDP."
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(

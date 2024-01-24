@@ -6,7 +6,6 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
-import pytest
 import torch
 from torch.distributed import launcher
 
@@ -19,8 +18,10 @@ from tests.test_utils import get_pet_launch_config
 class TestDistributed:
     def test_init_distributed(self) -> None:
         """Integration test to confirm consistency across device initialization utilities."""
-        with pytest.raises(RuntimeError):
-            init_distributed(True)
+        distributed = init_distributed()
+        assert (
+            not distributed
+        ), "Should return False as there are no distributed environment variables"
 
     @staticmethod
     def _test_worker_fn(init_pg_explicit: bool) -> None:
