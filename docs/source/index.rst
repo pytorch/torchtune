@@ -74,6 +74,7 @@ TorchTune tutorials.
    :caption: API Reference
    :hidden:
 
+   api_ref_datasets
    api_ref_models
    api_ref_modules
-   api_ref_utils
+   api_ref_utilities

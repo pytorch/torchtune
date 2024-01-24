@@ -5,9 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+import sys
 import unittest
 import uuid
-from typing import Any, Union
+from contextlib import contextmanager
+from io import StringIO
+from pathlib import Path
+from typing import Any, Generator, TextIO, Tuple, Union
 
 import torch
 import torch.distributed.launcher as pet
@@ -17,6 +21,10 @@ from torch import nn
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
 )
+
+
+def get_assets_path():
+    return Path(__file__).parent / "assets"
 
 
 def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
@@ -111,3 +119,14 @@ def get_pet_launch_config(nproc: int) -> pet.LaunchConfig:
         max_restarts=0,
         monitor_interval=1,
     )
+
+
+@contextmanager
+def captured_output() -> Generator[Tuple[TextIO, TextIO], None, None]:
+    new_out, new_err = StringIO(), StringIO()
+    old_out, old_err = sys.stdout, sys.stderr
+    try:
+        sys.stdout, sys.stderr = new_out, new_err
+        yield sys.stdout, sys.stderr
+    finally:
+        sys.stdout, sys.stderr = old_out, old_err

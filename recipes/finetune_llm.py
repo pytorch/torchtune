@@ -38,6 +38,8 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
+    metric_logger_type,
+    project,
     resume_from_previous_checkpoint,
 ):
     # ---- Initialize components ---- #
@@ -45,6 +47,10 @@ def recipe(
     world_size, rank = utils.get_world_size_and_rank()
 
     logger = utils.get_logger("DEBUG")
+    metric_logger = utils.get_metric_logger(
+        metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
+    )
+
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
     seed = utils.set_seed(seed)
@@ -137,9 +143,20 @@ def recipe(
                 # Compute loss
                 loss = loss_fn(logits, labels)
 
-            pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
-            )  # TODO: add terminal logger
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
+
+            # Log metrics at each step
+            # If no metric logger is specified, this is a no-op
+            if rank == 0:
+                metric_logger.log_dict(
+                    {
+                        "loss": loss.item(),
+                        "lr": opt.param_groups[0]["lr"],
+                        "gpu_resources": torch.cuda.memory_allocated(),
+                    },
+                    step=epoch * len(dataloader)
+                    + idx,  # Each step is unique, not limited to each epoch
+                )
 
             grad_scaler.scale(loss).backward()
             grad_scaler.step(opt)
@@ -178,6 +195,8 @@ def recipe(
             logger.info(
                 msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
+
+    metric_logger.close()
 
 
 if __name__ == "__main__":
@@ -261,7 +280,8 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints.",
+        help="Directory in which to save checkpoints."
+        "If using a metric logger like Tensorboard, this dir will also contain those logs.",
     )
     parser.add_argument(
         "--device",
@@ -312,9 +332,20 @@ if __name__ == "__main__":
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
     parser.add_argument(
+        "--metric-logger-type",
+        type=str,
+        choices=utils.list_metric_loggers(),
+        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="Project name for WandB metric logger.",
+    )
+    parser.add_argument(
         "--resume-from-previous-checkpoint",
         help="""
-            Resume training from checkpointed model and optimizer states. Note that to use this flag,
             checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
             is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
             """,
