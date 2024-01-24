@@ -9,7 +9,6 @@ import os
 from functools import partial
 
 import torch
-import torch.distributed as dist
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -43,6 +42,7 @@ def recipe(
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
+    world_size, rank = utils.get_world_size_and_rank()
 
     logger = utils.get_logger("DEBUG")
     device = utils.get_device(device)
@@ -76,14 +76,14 @@ def recipe(
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
         optimizer.load_state_dict(ckpt_dict["optimizer"])
-        if dist.get_rank() == 0:
+        if rank == 0:
             logger.info(
                 msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
             )
     else:
         ckpt_dict = load_checkpoint(model_checkpoint, model)
         model.load_state_dict(ckpt_dict["model"])
-        if dist.get_rank() == 0:
+        if rank == 0:
             logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
 
     # TODO add lr schedule option
@@ -96,7 +96,6 @@ def recipe(
         grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    world_size, rank = utils.get_world_size_and_rank()
     ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
         ds,
