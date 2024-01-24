@@ -57,7 +57,7 @@ def recipe(
 
     # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
     model = models.get_model(model, device=device)
-    if distributed:
+    if distributed:  # Use FSDP model for distributed training
         model = utils.get_fsdp(
             model=model,
             device=device,
