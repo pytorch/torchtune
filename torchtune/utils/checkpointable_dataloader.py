@@ -80,7 +80,7 @@ class CheckpointableDataLoader(DataLoader):
 
     Note: As this works only with :class:`~torch.utils.data.DistributedSampler`, the ``set_epoch`` method of that sampler should be invoked before creating an iterator of this class.
 
-    ..note::
+    .. note::
         CheckpointableDataLoader doesn't save/restore RNG state of the trainer process/dataloader workers. This implies on restore from a checkpoint if the same RNG seed is used, the RNG state will be the same as the beginning of the previous run. If no random transformations of data are performed in the :class:`~torch.utils.data.Dataset` passed to this DataLoader, this should not matter.
 
     Args:
