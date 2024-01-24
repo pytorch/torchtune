@@ -9,6 +9,7 @@ import os
 from functools import partial
 
 import torch
+import torch.distributed as dist
 from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -38,7 +39,7 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
-    resume_from_checkpoint,
+    resume_from_previous_checkpoint,
 ):
     # ---- Initialize components ---- #
     utils.init_distributed(fsdp)
@@ -67,22 +68,23 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-    if not resume_from_checkpoint:
-        loaded_ckpt = torch.load(
-            model_checkpoint, map_location="cpu", weights_only=True
-        )
-        model.load_state_dict(loaded_ckpt)
-        logger.info(msg=f"Loaded model from {model_checkpoint}")
-
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
-
-    # Load model and optimizer checkpoint from previous finetune if specified.
-    if resume_from_checkpoint:
-        # TODO (rohan-varma): Following load call assumes we're always loading in optimizer
-        # states when resuming from checkpoint. While this is the usual case, should make
-        # this configurable.
-        load_checkpoint(model_checkpoint, model, opt)
+    # Load model and possibly optimizer states
+    if resume_from_previous_checkpoint:
+        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+        model.load_state_dict(ckpt_dict["model"])
+        # Note: optimizer entry in dictionary is pre-transformed if using FSDP
+        optimizer.load_state_dict(ckpt_dict["optimizer"])
+        if dist.get_rank() == 0:
+            logger.info(
+                msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
+            )
+    else:
+        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        model.load_state_dict(ckpt_dict["model"])
+        if dist.get_rank() == 0:
+            logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
 
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
@@ -169,6 +171,9 @@ def recipe(
             "model": model,
             "optimizer": opt,
         }
+        if epoch == epochs - 1:
+            # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
+            ckpt_dict.pop("optimizer")
         save_checkpoint(ckpt_dict, output_loc)
         if rank == 0:
             logger.info(
@@ -308,10 +313,11 @@ if __name__ == "__main__":
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
     parser.add_argument(
-        "--resume-from-checkpoint",
+        "--resume-from-previous-checkpoint",
         help="""
             Resume training from checkpointed model and optimizer states. Note that to use this flag,
-            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility.
+            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
+            is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
             """,
         default=False,
         action="store_true",

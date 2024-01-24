@@ -31,8 +31,9 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
 
     # Load state_dict into decoder
     native_state_dict = torch.load(model_checkpoint, weights_only=True)
-    # Note: If using pretrained model, replace native_state_dict["model"] with native_state_dict
-    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
+    missing, unexpected = decoder.load_state_dict(
+        native_state_dict["model"], strict=False
+    )
 
     decoder.eval()
 

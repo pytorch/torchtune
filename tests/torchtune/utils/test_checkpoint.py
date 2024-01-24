@@ -13,7 +13,7 @@ from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 
-from tests.test_utils import get_pet_launch_config
+from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
 
 
 class TestCheckpoint:
@@ -30,10 +30,13 @@ class TestCheckpoint:
                 file_name = file_list[0]
             else:
                 file_name = f.name
-            return load_checkpoint(file_name, model, optimizer)
+            checkpoint = load_checkpoint(file_name, model, optimizer)
+            model.load_state_dict(checkpoint["model"])
+            optimizer.load_state_dict(checkpoint["optimizer"])
             # Have rank 0 wait for all ranks to finish loading before exiting
             # context manager which would trigger file destruction.
-            dist.barrier()
+            if torch.distributed.is_initialized():
+                dist.barrier()
 
     def _get_model_and_optim(self, zero_model, fsdp):
         model = torch.nn.Linear(10, 10)
@@ -42,7 +45,7 @@ class TestCheckpoint:
                 for p in model.parameters():
                     p.zero_()
         if fsdp:
-            model = FSDP(model, device_id=torch.device("cpu"))
+            model = FSDP(model, device_id=torch.cuda.current_device())
         optim = torch.optim.SGD(model.parameters(), lr=0.01)
         return model, optim
 
@@ -66,8 +69,8 @@ class TestCheckpoint:
         optim.step()
         checkpoint = {"model": model, "optimizer": optim, "lr": 0.01}
         model_new, optim_new = self._get_model_and_optim(zero_model=True, fsdp=False)
-        loaded_ckpt = self._save_and_load(checkpoint, model_new, optim_new)
-        assert "lr" in loaded_ckpt and loaded_ckpt["lr"] == 0.01
+        # Saves checkpoint, calls load_checkpoint and loads model + optim states into new model/optim.
+        self._save_and_load(checkpoint, model_new, optim_new)
         # model_new and model params should match
         for p1, p2 in zip(model.parameters(), model_new.parameters()):
             assert torch.allclose(p1, p2)
@@ -89,10 +92,7 @@ class TestCheckpoint:
             torch.save({"lr": 0.01}, f.name)
             with pytest.raises(
                 RuntimeError,
-                match="""
-                Expected loaded checkpoint to contain a `model` key,
-                but it does not. Ensure checkpoint was saved with `save_checkpoint`.
-                """,
+                match="Expected loaded checkpoint to contain a `model` key.*",
             ):
                 load_checkpoint(f.name, model)
 
@@ -103,14 +103,13 @@ class TestCheckpoint:
             save_checkpoint({"model": model}, f.name)
             with pytest.raises(
                 RuntimeError,
-                match="""Expected loaded checkpoint to contain an `optimizer` key since an
-                optimizer was passed in, but it does not. Ensure checkpoint was saved with `save_checkpoint`.
-                """,
+                match="Expected loaded checkpoint to contain an `optimizer` key.*",
             ):
                 load_checkpoint(f.name, model, optim)
 
     def _test_distributed_save_load(self) -> None:
-        torch.distributed.init_process_group(backend="gloo")
+        torch.distributed.init_process_group(backend="nccl")
+        torch.cuda.set_device(torch.distributed.get_rank())
         torch.distributed.barrier()
         model, optim = self._get_model_and_optim(zero_model=False, fsdp=True)
         for p in model.parameters():
@@ -118,9 +117,8 @@ class TestCheckpoint:
         optim.step()
         checkpoint = {"model": model, "optimizer": optim, "lr": 0.01}
         model_new, optim_new = self._get_model_and_optim(zero_model=True, fsdp=True)
-        loaded_ckpt = self._save_and_load(checkpoint, model_new, optim_new)
-
-        assert "lr" in loaded_ckpt and loaded_ckpt["lr"] == 0.01
+        # Saves checkpoint, calls load_checkpoint and loads model + optim states into new model/optim.
+        self._save_and_load(checkpoint, model_new, optim_new)
 
         # Verify  model
         with FSDP.summon_full_params(model_new):
@@ -134,6 +132,7 @@ class TestCheckpoint:
         )
         torch.distributed.barrier()
 
+    @skip_if_cuda_not_available
     def test_distributed_save_load(self) -> None:
-        lc = get_pet_launch_config(nproc=8)
+        lc = get_pet_launch_config(nproc=min(4, torch.cuda.device_count()))
         launcher.elastic_launch(lc, entrypoint=self._test_distributed_save_load)()
