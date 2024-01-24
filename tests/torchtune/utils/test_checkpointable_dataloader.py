@@ -19,10 +19,10 @@ class _IdentityMapDataset(Dataset):
     def __init__(self, length):
         self._length = length
 
-    def __getitem__(self, index):
-        if index >= self._length:
+    def __getitem__(self, idx):
+        if idx >= self._length:
             raise IndexError
-        return index
+        return idx
 
     def __len__(self):
         return self._length
@@ -76,7 +76,7 @@ class TestCheckpointableDataLoader:
         state = dataloader.state_dict()
 
         it = iter(dataloader)
-        data = next(it)
+        next(it)
 
         state = dataloader.state_dict()
         assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
@@ -184,11 +184,11 @@ class TestCheckpointableDataLoader:
 
         # Point check to see if returned data is as expected
         it = iter(dataloader2)
-        index = 4
+        idx = 4
         # Iterate through the rest of the epoch
         for data in it:
-            assert data == expected_data[2][index]
-            index += 1
+            assert data == expected_data[2][idx]
+            idx += 1
 
         # Start another iteration of new epoch to ensure it iterates through
         # full dataset
@@ -199,13 +199,23 @@ class TestCheckpointableDataLoader:
         assert actual_data == expected_data[3]
 
     @pytest.mark.parametrize(
-        "num_workers, persistent_workers", [(0, None), (0, None), (2, False), (2, True)]
+        "num_workers, persistent_workers, multiprocessing_context",
+        [
+            (0, None, None),
+            (2, False, "fork"),
+            (2, True, "fork"),
+            (2, False, "forkserver"),
+            (2, True, "forkserver"),
+            (2, False, "spawn"),
+            (2, True, "spawn"),
+        ],
     )
-    def test_larger_batch_size(self, num_workers, persistent_workers):
+    def test_larger_batch_size(
+        self, num_workers, persistent_workers, multiprocessing_context
+    ):
         dataset = _IdentityMapDataset(4)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
 
-        multiprocessing_context = "forkserver" if num_workers > 0 else None
         dataloader = CheckpointableDataLoader(
             dataset,
             batch_size=2,
@@ -232,40 +242,22 @@ class TestCheckpointableDataLoader:
         dataloader2.load_state_dict(state)
         it = iter(dataloader2)
         with pytest.raises(StopIteration):
-            data = next(it)
-
-    def test_save_load_checkpoint_at_end(self):
-        dataset = _IdentityMapDataset(2)
-        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
-        dataloader = CheckpointableDataLoader(
-            dataset, batch_size=1, shuffle=None, sampler=sampler
-        )
-
-        it = iter(dataloader)
-        data = next(it)
-        data = next(it)
-
-        state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 2
-
-        dataloader2 = CheckpointableDataLoader(
-            dataset, batch_size=1, shuffle=None, sampler=sampler
-        )
-        dataloader2.load_state_dict(state)
-        it = iter(dataloader2)
-        with pytest.raises(StopIteration):
-            data = next(it)
+            next(it)
 
     def test_dataloader_init_value_errors(self):
         dataset = _IdentityMapDataset(10)
         iterable_dataset = _DummyIterableDataset()
 
-        with pytest.raises(ValueError, match=r".*map-style dataset.*"):
-            # Passing in an iterable dataset
-            dataloader = CheckpointableDataLoader(iterable_dataset)
-        with pytest.raises(ValueError, match=r".*DistributedSampler.*"):
-            # Not passing Distributed Sampler
-            dataloader = CheckpointableDataLoader(dataset)
+        with pytest.raises(
+            ValueError,
+            match="CheckpointableDataLoader currently supports only map-style dataset. Received an IterableDataset instead.",
+        ):
+            CheckpointableDataLoader(iterable_dataset)
+        with pytest.raises(
+            ValueError,
+            match=r"CheckpointableDataLoader currently supports only DistributedSampler. Received a sampler of type .*",
+        ):
+            CheckpointableDataLoader(dataset)
 
     def test_seed_not_same_on_resume(self):
         dataset = _IdentityMapDataset(5)
@@ -280,7 +272,9 @@ class TestCheckpointableDataLoader:
 
         # Modify the state and ensure assertion error is thrown on load
         state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] = 10
-        with pytest.raises(AssertionError, match=r".*sampler seed is different"):
+        with pytest.raises(
+            ValueError, match=r"On dataloader state load, sampler seed is different.*"
+        ):
             dataloader.load_state_dict(state)
 
     def test_state_contains_expected_keys(self):
@@ -296,7 +290,7 @@ class TestCheckpointableDataLoader:
         next(it)
 
         # Check that the state contains the expected keys
-        state = dataloader.state_dict()
-        assert state[CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED] == 5
-        assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
-        assert len(state) == 2
+        assert dataloader.state_dict() == {
+            CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
+            CheckpointableDataLoader._SKIP_INDEX_KEY: 1,
+        }
