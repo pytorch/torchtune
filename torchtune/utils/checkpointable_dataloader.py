@@ -54,15 +54,18 @@ class CheckpointableDataLoader(DataLoader):
     saved to a checkpoint and restored to resume loading data.
 
     Currently supports only Map style :class:`~torch.utils.data.Dataset` and
-    :class:`~torch.utils.data.DistributedSampler`.
+    :class:`~torch.utils.data.distributed.DistributedSampler`.
 
     Two methods are provided to save and restore the state.
 
-    ``load_state_dict`` restores the state of the dataloader from the given state dict. It should be invoked right after constructing the DataLoader object before any iterator is created from it.
+    ``load_state_dict`` restores the state of the dataloader from the given
+    state dict. It should be invoked right after constructing the DataLoader
+    object before any iterator is created from it.
 
     ``state_dict`` returns the current state of the DataLaoder as a dict.
 
-    Note: As this works only with :class:`~torch.utils.data.DistributedSampler`, the ``set_epoch`` method of that sampler should be invoked before creating an iterator of this class.
+    Note: As this works only with :class:`~torch.utils.data.distributed.DistributedSampler`, the ``set_epoch`` method of that sampler should be
+    invoked before creating an iterator of this class.
 
     .. note::
         CheckpointableDataLoader doesn't save/restore RNG state of the trainer process/dataloader workers. This implies on restore from a checkpoint if the same RNG seed is used, the RNG state will be the same as the beginning of the previous run. If no random transformations of data are performed in the :class:`~torch.utils.data.Dataset` passed to this DataLoader, this should not matter.
@@ -74,7 +77,7 @@ class CheckpointableDataLoader(DataLoader):
 
     Raises:
         ValueError: If the dataset is not a map-style :class:`~torch.util.data.Dataset`.
-        ValueError: If the sampler is not a :class:`~torch.utils.data.DistributedSampler`.
+        ValueError: If the sampler is not a :class:`~torch.utils.data.distributed.DistributedSampler`.
 
     Example:
         >>> sampler = DistributedSampler(...)
