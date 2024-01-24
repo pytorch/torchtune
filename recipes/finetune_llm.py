@@ -118,7 +118,7 @@ def recipe(
     # ---- Train loop ---- #
     for epoch in range(epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
-        for idx, batch in enumerate(pbar := tqdm(dataloader)):
+        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -132,9 +132,6 @@ def recipe(
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                # shift_labels = shift_labels.view(-1)
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = loss_fn(logits, labels)

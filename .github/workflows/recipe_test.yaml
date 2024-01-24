@@ -5,6 +5,10 @@ on:
     branches: [ main ]
   pull_request:
 
+concurrency:
+  group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   id-token: write
   contents: read
