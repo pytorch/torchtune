@@ -30,5 +30,4 @@ PEFT Components
 
     peft.LoRALinear
     peft.LoRAFusedLinear
-    peft.lora_llama_self_attention
     peft.FusedLoRADim

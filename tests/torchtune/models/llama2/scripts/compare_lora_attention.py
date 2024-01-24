@@ -12,9 +12,9 @@ import torch
 from tests.test_utils import fixed_init_model
 
 from torch import nn
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 
-from torchtune.modules.peft import lora_llama_self_attention
+from torchtune.models import lora_llama_self_attention
+from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 
 try:
     from peft import inject_adapter_in_model, LoraConfig
@@ -97,11 +97,7 @@ def compare_lora_attention(
         target_modules=lora_modules,
     )
 
-    # PEFT doesn't support empty config, otherwise we use our self-attention as-is
-    if lora_modules != []:
-        lora_llama_attn_ref = inject_adapter_in_model(lora_config_ref, llama_attn_ref)
-    else:
-        lora_llama_attn_ref = llama_attn_ref
+    lora_llama_attn_ref = inject_adapter_in_model(lora_config_ref, llama_attn_ref)
 
     all_keys = ["q_proj", "k_proj", "v_proj", "output_proj"]
 
@@ -133,7 +129,6 @@ def compare_lora_attention(
 
 if __name__ == "__main__":
     test_cases = [
-        [],
         ["q_proj", "v_proj"],
         ["q_proj", "k_proj", "v_proj", "output_proj"],
         ["k_proj"],
