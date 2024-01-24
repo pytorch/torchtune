@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import itertools
+from enum import Enum
 
 from typing import Any, Dict, Iterator
 
@@ -64,6 +65,9 @@ class _SkippableSampler:
         self._iterator = None
 
 
+_EpochState = Enum("_EpochState", ("NOT_STARTED", "STARTED", "ENDED"))
+
+
 class CheckpointableDataLoader(DataLoader):
     """
     Implements a :class:`~torch.utils.data.DataLoader` whose state can be
@@ -116,11 +120,18 @@ class CheckpointableDataLoader(DataLoader):
     _DISTRIBUTED_SAMPLER_SHUFFLE_SEED = "dist_sampler_shuffle_seed"
 
     def __init__(self, dataset: Dataset, *args, **kwargs):
-        self._wrapped_iterator = None
         self._skippable_index_sampler = None
+        # This indicates the number of batches that have already been yielded
+        # during the current epoch. This is what gets saved as the state in
+        # `state_dict()`.
         self._num_yielded = 0
-        self._super_iter = None
+        # This indicates the number of batches that were yielded by the
+        # previous iterator that was checkpointed, if any.
+        # The only time it is non-zero is right after `load_state_dict()`.
+        # After `load_state_dict()`, the next call to __iter__() will start
+        # from this value.
         self._last_skip_index = 0
+        self._epoch_state: _EpochState = _EpochState.NOT_STARTED
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
@@ -143,27 +154,22 @@ class CheckpointableDataLoader(DataLoader):
         return self._skippable_index_sampler
 
     def __iter__(self):
-        self._super_iter = _FinishedIterWrapper(super().__iter__())
-        # Initialize current iteration with the skip index
+        self._epoch_state = _EpochState.STARTED
         self._num_yielded = self._last_skip_index
-        for batch in self._super_iter:
+        self._last_skip_index = 0
+        for batch in super().__iter__():
             # As iteration has started, reset the skip index
-            self._last_skip_index = 0
             # Keep track of the subsequents steps iterated
             self._num_yielded += 1
             yield batch
+        self._epoch_state = _EpochState.ENDED
 
     def state_dict(self) -> Dict[str, Any]:
-        epoch_has_started = self._super_iter is not None and self._super_iter.started
-        epoch_has_finished = epoch_has_started and self._super_iter.finished
-
-        if epoch_has_finished:
-            skip_index = 0
-        elif epoch_has_started:
-            skip_index = self._num_yielded
-        else:
-            # No iterator has been created yet
-            skip_index = self._last_skip_index
+        skip_index = {
+            _EpochState.NOT_STARTED: self._last_skip_index,
+            _EpochState.STARTED: self._num_yielded,
+            _EpochState.ENDED: 0,
+        }[self._epoch_state]
 
         return {
             self._SKIP_INDEX_KEY: skip_index,
