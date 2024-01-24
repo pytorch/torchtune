@@ -11,6 +11,7 @@ Utilities
     :toctree: generated/
     :template: class.rst
 
+    CheckpointableDataLoader
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
