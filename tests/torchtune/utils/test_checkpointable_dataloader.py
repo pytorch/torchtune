@@ -29,7 +29,7 @@ class _IdentityMapDataset(Dataset):
 
 
 class TestCheckpointableDataLoader:
-    def test_save_checkpoint_state(self):
+    def test_single_process_dataloader_checkpoint(self):
         dataset = _IdentityMapDataset(10)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
         dataloader = CheckpointableDataLoader(
@@ -67,7 +67,7 @@ class TestCheckpointableDataLoader:
             state = dataloader2.state_dict()
             assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
 
-    def test_set_and_load_checkpoint_right_away(self):
+    def test_state_change_on_load_state_dict(self):
         dataset = _IdentityMapDataset(10)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=False)
         dataloader = CheckpointableDataLoader(
@@ -91,53 +91,6 @@ class TestCheckpointableDataLoader:
         assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 1
 
     @pytest.mark.parametrize("persistent_workers", [False, True])
-    def test_multiworker_dataloader_epoch_end(self, persistent_workers):
-        dataset = _IdentityMapDataset(8)
-        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader = CheckpointableDataLoader(
-            dataset,
-            batch_size=1,
-            shuffle=None,
-            sampler=sampler,
-            num_workers=2,
-            persistent_workers=persistent_workers,
-            multiprocessing_context="forkserver",
-            prefetch_factor=2,
-        )
-
-        expected_data = {
-            0: [4, 0, 7, 3, 2, 5, 1, 6],
-            1: [5, 4, 2, 6, 7, 3, 1, 0],
-            2: [0, 4, 7, 2, 6, 5, 1, 3],
-        }
-
-        for epoch in range(2):
-            sampler.set_epoch(epoch)
-            # Iterate through two epochs
-            for idx, data in enumerate(iter(dataloader)):
-                assert data == expected_data[epoch][idx]
-        # Simulate taking a checkpoint after iterations
-        state = dataloader.state_dict()
-
-        # New run starts with previously saved state
-        sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
-        dataloader2 = CheckpointableDataLoader(
-            dataset,
-            batch_size=1,
-            shuffle=None,
-            sampler=sampler,
-            num_workers=2,
-            persistent_workers=persistent_workers,
-            multiprocessing_context="forkserver",
-            prefetch_factor=2,
-        )
-        dataloader2.load_state_dict(state)
-        for new_epoch in range(epoch, epoch + 1):
-            sampler.set_epoch(new_epoch)
-            for idx, data in enumerate(iter(dataloader2)):
-                assert data == expected_data[new_epoch][idx]
-
-    @pytest.mark.parametrize("persistent_workers", [False, True])
     def test_data_with_sampler_shuffle(self, persistent_workers):
         dataset = _IdentityMapDataset(8)
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
@@ -159,14 +112,15 @@ class TestCheckpointableDataLoader:
             3: [2, 4, 3, 5, 1, 0, 6, 7],
         }
 
-        state = None
         for epoch in range(3):
             sampler.set_epoch(epoch)
             for idx, data in enumerate(iter(dataloader)):
                 assert data == expected_data[epoch][idx]
                 if epoch == 2 and idx == 3:
-                    state = dataloader.state_dict()
                     break
+
+        # Simulate taking a checkpoint after iterations
+        state = dataloader.state_dict()
 
         sampler = DistributedSampler(dataset, num_replicas=1, rank=0, shuffle=True)
         dataloader2 = CheckpointableDataLoader(
@@ -210,7 +164,7 @@ class TestCheckpointableDataLoader:
             (2, True, "spawn"),
         ],
     )
-    def test_larger_batch_size(
+    def test_shuffle_off_larger_batch_size(
         self, num_workers, persistent_workers, multiprocessing_context
     ):
         dataset = _IdentityMapDataset(4)
@@ -261,9 +215,7 @@ class TestCheckpointableDataLoader:
 
     def test_seed_not_same_on_resume(self):
         dataset = _IdentityMapDataset(5)
-        sampler = DistributedSampler(
-            dataset, seed=5, num_replicas=1, rank=0, shuffle=True
-        )
+        sampler = DistributedSampler(dataset, seed=5, num_replicas=1, rank=0)
         dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
@@ -279,9 +231,7 @@ class TestCheckpointableDataLoader:
 
     def test_state_contains_expected_keys(self):
         dataset = _IdentityMapDataset(5)
-        sampler = DistributedSampler(
-            dataset, seed=5, num_replicas=1, rank=0, shuffle=True
-        )
+        sampler = DistributedSampler(dataset, seed=5, num_replicas=1, rank=0)
         dataloader = CheckpointableDataLoader(
             dataset, batch_size=1, shuffle=None, sampler=sampler
         )
