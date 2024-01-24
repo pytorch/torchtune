@@ -41,7 +41,7 @@ class _SkippableSampler:
 
     def __init__(self, sampler: Sampler):
         self._sampler = sampler
-        self.skip_index = 0
+        self._skip_index = 0
         self._iterator = None
 
     def __len__(self):
@@ -50,17 +50,17 @@ class _SkippableSampler:
     def __iter__(self):
         if self._iterator is None:
             it = iter(self._sampler)
-            it = itertools.islice(it, self.skip_index, None)
+            it = itertools.islice(it, self._skip_index, None)
             self._iterator = _FinishedIterWrapper(it)
         elif self._iterator.started:
             # If iter() is called after iteration has started,
             # reset the iterator to the beginning
-            self.skip_index = 0
+            self._skip_index = 0
             self._iterator = _FinishedIterWrapper(iter(self._sampler))
         return self._iterator
 
     def set_skip_index(self, skip_index: int):
-        self.skip_index = skip_index
+        self._skip_index = skip_index
         self._iterator = None
 
 
@@ -117,6 +117,7 @@ class CheckpointableDataLoader(DataLoader):
         self._skippable_index_sampler = None
         self._num_yielded = 0
         self._super_iter = None
+        self._last_skip_index = 0
 
         if isinstance(dataset, IterableDataset):
             raise ValueError(
@@ -140,22 +141,26 @@ class CheckpointableDataLoader(DataLoader):
 
     def __iter__(self):
         self._super_iter = _FinishedIterWrapper(super().__iter__())
-        # Fetch the start index from the sampler's skip index
-        self._num_yielded = self._index_sampler.skip_index
+        # Initialize current iteration with the skip index
+        self._num_yielded = self._last_skip_index
         for batch in self._super_iter:
-            # Keep track of the new steps iterated through
+            # As iteration has started, reset the skip index
+            self._last_skip_index = 0
+            # Keep track of the subsequents steps iterated
             self._num_yielded += 1
             yield batch
 
     def state_dict(self) -> Dict[str, Any]:
-        if self._super_iter is None:
-            # If no iterator was ever created, return the resumption state
-            skip_index = self._index_sampler.skip_index
-        elif self._super_iter.finished:
-            # If iterator is exhausted, resumption should start from beginning
+        epoch_has_started = self._super_iter is not None and self._super_iter.started
+        epoch_has_finished = epoch_has_started and self._super_iter.finished
+
+        if epoch_has_finished:
             skip_index = 0
-        else:
+        elif epoch_has_started:
             skip_index = self._num_yielded
+        else:
+            # No iterator has been created yet
+            skip_index = self._last_skip_index
 
         return {
             self._SKIP_INDEX_KEY: skip_index,
@@ -175,3 +180,4 @@ class CheckpointableDataLoader(DataLoader):
                 "checkpoint."
             )
         self._index_sampler.set_skip_index(skip_index)
+        self._last_skip_index = skip_index

@@ -43,7 +43,7 @@ class TestCheckpointableDataLoader:
         state = dataloader.state_dict()
         assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 0
         for _ in range(3):
-            data = next(it)
+            next(it)
 
         state = dataloader.state_dict()
         assert state[CheckpointableDataLoader._SKIP_INDEX_KEY] == 3
