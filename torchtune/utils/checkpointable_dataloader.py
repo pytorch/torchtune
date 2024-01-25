@@ -48,7 +48,7 @@ class _SkippableSampler:
         self._epoch_state = _EpochState.NOT_STARTED
 
 
-class _CheckpointableDataLoader(DataLoader):
+class CheckpointableDataLoader(DataLoader):
     """
     Implements a :class:`~torch.utils.data.DataLoader` whose state can be
     saved to a checkpoint and restored to resume loading data.
@@ -172,15 +172,3 @@ class _CheckpointableDataLoader(DataLoader):
             )
         self._index_sampler.set_skip_index(skip_index)
         self._last_skip_index = skip_index
-
-
-def make_checkpointable(dataloader):
-
-    kwargs = {
-        key: val
-        for (key, val) in dataloader.__dict__.items()
-        if not key.startswith("_")
-    }
-    if kwargs["batch_size"] is not None:
-        kwargs["batch_sampler"] = None
-    return _CheckpointableDataLoader(**kwargs)
