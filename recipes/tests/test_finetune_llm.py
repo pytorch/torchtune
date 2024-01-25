@@ -91,7 +91,6 @@ class TestFinetuneLLMRecipe:
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
-            "fsdp": False,
             "activation_checkpointing": False,
             "run_generation": False,
             "metric_logger_type": "disk",
