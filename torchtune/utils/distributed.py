@@ -141,6 +141,8 @@ def get_fsdp(
         _validate_device_from_env(device)
         wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
+        if cpu_offload:
+            _log.warning("CPU offload will significantly reduce performance. Use with caution.")
         return FSDP(
             model,
             auto_wrap_policy=wrap_policy,
