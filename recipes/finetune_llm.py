@@ -16,8 +16,6 @@ from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
-from omegaconf import OmegaConf
-import sys
 
 
 def recipe(
@@ -294,8 +292,12 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
+<<<<<<< HEAD
         help="Directory in which to save checkpoints."
         "If using a metric logger like Tensorboard, this dir will also contain those logs.",
+=======
+        help="Directory in which to save checkpoints.",
+>>>>>>> 86abd78 (move argparse changes to another PR)
     )
     parser.add_argument(
         "--device",
@@ -305,6 +307,19 @@ if __name__ == "__main__":
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
+<<<<<<< HEAD
+=======
+        "--fsdp",
+        action="store_true",
+        default=False,
+        help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
+    )
+    group.add_argument(
+        "--no-fsdp", dest="fsdp", action="store_false", help="Don't train with FSDP."
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+>>>>>>> 86abd78 (move argparse changes to another PR)
         "--activation-checkpointing",
         action="store_true",
         default=False,

@@ -5,17 +5,17 @@ shuffle: True
 
 # Model Arguments
 model: llama2_7b
-model_checkpoint: /tmp/llama2-7b
+model_checkpoint: /data/users/rafiayub/torchtune_checkpoints/llama2-7b-native-checkpoint
 tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/tokenizer.model
+tokenizer_checkpoint: /data/users/rafiayub/torchtune_checkpoints/llama2-7b-tokenizer.model
 
 # Fine-tuning arguments
 batch_size: 2
 lr: 2e-5
-epochs: 3
+epochs: 1
 optimizer: SGD
 loss: CrossEntropyLoss
-output_dir: /tmp/alpaca-llama2-finetune
+output_dir: /data/users/rafiayub/alpaca-llama2-finetune
 device: cuda
 dtype: fp32
 activation_checkpointing: True
