@@ -64,9 +64,9 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
-            return "/tmp/test-artifacts/small-ckpt-01222024"
+            return "/tmp/test-artifacts/small-ckpt-01242024"
         if ckpt == "llama2_7b":
-            return "/tmp/test-artifacts/llama2-7b-01222024"
+            return "/tmp/test-artifacts/llama2-7b-01242024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):
@@ -95,6 +95,7 @@ class TestFinetuneLLMRecipe:
             "run_generation": False,
             "metric_logger_type": "disk",
             "project": None,
+            "resume_from_checkpoint": False,
         }
 
         finetune_llm.recipe(**kwargs_values)

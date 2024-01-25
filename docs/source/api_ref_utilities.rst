@@ -17,9 +17,9 @@ Utilities
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
 
-=================
+============================
 torchtune.utils.checkpoint
-=================
+============================
 
 .. currentmodule:: torchtune.utils.checkpoint
 
