@@ -11,6 +11,7 @@ import uuid
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
+from torch.utils.data import Dataset
 from typing import Any, Generator, TextIO, Tuple, Union
 
 import torch
@@ -130,3 +131,16 @@ def captured_output() -> Generator[Tuple[TextIO, TextIO], None, None]:
         yield sys.stdout, sys.stderr
     finally:
         sys.stdout, sys.stderr = old_out, old_err
+
+
+class _IdentityMapDataset(Dataset):
+    def __init__(self, length):
+        self._length = length
+
+    def __getitem__(self, idx):
+        if idx >= self._length:
+            raise IndexError
+        return idx
+
+    def __len__(self):
+        return self._length

@@ -52,7 +52,6 @@ def recipe(
 
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
-    seed = utils.set_seed(seed)
 
     # ---- Setup model and load checkpoint ---- #
     tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
@@ -81,6 +80,17 @@ def recipe(
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
         opt.load_state_dict(ckpt_dict["optimizer"])
+        # Restore seed.
+        restored_seed = ckpt_dict["seed"]
+        if seed != restored_seed:
+            logger.warning(
+                f"Seed {seed} does not match seed {restored_seed} in checkpoint. "
+                f"Overwriting seed to {restored_seed}."
+                "Start the run with the checkpointed seed to avoid this warning."
+            )
+            seed = restored_seed
+        # Restore epoch.
+        start_epoch = ckpt_dict["epoch"]
         if rank == 0:
             logger.info(
                 msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
@@ -88,8 +98,11 @@ def recipe(
     else:
         ckpt_dict = load_checkpoint(model_checkpoint, model)
         model.load_state_dict(ckpt_dict["model"])
+        start_epoch = 0
         if rank == 0:
             logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
+
+    seed = utils.set_seed(seed)
 
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
@@ -122,7 +135,7 @@ def recipe(
     logger.info(msg=f"Loaded dataset {dataset}")
 
     # ---- Train loop ---- #
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
         for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
@@ -185,6 +198,11 @@ def recipe(
         ckpt_dict = {
             "model": model,
             "optimizer": opt,
+            "dataloader": dataloader,
+            "epoch": epoch,
+            # NOTE: not checkpointing distributed sampler seed as it is always 0
+            # Following seed refers to seed for training.
+            "seed": seed,
         }
         if epoch == epochs - 1:
             # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.

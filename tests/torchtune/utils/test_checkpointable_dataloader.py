@@ -6,6 +6,13 @@
 
 import pytest
 import torch
+
+from tests.test_utils import (
+    _IdentityMapDataset,
+    get_pet_launch_config,
+    skip_if_cuda_not_available,
+)
+from torch.distributed import launcher
 from torch.utils.data import Dataset, DistributedSampler, IterableDataset
 from torchtune.utils import CheckpointableDataLoader
 
@@ -13,19 +20,6 @@ from torchtune.utils import CheckpointableDataLoader
 class _DummyIterableDataset(IterableDataset):
     def __iter__(self):
         yield 1
-
-
-class _IdentityMapDataset(Dataset):
-    def __init__(self, length):
-        self._length = length
-
-    def __getitem__(self, idx):
-        if idx >= self._length:
-            raise IndexError
-        return idx
-
-    def __len__(self):
-        return self._length
 
 
 class TestCheckpointableDataLoader:
@@ -244,3 +238,63 @@ class TestCheckpointableDataLoader:
             CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
             CheckpointableDataLoader._SKIP_INDEX_KEY: 1,
         }
+
+    def _test_distributed_data_loader_save_load(self) -> None:
+        torch.distributed.init_process_group(backend="gloo")
+        dataset = _IdentityMapDataset(16 * torch.distributed.get_world_size())
+        # Create a sampler and dataloader that we will checkpoint
+        ws, rank = torch.distributed.get_world_size(), torch.distributed.get_rank()
+        sampler = DistributedSampler(
+            dataset, num_replicas=ws, rank=rank, shuffle=True, seed=5
+        )
+        dataloader = CheckpointableDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+        )
+
+        # Iterate through the DL to save the expected order of samples.
+        dataloader_iterator = iter(dataloader)
+        data_for_rank = []
+        for x in dataloader_iterator:
+            data_for_rank.append(x)
+
+        # Now check if we pause training and restore into a different dataloader, we should get the same data.
+        restore_data_for_rank = []
+        # Now checkpoint the dataloader in the middle of iterating
+        dataloader_iterator = iter(dataloader)
+        for i, x in enumerate(dataloader_iterator):
+            restore_data_for_rank.append(x)
+            if i == 7:
+                break
+        state = dataloader.state_dict()
+
+        # Create a new dataloade / sampler pair and load the state in.
+        restore_sampler = DistributedSampler(
+            dataset, num_replicas=ws, rank=rank, shuffle=True, seed=5
+        )
+        restore_dataloader = CheckpointableDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+        )
+        restore_dataloader.load_state_dict(state)
+        # Now upon iterating the dataloader, we should resume at the appropriate index and get the same data
+        # as when we did a full iteration before checkpointing.
+        restore_dataloader_iterator = iter(restore_dataloader)
+        for x in restore_dataloader_iterator:
+            restore_data_for_rank.append(x)
+
+        assert (
+            restore_data_for_rank == data_for_rank
+        ), f"mismatch: {data_for_rank} vs {restore_data_for_rank} on {torch.distributed.get_rank()}"
+
+    @skip_if_cuda_not_available
+    def test_dist_dataloader_save_load(self) -> None:
+        lc = get_pet_launch_config(nproc=4)
+        print(f"RV -- launching ---")
+        launcher.elastic_launch(
+            lc, entrypoint=self._test_distributed_data_loader_save_load
+        )()
