@@ -24,7 +24,10 @@ from recipes.recipe_interface import Recipe
 
 class FullFinetune(Recipe):
     """
-    Full finetuning recipe.
+    Full finetuning recipe. To run this recipe, the user needs to:
+        - Initialize using config or args.create_full_finetune_args
+        - Call train method with the right params
+        - cleanup at the end of training
 
     This recipe currently supports or assumes the following:
 
