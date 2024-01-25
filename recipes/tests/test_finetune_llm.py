@@ -108,3 +108,36 @@ class TestFinetuneLLMRecipe:
             assert key in expected_loss_values
             expected_loss_value = expected_loss_values[key]
             assert value == pytest.approx(expected_loss_value, abs=0.001)
+
+    def test_finetune_errors(self, capsys, pytestconfig):
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        kwargs_values = {
+            "dataset": "alpaca",
+            "seed": 9,
+            "shuffle": True,
+            "model": ckpt,
+            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
+            "tokenizer": "llama2_tokenizer",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "batch_size": 8,
+            "lr": 2e-5,
+            "epochs": 2,
+            "max_steps_per_epoch": 2,
+            "optimizer": "AdamW",
+            "loss": "CrossEntropyLoss",
+            "output_dir": "/tmp",
+            "device": "cpu",
+            "dtype": "fp32",
+            "activation_checkpointing": False,
+            "run_generation": False,
+            "metric_logger_type": "disk",
+            "project": None,
+            "resume_from_previous_checkpoint": False,
+            "cpu_offload": True,
+        }
+
+        with pytest.raises(ValueError):
+            finetune_llm.recipe(**kwargs_values)
