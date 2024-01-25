@@ -139,5 +139,8 @@ class TestFinetuneLLMRecipe:
             "cpu_offload": True,
         }
 
-        with pytest.raises(ValueError):
+        with pytest.raises(
+            ValueError,
+            match="CPU offload is only supported with FSDP in a distributed setting.",
+        ):
             finetune_llm.recipe(**kwargs_values)
