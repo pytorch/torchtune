@@ -336,7 +336,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--resume-from-previous-checkpoint",
-        help="""
+        help="""Resume from a previous finetune checkpoint. Note that the previous
             checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
             is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
             """,
