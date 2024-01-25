@@ -22,7 +22,7 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
 
     token_for_generation = [tokenizer.encode(prompt, add_eos=False)]
 
-    seed = set_seed()
+    set_seed()
 
     device = get_device()
 
@@ -31,12 +31,10 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
 
     # Load state_dict into decoder
     native_state_dict = torch.load(model_checkpoint, weights_only=True)
-    if (
-        "model" in native_state_dict.keys()
-    ):  # finetuned model is a dict with "model" key
-        native_state_dict = native_state_dict["model"]
-    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
-
+    missing, unexpected = decoder.load_state_dict(
+        native_state_dict["model"], strict=False
+    )
+    decoder.load_state_dict(native_state_dict, strict=True)
     decoder.eval()
 
     with torch.no_grad():

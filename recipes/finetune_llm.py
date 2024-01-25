@@ -13,6 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -38,9 +39,11 @@ def recipe(
     max_steps_per_epoch,
     metric_logger_type,
     project,
+    resume_from_previous_checkpoint,
 ):
     # ---- Initialize components ---- #
     distributed = utils.init_distributed()
+    world_size, rank = utils.get_world_size_and_rank()
 
     logger = utils.get_logger("DEBUG")
     metric_logger = utils.get_metric_logger(
@@ -70,12 +73,24 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-    loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
-    model.load_state_dict(loaded_ckpt)
-    logger.info(msg=f"Loaded model from {model_checkpoint}")
-
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
+    # Load model and possibly optimizer states
+    if resume_from_previous_checkpoint:
+        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+        model.load_state_dict(ckpt_dict["model"])
+        # Note: optimizer entry in dictionary is pre-transformed if using FSDP
+        opt.load_state_dict(ckpt_dict["optimizer"])
+        if rank == 0:
+            logger.info(
+                msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
+            )
+    else:
+        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        model.load_state_dict(ckpt_dict["model"])
+        if rank == 0:
+            logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
+
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
 
@@ -86,7 +101,6 @@ def recipe(
         grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    world_size, rank = utils.get_world_size_and_rank()
     ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
         ds,
@@ -168,18 +182,20 @@ def recipe(
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
-        torch.save(
-            {
-                "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": opt.state_dict(),
-                "loss": loss.mean().item(),
-            },
-            output_loc,
-        )
-        logger.info(
-            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        )
+        ckpt_dict = {
+            "model": model,
+            "optimizer": opt,
+        }
+        if epoch == epochs - 1:
+            # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
+            ckpt_dict.pop("optimizer")
+        if rank == 0:
+            logger.info(msg=f"Saving model checkpoint to {output_loc}")
+        save_checkpoint(ckpt_dict, output_loc)
+        if rank == 0:
+            logger.info(
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+            )
 
     metric_logger.close()
 
@@ -309,7 +325,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--metric-logger-type",
         type=str,
-        default="disk",
         choices=utils.list_metric_loggers(),
         help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
     )
@@ -318,6 +333,15 @@ if __name__ == "__main__":
         type=str,
         default=None,
         help="Project name for WandB metric logger.",
+    )
+    parser.add_argument(
+        "--resume-from-previous-checkpoint",
+        help="""Resume from a previous finetune checkpoint. Note that the previous
+            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
+            is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
+            """,
+        default=False,
+        action="store_true",
     )
 
     kwargs = vars(parser.parse_args())
