@@ -1,0 +1,23 @@
+# Dataset and Dataloader
+dataset: alpaca
+seed: null
+shuffle: True
+
+# Model Arguments
+model: llama2_7b
+model_checkpoint: /tmp/llama2-7b
+tokenizer: llama2_tokenizer
+tokenizer_checkpoint: /tmp/tokenizer.model
+
+# Fine-tuning arguments
+batch_size: 2
+lr: 2e-5
+epochs: 3
+optimizer: SGD
+loss: CrossEntropyLoss
+output_dir: /tmp/alpaca-llama2-finetune
+device: cuda
+dtype: fp32
+
+# Metrics arguments
+metric_logger_type: disk
