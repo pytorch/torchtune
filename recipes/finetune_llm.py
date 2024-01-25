@@ -13,6 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils import CheckpointableDataLoader
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
@@ -40,6 +41,7 @@ def recipe(
     metric_logger_type,
     project,
     resume_from_previous_checkpoint,
+    checkpoint_interval,
 ):
     # ---- Initialize components ---- #
     distributed = utils.init_distributed()
@@ -72,9 +74,30 @@ def recipe(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
+    # ---- Load dataset, set up sampler, and dataloader ---- #
+    ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
+    sampler = DistributedSampler(
+        ds,
+        num_replicas=world_size,
+        rank=rank,
+        shuffle=shuffle,
+        seed=0,
+    )
+    dataloader = CheckpointableDataLoader(
+        dataset=ds,
+        batch_size=batch_size,
+        sampler=sampler,
+        collate_fn=partial(
+            utils.padded_collate,
+            padding_idx=tokenizer.pad_id,
+            ignore_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
+        ),
+    )
+    logger.info(msg=f"Loaded dataset {dataset}")
+
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
-    # Load model and possibly optimizer states
+    # Restore from previous state or start from pretrained model checkpoint.
     if resume_from_previous_checkpoint:
         ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
@@ -91,6 +114,8 @@ def recipe(
             seed = restored_seed
         # Restore epoch.
         start_epoch = ckpt_dict["epoch"]
+        # Restore dataloader
+        dataloader.load_state_dict(ckpt_dict["dataloader"])
         if rank == 0:
             logger.info(
                 msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
@@ -113,31 +138,14 @@ def recipe(
     else:
         grad_scaler = GradScaler(enabled=False)
 
-    # ---- Load dataset, set up sampler, and dataloader ---- #
-    ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
-    sampler = DistributedSampler(
-        ds,
-        num_replicas=world_size,
-        rank=rank,
-        shuffle=shuffle,
-        seed=0,
-    )
-    dataloader = DataLoader(
-        dataset=ds,
-        batch_size=batch_size,
-        sampler=sampler,
-        collate_fn=partial(
-            utils.padded_collate,
-            padding_idx=tokenizer.pad_id,
-            ignore_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
-        ),
-    )
-    logger.info(msg=f"Loaded dataset {dataset}")
-
+    # Make a directory to store checkpoints.
+    os.makedirs(output_dir, exist_ok=True)
     # ---- Train loop ---- #
+    training_step = 0
     for epoch in range(start_epoch, epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
         for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
+            training_step += 1
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -145,7 +153,18 @@ def recipe(
             input_ids, labels = batch
             input_ids = input_ids.to(device)
             labels = labels.to(device)
-
+            # Debug code for dataloader restore determinism.
+            with open(
+                f"/tmp/samples_{torch.distributed.get_rank()}.text", mode="w+"
+            ) as f:
+                f.write(
+                    "\n".join(
+                        [
+                            input_ids.cpu().numpy().tolist(),
+                            labels.cpu().numpy().tolist(),
+                        ]
+                    )
+                )
             with autocast:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
@@ -192,28 +211,36 @@ def recipe(
                     logger.info(f"Generation: {generation_str}")
             # --- TODO TEMPORARY EVAL Code Ends ---- #
 
+            if (
+                checkpoint_interval is not None
+                and training_step % checkpoint_interval == 0
+            ):
+                # Save checkpoint
+                output_loc = f"{output_dir}/model_{training_step}.ckpt"
+                save_checkpoint(
+                    {
+                        "model": model,
+                        "optimizer": opt,
+                        "dataloader": dataloader,
+                        "epoch": epoch,
+                        "seed": seed,
+                    },
+                    output_loc,
+                )
+
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
-        os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {
             "model": model,
             "optimizer": opt,
             "dataloader": dataloader,
             "epoch": epoch,
-            # NOTE: not checkpointing distributed sampler seed as it is always 0
-            # Following seed refers to seed for training.
             "seed": seed,
         }
         if epoch == epochs - 1:
             # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
             ckpt_dict.pop("optimizer")
-        if rank == 0:
-            logger.info(msg=f"Saving model checkpoint to {output_loc}")
         save_checkpoint(ckpt_dict, output_loc)
-        if rank == 0:
-            logger.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc} in {end-start}"
-            )
 
     metric_logger.close()
 
@@ -361,6 +388,14 @@ if __name__ == "__main__":
         default=False,
         action="store_true",
     )
-
+    parser.add_argument(
+        "--checkpoint-interval",
+        help="""Save a checkpoint (model, optimizer, dataloader, etc) every N iterations. The training state will be saved such that
+            deterministic training can be resumed from the checkpoint. Note that this flag is inpendent of
+            --checkpoint-at-epoch-end, and either or neither flag can be used.
+            """,
+        default=None,
+        type=int,
+    )
     kwargs = vars(parser.parse_args())
     recipe(**kwargs)

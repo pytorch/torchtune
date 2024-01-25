@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 from typing import Any, Dict, Optional
 
 import torch
@@ -12,6 +13,9 @@ import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils.distributed import get_world_size_and_rank
+from torchtune.utils.logging import get_logger
+
+logger = get_logger("DEBUG")
 
 
 def _contains_fsdp(model: nn.Module) -> bool:
@@ -34,7 +38,7 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     """
     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
-    (currently only objects specified by "model" and "optimizer" keys). For distributed jobs, only rank 0
+    (currently only objects specified by "model" "optimizer", and "dataloader" keys). For distributed jobs, only rank 0
     will write out a checkpoint.
     Only full (unsharded) checkpoints are supported currently, i.e. full checkpoints are taken even if model and optimizer
     are sharded with FSDP.
@@ -50,7 +54,16 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
         >>> output_loc = "/tmp/output.pt"
         >>> ckpt_dict = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
         >>> torchtune.utils.checkpoint.save_checkpoint(ckpt_dict, output_loc)
+
+    NOTE:
+        Currently, only the following keys have their `state_dict` method called and their entry, if present,
+        in the `ckpt_dict dictionary replaced by the result of `state_dict`: "model", "optimizer", and "dataloader".
     """
+    # TODO (rohan-varma): Consider a stateful interface instead of hardcoded set of keys, where we call `state_dict` on all
+    # stateful objects (ones that contain state_dict method).
+    _, rank = get_world_size_and_rank()
+    if rank == 0:
+        logger.info(msg=f"Saving model checkpoint to {output_loc}")
     if "model" not in ckpt_dict:
         raise RuntimeError(
             "Expected `ckpt_dict` to contain a `model` key, but it does not."
@@ -64,10 +77,17 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
         )
         ckpt_dict["optimizer"] = optimizer_state_dict
 
+    if "dataloader" in ckpt_dict:
+        dataloader_state_dict = ckpt_dict["dataloader"].state_dict()
+        ckpt_dict["dataloader"] = dataloader_state_dict
+
     ckpt_dict["model"] = model_state_dict
-    _, rank = get_world_size_and_rank()
+
     if rank == 0:
         torch.save(ckpt_dict, output_loc)
+        logger.info(
+            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+        )
 
 
 def load_checkpoint(

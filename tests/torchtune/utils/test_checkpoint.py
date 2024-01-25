@@ -11,13 +11,20 @@ import torch
 import torch.distributed as dist
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.utils.data import DistributedSampler
+from torchtune.utils import CheckpointableDataLoader
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
+from torchtune.utils.distributed import get_world_size_and_rank
 
-from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
+from tests.test_utils import (
+    _IdentityMapDataset,
+    get_pet_launch_config,
+    skip_if_cuda_not_available,
+)
 
 
 class TestCheckpoint:
-    def _save_and_load(self, checkpoint, model, optimizer):
+    def _save_and_load(self, checkpoint, model, optimizer, dataloader):
         with tempfile.NamedTemporaryFile() as f:
             save_checkpoint(ckpt_dict=checkpoint, output_loc=f.name)
             if torch.distributed.is_initialized():
@@ -33,6 +40,7 @@ class TestCheckpoint:
             checkpoint = load_checkpoint(file_name, model, optimizer)
             model.load_state_dict(checkpoint["model"])
             optimizer.load_state_dict(checkpoint["optimizer"])
+            dataloader.load_state_dict(checkpoint["dataloader"])
             # Have rank 0 wait for all ranks to finish loading before exiting
             # context manager which would trigger file destruction.
             if torch.distributed.is_initialized():
@@ -49,6 +57,21 @@ class TestCheckpoint:
         optim = torch.optim.SGD(model.parameters(), lr=0.01)
         return model, optim
 
+    def _get_dataloader(self):
+        # Create a sampler and dataloader that we will checkpoint
+        ws, rank = get_world_size_and_rank()
+        dataset = _IdentityMapDataset(16 * ws)
+        sampler = DistributedSampler(
+            dataset, num_replicas=ws, rank=rank, shuffle=True, seed=5
+        )
+        dataloader = CheckpointableDataLoader(
+            dataset,
+            batch_size=1,
+            shuffle=None,
+            sampler=sampler,
+        )
+        return dataloader
+
     def _validate_dicts(self, d1, d2):
         assert len(d1) == len(d2)
         for k, v in d1.items():
@@ -63,19 +86,39 @@ class TestCheckpoint:
 
     def test_local_checkpoint_save_load(self) -> None:
         model, optim = self._get_model_and_optim(zero_model=False, fsdp=False)
+        dataloader = self._get_dataloader()
         # Create dummy optim states to verify they can be loaded.
         for p in model.parameters():
             p.grad = torch.rand_like(p)
         optim.step()
-        checkpoint = {"model": model, "optimizer": optim, "lr": 0.01}
+        # Iter the dataloader a bit
+        dl_iter = iter(dataloader)
+        for _ in range(8):
+            next(dl_iter)
+        checkpoint = {
+            "model": model,
+            "optimizer": optim,
+            "lr": 0.01,
+            "dataloader": dataloader,
+        }
         model_new, optim_new = self._get_model_and_optim(zero_model=True, fsdp=False)
+        dl_new = self._get_dataloader()
+        assert dl_new.state_dict() == {
+            CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
+            CheckpointableDataLoader._SKIP_INDEX_KEY: 0,
+        }
         # Saves checkpoint, calls load_checkpoint and loads model + optim states into new model/optim.
-        self._save_and_load(checkpoint, model_new, optim_new)
+        self._save_and_load(checkpoint, model_new, optim_new, dl_new)
         # model_new and model params should match
         for p1, p2 in zip(model.parameters(), model_new.parameters()):
             assert torch.allclose(p1, p2)
         # optim state_dicts should match
         self._validate_dicts(optim.state_dict(), optim_new.state_dict())
+        # Dataloader should be forwarded.
+        assert dl_new.state_dict() == {
+            CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
+            CheckpointableDataLoader._SKIP_INDEX_KEY: 8,
+        }
 
     def test_no_model_key_save(self) -> None:
         checkpoint = {"lr": 0.03}
@@ -112,13 +155,28 @@ class TestCheckpoint:
         torch.cuda.set_device(torch.distributed.get_rank())
         torch.distributed.barrier()
         model, optim = self._get_model_and_optim(zero_model=False, fsdp=True)
+        dataloader = self._get_dataloader()
         for p in model.parameters():
             p.grad = torch.rand_like(p)
         optim.step()
-        checkpoint = {"model": model, "optimizer": optim, "lr": 0.01}
+        # Iter the dataloader a bit
+        dl_iter = iter(dataloader)
+        for _ in range(8):
+            next(dl_iter)
+        checkpoint = {
+            "model": model,
+            "optimizer": optim,
+            "lr": 0.01,
+            "dataloader": dataloader,
+        }
         model_new, optim_new = self._get_model_and_optim(zero_model=True, fsdp=True)
+        dl_new = self._get_dataloader()
+        assert dl_new.state_dict() == {
+            CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
+            CheckpointableDataLoader._SKIP_INDEX_KEY: 0,
+        }
         # Saves checkpoint, calls load_checkpoint and loads model + optim states into new model/optim.
-        self._save_and_load(checkpoint, model_new, optim_new)
+        self._save_and_load(checkpoint, model_new, optim_new, dl_new)
 
         # Verify  model
         with FSDP.summon_full_params(model_new):
@@ -130,6 +188,11 @@ class TestCheckpoint:
             FSDP.optim_state_dict(model_new, optim_new),
             FSDP.optim_state_dict(model, optim),
         )
+        # Dataloader should be forwarded.
+        assert dl_new.state_dict() == {
+            CheckpointableDataLoader._DISTRIBUTED_SAMPLER_SHUFFLE_SEED: 5,
+            CheckpointableDataLoader._SKIP_INDEX_KEY: 8,
+        }
         torch.distributed.barrier()
 
     @skip_if_cuda_not_available
