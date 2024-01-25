@@ -80,7 +80,7 @@ def recipe(
         ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
-        optimizer.load_state_dict(ckpt_dict["optimizer"])
+        opt.load_state_dict(ckpt_dict["optimizer"])
         if rank == 0:
             logger.info(
                 msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
@@ -189,10 +189,12 @@ def recipe(
         if epoch == epochs - 1:
             # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
             ckpt_dict.pop("optimizer")
+        if rank == 0:
+            logger.info(msg=f"Saving model checkpoint to {output_loc}")
         save_checkpoint(ckpt_dict, output_loc)
         if rank == 0:
             logger.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc} in {end-start}"
             )
 
     metric_logger.close()
