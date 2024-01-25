@@ -194,7 +194,7 @@ def recipe(
         save_checkpoint(ckpt_dict, output_loc)
         if rank == 0:
             logger.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc} in {end-start}"
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
 
     metric_logger.close()
