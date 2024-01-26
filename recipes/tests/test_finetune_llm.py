@@ -95,7 +95,7 @@ class TestFinetuneLLMRecipe:
             "run_generation": False,
             "metric_logger_type": "disk",
             "project": None,
-            "resume_from_previous_checkpoint": False,
+            "resume_from_checkpoint": False,
             "cpu_offload": False,
         }
 
@@ -135,7 +135,7 @@ class TestFinetuneLLMRecipe:
             "run_generation": False,
             "metric_logger_type": "disk",
             "project": None,
-            "resume_from_previous_checkpoint": False,
+            "resume_from_checkpoint": False,
             "cpu_offload": True,
         }
 

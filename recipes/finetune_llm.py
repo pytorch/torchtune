@@ -39,7 +39,7 @@ def recipe(
     max_steps_per_epoch,
     metric_logger_type,
     project,
-    resume_from_previous_checkpoint,
+    resume_from_checkpoint,
     cpu_offload,
 ):
     # ---- Initialize components ---- #
@@ -87,8 +87,10 @@ def recipe(
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
     # Load model and possibly optimizer states
-    if resume_from_previous_checkpoint:
-        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+    if resume_from_checkpoint:
+        ckpt_dict = load_checkpoint(
+            model_checkpoint, resume_from_checkpoint, model, opt
+        )
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
         opt.load_state_dict(ckpt_dict["optimizer"])
@@ -97,7 +99,9 @@ def recipe(
                 msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
             )
     else:
-        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        ckpt_dict = load_checkpoint(
+            model_checkpoint, resume_from_checkpoint, model, opt
+        )
         model.load_state_dict(ckpt_dict["model"])
         if rank == 0:
             logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")

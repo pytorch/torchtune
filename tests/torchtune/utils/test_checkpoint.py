@@ -30,7 +30,7 @@ class TestCheckpoint:
                 file_name = file_list[0]
             else:
                 file_name = f.name
-            checkpoint = load_checkpoint(file_name, model, optimizer)
+            checkpoint = load_checkpoint(file_name, True, model, optimizer)
             model.load_state_dict(checkpoint["model"])
             optimizer.load_state_dict(checkpoint["optimizer"])
             # Have rank 0 wait for all ranks to finish loading before exiting
@@ -94,7 +94,7 @@ class TestCheckpoint:
                 RuntimeError,
                 match="Expected loaded checkpoint to contain a `model` key.*",
             ):
-                load_checkpoint(f.name, model)
+                load_checkpoint(f.name, False, model, None)
 
     def test_no_optim_key_load(self) -> None:
         model = torch.nn.Linear(1, 1)
@@ -103,9 +103,9 @@ class TestCheckpoint:
             save_checkpoint({"model": model}, f.name)
             with pytest.raises(
                 RuntimeError,
-                match="Expected loaded checkpoint to contain an `optimizer` key.*",
+                match="Since training is being resumed.*",
             ):
-                load_checkpoint(f.name, model, optim)
+                load_checkpoint(f.name, True, model, optim)
 
     def _test_distributed_save_load(self) -> None:
         torch.distributed.init_process_group(backend="nccl")

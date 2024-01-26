@@ -35,7 +35,6 @@ class FullFinetune(LLMRecipeInterface):
         - FSDP and activation checkpointing. This is enabled by default and is NOT
             configurable.
         - Mixed precision training - fp32, fp16 and bf16 are supported.
-        - Resuming from checkpoint is NOT currently supported.
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
 
@@ -205,8 +204,9 @@ class FullFinetune(LLMRecipeInterface):
 
         # load_checkpoint takes in the model and optimizer, but only uses these
         # in case we're resuming from checkpoint
-        ckpt_dict = utils.load_checkpoint(model_checkpoint, resume_from_checkpoint,
-            self.model, self.optimizer)
+        ckpt_dict = utils.load_checkpoint(
+            model_checkpoint, resume_from_checkpoint, self.model, self.optimizer
+        )
         self.model.load_state_dict(ckpt_dict["model"])
 
         # use this section to set all of the state which needs to be updated when
@@ -266,7 +266,10 @@ class FullFinetune(LLMRecipeInterface):
             for idx, batch in enumerate(
                 pbar := tqdm(self.dataloader, disable=not (rank == 0))
             ):
-                if self.max_steps_per_epoch is not None and idx == self.max_steps_per_epoch:
+                if (
+                    self.max_steps_per_epoch is not None
+                    and idx == self.max_steps_per_epoch
+                ):
                     break
                 self.optimizer.zero_grad()
 
