@@ -63,10 +63,19 @@ TorchTune tutorials.
 .. toctree::
    :glob:
    :maxdepth: 1
+   :caption: Recipes
+   :hidden:
+
+   .. generated_examples/full_finetune_recipe
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
    :caption: Tutorials
    :hidden:
 
    generated_examples/template_tutorial
+   generated_examples/getting_started
 
 .. toctree::
    :glob:
