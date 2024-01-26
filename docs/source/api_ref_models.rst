@@ -9,4 +9,5 @@ torchtune.models
     :template: functions.rst
 
     llama2_7b
+    lora_llama2
     lora_llama_self_attention

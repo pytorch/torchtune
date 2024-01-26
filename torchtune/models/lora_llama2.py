@@ -8,7 +8,17 @@ from typing import List, Literal, Optional
 
 from torch import nn
 
-from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
+from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
+
+from torchtune.modules import (
+    CausalSelfAttention,
+    FeedForward,
+    KVCache,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
+    TransformerDecoder,
+    TransformerDecoderLayer,
+)
 
 from torchtune.modules.peft import LoRALinear
 
@@ -114,3 +124,89 @@ def lora_llama_self_attention(
         attn_dropout=attn_dropout,
     )
     return self_attn
+
+
+def lora_llama2(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    *,
+    # llama2 args
+    vocab_size: int,
+    num_layers: int,
+    num_heads: int,
+    num_kv_heads: int,
+    embed_dim: int,
+    max_seq_len: int,
+    attn_dropout: float = 0.0,
+    max_batch_size: Optional[int] = None,
+    norm_eps: float = 1e-6,
+    # LoRA args
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+) -> TransformerDecoder:
+    """
+    Return a version of Llama2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
+    with LoRA applied to some of the linear layers in its self-attention modules.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        vocab_size (int): number of tokens in vocabulary.
+        num_layers (int): number of layers in the transformer decoder.
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        num_kv_heads (int): number of key and value heads. If specified,
+            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            `None`, in which case this is the same as MHA
+        embed_dim (int): embedding dimension for self-attention
+        max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`
+        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
+            Default: 0.0
+        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
+        norm_eps (float): epsilon in RMS norms.
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        lora_dropout (float): LoRA dropout probability. Default: 0.0
+
+    Returns:
+        TransformerDecoder: instantiation of Llama2 model with LoRA applied to
+        a subset of the attention projections in each layer.
+
+    """
+    self_attn = lora_llama_self_attention(
+        lora_modules=lora_attn_modules,
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        max_seq_len=max_seq_len,
+        attn_dropout=attn_dropout,
+        max_batch_size=max_batch_size,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
+        lora_dropout=lora_dropout,
+    )
+
+    # TODO: MLP class is not LoRA-ready yet
+    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+
+    layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+    )
+
+    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
+
+    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+
+    return TransformerDecoder(
+        tok_embeddings=tok_embeddings,
+        layer=layer,
+        num_layers=num_layers,
+        norm=RMSNorm(embed_dim, eps=norm_eps),
+        output=output_proj,
+    )
