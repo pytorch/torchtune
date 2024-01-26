@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
+from torchtune.utils.config import validate_recipe_args
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
