@@ -9,6 +9,11 @@ from argparse import Action, Namespace
 from typing import List, Tuple
 
 from omegaconf import OmegaConf
+<<<<<<< HEAD
+=======
+
+from torchtune import utils
+>>>>>>> 865720a (Config parsing refactor)
 
 
 class TuneArgumentParser(argparse.ArgumentParser):
@@ -70,3 +75,11 @@ class TuneArgumentParser(argparse.ArgumentParser):
         """
         assert not kwargs.get("required", False), "Required not supported"
         return super().add_argument(*args, **kwargs)
+
+    def log_args(self, args: Namespace) -> None:
+        """Logs final parsed args to console"""
+        logger = utils.get_logger("DEBUG")
+        logger.info("Config:")
+        args = vars(args)
+        for k, v in args.items():
+            logger.info(f"  {k}: {v}")
