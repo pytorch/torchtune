@@ -7,7 +7,7 @@
 from typing import Protocol
 
 
-class Recipe(Protocol):
+class LLMRecipeInterface(Protocol):
     """
     This class provides a general structure which each fine-tuning recipe
     should follow.
@@ -54,6 +54,14 @@ class Recipe(Protocol):
         """
         This method is responsible for loading ALL of the state for the recipe from the
         checkpoint, including state for the model, optimizer, dataloader and training
+        parameters such as the epoch and seed.
+        """
+        ...
+
+    def save_checkpoint(self, **kwargs) -> None:
+        """
+        This method is responsible for saving ALL of the state for the recipe,
+        including state for the model, optimizer, dataloader and training
         parameters such as the epoch and seed.
         """
         ...

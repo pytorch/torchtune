@@ -72,8 +72,9 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
 
 def load_checkpoint(
     ckpt_path: str,
+    resume_from_checkpoint: bool,
     model: nn.Module,
-    optimizer: Optional[optim.Optimizer] = None,
+    optimizer: optim.Optimizer,
 ) -> Dict[str, Any]:
     """
     Loads a checkpoint from `ckpt_path` into `model` and optionally `optimizer`. This function is meant to be used in tandem with
@@ -110,14 +111,15 @@ def load_checkpoint(
             """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved
             with `save_checkpoint`."""
         )
-    if optimizer is not None and "optimizer" not in ckpt_dict:
+    if resume_from_checkpoint and "optimizer" not in ckpt_dict:
         raise RuntimeError(
-            """Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not.
-            Ensure checkpoint was saved with `save_checkpoint`."""
+            """Since training is being resumed, expected loaded checkpoint to contain an `optimizer', but it does not.
+            Ensure checkpoint was saved with `save_checkpoint` and the resume_from_checkpoint flag is
+            set correctly."""
         )
 
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
-    if optimizer is not None:
+    if resume_from_checkpoint:
         optim_state_dict_to_load = (
             FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"])
             if _contains_fsdp(model)

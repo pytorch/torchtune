@@ -124,4 +124,17 @@ def create_full_finetune_args(parser) -> argparse.ArgumentParser:
         help="Project name for WandB metric logger.",
     )
 
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--resume-from-checkpoint",
+        action="store_true",
+        help="Resume from checkpoint",
+        default=True,
+    )
+    group.add_argument(
+        "--no-resume",
+        dest="resume_from_checkpoint",
+        action="store_false",
+        help="Don't resume.",
+    )
     return parser

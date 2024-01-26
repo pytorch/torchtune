@@ -19,10 +19,10 @@ from torchtune import datasets, losses, models, modules, optim, utils
 from tqdm import tqdm
 
 from recipes.args import create_full_finetune_args
-from recipes.recipe_interface import Recipe
+from recipes.llm_recipe_interface import LLMRecipeInterface
 
 
-class FullFinetune(Recipe):
+class FullFinetune(LLMRecipeInterface):
     """
     Full finetuning recipe. To run this recipe, the user needs to:
         - Initialize using config or args.create_full_finetune_args
@@ -67,6 +67,9 @@ class FullFinetune(Recipe):
         output_dir: str,
         metric_logger_type: str,
         project: str,
+        epochs: int,
+        max_steps_per_epoch: int,
+        resume_from_checkpoint: bool,
     ) -> None:
 
         self.setup_environment(
@@ -83,7 +86,18 @@ class FullFinetune(Recipe):
         )
         self.setup_optimizer_and_loss(optimizer=optimizer, learning_rate=lr, loss=loss)
         self.setup_data(dataset=dataset, shuffle=shuffle, batch_size=batch_size)
-        self.load_checkpoint(model_checkpoint=model_checkpoint)
+
+        # set up the training params
+        self.epochs = epochs
+        self.max_steps_per_epoch = max_steps_per_epoch
+
+        # parameter which determines where training begins; this is updated from the
+        # checkpoint in case we're resuming training
+        self.epochs_run = 0
+        self.load_checkpoint(
+            model_checkpoint=model_checkpoint,
+            resume_from_checkpoint=resume_from_checkpoint,
+        )
 
     def setup_environment(
         self,
@@ -182,14 +196,27 @@ class FullFinetune(Recipe):
         if rank == 0:
             self.logger.info("Dataset and Sampler are initialized.")
 
-    def load_checkpoint(self, model_checkpoint) -> None:
+    def load_checkpoint(self, model_checkpoint, resume_from_checkpoint) -> None:
         """
         Loading the state for the recipe from a previous checkpoint happens here.
         Currently this does not support resuming training. As a result, we only
         load the model checkpoint.
         """
-        ckpt_dict = utils.load_checkpoint(model_checkpoint, self.model)
+
+        # load_checkpoint takes in the model and optimizer, but only uses these
+        # in case we're resuming from checkpoint
+        ckpt_dict = utils.load_checkpoint(model_checkpoint, resume_from_checkpoint,
+            self.model, self.optimizer)
         self.model.load_state_dict(ckpt_dict["model"])
+
+        # use this section to set all of the state which needs to be updated when
+        # resuming from training
+        if resume_from_checkpoint:
+            self.optimizer.load_state_dict(ckpt_dict["optimizer"])
+
+            # temporary place holder till we start tracking epoch in
+            # utils.save_checkpoint
+            self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else 0
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
@@ -213,7 +240,7 @@ class FullFinetune(Recipe):
                 msg=f"{rank}: Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
 
-    def train(self, epochs, max_steps_per_epoch) -> None:
+    def train(self) -> None:
         """
         The core training loop.
 
@@ -229,12 +256,17 @@ class FullFinetune(Recipe):
 
         _, rank = utils.get_world_size_and_rank()
 
-        for epoch in range(epochs):
-            self.sampler.set_epoch(epoch)
+        # self.epochs_run should be non-zero when we're resuming from a checkpoint
+        for curr_epoch in range(self.epochs_run, self.epochs):
+
+            # Update the sampler to ensure data is correctly shuffled across epochs
+            # in case shuffle is True
+            self.sampler.set_epoch(curr_epoch)
+
             for idx, batch in enumerate(
                 pbar := tqdm(self.dataloader, disable=not (rank == 0))
             ):
-                if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
+                if self.max_steps_per_epoch is not None and idx == self.max_steps_per_epoch:
                     break
                 self.optimizer.zero_grad()
 
@@ -251,7 +283,7 @@ class FullFinetune(Recipe):
                     # Compute loss
                     loss = self.loss_fn(logits, labels)
 
-                pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
+                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
                 # Log metrics at each step
                 # If no metric logger is specified, this is a no-op
@@ -262,7 +294,7 @@ class FullFinetune(Recipe):
                             "lr": self.optimizer.param_groups[0]["lr"],
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
-                        step=epoch * len(self.dataloader)
+                        step=curr_epoch * len(self.dataloader)
                         + idx,  # Each step is unique, not limited to each epoch
                     )
 
@@ -270,7 +302,7 @@ class FullFinetune(Recipe):
                 grad_scaler.step(self.optimizer)
                 grad_scaler.update()
 
-            self.save_checkpoint(epoch=epoch, rank=rank)
+            self.save_checkpoint(epoch=curr_epoch, rank=rank)
 
     def cleanup(self) -> None:
         self.metric_logger.close()
@@ -281,10 +313,6 @@ if __name__ == "__main__":
     parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
     kwargs = vars(create_full_finetune_args(parser).parse_args())
 
-    # remove arguments not needed for init
-    epochs = kwargs.pop("epochs")
-    max_steps_per_epoch = kwargs.pop("max_steps_per_epoch")
-
     recipe = FullFinetune(**kwargs)
-    recipe.train(epochs=epochs, max_steps_per_epoch=max_steps_per_epoch)
+    recipe.train()
     recipe.cleanup()
