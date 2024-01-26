@@ -26,7 +26,7 @@ from torchtune.modules.peft import LoRALinear
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
-def lora_llama_self_attention(
+def _lora_llama_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
     # CausalSelfAttention args
@@ -171,11 +171,11 @@ def lora_llama2(
         lora_dropout (float): LoRA dropout probability. Default: 0.0
 
     Returns:
-        TransformerDecoder: instantiation of Llama2 model with LoRA applied to
+        TransformerDecoder: Instantiation of Llama2 model with LoRA applied to
         a subset of the attention projections in each layer.
 
     """
-    self_attn = lora_llama_self_attention(
+    self_attn = _lora_llama_self_attention(
         lora_modules=lora_attn_modules,
         embed_dim=embed_dim,
         num_heads=num_heads,

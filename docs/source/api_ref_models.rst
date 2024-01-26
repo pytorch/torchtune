@@ -10,4 +10,3 @@ torchtune.models
 
     llama2_7b
     lora_llama2
-    lora_llama_self_attention
