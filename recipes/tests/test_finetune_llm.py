@@ -92,7 +92,7 @@ class TestFinetuneLLMRecipe:
             "device": "cpu",
             "dtype": "fp32",
             "activation_checkpointing": False,
-            "run_generation": False,
+            "run_generation": 0,
             "metric_logger_type": "disk",
             "project": None,
             "resume_from_previous_checkpoint": False,
