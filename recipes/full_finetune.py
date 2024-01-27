@@ -9,6 +9,7 @@ import os
 from functools import partial
 
 import torch
+from torch import nn
 
 from torch.cuda.amp import GradScaler
 
@@ -19,29 +20,33 @@ from torchtune import datasets, losses, models, modules, optim, utils
 from tqdm import tqdm
 
 from recipes.args import create_full_finetune_args
-from recipes.llm_recipe_interface import LLMRecipeInterface
+from recipes.interfaces import FTRecipeInterface
 
 
-class FullFinetune(LLMRecipeInterface):
+class FullFinetune(FTRecipeInterface):
     """
-    Full finetuning recipe. To run this recipe, the user needs to:
-        - Initialize using config or args.create_full_finetune_args
-        - Call train method with the right params
-        - cleanup at the end of training
+    Full finetuning recipe for dense trasnformer-based LLMs such as Llama2.
 
-    This recipe currently supports or assumes the following:
+    This consists of three stages:
+        - Initialize the recipe through config or args.create_full_finetune_args
+        - Train the model and save checkpoints appropriately
+        - Cleanup at the end of training
 
-    Support:
+    This recipe supports:
         - FSDP and activation checkpointing. This is enabled by default and is NOT
             configurable.
         - Mixed precision training - fp32, fp16 and bf16 are supported.
-        - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
-            in ongoing epoch is lost.
+        - Checkpointing of model weights and optionally of optimizer state (for checkpoints
+            created during training).
+        - Resume from checkpoint.
 
     Assumptions:
-        - Training is launched with the Tune CLI which uses TorchRun under the hood. Setting
-            up the env variables are handled by TorchRun.
-        - Training happens on CUDA.
+        - Training is launched with the Tune CLI (recommended) which uses TorchRun under the
+            hood. Setting up the env variables is handled by TorchRun.
+        - Training happens on CUDA (CPU training is not supported)
+        - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
+            in ongoing epoch is lost.
+        - Datasets are Map-style and data fits in memory (not streamed).
 
     TODO:
         - The recipe is littered with "rank == 0" checks to prevent log spew. Logging needs to be
@@ -64,49 +69,26 @@ class FullFinetune(LLMRecipeInterface):
         loss: str,
         lr: float,
         output_dir: str,
-        metric_logger_type: str,
-        project: str,
         epochs: int,
         max_steps_per_epoch: int,
         resume_from_checkpoint: bool,
     ) -> None:
 
-        self.setup_environment(
-            device=device,
-            dtype=dtype,
-            seed=seed,
-            metric_logger_type=metric_logger_type,
-            project=project,
-            output_dir=output_dir,
-        )
+        self.setup_environment(device=device, dtype=dtype, seed=seed, output_dir=output_dir)
         self.setup_model(model=model)
         self.setup_tokenizer(
             tokenizer=tokenizer, tokenizer_checkpoint=tokenizer_checkpoint
         )
-        self.setup_optimizer_and_loss(optimizer=optimizer, learning_rate=lr, loss=loss)
+        self.setup_optimizer_and_loss(optimizer=optimizer, lr=lr, loss=loss)
         self.setup_data(dataset=dataset, shuffle=shuffle, batch_size=batch_size)
-
-        # set up the training params
-        self.epochs = epochs
-        self.max_steps_per_epoch = max_steps_per_epoch
-
-        # parameter which determines where training begins; this is updated from the
-        # checkpoint in case we're resuming training
-        self.epochs_run = 0
+        self.setup_training_params(epochs=epochs, max_steps_per_epoch=max_steps_per_epoch)
         self.load_checkpoint(
             model_checkpoint=model_checkpoint,
             resume_from_checkpoint=resume_from_checkpoint,
         )
 
-    def setup_environment(
-        self,
-        device,
-        dtype,
-        seed,
-        metric_logger_type,
-        project,
-        output_dir,
-    ) -> None:
+
+    def setup_environment(self, device: str, dtype: str, seed: int, output_dir: str) -> None:
         """
         Initialize the environment - setting up distributed, loggers, devices and seed.
         """
@@ -115,16 +97,13 @@ class FullFinetune(LLMRecipeInterface):
         init_process_group(backend="nccl")
 
         self.logger = utils.get_logger("DEBUG")
-        self.metric_logger = utils.get_metric_logger(
-            metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
-        )
         self.output_dir = output_dir
-
         self.device = utils.get_device(device)
         self.dtype = utils.get_dtype(dtype)
         self.seed = utils.set_seed(seed)
 
-    def setup_model(self, model) -> None:
+
+    def setup_model(self, model: str) -> None:
         """
         This assumes FSDP and activation checkpointing are enabled by default.
         """
@@ -146,7 +125,8 @@ class FullFinetune(LLMRecipeInterface):
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
             )
 
-    def setup_tokenizer(self, tokenizer, tokenizer_checkpoint) -> None:
+
+    def setup_tokenizer(self, tokenizer: str, tokenizer_checkpoint: str) -> None:
         """
         Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
         tokenizer model. This is related to how the tokenizer is implemented and should
@@ -158,15 +138,17 @@ class FullFinetune(LLMRecipeInterface):
         if rank == 0:
             self.logger.info("Tokenizer is initialized from file.")
 
-    def setup_optimizer_and_loss(self, optimizer, learning_rate, loss) -> None:
-        self.optimizer = optim.get_optimizer(optimizer, self.model, learning_rate)
+
+    def setup_optimizer_and_loss(self, optimizer:str, lr: float, loss: str) -> None:
+        self.optimizer = optim.get_optimizer(optimizer, self.model, lr)
         self.loss_fn = losses.get_loss(loss)
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
             self.logger.info("Optimizer and loss are initialized.")
 
-    def setup_data(self, dataset, shuffle, batch_size) -> None:
+
+    def setup_data(self, dataset: str, shuffle: bool, batch_size: int) -> None:
         """
         All data related setup happens here. Currently this recipe only supports the
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
@@ -195,28 +177,50 @@ class FullFinetune(LLMRecipeInterface):
         if rank == 0:
             self.logger.info("Dataset and Sampler are initialized.")
 
-    def load_checkpoint(self, model_checkpoint, resume_from_checkpoint) -> None:
+
+    def setup_training_params(self, epochs: int, max_steps_per_epoch: int) -> None:
+        """
+        This sets the training parameters for the recipe.
+        """
+        self.epochs = epochs
+        self.max_steps_per_epoch = max_steps_per_epoch
+
+        # parameter which determines where training begins; if needed, this is updated
+        # when the state of the recipe is loaded from checkpoint in ```load_checkpoint`
+        self.epochs_run = 0
+
+        self.autocast = utils.get_autocast(self.dtype, self.device)
+        self. grad_scaler = None
+        if self.dtype == torch.float16:
+            self. grad_scaler = utils.get_gradient_scaler(fsdp=True)
+        else:
+            self. grad_scaler = GradScaler(enabled=False)
+
+        _, rank = utils.get_world_size_and_rank()
+        if rank == 0:
+            self.logger.info("Training parameters are initialized.")
+
+
+    def load_checkpoint(self, model_checkpoint: str, resume_from_checkpoint: bool) -> None:
         """
         Loading the state for the recipe from a previous checkpoint happens here.
-        Currently this does not support resuming training. As a result, we only
-        load the model checkpoint.
         """
 
+        # TODO: Update this comment
         # load_checkpoint takes in the model and optimizer, but only uses these
         # in case we're resuming from checkpoint
-        ckpt_dict = utils.load_checkpoint(
-            model_checkpoint, resume_from_checkpoint, self.model, self.optimizer
-        )
+
+        ckpt_dict = utils.load_checkpoint(model_checkpoint, self.model)
         self.model.load_state_dict(ckpt_dict["model"])
 
-        # use this section to set all of the state which needs to be updated when
-        # resuming from training
-        if resume_from_checkpoint:
-            self.optimizer.load_state_dict(ckpt_dict["optimizer"])
+        # # use this section to set all of the state which needs to be updated when
+        # # resuming from training
+        # if resume_from_checkpoint:
+        #     self.optimizer.load_state_dict(ckpt_dict["optimizer"])
 
-            # temporary place holder till we start tracking epoch in
-            # utils.save_checkpoint
-            self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else 0
+        #     # temporary place holder till we start tracking epoch in
+        #     # utils.save_checkpoint
+        #     self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else 0
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
@@ -248,12 +252,6 @@ class FullFinetune(LLMRecipeInterface):
             - Gradient Scaler is appropirately selected
             - Metrics are logged to the appropriate metric logger (WandB, Tensorboard)
         """
-        autocast = utils.get_autocast(self.dtype, self.device)
-        if self.dtype == torch.float16:
-            grad_scaler = utils.get_gradient_scaler(fsdp=True)
-        else:
-            grad_scaler = GradScaler(enabled=False)
-
         _, rank = utils.get_world_size_and_rank()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -277,7 +275,7 @@ class FullFinetune(LLMRecipeInterface):
                 input_ids = input_ids.to(self.device)
                 labels = labels.to(self.device)
 
-                with autocast:
+                with self.autocast:
                     logits = self.model(input_ids)
                     # Shift so that tokens < n predict n
                     logits = logits[..., :-1, :].contiguous()
@@ -288,27 +286,11 @@ class FullFinetune(LLMRecipeInterface):
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                # Log metrics at each step
-                # If no metric logger is specified, this is a no-op
-                if rank == 0:
-                    self.metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self.optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=curr_epoch * len(self.dataloader)
-                        + idx,  # Each step is unique, not limited to each epoch
-                    )
-
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(self.optimizer)
-                grad_scaler.update()
+                self.grad_scaler.scale(loss).backward()
+                self.grad_scaler.step(self.optimizer)
+                self.grad_scaler.update()
 
             self.save_checkpoint(epoch=curr_epoch, rank=rank)
-
-    def cleanup(self) -> None:
-        self.metric_logger.close()
 
 
 if __name__ == "__main__":

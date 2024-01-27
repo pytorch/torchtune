@@ -111,18 +111,6 @@ def create_full_finetune_args(parser) -> argparse.ArgumentParser:
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
     )
-    parser.add_argument(
-        "--metric-logger-type",
-        type=str,
-        choices=utils.list_metric_loggers(),
-        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
-    )
-    parser.add_argument(
-        "--project",
-        type=str,
-        default=None,
-        help="Project name for WandB metric logger.",
-    )
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
