@@ -9,7 +9,6 @@ import os
 from functools import partial
 
 import torch
-from torch import nn
 
 from torch.cuda.amp import GradScaler
 
@@ -39,6 +38,7 @@ class FullFinetune(FTRecipeInterface):
         - Checkpointing of model weights and optionally of optimizer state (for checkpoints
             created during training).
         - Resume from checkpoint.
+        - Logging to terminal. WandB and TensorBoard are currently not supported.
 
     Assumptions:
         - Training is launched with the Tune CLI (recommended) which uses TorchRun under the
@@ -74,21 +74,26 @@ class FullFinetune(FTRecipeInterface):
         resume_from_checkpoint: bool,
     ) -> None:
 
-        self.setup_environment(device=device, dtype=dtype, seed=seed, output_dir=output_dir)
+        self.setup_environment(
+            device=device, dtype=dtype, seed=seed, output_dir=output_dir
+        )
         self.setup_model(model=model)
         self.setup_tokenizer(
             tokenizer=tokenizer, tokenizer_checkpoint=tokenizer_checkpoint
         )
         self.setup_optimizer_and_loss(optimizer=optimizer, lr=lr, loss=loss)
         self.setup_data(dataset=dataset, shuffle=shuffle, batch_size=batch_size)
-        self.setup_training_params(epochs=epochs, max_steps_per_epoch=max_steps_per_epoch)
+        self.setup_training_params(
+            epochs=epochs, max_steps_per_epoch=max_steps_per_epoch
+        )
         self.load_checkpoint(
             model_checkpoint=model_checkpoint,
             resume_from_checkpoint=resume_from_checkpoint,
         )
 
-
-    def setup_environment(self, device: str, dtype: str, seed: int, output_dir: str) -> None:
+    def setup_environment(
+        self, device: str, dtype: str, seed: int, output_dir: str
+    ) -> None:
         """
         Initialize the environment - setting up distributed, loggers, devices and seed.
         """
@@ -101,7 +106,6 @@ class FullFinetune(FTRecipeInterface):
         self.device = utils.get_device(device)
         self.dtype = utils.get_dtype(dtype)
         self.seed = utils.set_seed(seed)
-
 
     def setup_model(self, model: str) -> None:
         """
@@ -125,7 +129,6 @@ class FullFinetune(FTRecipeInterface):
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
             )
 
-
     def setup_tokenizer(self, tokenizer: str, tokenizer_checkpoint: str) -> None:
         """
         Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
@@ -138,15 +141,13 @@ class FullFinetune(FTRecipeInterface):
         if rank == 0:
             self.logger.info("Tokenizer is initialized from file.")
 
-
-    def setup_optimizer_and_loss(self, optimizer:str, lr: float, loss: str) -> None:
+    def setup_optimizer_and_loss(self, optimizer: str, lr: float, loss: str) -> None:
         self.optimizer = optim.get_optimizer(optimizer, self.model, lr)
         self.loss_fn = losses.get_loss(loss)
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
             self.logger.info("Optimizer and loss are initialized.")
-
 
     def setup_data(self, dataset: str, shuffle: bool, batch_size: int) -> None:
         """
@@ -177,7 +178,6 @@ class FullFinetune(FTRecipeInterface):
         if rank == 0:
             self.logger.info("Dataset and Sampler are initialized.")
 
-
     def setup_training_params(self, epochs: int, max_steps_per_epoch: int) -> None:
         """
         This sets the training parameters for the recipe.
@@ -190,18 +190,19 @@ class FullFinetune(FTRecipeInterface):
         self.epochs_run = 0
 
         self.autocast = utils.get_autocast(self.dtype, self.device)
-        self. grad_scaler = None
+        self.grad_scaler = None
         if self.dtype == torch.float16:
-            self. grad_scaler = utils.get_gradient_scaler(fsdp=True)
+            self.grad_scaler = utils.get_gradient_scaler(fsdp=True)
         else:
-            self. grad_scaler = GradScaler(enabled=False)
+            self.grad_scaler = GradScaler(enabled=False)
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
             self.logger.info("Training parameters are initialized.")
 
-
-    def load_checkpoint(self, model_checkpoint: str, resume_from_checkpoint: bool) -> None:
+    def load_checkpoint(
+        self, model_checkpoint: str, resume_from_checkpoint: bool
+    ) -> None:
         """
         Loading the state for the recipe from a previous checkpoint happens here.
         """
