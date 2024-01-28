@@ -4,13 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Protocol, Tuple
-
-from torch import nn
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader, Sampler
-
-from torchtune.modules import Tokenizer
+from typing import Protocol
 
 
 class FTRecipeInterface(Protocol):

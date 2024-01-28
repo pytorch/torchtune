@@ -8,22 +8,22 @@ import os
 import sys
 
 from functools import partial
-from tqdm import tqdm
 from typing import Tuple
 
 import torch
 
 from torch import nn
 from torch.cuda.amp import GradScaler
-from torch.optim import Optimizer
 from torch.distributed import init_process_group
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+
+from torchtune import datasets, losses, models, modules, optim, utils
+from tqdm import tqdm
 
 from recipes.args import create_full_finetune_args
 from recipes.interfaces import FTRecipeInterface
 from recipes.params import FullFinetuneParams
-
-from torchtune import datasets, losses, models, modules, optim, utils
 
 
 log = utils.get_logger("DEBUG")
@@ -73,7 +73,7 @@ class FullFinetune(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self.sampler, self. dataloader = self._setup_data(
+        self.sampler, self.dataloader = self._setup_data(
             dataset=params.dataset,
             shuffle=params.shuffle,
             batch_size=params.batch_size,
@@ -116,7 +116,9 @@ class FullFinetune(FTRecipeInterface):
             )
         return model
 
-    def _setup_tokenizer(self, tokenizer: str, tokenizer_checkpoint: str) -> modules.Tokenizer:
+    def _setup_tokenizer(
+        self, tokenizer: str, tokenizer_checkpoint: str
+    ) -> modules.Tokenizer:
         """
         Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
         tokenizer model. This is related to how the tokenizer is implemented and should
@@ -200,7 +202,9 @@ class FullFinetune(FTRecipeInterface):
 
             # temporary place holder till we start tracking epoch and seed in
             # utils.save_checkpoint
-            self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else self.epochs_run
+            self.epochs_run = (
+                ckpt_dict["epoch"] if "epoch" in ckpt_dict else self.epochs_run
+            )
             self.seed = (
                 utils.set_seed(seed=ckpt_dict["seed"])
                 if "seed" in ckpt_dict
@@ -208,7 +212,9 @@ class FullFinetune(FTRecipeInterface):
             )
 
         if self.is_rank_zero:
-            log.info(msg=f"Loaded state of the recipe from checkpoint at {model_checkpoint}")
+            log.info(
+                msg=f"Loaded state of the recipe from checkpoint at {model_checkpoint}"
+            )
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -216,17 +222,11 @@ class FullFinetune(FTRecipeInterface):
         model weights and optimizer state.
         """
         output_loc = f"{self.output_dir}/model_{epoch}.ckpt"
-        ckpt_dict = {
-            "model": self.model
-        }
+        ckpt_dict = {"model": self.model}
 
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict.update(
-                {
-                    "optimzer": self.optimizer
-                }
-            )
+            ckpt_dict.update({"optimzer": self.optimizer})
         utils.save_checkpoint(ckpt_dict, output_loc)
 
         if self.is_rank_zero:
@@ -278,6 +278,7 @@ class FullFinetune(FTRecipeInterface):
 
             self.save_checkpoint(epoch=curr_epoch)
 
+
 def recipe_main() -> None:
     parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
     kwargs = vars(create_full_finetune_args(parser).parse_args())
@@ -290,6 +291,7 @@ def recipe_main() -> None:
     recipe = FullFinetune(params=recipe_params)
     recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint)
     recipe.train()
+
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
