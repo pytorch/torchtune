@@ -251,10 +251,6 @@ class FullFinetune(FTRecipeInterface):
     def train(self) -> None:
         """
         The core training loop.
-
-            - Appropriately sets autocase based on precision
-            - Gradient Scaler is appropirately selected
-            - Metrics are logged to the appropriate metric logger (WandB, Tensorboard)
         """
         _, rank = utils.get_world_size_and_rank()
 
