@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from .lora import LoRALinear
+from .peft_utils import AdapterModule
 
-__all__ = [
-    "LoRALinear",
-]
+__all__ = ["LoRALinear", "AdapterModule"]

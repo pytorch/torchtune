@@ -29,3 +29,4 @@ PEFT Components
     :template: class.rst
 
     peft.LoRALinear
+    peft.AdapterModule

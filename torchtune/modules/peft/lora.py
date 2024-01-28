@@ -5,11 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import List
 
 from torch import nn, Tensor
 
+from torchtune.modules.peft.peft_utils import AdapterModule
 
-class LoRALinear(nn.Module):
+
+class LoRALinear(nn.Module, AdapterModule):
     """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
     LoRA perturbs a given layer via a low-rank approximation where only
@@ -61,6 +64,13 @@ class LoRALinear(nn.Module):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+
+    @classmethod
+    def _adapter_params(cls) -> List[str]:
+        """
+        Return lora_a and lora_b as adapter params.
+        """
+        return ["lora_a", "lora_b"]
 
     def forward(self, x: Tensor) -> Tensor:
         """

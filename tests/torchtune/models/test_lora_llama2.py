@@ -102,7 +102,6 @@ class TestLoRALlama2:
     )
     def test_forward(self, vocab_size, inputs, lora_modules, expected):
         model = self.get_lora_llama2(lora_modules, vocab_size)
-        fixed_init_model(model)
         actual = model(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, vocab_size))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
