@@ -207,21 +207,24 @@ class FullFinetune(FTRecipeInterface):
         Loading the state for the recipe from a previous checkpoint happens here.
         """
 
-        # TODO: Update this comment
-        # load_checkpoint takes in the model and optimizer, but only uses these
-        # in case we're resuming from checkpoint
+        # model and optimizer are set only when resuming training
+        ckpt_dict = utils.load_checkpoint_updated(
+            ckpt_path=model_checkpoint,
+            resume_from_checkpoint=resume_from_checkpoint,
+            model=self.model if resume_from_checkpoint else None,
+            optimizer=self.optimizer if resume_from_checkpoint else None,
+        )
 
-        ckpt_dict = utils.load_checkpoint(model_checkpoint, self.model)
         self.model.load_state_dict(ckpt_dict["model"])
 
-        # # use this section to set all of the state which needs to be updated when
-        # # resuming from training
-        # if resume_from_checkpoint:
-        #     self.optimizer.load_state_dict(ckpt_dict["optimizer"])
+        # use this section to set all of the state which needs to be updated when
+        # resuming from training
+        if resume_from_checkpoint:
+            self.optimizer.load_state_dict(ckpt_dict["optimizer"])
 
-        #     # temporary place holder till we start tracking epoch in
-        #     # utils.save_checkpoint
-        #     self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else 0
+            # temporary place holder till we start tracking epoch in
+            # utils.save_checkpoint
+            self.epochs_run = ckpt_dict["epoch"] if "epoch" in ckpt_dict else 0
 
         _, rank = utils.get_world_size_and_rank()
         if rank == 0:
