@@ -1,6 +1,6 @@
 # Dataset and Dataloader
 dataset: alpaca
-seed: 0
+seed: null
 shuffle: True
 
 # Model Arguments
@@ -13,15 +13,9 @@ tokenizer_checkpoint: /tmp/tokenizer.model
 batch_size: 2
 lr: 2e-5
 epochs: 3
-max_steps_per_epoch: 2
 optimizer: SGD
 loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
 dtype: fp32
-activation_checkpointing: True
-cpu_offload: False
-resume_from_previous_checkpoint: False
-
-# Metrics arguments
-metric_logger_type: disk
+resume_from_checkpoint: False

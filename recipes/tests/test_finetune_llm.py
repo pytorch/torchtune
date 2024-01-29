@@ -9,6 +9,7 @@ from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
+from recipes.params import FullFinetuneParams
 from torchtune import models
 from torchtune.models.llama2 import llama2
 
@@ -27,7 +28,7 @@ def small_test_ckpt() -> TransformerDecoder:
     )
 
 
-models._MODEL_DICT["small_test_ckpt"] = small_test_ckpt
+models.ALL_MODELS["small_test_ckpt"] = small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,7 @@ class TestFinetuneLLMRecipe:
             "cpu_offload": False,
         }
 
-        finetune_llm.recipe(**kwargs_values)
+        finetune_llm.recipe(FullFinetuneParams(**kwargs_values))
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
         logger.info("Expected loss values : ", expected_loss_values)
         logger.info("Loss values from Finetune : ", loss_values)
@@ -141,6 +142,6 @@ class TestFinetuneLLMRecipe:
 
         with pytest.raises(
             ValueError,
-            match="CPU offload is only supported with FSDP in a distributed setting.",
+            match="Cannot offload model to CPU if device is not cuda or <= 1 GPUs.",
         ):
-            finetune_llm.recipe(**kwargs_values)
+            finetune_llm.recipe(FullFinetuneParams(**kwargs_values))

@@ -5,14 +5,15 @@
 # LICENSE file in the root directory of this source tree.
 import os
 
-from omegaconf import OmegaConf
-from recipes.finetune_llm import recipe as finetune_llm_recipe
-from torchtune.utils.config import validate_recipe_args
+import pytest
+
+from recipes.params import FullFinetuneParams
+from torchtune.utils.argparse import TuneArgumentParser
 
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
 
-config_to_recipe = {
-    os.path.join(ROOT_DIR, "alpaca_llama2_finetune.yaml"): finetune_llm_recipe,
+config_to_params = {
+    os.path.join(ROOT_DIR, "alpaca_llama2_finetune.yaml"): FullFinetuneParams,
 }
 
 
@@ -21,12 +22,17 @@ class TestConfigs:
     Configs should have the complete set of arguments as specified by the recipe.
     """
 
-    def test_configs(self) -> None:
-        for config_path, recipe in config_to_recipe.items():
-            args = OmegaConf.load(config_path)
+    @pytest.fixture
+    def parser(self):
+        parser = TuneArgumentParser("Test parser")
+        return parser
+
+    def test_configs(self, parser) -> None:
+        for config_path, params in config_to_params.items():
+            args, _ = parser.parse_known_args(["--config", config_path])
             try:
-                validate_recipe_args(recipe, args)
-            except (TypeError, ValueError) as e:
+                _ = params(**vars(args))
+            except ValueError as e:
                 raise AssertionError(
-                    f"Config {config_path} for recipe {recipe.__name__} is not well formed"
+                    f"Config {config_path} using params {params.__name__} is not well formed"
                 ) from e
