@@ -2,3 +2,4 @@ numpy
 sentencepiece==0.1.99
 tqdm==4.66.1
 datasets==2.15.0
+omegaconf==2.3.0
