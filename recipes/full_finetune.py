@@ -29,7 +29,7 @@ from recipes.params import FullFinetuneParams
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetune(FTRecipeInterface):
+class FullFinetuneRecipe(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -201,7 +201,7 @@ class FullFinetune(FTRecipeInterface):
             self.optimizer.load_state_dict(ckpt_dict["optimizer"])
 
             # temporary place holder till we start tracking epoch and seed in
-            # utils.save_checkpoint
+            # `save_checkpoint`
             self.epochs_run = (
                 ckpt_dict["epoch"] if "epoch" in ckpt_dict else self.epochs_run
             )
