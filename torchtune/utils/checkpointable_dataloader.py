@@ -141,7 +141,6 @@ class _CheckpointableDataLoader(DataLoader):
         self._num_yielded = self._last_skip_index
         self._last_skip_index = 0
         for batch in super().__iter__():
-            # As iteration has started, reset the skip index
             # Keep track of the subsequents steps iterated
             self._num_yielded += 1
             yield batch
