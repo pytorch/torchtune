@@ -6,7 +6,7 @@ torchtune.models
 
 .. autosummary::
     :toctree: generated/
-    :template: functions.rst
+    :nosignatures:
 
     llama2_7b
     lora_llama_self_attention

@@ -11,7 +11,7 @@ Distributed
 
 .. autosummary::
     :toctree: generated/
-    :template: function.rst
+    :nosignatures:
 
     distributed.init_distributed
     distributed.get_world_size_and_rank
@@ -24,7 +24,7 @@ Mixed Precsion
 
 .. autosummary::
     :toctree: generated/
-    :template: function.rst
+    :nosignatures:
 
     precision.get_autocast
     precision.get_gradient_scaler
@@ -38,7 +38,7 @@ Memory Management
 
 .. autosummary::
     :toctree: generated/
-    :template: function.rst
+    :nosignatures:
 
     memory.set_activation_checkpointing
 
@@ -47,7 +47,7 @@ Metric Logging
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     metric_logging.get_metric_logger
     metric_logging.WandBLogger
@@ -60,7 +60,7 @@ Data
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     checkpointable_dataloader.CheckpointableDataLoader
     collate.padded_collate
@@ -70,7 +70,7 @@ Checkpoint saving & loading
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     checkpoint.save_checkpoint
     checkpoint.load_checkpoint
@@ -82,7 +82,7 @@ Generation
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     generation.GenerationUtils
     generation.generate_from_prompt
@@ -93,7 +93,7 @@ Miscellaneous
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     argparse.TuneArgumentParser
     logging.get_logger

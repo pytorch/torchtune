@@ -18,7 +18,9 @@ To run the recipe directly, launch with
 Recipe
 ------
 
-Copy the recipe directly into your own script or notebook to modify and edit for yourself. :download:`Download<../../../recipes/llama_generate.py>`
+.. only:: builder_html or PyTorchdoc
+
+    Copy the recipe directly into your own script or notebook to modify and edit for yourself.
 
 .. literalinclude:: ../../../recipes/llama_generate.py
     :pyobject: recipe

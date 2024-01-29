@@ -8,8 +8,11 @@ LLM Finetuning Recipe
 This recipe is used for fine tuning language models on a given dataset. Given a model and dataset it'll train the model on the example text using cross entropy loss.
 
 This recipe supports:
+
 * :ref:`Mixed Precsion Training<mp_label>`
+
 * :ref:`Distributed Training with FSDP<dist_label>`
+
 * :ref:`Activation Checkpointing<ac_label>`
 
 To run the recipe directly, launch with
@@ -21,10 +24,9 @@ To run the recipe directly, launch with
 Recipe
 ------
 
-Copy the recipe directly into your own script or notebook to modify and edit for yourself. :download:`Download<../../../recipes/finetune_llm.py>`
+Copy the recipe directly into your own script or notebook to modify and edit for yourself.
 
 .. literalinclude:: ../../../recipes/finetune_llm.py
-    :pyobject: recipe
 
 Configs
 -------
