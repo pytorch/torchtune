@@ -18,7 +18,7 @@ loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
 dtype: fp32
-activation_checkpointing: False
+activation_checkpointing: True
 cpu_offload: False
 
 # Metrics arguments

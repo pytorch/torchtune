@@ -226,7 +226,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict.update({"optimzer": self.optimizer})
+            ckpt_dict.update({"optimizer": self.optimizer})
         utils.save_checkpoint(ckpt_dict, output_loc)
 
         if self.is_rank_zero:
@@ -288,7 +288,7 @@ def recipe_main() -> None:
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
 
-    recipe = FullFinetune(params=recipe_params)
+    recipe = FullFinetuneRecipe(params=recipe_params)
     recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint)
     recipe.train()
 
