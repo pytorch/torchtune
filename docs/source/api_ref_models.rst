@@ -9,4 +9,4 @@ torchtune.models
     :nosignatures:
 
     llama2_7b
-    lora_llama_self_attention
+    lora_llama2

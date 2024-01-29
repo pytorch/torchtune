@@ -29,5 +29,3 @@ PEFT Components
     :nosignatures:
 
     peft.LoRALinear
-    peft.LoRAFusedLinear
-    peft.FusedLoRADim
