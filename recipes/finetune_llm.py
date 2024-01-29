@@ -6,6 +6,7 @@
 
 
 import argparse
+import dataclasses
 import os
 from functools import partial
 
@@ -17,6 +18,8 @@ from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
+
+from recipes.params import FullFinetuneParams
 
 
 def recipe(
@@ -252,4 +255,5 @@ if __name__ == "__main__":
     args, _ = parser.parse_known_args()
     parser.log_args(args)
     args = vars(args)
-    recipe(**args)
+    params = FullFinetuneParams(**args)
+    recipe(**dataclasses.asdict(params))
