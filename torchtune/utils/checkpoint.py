@@ -127,3 +127,79 @@ def load_checkpoint(
         ckpt_dict["optimizer"] = optim_state_dict_to_load
 
     return ckpt_dict
+
+
+def load_checkpoint_updated(
+    ckpt_path: str,
+    resume_from_checkpoint: bool,
+    model: Optional[nn.Module] = None,
+    optimizer: Optional[optim.Optimizer] = None,
+) -> Dict[str, Any]:
+    """
+    Loads a checkpoint from `ckpt_path`.
+
+    This function makes the following assumptions:
+        - When `resume_from_checkpoint` is `False`, the pre-trained checkpoint being loaded is a "native" checkpoint
+            i.e. the checkpoint has been converted to the TorchTune format using convert_llama2_to_native.py.
+        - When `resume_from_checkpoint` is `True`, the checkpoint was saved using the `save_checkpoint` utility.
+
+    If either of the above assumptions are broken, a RuntimeError will be raised.
+
+    NOTE: Similar to :func:`torch.load`, `load_checkpoint_updated` does NOT load the state dicts or the respective recipe state.
+    This should be handled by the recipe.
+
+    Args:
+        ckpt_path (str): String indicating local path to saved checkpoint file.
+        resume_from_checkpoint (bool): Boolean flag indicating whether this is a fresh training run or resuming from a
+            previous checkpoint.
+        model (Optional[nn.Module]): Model the checkpoint will be loaded into. Only needed when `resume_from_checkpoint` is
+            set to True, in which case this is used to correctly load the optimizer state. Default: `None`.
+        optimizer (Optional[optim.Optimizer]): Optimizer the optimizer state checkpoint will be loaded into. Only needed
+            when `resume_from_checkpoint` is set to True, in which case this is used to correctly load the optimizer state.
+            Default: `None`.
+
+    Returns:
+        ckpt_dict (Dict[str, Any]): Dictionary containing loaded objects. Objects in this dictionary can be used
+            to restore model, optimizer, and any other checkpointed states.
+
+    Raises:
+        RuntimeError: If `ckpt_dict` does not contain a `model` key.
+        RuntimeError: If `resume_from_checkpoint` is `True` and either `model` or `optimizer` is not specified.
+        RuntimeError: If `resume_from_checkpoint` is `True` and `ckpt_dict` does not contain an `optimizer` key.
+
+    Example:
+        >>> ckpt_dict = torchtune.utils.checkpoint.load_checkpoint_updated(ckpt_path, resume_from_checkpoint, model, optimizer)
+        >>> model.load_state_dict(ckpt_dict["model"])
+        >>> optimizer.load_state_dict(ckpt_dict["optimizer"])
+    """
+
+    ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+
+    if "model" not in ckpt_dict:
+        raise RuntimeError(
+            """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was converted to
+            TorchTune's native format or saved using the `save_checkpoint` utility."""
+        )
+
+    if resume_from_checkpoint and (model is None or optimizer is None):
+        raise RuntimeError(
+            """Expected `model` and `optimizer` to be specified when `resume_from_checkpoint` is `True`."""
+        )
+
+    if resume_from_checkpoint and "optimizer" not in ckpt_dict:
+        raise RuntimeError(
+            """Expected loaded checkpoint to contain an `optimizer` key when `resume_from_checkpoint` is `True`. Ensure
+            checkpoint was saved using the `save_checkpoint` utility."""
+        )
+
+    # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
+    if resume_from_checkpoint:
+        optim_state_dict_to_load = (
+            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"])
+            if _contains_fsdp(model)
+            else ckpt_dict["optimizer"]
+        )
+
+        ckpt_dict["optimizer"] = optim_state_dict_to_load
+
+    return ckpt_dict

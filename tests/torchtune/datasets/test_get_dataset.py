@@ -12,7 +12,7 @@ class TestDatasetGetter:
         """
         Test getting a named dataset
         """
-        datasets._DATASET_DICT["test"] = lambda x: x
+        datasets.ALL_DATASETS["test"] = lambda x: x
         dataset = datasets.get_dataset("test", x=1)
         assert dataset == 1
 

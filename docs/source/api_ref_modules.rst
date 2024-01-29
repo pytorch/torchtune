@@ -29,5 +29,3 @@ PEFT Components
     :template: class.rst
 
     peft.LoRALinear
-    peft.LoRAFusedLinear
-    peft.FusedLoRADim

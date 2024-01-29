@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 
 from torch import nn
 
-from torchtune.models import lora_llama_self_attention
+from torchtune.models.lora_llama2 import _lora_llama_self_attention
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 
 try:
@@ -43,7 +43,7 @@ def compare_lora_attention(
     x = torch.randn(bsz, seq_len, embed_dim)
 
     # Our implementation
-    lora_llama_attn = lora_llama_self_attention(
+    lora_llama_attn = _lora_llama_self_attention(
         lora_modules=lora_modules,
         embed_dim=embed_dim,
         num_heads=num_heads,

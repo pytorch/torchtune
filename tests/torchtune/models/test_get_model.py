@@ -13,12 +13,12 @@ class TestModelTokenizerGetter:
         """
         Test getting a named model
         """
-        models._MODEL_DICT["test"] = lambda x: x
+        models.ALL_MODELS["test"] = lambda x: x
         model = models.get_model("test", "cpu", x=1)
         assert model == 1
 
     def test_get_model_device(self):
-        models._MODEL_DICT["test"] = lambda x: x
+        models.ALL_MODELS["test"] = lambda x: x
         model = models.get_model("test", device=torch.device("cpu"), x=1)
         assert model == 1
 
@@ -33,7 +33,7 @@ class TestModelTokenizerGetter:
         """
         Test getting a named tokenizer
         """
-        models._TOKENIZER_DICT["test"] = lambda x: x
+        models.ALL_TOKENIZERS["test"] = lambda x: x
         tokenizer = models.get_tokenizer("test", x=1)
         assert tokenizer == 1
 
