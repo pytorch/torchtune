@@ -101,7 +101,7 @@ def _set_trainable_params(model: nn.Module) -> None:
         None
     """
     adapter_params = _get_adapter_params(model)
-    logger.warn(
+    logger.warning(
         f"Setting {adapter_params.keys()} as trainable, all other model params will be frozen."
     )
     for k, v in model.named_parameters():
