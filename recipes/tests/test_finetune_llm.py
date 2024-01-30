@@ -147,7 +147,7 @@ class TestFinetuneLLMRecipe:
         ):
             finetune_llm.recipe(**kwargs_values)
 
-    def test_finetune_llm_loss_new(self, capsys, pytestconfig):
+    def test_finetune_llm_loss_refactored(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
@@ -171,7 +171,7 @@ class TestFinetuneLLMRecipe:
             "dtype": "fp32",
             "resume_from_checkpoint": False,
             "enable_fsdp": False,
-            "enable_activation_checkpointing": False
+            "enable_activation_checkpointing": False,
         }
 
         recipe_params = FullFinetuneParams(**kwargs_values)

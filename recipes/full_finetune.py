@@ -106,8 +106,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         model = models.get_model(model, device=self.device)
         model = (
-            model if not enable_fsdp else
-            utils.get_fsdp(
+            model
+            if not enable_fsdp
+            else utils.get_fsdp(
                 model=model,
                 device=self.device,
                 dtype=self.dtype,
@@ -303,12 +304,14 @@ def recipe_main() -> None:
     recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint)
     recipe.train()
 
+
 def _validate_recipe_params(params: FullFinetuneParams) -> None:
     """
     Validate the recipe parameters. This should be ultimately and is a place-holder.
     """
     if params.device == "cpu" and params.enable_fsdp:
         raise ValueError("FSDP is not supported on CPU.")
+
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
