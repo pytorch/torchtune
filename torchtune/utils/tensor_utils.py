@@ -4,13 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Union
 
 import torch
 from torch import Tensor
 
 
-def _copy_tensor(t: Tensor) -> Union[Tensor]:
+def _copy_tensor(t: Tensor) -> Tensor:
     """
     A torch.clone-free way to clone a torch.tensor. We implement without
     torch.clone for better compatibility with copy.deepcopy.
