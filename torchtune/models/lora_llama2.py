@@ -25,6 +25,31 @@ from torchtune.modules.peft import LoRALinear
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
+def lora_llama2_7b(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    max_batch_size: Optional[int] = None,
+) -> TransformerDecoder:
+    """Builder for creating a Llama2 model initialized w/ the default 7b parameter values.
+    From https://arxiv.org/abs/2307.09288, these default values are:
+    - vocab_size: 32,000
+    """
+    return lora_llama2(
+        lora_attn_modules=lora_attn_modules,
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=32,
+        embed_dim=4096,
+        max_seq_len=4096,
+        max_batch_size=max_batch_size,
+        attn_dropout=0.0,
+        norm_eps=1e-6,
+        # Based on
+        # https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L41-L42
+        lora_rank=8,
+        lora_alpha=16,
+    )
+
 
 def _lora_llama_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
