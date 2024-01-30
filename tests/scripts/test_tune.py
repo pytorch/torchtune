@@ -123,7 +123,7 @@ class TestTuneCLI:
                 )
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
-    def test_run(self, capsys):
+    def test_run(self):
         recipe = "finetune_llm"
         testargs = f"\
             tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake \
