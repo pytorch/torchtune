@@ -7,9 +7,12 @@
 import math
 from typing import List
 
+import torch.nn.functional as F
+
 from torch import nn, Tensor
 
 from torchtune.modules.peft.peft_utils import AdapterModule
+from torchtune.utils.tensor_utils import _copy_tensor
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -49,7 +52,14 @@ class LoRALinear(nn.Module, AdapterModule):
         self.rank = rank
         self.alpha = alpha
         self.out_dim = out_dim
-        self.linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
+        # vanilla Transformers.
+        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
+        if use_bias:
+            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
+        else:
+            self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(
             in_features=in_dim, out_features=rank, bias=use_bias_in_lora_matrices
@@ -80,7 +90,7 @@ class LoRALinear(nn.Module, AdapterModule):
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
         """
-        out = self.linear(x)
+        out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

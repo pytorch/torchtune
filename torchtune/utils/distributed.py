@@ -111,12 +111,15 @@ def get_fsdp(
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
     FSDP allows three primary types of data parallel training (these can be set under "strategy"):
 
-        NO_SHARD: No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
-            model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
-        SHARD_GRAD_OP: Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
-            model can fit on your GPU but there isn't enough room for a forward and backward pass.
-        FULL_SHARD: All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
-            single GPU.
+    NO_SHARD:
+        No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
+        model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
+    SHARD_GRAD_OP:
+        Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
+        model can fit on your GPU but there isn't enough room for a forward and backward pass.
+    FULL_SHARD:
+        All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
+        single GPU.
 
     If using sharding, you need to define how the model is sharded. The auto_wrap_policy is a list of model layers
     and blocks that FSDP will use as shards.

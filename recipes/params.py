@@ -38,6 +38,8 @@ class FullFinetuneParams:
     epochs: int
     max_steps_per_epoch: int
     resume_from_checkpoint: bool
+    enable_fsdp: bool
+    enable_activation_checkpointing: bool
 
     # Logging
     output_dir: str
