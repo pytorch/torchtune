@@ -107,7 +107,7 @@ def convert_checkpoint(checkpoint_path: Path, output_path: Optional[Path] = None
     # Save the state dict
     if output_path is None:
         checkpoint_dir = checkpoint_path.parent
-        output_path = checkpoint_dir / "model.pt"
+        output_path = checkpoint_dir / "native_pytorch_model.pt"
     torch.save(state_dict, output_path)
     print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}.")
 
