@@ -7,6 +7,7 @@
 
 import runpy
 import sys
+import tempfile
 from unittest.mock import patch
 
 import pytest
@@ -38,8 +39,9 @@ class TestTuneCLIWithDownloadScript:
 
     def test_download_calls_snapshot(self, capsys):
         model = "meta-llama/Llama-2-7b"
-        testargs = f"tune download --repo-id {model} --hf-token ABCDEF".split()
-        with patch.object(sys, "argv", testargs):
-            with patch("huggingface_hub.snapshot_download") as snapshot:
-                runpy.run_path(TUNE_PATH, run_name="__main__")
-                snapshot.assert_called_once()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            testargs = f"tune download --repo-id {model} --output-dir {tmpdir} --hf-token ABCDEF".split()
+            with patch.object(sys, "argv", testargs):
+                with patch("huggingface_hub.snapshot_download") as snapshot:
+                    runpy.run_path(TUNE_PATH, run_name="__main__")
+                    snapshot.assert_called_once()
