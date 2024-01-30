@@ -7,6 +7,7 @@
 import pytest
 import torch
 from torch import nn
+from torchtune.models.llama2 import llama2
 from torchtune.models.lora_llama2 import _lora_llama_self_attention, lora_llama2
 from torchtune.utils.seed import set_seed
 
@@ -74,7 +75,7 @@ class TestLoRALlama2:
     def inputs(self, vocab_size):
         return torch.randint(low=0, high=vocab_size, size=(BSZ, SEQ_LEN))
 
-    def get_lora_llama2(self, lora_modules, vocab_size):
+    def get_lora_llama2(self, lora_modules, vocab_size, reset_norm=True):
         num_layers = 3
         model = lora_llama2(
             lora_attn_modules=lora_modules,
@@ -88,8 +89,21 @@ class TestLoRALlama2:
             lora_alpha=ALPHA,
         )
         # To make final outputs less trivial
-        model.norm = nn.Identity()
+        if reset_norm:
+            model.norm = nn.Identity()
         fixed_init_model(model)
+        return model
+
+    def get_ref_llama2(self, vocab_size):
+        num_layers = 3
+        model = llama2(
+            vocab_size=vocab_size,
+            num_layers=num_layers,
+            num_heads=NUM_HEADS,
+            num_kv_heads=NUM_KV_HEADS,
+            embed_dim=EMBED_DIM,
+            max_seq_len=MAX_SEQ_LEN,
+        )
         return model
 
     @pytest.mark.parametrize(
@@ -106,3 +120,19 @@ class TestLoRALlama2:
         actual = model(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, vocab_size))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
+
+    @pytest.mark.parametrize(
+        "lora_modules",
+        [["q_proj", "v_proj"], ["q_proj", "k_proj", "v_proj", "output_proj"]],
+    )
+    def test_lora_llama2_state_dict_parity(self, lora_modules, vocab_size):
+        lora_llama = self.get_lora_llama2(lora_modules, vocab_size, reset_norm=False)
+        ref_llama = self.get_ref_llama2(vocab_size)
+        # Ensure ref_llama state_dict can be loaded into lora_llama with only "lora"
+        # keys missing.
+        ref_llama_state_dict = ref_llama.state_dict()
+        missing, unexpected = lora_llama.load_state_dict(
+            ref_llama_state_dict, strict=False
+        )
+        assert not unexpected
+        assert all(["lora" in key for key in missing])
