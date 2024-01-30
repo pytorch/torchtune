@@ -10,7 +10,7 @@ import torch
 from torch import Tensor
 
 
-def _copy_tensor(t: Tensor, as_param: bool) -> Union[Tensor, torch.nn.Parameter]:
+def _copy_tensor(t: Tensor) -> Union[Tensor]:
     """
     A torch.clone-free way to clone a torch.tensor. We implement without
     torch.clone for better compatibility with copy.deepcopy.
@@ -19,6 +19,4 @@ def _copy_tensor(t: Tensor, as_param: bool) -> Union[Tensor, torch.nn.Parameter]
     with torch.no_grad():
         ret_tensor.copy_(t)
 
-    if as_param:
-        return torch.nn.Parameter(ret_tensor)
     return ret_tensor

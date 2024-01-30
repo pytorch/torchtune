@@ -53,7 +53,11 @@ class LoRALinear(nn.Module):
         linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
         # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
         # vanilla Transformers.
-        self.register_parameter("weight", _copy_tensor(linear.weight, as_param=True))
+        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
+        if use_bias:
+            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
+        else:
+            self.register_parameter("bias", None)
         self.register_parameter(
             "bias", _copy_tensor(linear.bias, as_param=True) if use_bias else None
         )
