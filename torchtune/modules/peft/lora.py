@@ -58,9 +58,6 @@ class LoRALinear(nn.Module):
             self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
         else:
             self.register_parameter("bias", None)
-        self.register_parameter(
-            "bias", _copy_tensor(linear.bias, as_param=True) if use_bias else None
-        )
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(
             in_features=in_dim, out_features=rank, bias=use_bias_in_lora_matrices
