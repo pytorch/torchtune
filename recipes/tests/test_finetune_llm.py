@@ -9,6 +9,8 @@ from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
+from recipes.full_finetune import FullFinetuneRecipe
+from recipes.params import FullFinetuneParams
 from torchtune import models
 from torchtune.models.llama2 import llama2
 
@@ -144,3 +146,45 @@ class TestFinetuneLLMRecipe:
             match="CPU offload is only supported with FSDP in a distributed setting.",
         ):
             finetune_llm.recipe(**kwargs_values)
+
+    def test_finetune_llm_loss_new(self, capsys, pytestconfig):
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        kwargs_values = {
+            "dataset": "alpaca",
+            "seed": 9,
+            "shuffle": True,
+            "model": ckpt,
+            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
+            "tokenizer": "llama2_tokenizer",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "batch_size": 8,
+            "lr": 2e-5,
+            "epochs": 2,
+            "max_steps_per_epoch": 2,
+            "optimizer": "AdamW",
+            "loss": "CrossEntropyLoss",
+            "output_dir": "/tmp",
+            "device": "cpu",
+            "dtype": "fp32",
+            "resume_from_checkpoint": False,
+            "enable_fsdp": False,
+            "enable_activation_checkpointing": False
+        }
+
+        recipe_params = FullFinetuneParams(**kwargs_values)
+
+        recipe = FullFinetuneRecipe(recipe_params)
+        recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint)
+        recipe.train()
+
+        loss_values = self._fetch_loss_values(capsys.readouterr().err)
+        logger.info("Expected loss values : ", expected_loss_values)
+        logger.info("Loss values from Finetune : ", loss_values)
+        assert len(loss_values) == len(expected_loss_values)
+        for key, value in loss_values.items():
+            assert key in expected_loss_values
+            expected_loss_value = expected_loss_values[key]
+            assert value == pytest.approx(expected_loss_value, abs=0.001)

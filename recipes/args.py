@@ -125,4 +125,32 @@ def create_full_finetune_args(parser) -> argparse.ArgumentParser:
         action="store_false",
         help="Don't resume.",
     )
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--enable-fsdp",
+        action="store_true",
+        help="Enable FSDP",
+        default=True,
+    )
+    group.add_argument(
+        "--disable-fsdp",
+        dest="enable_fsdp",
+        action="store_false",
+        help="Disable FSDP.",
+    )
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--enable-activation-checkpointing",
+        action="store_true",
+        help="Enable FSDP",
+        default=True,
+    )
+    group.add_argument(
+        "--disable-activation-checkpointing",
+        dest="enable_activation_checkpointing",
+        action="store_false",
+        help="Disable FSDP.",
+    )
     return parser
