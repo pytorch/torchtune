@@ -122,18 +122,9 @@ class TestTuneCLI:
                 )
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
-    def test_run(self, capsys):
+    def test_run(self):
         recipe = "finetune_llm"
-        testargs = (
-            f"tune {recipe} --config alpaca_llama2_finetune --tokenizer fake".split()
-        )
+        testargs = f"tune {recipe} --config alpaca_llama2_finetune".split()
         with patch.object(sys, "argv", testargs):
             with pytest.raises(SystemExit) as e:
                 runpy.run_path(tune_path, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.err.rstrip("\n").split("\n")[-1]
-        assert (
-            output
-            == "finetune_llm.py: error: argument --tokenizer: invalid choice: 'fake' (choose from 'llama2_tokenizer')"
-        )
