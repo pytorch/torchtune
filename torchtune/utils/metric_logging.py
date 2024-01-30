@@ -214,9 +214,10 @@ class TensorBoardLogger(MetricLoggerInterface):
         # In case organize_logs is `True`, update log_dir to include a subdirectory for the
         # current run
         self.log_dir = (
-                os.path.join(log_dir, f'run_{self._rank}_{time.time()}')
-                if organize_logs else log_dir
-            )
+            os.path.join(log_dir, f"run_{self._rank}_{time.time()}")
+            if organize_logs
+            else log_dir
+        )
 
         # Initialize the log writer only if we're on rank 0.
         if self._rank == 0:
