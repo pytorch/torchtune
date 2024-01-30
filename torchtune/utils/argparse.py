@@ -21,8 +21,8 @@ class TuneArgumentParser(argparse.ArgumentParser):
 
     https://docs.python.org/3/library/argparse.html
 
-    *Note: This class does not support setting "required" arguments.
-    *Note: This class uses "config" as a builtin argument so it is not available to use
+    *Note: This class does not support setting "required" arguments.*
+    *Note: This class uses "config" as a builtin argument so it is not available to use*
     """
 
     def __init__(self, *args, **kwargs):
