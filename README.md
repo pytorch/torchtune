@@ -44,15 +44,19 @@ from torchtune.modules import TransformerDecoder
 Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama/Llama-2-7b) repository
 to ensure you have access to the Llama2 model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine.
 
-> Set your environment variable `HF_TOKEN` or pass in `--hf-token` to the command in order to validate your access.
+> Set your environment variable `HF_TOKEN` or pass in `--hf-token` to the command in order to validate your access. You can find your token at https://huggingface.co/settings/tokens
 
 ```
 tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
 ```
 
-### Converting the checkpoint into PyTorch-native
+### Converting the checkpoint into PyTorch-native format
 
-<ADD INSTRUCTIONS HERE>
+Now that you have the Llama2 model weights, we need to convert into a PyTorch-native format supported by Torchtune.
+
+```
+tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
+```
 
 ### Running recipes
 
