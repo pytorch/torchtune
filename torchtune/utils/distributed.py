@@ -7,7 +7,7 @@
 
 import logging
 import os
-from typing import Dict, Optional, Set, Tuple
+from typing import Callable, Dict, Optional, Set, Tuple
 
 import torch
 import torch.distributed as dist
@@ -104,6 +104,7 @@ def get_fsdp(
     dtype: torch.dtype,
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Set[nn.Module]] = None,
+    custom_wrap_policy: Optional[Callable[[nn.Module, bool, int], bool]] = None,
     cpu_offload: bool = False,
     **kwargs
 ) -> nn.Module:
@@ -140,6 +141,9 @@ def get_fsdp(
             strategy = "NO_SHARD"
         _validate_device_from_env(device)
         wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
+        # TODO: this is a hack, we should handle custom wrap policy better though
+        if custom_wrap_policy:
+            wrap_policy = custom_wrap_policy
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
         if cpu_offload:
             _log.warning(

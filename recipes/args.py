@@ -126,3 +126,16 @@ def create_full_finetune_args(parser) -> argparse.ArgumentParser:
         help="Don't resume.",
     )
     return parser
+
+def create_lora_finetune_args(parser) -> argparse.ArgumentParser:
+
+    parser = create_full_finetune_args(parser)
+
+    parser.add_argument(
+        "--lora-attn-modules",
+        nargs='+',
+        help='List of modules to apply LoRA to in self-attention',
+        default=["q_proj", "v_proj"]
+    )
+
+    return parser

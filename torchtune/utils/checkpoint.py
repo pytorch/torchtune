@@ -203,3 +203,10 @@ def load_checkpoint_updated(
         ckpt_dict["optimizer"] = optim_state_dict_to_load
 
     return ckpt_dict
+
+# TODO: probably put this somewhere else
+def _map_key(key: str, param_name_mapping: Dict[str, str]) -> str:
+    for k, v in param_name_mapping.items():
+        if k in key:
+            key = key.replace(k, v)
+    return key
