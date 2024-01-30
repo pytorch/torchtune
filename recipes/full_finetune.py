@@ -295,7 +295,7 @@ def recipe_main() -> None:
     kwargs = vars(create_full_finetune_args(parser).parse_args())
 
     recipe_params = FullFinetuneParams(**kwargs)
-    # _validate_recipe_params(recipe_params)
+    _validate_recipe_params(recipe_params)
 
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
@@ -307,7 +307,7 @@ def recipe_main() -> None:
 
 def _validate_recipe_params(params: FullFinetuneParams) -> None:
     """
-    Validate the recipe parameters. This should be ultimately and is a place-holder.
+    Validate the recipe parameters. This should be ultimately replaced and is a place-holder.
     """
     if params.device == "cpu" and params.enable_fsdp:
         raise ValueError("FSDP is not supported on CPU.")
