@@ -6,6 +6,7 @@
 
 import pytest
 from torch import nn
+from torchtune.models.llama2 import llama2
 from torchtune.models.lora_llama2 import lora_llama2
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
@@ -17,6 +18,11 @@ from torchtune.modules.peft.peft_utils import (
 N_LAYERS = 3
 IN_DIM = 5
 OUT_DIM = 10
+VOCAB_SIZE = 50
+NUM_HEADS = 4
+NUM_KV_HEADS = 2
+EMBED_DIM = 64
+MAX_SEQ_LEN = 64
 
 
 class DummyAdapterModule(nn.Module, AdapterModule):
@@ -90,12 +96,12 @@ def dummy_model_expected_base_model_keys():
 def lora_llama2_model():
     return lora_llama2(
         lora_attn_modules=["q_proj", "v_proj"],
-        vocab_size=50,
+        vocab_size=VOCAB_SIZE,
         num_layers=N_LAYERS,
-        num_heads=4,
-        num_kv_heads=2,
-        embed_dim=64,
-        max_seq_len=64,
+        num_heads=NUM_HEADS,
+        num_kv_heads=NUM_KV_HEADS,
+        embed_dim=EMBED_DIM,
+        max_seq_len=MAX_SEQ_LEN,
         lora_rank=4,
         lora_alpha=1.0,
     )
@@ -118,22 +124,16 @@ def lora_llama2_expected_adapter_keys():
 
 @pytest.fixture
 def lora_llama2_expected_base_model_keys():
-    keys = ["tok_embeddings.weight", "output.weight", "norm.scale"]
-    for i in range(N_LAYERS):
-        keys.extend(
-            [
-                f"layers.{i}.sa_norm.scale",
-                f"layers.{i}.attn.q_proj.weight",
-                f"layers.{i}.attn.k_proj.weight",
-                f"layers.{i}.attn.v_proj.weight",
-                f"layers.{i}.attn.output_proj.weight",
-                f"layers.{i}.mlp_norm.scale",
-                f"layers.{i}.mlp.w1.weight",
-                f"layers.{i}.mlp.w2.weight",
-                f"layers.{i}.mlp.w3.weight",
-            ]
-        )
-    return keys
+
+    base_model = llama2(
+        vocab_size=VOCAB_SIZE,
+        num_layers=N_LAYERS,
+        num_heads=NUM_KV_HEADS,
+        num_kv_heads=NUM_KV_HEADS,
+        embed_dim=EMBED_DIM,
+        max_seq_len=MAX_SEQ_LEN,
+    )
+    return base_model.state_dict().keys()
 
 
 class TestPeftUtils:

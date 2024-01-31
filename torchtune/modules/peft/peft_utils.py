@@ -4,13 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
+import functools
 from typing import Any, Dict, List, Protocol
 
 from torch import nn
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class AdapterModule(Protocol):
@@ -20,7 +17,8 @@ class AdapterModule(Protocol):
     but it must define the ``adapter_params(self)`` method.
     """
 
-    def adapter_params(self) -> List[str]:
+    @classmethod
+    def adapter_params(cls) -> List[str]:
         """
         Return a list of strings corresponding to the names of the nn.Parameters in
         the model coming from the adapter.
@@ -32,6 +30,7 @@ class AdapterModule(Protocol):
         pass
 
 
+@functools.lru_cache()
 def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
     """
     Return the subset of parameters from a model that correspond to an adapter.
@@ -50,15 +49,18 @@ def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
     for k, v in model.named_modules():
         if hasattr(v, "adapter_params") and callable(v.adapter_params):
             current_adapter_params = v.adapter_params()
-            for p in current_adapter_params:
-                assert (
-                    p in v.state_dict()
-                ), f"nn.Parameter {p} not found in {v.state_dict().keys()}"
-                full_key = ".".join([k, p]) if k else p
-                adapter_params.update({full_key: v.state_dict()[p]})
+            for n, p in v.named_parameters(recurse=True):
+                if n in current_adapter_params:
+                    full_key = f"{k}.{n}" if k else n
+                    adapter_params.update({full_key: p})
+                    current_adapter_params.remove(n)
+            assert (
+                current_adapter_params == []
+            ), f"Adapter params {current_adapter_params} not converted"
     return adapter_params
 
 
+@functools.lru_cache()
 def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
     """
     Given a model containing some adapter weights, return the subset of the model's
@@ -89,8 +91,5 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
     Returns:
         None
     """
-    logger.warning(
-        f"Setting {adapter_params.keys()} as trainable, all other model params will be frozen."
-    )
     for k, v in model.named_parameters():
         v.requires_grad_(k in adapter_params)
