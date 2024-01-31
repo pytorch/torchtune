@@ -42,7 +42,7 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
     # Ensure index is available before setting device
     if device.index >= torch.cuda.device_count():
         raise RuntimeError(
-            "The local rank is larger than the number of available GPUs."
+            f"The local rank {local_rank} is larger than the number of available GPUs {torch.cuda.device_count()}."
         )
 
     torch.cuda.set_device(device)
