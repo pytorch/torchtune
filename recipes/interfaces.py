@@ -25,17 +25,16 @@ class FTRecipeInterface(Protocol):
 
     def load_checkpoint(self, **kwargs) -> None:
         """
-        This method is responsible for loading ALL of the state for the recipe from the
+        Responsible for loading ALL of the state for the recipe from the
         checkpoint file, including state for the model, optimizer, dataloader and training
         parameters such as the epoch and seed.
         """
         ...
 
-    def save_checkpoint(self, **kwargs) -> None:
+    def setup(self, **kwargs) -> None:
         """
-        This method is responsible for saving ALL of the state for the recipe,
-        including state for the model, optimizer, dataloader and training
-        parameters such as the epoch and seed.
+        Responsible for setting up all of the components necessary for training. This includes
+        model, optimizer, loss function and dataloader.
         """
         ...
 
@@ -43,6 +42,14 @@ class FTRecipeInterface(Protocol):
         """
         All of the training logic, including the core loop, loss computation, gradient
         accumulation, and backward.
+        """
+        ...
+
+    def save_checkpoint(self, **kwargs) -> None:
+        """
+        Responsible for saving ALL of the state for the recipe,
+        including state for the model, optimizer, dataloader and training
+        parameters such as the epoch and seed.
         """
         ...
 

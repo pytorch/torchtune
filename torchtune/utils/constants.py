@@ -11,6 +11,10 @@ Keys used during checkpoint load and checkpoint save.
 # number of epochs completed thus far
 EPOCHS_KEY = "epochs_run"
 
+TOTAL_EPOCHS_KEY = "total_epochs"
+
+MAX_STEPS_KEY = "max_steps_per_epoch"
+
 # model weights
 MODEL_KEY = "model"
 
