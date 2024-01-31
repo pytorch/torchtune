@@ -73,6 +73,9 @@ class TestFinetuneLLMRecipe:
         large_scale = pytestconfig.getoption("--large-scale")
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
+        device_opt = pytestconfig.getoption("--cuda")
+        device = "cuda" if device_opt else "cpu"
+        logger.info(f"Running finetune job on device {device}")
 
         kwargs_values = {
             "dataset": "alpaca",
@@ -89,7 +92,7 @@ class TestFinetuneLLMRecipe:
             "optimizer": "AdamW",
             "loss": "CrossEntropyLoss",
             "output_dir": "/tmp",
-            "device": "cuda",
+            "device": device,
             "dtype": "fp32",
             "fsdp": False,
             "activation_checkpointing": False,
