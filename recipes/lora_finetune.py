@@ -25,7 +25,7 @@ from recipes.args import create_lora_finetune_args
 from recipes.interfaces import FTRecipeInterface
 from recipes.params import LoRAFinetuneParams
 from torchtune.utils.checkpoint import _map_key
-from torchtune.modules.peft.peft_utils import _set_trainable_params
+from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
 
 log = utils.get_logger("DEBUG")
 
@@ -65,7 +65,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         _, rank = utils.get_world_size_and_rank()
         self.is_rank_zero = rank == 0
 
-        self.model = self._setup_model(model=params.model, lora_attn_modules=params.lora_attn_modules)
+        self.model = self._setup_model(
+            model=params.model,
+            lora_attn_modules=params.lora_attn_modules,
+            enable_fsdp=params.enable_fsdp,
+            enable_activation_checkpointing=params.enable_activation_checkpointing,
+        )
         self.tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
         )
@@ -95,14 +100,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         else:
             self.grad_scaler = GradScaler(enabled=False)
 
-    def _setup_model(self, model: str, lora_attn_modules: List[str]) -> nn.Module:
+    def _setup_model(
+        self, model: str, lora_attn_modules: List[str], enable_fsdp: bool, enable_activation_checkpointing: bool
+    ) -> nn.Module:
         """
         This assumes FSDP and activation checkpointing are enabled by default.
         """
         model = models.get_model(model, device=self.device, lora_attn_modules=lora_attn_modules)
 
         # TODO: where to put this
-        _set_trainable_params(model)
+        adapter_params = get_adapter_params(model)
+        set_trainable_params(model, adapter_params)
 
         # TODO: move this somewhere else
         def lora_custom_auto_wrap_policy(
@@ -112,21 +120,27 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         ):
             if isinstance(module, modules.TransformerDecoderLayer):
                 return True
+            # if module
             if hasattr(module, 'weight') and module.weight.requires_grad == True:
                 return True
             return False
 
+        model = (
+            model
+            if not enable_fsdp
+            else utils.get_fsdp(
+                model=model,
+                device=self.device,
+                dtype=self.dtype,
+                strategy="FULL_SHARD",
+                custom_wrap_policy=lora_custom_auto_wrap_policy,
+            )
+        )
 
-        model = utils.get_fsdp(
-            model=model,
-            device=self.device,
-            dtype=self.dtype,
-            strategy="FULL_SHARD",
-            custom_wrap_policy=lora_custom_auto_wrap_policy,
-        )
-        utils.set_activation_checkpointing(
-            model, auto_wrap_policy={modules.TransformerDecoderLayer}
-        )
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+            )
 
         if self.is_rank_zero:
             log.info(
@@ -211,10 +225,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             optimizer=self.optimizer if self.resume_from_checkpoint else None,
         )
 
-        # TODO: move into a util and clean up hacky logic
-        param_name_mapping = {k: '.'.join([k, 'linear']) for k in lora_attn_modules}
-        mapped_sd = {_map_key(k, param_name_mapping): v for k, v in ckpt_dict['model'].items()}
-        missing, unexpected = self.model.load_state_dict(mapped_sd, strict=False)
+        missing, unexpected = self.model.load_state_dict(ckpt_dict["model"], strict=False)
         assert all(["q_proj" in x or "v_proj" in x for x in missing])
         assert not unexpected
 
@@ -308,14 +319,21 @@ def recipe_main() -> None:
     kwargs = vars(create_lora_finetune_args(parser).parse_args())
 
     recipe_params = LoRAFinetuneParams(**kwargs)
+    _validate_recipe_params(recipe_params)
 
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
 
     recipe = LoRAFinetuneRecipe(params=recipe_params)
-    recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint, lora_attn_modules=recipe_params.lora_attn_modules)
+    # recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint, lora_attn_modules=recipe_params.lora_attn_modules)
     recipe.train()
 
+def _validate_recipe_params(params: LoRAFinetuneParams) -> None:
+    """
+    Validate the recipe parameters. This should be ultimately replaced and is a place-holder.
+    """
+    if params.device == "cpu" and params.enable_fsdp:
+        raise ValueError("FSDP is not supported on CPU.")
 
 if __name__ == "__main__":
     sys.exit(recipe_main())
