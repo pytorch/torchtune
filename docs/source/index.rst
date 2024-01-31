@@ -60,6 +60,16 @@ TorchTune tutorials.
    overview
    install
 
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Recipes
+   :hidden:
+
+   recipes/finetune_llm
+   recipes/llama_generate
+
 .. toctree::
    :glob:
    :maxdepth: 1
@@ -74,5 +84,7 @@ TorchTune tutorials.
    :caption: API Reference
    :hidden:
 
+   api_ref_datasets
    api_ref_models
    api_ref_modules
+   api_ref_utilities

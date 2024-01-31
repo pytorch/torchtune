@@ -7,11 +7,13 @@
 
 import logging
 import os
-from typing import Optional, Set, Tuple
+from typing import Dict, Optional, Set, Tuple
 
 import torch
+import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import (
+    CPUOffload,
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
     ShardingStrategy,
@@ -38,8 +40,8 @@ def _is_distributed() -> bool:
     addr = os.environ.get("MASTER_ADDR", "")
     size = int(os.environ.get("WORLD_SIZE", 1))
     rank = int(os.environ.get("RANK", -1))
-    avlb = torch.distributed.is_available()
-    return bool(port and addr and size > 1 and rank >= 0 and avlb)
+    avlb = dist.is_available()
+    return bool(port and addr and size >= 1 and rank >= 0 and avlb)
 
 
 def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
@@ -51,42 +53,36 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
 
     Returns:
         torch.Tensor: Broadcasted tensor.
-
-    Raises:
-        RuntimeError: If torch.distributed is not initialized.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         device = tensor.device
-        if torch.distributed.get_backend() == "nccl":
+        if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
-        torch.distributed.broadcast(tensor, src=src, group=None)
+        dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
     else:
         return tensor
 
 
-def init_distributed(distributed: bool = True, **kwargs):
+def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
     """Initialize torch.distributed.
 
     Args:
-        distributed (bool): Whether to initialize torch.distributed.
-        **kwargs: keyword arguments to pass to torch.distributed.init_process_group.
+        **kwargs (Dict): Additional arguments to pass to torch.distributed.init_process_group.
+
+    Returns:
+        bool: True if torch.distributed is initialized.
 
     Raises:
         RuntimeError: If torch.distributed is already initialized.
     """
-    if distributed:
-        if not _is_distributed():
-            raise RuntimeError(
-                "Environment not setup for distributed training. Please see documentation on launching a distributed job."
-            )
-        if torch.distributed.is_initialized():
+    if _is_distributed():
+        if dist.is_initialized():
             raise RuntimeError("torch.distributed already initialized.")
-        torch.distributed.init_process_group(**kwargs)
+        dist.init_process_group(**kwargs)
+        return True
+    else:
+        return False
 
 
 def get_world_size_and_rank() -> Tuple[int, int]:
@@ -95,15 +91,8 @@ def get_world_size_and_rank() -> Tuple[int, int]:
 
     Returns:
         Tuple[int, int]: world size, rank
-
-    Raises:
-        RuntimeError: If torch.distributed is not initialized.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         return torch.distributed.get_world_size(), torch.distributed.get_rank()
     else:
         return 1, 0
@@ -115,17 +104,21 @@ def get_fsdp(
     dtype: torch.dtype,
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Set[nn.Module]] = None,
+    cpu_offload: bool = False,
     **kwargs
 ) -> nn.Module:
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
     FSDP allows three primary types of data parallel training (these can be set under "strategy"):
 
-        NO_SHARD: No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
-            model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
-        SHARD_GRAD_OP: Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
-            model can fit on your GPU but there isn't enough room for a forward and backward pass.
-        FULL_SHARD: All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
-            single GPU.
+    NO_SHARD:
+        No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
+        model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
+    SHARD_GRAD_OP:
+        Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
+        model can fit on your GPU but there isn't enough room for a forward and backward pass.
+    FULL_SHARD:
+        All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
+        single GPU.
 
     If using sharding, you need to define how the model is sharded. The auto_wrap_policy is a list of model layers
     and blocks that FSDP will use as shards.
@@ -136,6 +129,7 @@ def get_fsdp(
         dtype (torch.dtype): dtype used to determine if mixed precision training is used.
         strategy (Optional[str]): Sharding strategy to use. The main options are (FULL_SHARD, SHARD_GRAD_OP, NO_SHARD)
         auto_wrap_policy (Optional[Set[nn.Module]]): Set of model blocks to shard for sharding.
+        cpu_offload (bool): Whether to offload sharded parameters to CPU.
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:
@@ -144,16 +138,16 @@ def get_fsdp(
     Raises:
         RuntimeError: If environment not setup for distributed training.
     """
-    if _is_distributed():
-        if not torch.distributed.is_initialized():
-            raise RuntimeError(
-                "torch.distributed must be initialized. See torchtune.utils.init_distributed."
-            )
+    if dist.is_available() and dist.is_initialized():
         if strategy is None:
             strategy = "NO_SHARD"
         _validate_device_from_env(device)
         wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
+        if cpu_offload:
+            _log.warning(
+                "CPU offload will significantly reduce performance. Use with caution."
+            )
         return FSDP(
             model,
             auto_wrap_policy=wrap_policy,
@@ -161,9 +155,10 @@ def get_fsdp(
             param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
+            cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
             **kwargs
         )
     else:
         raise RuntimeError(
-            "Environment not setup for distributed training. Please see documentation on launching a distributed job."
+            "Distributed environment is not setup. Please run init_distributed() first."
         )

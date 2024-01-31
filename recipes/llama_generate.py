@@ -24,7 +24,7 @@ def recipe(
 
     token_for_generation = [tokenizer.encode(prompt, add_eos=False)]
 
-    seed = set_seed()
+    set_seed()
 
     device = get_device()
 
@@ -41,7 +41,7 @@ def recipe(
     decoder.eval()
 
     with torch.no_grad():
-        generations_no_kv_cache, _ = GenerationUtils(
+        generations, _ = GenerationUtils(
             decoder_lm=decoder,
             eos_id=tokenizer.eos_id,
             pad_id=tokenizer.pad_id,
@@ -56,7 +56,7 @@ def recipe(
             device=device,
         )
 
-        generated_tokens = tokenizer.decode(generations_no_kv_cache.tolist())
+        generated_tokens = tokenizer.decode(generations.tolist())
     print(generated_tokens[0])
 
 
@@ -78,6 +78,7 @@ if __name__ == "__main__":
         "--prompt",
         type=str,
         help="Input to the model",
+        required=True,
         # for alpaca format see: https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release
     )
     parser.add_argument(

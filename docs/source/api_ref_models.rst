@@ -6,6 +6,7 @@ torchtune.models
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     llama2_7b
+    lora_llama2

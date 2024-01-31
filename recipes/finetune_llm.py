@@ -13,6 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
@@ -28,7 +29,6 @@ def recipe(
     dataset,
     shuffle,
     batch_size,
-    fsdp,
     epochs,
     optimizer,
     loss,
@@ -37,13 +37,19 @@ def recipe(
     output_dir,
     run_generation,
     max_steps_per_epoch,
+    metric_logger_type,
+    project,
+    resume_from_previous_checkpoint,
+    cpu_offload,
 ):
     # ---- Initialize components ---- #
-    utils.init_distributed(fsdp)
+    distributed = utils.init_distributed()
+    world_size, rank = utils.get_world_size_and_rank()
 
-    # logger = logging.getLogger()
-    # logger.setLevel(logging.DEBUG) # test
     logger = utils.get_logger("DEBUG")
+    metric_logger = utils.get_metric_logger(
+        metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
+    )
 
     device = utils.get_device(device)
     dtype = utils.get_dtype(dtype)
@@ -53,38 +59,59 @@ def recipe(
     tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
     logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
 
+    # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
     model = models.get_model(model, device=device)
-    if fsdp:
-        # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
+
+    if cpu_offload and not distributed:
+        raise ValueError(
+            "CPU offload is only supported with FSDP in a distributed setting."
+            "Please launch in a distributed setting. If you do not wish to use > 1 GPU,"
+            "use ``tune --nnodes 1 --nproc_per_node 1 ...``. FSDP will not shard"
+            "any parameters."
+        )
+
+    if distributed:  # Use FSDP model for distributed training
         model = utils.get_fsdp(
             model=model,
             device=device,
             dtype=dtype,
             strategy="FULL_SHARD",
             auto_wrap_policy={modules.TransformerDecoderLayer},
+            cpu_offload=cpu_offload,
         )
     if activation_checkpointing:
         utils.set_activation_checkpointing(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
-    loaded_ckpt = torch.load(model_checkpoint, map_location="cpu", weights_only=True)
-    model.load_state_dict(loaded_ckpt)
-    logger.info(msg=f"Loaded model from {model_checkpoint}")
-
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
+    # Load model and possibly optimizer states
+    if resume_from_previous_checkpoint:
+        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+        model.load_state_dict(ckpt_dict["model"])
+        # Note: optimizer entry in dictionary is pre-transformed if using FSDP
+        opt.load_state_dict(ckpt_dict["optimizer"])
+        if rank == 0:
+            logger.info(
+                msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
+            )
+    else:
+        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        model.load_state_dict(ckpt_dict["model"])
+        if rank == 0:
+            logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
+
     # TODO add lr schedule option
     loss_fn = losses.get_loss(loss)
 
     autocast = utils.get_autocast(dtype, device)
     if dtype == torch.float16:
-        grad_scaler = utils.get_gradient_scaler(fsdp=fsdp)
+        grad_scaler = utils.get_gradient_scaler(distributed)
     else:
         grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    world_size, rank = utils.get_world_size_and_rank()
     ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
         ds,
@@ -108,7 +135,7 @@ def recipe(
     # ---- Train loop ---- #
     for epoch in range(epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
-        for idx, batch in enumerate(pbar := tqdm(dataloader)):
+        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -122,16 +149,24 @@ def recipe(
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                # shift_labels = shift_labels.view(-1)
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = loss_fn(logits, labels)
 
-            pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
-            )  # TODO: add terminal logger
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
+
+            # Log metrics at each step
+            # If no metric logger is specified, this is a no-op
+            if rank == 0:
+                metric_logger.log_dict(
+                    {
+                        "loss": loss.item(),
+                        "lr": opt.param_groups[0]["lr"],
+                        "gpu_resources": torch.cuda.memory_allocated(),
+                    },
+                    step=epoch * len(dataloader)
+                    + idx,  # Each step is unique, not limited to each epoch
+                )
 
             grad_scaler.scale(loss).backward()
             grad_scaler.step(opt)
@@ -158,18 +193,22 @@ def recipe(
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
         os.makedirs(output_dir, exist_ok=True)
         output_loc = f"{output_dir}/model_{epoch}.ckpt"
-        torch.save(
-            {
-                "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": opt.state_dict(),
-                "loss": loss.mean().item(),
-            },
-            output_loc,
-        )
-        logger.info(
-            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        )
+        ckpt_dict = {
+            "model": model,
+            "optimizer": opt,
+        }
+        if epoch == epochs - 1:
+            # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
+            ckpt_dict.pop("optimizer")
+        if rank == 0:
+            logger.info(msg=f"Saving model checkpoint to {output_loc}")
+        save_checkpoint(ckpt_dict, output_loc)
+        if rank == 0:
+            logger.info(
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+            )
+
+    metric_logger.close()
 
 
 if __name__ == "__main__":
@@ -191,7 +230,16 @@ if __name__ == "__main__":
             provide the same transforms of samples across runs.
             """,
     )
-    parser.add_argument("--shuffle", help="Shuffle dataset.", default=True)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--shuffle", action="store_true", help="Shuffle dataset.", default=True
+    )
+    group.add_argument(
+        "--no-shuffle",
+        dest="shuffle",
+        action="store_false",
+        help="Don't shuffle dataset.",
+    )
 
     # Model arguments
     parser.add_argument(
@@ -244,7 +292,8 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints.",
+        help="Directory in which to save checkpoints."
+        "If using a metric logger like Tensorboard, this dir will also contain those logs.",
     )
     parser.add_argument(
         "--device",
@@ -252,17 +301,18 @@ if __name__ == "__main__":
         default="cpu",
         help="`cuda` or `cpu`",
     )
-    parser.add_argument(
-        "--fsdp",
-        type=bool,
-        default=False,
-        help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
-    )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--activation-checkpointing",
-        type=bool,
+        action="store_true",
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+    group.add_argument(
+        "--no-activation-checkpointing",
+        dest="activation_checkpointing",
+        action="store_false",
+        help="Don't train the model with activation checkpointing.",
     )
     parser.add_argument(
         "--run-generation",
@@ -282,6 +332,33 @@ if __name__ == "__main__":
         choices=utils.list_dtypes(),
         default=None,
         help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
+    )
+    parser.add_argument(
+        "--metric-logger-type",
+        type=str,
+        choices=utils.list_metric_loggers(),
+        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="Project name for WandB metric logger.",
+    )
+    parser.add_argument(
+        "--resume-from-previous-checkpoint",
+        help="""Resume from a previous finetune checkpoint. Note that the previous
+            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
+            is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
+            """,
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--cpu-offload",
+        action="store_true",
+        default=False,
+        help="Offload parameters and gradients to CPU when not involved in computation. Optimizer step runs on CPU.",
     )
 
     kwargs = vars(parser.parse_args())

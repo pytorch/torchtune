@@ -101,14 +101,15 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
@@ -125,7 +126,6 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_gqa
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         head_dim = embed_dim // num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
@@ -138,7 +138,9 @@ class TestCausalSelfAttention:
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
@@ -153,14 +155,15 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
@@ -176,7 +179,6 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mha
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
@@ -189,7 +191,9 @@ class TestCausalSelfAttention:
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
@@ -204,14 +208,18 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
+        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
+        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
@@ -227,7 +235,9 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
+        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
+        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
+        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
@@ -240,7 +250,9 @@ class TestCausalSelfAttention:
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
             head_dim=head_dim,
-            qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+            q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+            k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+            v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
@@ -254,7 +266,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = gqa(input)
         assert_expected(
-            output.mean(), torch.tensor(-2852.556640625), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2545.42236328125), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -268,7 +280,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = gqa_kv_cache(input, mask=mask, curr_pos=0)
         assert_expected(
-            output.mean(), torch.tensor(-2852.556640625), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2545.42236328125), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -276,7 +288,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = mha(input)
         assert_expected(
-            output.mean(), torch.tensor(-2598.19482421875), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2597.248046875), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -287,7 +299,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = mha_kv_cache(input, mask=mask, curr_pos=0)
         assert_expected(
-            output.mean(), torch.tensor(-2598.19482421875), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2597.248046875), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -295,7 +307,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = mqa(input)
         assert_expected(
-            output.mean(), torch.tensor(-5087.19775390625), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2108.07666015625), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
@@ -306,7 +318,7 @@ class TestCausalSelfAttention:
         with torch.no_grad():
             output = mqa_kv_cache(input, mask=mask, curr_pos=0)
         assert_expected(
-            output.mean(), torch.tensor(-5087.19775390625), atol=1e-8, rtol=1e-3
+            output.mean(), torch.tensor(-2108.076660156255), atol=1e-8, rtol=1e-3
         )
         assert_expected(output.shape, input.shape)
 
