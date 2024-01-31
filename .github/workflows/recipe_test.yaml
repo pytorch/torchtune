@@ -60,6 +60,6 @@ jobs:
           python -m pip install -e .
           nvidia-smi
       - name: Run unit tests with coverage
-        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv --cuda
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
