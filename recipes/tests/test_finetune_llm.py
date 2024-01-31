@@ -78,6 +78,7 @@ class TestFinetuneLLMRecipe:
         device = "cuda" if use_cuda else "cpu"
         logger.info(
                 f"Running finetune job on device {device} with {torch.cuda.device_count()} GPUs"
+        )
         kwargs_values = {
             "dataset": "alpaca",
             "seed": 9,
