@@ -8,7 +8,7 @@ import logging
 
 import torch
 
-from torchtune.models.llama2 import llama2_7b, llama2_tokenizer
+from torchtune import models
 from torchtune.utils import get_device, set_seed, TuneArgumentParser
 from torchtune.utils.generation import GenerationUtils
 
@@ -16,9 +16,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
+def recipe(
+    model, model_checkpoint, tokenizer, tokenizer_checkpoint, prompt, max_gen_len
+):
     # Inference setup
-    tokenizer = llama2_tokenizer(tokenizer_checkpoint)
+    tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
 
     token_for_generation = [tokenizer.encode(prompt, add_eos=False)]
 
@@ -26,8 +28,7 @@ def recipe(model_checkpoint, tokenizer_checkpoint, prompt, max_gen_len):
 
     device = get_device()
 
-    with device:
-        decoder = llama2_7b(max_batch_size=1)
+    model = models.get_model(model, device=device, max_batch_size=1)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(model_checkpoint, weights_only=True)
