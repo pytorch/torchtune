@@ -5,15 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import List
 
 import torch.nn.functional as F
 
 from torch import nn, Tensor
 
+from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
 
 
-class LoRALinear(nn.Module):
+class LoRALinear(nn.Module, AdapterModule):
     """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
     LoRA perturbs a given layer via a low-rank approximation where only
@@ -59,11 +61,12 @@ class LoRALinear(nn.Module):
         else:
             self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
+        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
         self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=use_bias_in_lora_matrices
+            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
         )
         self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=use_bias_in_lora_matrices
+            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
         self.reset_lora_parameters()
 
@@ -72,6 +75,16 @@ class LoRALinear(nn.Module):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+
+    def adapter_params(self) -> List[str]:
+        """
+        Return lora_a.weight and lora_b.weight as adapter params.
+        If bias is enabled, also return lora_a.bias and lora_b.bias.
+        """
+        adapter_params = ["lora_a.weight", "lora_b.weight"]
+        if self.use_bias_in_lora_matrices:
+            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
+        return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
         """
