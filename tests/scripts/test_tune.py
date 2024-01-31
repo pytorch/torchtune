@@ -12,10 +12,15 @@ from pathlib import Path
 from unittest.mock import patch
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 import pytest
 
 =======
 >>>>>>> d0a5624 (Update base for Update on "Config tests")
+=======
+import pytest
+
+>>>>>>> d4a6efa (Update base for Update on "Config tests")
 import torchtune
 from recipes import list_configs, list_recipes
 
@@ -126,7 +131,7 @@ class TestTuneCLI:
                 )
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
-    def test_run(self):
+    def test_run(self, capsys):
         recipe = "finetune_llm"
         # Make sure we're not running on GPU which can lead to issues on GH CI
         testargs = f"\
