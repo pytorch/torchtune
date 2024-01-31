@@ -62,6 +62,8 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
+          echo "test123"
+          nvidia-smi
       - name: Run unit tests with coverage
         run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
       - name: Upload Coverage to Codecov
