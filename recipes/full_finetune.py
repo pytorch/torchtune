@@ -104,7 +104,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
     def _setup_model(
         self, model: str, enable_fsdp: bool, enable_activation_checkpointing: bool
     ) -> nn.Module:
-        """ """
+        """
+        Correctly set up the model including enabling FSDP and activation checkpointing.
+        """
         model = models.get_model(model, device=self.device)
         model = (
             model
@@ -232,9 +234,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         if self.is_rank_zero:
             log.info(
                 msg=(
-                    f'Loaded state of the recipe from checkpoint at {model_checkpoint}\n'
-                    f'Seed Loaded: {ckpt_dict[SEED_CKPT_DICT_KEY]}\n'
-                    f'Epochs Run: { ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]}'
+                    f"Loaded state of the recipe from checkpoint at {model_checkpoint}\n"
+                    f"Seed Loaded: {ckpt_dict[SEED_CKPT_DICT_KEY]}\n"
+                    f"Epochs Run: { ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]}"
                 )
             )
 

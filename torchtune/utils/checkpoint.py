@@ -12,13 +12,10 @@ import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils.constants import (
-    EPOCHS_RUN_CKPT_DICT_KEY,
     MODEL_WEIGHTS_CKPT_DICT_KEY,
     OPTIMIZER_STATE_CKPT_DICT_KEY,
-    SEED_CKPT_DICT_KEY,
 )
 from torchtune.utils.distributed import get_world_size_and_rank
-
 
 
 def _contains_fsdp(model: nn.Module) -> bool:
@@ -65,7 +62,10 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     model_state_dict = ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY].state_dict()
     if OPTIMIZER_STATE_CKPT_DICT_KEY in ckpt_dict:
         optimizer_state_dict = (
-            FSDP.optim_state_dict(ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY], ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY])
+            FSDP.optim_state_dict(
+                ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY],
+                ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY],
+            )
             if _contains_fsdp(ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY])
             else ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY].state_dict()
         )
@@ -126,7 +126,9 @@ def load_checkpoint(
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if optimizer is not None:
         optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY])
+            FSDP.optim_state_dict_to_load(
+                model, optimizer, ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY]
+            )
             if _contains_fsdp(model)
             else ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY]
         )
@@ -202,7 +204,9 @@ def load_checkpoint_updated(
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if resume_from_checkpoint:
         optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY])
+            FSDP.optim_state_dict_to_load(
+                model, optimizer, ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY]
+            )
             if _contains_fsdp(model)
             else ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY]
         )
