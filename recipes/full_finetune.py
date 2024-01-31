@@ -63,7 +63,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
         _, rank = utils.get_world_size_and_rank()
         self.is_rank_zero = rank == 0
 
-        self.model = self._setup_model(model=params.model)
+        self.model = self._setup_model(
+            model=params.model,
+            enable_fsdp=params.enable_fsdp,
+            enable_activation_checkpointing=params.enable_activation_checkpointing,
+        )
         self.tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
         )
@@ -93,21 +97,28 @@ class FullFinetuneRecipe(FTRecipeInterface):
         else:
             self.grad_scaler = GradScaler(enabled=False)
 
-    def _setup_model(self, model: str) -> nn.Module:
+    def _setup_model(
+        self, model: str, enable_fsdp: bool, enable_activation_checkpointing: bool
+    ) -> nn.Module:
         """
         This assumes FSDP and activation checkpointing are enabled by default.
         """
         model = models.get_model(model, device=self.device)
-        model = utils.get_fsdp(
-            model=model,
-            device=self.device,
-            dtype=self.dtype,
-            strategy="FULL_SHARD",
-            auto_wrap_policy={modules.TransformerDecoderLayer},
+        model = (
+            model
+            if not enable_fsdp
+            else utils.get_fsdp(
+                model=model,
+                device=self.device,
+                dtype=self.dtype,
+                strategy="FULL_SHARD",
+                auto_wrap_policy={modules.TransformerDecoderLayer},
+            )
         )
-        utils.set_activation_checkpointing(
-            model, auto_wrap_policy={modules.TransformerDecoderLayer}
-        )
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+            )
 
         if self.is_rank_zero:
             log.info(
