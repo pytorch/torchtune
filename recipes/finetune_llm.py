@@ -38,13 +38,13 @@ def recipe(
     optimizer: str,
     loss: str,
     lr: float,
-    activation_checkpointing: bool,
+    enable_activation_checkpointing: bool,
     output_dir: str,
     run_generation: int,
     max_steps_per_epoch: int,
     metric_logger_type: str,
     project: str,
-    resume_from_previous_checkpoint: bool,
+    resume_from_checkpoint: bool,
     cpu_offload: bool,
 ) -> None:
     """Training loop for fine-tuning an LLM on a provided dataset. Supports evals,
@@ -66,14 +66,14 @@ def recipe(
         optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
         loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
         lr (float): Learning rate to use for optimizer.
-        activation_checkpointing (bool): Whether to use activation checkpointing.
+        enable_activation_checkpointing (bool): Whether to use activation checkpointing.
         output_dir (str): Local path to save checkpoints and logs to.
         run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
         max_steps_per_epoch (int): Maximum number of steps to take per epoch.
         metric_logger_type (str): String specifying metric logger to use. See ``torchtune.utils.get_metric_logger``
             for options.
         project (str): Project name to use for logging. Used by ``WandBLogger``.
-        resume_from_previous_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
+        resume_from_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
         cpu_offload (bool): Whether to offload model to CPU.
 
     Raises:
@@ -116,7 +116,7 @@ def recipe(
             auto_wrap_policy={modules.TransformerDecoderLayer},
             cpu_offload=cpu_offload,
         )
-    if activation_checkpointing:
+    if enable_activation_checkpointing:
         utils.set_activation_checkpointing(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
@@ -124,7 +124,7 @@ def recipe(
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
     # Load model and possibly optimizer states
-    if resume_from_previous_checkpoint:
+    if resume_from_checkpoint:
         ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
@@ -253,7 +253,15 @@ if __name__ == "__main__":
         description=recipe.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    # Get user-specified args from config and CLI and create params for recipe
     args, _ = parser.parse_known_args()
-    parser.log_args(args)
-    params = FullFinetuneParams(**vars(args))
-    recipe(**dataclasses.asdict(params))
+    args = vars(args)
+    params = FullFinetuneParams(**args)
+
+    logger = utils.get_logger("DEBUG")
+    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
+
+    # Temporary hack as we migrate to new recipe
+    params_dict = dataclasses.asdict(params)
+    del params_dict["enable_fsdp"]
+    recipe(**params_dict)

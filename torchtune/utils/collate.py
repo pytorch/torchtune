@@ -26,23 +26,24 @@ def padded_collate(
         batch (List[TokenPair]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
+
     Returns:
         Collated input and label tensors.
 
     Example:
-        token_pairs = [
-            ([1, 2, 3], [4, 5, 6]),
-            ([7,], [10,],),
-        ]
-        inputs, labels = padded_collate(
-            batch=token_pairs,
-            padding_idx=padding_idx,
-            ignore_idx=ignore_idx,
-        )
+        >>> token_pairs = [
+        >>>    ([1, 2, 3], [4, 5, 6]),
+        >>>    ([7,], [10,],),
+        >>> ]
+        >>> inputs, labels = padded_collate(
+        >>>    batch=token_pairs,
+        >>>    padding_idx=padding_idx,
+        >>>    ignore_idx=ignore_idx,
+        >>> )
         >>> inputs
-            tensor([[1, 2, 3], [7, 0, 0]])
+        >>> tensor([[1, 2, 3], [7, 0, 0]])
         >>> labels
-            tensor([[4,5,6], [10,-100,-100]])
+        >>> tensor([[4,5,6], [10,-100,-100]])
     """
     input_ids = pad_sequence(
         [torch.tensor(x[0]) for x in batch],

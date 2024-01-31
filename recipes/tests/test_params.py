@@ -26,10 +26,11 @@ class TestParams:
             output_dir="/tmp/alpaca-llama2-finetune",
             device="cuda",
             dtype="fp32",
-            activation_checkpointing=False,
+            enable_activation_checkpointing=False,
+            enable_fsdp=False,
             cpu_offload=False,
             metric_logger_type="disk",
-            resume_from_previous_checkpoint=False,
+            resume_from_checkpoint=False,
         )
         with pytest.raises(ValueError):
             params["model"] = "dummy"

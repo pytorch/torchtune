@@ -42,6 +42,7 @@ from torch.distributed.run import get_args_parser, run
 
 import torchtune
 from recipes import list_recipes
+from scripts import list_scripts
 
 
 def _update_parser_help(parser):
@@ -95,6 +96,10 @@ if __name__ == "__main__":
                 config = args.recipe_args[cfg_idx]
                 if not config.endswith(".yaml"):
                     args.recipe_args[cfg_idx] = os.path.join(pkg_path, "recipes", "configs", f"{config}.yaml")
+        elif cmd in list_scripts():
+            cmd = os.path.join(pkg_path, "scripts", f"{cmd}.py")
+            args.recipe = cmd
+            assert not distributed_args, "You can't use distributed args with scripts"
         else:
             print("Unknown command, for a list of available commands, run with --help")
 
