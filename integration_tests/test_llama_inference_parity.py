@@ -24,9 +24,9 @@ class TestLlama2Inference:
     TOKENIZER_CHECKPOINT = "/tmp/test-artifacts/tokenizer.model"
 
     def hugging_face_hub_token(self):
-        if not 'HUGGING_FACE_HUB_TOKEN' in os.environ:
+        if "HUGGING_FACE_HUB_TOKEN" not in os.environ:
             raise ValueError("Please set environment variable HUGGING_FACE_HUB_TOKEN")
-        return os.environ['HUGGING_FACE_HUB_TOKEN']
+        return os.environ["HUGGING_FACE_HUB_TOKEN"]
 
     def prompts(self):
         return [

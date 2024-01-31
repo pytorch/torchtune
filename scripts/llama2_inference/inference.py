@@ -109,9 +109,13 @@ if __name__ == "__main__":
 
     # Load state_dict into decoder
     native_state_dict = torch.load(args.native_checkpoint_path, weights_only=True)
-    missing, unexpected = decoder.load_state_dict(native_state_dict["model"], strict=False)
+    missing, unexpected = decoder.load_state_dict(
+        native_state_dict["model"], strict=False
+    )
     # Nothing should be missing or unexpected
-    assert not missing and not unexpected, f"Missing {missing} and Unexpected: {unexpected}"
+    assert (
+        not missing and not unexpected
+    ), f"Missing {missing} and Unexpected: {unexpected}"
     decoder.eval()
 
     with torch.no_grad():
@@ -146,7 +150,9 @@ if __name__ == "__main__":
             norm_eps=1e-5,
             max_batch_size=2,
         )
-    missing, unexpected = decoder_kv.load_state_dict(native_state_dict["model"], strict=False)
+    missing, unexpected = decoder_kv.load_state_dict(
+        native_state_dict["model"], strict=False
+    )
     # Only kv_cache stuff should be missing
     for key in missing:
         assert "kv_cache" in key, f"{key}"
