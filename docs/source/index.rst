@@ -60,6 +60,16 @@ TorchTune tutorials.
    overview
    install
 
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Recipes
+   :hidden:
+
+   recipes/finetune_llm
+   recipes/llama_generate
+
 .. toctree::
    :glob:
    :maxdepth: 1
