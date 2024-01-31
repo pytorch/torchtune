@@ -221,6 +221,9 @@ if __name__ == "__main__":
             assert torch.allclose(x, y), f"{x} vs {y} @ {i}"
 
     native_state_dict = decoder.state_dict()
+    # For obeying how recipes load checkpoints, which expect a dict with a "model" key that contains
+    # the actual model states.
+    save_dict = {"model": native_state_dict}
 
     # TODO: we'll make this configurable when we switch to torch.distributed.checkpoint
     # and enable scales other than 7b.
@@ -231,6 +234,6 @@ if __name__ == "__main__":
         os.makedirs(native_dirpath)
 
     with open(os.path.join(native_dirpath, checkpoint_file), "w+") as f:
-        torch.save(native_state_dict, f.name)
+        torch.save(save_dict, f.name)
 
     logger.info(f"Wrote native checkpoint to {f.name}")

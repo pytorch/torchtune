@@ -9,7 +9,7 @@ Modeling Components and Building Blocks
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     CausalSelfAttention
     FeedForward
@@ -26,8 +26,9 @@ PEFT Components
 
 .. autosummary::
     :toctree: generated/
-    :template: class.rst
+    :nosignatures:
 
     peft.LoRALinear
-    peft.LoRAFusedLinear
-    peft.FusedLoRADim
+    peft.AdapterModule
+    peft.get_adapter_params
+    peft.set_trainable_params

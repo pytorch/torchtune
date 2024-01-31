@@ -11,9 +11,9 @@ from torch.nn import Module
 
 from torchtune.utils import get_device
 from .llama2 import llama2_7b, llama2_tokenizer
-from .lora_llama2 import lora_llama_self_attention
+from .lora_llama2 import lora_llama2
 
-__all__ = ["llama2_7b", "llama2_tokenizer", "lora_llama_self_attention"]
+__all__ = ["llama2_7b", "llama2_tokenizer", "lora_llama2"]
 
 _MODEL_DICT = {"llama2_7b": llama2_7b}
 _TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
