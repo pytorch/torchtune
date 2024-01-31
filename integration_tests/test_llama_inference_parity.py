@@ -92,16 +92,16 @@ class TestLlama2Inference:
 
         with torch.device("cpu"):
             decoder = self.llama2_7b()
-            state_dict = torch.load(
-                self.LLAMA_7B_CHECKPOINT,
-                weights_only=True,
-            )
-            missing, unexpected = decoder.load_state_dict(
-                state_dict["model"], strict=False
-            )
-            assert (
-                not missing and not unexpected
-            ), f"Missing {missing} and Unexpected: {unexpected}"
+
+        state_dict = torch.load(
+            self.LLAMA_7B_CHECKPOINT,
+            weights_only=True,
+            map_location=torch.device("cpu"),
+        )
+        missing, unexpected = decoder.load_state_dict(state_dict["model"], strict=False)
+        assert (
+            not missing and not unexpected
+        ), f"Missing {missing} and Unexpected: {unexpected}"
 
         decoder.eval()
         generations_no_kv_cache = self.generate(
@@ -111,11 +111,12 @@ class TestLlama2Inference:
 
         with torch.device("cpu"):
             decoder_kv = self.llama2_7b(max_batch_size=2)
-            missing, unexpected = decoder_kv.load_state_dict(
-                state_dict["model"], strict=False
-            )
-            for key in missing:
-                assert "kv_cache" in key, f"{key}"
+
+        missing, unexpected = decoder_kv.load_state_dict(
+            state_dict["model"], strict=False, map_location=torch.device("cpu")
+        )
+        for key in missing:
+            assert "kv_cache" in key, f"{key}"
 
         decoder_kv.eval()
         # incremental_decode is True because we want to use the cache
