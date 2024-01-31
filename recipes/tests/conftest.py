@@ -13,3 +13,9 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Run a larger scale integration test",
     )
+    parser.addoption(
+        "--cuda",
+        type=bool,
+        default=False,
+        help="Run on CUDA device",
+    )
