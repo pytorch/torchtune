@@ -52,7 +52,7 @@ def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
 def llama2_tokenizer(path: str) -> Tokenizer:
     tokenizer = Tokenizer.from_file(path)
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
+    # tokenizer.pad_id = 0
     return tokenizer
 
 
