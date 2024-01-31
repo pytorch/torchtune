@@ -1,4 +1,4 @@
-# Contributing to Torchtune
+# Contributing to TorchTune
 We want to make contributing to this project as easy and transparent as
 possible.
 
