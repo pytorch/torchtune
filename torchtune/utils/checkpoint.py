@@ -123,9 +123,7 @@ def load_checkpoint(
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if optimizer is not None:
         optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(
-                model, optimizer, ckpt_dict[OPT_KEY]
-            )
+            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPT_KEY])
             if _contains_fsdp(model)
             else ckpt_dict[OPT_KEY]
         )
@@ -201,9 +199,7 @@ def load_checkpoint_updated(
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if resume_from_checkpoint:
         optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(
-                model, optimizer, ckpt_dict[OPT_KEY]
-            )
+            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPT_KEY])
             if _contains_fsdp(model)
             else ckpt_dict[OPT_KEY]
         )

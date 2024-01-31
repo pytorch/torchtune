@@ -19,12 +19,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
-from torchtune.utils.constants import (
-    EPOCHS_KEY,
-    MODEL_KEY,
-    OPT_KEY,
-    SEED_KEY,
-)
+from torchtune.utils.constants import EPOCHS_KEY, MODEL_KEY, OPT_KEY, SEED_KEY
 
 from tqdm import tqdm
 
@@ -221,9 +216,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
             # recipe state
             self.epochs_run = (
-                ckpt_dict[EPOCHS_KEY]
-                if EPOCHS_KEY in ckpt_dict
-                else self.epochs_run
+                ckpt_dict[EPOCHS_KEY] if EPOCHS_KEY in ckpt_dict else self.epochs_run
             )
             self.seed = (
                 utils.set_seed(seed=ckpt_dict[SEED_KEY])
