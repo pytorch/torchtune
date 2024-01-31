@@ -63,7 +63,7 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
-      - name: Run unit tests with coverage
+      - name: Run integration tests with coverage
         env:
           HUGGING_FACE_HUB_TOKEN: ${{ secrets.HUGGING_FACE_HUB_TOKEN }}
         run: pytest integration_tests/ --cov=. --cov-report=xml --durations=5 -vv -s
