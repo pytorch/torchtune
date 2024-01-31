@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 import torchtune
 from recipes import list_configs, list_recipes
 
@@ -121,13 +123,12 @@ class TestTuneCLI:
                 )
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
-    def test_run(self):
+    def test_run(self, capsys):
         recipe = "finetune_llm"
-        testargs = f"\
-            tune {recipe} --config alpaca_llama2_finetune \
-            --override device=cpu enable_fsdp=False \
-            enable_activation_checkpointing=False \
-            epochs=1 max_steps_per_epoch=1 \
-        ".split()
+        testargs = f"tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+            # TODO: mock recipe so we don't actually run it,
+            # we purposely error out prematurely so we can just test that we
+            # enter the script successfully
+            with pytest.raises(ValueError):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
