@@ -6,7 +6,7 @@ on:
   pull_request:
 
 concurrency:
-  group: recipe-integration-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: integration-tests-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +18,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_integration_test:
+  integration_tests:
     runs-on: 32-core-ubuntu
     strategy:
       matrix:
