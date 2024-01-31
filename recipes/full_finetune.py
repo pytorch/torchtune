@@ -235,8 +235,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
             log.info(
                 msg=(
                     f"Loaded state of the recipe from checkpoint at {model_checkpoint}\n"
-                    f"Seed Loaded: {ckpt_dict[SEED_CKPT_DICT_KEY]}\n"
-                    f"Epochs Run: { ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]}"
                 )
             )
 
