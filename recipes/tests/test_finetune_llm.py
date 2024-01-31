@@ -5,11 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Dict, Optional
+from typing import Dict
 
 import pytest
 import recipes.finetune_llm as finetune_llm
-import recipes.llama_generate as llama_generate
 from recipes.full_finetune import FullFinetuneRecipe
 from recipes.params import FullFinetuneParams
 from torchtune import models
@@ -18,7 +17,7 @@ from torchtune.models.llama2 import llama2
 from torchtune.modules import TransformerDecoder
 
 
-def small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+def small_test_ckpt() -> TransformerDecoder:
     return llama2(
         vocab_size=32_000,
         num_layers=4,
@@ -27,7 +26,6 @@ def small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         max_seq_len=2048,
         norm_eps=1e-5,
         num_kv_heads=8,
-        max_batch_size=max_batch_size,
     )
 
 
@@ -112,15 +110,6 @@ class TestFinetuneLLMRecipe:
             assert key in expected_loss_values
             expected_loss_value = expected_loss_values[key]
             assert value == pytest.approx(expected_loss_value, abs=0.001)
-
-        # Test generate
-        kwargs_values = {
-            "prompt": "hi",
-            "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
-            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-            "max_gen_len": 64,
-        }
-        llama_generate.recipe(**kwargs_values)
 
     def test_finetune_errors(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
