@@ -18,7 +18,7 @@ defaults:
 
 jobs:
   recipe_integration_test:
-    runs-on: 32-core-ubuntu
+    runs-on: 4-core-ubuntu-gpu-t4
     strategy:
       matrix:
         python-version: ['3.11']

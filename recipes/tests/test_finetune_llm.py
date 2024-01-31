@@ -89,7 +89,7 @@ class TestFinetuneLLMRecipe:
             "optimizer": "AdamW",
             "loss": "CrossEntropyLoss",
             "output_dir": "/tmp",
-            "device": "cpu",
+            "device": "cuda",
             "dtype": "fp32",
             "fsdp": False,
             "activation_checkpointing": False,
