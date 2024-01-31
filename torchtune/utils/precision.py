@@ -80,8 +80,10 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
 def get_gradient_scaler(fsdp: bool = False) -> Union[GradScaler, ShardedGradScaler]:
     """
     Returns a gradient scaler for mixed-precision training.
+
     Args:
         fsdp (bool): Whether FSDP is being used for training, in which case a shard-aware gradient scaler is returned.
+
     Returns:
         Union[GradScaler, ShardedGradScaler]: Gradient scaler object
     """

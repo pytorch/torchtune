@@ -15,14 +15,14 @@ import pytest
 import torchtune
 from recipes import list_configs, list_recipes
 
-tune_path = "scripts/cli_utils/tune"
+from tests.scripts.common import TUNE_PATH
 
 
 class TestTuneCLI:
     def test_recipe_list(self, capsys):
         testargs = "tune recipe list".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n").split("\n")
@@ -36,7 +36,7 @@ class TestTuneCLI:
         path = tmp_path / "dummy.py"
         testargs = f"tune recipe cp {recipe} {path}".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -44,7 +44,7 @@ class TestTuneCLI:
 
         # File exists error
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -55,7 +55,7 @@ class TestTuneCLI:
         path = tmp_path / "dummy2.py"
         testargs = f"tune recipe cp {recipe} {path}".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -72,7 +72,7 @@ class TestTuneCLI:
         recipe = "finetune_llm"
         testargs = f"tune config list --recipe {recipe}".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n").split("\n")
@@ -86,7 +86,7 @@ class TestTuneCLI:
         path = tmp_path / "dummy.yaml"
         testargs = f"tune config cp {config} {path}".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -94,7 +94,7 @@ class TestTuneCLI:
 
         # File exists error
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -105,7 +105,7 @@ class TestTuneCLI:
         path = tmp_path / "dummy2.yaml"
         testargs = f"tune config cp {config} {path}".split()
         with patch.object(sys, "argv", testargs):
-            runpy.run_path(tune_path, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
@@ -127,4 +127,4 @@ class TestTuneCLI:
         testargs = f"tune {recipe} --config alpaca_llama2_finetune".split()
         with patch.object(sys, "argv", testargs):
             with pytest.raises(SystemExit) as e:
-                runpy.run_path(tune_path, run_name="__main__")
+                runpy.run_path(TUNE_PATH, run_name="__main__")
