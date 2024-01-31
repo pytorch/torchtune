@@ -130,7 +130,7 @@ class TestTensorBoardLogger:
                 logger.log("test_log", float(i) ** 2, i)
             logger.close()
 
-            acc = EventAccumulator(log_dir)
+            acc = EventAccumulator(logger.log_dir)
             acc.Reload()
             for i, event in enumerate(acc.Tensors("test_log")):
                 assert_expected(event.tensor_proto.float_val[0], float(i) ** 2)
@@ -143,7 +143,7 @@ class TestTensorBoardLogger:
             logger.log_dict(metric_dict, 1)
             logger.close()
 
-            acc = EventAccumulator(log_dir)
+            acc = EventAccumulator(logger.log_dir)
             acc.Reload()
             for i in range(5):
                 tensor_tag = acc.Tensors(f"log_dict_{i}")[0]

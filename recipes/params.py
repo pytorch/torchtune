@@ -71,7 +71,9 @@ class FullFinetuneParams:
 
     # Training
     epochs: int
-    resume_from_previous_checkpoint: bool
+    resume_from_checkpoint: bool
+    enable_fsdp: bool
+    enable_activation_checkpointing: bool
 
     # Logging
     output_dir: str
@@ -79,7 +81,6 @@ class FullFinetuneParams:
 
     # Distributed
     cpu_offload: bool = False
-    activation_checkpointing: bool = False
 
     # Defaults
     seed: Optional[int] = None

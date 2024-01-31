@@ -73,7 +73,7 @@ def recipe(
             auto_wrap_policy={modules.TransformerDecoderLayer},
             cpu_offload=params.cpu_offload,
         )
-    if params.activation_checkpointing:
+    if params.enable_activation_checkpointing:
         utils.set_activation_checkpointing(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
@@ -81,7 +81,7 @@ def recipe(
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(params.optimizer, model, params.lr)
     # Load model and possibly optimizer states
-    if params.resume_from_previous_checkpoint:
+    if params.resume_from_checkpoint:
         ckpt_dict = load_checkpoint(params.model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
@@ -210,10 +210,15 @@ def recipe(
 
 if __name__ == "__main__":
     parser = utils.TuneArgumentParser(
-        description=recipe.__doc__,
+        description=FullFinetuneParams.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
+    # Get user-specified args from config and CLI and create params for recipe
     args, _ = parser.parse_known_args()
-    parser.log_args(args)
-    params = FullFinetuneParams(**vars(args))
+    args = vars(args)
+    params = FullFinetuneParams(**args)
+
+    logger = utils.get_logger("DEBUG")
+    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
+
     recipe(params)
