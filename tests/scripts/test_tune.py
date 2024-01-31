@@ -125,7 +125,10 @@ class TestTuneCLI:
 
     def test_run(self, capsys):
         recipe = "finetune_llm"
-        testargs = f"tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake".split()
+        testargs = f"\
+            tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake \
+            device=cpu enable_fsdp=False enable_activation_checkpointing=False \
+        ".split()
         with patch.object(sys, "argv", testargs):
             # TODO: mock recipe so we don't actually run it,
             # we purposely error out prematurely so we can just test that we
