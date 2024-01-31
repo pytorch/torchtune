@@ -61,11 +61,12 @@ class LoRALinear(nn.Module, AdapterModule):
         else:
             self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
+        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
         self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=use_bias_in_lora_matrices
+            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
         )
         self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=use_bias_in_lora_matrices
+            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
         self.reset_lora_parameters()
 
@@ -75,12 +76,15 @@ class LoRALinear(nn.Module, AdapterModule):
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
 
-    @classmethod
-    def _adapter_params(cls) -> List[str]:
+    def adapter_params(self) -> List[str]:
         """
-        Return lora_a and lora_b as adapter params.
+        Return lora_a.weight and lora_b.weight as adapter params.
+        If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
-        return ["lora_a", "lora_b"]
+        adapter_params = ["lora_a.weight", "lora_b.weight"]
+        if self.use_bias_in_lora_matrices:
+            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
+        return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
         """
