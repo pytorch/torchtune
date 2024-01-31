@@ -10,8 +10,6 @@ from typing import List, Tuple
 
 from omegaconf import OmegaConf
 
-from torchtune import utils
-
 
 class TuneArgumentParser(argparse.ArgumentParser):
     """
@@ -25,8 +23,8 @@ class TuneArgumentParser(argparse.ArgumentParser):
 
     https://docs.python.org/3/library/argparse.html
 
-    *Note: This class does not support setting "required" arguments.
-    *Note: This class uses "config" as a builtin argument so it is not available to use
+    *Note: This class does not support setting "required" arguments.*
+    *Note: This class uses "config" as a builtin argument so it is not available to use*
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -72,11 +70,3 @@ class TuneArgumentParser(argparse.ArgumentParser):
         """
         assert not kwargs.get("required", False), "Required not supported"
         return super().add_argument(*args, **kwargs)
-
-    def log_args(self, args: Namespace) -> None:
-        """Logs final parsed args to console"""
-        logger = utils.get_logger("DEBUG")
-        logger.info("Config:")
-        args = vars(args)
-        for k, v in args.items():
-            logger.info(f"  {k}: {v}")
