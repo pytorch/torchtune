@@ -59,6 +59,7 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
           nvidia-smi
+          python -c "import torch ; print(\"DEV COUNT\") ; print(torch.cuda.device_count())"
       - name: Run unit tests with coverage
         run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv --cuda True
       - name: Upload Coverage to Codecov

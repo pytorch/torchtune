@@ -77,6 +77,7 @@ class TestFinetuneLLMRecipe:
         device = "cuda" if use_cuda else "cpu"
         logger.info(f"Running finetune job on device {device}")
         print(f"RV: dev count {torch.cuda.device_count()}")
+        import torch
         raise ValueError(torch.cuda.device_count())
         kwargs_values = {
             "dataset": "alpaca",
