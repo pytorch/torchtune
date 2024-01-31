@@ -13,6 +13,8 @@ from typing import Dict, Optional, Tuple
 import torch
 from tqdm import tqdm
 
+_PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
+
 
 def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
     """Template for mapping layer names.
@@ -107,7 +109,7 @@ def convert_checkpoint(checkpoint_path: Path, output_path: Optional[Path] = None
     # Save the state dict
     if output_path is None:
         checkpoint_dir = checkpoint_path.parent
-        output_path = checkpoint_dir / "native_pytorch_model.pt"
+        output_path = checkpoint_dir / _PYTORCH_MODEL_FILENAME
     torch.save(state_dict, output_path)
     print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}.")
 
@@ -121,7 +123,8 @@ if __name__ == "__main__":
         "--output-path",
         type=Path,
         help="Where to write the converted checkpoint."
-        "Will default to the same directory as the original checkpoint if no arg is provided.",
+        "Will default to the same directory as the original checkpoint if no arg is provided"
+        f"under the filename {_PYTORCH_MODEL_FILENAME}.",
         required=False,
         default=None,
     )
