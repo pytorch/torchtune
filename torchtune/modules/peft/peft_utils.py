@@ -17,8 +17,7 @@ class AdapterModule(Protocol):
     but it must define the ``adapter_params(self)`` method.
     """
 
-    @classmethod
-    def adapter_params(cls) -> List[str]:
+    def adapter_params(self) -> List[str]:
         """
         Return a list of strings corresponding to the names of the nn.Parameters in
         the model coming from the adapter.
