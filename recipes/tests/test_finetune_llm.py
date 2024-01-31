@@ -8,8 +8,8 @@ import logging
 from typing import Dict
 
 import pytest
-import torch
 import recipes.finetune_llm as finetune_llm
+import torch
 from torchtune import models
 from torchtune.models.llama2 import llama2
 
@@ -77,7 +77,7 @@ class TestFinetuneLLMRecipe:
         use_cuda = pytestconfig.getoption("--cuda")
         device = "cuda" if use_cuda else "cpu"
         logger.info(
-                f"Running finetune job on device {device} with {torch.cuda.device_count()} GPUs"
+            f"Running finetune job on device {device} with {torch.cuda.device_count()} GPUs"
         )
         kwargs_values = {
             "dataset": "alpaca",
