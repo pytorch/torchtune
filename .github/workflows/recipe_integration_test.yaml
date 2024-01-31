@@ -18,7 +18,7 @@ defaults:
 
 jobs:
   recipe_integration_test:
-    runs-on: 4-core-ubuntu-gpu-t4
+    runs-on: 32-core-ubuntu
     strategy:
       matrix:
         python-version: ['3.11']
@@ -58,12 +58,10 @@ jobs:
             aws s3 cp s3://pytorch-multimodal/llama2-7b-01222024 /tmp/test-artifacts
       - name: Install dependencies
         run: |
-          conda install pytorch pytorch-cuda=12.1 -c pytorch-nightly -c nvidia
+          conda install pytorch
           python -m pip install -r requirements.txt
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
-          echo "test123"
-          nvidia-smi
       - name: Run unit tests with coverage
         run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
       - name: Upload Coverage to Codecov
