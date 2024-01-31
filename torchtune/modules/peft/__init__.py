@@ -5,6 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from .lora import LoRALinear
-from .peft_utils import AdapterModule
+from .peft_utils import AdapterModule, get_adapter_params, set_trainable_params
 
-__all__ = ["LoRALinear", "AdapterModule"]
+__all__ = ["LoRALinear", "AdapterModule", "get_adapter_params", "set_trainable_params"]
