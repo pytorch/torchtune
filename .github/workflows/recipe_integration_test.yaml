@@ -58,7 +58,7 @@ jobs:
             aws s3 cp s3://pytorch-multimodal/llama2-7b-01222024 /tmp/test-artifacts
       - name: Install dependencies
         run: |
-          conda install pytorch
+          conda install pytorch pytorch-cuda=12.1 -c pytorch-nightly -c nvidia
           python -m pip install -r requirements.txt
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
