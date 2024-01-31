@@ -11,7 +11,6 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
 import torchtune
 from recipes import list_configs, list_recipes
 
@@ -124,7 +123,11 @@ class TestTuneCLI:
 
     def test_run(self):
         recipe = "finetune_llm"
-        testargs = f"tune {recipe} --config alpaca_llama2_finetune".split()
+        testargs = f"\
+            tune {recipe} --config alpaca_llama2_finetune \
+            --override device=cpu enable_fsdp=False \
+            enable_activation_checkpointing=False \
+            epochs=1 max_steps_per_epoch=1 \
+        ".split()
         with patch.object(sys, "argv", testargs):
-            with pytest.raises(SystemExit) as e:
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+            runpy.run_path(TUNE_PATH, run_name="__main__")
