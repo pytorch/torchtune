@@ -20,10 +20,10 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
 from torchtune.utils.constants import (
-    EPOCHS_RUN_CKPT_DICT_KEY,
-    MODEL_WEIGHTS_CKPT_DICT_KEY,
-    OPTIMIZER_STATE_CKPT_DICT_KEY,
-    SEED_CKPT_DICT_KEY,
+    EPOCHS_KEY,
+    MODEL_KEY,
+    OPT_KEY,
+    SEED_KEY,
 )
 
 from tqdm import tqdm
@@ -212,22 +212,22 @@ class FullFinetuneRecipe(FTRecipeInterface):
             optimizer=self.optimizer if self.resume_from_checkpoint else None,
         )
 
-        self.model.load_state_dict(ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY])
+        self.model.load_state_dict(ckpt_dict[MODEL_KEY])
 
         # use this section to set all of the state which needs to be updated when
         # resuming training from a previously saved checkpoint
         if self.resume_from_checkpoint:
-            self.optimizer.load_state_dict(ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY])
+            self.optimizer.load_state_dict(ckpt_dict[OPT_KEY])
 
             # recipe state
             self.epochs_run = (
-                ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]
-                if EPOCHS_RUN_CKPT_DICT_KEY in ckpt_dict
+                ckpt_dict[EPOCHS_KEY]
+                if EPOCHS_KEY in ckpt_dict
                 else self.epochs_run
             )
             self.seed = (
-                utils.set_seed(seed=ckpt_dict[SEED_CKPT_DICT_KEY])
-                if SEED_CKPT_DICT_KEY in ckpt_dict
+                utils.set_seed(seed=ckpt_dict[SEED_KEY])
+                if SEED_KEY in ckpt_dict
                 else self.seed
             )
 
@@ -250,15 +250,15 @@ class FullFinetuneRecipe(FTRecipeInterface):
         model weights.
         """
         output_loc = f"{self.output_dir}/model_{epoch}.ckpt"
-        ckpt_dict = {MODEL_WEIGHTS_CKPT_DICT_KEY: self.model}
+        ckpt_dict = {MODEL_KEY: self.model}
 
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
-                    OPTIMIZER_STATE_CKPT_DICT_KEY: self.optimizer,
-                    SEED_CKPT_DICT_KEY: self.seed,
-                    EPOCHS_RUN_CKPT_DICT_KEY: self.epochs_run,
+                    OPT_KEY: self.optimizer,
+                    SEED_KEY: self.seed,
+                    EPOCHS_KEY: self.epochs_run,
                 }
             )
         utils.save_checkpoint(ckpt_dict, output_loc)
