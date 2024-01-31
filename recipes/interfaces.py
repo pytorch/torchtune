@@ -13,11 +13,11 @@ class FTRecipeInterface(Protocol):
     should follow. Please note that the interface itself should not be a vehicle for
     code reuse. TorchTune strictly prohibits implementation inheritance in the codebase.
 
-    TODO: Add link to design principle README
-
     A few notes about the design and the need for this interface:
     - This interface is meant to help recipe-writers organize their code in a way
-        which is easy to read, understand and extend.
+        which is easy to read, understand and extend. Minimizing code duplication is not
+        the goal. Recipe-writers are encouraged to copy-paste-modify.
+
     - This interface is not meant to add constraints. If the interface comes in the
         way of doing stuff, it needs to be updated or a new interface should be
         written to support what might be a new "family" of recipes.

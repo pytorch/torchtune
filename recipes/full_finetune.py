@@ -19,6 +19,13 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.constants import (
+    EPOCHS_RUN_CKPT_DICT_KEY,
+    MODEL_WEIGHTS_CKPT_DICT_KEY,
+    OPTIMIZER_STATE_CKPT_DICT_KEY,
+    SEED_CKPT_DICT_KEY,
+)
+
 from tqdm import tqdm
 
 from recipes.args import create_full_finetune_args
@@ -34,12 +41,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
-        - FSDP and activation checkpointing. This is enabled by default and is NOT
-            configurable.
+        - FSDP and activation checkpointing. This is enabled by default but can be
+            configured using the ``enable_fsdp`` and ``enable_activation_checkpointing`` flags.
         - Mixed precision training - fp32, fp16 and bf16 are supported.
-        - Checkpointing of model weights and optionally of optimizer state (for checkpoints
-            created during training).
-        - Resume from checkpoint.
+        - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
+        - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
         - Logging to terminal. WandB and TensorBoard are currently not supported.
 
     Assumptions:
@@ -49,9 +55,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
         - Datasets are Map-style and data fits in memory (not streamed).
-
-    TODO:
-        - Checkpoint epoch and seed to ensure training restarts are correct.
     """
 
     def __init__(self, params: FullFinetuneParams) -> None:
@@ -101,9 +104,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
     def _setup_model(
         self, model: str, enable_fsdp: bool, enable_activation_checkpointing: bool
     ) -> nn.Module:
-        """
-        This assumes FSDP and activation checkpointing are enabled by default.
-        """
+        """ """
         model = models.get_model(model, device=self.device)
         model = (
             model
@@ -191,9 +192,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def load_checkpoint(self, model_checkpoint: str) -> None:
         """
-        Update the state of the recipe based on the checkpoint. This includes loading
-        state dictionaries for the `model` and optionally for the `optimizer`. This also
-        includes updating `epochs_run` and ensure `seed` is set correctly.
+        Update the state of the recipe based on the checkpoint.
+
+        This makes use of the `load_checkpoint_updated` utility which is responsible for
+        converting the checkpoint path into a dictionary with the relevant state. The
+        `resume_from_checkpoint` flag controls what state needs to be loaded.
+
+        If `resume_from_checkpoint` is `True`, then we also update optimizer state, seed and
+        epochs_run in addition to model weights.
         """
 
         # model and optimizer are set only when resuming training
@@ -204,40 +210,57 @@ class FullFinetuneRecipe(FTRecipeInterface):
             optimizer=self.optimizer if self.resume_from_checkpoint else None,
         )
 
-        self.model.load_state_dict(ckpt_dict["model"])
+        self.model.load_state_dict(ckpt_dict[MODEL_WEIGHTS_CKPT_DICT_KEY])
 
         # use this section to set all of the state which needs to be updated when
-        # resuming from training
+        # resuming training from a previously saved checkpoint
         if self.resume_from_checkpoint:
-            self.optimizer.load_state_dict(ckpt_dict["optimizer"])
+            self.optimizer.load_state_dict(ckpt_dict[OPTIMIZER_STATE_CKPT_DICT_KEY])
 
-            # temporary place holder till we start tracking epoch and seed in
-            # `save_checkpoint`
+            # recipe state
             self.epochs_run = (
-                ckpt_dict["epoch"] if "epoch" in ckpt_dict else self.epochs_run
+                ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]
+                if EPOCHS_RUN_CKPT_DICT_KEY in ckpt_dict
+                else self.epochs_run
             )
             self.seed = (
-                utils.set_seed(seed=ckpt_dict["seed"])
-                if "seed" in ckpt_dict
+                utils.set_seed(seed=ckpt_dict[SEED_CKPT_DICT_KEY])
+                if SEED_CKPT_DICT_KEY in ckpt_dict
                 else self.seed
             )
 
         if self.is_rank_zero:
             log.info(
-                msg=f"Loaded state of the recipe from checkpoint at {model_checkpoint}"
+                msg=(
+                    f'Loaded state of the recipe from checkpoint at {model_checkpoint}\n'
+                    f'Seed Loaded: {ckpt_dict[SEED_CKPT_DICT_KEY]}\n'
+                    f'Epochs Run: { ckpt_dict[EPOCHS_RUN_CKPT_DICT_KEY]}'
+                )
             )
 
     def save_checkpoint(self, epoch: int) -> None:
         """
-        Checkpoint the state of the recipe. Currently this only includes checkpointing
-        model weights and optimizer state.
+        Checkpoint the relevant state of a recipe.
+
+        This makes use of the `save_checkpoint` utility which is responsible for
+        writing the checkpoint dictionary to file. The contents of the dict are dictated
+        by whether training is complete or not.
+
+        If training is ongoing, optimizer state, seed and epochs_run are saved along with the
+        model weights.
         """
         output_loc = f"{self.output_dir}/model_{epoch}.ckpt"
-        ckpt_dict = {"model": self.model}
+        ckpt_dict = {MODEL_WEIGHTS_CKPT_DICT_KEY: self.model}
 
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict.update({"optimizer": self.optimizer})
+            ckpt_dict.update(
+                {
+                    OPTIMIZER_STATE_CKPT_DICT_KEY: self.optimizer,
+                    SEED_CKPT_DICT_KEY: self.seed,
+                    EPOCHS_RUN_CKPT_DICT_KEY: self.epochs_run,
+                }
+            )
         utils.save_checkpoint(ckpt_dict, output_loc)
 
         if self.is_rank_zero:
@@ -247,7 +270,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def train(self) -> None:
         """
-        The core training loop.
+        The core training loop. Supports training on subsets of the dataset using the
+        ``max_steps_per_epoch``.
         """
         _, rank = utils.get_world_size_and_rank()
 
@@ -287,10 +311,19 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 self.grad_scaler.step(self.optimizer)
                 self.grad_scaler.update()
 
+            self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
 
 def recipe_main() -> None:
+    """
+    Entry point for the recipe.
+
+    Configurable parameters are read in the following order:
+        - Parameters specified in ``FullFinetuneParams``
+        - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
+        - Overwritten by arguments from the command-line using ``TuneArgumentParser``
+    """
     parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
     kwargs = vars(create_full_finetune_args(parser).parse_args())
 
