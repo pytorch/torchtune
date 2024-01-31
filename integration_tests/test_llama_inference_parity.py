@@ -96,7 +96,9 @@ class TestLlama2Inference:
                 self.LLAMA_7B_CHECKPOINT,
                 weights_only=True,
             )
-            missing, unexpected = decoder.load_state_dict(state_dict["model"], strict=False)
+            missing, unexpected = decoder.load_state_dict(
+                state_dict["model"], strict=False
+            )
             assert (
                 not missing and not unexpected
             ), f"Missing {missing} and Unexpected: {unexpected}"
