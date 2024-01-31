@@ -113,7 +113,7 @@ class TestLlama2Inference:
             decoder_kv = self.llama2_7b(max_batch_size=2)
 
         missing, unexpected = decoder_kv.load_state_dict(
-            state_dict["model"], strict=False, map_location=torch.device("cpu")
+            state_dict["model"], strict=False
         )
         for key in missing:
             assert "kv_cache" in key, f"{key}"
