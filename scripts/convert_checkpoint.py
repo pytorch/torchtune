@@ -16,9 +16,79 @@ from tqdm import tqdm
 _PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
 
 
+def _complete_numerical_validation_on_fair_ckpt_conversion(
+    original_ckpt: Path, converted_ckpt: Path
+):
+    """Complete numerical validation on FAIR ckpt conversion for Llama2 7B.
+
+    Args:
+        original_ckpt (Path): Path to the original FAIR checkpoint.
+        converted_ckpt (Path): Path to the converted Torchtune checkpoint.
+
+    Raises:
+        AssertionError: If the outputs differ.
+    """
+    print("Completing numerical validation on FAIR ckpt conversion for Llama2 7B...")
+
+    from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
+    from torchtune.models.llama2 import llama2
+
+    nums = [torch.randint(0, 32_000, (16, 128)) for _ in range(10)]
+
+    # Load the original state dict
+    original_state_dict = torch.load(
+        original_ckpt, map_location="cpu", weights_only=True
+    )
+    fair_transfomer = Transformer(
+        vocab_size=32_000,
+        n_layers=32,
+        n_heads=32,
+        dim=4096,
+        max_seq_len=2048,
+        n_kv_heads=32,
+    )
+    fair_transfomer.load_state_dict(original_state_dict, strict=False)
+    fair_transfomer.eval()
+
+    fair_outputs = []
+    for num in tqdm(nums, desc="Running forward pass on original model."):
+        fair_outputs.append(fair_transfomer(num))
+
+    # Clean up the original model
+    del fair_transfomer
+
+    # Load the converted state dict
+    converted_state_dict = torch.load(
+        converted_ckpt, map_location="cpu", weights_only=True
+    )
+    native_transformer = llama2(
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        embed_dim=4096,
+        max_seq_len=2048,
+        num_kv_heads=32,
+    )
+    native_transformer.load_state_dict(converted_state_dict, strict=True)
+    native_transformer.eval()
+
+    native_outputs = []
+    for num in tqdm(nums, desc="Running forward pass on converted model."):
+        native_outputs.append(native_transformer(num))
+
+    # Clean up the converted model
+    del native_transformer
+
+    # Compare the outputs
+    for i, (fair_output, native_output) in enumerate(zip(fair_outputs, native_outputs)):
+        if not torch.allclose(fair_output, native_output):
+            raise AssertionError(
+                f"Outputs differ at index {i}. FAIR output: {fair_output}. Native output: {native_output}"
+            )
+
+
 def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
     """Template for mapping layer names.
-    Inspiration: https://github.com/Lightning-AI/lit-gpt/scripts/convert_hf_checkpoint.py
 
     Args:
         layer_name (str): Name of the layer.
@@ -127,6 +197,19 @@ if __name__ == "__main__":
         f"under the filename {_PYTORCH_MODEL_FILENAME}.",
         required=False,
         default=None,
+    )
+    parser.add_argument(
+        "--output-numerical-validation",
+        action="store_true",
+        help="Whether to load the original checkpoint and the converted checkpoint and compare"
+        "the numerical output of a forward pass to ensure that the conversion was successful."
+        "Prints results to stdout. This additional check is only available for Llama2 7B."
+        "This will take awhile and may consume lots of memory. If you see an OOM error,"
+        "please disable this flag. Note: All our checkpoints conversions are already validated"
+        "in unit tests for smaller checkpoints and integration tests for larger checkpoints."
+        "This flag is primarily for debugging purposes.",
+        required=False,
+        default=False,
     )
     args = parser.parse_args()
     convert_checkpoint(args.checkpoint_path, args.output_path)
