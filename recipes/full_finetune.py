@@ -60,13 +60,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
     """
 
     def __init__(self, params: FullFinetuneParams) -> None:
-
-        self.device = utils.get_device(device=params.device)
-        self.dtype = utils.get_dtype(dtype=params.dtype)
-        self.seed = utils.set_seed(seed=params.seed)
-        self.output_dir = params.output_dir
-        # Create output directory if it doesn't exist
-        os.makedirs(output_dir, exist_ok=True)
+        self._device = utils.get_device(device=params.device)
+        self._dtype = utils.get_dtype(dtype=params.dtype)
 
         # logging attributes
         self._output_dir = params.output_dir
