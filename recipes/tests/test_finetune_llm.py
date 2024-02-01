@@ -177,8 +177,7 @@ class TestFinetuneLLMRecipe:
         recipe_params = FullFinetuneParams(**kwargs_values)
 
         recipe = FullFinetuneRecipe(recipe_params)
-        ckpt_dict = recipe.load_checkpoint(ckpt_path=recipe_params.model_checkpoint)
-        recipe.setup(params=recipe_params, ckpt_dict=ckpt_dict)
+        recipe.setup(params=recipe_params)
         recipe.train()
 
         loss_values = self._fetch_loss_values(capsys.readouterr().err)

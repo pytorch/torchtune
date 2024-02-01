@@ -89,11 +89,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
         utils.validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
         return ckpt_dict
 
-    def setup(self, params: FullFinetuneParams, ckpt_dict: Dict[str, Any]) -> None:
+    def setup(self, params: FullFinetuneParams) -> None:
         """
         Setsup the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
+
+        ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
@@ -227,7 +229,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+            log.info("Optimizer is initialized.")
         return optimizer
 
     def _setup_loss(self, loss: str) -> nn.Module:
@@ -300,7 +302,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         if self._is_rank_zero:
             log.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+                f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
 
     def train(self) -> None:
@@ -369,8 +371,7 @@ def recipe_main() -> None:
     init_process_group(backend="nccl")
 
     recipe = FullFinetuneRecipe(params=recipe_params)
-    ckpt_dict = recipe.load_checkpoint(ckpt_path=recipe_params.model_checkpoint)
-    recipe.setup(params=recipe_params, ckpt_dict=ckpt_dict)
+    recipe.setup(params=recipe_params)
     recipe.train()
 
 

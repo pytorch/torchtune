@@ -11,10 +11,7 @@ import torch
 import torch.distributed as dist
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torchtune.utils.checkpoint import (
-    load_checkpoint,
-    save_checkpoint,
-)
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 
 from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
 

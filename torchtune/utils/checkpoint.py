@@ -176,12 +176,14 @@ def validate_checkpoint(ckpt_dict: Dict[str, Any], resume_from_checkpoint: bool)
         # If the correct state is not available, fail. Training will not be
         # meaningful
         if (
-            EPOCHS_KEY not in ckpt_dict
+            OPT_KEY not in ckpt_dict
+            or EPOCHS_KEY not in ckpt_dict
             or SEED_KEY not in ckpt_dict
             or TOTAL_EPOCHS_KEY not in ckpt_dict
             or MAX_STEPS_KEY not in ckpt_dict
         ):
             raise ValueError(
-                """Checkpoint does not contain the required keys
-                needed to resume training correctly."""
+                f"Checkpoint does not contain the required keys needed to resume training correctly.\n"
+                f"Expected Keys: {OPT_KEY}, {EPOCHS_KEY}, {SEED_KEY}, {TOTAL_EPOCHS_KEY}, {MAX_STEPS_KEY}, {MODEL_KEY}\n"
+                f"Found Keys: {ckpt_dict.keys()}."
             )
