@@ -284,7 +284,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         If training is ongoing, optimizer state, seed and epochs_run are saved along with the
         model weights.
         """
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
 
