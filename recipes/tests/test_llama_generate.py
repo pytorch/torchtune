@@ -44,13 +44,13 @@ class TestLlamaGenerateRecipe:
         large_scale = pytestconfig.getoption("--large-scale")
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
 
-        # Test generate
         kwargs_values = {
-            "prompt": "hi how are you",
             "model": ckpt,
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": "llama2_tokenizer",
             "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "instruction": "Answer the question.",
+            "input": "What is some cool music from the 1920s?",
             "max_gen_len": 64,
         }
         llama_generate.recipe(**kwargs_values)
