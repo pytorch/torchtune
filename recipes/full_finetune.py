@@ -91,7 +91,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def setup(self, params: FullFinetuneParams) -> None:
         """
-        Setsup the recipe state correctly. This includes setting recipe attributes based
+        Sets up the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
 
@@ -139,7 +139,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._autocast = utils.get_autocast(self._dtype, self._device)
         self._grad_scaler = None
         if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=True)
+            self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
 
