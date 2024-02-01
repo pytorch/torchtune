@@ -144,7 +144,16 @@ def transform_opt_state_dict(
     opt_state_dict: Dict[str, Any], model: nn.Module, optimizer: optim.Optimizer
 ) -> Dict[str, Any]:
     """
-    TODO: Add docstring.
+    Transforms the optimizer state dict for FSDP using the ``optim_state_dict_to_load``
+    from distributed library within PyTorch.
+
+    Args:
+        opt_state_dict (Dict[str, Any]): Optimizer state dict extracted from the checkpoint
+        model (nn.Module): Model that checkpoint will be loaded into.
+        optimizer (optim.Optimizer): Optimizer that optimizer state checkpoints will be loaded into.
+
+    Returns:
+        ckpt_dict (Dict[str, Any]): Transformed optimizer state dict.
     """
     optim_state_dict_to_load = (
         FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
@@ -157,7 +166,17 @@ def transform_opt_state_dict(
 
 def validate_checkpoint(ckpt_dict: Dict[str, Any], resume_from_checkpoint: bool):
     """
-    Validates the checkpoint dict.
+    Validates the checkpoint dict. This includes validating the recipe state in case we're resuming
+    training from a checkpoint.
+
+    Args:
+        ckpt_dict (Dict[str, Any]): Dictionary with recipe state, extracted from the checkpoint
+        resume_from_checkpoint (bool): Boolean flag specifying whether training is being resumed from a checkpoint.
+
+    Raises:
+        RuntimeError: If ``ckpt_dict`` does not contain a ``model`` key.
+        RuntimeError: If ``resume_from_checkpoint`` is `True` and `ckpt_dict` does not contain
+            either "optimizer", "epochs_run", "seed", "total_epochs" or "max_steps_per_epoch" keys.
     """
     if MODEL_KEY not in ckpt_dict:
         raise RuntimeError(
@@ -166,12 +185,6 @@ def validate_checkpoint(ckpt_dict: Dict[str, Any], resume_from_checkpoint: bool)
         )
 
     if resume_from_checkpoint:
-        # If optimizer state is not checkpointed, fail. Training will not be meaningful
-        if OPT_KEY not in ckpt_dict:
-            raise RuntimeError(
-                """Expected loaded checkpoint to contain an `optimizer` key since training is being resumed,
-                but it does not. Ensure checkpoint was saved with `save_checkpoint`."""
-            )
 
         # If the correct state is not available, fail. Training will not be
         # meaningful
