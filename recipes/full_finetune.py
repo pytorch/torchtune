@@ -60,6 +60,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self.dtype = utils.get_dtype(dtype=params.dtype)
         self.seed = utils.set_seed(seed=params.seed)
         self.output_dir = params.output_dir
+        # Create output directory if it doesn't exist
+        os.makedirs(self.output_dir, exist_ok=True)
 
         _, rank = utils.get_world_size_and_rank()
         self.is_rank_zero = rank == 0
