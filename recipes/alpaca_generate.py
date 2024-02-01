@@ -10,14 +10,41 @@ from torchtune import models
 from torchtune.utils import get_device, get_logger, set_seed, TuneArgumentParser
 from torchtune.utils.generation import GenerationUtils
 
+# From https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31
+PROMPT_DICT = {
+    "prompt_input": (
+        "Below is an instruction that describes a task, paired with an input that provides further context. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+    ),
+    "prompt_no_input": (
+        "Below is an instruction that describes a task. "
+        "Write a response that appropriately completes the request.\n\n"
+        "### Instruction:\n{instruction}\n\n### Response:"
+    ),
+}
+
 
 def recipe(
-    model, model_checkpoint, tokenizer, tokenizer_checkpoint, prompt, max_gen_len
+    model,
+    model_checkpoint,
+    tokenizer,
+    tokenizer_checkpoint,
+    instruction,
+    input,
+    max_gen_len,
 ):
     logger = get_logger("DEBUG")
 
     # Inference setup
     tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+
+    example = {"instruction": instruction}
+    if input != "":
+        example["input"] = input
+        prompt = PROMPT_DICT["prompt_input"].format_map(example)
+    else:
+        prompt = PROMPT_DICT["prompt_no_input"].format_map(example)
 
     token_for_generation = [tokenizer.encode(prompt, add_eos=False)]
 
@@ -82,10 +109,16 @@ if __name__ == "__main__":
         help="Path to tokenization file.",
     )
     parser.add_argument(
-        "--prompt",
+        "--instruction",
         type=str,
-        help="Input to the model",
-        # for alpaca format see: https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#data-release
+        default="Answer the question.",
+        help="Instruction for model to respond to.",
+    )
+    parser.add_argument(
+        "--input",
+        type=str,
+        default="What is some cool music from the 1920s?",
+        help='Additional optional input related to instruction. Pass in "" (empty string) for no input.',
     )
     parser.add_argument(
         "--max-gen-len",

@@ -7,10 +7,9 @@
 import logging
 from typing import Optional
 
-import recipes.llama_generate as llama_generate
+import recipes.alpaca_generate as alpaca_generate
 from torchtune import models
 from torchtune.models.llama2 import llama2
-
 from torchtune.modules import TransformerDecoder
 
 
@@ -32,7 +31,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-class TestLlamaGenerateRecipe:
+class TestAlpacaGenerateRecipe:
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
             return "/tmp/test-artifacts/small-ckpt-01242024"
@@ -40,17 +39,17 @@ class TestLlamaGenerateRecipe:
             return "/tmp/test-artifacts/llama2-7b-01242024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
-    def test_llama_generate(self, capsys, pytestconfig):
+    def test_alpaca_generate(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
 
-        # Test generate
         kwargs_values = {
-            "prompt": "hi how are you",
             "model": ckpt,
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": "llama2_tokenizer",
             "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "instruction": "Answer the question.",
+            "input": "What is some cool music from the 1920s?",
             "max_gen_len": 64,
         }
-        llama_generate.recipe(**kwargs_values)
+        alpaca_generate.recipe(**kwargs_values)
