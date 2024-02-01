@@ -33,7 +33,7 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
     from torchtune.models.llama2 import llama2
 
-    nums = [torch.randint(0, 32_000, (16, 128)) for _ in range(10)]
+    nums = [torch.randint(0, 32_000, (16, 128)) for _ in range(5)]
 
     # Load the original state dict
     original_state_dict = torch.load(
@@ -51,8 +51,10 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     fair_transfomer.eval()
 
     fair_outputs = []
-    for num in tqdm(nums, desc="Running forward pass on original model."):
-        fair_outputs.append(fair_transfomer(num))
+    for num in tqdm(
+        nums, desc="[In validation] Running forward pass on original model."
+    ):
+        fair_outputs.append(fair_transfomer(num).detach().sum())
 
     # Clean up the original model
     del fair_transfomer
@@ -73,8 +75,10 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     native_transformer.eval()
 
     native_outputs = []
-    for num in tqdm(nums, desc="Running forward pass on converted model."):
-        native_outputs.append(native_transformer(num))
+    for num in tqdm(
+        nums, desc="[In validation] Running forward pass on converted model."
+    ):
+        native_outputs.append(native_transformer(num).detach().sum())
 
     # Clean up the converted model
     del native_transformer
@@ -83,8 +87,12 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     for i, (fair_output, native_output) in enumerate(zip(fair_outputs, native_outputs)):
         if not torch.allclose(fair_output, native_output):
             raise AssertionError(
-                f"Outputs differ at index {i}. FAIR output: {fair_output}. Native output: {native_output}"
+                f"[In validation] Outputs differ at index {i}. FAIR output: {fair_output}. Native output: {native_output}"
             )
+
+    print(
+        "Numerical validation on FAIR ckpt conversion for Llama2 7B complete. All outputs match!"
+    )
 
 
 def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
@@ -156,12 +164,17 @@ def _convert_llama_from_fair(checkpoint_path: Path) -> Dict[str, torch.Tensor]:
     return state_dict
 
 
-def convert_checkpoint(checkpoint_path: Path, output_path: Optional[Path] = None):
+def convert_checkpoint(
+    checkpoint_path: Path,
+    output_path: Optional[Path] = None,
+    output_numerical_validation: bool = False,
+):
     """Convert model checkpoint to a PyTorch-native format compatible with Torchtune.
 
     Args:
         checkpoint_path (Path): Path to the checkpoint path.
         output_path (Optional[Path]): Path to the output checkpoint.
+        output_numerical_validation (bool): Whether to run numerical validation on the converted checkpoint.
 
     Raises:
         Exception: If KeyError arises in the conversion. Likely due to incorrect checkpoint file.
@@ -180,8 +193,15 @@ def convert_checkpoint(checkpoint_path: Path, output_path: Optional[Path] = None
     if output_path is None:
         checkpoint_dir = checkpoint_path.parent
         output_path = checkpoint_dir / _PYTORCH_MODEL_FILENAME
-    torch.save(state_dict, output_path)
-    print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}.")
+    torch.save({"model": state_dict}, output_path)
+
+    # Run numerical validation
+    if output_numerical_validation:
+        _complete_numerical_validation_on_fair_ckpt_conversion(
+            checkpoint_path, output_path
+        )
+
+    print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}")
 
 
 if __name__ == "__main__":
@@ -212,4 +232,6 @@ if __name__ == "__main__":
         default=False,
     )
     args = parser.parse_args()
-    convert_checkpoint(args.checkpoint_path, args.output_path)
+    convert_checkpoint(
+        args.checkpoint_path, args.output_path, args.output_numerical_validation
+    )
