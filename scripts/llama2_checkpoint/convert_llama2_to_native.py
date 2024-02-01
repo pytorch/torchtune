@@ -17,6 +17,7 @@ import torch
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torchtune.models import llama2_7b
+from torchtune.utils.constants import MODEL_KEY
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -223,7 +224,7 @@ if __name__ == "__main__":
     native_state_dict = decoder.state_dict()
     # For obeying how recipes load checkpoints, which expect a dict with a "model" key that contains
     # the actual model states.
-    save_dict = {"model": native_state_dict}
+    save_dict = {MODEL_KEY: native_state_dict}
 
     # TODO: we'll make this configurable when we switch to torch.distributed.checkpoint
     # and enable scales other than 7b.
