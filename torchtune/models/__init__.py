@@ -15,33 +15,37 @@ from .lora_llama2 import lora_llama2
 
 __all__ = ["llama2_7b", "llama2_tokenizer", "lora_llama2"]
 
-_MODEL_DICT = {"llama2_7b": llama2_7b}
-_TOKENIZER_DICT = {"llama2_tokenizer": llama2_tokenizer}
+ALL_MODELS = {"llama2_7b": llama2_7b}
+ALL_TOKENIZERS = {"llama2_tokenizer": llama2_tokenizer}
 
 
 def get_model(name: str, device: Union[str, torch.device], **kwargs) -> Module:
     """Get known supported models by name"""
-    if name in _MODEL_DICT:
+    if name in ALL_MODELS:
         with get_device(device):
-            model = _MODEL_DICT[name](**kwargs)
+            model = ALL_MODELS[name](**kwargs)
         return model
     else:
-        raise ValueError(f"Unknown model: {name}")
+        raise ValueError(
+            f"Model not recognized. Expected one of {ALL_MODELS}, received {name}"
+        )
 
 
 def get_tokenizer(name: str, **kwargs) -> Callable:
     """Get known supported tokenizers by name"""
-    if name in _TOKENIZER_DICT:
-        return _TOKENIZER_DICT[name](**kwargs)
+    if name in ALL_TOKENIZERS:
+        return ALL_TOKENIZERS[name](**kwargs)
     else:
-        raise ValueError(f"Unknown tokenizer: {name}")
+        raise ValueError(
+            f"Tokenizer not recognized. Expected one of {ALL_TOKENIZERS}, received {name}"
+        )
 
 
 def list_models():
     """List of availabe models supported by `get_model`"""
-    return list(_MODEL_DICT)
+    return list(ALL_MODELS)
 
 
 def list_tokenizers():
     """List of availabe tokenizers supported by `get_tokenizer`"""
-    return list(_TOKENIZER_DICT)
+    return list(ALL_TOKENIZERS)
