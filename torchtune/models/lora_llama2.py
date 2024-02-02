@@ -138,7 +138,7 @@ def lora_llama2(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     max_batch_size: Optional[int] = None,
-    norm_eps: float = 1e-6,
+    norm_eps: float = 1e-5,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,

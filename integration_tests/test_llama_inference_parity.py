@@ -12,7 +12,7 @@ import torch
 
 from tests.test_utils import assert_expected
 from torch import nn
-from torchtune.models.llama2 import llama2, llama2_tokenizer
+from torchtune.models.llama2 import llama2_7b, llama2_tokenizer
 from torchtune.modules import Tokenizer
 from torchtune.utils.generation import GenerationUtils
 from torchtune.utils.seed import set_seed
@@ -70,19 +70,6 @@ class TestLlama2InferenceParity:
 
             return generations
 
-    def llama2_7b(self, max_batch_size: Optional[int] = None):
-        # TODO: Replace with definition in torchtune/models/llama2.py once defaults are reset
-        return llama2(
-            vocab_size=32_000,
-            num_layers=32,
-            num_heads=32,
-            max_seq_len=4096,
-            num_kv_heads=32,
-            embed_dim=4096,
-            norm_eps=1e-5,
-            max_batch_size=max_batch_size,
-        )
-
     def test_parity_with_huggingface(
         self, prompts: List[str], llama2_path: str, tokenizer_path: str
     ):
@@ -95,7 +82,7 @@ class TestLlama2InferenceParity:
         ]
 
         with torch.device("cpu"):
-            decoder = self.llama2_7b()
+            decoder = llama2_7b()
 
         state_dict = torch.load(
             llama2_path,
@@ -114,7 +101,7 @@ class TestLlama2InferenceParity:
         del decoder
 
         with torch.device("cpu"):
-            decoder_kv = self.llama2_7b(max_batch_size=2)
+            decoder_kv = llama2_7b(max_batch_size=2)
 
         missing, unexpected = decoder_kv.load_state_dict(
             state_dict["model"], strict=False
