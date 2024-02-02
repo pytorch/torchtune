@@ -4,9 +4,15 @@ We want to make contributing to this project as easy and transparent as possible
 &nbsp;
 
 ## Dev install
-To install additional dependencies for contributing, run the following:
+In order to contribute to Torchtune, you should first fork
+and then clone your forked repository.
+
+```git clone https://github.com/<YOUR_GITHUB_USER>/torchtune.git```
+
+Then navigate into the newly cloned repo and install dependencies needed for development.
 
 ```
+cd torchtune
 pip install -e ".[dev]"
 ```
 
@@ -30,20 +36,6 @@ We actively welcome your pull requests.
 4. Ensure the test suite passes.
 5. Make sure your code lints.
 6. If you haven't already, complete the Contributor License Agreement ("CLA").
-
-&nbsp;
-
-## Contributor License Agreement ("CLA")
-In order to accept your pull request, we need you to submit a CLA. You only need to do this once to work on any of Meta's open source projects.
-
-Complete your CLA here: <https://code.facebook.com/cla>
-
-&nbsp;
-
-## Issues
-We use GitHub issues to track public bugs. Please ensure your description is clear and has sufficient instructions to be able to reproduce the issue.
-
-Meta has a [bounty program](https://www.facebook.com/whitehat/) for the safe disclosure of security bugs. In those cases, please go through the process outlined on that page and do not file a public issue.
 
 &nbsp;
 
@@ -112,5 +104,21 @@ Now, you can navigate to `localhost:9000` on your local machine to view the rend
 
 &nbsp;
 
+## Issues
+We use GitHub issues to track public bugs. Please ensure your description is clear and has sufficient instructions to be able to reproduce the issue.
+
+Meta has a [bounty program](https://www.facebook.com/whitehat/) for the safe disclosure of security bugs. In those cases, please go through the process outlined on that page and do not file a public issue.
+
+&nbsp;
+
 ## License
 By contributing to TorchTune, you agree that your contributions will be licensed under the LICENSE file in the root directory of this source tree.
+
+&nbsp;
+
+## Contributor License Agreement ("CLA")
+In order to accept your pull request, we need you to submit a CLA. You only need to do this once to work on any of Meta's open source projects.
+
+Complete your CLA here: <https://code.facebook.com/cla>
+
+&nbsp;

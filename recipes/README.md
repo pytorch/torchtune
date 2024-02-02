@@ -21,9 +21,9 @@ Recipes in TorchTune are:
 3. **Easy to Understand**. Each recipe provides a limited set of meaningful features, instead of every possible feature hidden behind 100s of flags. Code duplication is preferred over unnecessary abstractions.
 4. **Easy to Extend**. No dependency on training frameworks and no implementation inheritance. Users don't need to go through layers-upon-layers of abstractions to figure out how to extend core functionality.
 5. **Accessible to a spectrum of Users**. Users can decide how they want to interact with TorchTune Recipes:
-- Start training models by modifying existing configs
-- Modify existing recipes for custom cases
-- Directly use available building blocks to write completely new recipes/training paradigms
+    - Start training models by modifying existing configs
+    - Modify existing recipes for custom cases
+    - Directly use available building blocks to write completely new recipes/training paradigms
 
 &nbsp;
 
