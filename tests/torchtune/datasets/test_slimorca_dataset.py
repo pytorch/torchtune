@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import random
+from unittest.mock import patch
 
 import pytest
 
@@ -21,7 +21,9 @@ class TestSlimOrcaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    def test_prompt_label_generation(self, tokenizer):
+    @patch("torchtune.datasets.slimorca.load_dataset")
+    def test_prompt_label_generation(self, load_dataset, tokenizer):
+        load_dataset.return_value = []
         dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)
         sample = [
             {
@@ -61,7 +63,9 @@ class TestSlimOrcaDataset:
         )
         assert label == " lo "
 
-    def test_token_generation(self, tokenizer):
+    @patch("torchtune.datasets.slimorca.load_dataset")
+    def test_token_generation(self, load_dataset, tokenizer):
+        load_dataset.return_value = []
         dataset = datasets.get_dataset(
             "slimorca", tokenizer=tokenizer, max_token_length=4096
         )
@@ -69,7 +73,9 @@ class TestSlimOrcaDataset:
         assert input == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
         assert label == ([-100] * 3 + [1024, 103, tokenizer.eos_id])
 
-    def test_truncated_token_generation(self, tokenizer):
+    @patch("torchtune.datasets.slimorca.load_dataset")
+    def test_truncated_token_generation(self, load_dataset, tokenizer):
+        load_dataset.return_value = []
         dataset = datasets.get_dataset(
             "slimorca", tokenizer=tokenizer, max_token_length=5
         )
@@ -87,17 +93,38 @@ class TestSlimOrcaDataset:
         assert input == [tokenizer.bos_id, 12, 1024, tokenizer.eos_id]
         assert label == ([-100] * 2 + [1024, tokenizer.eos_id])
 
-    def test_value_error(self, tokenizer):
+    @patch("torchtune.datasets.slimorca.load_dataset")
+    def test_value_error(self, load_dataset, tokenizer):
+        load_dataset.return_value = []
         with pytest.raises(ValueError):
             datasets.get_dataset("slimorca", tokenizer=tokenizer, max_token_length=3)
 
+    @patch("torchtune.datasets.slimorca.load_dataset")
     @pytest.mark.parametrize("max_token_length", [128, 512, 1024, 4096])
-    def test_dataset_get_item(self, tokenizer, max_token_length):
+    def test_dataset_get_item(self, load_dataset, tokenizer, max_token_length):
+        # Sample data from slimorca dataset
+        load_dataset.return_value = [
+            {
+                "conversations": [
+                    {
+                        "from": "system",
+                        "value": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
+                    },
+                    {
+                        "from": "human",
+                        "value": "Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? How about on an icy road? Well one father in Russia did just that, and recorded the entire thing. To her credit, the child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\nSummary:",  # noqa: B950
+                    },
+                    {
+                        "from": "gpt",
+                        "value": "A father in Russia allowed his 8-year-old child to drive his car on an icy road and recorded the event. The child appeared to be handling the situation well, showcasing their driving skills despite the challenging conditions.",  # noqa: B950
+                    },
+                ]
+            }
+        ]
         ds = datasets.get_dataset(
             "slimorca", tokenizer=tokenizer, max_token_length=max_token_length
         )
-        index = random.randint(0, len(ds))
-        input, label = ds[index]
+        input, label = ds[0]
         assert len(input) <= max_token_length
         assert len(label) <= max_token_length
         assert len(input) == len(label)

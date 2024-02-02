@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 import pytest
 import recipes.finetune_llm as finetune_llm
@@ -17,7 +17,7 @@ from torchtune.models.llama2 import llama2
 from torchtune.modules import TransformerDecoder
 
 
-def small_test_ckpt() -> TransformerDecoder:
+def small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     return llama2(
         vocab_size=32_000,
         num_layers=4,
@@ -26,6 +26,7 @@ def small_test_ckpt() -> TransformerDecoder:
         max_seq_len=2048,
         norm_eps=1e-5,
         num_kv_heads=8,
+        max_batch_size=max_batch_size,
     )
 
 
@@ -180,7 +181,7 @@ class TestFinetuneLLMRecipe:
         recipe_params = FullFinetuneParams(**kwargs_values)
 
         recipe = FullFinetuneRecipe(recipe_params)
-        recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint)
+        recipe.setup(params=recipe_params)
         recipe.train()
 
         loss_values = self._fetch_loss_values(capsys.readouterr().err)

@@ -13,7 +13,7 @@ from torchtune.utils.argparse import TuneArgumentParser
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
 
 config_to_params = {
-    os.path.join(ROOT_DIR, "alpaca_llama2_finetune.yaml"): FullFinetuneParams,
+    os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneParams,
 }
 
 

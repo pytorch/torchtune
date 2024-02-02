@@ -13,7 +13,7 @@ To run the recipe directly, launch with
 
 .. code-block:: bash
 
-    tune llama_generate --prompt "Hello world"
+    tune alpaca_generate --prompt "Hello world"
 
 Recipe
 ------
@@ -22,5 +22,5 @@ Recipe
 
     Copy the recipe directly into your own script or notebook to modify and edit for yourself.
 
-.. literalinclude:: ../../../recipes/llama_generate.py
+.. literalinclude:: ../../../recipes/alpaca_generate.py
     :pyobject: recipe
