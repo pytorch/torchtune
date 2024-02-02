@@ -86,7 +86,6 @@ class FullFinetuneParams:
     metric_logger_type: str = "disk"
     project: Optional[str] = None
 
-
     def __post_init__(self):
         for param in fields(self):
             if getattr(self, param.name) == "":
