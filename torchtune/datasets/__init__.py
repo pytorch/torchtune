@@ -17,7 +17,9 @@ def get_dataset(name: str, **kwargs) -> Dataset:
     if name in ALL_DATASETS:
         return ALL_DATASETS[name](**kwargs)
     else:
-        raise ValueError(f"Unknown dataset: {name}")
+        raise ValueError(
+            f"Dataset not recognized. Expected one of {ALL_DATASETS}, received {name}"
+        )
 
 
 def list_datasets():

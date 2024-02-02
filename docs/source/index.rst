@@ -67,8 +67,9 @@ TorchTune tutorials.
    :caption: Recipes
    :hidden:
 
+   recipes/how_to_run
    recipes/finetune_llm
-   recipes/llama_generate
+   recipes/alpaca_generate
 
 .. toctree::
    :glob:
