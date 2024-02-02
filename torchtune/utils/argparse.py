@@ -5,8 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+from argparse import Action, Namespace
+from typing import List, Tuple
 
-import yaml
+from omegaconf import OmegaConf
 
 
 class TuneArgumentParser(argparse.ArgumentParser):
@@ -25,13 +27,19 @@ class TuneArgumentParser(argparse.ArgumentParser):
     *Note: This class uses "config" as a builtin argument so it is not available to use*
     """
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         super().add_argument(
             "--config", type=str, help="Path/name of a yaml file with recipe args"
         )
+        super().add_argument(
+            "--override",
+            type=str,
+            nargs="+",
+            help="Override config parameters with format KEY=VALUE",
+        )
 
-    def parse_known_args(self, *args, **kwargs):
+    def parse_known_args(self, *args, **kwargs) -> Tuple[Namespace, List[str]]:
         """This acts the same as the base parse_known_args but will first load in defaults from
         from the config yaml file if it is provided. The command line args will always take
         precident over the values in the config file. All other parsing method, such as parse_args,
@@ -42,25 +50,23 @@ class TuneArgumentParser(argparse.ArgumentParser):
         """
         namespace, _ = super().parse_known_args(*args, **kwargs)
         if namespace.config is not None:
-            with open(namespace.config, "r") as f:
-                config = yaml.safe_load(f)
+            config = OmegaConf.load(namespace.config)
             assert "config" not in config, "Cannot use 'config' within a config file"
-            assert all(
-                c in namespace for c in config
-            ), "Provided config contains unrecognized arguments"
             self.set_defaults(**config)
+        if namespace.override is not None:
+            cli_config = OmegaConf.from_dotlist(namespace.override)
+            assert "config" not in config, "Cannot use 'override' within CLI arguments"
+            self.set_defaults(**cli_config)
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
+        del namespace.override
         return namespace, unknown_args
 
-    def add_argument(self, *args, **kwargs):
+    def add_argument(self, *args, **kwargs) -> Action:
         """This calls the base method but throws an error if the required flag is set or the name used is config.
         For more info on the method see the docs for the base method.
 
         https://docs.python.org/3/library/argparse.html#the-add-argument-method
         """
-        assert (
-            "--config" not in args
-        ), "--config is a protected argument and cannot be used as an argument name"
         assert not kwargs.get("required", False), "Required not supported"
         return super().add_argument(*args, **kwargs)

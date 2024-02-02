@@ -94,11 +94,11 @@ class TestFinetuneLLMRecipe:
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
-            "activation_checkpointing": False,
+            "enable_activation_checkpointing": False,
             "run_generation": False,
             "metric_logger_type": "disk",
             "project": None,
-            "resume_from_previous_checkpoint": False,
+            "resume_from_checkpoint": False,
             "cpu_offload": False,
         }
 
@@ -134,11 +134,11 @@ class TestFinetuneLLMRecipe:
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
-            "activation_checkpointing": False,
+            "enable_activation_checkpointing": False,
             "run_generation": False,
             "metric_logger_type": "disk",
             "project": None,
-            "resume_from_previous_checkpoint": False,
+            "resume_from_checkpoint": False,
             "cpu_offload": True,
         }
 
@@ -173,6 +173,7 @@ class TestFinetuneLLMRecipe:
             "resume_from_checkpoint": False,
             "enable_fsdp": False,
             "enable_activation_checkpointing": False,
+            "metric_logger_type": "disk",
         }
 
         recipe_params = FullFinetuneParams(**kwargs_values)

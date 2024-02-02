@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import argparse
+import dataclasses
 import os
 from functools import partial
 
@@ -17,31 +19,65 @@ from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
 
+from recipes.params import FullFinetuneParams
+
 
 def recipe(
-    device,
-    dtype,
-    seed,
-    model,
-    model_checkpoint,
-    tokenizer,
-    tokenizer_checkpoint,
-    dataset,
-    shuffle,
-    batch_size,
-    epochs,
-    optimizer,
-    loss,
-    lr,
-    activation_checkpointing,
-    output_dir,
-    run_generation,
-    max_steps_per_epoch,
-    metric_logger_type,
-    project,
-    resume_from_previous_checkpoint,
-    cpu_offload,
-):
+    device: str,
+    dtype: str,
+    seed: int,
+    model: str,
+    model_checkpoint: str,
+    tokenizer: str,
+    tokenizer_checkpoint: str,
+    dataset: str,
+    shuffle: bool,
+    batch_size: int,
+    epochs: int,
+    optimizer: str,
+    loss: str,
+    lr: float,
+    enable_activation_checkpointing: bool,
+    output_dir: str,
+    run_generation: int,
+    max_steps_per_epoch: int,
+    metric_logger_type: str,
+    project: str,
+    resume_from_checkpoint: bool,
+    cpu_offload: bool,
+) -> None:
+    """Training loop for fine-tuning an LLM on a provided dataset. Supports evals,
+    checkpointing, and distributed training.
+
+    Args:
+        device (str): Device to use for training. Options are "cpu" and "cuda"
+        dtype (str): Data type to use for training.
+        seed (int): Random seed to use for training.
+        model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
+        model_checkpoint (str): Local path to load model checkpoint from.
+        tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
+        tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
+        dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
+            Currently, only predefined datasets in library are supported.
+        shuffle (bool): Whether to shuffle dataset.
+        batch_size (int): Batch size to use for training.
+        epochs (int): Number of epochs to train for.
+        optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
+        loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
+        lr (float): Learning rate to use for optimizer.
+        enable_activation_checkpointing (bool): Whether to use activation checkpointing.
+        output_dir (str): Local path to save checkpoints and logs to.
+        run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
+        max_steps_per_epoch (int): Maximum number of steps to take per epoch.
+        metric_logger_type (str): String specifying metric logger to use. See ``torchtune.utils.get_metric_logger``
+            for options.
+        project (str): Project name to use for logging. Used by ``WandBLogger``.
+        resume_from_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
+        cpu_offload (bool): Whether to offload model to CPU.
+
+    Raises:
+        ValueError: If ``cpu_offload`` is ``True`` but ``device`` is not ``cuda`` and <= 1 GPUs.
+    """
     # ---- Initialize components ---- #
     distributed = utils.init_distributed()
     world_size, rank = utils.get_world_size_and_rank()
@@ -79,7 +115,7 @@ def recipe(
             auto_wrap_policy={modules.TransformerDecoderLayer},
             cpu_offload=cpu_offload,
         )
-    if activation_checkpointing:
+    if enable_activation_checkpointing:
         utils.set_activation_checkpointing(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
@@ -87,7 +123,7 @@ def recipe(
     # ---- Setup optimization functions ---- #
     opt = optim.get_optimizer(optimizer, model, lr)
     # Load model and possibly optimizer states
-    if resume_from_previous_checkpoint:
+    if resume_from_checkpoint:
         ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
@@ -212,154 +248,19 @@ def recipe(
 
 
 if __name__ == "__main__":
-    parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
+    parser = utils.TuneArgumentParser(
+        description=recipe.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    # Get user-specified args from config and CLI and create params for recipe
+    args, _ = parser.parse_known_args()
+    args = vars(args)
+    params = FullFinetuneParams(**args)
 
-    # Dataset and DataLoader arguments
-    parser.add_argument(
-        "--dataset",
-        type=str,
-        choices=datasets.list_datasets(),
-        help="Dataset name.",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=None,
-        help="""
-            Seed for setting trainer and dataloader workers random number generator state. Using same seed value will
-            provide the same transforms of samples across runs.
-            """,
-    )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--shuffle", action="store_true", help="Shuffle dataset.", default=True
-    )
-    group.add_argument(
-        "--no-shuffle",
-        dest="shuffle",
-        action="store_false",
-        help="Don't shuffle dataset.",
-    )
+    logger = utils.get_logger("DEBUG")
+    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
 
-    # Model arguments
-    parser.add_argument(
-        "--model",
-        type=str,
-        choices=models.list_models(),
-        help="Model to finetune.",
-    )
-    parser.add_argument(
-        "--model-checkpoint",
-        type=str,
-        help="Path to model checkpoint.",
-    )
-    parser.add_argument(
-        "--tokenizer",
-        type=str,
-        choices=models.list_tokenizers(),
-        help="Model tokenizer.",
-    )
-    parser.add_argument(
-        "--tokenizer-checkpoint",
-        type=str,
-        help="Path to tokenizer checkpoint.",
-    )
-
-    # Fine-tuning arguments
-    parser.add_argument(
-        "--batch-size", type=int, default=128, help="Batch size for fine-tuning."
-    )
-    parser.add_argument(
-        "--lr", type=float, default=2e-5, help="Learning rate for fine-tuning."
-    )
-    parser.add_argument(
-        "--epochs", type=int, default=3, help="Number of epochs for fine-tuning"
-    )
-    parser.add_argument(
-        "--optimizer",
-        type=str,
-        default="AdamW",
-        help="Optimizer to use for fine-tuning, please consult torch.optim docs for a list of available optimizers",
-    )
-    parser.add_argument(
-        "--loss",
-        type=str,
-        default="CrossEntropyLoss",
-        choices=["CrossEntropyLoss"],
-        help="Loss to use for fine-tuning.",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints."
-        "If using a metric logger like Tensorboard, this dir will also contain those logs.",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cpu",
-        help="`cuda` or `cpu`",
-    )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--activation-checkpointing",
-        action="store_true",
-        default=False,
-        help="Train the model with activation checkpointing.",
-    )
-    group.add_argument(
-        "--no-activation-checkpointing",
-        dest="activation_checkpointing",
-        action="store_false",
-        help="Don't train the model with activation checkpointing.",
-    )
-    parser.add_argument(
-        "--run-generation",
-        type=int,
-        default=None,
-        help="Run a dummy alpaca generation every n iterations.",
-    )
-    parser.add_argument(
-        "--max-steps-per-epoch",
-        type=int,
-        default=None,
-        help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
-    )
-    parser.add_argument(
-        "--dtype",
-        type=str,
-        choices=utils.list_dtypes(),
-        default=None,
-        help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
-    )
-    parser.add_argument(
-        "--metric-logger-type",
-        type=str,
-        choices=utils.list_metric_loggers(),
-        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
-    )
-    parser.add_argument(
-        "--project",
-        type=str,
-        default=None,
-        help="Project name for WandB metric logger.",
-    )
-    parser.add_argument(
-        "--resume-from-previous-checkpoint",
-        help="""Resume from a previous finetune checkpoint. Note that the previous
-            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
-            is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
-            """,
-        default=False,
-        action="store_true",
-    )
-    parser.add_argument(
-        "--cpu-offload",
-        action="store_true",
-        default=False,
-        help="Offload parameters and gradients to CPU when not involved in computation. Optimizer step runs on CPU.",
-    )
-
-    kwargs = vars(parser.parse_args())
-    recipe(**kwargs)
+    # Temporary hack as we migrate to new recipe
+    params_dict = dataclasses.asdict(params)
+    del params_dict["enable_fsdp"]
+    recipe(**params_dict)

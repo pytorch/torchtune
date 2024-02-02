@@ -31,7 +31,6 @@ from torchtune.utils.constants import (
 
 from tqdm import tqdm
 
-from recipes.args import create_full_finetune_args
 from recipes.interfaces import FTRecipeInterface
 from recipes.params import FullFinetuneParams
 
@@ -362,11 +361,15 @@ def recipe_main() -> None:
         - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
         - Overwritten by arguments from the command-line using ``TuneArgumentParser``
     """
-    parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
-    kwargs = vars(create_full_finetune_args(parser).parse_args())
+    parser = utils.TuneArgumentParser(
+        description=recipe.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    args, _ = parser.parse_known_args()
+    parser.log_args(args)
+    args = vars(args)
 
-    recipe_params = FullFinetuneParams(**kwargs)
-    _validate_recipe_params(recipe_params)
+    recipe_params = FullFinetuneParams(**args)
 
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
@@ -374,14 +377,6 @@ def recipe_main() -> None:
     recipe = FullFinetuneRecipe(params=recipe_params)
     recipe.setup(params=recipe_params)
     recipe.train()
-
-
-def _validate_recipe_params(params: FullFinetuneParams) -> None:
-    """
-    Validate the recipe parameters. This should be ultimately replaced and is a place-holder.
-    """
-    if params.device == "cpu" and params.enable_fsdp:
-        raise ValueError("FSDP is not supported on CPU.")
 
 
 if __name__ == "__main__":

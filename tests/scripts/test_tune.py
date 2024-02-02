@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
+
 import torchtune
 from recipes import list_configs, list_recipes
 
@@ -124,16 +125,13 @@ class TestTuneCLI:
 
     def test_run(self, capsys):
         recipe = "finetune_llm"
-        testargs = (
-            f"tune {recipe} --config alpaca_llama2_finetune --tokenizer fake".split()
-        )
+        testargs = f"\
+            tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake \
+            device=cpu enable_fsdp=False enable_activation_checkpointing=False \
+        ".split()
         with patch.object(sys, "argv", testargs):
-            with pytest.raises(SystemExit) as e:
+            # TODO: mock recipe so we don't actually run it,
+            # we purposely error out prematurely so we can just test that we
+            # enter the script successfully
+            with pytest.raises(ValueError):
                 runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.err.rstrip("\n").split("\n")[-1]
-        assert (
-            output
-            == "finetune_llm.py: error: argument --tokenizer: invalid choice: 'fake' (choose from 'llama2_tokenizer')"
-        )
