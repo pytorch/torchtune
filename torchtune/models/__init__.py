@@ -26,7 +26,9 @@ def get_model(name: str, device: Union[str, torch.device], **kwargs) -> Module:
             model = ALL_MODELS[name](**kwargs)
         return model
     else:
-        raise ValueError(f"Unknown model: {name}")
+        raise ValueError(
+            f"Model not recognized. Expected one of {ALL_MODELS}, received {name}"
+        )
 
 
 def get_tokenizer(name: str, **kwargs) -> Callable:
@@ -34,7 +36,9 @@ def get_tokenizer(name: str, **kwargs) -> Callable:
     if name in ALL_TOKENIZERS:
         return ALL_TOKENIZERS[name](**kwargs)
     else:
-        raise ValueError(f"Unknown tokenizer: {name}")
+        raise ValueError(
+            f"Tokenizer not recognized. Expected one of {ALL_TOKENIZERS}, received {name}"
+        )
 
 
 def list_models():

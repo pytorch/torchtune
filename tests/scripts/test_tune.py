@@ -125,6 +125,7 @@ class TestTuneCLI:
 
     def test_run(self, capsys):
         recipe = "finetune_llm"
+        # Make sure we're not running on GPU which can lead to issues on GH CI
         testargs = f"\
             tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake \
             device=cpu enable_fsdp=False enable_activation_checkpointing=False \
