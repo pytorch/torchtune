@@ -13,11 +13,11 @@ class FTRecipeInterface(Protocol):
     should follow. Please note that the interface itself should not be a vehicle for
     code reuse. TorchTune strictly prohibits implementation inheritance in the codebase.
 
-    TODO: Add link to design principle README
-
     A few notes about the design and the need for this interface:
     - This interface is meant to help recipe-writers organize their code in a way
-        which is easy to read, understand and extend.
+        which is easy to read, understand and extend. Minimizing code duplication is not
+        the goal. Recipe-writers are encouraged to copy-paste-modify.
+
     - This interface is not meant to add constraints. If the interface comes in the
         way of doing stuff, it needs to be updated or a new interface should be
         written to support what might be a new "family" of recipes.
@@ -25,17 +25,16 @@ class FTRecipeInterface(Protocol):
 
     def load_checkpoint(self, **kwargs) -> None:
         """
-        This method is responsible for loading ALL of the state for the recipe from the
+        Responsible for loading ALL of the state for the recipe from the
         checkpoint file, including state for the model, optimizer, dataloader and training
         parameters such as the epoch and seed.
         """
         ...
 
-    def save_checkpoint(self, **kwargs) -> None:
+    def setup(self, **kwargs) -> None:
         """
-        This method is responsible for saving ALL of the state for the recipe,
-        including state for the model, optimizer, dataloader and training
-        parameters such as the epoch and seed.
+        Responsible for setting up all of the components necessary for training. This includes
+        model, optimizer, loss function and dataloader.
         """
         ...
 
@@ -43,6 +42,14 @@ class FTRecipeInterface(Protocol):
         """
         All of the training logic, including the core loop, loss computation, gradient
         accumulation, and backward.
+        """
+        ...
+
+    def save_checkpoint(self, **kwargs) -> None:
+        """
+        Responsible for saving ALL of the state for the recipe,
+        including state for the model, optimizer, dataloader and training
+        parameters such as the epoch and seed.
         """
         ...
 
