@@ -247,6 +247,8 @@ class TestTextGenerate:
         top_p = 0.9
         top_k = 0
         generate = _make_generate(generation_model)
+
+        torch.manual_seed(42)
         outputs_first, _ = generate(
             prompt_tokens=prompt_tokens,
             min_gen_len=min_gen_len,
@@ -256,8 +258,9 @@ class TestTextGenerate:
             top_k=top_k,
             keep_prompt=False,
             incremental_decode=False,
-            random_seed=42,
         )
+
+        torch.manual_seed(42)
         outputs_second, _ = generate(
             prompt_tokens=prompt_tokens,
             min_gen_len=min_gen_len,
@@ -267,6 +270,6 @@ class TestTextGenerate:
             top_k=top_k,
             keep_prompt=False,
             incremental_decode=False,
-            random_seed=42,
         )
+
         assert outputs_first.tolist() == outputs_second.tolist()
