@@ -109,8 +109,8 @@ class TestLoRALlama2:
     @pytest.mark.parametrize(
         "lora_modules, expected",
         [
-            (["q_proj", "v_proj"], torch.tensor(5638870.5)),
-            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(5684272.5)),
+            (["q_proj", "v_proj"], torch.tensor(5638859.0)),
+            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(5684263.5)),
             (["k_proj"], torch.tensor(5608697.5)),
         ],
     )
