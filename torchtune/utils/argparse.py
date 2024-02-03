@@ -70,11 +70,3 @@ class TuneArgumentParser(argparse.ArgumentParser):
         """
         assert not kwargs.get("required", False), "Required not supported"
         return super().add_argument(*args, **kwargs)
-
-    def log_args(self, args: Namespace) -> None:
-        """Logs final parsed args to console"""
-        logger = utils.get_logger("DEBUG")
-        logger.info("Config:")
-        args = vars(args)
-        for k, v in args.items():
-            logger.info(f"  {k}: {v}")
