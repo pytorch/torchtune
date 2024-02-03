@@ -11,16 +11,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-<<<<<<< HEAD
-<<<<<<< HEAD
 import pytest
-
-=======
->>>>>>> d0a5624 (Update base for Update on "Config tests")
-=======
-import pytest
-
->>>>>>> d4a6efa (Update base for Update on "Config tests")
 import torchtune
 from recipes import list_configs, list_recipes
 
