@@ -9,11 +9,6 @@ from argparse import Action, Namespace
 from typing import List, Tuple
 
 from omegaconf import OmegaConf
-<<<<<<< HEAD
-=======
-
-from torchtune import utils
->>>>>>> 865720a (Config parsing refactor)
 
 
 class TuneArgumentParser(argparse.ArgumentParser):
