@@ -95,14 +95,15 @@ class TestFinetuneLLMRecipe:
             "device": "cpu",
             "dtype": "fp32",
             "enable_activation_checkpointing": False,
-            "run_generation": False,
+            "enable_fsdp": False,
+            "run_generation": None,
             "metric_logger_type": "disk",
             "project": None,
             "resume_from_checkpoint": False,
             "cpu_offload": False,
         }
 
-        finetune_llm.recipe(**kwargs_values)
+        finetune_llm.recipe(FullFinetuneParams(**kwargs_values))
         loss_values = self._fetch_loss_values(capsys.readouterr().err)
         logger.info("Expected loss values : ", expected_loss_values)
         logger.info("Loss values from Finetune : ", loss_values)
@@ -135,7 +136,8 @@ class TestFinetuneLLMRecipe:
             "device": "cpu",
             "dtype": "fp32",
             "enable_activation_checkpointing": False,
-            "run_generation": False,
+            "enable_fsdp": False,
+            "run_generation": None,
             "metric_logger_type": "disk",
             "project": None,
             "resume_from_checkpoint": False,
@@ -144,9 +146,9 @@ class TestFinetuneLLMRecipe:
 
         with pytest.raises(
             ValueError,
-            match="CPU offload is only supported with FSDP in a distributed setting.",
+            match="Cannot offload model to CPU if device is not cuda or <= 1 GPUs.",
         ):
-            finetune_llm.recipe(**kwargs_values)
+            finetune_llm.recipe(FullFinetuneParams(**kwargs_values))
 
     def test_finetune_llm_loss_refactored(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")

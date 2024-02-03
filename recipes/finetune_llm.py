@@ -6,7 +6,6 @@
 
 
 import argparse
-import dataclasses
 import os
 from functools import partial
 
@@ -23,58 +22,14 @@ from recipes.params import FullFinetuneParams
 
 
 def recipe(
-    *,
-    device: str,
-    dtype: str,
-    seed: int,
-    model: str,
-    model_checkpoint: str,
-    tokenizer: str,
-    tokenizer_checkpoint: str,
-    dataset: str,
-    shuffle: bool,
-    batch_size: int,
-    epochs: int,
-    optimizer: str,
-    loss: str,
-    lr: float,
-    enable_activation_checkpointing: bool,
-    output_dir: str,
-    run_generation: int,
-    max_steps_per_epoch: int,
-    metric_logger_type: str,
-    project: str,
-    resume_from_checkpoint: bool,
-    cpu_offload: bool,
+    params: FullFinetuneParams,
 ) -> None:
     """Training loop for fine-tuning an LLM on a provided dataset. Supports evals,
     checkpointing, and distributed training.
 
     Args:
-        device (str): Device to use for training. Options are "cpu" and "cuda"
-        dtype (str): Data type to use for training.
-        seed (int): Random seed to use for training.
-        model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
-        model_checkpoint (str): Local path to load model checkpoint from.
-        tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
-        tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
-        dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
-            Currently, only predefined datasets in library are supported.
-        shuffle (bool): Whether to shuffle dataset.
-        batch_size (int): Batch size to use for training.
-        epochs (int): Number of epochs to train for.
-        optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
-        loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
-        lr (float): Learning rate to use for optimizer.
-        enable_activation_checkpointing (bool): Whether to use activation checkpointing.
-        output_dir (str): Local path to save checkpoints and logs to.
-        run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
-        max_steps_per_epoch (int): Maximum number of steps to take per epoch.
-        metric_logger_type (str): String specifying metric logger to use. See ``torchtune.utils.get_metric_logger``
-            for options.
-        project (str): Project name to use for logging. Used by ``WandBLogger``.
-        resume_from_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
-        cpu_offload (bool): Whether to offload model to CPU.
+        params (FullFinetuneParams): dataclass containing all args for recipe. See ``FullFinetuneParams`` for
+             more details.
 
     Raises:
         ValueError: If ``cpu_offload`` is ``True`` but ``device`` is not ``cuda`` and <= 1 GPUs.
@@ -85,21 +40,23 @@ def recipe(
 
     logger = utils.get_logger("DEBUG")
     metric_logger = utils.get_metric_logger(
-        metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
+        metric_logger_type=params.metric_logger_type,
+        project=params.project,
+        log_dir=params.output_dir,
     )
 
-    device = utils.get_device(device)
-    dtype = utils.get_dtype(dtype)
-    seed = utils.set_seed(seed)
+    device = utils.get_device(params.device)
+    dtype = utils.get_dtype(params.dtype)
+    seed = utils.set_seed(params.seed)
 
     # ---- Setup model and load checkpoint ---- #
-    tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
-    logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
+    tokenizer = models.get_tokenizer(params.tokenizer, path=params.tokenizer_checkpoint)
+    logger.info(msg=f"Loaded tokenizer from {params.tokenizer_checkpoint}")
 
     # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
-    model = models.get_model(model, device=device)
+    model = models.get_model(params.model, device=device)
 
-    if cpu_offload and not distributed:
+    if params.cpu_offload and not distributed:
         raise ValueError(
             "CPU offload is only supported with FSDP in a distributed setting."
             "Please launch in a distributed setting. If you do not wish to use > 1 GPU,"
@@ -114,33 +71,33 @@ def recipe(
             dtype=dtype,
             strategy="FULL_SHARD",
             auto_wrap_policy={modules.TransformerDecoderLayer},
-            cpu_offload=cpu_offload,
+            cpu_offload=params.cpu_offload,
         )
-    if enable_activation_checkpointing:
+    if params.enable_activation_checkpointing:
         utils.set_activation_checkpointing(
             model, auto_wrap_policy={modules.TransformerDecoderLayer}
         )
 
     # ---- Setup optimization functions ---- #
-    opt = optim.get_optimizer(optimizer, model, lr)
+    opt = optim.get_optimizer(params.optimizer, model, params.lr)
     # Load model and possibly optimizer states
-    if resume_from_checkpoint:
-        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+    if params.resume_from_checkpoint:
+        ckpt_dict = load_checkpoint(params.model_checkpoint, model, opt)
         model.load_state_dict(ckpt_dict["model"])
         # Note: optimizer entry in dictionary is pre-transformed if using FSDP
         opt.load_state_dict(ckpt_dict["optimizer"])
         if rank == 0:
             logger.info(
-                msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
+                msg=f"Loaded checkpoint from previous finetune from {params.model_checkpoint}"
             )
     else:
-        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        ckpt_dict = load_checkpoint(params.model_checkpoint, model)
         model.load_state_dict(ckpt_dict["model"])
         if rank == 0:
-            logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
+            logger.info(msg=f"Loaded pretrained model from {params.model_checkpoint}")
 
     # TODO add lr schedule option
-    loss_fn = losses.get_loss(loss)
+    loss_fn = losses.get_loss(params.loss)
 
     autocast = utils.get_autocast(dtype, device)
     if dtype == torch.float16:
@@ -149,17 +106,17 @@ def recipe(
         grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
+    ds = datasets.get_dataset(params.dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
         ds,
         num_replicas=world_size,
         rank=rank,
-        shuffle=shuffle,
+        shuffle=params.shuffle,
         seed=0,
     )
     dataloader = DataLoader(
         dataset=ds,
-        batch_size=batch_size,
+        batch_size=params.batch_size,
         sampler=sampler,
         collate_fn=partial(
             utils.padded_collate,
@@ -167,13 +124,16 @@ def recipe(
             ignore_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
     )
-    logger.info(msg=f"Loaded dataset {dataset}")
+    logger.info(msg=f"Loaded dataset {params.dataset}")
 
     # ---- Train loop ---- #
-    for epoch in range(epochs):
+    for epoch in range(params.epochs):
         sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
         for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
-            if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
+            if (
+                params.max_steps_per_epoch is not None
+                and idx == params.max_steps_per_epoch
+            ):
                 break
             opt.zero_grad()
 
@@ -210,7 +170,7 @@ def recipe(
             grad_scaler.update()
 
             # --- TODO TEMPORARY EVAL Code ---- #
-            if run_generation and idx % run_generation == 0:
+            if params.run_generation and idx % params.run_generation == 0:
                 # Log a sample generation for the instruction.
                 # Just using a hardcoded prompt for now
                 prompt = (
@@ -228,13 +188,13 @@ def recipe(
             # --- TODO TEMPORARY EVAL Code Ends ---- #
 
         # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
-        os.makedirs(output_dir, exist_ok=True)
-        output_loc = f"{output_dir}/model_{epoch}.ckpt"
+        os.makedirs(params.output_dir, exist_ok=True)
+        output_loc = f"{params.output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {
             "model": model,
             "optimizer": opt,
         }
-        if epoch == epochs - 1:
+        if epoch == params.epochs - 1:
             # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
             ckpt_dict.pop("optimizer")
         if rank == 0:
@@ -250,7 +210,7 @@ def recipe(
 
 if __name__ == "__main__":
     parser = utils.TuneArgumentParser(
-        description=recipe.__doc__,
+        description=FullFinetuneParams.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     # Get user-specified args from config and CLI and create params for recipe
@@ -261,7 +221,4 @@ if __name__ == "__main__":
     logger = utils.get_logger("DEBUG")
     logger.info(msg=f"Running finetune_llm.py with parameters {params}")
 
-    # Temporary hack as we migrate to new recipe
-    params_dict = dataclasses.asdict(params)
-    del params_dict["enable_fsdp"]
-    recipe(**params_dict)
+    recipe(params)

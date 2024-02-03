@@ -12,7 +12,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-
 import torchtune
 from recipes import list_configs, list_recipes
 
