@@ -5,10 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from recipes.params import FullFinetuneParams
+from recipes.params import AlpacaGenerateParams, FullFinetuneParams
 
 
-class TestParams:
+class TestFullFinetuneParams:
     @pytest.fixture
     def params(self):
         return dict(
@@ -73,3 +73,26 @@ class TestParams:
             params["enable_fsdp"] = True
             params["device"] = "cpu"
             _ = FullFinetuneParams(**params)
+
+
+class TestAlpacaGenerateParams:
+    @pytest.fixture
+    def params(self):
+        return dict(
+            model="llama2_7b",
+            model_checkpoint="/tmp/llama2-7b",
+            tokenizer="llama2_tokenizer",
+            tokenizer_checkpoint="/tmp/tokenizer.model",
+            instruction="Answer the question.",
+            input="What is some cool music from the 1920s?",
+            max_gen_len=64,
+        )
+
+    def test_bad_instruction(self, params):
+        with pytest.raises(TypeError):
+            params["instruction"] = ""
+            _ = AlpacaGenerateParams(**params)
+
+    def test_empty_input(self, params):
+        params["input"] = ""
+        _ = AlpacaGenerateParams(**params)

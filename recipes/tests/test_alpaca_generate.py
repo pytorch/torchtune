@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 
 import recipes.alpaca_generate as alpaca_generate
+from recipes.params.alpaca_generate import AlpacaGenerateParams
 from torchtune import models
 from torchtune.models.llama2 import llama2
 from torchtune.modules import TransformerDecoder
@@ -52,4 +53,4 @@ class TestAlpacaGenerateRecipe:
             "input": "What is some cool music from the 1920s?",
             "max_gen_len": 64,
         }
-        alpaca_generate.recipe(**kwargs_values)
+        alpaca_generate.recipe(AlpacaGenerateParams(**kwargs_values))

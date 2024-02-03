@@ -12,7 +12,7 @@ from typing import Dict, Optional
 import pytest
 import recipes.finetune_llm as finetune_llm
 from recipes.full_finetune import FullFinetuneRecipe
-from recipes.params import FullFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
 from torchtune import models
 from torchtune.models.llama2 import llama2
 

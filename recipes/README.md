@@ -51,5 +51,5 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune 
 
 To run the generation recipe, run this command from inside the main `/torchtune` directory:
 ```
-python -m recipes.alpaca_generate --native-checkpoint-path /tmp/finetune-llm/model_0.ckpt --tokenizer-path ~/llama/tokenizer.model --input "What is some cool music from the 1920s?"
+tune alpaca_generate --config alpaca_llama2_generate --override model_checkpoint=/tmp/finetune-llm/model_0.ckpt tokenizer_path=~/llama/tokenizer.model input="What is some cool music from the 1920s?"
 ```

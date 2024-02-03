@@ -1,0 +1,10 @@
+# Model Arguments
+model: llama2_7b
+model_checkpoint: /tmp/llama2-7b
+tokenizer: llama2_tokenizer
+tokenizer_checkpoint: /tmp/tokenizer.model
+
+# Generation arguments
+instruction: "Answer the question."
+input: "What is some cool music from the 1920s?"
+max_gen_len: 64

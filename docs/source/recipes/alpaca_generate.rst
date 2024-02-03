@@ -13,7 +13,7 @@ To run the recipe directly, launch with
 
 .. code-block:: bash
 
-    tune alpaca_generate --prompt "Hello world"
+    tune alpaca_generate --config <generate_config>
 
 Recipe
 ------

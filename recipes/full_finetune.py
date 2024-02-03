@@ -33,7 +33,7 @@ from torchtune.utils.constants import (
 from tqdm import tqdm
 
 from recipes.interfaces import FTRecipeInterface
-from recipes.params import FullFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
 
 
 log = utils.get_logger("DEBUG")

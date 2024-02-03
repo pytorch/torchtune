@@ -5,15 +5,14 @@
 # LICENSE file in the root directory of this source tree.
 import os
 
-import pytest
-
-from recipes.params import FullFinetuneParams
+from recipes.params import AlpacaGenerateParams, FullFinetuneParams
 from torchtune.utils.argparse import TuneArgumentParser
 
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
 
 config_to_params = {
     os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneParams,
+    os.path.join(ROOT_DIR, "alpaca_llama2_generate.yaml"): AlpacaGenerateParams,
 }
 
 
@@ -22,13 +21,10 @@ class TestConfigs:
     Configs should have the complete set of arguments as specified by the recipe.
     """
 
-    @pytest.fixture
-    def parser(self):
-        parser = TuneArgumentParser("Test parser")
-        return parser
-
-    def test_configs(self, parser) -> None:
+    def test_configs(self) -> None:
         for config_path, params in config_to_params.items():
+            # Reinitialize parser each time so args don't overlap across configs
+            parser = TuneArgumentParser("Test parser")
             args, _ = parser.parse_known_args(["--config", config_path])
             try:
                 _ = params(**vars(args))
