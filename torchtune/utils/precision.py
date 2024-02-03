@@ -14,7 +14,7 @@ from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 from torchtune.utils.device import _validate_device_from_env
 
-_precision_str_to_dtype: Dict[str, torch.dtype] = {
+PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
     "bf16": torch.bfloat16,
     "fp32": torch.float32,
@@ -47,7 +47,7 @@ def list_dtypes() -> List[str]:
     """
     Return a list of supported dtypes for finetuning.
     """
-    return list(_precision_str_to_dtype.keys())
+    return list(PRECISION_STR_TO_DTYPE.keys())
 
 
 def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
@@ -67,10 +67,10 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
         return torch.float32
 
     # Convert to torch.dtype
-    dtype = _precision_str_to_dtype.get(dtype, dtype)
+    dtype = PRECISION_STR_TO_DTYPE.get(dtype, dtype)
 
     # dtype must be one of the supported precisions
-    if dtype not in _precision_str_to_dtype.values():
+    if dtype not in PRECISION_STR_TO_DTYPE.values():
         raise ValueError(
             f"Dtype {dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )

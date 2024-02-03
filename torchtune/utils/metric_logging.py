@@ -242,7 +242,7 @@ class TensorBoardLogger(MetricLoggerInterface):
             self._writer = None
 
 
-_METRIC_LOGGER_DICT: Dict[str, "MetricLoggerInterface"] = {
+ALL_METRIC_LOGGERS: Dict[str, "MetricLoggerInterface"] = {
     "wandb": WandBLogger,
     "tensorboard": TensorBoardLogger,
     "stdout": StdoutLogger,
@@ -256,7 +256,7 @@ def list_metric_loggers() -> List[str]:
     Returns:
         List[str]: list of available metric loggers
     """
-    return list(_METRIC_LOGGER_DICT.keys())
+    return list(ALL_METRIC_LOGGERS.keys())
 
 
 def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLoggerInterface":
@@ -272,9 +272,9 @@ def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLoggerInterfa
     Returns:
         MetricLoggerInterface: metric logger
     """
-    if metric_logger_type not in _METRIC_LOGGER_DICT:
+    if metric_logger_type not in ALL_METRIC_LOGGERS:
         raise ValueError(
             f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
         )
 
-    return _METRIC_LOGGER_DICT[metric_logger_type](**kwargs)
+    return ALL_METRIC_LOGGERS[metric_logger_type](**kwargs)

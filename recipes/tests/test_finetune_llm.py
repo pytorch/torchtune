@@ -30,7 +30,7 @@ def small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     )
 
 
-models._MODEL_DICT["small_test_ckpt"] = small_test_ckpt
+models.ALL_MODELS["small_test_ckpt"] = small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

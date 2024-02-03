@@ -23,6 +23,7 @@ from recipes.params import FullFinetuneParams
 
 
 def recipe(
+    *,
     device: str,
     dtype: str,
     seed: int,

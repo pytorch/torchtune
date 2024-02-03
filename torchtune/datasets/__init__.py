@@ -9,17 +9,19 @@ from torch.utils.data import Dataset
 from .alpaca import AlpacaDataset
 from .slimorca import SlimOrcaDataset
 
-_DATASET_DICT = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
+ALL_DATASETS = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
 
 
 def get_dataset(name: str, **kwargs) -> Dataset:
     """Get known supported datasets by name"""
-    if name in _DATASET_DICT:
-        return _DATASET_DICT[name](**kwargs)
+    if name in ALL_DATASETS:
+        return ALL_DATASETS[name](**kwargs)
     else:
-        raise ValueError(f"Unknown dataset: {name}")
+        raise ValueError(
+            f"Dataset not recognized. Expected one of {ALL_DATASETS}, received {name}"
+        )
 
 
 def list_datasets():
     """List of availabe datasets supported by `get_dataset`"""
-    return list(_DATASET_DICT)
+    return list(ALL_DATASETS)
