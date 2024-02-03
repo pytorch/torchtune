@@ -9,7 +9,7 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 
-def get_optimizer(optimizer: str, model: torch.nn.Module, lr: float) -> Optimizer:
+def get_optimizer(optimizer: str, model: torch.nn.Module, lr: float, weight_decay: float = 0.0) -> Optimizer:
     """Returns an optimizer function from torch.optim.
 
     Args:
@@ -24,7 +24,10 @@ def get_optimizer(optimizer: str, model: torch.nn.Module, lr: float) -> Optimize
         ValueError: if the optimizer is not a valid optimizer from torch.optim.
     """
     try:
-        return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
+        trainable_params = [p for n, p in model.named_parameters() if p.requires_grad]
+        return getattr(torch.optim, optimizer)(
+            trainable_params, lr=lr, weight_decay=weight_decay
+        )
     except AttributeError as e:
         raise ValueError(
             f"{optimizer} is not a valid optimizer from torch.optim"

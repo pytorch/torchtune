@@ -1,5 +1,5 @@
 # Dataset and Dataloader
-dataset: alpaca
+dataset: alpaca_cleaned
 seed: null
 shuffle: True
 
@@ -11,12 +11,19 @@ tokenizer: llama2_tokenizer
 tokenizer_checkpoint: /tmp/tokenizer.model
 
 # Fine-tuning arguments
-batch_size: 2
-lr: 2e-5
-epochs: 3
-optimizer: SGD
+batch_size: 16
+lr: 3e-4
+num_warmup_steps: 100
+max_steps_per_epoch: 390 # 50000 // num_devices // batch_size
+epochs: 16
+optimizer: AdamW
 loss: CrossEntropyLoss
 output_dir: /tmp/alpaca-llama2-lora-finetune
 device: cuda
 dtype: fp32
 resume_from_checkpoint: False
+
+
+metric_logger: wandb
+project: lora-debug
+log_interval: 5

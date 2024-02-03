@@ -26,8 +26,16 @@ from recipes.interfaces import FTRecipeInterface
 from recipes.params import LoRAFinetuneParams
 from torchtune.utils.checkpoint import _map_key
 from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
-
+from torch.optim.lr_scheduler import LambdaLR
+import wandb
 log = utils.get_logger("DEBUG")
+
+# TODO: put this somewhere else
+def get_lr_scheduler(optimizer, warmup_steps: int, max_steps: int):
+    # linear warmup followed by cosine annealing
+    scheduler1 = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda step: step / warmup_steps)
+    scheduler2 = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=(max_steps - warmup_steps))
+    return torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[warmup_steps])
 
 
 class LoRAFinetuneRecipe(FTRecipeInterface):
@@ -56,12 +64,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     """
 
     def __init__(self, params: LoRAFinetuneParams) -> None:
-
+        self.log_interval = params.log_interval
         self.device = utils.get_device(device=params.device)
         self.dtype = utils.get_dtype(dtype=params.dtype)
         self.seed = utils.set_seed(seed=params.seed)
         self.output_dir = params.output_dir
-
+        self.lora_attn_modules = params.lora_attn_modules
         _, rank = utils.get_world_size_and_rank()
         self.is_rank_zero = rank == 0
 
@@ -71,10 +79,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             enable_fsdp=params.enable_fsdp,
             enable_activation_checkpointing=params.enable_activation_checkpointing,
         )
+
+        if self.is_rank_zero:
+            self.metric_logger = utils.get_metric_logger(
+                metric_logger_type=params.metric_logger, project=params.project, log_dir=params.output_dir+"/logs"
+            )
+            wandb.watch(self.model, log_freq=100, log='all')
+
         self.tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
         )
-        self.optimizer = self._setup_optimizer(optimizer=params.optimizer, lr=params.lr)
+        self.optimizer = self._setup_optimizer(optimizer=params.optimizer, lr=params.lr, weight_decay=0.01)
         self.loss_fn = self._setup_loss(loss=params.loss)
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -92,6 +107,14 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # `load_checkpoint` if `resume_from_checkpoint` is `True`.
         self.epochs_run = 0
         self.resume_from_checkpoint = params.resume_from_checkpoint
+
+        # TODO: this is super hacky rn and won't work for resumes
+        total_num_training_steps = self.total_epochs * self.max_steps_per_epoch
+        self.lr_scheduler = get_lr_scheduler(
+            self.optimizer,
+            warmup_steps=params.num_warmup_steps,
+            max_steps=total_num_training_steps
+        )
 
         self.autocast = utils.get_autocast(self.dtype, self.device)
         self.grad_scaler = None
@@ -162,12 +185,20 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             log.info("Tokenizer is initialized from file.")
         return tokenizer
 
-    def _setup_optimizer(self, optimizer: str, lr: float) -> Optimizer:
-        optimizer = optim.get_optimizer(optimizer, self.model, lr)
+    def _setup_optimizer(self, optimizer: str, lr: float, weight_decay: float) -> Optimizer:
+        optimizer = optim.get_optimizer(optimizer, self.model, lr, weight_decay)
 
         if self.is_rank_zero:
             log.info("Optimizer and loss are initialized.")
         return optimizer
+
+    def _setup_lr_scheduler(self, num_warmup_steps: int, total_steps: int) -> Optimizer:
+        lr_scheduler = get_linear_schedule_with_warmup(
+            self.optimizer, num_warmup_steps, total_steps, last_epoch=-1
+        )
+        if self.is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
 
     def _setup_loss(self, loss: str) -> nn.Module:
         loss_fn = losses.get_loss(loss)
@@ -226,9 +257,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
 
         missing, unexpected = self.model.load_state_dict(ckpt_dict["model"], strict=False)
-        assert all(["q_proj" in x or "v_proj" in x for x in missing])
-        assert not unexpected
+        for x in missing:
+            assert any([k in x for k in self.lora_attn_modules])
 
+        assert not unexpected
 
         # use this section to set all of the state which needs to be updated when
         # resuming from training
@@ -256,7 +288,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
         """
-        output_loc = f"{self.output_dir}/model_{epoch}.ckpt"
+        output_loc = f"{self.output_dir}/ft_ckpts/model_{epoch}.ckpt"
         ckpt_dict = {"model": self.model}
 
         # if training is in-progress, checkpoint the optimizer state as well
@@ -307,11 +339,25 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
+                if rank == 0 and idx % self.log_interval == 0:
+                    self.metric_logger.log_dict(
+                        {
+                            "loss": loss.item(),
+                            "lr": self.optimizer.param_groups[0]["lr"],
+                            "gpu_resources": torch.cuda.memory_allocated(),
+                        },
+                        step=curr_epoch * len(self.dataloader)
+                        + idx,  # Each step is unique, not limited to each epoch
+                    )
+
                 self.grad_scaler.scale(loss).backward()
                 self.grad_scaler.step(self.optimizer)
                 self.grad_scaler.update()
+                self.lr_scheduler.step()
 
             self.save_checkpoint(epoch=curr_epoch)
+        if rank == 0:
+            self.metric_logger.close()
 
 
 def recipe_main() -> None:
@@ -325,7 +371,7 @@ def recipe_main() -> None:
     init_process_group(backend="nccl")
 
     recipe = LoRAFinetuneRecipe(params=recipe_params)
-    # recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint, lora_attn_modules=recipe_params.lora_attn_modules)
+    recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint, lora_attn_modules=recipe_params.lora_attn_modules)
     recipe.train()
 
 def _validate_recipe_params(params: LoRAFinetuneParams) -> None:

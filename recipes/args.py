@@ -166,4 +166,32 @@ def create_lora_finetune_args(parser) -> argparse.ArgumentParser:
         default=["q_proj", "v_proj"]
     )
 
+    parser.add_argument(
+        "--metric-logger",
+        type=str,
+        default="stdout",
+        help="metric logger",
+    )
+
+    parser.add_argument(
+        "--project",
+        type=str,
+        default="lora-debug",
+        help="Project for wandb logging",
+    )
+
+    parser.add_argument(
+        "--num-warmup-steps",
+        type=int,
+        help='Number of warmup steps in LR scheduler',
+        default=100
+    )
+
+    parser.add_argument(
+        "--log-interval",
+        type=int,
+        help='Log every n steps',
+        default=5
+    )
+
     return parser

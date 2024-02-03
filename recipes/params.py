@@ -70,6 +70,7 @@ class LoRAFinetuneParams:
     # Optimizer and Scheduler
     optimizer: str
     lr: float
+    num_warmup_steps: int
     loss: str
 
     # Training
@@ -81,3 +82,6 @@ class LoRAFinetuneParams:
 
     # Logging
     output_dir: str
+    metric_logger: str
+    project: str
+    log_interval: int

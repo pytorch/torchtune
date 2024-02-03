@@ -43,11 +43,12 @@ def lora_llama2_7b(
         max_seq_len=4096,
         max_batch_size=max_batch_size,
         attn_dropout=0.0,
-        norm_eps=1e-6,
+        norm_eps=1e-6, #TODO: PICK A VALUE HERE
         # Based on
         # https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L41-L42
         lora_rank=8,
         lora_alpha=16,
+        lora_dropout=0.05,
     )
 
 

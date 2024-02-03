@@ -6,10 +6,10 @@
 
 from torch.utils.data import Dataset
 
-from .alpaca import AlpacaDataset
+from .alpaca import AlpacaDataset, AlpacaCleanedDataset
 from .slimorca import SlimOrcaDataset
 
-_DATASET_DICT = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
+_DATASET_DICT = {"alpaca": AlpacaDataset, "alpaca_cleaned": AlpacaCleanedDataset, "slimorca": SlimOrcaDataset}
 
 
 def get_dataset(name: str, **kwargs) -> Dataset:
