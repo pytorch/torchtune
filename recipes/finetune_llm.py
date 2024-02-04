@@ -106,7 +106,12 @@ def recipe(
         grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    ds = datasets.get_dataset(params.dataset, split="train", tokenizer=tokenizer)
+    ds = datasets.get_dataset(
+        params.dataset,
+        split="train",
+        tokenizer=tokenizer,
+        train_on_input=params.train_on_input,
+    )
     sampler = DistributedSampler(
         ds,
         num_replicas=world_size,

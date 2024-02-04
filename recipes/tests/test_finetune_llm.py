@@ -48,16 +48,16 @@ class TestFinetuneLLMRecipe:
 
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
-            "1|1|": 10.5011,
-            "1|2|": 10.5740,
-            "2|1|": 10.5221,
-            "2|2|": 10.4835,
+            "1|1|": 10.5074,
+            "1|2|": 10.5563,
+            "2|1|": 10.5152,
+            "2|2|": 10.4851,
         }
         llama2_7b_ckpt_loss_values = {
-            "1|1|": 1.2381,
-            "1|2|": 1.1042,
-            "2|1|": 1.3086,
-            "2|2|": 0.9908,
+            "1|1|": 1.1333,
+            "1|2|": 1.1199,
+            "2|1|": 1.2614,
+            "2|2|": 0.9486,
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
@@ -79,6 +79,7 @@ class TestFinetuneLLMRecipe:
 
         kwargs_values = {
             "dataset": "alpaca",
+            "train_on_input": False,
             "seed": 9,
             "shuffle": True,
             "model": ckpt,
@@ -120,6 +121,7 @@ class TestFinetuneLLMRecipe:
 
         kwargs_values = {
             "dataset": "alpaca",
+            "train_on_input": False,
             "seed": 9,
             "shuffle": True,
             "model": ckpt,
@@ -157,6 +159,7 @@ class TestFinetuneLLMRecipe:
 
         kwargs_values = {
             "dataset": "alpaca",
+            "train_on_input": False,
             "seed": 9,
             "shuffle": True,
             "model": ckpt,
