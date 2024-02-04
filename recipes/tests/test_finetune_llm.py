@@ -300,3 +300,6 @@ class TestFullFinetuneRecipe:
             assert recipe.seed == kwargs_values["seed"]
             assert recipe.max_steps_per_epoch == kwargs_values["max_steps_per_epoch"]
             assert recipe.total_epochs == kwargs_values["epochs"]
+            assert recipe.total_training_steps == (
+                3 * kwargs_values["max_steps_per_epoch"]
+            )

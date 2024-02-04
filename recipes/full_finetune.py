@@ -81,7 +81,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._is_rank_zero = rank == 0
 
         # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True` or used during
+        # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=params.seed)
         self.epochs_run = 0
         self.total_epochs = params.epochs
