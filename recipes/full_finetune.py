@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import argparse
 import os
 import sys
 
@@ -65,6 +66,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = params.output_dir
+        self._metric_logger = utils.get_metric_logger(
+            metric_logger_type=params.metric_logger_type,
+            project=params.project,
+            log_dir=params.output_dir,
+        )
+        self._log_every_n_steps = (
+            params.log_every_n_steps if params.log_every_n_steps else 1
+        )
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -72,11 +81,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._is_rank_zero = rank == 0
 
         # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True`
+        # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=params.seed)
         self.epochs_run = 0
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
+        self.total_training_steps = 0
 
         self._resume_from_checkpoint = params.resume_from_checkpoint
 
@@ -142,6 +152,20 @@ class FullFinetuneRecipe(FTRecipeInterface):
             self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
+
+        # Finally update the recipe state which can only be correctly set after all of the
+        # other components have been initialized and updated.
+
+        # Number of training steps in each epoch depends on the number of batches produced
+        # by the dataloader and the max_steps_per_epoch param set by the user and is used
+        # for logging and tracking training state. This should be computed after the dataloader
+        # has been setup
+        steps_per_epoch = len(self._dataloader)
+        if self.max_steps_per_epoch and self.max_steps_per_epoch < len(
+            self._dataloader
+        ):
+            steps_per_epoch = self.max_steps_per_epoch
+            self.total_training_steps = self.epochs_run * steps_per_epoch
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -333,6 +357,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     and idx == self.max_steps_per_epoch
                 ):
                     break
+
+                self.total_training_steps += 1
                 self._optimizer.zero_grad()
 
                 input_ids, labels = batch
@@ -350,12 +376,25 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
+                if self.total_training_steps % self._log_every_n_steps == 0:
+                    self._metric_logger.log_dict(
+                        {
+                            "loss": loss.item(),
+                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "gpu_resources": torch.cuda.memory_allocated(),
+                        },
+                        step=self.total_training_steps,
+                    )
+
                 self._grad_scaler.scale(loss).backward()
                 self._grad_scaler.step(self._optimizer)
                 self._grad_scaler.update()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+
+    def cleanup(self) -> None:
+        self._metric_logger.close()
 
 
 def recipe_main() -> None:
@@ -368,13 +407,11 @@ def recipe_main() -> None:
         - Overwritten by arguments from the command-line using ``TuneArgumentParser``
     """
     parser = utils.TuneArgumentParser(
-        description=recipe.__doc__,
+        description=FullFinetuneParams.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     args, _ = parser.parse_known_args()
-    parser.log_args(args)
     args = vars(args)
-
     recipe_params = FullFinetuneParams(**args)
 
     # Env variables set by torch run; only need to initialize process group
@@ -383,6 +420,7 @@ def recipe_main() -> None:
     recipe = FullFinetuneRecipe(params=recipe_params)
     recipe.setup(params=recipe_params)
     recipe.train()
+    recipe.cleanup()
 
 
 if __name__ == "__main__":

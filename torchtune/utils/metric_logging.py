@@ -155,7 +155,6 @@ class WandBLogger(MetricLoggerInterface):
                 "``wandb`` package not found. Please install wandb using `pip install wandb` to use WandBLogger."
                 "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
             ) from e
-
         self._wandb = wandb
         self._wandb.init(
             project=project,
