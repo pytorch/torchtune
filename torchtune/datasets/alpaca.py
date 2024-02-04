@@ -43,13 +43,13 @@ class AlpacaDataset(Dataset):
 
     Masking of the prompt during training is controlled by the `train_on_input` flag, which is
     set to `True` by default (ref: https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49)
-        - If `train_on_input` is True, the prompt is used during training and
-            contributes to the loss.
-        - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
+    - If `train_on_input` is True, the prompt is used during training and
+    contributes to the loss.
+    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
 
     The version of the dataset used is controlled by the `use_clean` flag which set to False by default.
-        - If `use_clean` is True, then https://huggingface.co/datasets/yahma/alpaca-cleaned is used
-        - If `use_clean` is False, then https://huggingface.co/datasets/tatsu-lab/alpaca is used
+    - If `use_clean` is True, then https://huggingface.co/datasets/yahma/alpaca-cleaned is used
+    - If `use_clean` is False, then https://huggingface.co/datasets/tatsu-lab/alpaca is used
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
