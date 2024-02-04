@@ -81,11 +81,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._is_rank_zero = rank == 0
 
         # These are public properties which are updated by the checkpoint loader
-        # when ``resume_from_checkpoint`` is `True`
+        # when ``resume_from_checkpoint`` is `True` or used during
         self.seed = utils.set_seed(seed=params.seed)
         self.epochs_run = 0
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
+        self.total_training_steps = 0
 
         self._resume_from_checkpoint = params.resume_from_checkpoint
 
@@ -151,6 +152,20 @@ class FullFinetuneRecipe(FTRecipeInterface):
             self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
+
+        # Finally update the recipe state which can only be correctly set after all of the
+        # other components have been initialized and updated.
+
+        # Number of training steps in each epoch depends on the number of batches produced
+        # by the dataloader and the max_steps_per_epoch param set by the user and is used
+        # for logging and tracking training state. This should be computed after the dataloader
+        # has been setup
+        steps_per_epoch = len(self._dataloader)
+        if self.max_steps_per_epoch and self.max_steps_per_epoch < len(
+            self._dataloader
+        ):
+            steps_per_epoch = self.max_steps_per_epoch
+            self.total_training_steps = self.epochs_run * steps_per_epoch
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -342,6 +357,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     and idx == self.max_steps_per_epoch
                 ):
                     break
+
+                self.total_training_steps += 1
                 self._optimizer.zero_grad()
 
                 input_ids, labels = batch
@@ -359,17 +376,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                total_steps = utils.training_steps_completed(
-                        curr_epoch, idx, len(self._dataloader), self.max_steps_per_epoch
-                    )
-                if total_steps % self._log_every_n_steps == 0:
+                if self.total_training_steps % self._log_every_n_steps == 0:
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
-                        step=total_steps,
+                        step=self.total_training_steps,
                     )
 
                 self._grad_scaler.scale(loss).backward()

@@ -14,7 +14,6 @@ from .memory import set_activation_checkpointing
 from .metric_logging import get_metric_logger, list_metric_loggers
 from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
 from .seed import set_seed
-from .training_utils import training_steps_completed
 
 __all__ = [
     "list_metric_loggers",
@@ -34,7 +33,6 @@ __all__ = [
     "padded_collate",
     "set_activation_checkpointing",
     "set_seed",
-    "training_steps_completed",
     "TuneArgumentParser",
     "CheckpointableDataLoader",
 ]

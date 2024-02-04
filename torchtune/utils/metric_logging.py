@@ -155,8 +155,6 @@ class WandBLogger(MetricLoggerInterface):
                 "``wandb`` package not found. Please install wandb using `pip install wandb` to use WandBLogger."
                 "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
             ) from e
-
-        _, self._rank = get_world_size_and_rank()
         self._wandb = wandb
         self._wandb.init(
             project=project,
@@ -168,12 +166,10 @@ class WandBLogger(MetricLoggerInterface):
         )
 
     def log(self, name: str, data: Scalar, step: int) -> None:
-        if self._rank == 0:
-            self._wandb.log({name: data}, step=step)
+        self._wandb.log({name: data}, step=step)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        if self._rank == 0:
-            self._wandb.log(payload, step=step)
+        self._wandb.log(payload, step=step)
 
     def __del__(self) -> None:
         self._wandb.finish()

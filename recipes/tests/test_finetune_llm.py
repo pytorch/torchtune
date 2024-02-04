@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import os
+import tempfile
 from typing import Dict, Optional
 
 import pytest
@@ -152,7 +154,45 @@ class TestFinetuneLLMRecipe:
         ):
             finetune_llm.recipe(FullFinetuneParams(**kwargs_values))
 
-    def test_finetune_llm_loss_refactored(self, capsys, pytestconfig):
+
+class TestFullFinetuneRecipe:
+    def _fetch_loss_values(self, output) -> Dict[str, float]:
+        lines = output.splitlines()
+        loss_values = {}
+        for line in lines:
+            if "Loss:" in line:
+                splits = line.split("Loss:")
+                loss_value = float(splits[1].split(":")[0])
+                loss_values[splits[0]] = loss_value
+        return loss_values
+
+    def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
+        small_test_ckpt_loss_values = {
+            "1|1|": 10.5074,
+            "1|2|": 10.5563,
+            "2|1|": 10.5152,
+            "2|2|": 10.4851,
+        }
+        llama2_7b_ckpt_loss_values = {
+            "1|1|": 1.1333,
+            "1|2|": 1.1199,
+            "2|1|": 1.2614,
+            "2|2|": 0.9486,
+        }
+        if ckpt == "small_test_ckpt":
+            return small_test_ckpt_loss_values
+        if ckpt == "llama2_7b":
+            return llama2_7b_ckpt_loss_values
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def _fetch_ckpt_model_path(self, ckpt) -> str:
+        if ckpt == "small_test_ckpt":
+            return "/tmp/test-artifacts/small-ckpt-01242024"
+        if ckpt == "llama2_7b":
+            return "/tmp/test-artifacts/llama2-7b-01242024"
+        raise ValueError(f"Unknown ckpt {ckpt}")
+
+    def test_loss(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
@@ -195,3 +235,68 @@ class TestFinetuneLLMRecipe:
             assert key in expected_loss_values
             expected_loss_value = expected_loss_values[key]
             assert value == pytest.approx(expected_loss_value, abs=0.001)
+
+    def test_training_state_on_resume(self):
+        """
+        Test whether the recipe state is correctly updated on resume. Since this
+        is model agnostic, we should run this on the small model only. The test
+        consists of two stages:
+            - Train a model for 4 epochs
+            - Resume training after epoch 3 and check training state.
+        """
+
+        model_ckpt = "small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+
+            kwargs_values = {
+                "dataset": "alpaca",
+                "seed": 9,
+                "shuffle": True,
+                "model": model_ckpt,
+                "model_checkpoint": self._fetch_ckpt_model_path(model_ckpt),
+                "tokenizer": "llama2_tokenizer",
+                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+                "epochs": 4,
+                "max_steps_per_epoch": 2,
+                "output_dir": tmpdirname,
+                "device": "cpu",
+                "resume_from_checkpoint": False,
+                "enable_fsdp": False,
+            }
+
+            recipe_params = FullFinetuneParams(**kwargs_values)
+
+            recipe = FullFinetuneRecipe(recipe_params)
+            recipe.setup(params=recipe_params)
+            recipe.train()
+            recipe.cleanup()
+
+            # In the new run, remove seed and max_steps_per_epoch and
+            # check if these are correctly inferred from the checkpoint
+            # Note this will raise some warnings in the logs, but is a
+            # stronger test
+            kwargs_values_resume = {
+                "dataset": "alpaca",
+                "shuffle": True,
+                "model": model_ckpt,
+                "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
+                "tokenizer": "llama2_tokenizer",
+                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+                "epochs": 4,
+                "output_dir": tmpdirname,
+                "device": "cpu",
+                "resume_from_checkpoint": True,  # set to True to resume
+                "enable_fsdp": False,
+            }
+
+            recipe_params = FullFinetuneParams(**kwargs_values_resume)
+
+            recipe = FullFinetuneRecipe(recipe_params)
+            recipe.setup(params=recipe_params)
+
+            assert recipe.epochs_run == 3
+            assert recipe.seed == kwargs_values["seed"]
+            assert recipe.max_steps_per_epoch == kwargs_values["max_steps_per_epoch"]
+            assert recipe.total_epochs == kwargs_values["epochs"]
