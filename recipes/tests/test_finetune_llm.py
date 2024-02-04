@@ -69,7 +69,7 @@ class TestFinetuneLLMRecipe:
         if ckpt == "small_test_ckpt":
             return "/tmp/test-artifacts/small-ckpt-01242024"
         if ckpt == "llama2_7b":
-            return "/home/kartikayk/cpts/llama2-7b-01242024"
+            return "/tmp/test-artifacts/llama2-7b-01242024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_finetune_llm_loss(self, capsys, pytestconfig):

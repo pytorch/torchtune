@@ -39,11 +39,6 @@ class AlpacaDataset(Dataset):
     The input is created using the prompt template from the original alpaca codebase:
     https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31
 
-    This follows the following format:
-        "Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:{output}"
-
     where `instruction`, `input`, and `output` are fields from the dataset.
 
     Masking of the prompt during training is controlled by the `train_on_input` flag, which is
