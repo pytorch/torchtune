@@ -53,8 +53,8 @@ class AlpacaDataset(Dataset):
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        use_clean (bool): Whether to use the cleaned version of the dataset or not. Default is False.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
+        use_clean (bool): Whether to use the cleaned version of the dataset or not. Default is False.
         **kwargs: Additional keyword arguments to pass to the Alpaca Dataset.
 
 
