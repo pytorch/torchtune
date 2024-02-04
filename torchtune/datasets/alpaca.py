@@ -19,19 +19,19 @@ _PROMPT_TEMPLATE = {
     "prompt_input": (
         "Below is an instruction that describes a task, paired with an input that provides further context. "
         "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:"
+        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
     ),
     "prompt_no_input": (
         "Below is an instruction that describes a task. "
         "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Response:"
+        "### Instruction:\n{instruction}\n\n### Response:\n"
     ),
 }
 
 
 class AlpacaDataset(Dataset):
     """
-    Support for the Alpaca dataset and it's variants from HuggingFace Datasets.
+    Support for the Alpaca dataset and its variants from HuggingFace Datasets.
     https://huggingface.co/datasets/tatsu-lab/alpaca
 
     Data input format: https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances
@@ -74,13 +74,10 @@ class AlpacaDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         train_on_input: bool = True,
-        use_clean: bool = True,
+        use_clean: bool = False,
         **kwargs
     ) -> None:
-        dataset_path = (
-            "yahma/alpaca-cleaned" if use_clean
-            else "tatsu-lab/alpaca"
-        )
+        dataset_path = "yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca"
         self._data = load_dataset(dataset_path, split="train")
         self._tokenizer = tokenizer
         self.train_on_input = train_on_input
@@ -89,18 +86,25 @@ class AlpacaDataset(Dataset):
         return len(self._data)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+        sample = self._data[index]
+
         return self._transform(
-            instruction = self._data[index]["instruction"],
-            input = self._data[index]["input"],
-            output = self._data[index]["output"]
+            instruction=sample["instruction"],
+            input=sample["input"],
+            output=sample["output"],
         )
 
-    def _transform(self, instruction: str, input: str, output: str) -> Tuple[List[int], List[int]]:
+    def _transform(
+        self, instruction: str, input: str, output: str
+    ) -> Tuple[List[int], List[int]]:
         """
         Split a sample on ``response`` tag to create input and labels.
 
         Args:
-            sample (str): Sample text.
+            instruction (str): Instruction text.
+            input (str): Input text. Can be an empty string. Determines the prompt generation template
+                used.
+            output (str): Response text.
 
         Returns:
             Tuple of encoded inputs and labels.
@@ -110,16 +114,21 @@ class AlpacaDataset(Dataset):
 
         # add bos always; LlamaTokenizer sets this to True by default and neither
         # alpaca-lora or the original authors change this
-        encoded_prompt = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
+        encoded_prompt = self._tokenizer.encode(
+            text=prompt, add_bos=True, add_eos=False
+        )
         encoded_prompt_with_response = self._tokenizer.encode(
             text=prompt_with_response, add_bos=True, add_eos=True
         )
         labels = encoded_prompt_with_response.copy()
 
         if not self.train_on_input:
-            labels[:len(encoded_prompt)] = [CROSS_ENTROPY_IGNORE_IDX] * len(encoded_prompt)
+            labels[: len(encoded_prompt)] = [CROSS_ENTROPY_IGNORE_IDX] * len(
+                encoded_prompt
+            )
 
         assert len(encoded_prompt_with_response) == len(labels)
+
         return encoded_prompt_with_response, labels
 
     def _generate_prompt(self, instruction: str, input: str) -> str:

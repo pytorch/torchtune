@@ -57,6 +57,7 @@ class FullFinetuneParams:
 
     # Dataset and Sampler
     dataset: str = ""
+    train_on_input: bool = True
     shuffle: bool = True
     batch_size: int = 2
 
