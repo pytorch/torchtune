@@ -345,10 +345,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         True is returned either if the we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
-        return (
-            (curr_step + 1) % self._gradient_accumulation_steps == 0 or
-            (curr_step + 1) == self._steps_per_epoch
-        )
+        return (curr_step + 1) % self._gradient_accumulation_steps == 0 or (
+            curr_step + 1
+        ) == self._steps_per_epoch
 
     def train(self) -> None:
         """
