@@ -86,6 +86,7 @@ class FullFinetuneParams:
     output_dir: str = "/tmp/full_finetune_output"
     metric_logger_type: str = "disk"
     project: Optional[str] = None
+    log_every_n_steps: Optional[int] = None
 
     def __post_init__(self):
         for param in fields(self):
