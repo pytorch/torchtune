@@ -161,12 +161,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # other components have been initialized and updated.
         #
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
-        self._steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch and self.max_steps_per_epoch < len(
-            self._dataloader
+        # by the dataloader, the max_steps_per_epoch param set by the user and the
+        # gradient_accumulation_steps param. This value is used for logging and tracking
+        # training state. The computation should happen after the dataloader has been setup
+        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
+        if (
+            self.max_steps_per_epoch is not None and
+            self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
@@ -345,9 +346,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
         True is returned either if the we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
-        return (curr_step + 1) % self._gradient_accumulation_steps == 0 or (
-            curr_step + 1
-        ) == self._steps_per_epoch
+        return (
+            (curr_step + 1) % self._gradient_accumulation_steps == 0 or
+            (curr_step + 1) == self._steps_per_epoch
+        )
 
     def train(self) -> None:
         """
@@ -379,53 +381,44 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 ):
                     break
 
-                # Used to keep track of logging
-                self.total_training_steps += 1
-
-                # To accumulate gradients, context manager for the FSDP wrapped model
-                # should be set to no_sync()
-                sync_ctx = (
-                    self._model.no_sync()
-                    if (not self._should_update_weights(idx)) and self._enable_fsdp
-                    else contextlib.nullcontext()
-                )
-
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
 
-                with sync_ctx:
-                    with self._autocast:
-                        logits = self._model(input_ids)
-                        # Shift so that tokens < n predict n
-                        logits = logits[..., :-1, :].contiguous()
-                        labels = labels[..., 1:].contiguous()
-                        logits = logits.transpose(1, 2)
-                        # Compute loss
-                        loss = self._loss_fn(logits, labels)
+                with self._autocast:
+                    logits = self._model(input_ids)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
 
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                # Note: We're always logging the loss before normalizing it
+                # Check if this is the norm or not
+                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                    if self.total_training_steps % self._log_every_n_steps == 0:
-                        # Note: We're logging the loss before normalizing it
-                        # Check if this is the norm or not
-                        self._metric_logger.log_dict(
-                            {
-                                "loss": loss.item(),
-                                "lr": self._optimizer.param_groups[0]["lr"],
-                                "gpu_resources": torch.cuda.memory_allocated(),
-                            },
-                            step=self.total_training_steps,
-                        )
+                if self.total_training_steps % self._log_every_n_steps == 0:
+                    self._metric_logger.log_dict(
+                        {
+                            "loss": loss.item(),
+                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "gpu_resources": torch.cuda.memory_allocated(),
+                        },
+                        step=self.total_training_steps,
+                    )
 
-                    # Does loss normalization need to happen within autocast context?
-                    loss = loss / self._gradient_accumulation_steps
-                    self._grad_scaler.scale(loss).backward()
+                # Does loss normalization need to happen within autocast context?
+                loss = loss / self._gradient_accumulation_steps
+                self._grad_scaler.scale(loss).backward()
 
                 if self._should_update_weights(idx):
                     self._grad_scaler.step(self._optimizer)
                     self._grad_scaler.update()
                     self._optimizer.zero_grad(set_to_none=True)
+
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
