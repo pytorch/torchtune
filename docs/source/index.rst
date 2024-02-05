@@ -67,8 +67,9 @@ TorchTune tutorials.
    :caption: Recipes
    :hidden:
 
+   recipes/how_to_run
    recipes/finetune_llm
-   recipes/llama_generate
+   recipes/alpaca_generate
 
 .. toctree::
    :glob:
@@ -85,6 +86,7 @@ TorchTune tutorials.
    :hidden:
 
    api_ref_datasets
+   api_ref_lr_schedulers
    api_ref_models
    api_ref_modules
    api_ref_utilities

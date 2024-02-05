@@ -38,7 +38,7 @@ include params for the constructor and remove start_pos (not supported).
 
 
 class RMSNormRef(torch.nn.Module):
-    def __init__(self, dim: int, eps: float = 1e-6):
+    def __init__(self, dim: int, eps: float = 1e-5):
         super().__init__()
         self.eps = eps
         self.weight = nn.Parameter(torch.ones(dim))
@@ -120,7 +120,7 @@ def compare_decoder_layer(
         block_out = transformer_block(x=input_t, freqs_cis=freq_cis, mask=mask)
 
     # current implementation; initialize with constant to compare outputs
-    norm_eps = 1e-6
+    norm_eps = 1e-5
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)

@@ -11,6 +11,14 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from torchtune.utils.constants import (
+    EPOCHS_KEY,
+    MAX_STEPS_KEY,
+    MODEL_KEY,
+    OPT_KEY,
+    SEED_KEY,
+    TOTAL_EPOCHS_KEY,
+)
 from torchtune.utils.distributed import get_world_size_and_rank
 
 
@@ -51,20 +59,23 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
         >>> ckpt_dict = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
         >>> torchtune.utils.checkpoint.save_checkpoint(ckpt_dict, output_loc)
     """
-    if "model" not in ckpt_dict:
+    if MODEL_KEY not in ckpt_dict:
         raise RuntimeError(
             "Expected `ckpt_dict` to contain a `model` key, but it does not."
         )
-    model_state_dict = ckpt_dict["model"].state_dict()
-    if "optimizer" in ckpt_dict:
+    if OPT_KEY in ckpt_dict:
         optimizer_state_dict = (
-            FSDP.optim_state_dict(ckpt_dict["model"], ckpt_dict["optimizer"])
-            if _contains_fsdp(ckpt_dict["model"])
-            else ckpt_dict["optimizer"].state_dict()
+            FSDP.optim_state_dict(
+                ckpt_dict[MODEL_KEY],
+                ckpt_dict[OPT_KEY],
+            )
+            if _contains_fsdp(ckpt_dict[MODEL_KEY])
+            else ckpt_dict[OPT_KEY].state_dict()
         )
-        ckpt_dict["optimizer"] = optimizer_state_dict
+        ckpt_dict[OPT_KEY] = optimizer_state_dict
 
-    ckpt_dict["model"] = model_state_dict
+    model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+    ckpt_dict[MODEL_KEY] = model_state_dict
     _, rank = get_world_size_and_rank()
     if rank == 0:
         torch.save(ckpt_dict, output_loc)
@@ -105,12 +116,12 @@ def load_checkpoint(
     """
 
     ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    if "model" not in ckpt_dict:
+    if MODEL_KEY not in ckpt_dict:
         raise RuntimeError(
             """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved
             with `save_checkpoint`."""
         )
-    if optimizer is not None and "optimizer" not in ckpt_dict:
+    if optimizer is not None and OPT_KEY not in ckpt_dict:
         raise RuntimeError(
             """Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not.
             Ensure checkpoint was saved with `save_checkpoint`."""
@@ -119,94 +130,73 @@ def load_checkpoint(
     # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if optimizer is not None:
         optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"])
+            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPT_KEY])
             if _contains_fsdp(model)
-            else ckpt_dict["optimizer"]
+            else ckpt_dict[OPT_KEY]
         )
 
-        ckpt_dict["optimizer"] = optim_state_dict_to_load
+        ckpt_dict[OPT_KEY] = optim_state_dict_to_load
 
     return ckpt_dict
 
 
-def load_checkpoint_updated(
-    ckpt_path: str,
-    resume_from_checkpoint: bool,
-    model: Optional[nn.Module] = None,
-    optimizer: Optional[optim.Optimizer] = None,
+def transform_opt_state_dict(
+    opt_state_dict: Dict[str, Any], model: nn.Module, optimizer: optim.Optimizer
 ) -> Dict[str, Any]:
     """
-    Loads a checkpoint from `ckpt_path`.
-
-    This function makes the following assumptions:
-        - When `resume_from_checkpoint` is `False`, the pre-trained checkpoint being loaded is a "native" checkpoint
-            i.e. the checkpoint has been converted to the TorchTune format using convert_llama2_to_native.py.
-        - When `resume_from_checkpoint` is `True`, the checkpoint was saved using the `save_checkpoint` utility.
-
-    If either of the above assumptions are broken, a RuntimeError will be raised.
-
-    NOTE: Similar to :func:`torch.load`, `load_checkpoint_updated` does NOT load the state dicts or the respective recipe state.
-    This should be handled by the recipe.
+    Transforms the optimizer state dict for FSDP using the ``optim_state_dict_to_load``
+    from distributed library within PyTorch.
 
     Args:
-        ckpt_path (str): String indicating local path to saved checkpoint file.
-        resume_from_checkpoint (bool): Boolean flag indicating whether this is a fresh training run or resuming from a
-            previous checkpoint.
-        model (Optional[nn.Module]): Model the checkpoint will be loaded into. Only needed when `resume_from_checkpoint` is
-            set to True, in which case this is used to correctly load the optimizer state. Default: `None`.
-        optimizer (Optional[optim.Optimizer]): Optimizer the optimizer state checkpoint will be loaded into. Only needed
-            when `resume_from_checkpoint` is set to True, in which case this is used to correctly load the optimizer state.
-            Default: `None`.
+        opt_state_dict (Dict[str, Any]): Optimizer state dict extracted from the checkpoint
+        model (nn.Module): Model that checkpoint will be loaded into.
+        optimizer (optim.Optimizer): Optimizer that optimizer state checkpoints will be loaded into.
 
     Returns:
-        ckpt_dict (Dict[str, Any]): Dictionary containing loaded objects. Objects in this dictionary can be used
-            to restore model, optimizer, and any other checkpointed states.
+        ckpt_dict (Dict[str, Any]): Transformed optimizer state dict.
+    """
+    optim_state_dict_to_load = (
+        FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
+        if _contains_fsdp(model)
+        else opt_state_dict
+    )
+
+    return optim_state_dict_to_load
+
+
+def validate_checkpoint(ckpt_dict: Dict[str, Any], resume_from_checkpoint: bool):
+    """
+    Validates the checkpoint dict. This includes validating the recipe state in case we're resuming
+    training from a checkpoint.
+
+    Args:
+        ckpt_dict (Dict[str, Any]): Dictionary with recipe state, extracted from the checkpoint
+        resume_from_checkpoint (bool): Boolean flag specifying whether training is being resumed from a checkpoint.
 
     Raises:
-        RuntimeError: If `ckpt_dict` does not contain a `model` key.
-        RuntimeError: If `resume_from_checkpoint` is `True` and either `model` or `optimizer` is not specified.
-        RuntimeError: If `resume_from_checkpoint` is `True` and `ckpt_dict` does not contain an `optimizer` key.
-
-    Example:
-        >>> ckpt_dict = torchtune.utils.checkpoint.load_checkpoint_updated(ckpt_path, resume_from_checkpoint, model, optimizer)
-        >>> model.load_state_dict(ckpt_dict["model"])
-        >>> optimizer.load_state_dict(ckpt_dict["optimizer"])
+        RuntimeError: If ``ckpt_dict`` does not contain a ``model`` key.
+        RuntimeError: If ``resume_from_checkpoint`` is `True` and `ckpt_dict` does not contain
+            either "optimizer", "epochs_run", "seed", "total_epochs" or "max_steps_per_epoch" keys.
     """
-
-    ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-
-    if "model" not in ckpt_dict:
+    if MODEL_KEY not in ckpt_dict:
         raise RuntimeError(
-            """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was converted to
-            TorchTune's native format or saved using the `save_checkpoint` utility."""
+            """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved
+            with `save_checkpoint`."""
         )
 
-    if resume_from_checkpoint and (model is None or optimizer is None):
-        raise RuntimeError(
-            """Expected `model` and `optimizer` to be specified when `resume_from_checkpoint` is `True`."""
-        )
-
-    if resume_from_checkpoint and "optimizer" not in ckpt_dict:
-        raise RuntimeError(
-            """Expected loaded checkpoint to contain an `optimizer` key when `resume_from_checkpoint` is `True`. Ensure
-            checkpoint was saved using the `save_checkpoint` utility."""
-        )
-
-    # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
     if resume_from_checkpoint:
-        optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict["optimizer"])
-            if _contains_fsdp(model)
-            else ckpt_dict["optimizer"]
-        )
 
-        ckpt_dict["optimizer"] = optim_state_dict_to_load
-
-    return ckpt_dict
-
-# TODO: probably put this somewhere else
-def _map_key(key: str, param_name_mapping: Dict[str, str]) -> str:
-    for k, v in param_name_mapping.items():
-        if k in key:
-            key = key.replace(k, v)
-    return key
+        # If the correct state is not available, fail. Training will not be
+        # meaningful
+        if (
+            OPT_KEY not in ckpt_dict
+            or EPOCHS_KEY not in ckpt_dict
+            or SEED_KEY not in ckpt_dict
+            or TOTAL_EPOCHS_KEY not in ckpt_dict
+            or MAX_STEPS_KEY not in ckpt_dict
+        ):
+            raise ValueError(
+                f"Checkpoint does not contain the required keys needed to resume training correctly.\n"
+                f"Expected Keys: {OPT_KEY}, {EPOCHS_KEY}, {SEED_KEY}, {TOTAL_EPOCHS_KEY}, {MAX_STEPS_KEY}, {MODEL_KEY}\n"
+                f"Found Keys: {ckpt_dict.keys()}."
+            )

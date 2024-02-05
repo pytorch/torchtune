@@ -7,39 +7,35 @@
 
 
 from unittest import mock
-from unittest.mock import mock_open
 
 import pytest
 
 from torchtune.utils import TuneArgumentParser
 
-config = """
-         a: 1
-         b: 2
-         """
+_CONFIG = {"a": 1, "b": 2}
 
 
 class TestArgParse:
     @pytest.fixture
     def parser(self):
         parser = TuneArgumentParser("Test parser")
-        parser.add_argument("--a", type=int, default=0)
-        parser.add_argument("--b", type=int, default=0)
-        parser.add_argument("--c", type=int, default=0)
         return parser
 
-    @mock.patch("builtins.open", mock_open(read_data=config))
-    def test_parse_args(self, parser):
-        args = parser.parse_args(["--config", "test.yaml", "--b", "3"])
+    @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
+    def test_parse_args(self, mock_load, parser):
+        """
+        Test that the parser can load a config and override parameters provided on CLI.
+        The actual load is mocked to return the test config above.
+        """
+        args = parser.parse_args(["--config", "test.yaml", "--override", "b=3", "c=4"])
         assert args.a == 1, f"a == {args.a} not 1 as set in the config."
         assert args.b == 3, f"b == {args.b} not 3 as set in the command args."
-        assert args.c == 0, f"c == {args.c} not 0 as set in the argument default."
-
-    @mock.patch("builtins.open", mock_open(read_data="d: 4"))
-    def test_read_bad_config(self, parser):
-        with pytest.raises(AssertionError):
-            parser.parse_args(["--config", "test.yaml"])
+        assert args.c == 4, f"c == {args.c} not 4 as set in the command args."
+        assert len(vars(args).keys() - {"a", "b", "c"}) == 0, "Extra args found."
 
     def test_required_argument(self, parser):
+        """
+        Test that the parser does not allow required arguments to be added
+        """
         with pytest.raises(AssertionError):
             parser.add_argument("--d", required=True, type=int, default=0)
