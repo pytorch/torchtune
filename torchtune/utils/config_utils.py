@@ -14,7 +14,7 @@ from torchtune import datasets, models
 
 
 def _raise_not_valid_object(name: str, module_path: str) -> None:
-    raise ValueError(f"{name} is not a valid object from {module}")
+    raise ValueError(f"{name} is not a valid object from {module_path}")
 
 
 def _get_torchtune_object(
