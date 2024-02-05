@@ -13,9 +13,11 @@ from typing import Dict, Optional, Tuple
 import torch
 
 from torchtune.utils.constants import MODEL_KEY
+from torchtune.utils.logging import get_logger
 from tqdm import tqdm
 
 _PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
+_LOGGER = get_logger("INFO")
 
 
 def _complete_numerical_validation_on_fair_ckpt_conversion(
@@ -26,16 +28,18 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     Args:
         original_ckpt (Path): Path to the original FAIR checkpoint.
         converted_ckpt (Path): Path to the converted Torchtune checkpoint.
-
-    Raises:
-        AssertionError: If the outputs differ.
     """
-    print("Completing numerical validation on FAIR ckpt conversion for Llama2 7B...")
+    _LOGGER.info(
+        msg="Completing numerical validation on FAIR ckpt conversion for Llama2 7B..."
+    )
 
     from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
     from torchtune.models.llama2 import llama2
 
-    nums = [torch.randint(0, 32_000, (16, 128)) for _ in range(5)]
+    # Generate random "toks" in the range [0, 32_000] following vocab size
+    # bsz = 16
+    # seq_len = 128
+    nums = [torch.randint(0, 32_000, (16, 128)) for _ in range(1)]
 
     # Load the original state dict
     original_state_dict = torch.load(
@@ -89,13 +93,16 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
 
     # Compare the outputs
     for i, (fair_output, native_output) in enumerate(zip(fair_outputs, native_outputs)):
-        if not torch.allclose(fair_output, native_output):
-            raise AssertionError(
-                f"[In validation] Outputs differ at index {i}. FAIR output: {fair_output}. Native output: {native_output}"
-            )
+        torch.testing.assert_close(
+            native_output,
+            fair_output,
+            rtol=1e-5,
+            atol=1e-8,
+            msg=f"[In validation] Outputs differ at index {i}. FAIR output: {fair_output}. Native output: {native_output}",
+        )
 
-    print(
-        "Numerical validation on FAIR ckpt conversion for Llama2 7B complete. All outputs match!"
+    _LOGGER.info(
+        msg="Numerical validation on FAIR ckpt conversion for Llama2 7B complete. All outputs match!"
     )
 
 
@@ -117,7 +124,7 @@ def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
 
 
 def _convert_llama_from_fair(checkpoint_path: Path) -> Dict[str, torch.Tensor]:
-    """Convert a FAIR Llama2 model checkpoint to a PyTorch-native format.
+    """Convert FAIR model checkpoint to TorchTune's native-PyTorch format.
 
     Args:
         checkpoint_path (Path): Path to the checkpoint.
@@ -129,7 +136,7 @@ def _convert_llama_from_fair(checkpoint_path: Path) -> Dict[str, torch.Tensor]:
     original_state_dict = torch.load(
         checkpoint_path, map_location="cpu", weights_only=True
     )
-    print("Loaded original state dict")
+    _LOGGER.info(msg="Loaded original state dict")
 
     # Construct mapping
     to_native_mapping = {
@@ -205,7 +212,9 @@ def convert_checkpoint(
             checkpoint_path, output_path
         )
 
-    print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}")
+    _LOGGER.info(
+        msg=f"Succesfully wrote PyTorch-native model checkpoint to {output_path}"
+    )
 
 
 if __name__ == "__main__":

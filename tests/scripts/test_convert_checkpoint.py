@@ -118,7 +118,7 @@ class TestTuneCLIWithConvertCheckpointScript:
     def _generate_toks_for_llama2_7b(self):
         return torch.randint(low=0, high=32_000, size=(16, 128))
 
-    def test_convert_checkpoint_matches_fair_model(self, capsys, pytestconfig):
+    def test_convert_checkpoint_matches_fair_model(self, caplog, pytestconfig):
         is_large_scale_test = pytestconfig.getoption("--large-scale")
 
         if is_large_scale_test:
@@ -133,11 +133,8 @@ class TestTuneCLIWithConvertCheckpointScript:
         with patch.object(sys, "argv", testargs):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        output = capsys.readouterr()
-        assert (
-            "Succesfully wrote PyTorch-native model checkpoint"
-            in output.out.rstrip("\n").split("\n")[-1]
-        )
+        output = caplog.text
+        assert "Succesfully wrote PyTorch-native model checkpoint" in output
 
         native_transformer = (
             self._llama2_7b_native_transformer(output_path)
