@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 
 import torch
+
+from torchtune.utils.constants import MODEL_KEY
 from tqdm import tqdm
 
 _PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
@@ -51,10 +53,11 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
     fair_transfomer.eval()
 
     fair_outputs = []
-    for num in tqdm(
-        nums, desc="[In validation] Running forward pass on original model."
-    ):
-        fair_outputs.append(fair_transfomer(num).detach().sum())
+    with torch.no_grad():
+        for num in tqdm(
+            nums, desc="[In validation] Running forward pass on original model."
+        ):
+            fair_outputs.append(fair_transfomer(num).sum())
 
     # Clean up the original model
     del fair_transfomer
@@ -71,14 +74,15 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
         max_seq_len=2048,
         num_kv_heads=32,
     )
-    native_transformer.load_state_dict(converted_state_dict, strict=True)
+    native_transformer.load_state_dict(converted_state_dict[MODEL_KEY], strict=True)
     native_transformer.eval()
 
     native_outputs = []
-    for num in tqdm(
-        nums, desc="[In validation] Running forward pass on converted model."
-    ):
-        native_outputs.append(native_transformer(num).detach().sum())
+    with torch.no_grad():
+        for num in tqdm(
+            nums, desc="[In validation] Running forward pass on converted model."
+        ):
+            native_outputs.append(native_transformer(num).sum())
 
     # Clean up the converted model
     del native_transformer
@@ -193,7 +197,7 @@ def convert_checkpoint(
     if output_path is None:
         checkpoint_dir = checkpoint_path.parent
         output_path = checkpoint_dir / _PYTORCH_MODEL_FILENAME
-    torch.save({"model": state_dict}, output_path)
+    torch.save({MODEL_KEY: state_dict}, output_path)
 
     # Run numerical validation
     if output_numerical_validation:

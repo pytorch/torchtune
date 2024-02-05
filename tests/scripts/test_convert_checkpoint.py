@@ -75,7 +75,9 @@ class TestTuneCLIWithConvertCheckpointScript:
             num_kv_heads=4,
         )
         tiny_native_state_dict = torch.load(ckpt, weights_only=True)
-        tiny_native_transfomer.load_state_dict(tiny_native_state_dict, strict=False)
+        tiny_native_transfomer.load_state_dict(
+            tiny_native_state_dict["model"], strict=False
+        )
         return tiny_native_transfomer
 
     def _llama2_7b_fair_transformer(self, ckpt):
@@ -105,7 +107,7 @@ class TestTuneCLIWithConvertCheckpointScript:
         )
         llama2_7b_native_state_dict = torch.load(ckpt, weights_only=True)
         llama2_7b_native_transformer.load_state_dict(
-            llama2_7b_native_state_dict, strict=True
+            llama2_7b_native_state_dict["model"], strict=True
         )
         llama2_7b_native_transformer.eval()
         return llama2_7b_native_transformer
@@ -143,12 +145,13 @@ class TestTuneCLIWithConvertCheckpointScript:
             else self._tiny_native_transformer(output_path)
         )
 
-        for i in range(10):
-            toks = (
-                self._generate_toks_for_llama2_7b()
-                if is_large_scale_test
-                else self._generate_toks_for_tiny()
-            )
-            fair_out = fair_transformer(toks)
-            native_out = native_transformer(toks)
-            assert_expected(fair_out.sum(), native_out.sum())
+        with torch.no_grad():
+            for i in range(10):
+                toks = (
+                    self._generate_toks_for_llama2_7b()
+                    if is_large_scale_test
+                    else self._generate_toks_for_tiny()
+                )
+                fair_out = fair_transformer(toks)
+                native_out = native_transformer(toks)
+                assert_expected(fair_out.sum(), native_out.sum())
