@@ -18,9 +18,11 @@ def get_cosine_schedule_with_warmup(
     last_epoch: int = -1,
 ) -> LambdaLR:
     """
-    Create a schedule with a learning rate that decreases following the values of the cosine function between the
-    initial lr set in the optimizer to 0.0, after a warmup period during which it increases linearly between
-    the 0.0 and the initial lr set in the optimizer. This is based on the HuggingFace implementation
+    Create a learning rate schedule that linearly increases the learning rate from
+    0.0 to lr over num_warmup_steps, then decreases to 0.0 on a cosine schedule over
+    the remaining num_training_steps-num_warmup_steps (assuming num_cycles = 0.5).
+
+    This is based on the HuggingFace implementation
     https://github.com/huggingface/transformers/blob/v4.23.1/src/transformers/optimization.py#L104.
 
     Args:
