@@ -1,34 +1,90 @@
-TorchTune
-=========
+Welcome to the TorchTune Documentation
+=======================================
 
-Model Architectures
+**TorchTune** is a Native-PyTorch library for LLM fine-tuning.
 
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
+Getting Started
+~~~~~~~~~~~~~~~
 
-    torchtune.models.llama2_7b
+Topics in this section will help you get started with TorchTune.
 
-Modeling Components and Building Blocks
+.. grid:: 2
 
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
+     .. grid-item-card:: :octicon:`file-code;1em`
+        What is TorchTune?
+        :img-top: _static/img/card-background.svg
+        :link: overview.html
+        :link-type: url
 
-    torchtune.modules.CausalSelfAttention
-    torchtune.modules.FeedForward
-    torchtune.modules.KVCache
-    torchtune.modules.RotaryPositionalEmbeddings
-    torchtune.modules.RMSNorm
-    torchtune.modules.Tokenizer
-    torchtune.modules.TransformerDecoderLayer
-    torchtune.modules.TransformerDecoder
+        A gentle introduction to TorchTune. In this section,
+        you will learn about main features of TorchTune
+        and how you can use them in your projects.
+
+     .. grid-item-card:: :octicon:`file-code;1em`
+        Installation instructions
+        :img-top: _static/img/card-background.svg
+        :link: install.html
+        :link-type: url
+
+        A step-by-step tutorial on how to install TorchTune.
+
+Tutorials
+~~~~~~~~~
+
+Ready to experiment? Check out some of the interactive
+TorchTune tutorials.
+
+.. customcardstart::
+
+.. customcarditem::
+   :header: Template Tutorial
+   :card_description: A template tutorial. To be deleted.
+   :image: _static/img/generic-pytorch-logo.png
+   :link: generated_examples/template_tutorial.html
+   :tags: Template
+
+.. customcardend::
 
 
-PEFT Components
+.. ----------------------------------------------------------------------
+.. Below is the toctree i.e. it defines the content of the left sidebar.
+.. Each of the entry below corresponds to a file.rst in docs/source/.
+.. ----------------------------------------------------------------------
 
-.. autosummary::
-    :toctree: generated/
-    :template: class.rst
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Getting Started
+   :hidden:
 
-    torchtune.modules.peft.LoRALinear
+   overview
+   install
+
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Recipes
+   :hidden:
+
+   recipes/finetune_llm
+   recipes/alpaca_generate
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Tutorials
+   :hidden:
+
+   generated_examples/template_tutorial
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: API Reference
+   :hidden:
+
+   api_ref_datasets
+   api_ref_models
+   api_ref_modules
+   api_ref_utilities

@@ -12,16 +12,24 @@
 
 from setuptools import find_packages, setup
 
+
+def read_requirements(file):
+    with open(file) as f:
+        reqs = f.read()
+
+    return reqs.strip().split("\n")
+
+
 setup(
     name="torchtune",
     version="0.0.1",
     packages=find_packages(),
-    install_requires=[
-        "torch",
-    ],
+    python_requires=">=3.8",
+    install_requires=read_requirements("requirements.txt"),
     scripts=["scripts/cli_utils/tune"],
     description="Package for finetuning LLMs and diffusion models using native PyTorch",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/pytorch-labs/torchtune",
+    extras_require={"dev": read_requirements("dev-requirements.txt")},
 )

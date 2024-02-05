@@ -19,7 +19,7 @@ from torchtune.modules import (
 )
 
 
-def llama2_7b() -> TransformerDecoder:
+def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     """Builder for creating a Llama2 model initialized w/ the default 7b parameter values.
     From https://arxiv.org/abs/2307.09288, these default values are:
     - vocab_size: 32,000
@@ -29,6 +29,9 @@ def llama2_7b() -> TransformerDecoder:
     - num_kv_heads: 32
     - max_seq_len: 4,096
     - norm_eps: 1e-6
+
+    Args:
+        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
 
     Returns:
         A ``TransformerDecoder`` instance of the Llama2 model.
@@ -40,7 +43,7 @@ def llama2_7b() -> TransformerDecoder:
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=4096,
-        max_batch_size=None,
+        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-6,
     )
@@ -84,7 +87,6 @@ def llama2(
 ):
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    qkv_dim = (num_heads + 2 * num_kv_heads) * head_dim
     kv_cache = (
         KVCache(
             max_batch_size=max_batch_size,
@@ -101,7 +103,9 @@ def llama2(
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
         head_dim=head_dim,
-        qkv_proj=nn.Linear(embed_dim, qkv_dim, bias=False),
+        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=kv_cache,

@@ -5,8 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 
-_RECIPE_LIST = ["finetune_llm"]
-_CONFIG_LISTS = {"finetune_llm": ["alpaca_llama2_finetune"]}
+_RECIPE_LIST = ["finetune_llm", "alpaca_generate"]
+_CONFIG_LISTS = {"finetune_llm": ["alpaca_llama2_finetune"], "alpaca_generate": []}
 
 
 def list_recipes():

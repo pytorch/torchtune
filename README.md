@@ -39,6 +39,22 @@ from torchtune.modules import TransformerDecoder
 
 # Quickstart
 
+### Downloading a model
+
+Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama/Llama-2-7b) repository
+to ensure you have access to the Llama2 model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine.
+This will also download the tokenizer model and a responsible use guide.
+
+> Set your environment variable `HF_TOKEN` or pass in `--hf-token` to the command in order to validate your access.
+
+```
+tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
+```
+
+### Converting the checkpoint into PyTorch-native
+
+<ADD INSTRUCTIONS HERE>
+
 ### Running recipes
 
 On a single GPU
@@ -78,6 +94,13 @@ does with the following additional functionalities:
 5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
 
 # Contributing
+### Dev install
+To install additional dependencies for contributing, run the following:
+
+```
+pip install -e ".[dev]"
+```
+
 ### Coding Style
 `torchtune` uses pre-commit hooks to ensure style consistency and prevent common mistakes. Enable it by:
 
@@ -116,3 +139,27 @@ all of them, you can use a regex like `EXAMPLES_PATTERN="plot_the_best_example*"
 make html`.
 
 If the doc build starts failing for a weird reason, try `make clean`.
+
+#### Iterate and Serve docs locally
+
+If you're developing locally, you can just open the generated `index.html` file in your browser.
+
+If instead you're using a remote machine, you can use a combination of a simple python HTTP server and port forwarding to serve the docs locally.
+This allows you to iterate on the documentation much more quickly than relying on PR
+previews.
+
+To do so, after following the above doc build steps, run the following from the `docs/build/html` folder:
+
+```
+python -m http.server 8000 # or any free port
+```
+
+This will open up a simple HTTP server serving the files in the build directory.
+If this is done on a remote machine, you can set up port forwarding from your local machine
+to access the server, for example:
+
+```
+ssh -L 9000:localhost:8000 $REMOTE_DEV_HOST
+```
+
+Now, you can navigate to `localhost:9000` on your local machine to view the rendered documentation.

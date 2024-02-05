@@ -1,0 +1,7 @@
+[tool.pydoclint]
+style = 'google'
+check-return-types = 'False'
+exclude = 'tests/torchtune/models/llama2/scripts/'
+
+[tool.pytest.ini_options]
+addopts = ["--showlocals"] # show local variables in tracebacks

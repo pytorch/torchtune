@@ -5,11 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from typing import List
+
+import torch.nn.functional as F
 
 from torch import nn, Tensor
 
+from torchtune.modules.peft.peft_utils import AdapterModule
+from torchtune.utils.tensor_utils import _copy_tensor
 
-class LoRALinear(nn.Module):
+
+class LoRALinear(nn.Module, AdapterModule):
     """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
     LoRA perturbs a given layer via a low-rank approximation where only
@@ -25,8 +31,11 @@ class LoRALinear(nn.Module):
         out_dim (int): output dimension
         rank (int): rank of the low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
-        dropout (float): dropout probability
-        use_bias (bool): whether to include bias in the two low-rank matrices
+        dropout (float): dropout probability. Default: 0.0
+        use_bias (bool): whether to include bias in the original linear layer.
+            Default: False
+        use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
+            A and B. Default: False
     """
 
     def __init__(
@@ -37,22 +46,45 @@ class LoRALinear(nn.Module):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
+        use_bias_in_lora_matrices: bool = False,
     ):
         super().__init__()
         self.rank = rank
         self.alpha = alpha
         self.out_dim = out_dim
-        self.linear = nn.Linear(in_features=in_dim, out_features=out_dim)
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
+        # vanilla Transformers.
+        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
+        if use_bias:
+            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
+        else:
+            self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
-        self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=use_bias)
-        self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=use_bias)
+        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
+        self.lora_a = nn.Linear(
+            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
+        )
+        self.lora_b = nn.Linear(
+            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
+        )
         self.reset_lora_parameters()
 
     def reset_lora_parameters(self):
         # Initialize as in
-        # https://github.com/microsoft/LoRA/blob/main/loralib/layers.py#L119
+        # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+
+    def adapter_params(self) -> List[str]:
+        """
+        Return lora_a.weight and lora_b.weight as adapter params.
+        If bias is enabled, also return lora_a.bias and lora_b.bias.
+        """
+        adapter_params = ["lora_a.weight", "lora_b.weight"]
+        if self.use_bias_in_lora_matrices:
+            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
+        return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -62,7 +94,7 @@ class LoRALinear(nn.Module):
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
         """
-        out = self.linear(x)
+        out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

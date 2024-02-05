@@ -1,8 +1,22 @@
 {% extends "!layout.html" %}
 
 {% block sidebartitle %}
-    <div class="version">
-      <a href='https://pytorch.org/torchtune/versions.html'>{{ version }} &#x25BC</a>
-    </div>
+    <!-- TODO: uncomment below before release to enable the version selector -->
+    <!-- <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'>{{ version }} &#x25BC</a>
+      </div> -->
     {% include "searchbox.html" %}
+{% endblock %}
+
+
+{% block footer %}
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!-- {{ super() }}
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script script type="text/javascript">
+    var collapsedSections = []
+</script>
 {% endblock %}

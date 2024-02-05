@@ -7,15 +7,20 @@
 import pytest
 
 import torch
-from torchtune.modules.peft.lora import LoRALinear
-from torchtune.utils.env import seed
+from torchtune.modules.peft import LoRALinear
+from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
+
+RANK = 4
+ALPHA = 1.0
+BSZ = 2
+SEQ_LEN = 32
 
 
 @pytest.fixture(autouse=True)
 def random():
-    seed(16)
+    set_seed(16)
 
 
 class TestLoRALinear:
@@ -23,14 +28,6 @@ class TestLoRALinear:
     Class for testing our LoRALinear implementation. Expected values are computed
     from the reference implementation and calculated in scripts/compare_lora.py.
     """
-
-    @pytest.fixture
-    def bsz(self) -> int:
-        return 2
-
-    @pytest.fixture
-    def seq_len(self) -> int:
-        return 32
 
     @pytest.fixture
     def in_dim(self) -> int:
@@ -41,31 +38,24 @@ class TestLoRALinear:
         return 128
 
     @pytest.fixture
-    def rank(self) -> int:
-        return 4
-
-    @pytest.fixture
-    def alpha(self) -> float:
-        return 1.0
-
-    @pytest.fixture
-    def inputs(self, bsz, seq_len, in_dim) -> torch.Tensor:
-        inputs = torch.randn(bsz, seq_len, in_dim)
+    def inputs(self, in_dim) -> torch.Tensor:
+        inputs = torch.randn(BSZ, SEQ_LEN, in_dim)
         return inputs
 
     @pytest.fixture
-    def lora_linear(self, in_dim, out_dim, rank, alpha) -> LoRALinear:
+    def lora_linear(self, in_dim, out_dim) -> LoRALinear:
         lora_linear = LoRALinear(
             in_dim=in_dim,
             out_dim=out_dim,
-            rank=rank,
-            alpha=alpha,
+            rank=RANK,
+            alpha=ALPHA,
+            use_bias=True,
         )
         fixed_init_model(lora_linear)
         return lora_linear
 
-    def test_forward(self, inputs, lora_linear, bsz, seq_len, out_dim) -> None:
+    def test_forward(self, inputs, lora_linear, out_dim) -> None:
         expected = torch.tensor(1.1252)
         actual = lora_linear(inputs)
-        assert_expected(actual.shape, (bsz, seq_len, out_dim))
+        assert_expected(actual.shape, (BSZ, SEQ_LEN, out_dim))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)

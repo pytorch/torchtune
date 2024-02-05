@@ -52,7 +52,9 @@ class CausalSelfAttention(nn.Module):
             user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
             `None`, in which case this is the same as MHA
         head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.
-        qkv_proj (nn.Module): projection layer for query, key and value.
+        q_proj (nn.Module): projection layer for query.
+        k_proj (nn.Module): projection layer for key.
+        v_proj (nn.Module): projection layer for value.
         output_proj (nn.Module): projection layer for output.
         pos_embeddings (nn.Module): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
         kv_cache (Optional[KVCache]): KVCache object used to cache key and value.
@@ -75,7 +77,9 @@ class CausalSelfAttention(nn.Module):
         num_heads: int,
         num_kv_heads: int,
         head_dim: int,
-        qkv_proj: nn.Module,
+        q_proj: nn.Module,
+        k_proj: nn.Module,
+        v_proj: nn.Module,
         output_proj: nn.Module,
         pos_embeddings: nn.Module,
         kv_cache: Optional[KVCache] = None,
@@ -108,7 +112,9 @@ class CausalSelfAttention(nn.Module):
 
         # Set layers
         self.kv_cache = kv_cache
-        self.qkv_proj = qkv_proj
+        self.q_proj = q_proj
+        self.k_proj = k_proj
+        self.v_proj = v_proj
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
 
@@ -138,7 +144,6 @@ class CausalSelfAttention(nn.Module):
             - n_kv: num kv heads
             - d: embed dim
             - h_d: head dim
-            - qkv_d: qkv_dim computed as (n_h + 2 * n_kv) * h_d
 
         TODO:
             - Return the attention weights
@@ -154,25 +159,22 @@ class CausalSelfAttention(nn.Module):
                 f"than max_seq_len ({self.max_seq_len})"
             )
 
-        # qkv has shape [b, s, qkv_d]
-        qkv = self.qkv_proj(x)
+        # q has shape [b, s, num_heads * head_dim]
+        # k has shape [b, s, num_kv_heads * head_dim]
+        # v has shape [b, s, num_kv_heads * head_dim]
+        q = self.q_proj(x)
+        k = self.k_proj(x)
+        v = self.v_proj(x)
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
 
-        # Each key and value either has a single query (MHA)
-        # or q_per_kv queries (MQA/GQA). total_qkv will be 3
-        # for MHA
-        total_qkv = q_per_kv + 2
-
-        # decompose the last dimension into n_kv x total_qkv, h_d
-        qkv = qkv.view(bsz, seq_len, self.num_kv_heads, total_qkv, self.head_dim)
-
-        # create the q,k and v tensors by splitting qkv
         # q: [b, s, n_kv, q_per_kv, h_d]
         # k: [b, s, n_kv, 1, h_d]
         # v: [b, s, n_kv, 1, h_d]
-        q, k, v = qkv.split((q_per_kv, 1, 1), dim=3)
+        q = q.view(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
+        k = k.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
+        v = v.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim

@@ -50,14 +50,17 @@ extensions = [
     "sphinx.ext.napoleon",
     "sphinx.ext.viewcode",
     "sphinx.ext.duration",
+    "sphinx_tabs.tabs",
+    "sphinx_design",
     "sphinx_gallery.gen_gallery",
     "sphinx_copybutton",
 ]
 
 sphinx_gallery_conf = {
-    "examples_dirs": "../../examples/",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "backreferences_dir": "gen_modules/backreferences",
+    "examples_dirs": "examples/",  # path to your sphinx-gallery examples
+    "gallery_dirs": "generated_examples",  # path to where to save shpinx-gallery generated output
+    "filename_pattern": "./*.py",  # any .py file in docs/source/examples will be built by sphinx-gallery
+    "backreferences_dir": "gen_modules/backreferences",  # path to store the backreferences
     "doc_module": ("torchtune",),
     "remove_config_comments": True,
 }
@@ -73,9 +76,7 @@ templates_path = ["_templates"]
 # The suffix(es) of source filenames.
 # You can specify multiple suffix as a list of string:
 #
-source_suffix = {
-    ".rst": "restructuredtext",
-}
+source_suffix = [".rst"]
 
 # The master toctree document.
 master_doc = "index"
@@ -127,9 +128,7 @@ html_theme_options = {
 
 html_logo = "_static/img/pytorch-logo-dark.svg"
 
-html_css_files = [
-    "css/custom_torchtune.css",
-]
+html_css_files = ["css/custom_torchtune.css"]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -245,3 +244,13 @@ def inject_minigalleries(app, what, name, obj, options, lines):
 def setup(app):
 
     app.connect("autodoc-process-docstring", inject_minigalleries)
+
+
+# Custom directives definitions to create cards on main torchtune page
+
+from custom_directives import CustomCardEnd, CustomCardItem, CustomCardStart
+from docutils.parsers import rst
+
+rst.directives.register_directive("customcardstart", CustomCardStart)
+rst.directives.register_directive("customcarditem", CustomCardItem)
+rst.directives.register_directive("customcardend", CustomCardEnd)

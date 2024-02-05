@@ -4,142 +4,138 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+
 import os
-import sys
 from functools import partial
-from typing import Callable
 
 import torch
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    apply_activation_checkpointing,
-)
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torch.optim.optimizer import Optimizer
+from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune.datasets import get_dataset, list_datasets
-from torchtune.models import get_model, get_tokenizer, list_models, list_tokenizers
-from torchtune.modules import TransformerDecoderLayer
-from torchtune.utils import TuneArgumentParser
-from torchtune.utils.batch_pad_sequence import batch_pad_to_longest_seq
-from torchtune.utils.env import get_world_size_and_rank, init_from_env, seed
+from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
-from torchtune.utils.precision import (
-    get_autocast_manager,
-    get_grad_scaler,
-    get_supported_dtypes,
-)
 from tqdm import tqdm
 
 
-def get_optimizer(model: torch.nn.Module, optimizer: str, lr: float) -> Optimizer:
-    return getattr(torch.optim, optimizer)(model.parameters(), lr=lr)
-
-
-def get_loss(loss_fn: str) -> Callable:
-    return getattr(torch.nn, loss_fn)()
-
-
-def get_logger():
-    import logging
-
-    logger = logging.getLogger(__name__)
-    logger.addHandler(logging.StreamHandler())
-    logger.setLevel(logging.DEBUG)
-    return logger.info
-
-
-def recipe(kwargs):
+def recipe(
+    device,
+    dtype,
+    seed,
+    model,
+    model_checkpoint,
+    tokenizer,
+    tokenizer_checkpoint,
+    dataset,
+    shuffle,
+    batch_size,
+    epochs,
+    optimizer,
+    loss,
+    lr,
+    activation_checkpointing,
+    output_dir,
+    run_generation,
+    max_steps_per_epoch,
+    metric_logger_type,
+    project,
+    resume_from_previous_checkpoint,
+    cpu_offload,
+):
     # ---- Initialize components ---- #
-    logger = get_logger()
+    distributed = utils.init_distributed()
+    world_size, rank = utils.get_world_size_and_rank()
 
-    # ---- Initialize seed ---- #
-    world_size, rank = get_world_size_and_rank()
-    if kwargs["seed"] is not None:
-        # Ensure that seed is different per rank (and its dataloader workers)
-        seed(kwargs["seed"] + rank)
-
-    # ---- Initialize distributed process group ---- #
-    device = init_from_env(device_type=kwargs["device"])
-    # TODO: only supporting devices specified as "cpu", "cuda", or "cuda:n" currently
-    device_type = (
-        kwargs["device"]
-        if kwargs["device"] in ("cpu", "cuda")
-        else kwargs["device"].split(":")[0]
-    )
-    tokenizer = get_tokenizer(kwargs["tokenizer"], path=kwargs["tokenizer_checkpoint"])
-    logger(msg=f"Loaded tokenizer from {kwargs['tokenizer_checkpoint']}")
-
-    autocast_precision = kwargs.get("autocast_precision", None)
-    autocast_mgr = get_autocast_manager(
-        device_type=device_type, precision=autocast_precision
-    )
-    grad_scaler = get_grad_scaler(autocast_precision, fsdp=kwargs["fsdp"])
-
-    # When using fsdp, init on meta device to avoid OOM
-    model = get_model(
-        kwargs["model"],
-        "meta" if kwargs["fsdp"] else device,
+    logger = utils.get_logger("DEBUG")
+    metric_logger = utils.get_metric_logger(
+        metric_logger_type=metric_logger_type, project=project, log_dir=output_dir
     )
 
-    if kwargs["fsdp"] or kwargs["activation_checkpointing"]:
-        auto_wrap_policy = ModuleWrapPolicy(
-            {TransformerDecoderLayer}
-        )  # TODO: remove model specific components
-    if kwargs["fsdp"]:
-        model = FSDP(
-            model,
-            auto_wrap_policy=auto_wrap_policy,
-            device_id=device,
-            param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
-        )
-    if kwargs["activation_checkpointing"]:
-        apply_activation_checkpointing(
-            model,
-            check_fn=lambda mod: isinstance(
-                mod, TransformerDecoderLayer
-            ),  # TODO: remove model specific components
-            auto_wrap_policy=auto_wrap_policy,
+    device = utils.get_device(device)
+    dtype = utils.get_dtype(dtype)
+    seed = utils.set_seed(seed)
+
+    # ---- Setup model and load checkpoint ---- #
+    tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+    logger.info(msg=f"Loaded tokenizer from {tokenizer_checkpoint}")
+
+    # TODO: initialize models for distributed on meta or cpu device to avoid OOMs
+    model = models.get_model(model, device=device)
+
+    if cpu_offload and not distributed:
+        raise ValueError(
+            "CPU offload is only supported with FSDP in a distributed setting."
+            "Please launch in a distributed setting. If you do not wish to use > 1 GPU,"
+            "use ``tune --nnodes 1 --nproc_per_node 1 ...``. FSDP will not shard"
+            "any parameters."
         )
 
-    loaded_ckpt = torch.load(
-        kwargs["model_checkpoint"], map_location="cpu", weights_only=True
-    )
-    model.load_state_dict(loaded_ckpt)
-    logger(msg=f"Loaded model from {kwargs['model_checkpoint']}")
+    if distributed:  # Use FSDP model for distributed training
+        model = utils.get_fsdp(
+            model=model,
+            device=device,
+            dtype=dtype,
+            strategy="FULL_SHARD",
+            auto_wrap_policy={modules.TransformerDecoderLayer},
+            cpu_offload=cpu_offload,
+        )
+    if activation_checkpointing:
+        utils.set_activation_checkpointing(
+            model, auto_wrap_policy={modules.TransformerDecoderLayer}
+        )
 
-    opt = get_optimizer(model, kwargs["optimizer"], kwargs["lr"])
+    # ---- Setup optimization functions ---- #
+    opt = optim.get_optimizer(optimizer, model, lr)
+    # Load model and possibly optimizer states
+    if resume_from_previous_checkpoint:
+        ckpt_dict = load_checkpoint(model_checkpoint, model, opt)
+        model.load_state_dict(ckpt_dict["model"])
+        # Note: optimizer entry in dictionary is pre-transformed if using FSDP
+        opt.load_state_dict(ckpt_dict["optimizer"])
+        if rank == 0:
+            logger.info(
+                msg=f"Loaded checkpoint from previous finetune from {model_checkpoint}"
+            )
+    else:
+        ckpt_dict = load_checkpoint(model_checkpoint, model)
+        model.load_state_dict(ckpt_dict["model"])
+        if rank == 0:
+            logger.info(msg=f"Loaded pretrained model from {model_checkpoint}")
+
     # TODO add lr schedule option
-    loss_fn = get_loss(kwargs["loss"])
+    loss_fn = losses.get_loss(loss)
+
+    autocast = utils.get_autocast(dtype, device)
+    if dtype == torch.float16:
+        grad_scaler = utils.get_gradient_scaler(distributed)
+    else:
+        grad_scaler = GradScaler(enabled=False)
 
     # ---- Load dataset, set up sampler, and dataloader ---- #
-    dataset = get_dataset(kwargs["dataset"], split="train", tokenizer=tokenizer)
+    ds = datasets.get_dataset(dataset, split="train", tokenizer=tokenizer)
     sampler = DistributedSampler(
-        dataset,
+        ds,
         num_replicas=world_size,
         rank=rank,
-        shuffle=kwargs["shuffle"],
+        shuffle=shuffle,
         seed=0,
     )
     dataloader = DataLoader(
-        dataset=dataset,
-        batch_size=kwargs["batch_size"],
+        dataset=ds,
+        batch_size=batch_size,
         sampler=sampler,
         collate_fn=partial(
-            batch_pad_to_longest_seq,
-            input_padding_idx=tokenizer.pad_id,
-            label_padding_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
+            utils.padded_collate,
+            padding_idx=tokenizer.pad_id,
+            ignore_idx=loss_fn.ignore_index,  # TODO support loss without ignore_index
         ),
     )
-    logger(msg=f"Loaded dataset {kwargs['dataset']}")
+    logger.info(msg=f"Loaded dataset {dataset}")
 
     # ---- Train loop ---- #
-    for epoch in range(kwargs["epochs"]):
-        # Need to set the epoch for changing sample ordering in each epoch
-        sampler.set_epoch(epoch)
-        for idx, batch in enumerate(pbar := tqdm(dataloader)):
-            max_steps_per_epoch = kwargs.get("max_steps_per_epoch", None)
+    for epoch in range(epochs):
+        sampler.set_epoch(epoch)  # distributed sampler requires set_epoch
+        for idx, batch in enumerate(pbar := tqdm(dataloader, disable=not (rank == 0))):
             if max_steps_per_epoch is not None and idx == max_steps_per_epoch:
                 break
             opt.zero_grad()
@@ -148,34 +144,35 @@ def recipe(kwargs):
             input_ids = input_ids.to(device)
             labels = labels.to(device)
 
-            # Note: context manager for autocast is only applied in forward pass.
-            # see https://pytorch.org/tutorials/recipes/recipes/amp_recipe.html#adding-torch-autocast
-            # for more details.
-            with autocast_mgr:
+            with autocast:
                 logits = model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
-                # Flatten the tokens
-                # shift_logits = shift_logits.view(-1, tokenizer.vocab_size)
-                # shift_labels = shift_labels.view(-1)
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = loss_fn(logits, labels)
 
-            pbar.set_description(
-                f"{epoch+1}|{idx+1}|Loss: {loss.item()}"
-            )  # TODO: add terminal logger
+            pbar.set_description(f"{epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-            if grad_scaler:
-                grad_scaler.scale(loss).backward()
-                grad_scaler.step(opt)
-                grad_scaler.update()
-            else:
-                loss.backward()
-                opt.step()
+            # Log metrics at each step
+            # If no metric logger is specified, this is a no-op
+            if rank == 0:
+                metric_logger.log_dict(
+                    {
+                        "loss": loss.item(),
+                        "lr": opt.param_groups[0]["lr"],
+                        "gpu_resources": torch.cuda.memory_allocated(),
+                    },
+                    step=epoch * len(dataloader)
+                    + idx,  # Each step is unique, not limited to each epoch
+                )
 
-            run_generation = kwargs.get("run_generation", None)
+            grad_scaler.scale(loss).backward()
+            grad_scaler.step(opt)
+            grad_scaler.update()
+
+            # --- TODO TEMPORARY EVAL Code ---- #
             if run_generation and idx % run_generation == 0:
                 # Log a sample generation for the instruction.
                 # Just using a hardcoded prompt for now
@@ -188,38 +185,40 @@ def recipe(kwargs):
                 generation_str, decoded_tokens = generate_from_prompt(
                     prompt=prompt, tokenizer=tokenizer, decoder=model
                 )
-                if (
-                    not torch.distributed.is_initialized()
-                    or torch.distributed.get_rank() == 0
-                ):
-                    logger(f"Generation tokens: {decoded_tokens}")
-                    logger(f"Generation: {generation_str}")
+                if rank == 0:
+                    logger.info(f"Generation tokens: {decoded_tokens}")
+                    logger.info(f"Generation: {generation_str}")
+            # --- TODO TEMPORARY EVAL Code Ends ---- #
 
-        # Save checkpoint at end of each epoch (to be changed later)
-        os.makedirs(kwargs["output_dir"], exist_ok=True)
-        output_loc = f"{kwargs['output_dir']}/model_{epoch}.ckpt"
-        torch.save(
-            {
-                "epoch": epoch,
-                "model": model.state_dict(),
-                "optimizer": opt.state_dict(),
-                "loss": loss.mean().item(),
-            },
-            output_loc,
-        )
-        logger(
-            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20}MB saved to {output_loc}"
-        )
+        # ---- Save checkpoint at end of each epoch (to be changed later) ---- #
+        os.makedirs(output_dir, exist_ok=True)
+        output_loc = f"{output_dir}/model_{epoch}.ckpt"
+        ckpt_dict = {
+            "model": model,
+            "optimizer": opt,
+        }
+        if epoch == epochs - 1:
+            # Don't save optimizer state when producing final checkpoint to reduce checkpoint file size.
+            ckpt_dict.pop("optimizer")
+        if rank == 0:
+            logger.info(msg=f"Saving model checkpoint to {output_loc}")
+        save_checkpoint(ckpt_dict, output_loc)
+        if rank == 0:
+            logger.info(
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+            )
+
+    metric_logger.close()
 
 
 if __name__ == "__main__":
-    parser = TuneArgumentParser(description="Fine-tune an LLM.")
+    parser = utils.TuneArgumentParser(description="Fine-tune an LLM.")
 
     # Dataset and DataLoader arguments
     parser.add_argument(
         "--dataset",
         type=str,
-        choices=list_datasets(),
+        choices=datasets.list_datasets(),
         help="Dataset name.",
     )
     parser.add_argument(
@@ -231,13 +230,22 @@ if __name__ == "__main__":
             provide the same transforms of samples across runs.
             """,
     )
-    parser.add_argument("--shuffle", help="Shuffle dataset.", default=True)
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
+        "--shuffle", action="store_true", help="Shuffle dataset.", default=True
+    )
+    group.add_argument(
+        "--no-shuffle",
+        dest="shuffle",
+        action="store_false",
+        help="Don't shuffle dataset.",
+    )
 
     # Model arguments
     parser.add_argument(
         "--model",
         type=str,
-        choices=list_models(),
+        choices=models.list_models(),
         help="Model to finetune.",
     )
     parser.add_argument(
@@ -248,7 +256,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--tokenizer",
         type=str,
-        choices=list_tokenizers(),
+        choices=models.list_tokenizers(),
         help="Model tokenizer.",
     )
     parser.add_argument(
@@ -284,7 +292,8 @@ if __name__ == "__main__":
         "--output-dir",
         type=str,
         default="/tmp/finetune-llm",
-        help="Directory in which to save checkpoints.",
+        help="Directory in which to save checkpoints."
+        "If using a metric logger like Tensorboard, this dir will also contain those logs.",
     )
     parser.add_argument(
         "--device",
@@ -292,17 +301,18 @@ if __name__ == "__main__":
         default="cpu",
         help="`cuda` or `cpu`",
     )
-    parser.add_argument(
-        "--fsdp",
-        type=bool,
-        default=False,
-        help="Train the model with distributed fully sharded data parallel (FSDP) strategy.",
-    )
-    parser.add_argument(
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         "--activation-checkpointing",
-        type=bool,
+        action="store_true",
         default=False,
         help="Train the model with activation checkpointing.",
+    )
+    group.add_argument(
+        "--no-activation-checkpointing",
+        dest="activation_checkpointing",
+        action="store_false",
+        help="Don't train the model with activation checkpointing.",
     )
     parser.add_argument(
         "--run-generation",
@@ -317,14 +327,39 @@ if __name__ == "__main__":
         help="Max number of steps per epoch for faster dev/testing. Default is to finetune through the full dataset.",
     )
     parser.add_argument(
-        "--autocast-precision",
+        "--dtype",
         type=str,
-        choices=get_supported_dtypes(),
+        choices=utils.list_dtypes(),
         default=None,
-        help=f"""Low precision used for CUDA automatic mixed precision.
-            If specified, must be one of {get_supported_dtypes()}.
-        """,
+        help="Tensor dtype used for finetuning, lower precision types result in mixed precision training.",
+    )
+    parser.add_argument(
+        "--metric-logger-type",
+        type=str,
+        choices=utils.list_metric_loggers(),
+        help="Metric logger platform to use. E.g. Weights & Biases, Tensorboard, to disk, or just plain stdout.",
+    )
+    parser.add_argument(
+        "--project",
+        type=str,
+        default=None,
+        help="Project name for WandB metric logger.",
+    )
+    parser.add_argument(
+        "--resume-from-previous-checkpoint",
+        help="""Resume from a previous finetune checkpoint. Note that the previous
+            checkpoints must have been taken with `torchtune.utils.checkpoint.save_checkpoint` utility. If this flag
+            is used, note that --model-checkpoint flag will be used as the path to the previous finetune's checkpoint.
+            """,
+        default=False,
+        action="store_true",
+    )
+    parser.add_argument(
+        "--cpu-offload",
+        action="store_true",
+        default=False,
+        help="Offload parameters and gradients to CPU when not involved in computation. Optimizer step runs on CPU.",
     )
 
     kwargs = vars(parser.parse_args())
-    sys.exit(recipe(kwargs))
+    recipe(**kwargs)
