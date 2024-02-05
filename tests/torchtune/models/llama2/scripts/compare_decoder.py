@@ -26,7 +26,7 @@ Replicating code here to minimize dependencies. The code is modified to
 include params for the constructor and remove start_pos (not supported).
 """
 
-
+# TODO: Move this to standalone ref implementation
 class Transformer(nn.Module):
     def __init__(
         self,
