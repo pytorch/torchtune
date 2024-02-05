@@ -347,18 +347,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
         True is returned either if the we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
-        return (curr_step + 1) % self._gradient_accumulation_steps == 0 or (
+        should_update_weights = (
+            curr_step + 1
+        ) % self._gradient_accumulation_steps == 0 or (
             curr_step + 1
         ) == self._steps_per_epoch
+        return should_update_weights
 
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
-
-        For gradient accumulation, context manager of the FSDP wrapped model is set to
-        `no_sync()'.
-        Ref: https://github.com/pytorch/pytorch/blob/main/torch/distributed/fsdp/fully_sharded_data_parallel.py/#L1027
         """
         _, rank = utils.get_world_size_and_rank()
 
