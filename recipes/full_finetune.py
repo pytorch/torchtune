@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-import contextlib
 import os
 import sys
 
@@ -164,10 +163,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # by the dataloader, the max_steps_per_epoch param set by the user and the
         # gradient_accumulation_steps param. This value is used for logging and tracking
         # training state. The computation should happen after the dataloader has been setup
-        self._steps_per_epoch = len(self._dataloader) // self._gradient_accumulation_steps
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
         if (
-            self.max_steps_per_epoch is not None and
-            self.max_steps_per_epoch < self._steps_per_epoch
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
@@ -346,10 +347,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         True is returned either if the we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
-        return (
-            (curr_step + 1) % self._gradient_accumulation_steps == 0 or
-            (curr_step + 1) == self._steps_per_epoch
-        )
+        return (curr_step + 1) % self._gradient_accumulation_steps == 0 or (
+            curr_step + 1
+        ) == self._steps_per_epoch
 
     def train(self) -> None:
         """
