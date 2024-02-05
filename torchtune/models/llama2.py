@@ -13,7 +13,6 @@ from torchtune.modules import (
     KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
-    Tokenizer,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
@@ -47,13 +46,6 @@ def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         attn_dropout=0.0,
         norm_eps=1e-5,
     )
-
-
-def llama2_tokenizer(path: str) -> Tokenizer:
-    tokenizer = Tokenizer.from_file(path)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
-    return tokenizer
 
 
 def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:

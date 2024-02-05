@@ -4,15 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .alpaca import AlpacaDataset
-from .slimorca import SlimOrcaDataset
+from .llama2 import llama2_tokenizer
 
 __all__ = [
-    "AlpacaDataset",
-    "SlimOrcaDataset",
+    "llama2_tokenizer",
 ]
 
 
-def list_datasets():
-    """List of available datasets supported by `get_dataset`"""
+def list_tokenizers():
+    """List of available tokenizers supported by `get_tokenizer`"""
     return __all__
