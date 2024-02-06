@@ -8,7 +8,7 @@ from .checkpoint import save_checkpoint, transform_opt_state_dict, validate_chec
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .device import get_device
-from .distributed import get_fsdp, get_world_size_and_rank, init_distributed
+from .distributed import get_world_size_and_rank, init_distributed, wrap_fsdp
 from .logging import get_logger
 from .memory import set_activation_checkpointing
 from .metric_logging import get_metric_logger, list_metric_loggers
@@ -24,7 +24,7 @@ __all__ = [
     "get_autocast",
     "get_device",
     "get_dtype",
-    "get_fsdp",
+    "wrap_fsdp",
     "get_gradient_scaler",
     "get_logger",
     "get_world_size_and_rank",

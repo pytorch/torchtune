@@ -231,7 +231,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         model = (
             model
             if not enable_fsdp
-            else utils.get_fsdp(
+            else utils.wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,

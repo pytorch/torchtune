@@ -15,7 +15,7 @@ Distributed
 
     distributed.init_distributed
     distributed.get_world_size_and_rank
-    distributed.get_fsdp
+    distributed.wrap_fsdp
 
 .. _mp_label:
 

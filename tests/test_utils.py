@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+import os
 import sys
 import unittest
 import uuid
@@ -119,6 +120,20 @@ def get_pet_launch_config(nproc: int) -> pet.LaunchConfig:
         max_restarts=0,
         monitor_interval=1,
     )
+
+
+@contextmanager
+def single_box_init():
+    os.environ["MASTER_ADDR"] = "localhost"
+    # TODO: Don't hardcode ports as this could cause flakiness if tests execute
+    # in parallel.
+    os.environ["MASTER_PORT"] = str(12345)
+    os.environ["LOCAL_RANK"] = str(0)
+    torch.distributed.init_process_group(backend="gloo", world_size=1, rank=0)
+    try:
+        yield
+    finally:
+        torch.distributed.destroy_process_group()
 
 
 @contextmanager

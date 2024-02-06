@@ -7,12 +7,18 @@
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 import torch
+import torch.nn as nn
 from torch.distributed import launcher
 
-# from torchtune.utils.device import get_device
-from torchtune.utils.distributed import get_world_size_and_rank, init_distributed
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-from tests.test_utils import get_pet_launch_config
+from torchtune.utils.distributed import (
+    get_world_size_and_rank,
+    init_distributed,
+    wrap_fsdp,
+)
+
+from tests.test_utils import get_pet_launch_config, single_box_init
 
 
 class TestDistributed:
@@ -75,5 +81,25 @@ class TestDistributed:
             desired_world_size
         )
 
+    def test_default_wrap_fsdp(self) -> None:
+        with single_box_init():
+            model = nn.Linear(5, 5)
+            fsdp_model = wrap_fsdp(
+                model, device=torch.device("cpu"), dtype=torch.float32
+            )
+            # Should create a single FSDP unit with FULL_SHARD
+            fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
+            assert len(fsdp_units) == 1
 
-# TODO: Add FSDP specific tests and _broadcast and _is_distributed
+    def test_wrap_fsdp_wrapping(self) -> None:
+        with single_box_init():
+            model = nn.Sequential(nn.Linear(3, 3), nn.Linear(3, 3))
+            fsdp_model = wrap_fsdp(
+                model,
+                device=torch.device("cpu"),
+                dtype=torch.float32,
+                auto_wrap_policy={nn.Linear},
+            )
+            # Should create 3 FSDP units.
+            fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
+            assert len(fsdp_units) == 3
