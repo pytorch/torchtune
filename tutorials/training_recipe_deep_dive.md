@@ -212,3 +212,4 @@ Before writing a new recipe, check the [recipes folder](../recipes/) to see if a
 ## Configs
 
 Configs are the entry point in TorchTune. Most users would use and modify existing configs. For more information on the structure of TorchTune configs and how to add new parameters, refer to the [Recipes README](../recipes/README.md)
+- TODO - point to config tutorial after this is landed
