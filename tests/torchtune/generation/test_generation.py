@@ -4,10 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import random
 from typing import Callable, List
 
-import pytest
+import numpy as np
 
+import pytest
 import torch
 
 from torchtune.models.llama2 import llama2
@@ -18,7 +20,27 @@ from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
-def random():
+def prevent_leaking_rng():
+    # Prevent each test from leaking the rng to all other test when they call
+    # torch.manual_seed() or random.seed() or np.random.seed().
+
+    torch_rng_state = torch.get_rng_state()
+    builtin_rng_state = random.getstate()
+    numpy_rng_state = np.random.get_state()
+    if torch.cuda.is_available():
+        cuda_rng_state = torch.cuda.get_rng_state()
+
+    yield
+
+    torch.set_rng_state(torch_rng_state)
+    random.setstate(builtin_rng_state)
+    np.random.set_state(numpy_rng_state)
+    if torch.cuda.is_available():
+        torch.cuda.set_rng_state(cuda_rng_state)
+
+
+@pytest.fixture(autouse=True)
+def random_seed():
     set_seed(42)
 
 
