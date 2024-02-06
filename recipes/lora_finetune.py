@@ -106,6 +106,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self._model = self._setup_model(
             model=params.model,
             lora_attn_modules=params.lora_attn_modules,
+            lora_rank=params.lora_rank,
+            lora_alpha=params.lora_alpha,
             enable_fsdp=params.enable_fsdp,
             enable_activation_checkpointing=params.enable_activation_checkpointing,
             base_model_state_dict=ckpt_dict[MODEL_KEY],
@@ -193,6 +195,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self,
         model: str,
         lora_attn_modules: List[str],
+        lora_rank: int,
+        lora_alpha: float,
         enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
@@ -201,7 +205,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         This assumes FSDP and activation checkpointing are enabled by default.
         """
         model = models.get_model(
-            model, device=self._device, lora_attn_modules=lora_attn_modules
+            model,
+            device=self._device,
+            lora_attn_modules=lora_attn_modules,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
         )
 
         adapter_params = get_adapter_params(model)

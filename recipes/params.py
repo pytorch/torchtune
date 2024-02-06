@@ -128,6 +128,8 @@ class LoRAFinetuneParams:
     model: str = ""
     model_checkpoint: str = ""
     lora_attn_modules: List[str] = field(default_factory=list)
+    lora_rank: int = 8
+    lora_alpha: float = 16
 
     # Tokenizer
     tokenizer: str = ""

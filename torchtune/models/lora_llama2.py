@@ -28,6 +28,8 @@ LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 def lora_llama2_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
 ) -> TransformerDecoder:
     """Builder for creating a Llama2 model with LoRA enabled.
@@ -47,8 +49,8 @@ def lora_llama2_7b(
         max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-6,
-        lora_rank=8,
-        lora_alpha=16,
+        lora_rank=lora_rank,
+        lora_alpha=lora_alpha,
         lora_dropout=0.05,
     )
 
