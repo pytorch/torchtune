@@ -168,10 +168,13 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
 ```cleanup(...)```:
 -   Cleanup recipe state
 
+&nbsp;
 
 #### How do I write my own recipe?
 
 Before writing a new recipe, check the [recipes folder](../recipes/) to see if an existing recipe satisfies your use case. If not, following are some common scenarions in which you might need to write some code.
+
+&nbsp;
 
 **Adding a new dataset**
 - Add a new dataset to [datasets](../torchtune/datasets/)
@@ -181,6 +184,8 @@ Before writing a new recipe, check the [recipes folder](../recipes/) to see if a
     - Update the ```_setup_data``` method to configure the dataloader
     - Update the ```train``` method to read the samples/batches correctly
 
+&nbsp;
+
 **Adding a new model**
 - Add a new model to [models](../torchtune/models/) with associated building blocks in [modules](../torchtune/modules/). More details in [this tutorial](../tutorials/)
 - If needed:
@@ -188,5 +193,13 @@ Before writing a new recipe, check the [recipes folder](../recipes/) to see if a
     - Update the ```_setup_model``` method to correctly instantiate model and load the state dict
     - Update the ```train``` method to call ```forward``` correctly
 
+&nbsp;
+
 **Adding a new training method**
-# TODO: Update this section after LoRA Recipe lands
+- TODO: Update this section after LoRA Recipe lands
+
+&nbsp;
+
+## Configs
+
+Configs are the entry point in TorchTune. Most users would use and modify existing configs. For more information on the structure of TorchTune configs and how to add new parameters, refer to the [Recipes README](../recipes/README.md)
