@@ -10,7 +10,7 @@ For information on how to launch a training run, please look at ["Getting Starte
 
 &nbsp;
 
-## What are recipes?
+## What are Recipes?
 
 Recipes are the primary entry points for TorchTune users. These can be thought of as "targeted" end-to-end pipelines for training and optionally evaluating LLMs. Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training) applied to a given model family (eg: Llama2).
 
@@ -28,7 +28,7 @@ In the following sections, we'll take a closer look at each of these components.
 
 &nbsp;
 
-### What recipes are not?
+### What Recipes are not?
 
 - Monolithic Trainers. A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
 - Genealized entry-points. A recipe is **not** meant to support every possible model archichtecture or fine-tuning method.
@@ -199,7 +199,7 @@ Before writing a new recipe, check the [recipes folder](../recipes/) to see if a
 - Add the new dataset and associated params to the [params dataclass](../recipes/params.py)
 - If needed:
     - Clone the recipe into a new file
-    - Update the ```_setup_data``` method to configure the dataloader
+    - Update the ```_setup_data``` method to configure the new dataset, dataloader and sampler
     - Update the ```train``` method to read the samples/batches correctly
 
 &nbsp;
