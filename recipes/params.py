@@ -123,12 +123,14 @@ class FullFinetuneParams:
 
 @dataclass
 class LoRAFinetuneParams:
-    """Arguments for the finetune_lora recipe.
+    """Arguments for the finetune_lora recipe. Note that LoRA is currently only supported
+    for attention modules (i.e. Q, K, V, output projections), and not for MLP layers.
 
     Args:
         model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
         model_checkpoint (str): Local path to load model checkpoint from.
-        lora_attn_modules (List[str]): List of attention modules to use for LoRA.
+        lora_attn_modules (List[str]): List of attention modules to use for LoRA. Supported values are
+            ["q_proj", "k_proj", "v_proj", "output_proj"].
         lora_rank (int): Rank of LoRA decompositions.
         lora_alpha (float): Alpha parameter for LoRA.
         tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.

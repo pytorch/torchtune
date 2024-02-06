@@ -115,6 +115,6 @@ def validate_state_dict_for_lora(
     """
     for x in missing_keys:
         if not any([k in x for k in lora_modules]):
-            raise AssertionError(f"{k} is not a LoRA module {lora_modules}")
-        if unexpected_keys:
-            raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
+            raise AssertionError(f"Missing key {x} is not a LoRA module {lora_modules}")
+    if unexpected_keys:
+        raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
