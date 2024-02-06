@@ -7,7 +7,7 @@
 
 import logging
 import os
-from typing import Callable, Dict, Optional, Set, Tuple, Type
+from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
 
 import torch
 import torch.distributed as dist
@@ -24,6 +24,9 @@ from torchtune.utils.device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
+
+
+FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
 
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
@@ -103,8 +106,7 @@ def wrap_fsdp(
     device: torch.device,
     dtype: torch.dtype,
     strategy: Optional[str] = None,
-    auto_wrap_policy: Optional[Set[Type]] = None,
-    custom_wrap_policy: Optional[Callable[[nn.Module, bool, int], bool]] = None,
+    auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
     cpu_offload: bool = False,
     **kwargs
 ) -> nn.Module:
@@ -132,16 +134,15 @@ def wrap_fsdp(
         strategy (Optional[str]): Sharding strategy to use. Please see
             torch.distributed.fsdp.ShardingStrategy for options. Default: "FULL_SHARD", which
             shards parameters, gradients, and optimizer states.
-        auto_wrap_policy (Optional[Set[Type]]): nn.Module types to recursively apply FSDP to. FSDP
-            will wrap each instance of the specified nn.Module type in its own atomic FSDP unit.
+        auto_wrap_policy (Optional[Union[Set[Type], FSDPPolicyType]]): nn.Module types to recursively apply FSDP to.
+            FSDP will wrap each instance of the specified nn.Module type in its own atomic FSDP unit.
+            Alternatively, this can be a custom callable policy of type FSDPPolicyType, in which case FSDP will
+            be wrapped according to the specified policy.
             Please see https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy
-            for details.
-            Default: Empty set, meaning that FSDP is only applied to the top level module. In this
+            for details on FSDP wrapping and writing wrapping policies.
+            Default: None. In this case, FSDP is only applied to the top level module. In this
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
-        custom_wrap_policy (Optional[Callable[[nn.Module, bool, int], bool]]): Callable custom wrapping policy
-            for FSDP. See the example at
-            https://github.com/pytorch/pytorch/blob/12ac3ba383af99733ec23fcd53c7e29f70b68371/torch/distributed/fsdp/fully_sharded_data_parallel.py#L293-L302
         cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
@@ -159,9 +160,11 @@ def wrap_fsdp(
         if strategy is None:
             strategy = "FULL_SHARD"
         _validate_device_from_env(device)
-        wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-        if custom_wrap_policy:
-            wrap_policy = custom_wrap_policy
+        wrap_policy = (
+            ModuleWrapPolicy(auto_wrap_policy)
+            if isinstance(auto_wrap_policy, set)
+            else auto_wrap_policy
+        )
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
         if cpu_offload:
             _log.warning(

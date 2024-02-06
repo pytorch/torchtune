@@ -9,7 +9,7 @@ import os
 import sys
 
 from functools import partial
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Set, Tuple, Type
 
 import torch
 
@@ -18,9 +18,12 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-
 from torchtune import datasets, losses, lr_schedulers, models, modules, optim, utils
-from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
+from torchtune.modules.peft.peft_utils import (
+    get_adapter_params,
+    set_trainable_params,
+    validate_state_dict_for_lora,
+)
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -134,7 +137,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         # training setup
         self._autocast = utils.get_autocast(self._dtype, self._device)
-        self._grad_scaler = None
         if self._dtype == torch.float16:
             self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
@@ -148,7 +150,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
         steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch and self.max_steps_per_epoch < len(
+        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < len(
             self._dataloader
         ):
             steps_per_epoch = self.max_steps_per_epoch
@@ -201,9 +203,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        """
-        This assumes FSDP and activation checkpointing are enabled by default.
-        """
         model = models.get_model(
             model,
             device=self._device,
@@ -215,30 +214,33 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
 
-        # TODO: decide where to put this
-        def lora_custom_auto_wrap_policy(module: nn.Module, recurse: bool, **kwargs):
-            if recurse:
-                return True
-            # Wrap each transformer decoder layer
-            if isinstance(module, modules.TransformerDecoderLayer):
-                return True
-            # Only lora_a and lora_b params require grads
-            # They should be wrapped separately from frozen params
-            if hasattr(module, "weight") and module.weight.requires_grad:
-                return True
-            return False
+        # TODO: move to util in #317
+        def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
+            def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
+                if recurse:
+                    return True
 
-        model = (
-            model
-            if not enable_fsdp
-            else utils.wrap_fsdp(
+                # Assumes lora_a and lora_b are nn.Linears that are the
+                # only trainable modules in the entire network. Wraps
+                # these in separate FSDP unit to work around FSDP allocating
+                # extra gradient memory when wrapped with other modules.
+                if hasattr(module, "weight") and module.weight.requires_grad:
+                    return True
+
+                return isinstance(module, tuple(modules_to_wrap))
+
+            return lora_wrap
+
+        if enable_fsdp:
+            model = utils.wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
-                custom_wrap_policy=lora_custom_auto_wrap_policy,
+                auto_wrap_policy=lora_fsdp_wrap_policy(
+                    {modules.TransformerDecoderLayer}
+                ),
             )
-        )
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -246,9 +248,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
 
         missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
-        for x in missing:
-            assert any([k in x for k in lora_attn_modules])
-        assert not unexpected
+        validate_state_dict_for_lora(missing, unexpected, lora_attn_modules)
 
         if self._is_rank_zero:
             log.info(
@@ -354,12 +354,20 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
         """
-        output_loc = f"{self.output_dir}/ft_ckpts/model_{epoch}.ckpt"
-        ckpt_dict = {"model": self._model}
+        output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
+        ckpt_dict = {MODEL_KEY: self._model}
 
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict.update({"optimizer": self._optimizer})
+            ckpt_dict.update(
+                {
+                    OPT_KEY: self._optimizer,
+                    SEED_KEY: self.seed,
+                    EPOCHS_KEY: self.epochs_run,
+                    TOTAL_EPOCHS_KEY: self.total_epochs,
+                    MAX_STEPS_KEY: self.max_steps_per_epoch,
+                }
+            )
         utils.save_checkpoint(ckpt_dict, output_loc)
 
         if self._is_rank_zero:

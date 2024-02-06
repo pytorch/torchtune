@@ -79,8 +79,7 @@ def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
 
 def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> None:
     """
-    Given a model containing some adapter weights, return the subset of the model's
-    parameters that correspond to the base model.
+    Set trainable parameters for an nn.Module based on a state dict of adapter parameters.
 
     Args:
         model (nn.Module): Instance of model class containing some adapter params.
@@ -92,3 +91,31 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
     """
     for k, v in model.named_parameters():
         v.requires_grad_(k in adapter_params)
+
+
+def validate_state_dict_for_lora(
+    missing_keys: List[str], unexpected_keys: List[str], lora_modules: List[str]
+) -> None:
+    """
+    Validate that the missing and unexpected keys for loading a base model into LoRA
+    model with strict=False are as expected.
+
+    Args:
+        missing_keys (List[str]): List of missing keys in the state dict.
+        unexpected_keys (List[str]): List of unexpected keys in the state dict.
+        lora_modules (List[str]): List of LoRA modules in the model.
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If there are unexpected keys in the loaded state dict.
+        AssertionError: If there are missing keys in the loaded state dict that are not in the LoRA modules.
+
+    """
+    for x in missing_keys:
+        if not any([k in x for k in lora_modules]):
+            raise AssertionError(f"{k} is not a LoRA module {lora_modules}")
+        if unexpected_keys:
+            raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
+    assert not unexpected_keys

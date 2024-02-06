@@ -123,6 +123,45 @@ class FullFinetuneParams:
 
 @dataclass
 class LoRAFinetuneParams:
+    """Arguments for the finetune_lora recipe.
+
+    Args: TODO: CHECK ALL THESE
+        model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
+        model_checkpoint (str): Local path to load model checkpoint from.
+        lora_attn_modules (List[str]): List of attention modules to use for LoRA.
+        lora_rank (int): Rank of LoRA decompositions.
+        lora_alpha (float): Alpha parameter for LoRA.
+        tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
+        tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
+        dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
+            Currently, only predefined datasets in library are supported.
+        train_on_input (bool): Whether to train on the prompt in addition to the response.
+        use_clean (bool): Whether to use cleaned version of Alpaca dataset or not.
+        shuffle (bool): Whether to shuffle dataset.
+        batch_size (int): Batch size to use for training.
+        epochs (int): Number of epochs to train for.
+        optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
+        weight_decay (float): Weight decay to use for optimizer.
+        lr (float): Base learning rate rate to use for optimizer.
+        lr_scheduler (str): String specifying learning rate scheduler to use. See
+            ``torchtune.lr_schedulers.get_lr_scheduler`` for options.
+        num_warmup_steps (int): Number of warmup steps to use for learning rate scheduler.
+        loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
+        epochs (int): Number of epochs to train for.
+        max_steps_per_epoch (int): Maximum number of steps to take per epoch.
+        resume_from_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
+        cpu_offload (bool): Whether to offload model to CPU.
+        enable_fsdp (bool): Whether to use FSDP.
+        enable_activation_checkpointing (bool): Whether to use activation checkpointing.
+        device (str): Device to use for training. Options are "cpu" and "cuda"
+        dtype (str): Data type to use for training.
+        seed (int): Random seed to use for training.
+        output_dir (str): Local path to save checkpoints and logs to.
+        metric_logger_type (str): String specifying metric logger to use. See ``torchtune.utils.get_metric_logger``
+            for options.
+        project (str): Project name to use for logging. Used by ``WandBLogger``.
+        log_every_n_steps (int): How often to log metrics.
+    """
 
     # Model
     model: str = ""
