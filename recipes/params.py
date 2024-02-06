@@ -125,7 +125,7 @@ class FullFinetuneParams:
 class LoRAFinetuneParams:
     """Arguments for the finetune_lora recipe.
 
-    Args: TODO: CHECK ALL THESE
+    Args:
         model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
         model_checkpoint (str): Local path to load model checkpoint from.
         lora_attn_modules (List[str]): List of attention modules to use for LoRA.

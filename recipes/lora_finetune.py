@@ -59,7 +59,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
     TODO:
         - Support saving LoRA params only and resuming from checkpoint.
-        - Checkpoint epoch and seed to ensure training restarts are correct.
     """
 
     def __init__(self, params: LoRAFinetuneParams) -> None:
@@ -96,7 +95,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
     def setup(self, params: LoRAFinetuneParams) -> None:
         """
-        TODO: add short docstring here
+        Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
+        model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
 
@@ -270,7 +270,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             log.info("Tokenizer is initialized from file.")
         return tokenizer
 
-    # TODO: support loading optimizer state for resuming training
     def _setup_optimizer(
         self, optimizer: str, lr: float, weight_decay: float
     ) -> Optimizer:

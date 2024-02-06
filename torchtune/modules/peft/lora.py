@@ -71,12 +71,6 @@ class LoRALinear(nn.Module, AdapterModule):
         self.reset_lora_parameters()
 
     def reset_lora_parameters(self):
-        # TODO: this is not needed if user moves entire module off meta device and onto actual device
-        # after initialization, but might be worth keeping in as a safeguard.
-        if self.lora_a.weight.is_meta:
-            self.lora_a.to_empty(device=self.weight.device)
-        if self.lora_b.weight.is_meta:
-            self.lora_b.to_empty(device=self.weight.device)
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)

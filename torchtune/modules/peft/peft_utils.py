@@ -118,4 +118,3 @@ def validate_state_dict_for_lora(
             raise AssertionError(f"{k} is not a LoRA module {lora_modules}")
         if unexpected_keys:
             raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
-    assert not unexpected_keys
