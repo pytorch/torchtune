@@ -14,15 +14,15 @@ For information on how to launch a training run, please look at ["Getting Starte
 
 Recipes are the primary entry points for TorchTune users. These can be thought of as "targeted" end-to-end pipelines for training and optionally evaluating LLMs. Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training) applied to a given model family (eg: Llama2).
 
-As model training gets more and more complex, it becomes harder to anticipate new model architectures and training methodologies while also reasoning about every possible trade-off (eg: memory vs model quality). We believe users are best suited to make trade-offs specific to their use cases and that there's no one-size-fits-all solution. As a result, recipes are meant to be easy to understand, extend and debug *instead of* generalized entry points for many settings.
+As model training gets more and more complex, it becomes harder to anticipate new model architectures and training methodologies while also reasoning about every possible trade-off (eg: memory vs model quality). We believe a) users are best suited to make trade-offs specific to their use cases and b) there's no one-size-fits-all solution. As a result, recipes are meant to be easy to understand, extend and debug, *and not* generalized entry points for all possible settings.
 
-Depending on their use case and level of expertise, users will routinely find themselves modifying existing recipes (eg: adding new features) or writing new ones. TorchTune makes writing recipes easy by providing well-tested modular components/building-blocks and general utilities (eg: [WandB logging](../torchtune/utils/metric_logging.py)).
+Depending on your use case and level of expertise, you will routinely find yourself modifying existing recipes (eg: adding new features) or writing new ones. TorchTune makes writing recipes easy by providing well-tested modular components/building-blocks and general utilities (eg: [WandB logging](../torchtune/utils/metric_logging.py) and [FSDP wrapping](../torchtune/utils/distributed.py)).
 
 Each recipe consists of three components:
 
 - **Configurable parameters**, specified through yaml configs [example](../recipes/configs/alpaca_llama2_full_finetune.yaml), command-line overrides and dataclasses [example](../recipes/params.py)
-- **Recipe Class**, core logic needed for training, exposed to users through a set of APIs [interface](../recipes/interfaces.py)
 - **Recipe Script**, entry-point which puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
+- **Recipe Class**, core logic needed for training, exposed to users through a set of APIs [interface](../recipes/interfaces.py)
 
 In the following sections, we'll take a closer look at each of these components.
 
@@ -32,7 +32,7 @@ In the following sections, we'll take a closer look at each of these components.
 
 - Monolithic Trainers. A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
 - Genealized entry-points. A recipe is **not** meant to support every possible model archichtecture or fine-tuning method.
-- Wrappers around external frameworks. A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch and dependencies are primarily in the form of utilities.
+- Wrappers around external frameworks. A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EluetherAI's evaluation harness).
 
 &nbsp;
 
@@ -50,7 +50,6 @@ For more information on the structure of TorchTune configs, refer to the [Recipe
 This is the primary entry point for each recipe and provides the user with control over how the recipe is setup, model(s) is(are) trained and how the subsequent checkpoints are used. This includes:
 - Setting up of the environment
 - Parsing and validating configs
-- Initializing and setting up the recipe class
 - Training the model
 - Post-training operations such as evaluation, quantization, model export, generation etc
 - Setting up multi-stage training (eg: Distillation) using multiple Recipe classes
@@ -96,7 +95,7 @@ recipe.cleanup()
 
 ## Recipe Class
 
-The Recipe Class carries the core logic for training a model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. For fine-tuning, the structure of this class [[full finetune example](../recipes/full_finetune.py)] is as follows:
+The Recipe Class carries the core logic for training a model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs. For fine-tuning, the structure of this class [[full finetune example](../recipes/full_finetune.py)] is as follows:
 
 &nbsp;
 
@@ -104,6 +103,7 @@ The Recipe Class carries the core logic for training a model. Each class impleme
 -   Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc
 
 ```
+# Initialize the recipe state
 self._device = utils.get_device(device=params.device)
 self._dtype = utils.get_dtype(dtype=params.dtype)
 ...
@@ -164,7 +164,7 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
         ...
 
         with self._autocast:
-            logits = self._model(input_ids)
+            logits = self._model(...)
             ...
             loss = self._loss_fn(logits, labels)
 
@@ -190,7 +190,7 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
 
 #### How do I write my own recipe?
 
-Before writing a new recipe, check the [recipes folder](../recipes/) to see if an existing recipe satisfies your use case. If not, following are some common scenarions in which you might need to write some code.
+Before writing a new recipe, check the [recipes folder](../recipes/) to see if an existing recipe satisfies your use case. If not, following are some common scenarions.
 
 &nbsp;
 
