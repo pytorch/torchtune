@@ -1,7 +1,11 @@
-torch
-numpy
-sentencepiece==0.1.99
-tqdm==4.66.1
+# Install PyTorch
+torch>=2.0.0
+
+# HuggingFace Integration Reqs
 datasets==2.15.0
 huggingface_hub==0.19.4
+
+# Misc
+sentencepiece==0.1.99
+tqdm==4.66.1
 omegaconf==2.3.0
