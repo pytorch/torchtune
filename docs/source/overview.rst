@@ -1,3 +1,5 @@
+.. _overview_label:
+
 ==================
 TorchTune Overview
 ==================
