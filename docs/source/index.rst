@@ -37,11 +37,11 @@ TorchTune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: Template Tutorial
-   :card_description: A template tutorial. To be deleted.
+   :header: Finetune a LLM with TorchTune
+   :card_description: Quickstart to get you finetuning a LLM fast.
    :image: _static/img/generic-pytorch-logo.png
-   :link: generated_examples/template_tutorial.html
-   :tags: Template
+   :link: examples/first_finetune_tutorial.html
+   :tags: finetuning,llama2
 
 .. customcarditem::
    :header: Training Recipes Deep-Dive
@@ -84,8 +84,8 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   generated_examples/template_tutorial
    examples/recipe_deepdive
+   examples/first_finetune_tutorial
 
 .. toctree::
    :glob:
