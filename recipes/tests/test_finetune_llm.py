@@ -10,9 +10,12 @@ import tempfile
 from typing import Dict, Optional
 
 import pytest
+
 import recipes.finetune_llm as finetune_llm
 from recipes.full_finetune import FullFinetuneRecipe
 from recipes.params import FullFinetuneParams
+
+from tests.test_utils import assert_expected
 from torchtune import models
 from torchtune.models.llama2 import llama2
 
@@ -303,3 +306,102 @@ class TestFullFinetuneRecipe:
             assert recipe.total_training_steps == (
                 3 * kwargs_values["max_steps_per_epoch"]
             )
+
+    @pytest.mark.parametrize("gradient_accumulation_steps", [(1, 4), (1, 8)])
+    @pytest.mark.parametrize("batch_size", [(4, 1), (8, 1)])
+    def test_gradient_accumulation(
+        self, gradient_accumulation_steps, batch_size, capsys, pytestconfig
+    ):
+        """
+        Test gradient accumulation. Since this is model agnostic, we should just
+        run this on the small model.
+        """
+        model_ckpt = "small_test_ckpt"
+
+        for i in range(len(gradient_accumulation_steps)):
+            kwargs_values = {
+                "dataset": "alpaca",
+                "train_on_input": False,
+                "seed": 9,
+                "shuffle": True,
+                "model": model_ckpt,
+                "model_checkpoint": self._fetch_ckpt_model_path(model_ckpt),
+                "tokenizer": "llama2_tokenizer",
+                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+                "batch_size": batch_size[0],  # parametrized in the test
+                "lr": 2e-5,
+                "epochs": 1,  # make sure to run for 1 epoch
+                "max_steps_per_epoch": 1,
+                "optimizer": "AdamW",
+                "loss": "CrossEntropyLoss",
+                "output_dir": "/tmp",
+                "device": "cpu",
+                "dtype": "fp32",
+                "resume_from_checkpoint": False,
+                "enable_fsdp": False,
+                "enable_activation_checkpointing": False,
+                "metric_logger_type": "disk",
+                "gradient_accumulation_steps": gradient_accumulation_steps[
+                    0
+                ],  # parametrized in the test
+            }
+
+            recipe_params = FullFinetuneParams(**kwargs_values)
+
+            recipe = FullFinetuneRecipe(recipe_params)
+            recipe.setup(params=recipe_params)
+            recipe.train()
+
+            # the first run assumes the complete batch and so we have a single loss value
+            loss_value = float(
+                [
+                    value
+                    for key, value in self._fetch_loss_values(
+                        capsys.readouterr().err
+                    ).items()
+                ][0]
+            )
+
+            kwargs_values = {
+                "dataset": "alpaca",
+                "train_on_input": False,
+                "seed": 9,
+                "shuffle": True,
+                "model": model_ckpt,
+                "model_checkpoint": self._fetch_ckpt_model_path(model_ckpt),
+                "tokenizer": "llama2_tokenizer",
+                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+                "batch_size": batch_size[1],  # parametrized in the test
+                "lr": 2e-5,
+                "epochs": 1,
+                "max_steps_per_epoch": 1,
+                "optimizer": "AdamW",
+                "loss": "CrossEntropyLoss",
+                "output_dir": "/tmp",
+                "device": "cpu",
+                "dtype": "fp32",
+                "resume_from_checkpoint": False,
+                "enable_fsdp": False,
+                "enable_activation_checkpointing": False,
+                "metric_logger_type": "disk",
+                "gradient_accumulation_steps": gradient_accumulation_steps[
+                    1
+                ],  # parametrized in the test
+            }
+
+            recipe_params = FullFinetuneParams(**kwargs_values)
+
+            recipe = FullFinetuneRecipe(recipe_params)
+            recipe.setup(params=recipe_params)
+            recipe.train()
+
+            # the second run accumulates losses and so sum these up to compare
+            acc_loss_value = sum(
+                [
+                    float(value) / (gradient_accumulation_steps[1])
+                    for key, value in self._fetch_loss_values(
+                        capsys.readouterr().err
+                    ).items()
+                ]
+            )
+            assert_expected(loss_value, acc_loss_value, rtol=1e-1)

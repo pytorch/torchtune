@@ -376,7 +376,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
             ):
                 if (
                     self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
 
