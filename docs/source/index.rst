@@ -77,6 +77,7 @@ TorchTune tutorials.
    :hidden:
 
    generated_examples/template_tutorial
+   examples/another_tuto
 
 .. toctree::
    :glob:
