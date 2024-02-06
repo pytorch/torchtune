@@ -14,7 +14,7 @@ For information on how to launch a training run, please look at ["Getting Starte
 
 Recipes are the primary entry points for TorchTune users. These can be thought of as "targeted" end-to-end pipelines for training and optionally evaluating LLMs. Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training) applied to a given model family (eg: Llama2).
 
-As model training gets more and more complex, it becomes harder to anticipate new model architectures and training methodologies while also reasoning about every possible trade-off (eg: memory vs model quality). We believe users are best suited to make trade-offs specific to their use cases and that there's no one-size-fits-all solution. As a result, recipes are meant to be easy to understand, extend and debug **instead of** generalized entry points for many settings.
+As model training gets more and more complex, it becomes harder to anticipate new model architectures and training methodologies while also reasoning about every possible trade-off (eg: memory vs model quality). We believe users are best suited to make trade-offs specific to their use cases and that there's no one-size-fits-all solution. As a result, recipes are meant to be easy to understand, extend and debug *instead of* generalized entry points for many settings.
 
 Depending on their use case and level of expertise, users will routinely find themselves modifying existing recipes (eg: adding new features) or writing new ones. TorchTune makes writing recipes easy by providing well-tested modular components/building-blocks and general utilities (eg: [WandB logging](../torchtune/utils/metric_logging.py)).
 
@@ -57,8 +57,9 @@ Scripts should generally structure operations in the following order:
 - Train the model, with checkpoints at the end of every epoch
 - Clean up recipe state after training is complete
 
+&nbsp;
 
-Example script for [full fine-tuning](../recipes/full_finetune.py)"
+Example script for [full fine-tuning](../recipes/full_finetune.py):
 
 ```
 # Launch using TuneCLI which uses TorchRun under the hood
@@ -86,7 +87,9 @@ recipe.cleanup()
 
 ## Recipe Class
 
-The Recipe Class carries the core logic for training a given model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. For fine-tuning, the structure of this class [[full finetune example](../recipes/full_finetune.py)] is as follows:
+The Recipe Class carries the core logic for training a model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. For fine-tuning, the structure of this class [[full finetune example](../recipes/full_finetune.py)] is as follows:
+
+&nbsp;
 
 ```__init__(...)```
 -   Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc
@@ -96,6 +99,8 @@ self._device = utils.get_device(device=params.device)
 self._dtype = utils.get_dtype(dtype=params.dtype)
 ...
 ```
+
+&nbsp;
 
 ```setup(...)```:
 -   Load checkpoint from specified path; validatie the checkpoint and updating recipe state if resuming training
@@ -132,6 +137,8 @@ self._sampler, self._dataloader = self._setup_data(...)
 
 ```
 
+&nbsp;
+
 ```train(...)```:
 -   Forward and backward across all epochs
 -   Save checkpoint at end of each epoch; checkpoints created during training include optimizer and recipe state
@@ -164,6 +171,8 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
 
     self.save_checkpoint(epoch=curr_epoch)
 ```
+
+&nbsp;
 
 ```cleanup(...)```:
 -   Cleanup recipe state
