@@ -4,7 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from .argparse import TuneArgumentParser
-from .checkpoint import save_checkpoint, transform_opt_state_dict, validate_checkpoint
+from .checkpoint import (
+    load_checkpoint,
+    save_checkpoint,
+    transform_opt_state_dict,
+    validate_checkpoint,
+)
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .device import get_device
@@ -17,6 +22,7 @@ from .seed import set_seed
 
 __all__ = [
     "list_metric_loggers",
+    "load_checkpoint",
     "save_checkpoint",
     "transform_opt_state_dict",
     "validate_checkpoint",

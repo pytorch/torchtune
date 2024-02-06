@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from dataclasses import dataclass, fields
-from typing import Optional
+from dataclasses import dataclass, field, fields
+from typing import List, Optional
 
 from torchtune.datasets import ALL_DATASETS
 from torchtune.models import ALL_MODELS, ALL_TOKENIZERS
@@ -83,7 +83,10 @@ class FullFinetuneParams:
     seed: Optional[int] = None
 
     # Logging
-    output_dir: str
+    output_dir: str = "/tmp/full_finetune_output"
+    metric_logger_type: str = "disk"
+    project: Optional[str] = None
+    log_every_n_steps: Optional[int] = None
 
     def __post_init__(self):
         for param in fields(self):
@@ -121,46 +124,47 @@ class FullFinetuneParams:
 # TODO: this might not be right
 @dataclass
 class LoRAFinetuneParams:
-    # Environment
-    device: str
-    dtype: str
-
-    # Reproducability
-    seed: int
 
     # Model
-    model: str
-    model_checkpoint: str
-    lora_attn_modules: List[str]
+    model: str = ""
+    model_checkpoint: str = ""
+    lora_attn_modules: List[str] = field(default_factory=list)
 
     # Tokenizer
-    tokenizer: str
-    tokenizer_checkpoint: str
+    tokenizer: str = ""
+    tokenizer_checkpoint: str = ""
 
     # Dataset and Sampler
-    dataset: str
-    shuffle: bool
-    batch_size: int
+    dataset: str = ""
+    train_on_input: bool = True
+    shuffle: bool = True
+    batch_size: int = 2
 
     # Optimizer and Scheduler
-    optimizer: str
-    lr: float
-    num_warmup_steps: int
-    loss: str
+    optimizer: str = "AdamW"
+    weight_decay: float = 0.01
+    lr: float = 3e-4
+    lr_scheduler: str = "cosine_with_warmup"
+    num_warmup_steps: int = 100
+    loss: str = "CrossEntropyLoss"
 
     # Training
-    epochs: int
-    max_steps_per_epoch: int
-    resume_from_checkpoint: bool
-    enable_fsdp: bool
-    enable_activation_checkpointing: bool
+    epochs: int = 1
+    max_steps_per_epoch: Optional[int] = None
+    resume_from_checkpoint: bool = False
+
+    # Distributed
+    cpu_offload: bool = False
+    enable_fsdp: bool = True
+    enable_activation_checkpointing: bool = True
+
+    # Environment
+    device: str = "cuda"
+    dtype: str = "fp32"
+    seed: Optional[int] = None
 
     # Logging
-    output_dir: str
-    metric_logger: str
-    project: str
-    log_interval: int
-    output_dir: str = "/tmp/full_finetune_output"
+    output_dir: str = "/tmp/lora_finetune_output"
     metric_logger_type: str = "disk"
     project: Optional[str] = None
     log_every_n_steps: Optional[int] = None
@@ -196,3 +200,5 @@ class LoRAFinetuneParams:
             raise ValueError(
                 f"Dtype {self.dtype} must be one of {', '.join(PRECISION_STR_TO_DTYPE.keys())} for finetuning."
             )
+        if len(self.lora_attn_modules) == 0:
+            raise ValueError("Must specify at least one module to apply LoRA to")
