@@ -69,7 +69,7 @@ class AlpacaDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         train_on_input: bool = True,
-        use_clean: bool = True,
+        use_clean: bool = False,
         **kwargs
     ) -> None:
         dataset_path = "yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca"

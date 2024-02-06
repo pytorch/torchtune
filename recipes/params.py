@@ -121,7 +121,6 @@ class FullFinetuneParams:
             )
 
 
-# TODO: this might not be right
 @dataclass
 class LoRAFinetuneParams:
 
@@ -137,6 +136,7 @@ class LoRAFinetuneParams:
     # Dataset and Sampler
     dataset: str = ""
     train_on_input: bool = True
+    use_clean: bool = True
     shuffle: bool = True
     batch_size: int = 2
 

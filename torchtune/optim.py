@@ -9,13 +9,16 @@ import torch
 from torch.optim.optimizer import Optimizer
 
 
-def get_optimizer(optimizer: str, model: torch.nn.Module, lr: float, weight_decay: float = 0.0) -> Optimizer:
+def get_optimizer(
+    optimizer: str, model: torch.nn.Module, lr: float, weight_decay: float = 0.0
+) -> Optimizer:
     """Returns an optimizer function from torch.optim.
 
     Args:
         optimizer (str): name of the optimizer.
         model (torch.nn.Module): model to optimize.
         lr (float): learning rate.
+        weight_decay (float): weight decay for optimizer. Default is 0.0.
 
     Returns:
         Optimizer: optimizer function.

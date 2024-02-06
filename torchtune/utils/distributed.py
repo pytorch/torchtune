@@ -130,6 +130,9 @@ def get_fsdp(
         dtype (torch.dtype): dtype used to determine if mixed precision training is used.
         strategy (Optional[str]): Sharding strategy to use. The main options are (FULL_SHARD, SHARD_GRAD_OP, NO_SHARD)
         auto_wrap_policy (Optional[Set[nn.Module]]): Set of model blocks to shard for sharding.
+        custom_wrap_policy (Optional[Callable[[nn.Module, bool, int], bool]]): Callable custom wrapping policy
+            for FSDP. See the example at
+            https://github.com/pytorch/pytorch/blob/12ac3ba383af99733ec23fcd53c7e29f70b68371/torch/distributed/fsdp/fully_sharded_data_parallel.py#L293-L302
         cpu_offload (bool): Whether to offload sharded parameters to CPU.
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
@@ -144,7 +147,6 @@ def get_fsdp(
             strategy = "NO_SHARD"
         _validate_device_from_env(device)
         wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-        # TODO: this is a hack, we should handle custom wrap policy better though
         if custom_wrap_policy:
             wrap_policy = custom_wrap_policy
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)

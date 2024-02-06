@@ -122,12 +122,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        # TODO: what about use_clean arg?
         self._sampler, self._dataloader = self._setup_data(
             dataset=params.dataset,
-            train_on_input=params.train_on_input,
             shuffle=params.shuffle,
             batch_size=params.batch_size,
+            train_on_input=params.train_on_input,
+            use_clean=params.use_clean,
         )
 
         # training setup
@@ -154,7 +154,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
-        # TODO: check on this logic
         self._lr_scheduler = self._setup_lr_scheduler(
             lr_scheduler=params.lr_scheduler,
             num_warmup_steps=params.num_warmup_steps,
@@ -208,14 +207,15 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
 
-        def lora_custom_auto_wrap_policy(
-            module: nn.Module,
-            recurse: bool,
-            nonwrapped_numel: int,
-        ):
+        # TODO: decide where to put this
+        def lora_custom_auto_wrap_policy(module: nn.Module, recurse: bool, **kwargs):
+            if recurse:
+                return True
+            # Wrap each transformer decoder layer
             if isinstance(module, modules.TransformerDecoderLayer):
                 return True
-            # if module
+            # Only lora_a and lora_b params require grads
+            # They should be wrapped separately from frozen params
             if hasattr(module, "weight") and module.weight.requires_grad:
                 return True
             return False
@@ -299,7 +299,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return loss_fn
 
     def _setup_data(
-        self, dataset: str, shuffle: bool, batch_size: int, train_on_input: bool
+        self,
+        dataset: str,
+        shuffle: bool,
+        batch_size: int,
+        train_on_input: bool,
+        use_clean: bool,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
