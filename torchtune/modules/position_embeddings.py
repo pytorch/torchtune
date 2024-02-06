@@ -38,10 +38,20 @@ class RotaryPositionalEmbeddings(nn.Module):
     ) -> None:
         super().__init__()
         self.dim = dim
+        self.base = base
+        self.max_seq_len = max_seq_len
+        # If device is meta, init is delayed
+        if torch.ones(1).device != "meta":
+            self._init()
 
-        theta = 1.0 / (base ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+    def _init(self):
+        base = self.base
+        dim = self.dim
+        max_seq_len = self.max_seq_len
+        theta = 1.0 / (base ** (torch.arange(0, self.dim, 2)[: (dim // 2)].float() / self.dim))
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(max_seq_len)
+
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`

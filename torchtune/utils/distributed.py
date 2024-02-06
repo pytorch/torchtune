@@ -152,15 +152,21 @@ def get_fsdp(
             _log.warning(
                 "CPU offload will significantly reduce performance. Use with caution."
             )
+        print(f"RV: device_id={device}", flush=True)
+        if "param_init_fn" in kwargs:
+            param_init_fn = kwargs.pop("param_init_fn")
+
+        print(f"RV: Got {param_init_fn}", flush=True)
         return FSDP(
             model,
             auto_wrap_policy=wrap_policy,
             device_id=device,
-            param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
+            # param_init_fn=lambda m: m.to_empty(device=device, recurse=False),
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
             cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
-            **kwargs
+            param_init_fn=param_init_fn,
+            **kwargs,
         )
     else:
         raise RuntimeError(

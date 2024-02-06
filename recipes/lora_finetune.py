@@ -38,6 +38,18 @@ def get_lr_scheduler(optimizer, warmup_steps: int, max_steps: int):
     return torch.optim.lr_scheduler.SequentialLR(optimizer, [scheduler1, scheduler2], milestones=[warmup_steps])
 
 
+def print_memory_summary(prefix, device):
+    rank = torch.distributed.get_rank()
+    if rank == 0:
+        peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
+        print(
+            f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) // 1e9}GB, "
+            f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) // 1e9}GB, "
+            f"GPU peak memory active: {peak_memory_active // 1e9}GB"
+        )
+    torch.cuda.reset_peak_memory_stats(device)
+
+
 class LoRAFinetuneRecipe(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
@@ -80,6 +92,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             enable_activation_checkpointing=params.enable_activation_checkpointing,
         )
 
+        print_memory_summary("After model init", torch.cuda.current_device())
+
         if self.is_rank_zero:
             self.metric_logger = utils.get_metric_logger(
                 metric_logger_type=params.metric_logger, project=params.project, log_dir=params.output_dir+"/logs"
@@ -91,6 +105,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
         self.optimizer = self._setup_optimizer(optimizer=params.optimizer, lr=params.lr, weight_decay=0.01)
         self.loss_fn = self._setup_loss(loss=params.loss)
+        print_memory_summary("After optim and loss  init", torch.cuda.current_device())
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -129,8 +144,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         """
         This assumes FSDP and activation checkpointing are enabled by default.
         """
-        model = models.get_model(model, device=self.device, lora_attn_modules=lora_attn_modules)
 
+        init_device = "meta" if enable_fsdp else self.device
+        model = models.get_model(model, device=init_device, lora_attn_modules=lora_attn_modules)
         # TODO: where to put this
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
@@ -148,6 +164,13 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 return True
             return False
 
+        from torchtune.modules import RotaryPositionalEmbeddings
+        def llama_init_fn(module):
+            if isinstance(module, RotaryPositionalEmbeddings):
+                module._init()
+            else:
+                module.to_empty(device=self.device, recurse=False)
+
         model = (
             model
             if not enable_fsdp
@@ -157,8 +180,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 dtype=self.dtype,
                 strategy="FULL_SHARD",
                 custom_wrap_policy=lora_custom_auto_wrap_policy,
+                param_init_fn=llama_init_fn
             )
         )
+
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -261,6 +286,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             assert any([k in x for k in self.lora_attn_modules])
 
         assert not unexpected
+        # TODO - checks nothing is on meta device
+        for p in self.model.parameters():
+            if p.device == "meta":
+                assert False, "Fail"
+
 
         # use this section to set all of the state which needs to be updated when
         # resuming from training
@@ -323,6 +353,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 ):
                     break
                 self.optimizer.zero_grad()
+                print_memory_summary(f"Step {idx} after zero_grad", torch.cuda.current_device())
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self.device)
@@ -338,6 +369,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     loss = self.loss_fn(logits, labels)
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                print_memory_summary(f"Step {idx} after FWD", torch.cuda.current_device())
 
                 if rank == 0 and idx % self.log_interval == 0:
                     self.metric_logger.log_dict(
@@ -351,7 +383,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     )
 
                 self.grad_scaler.scale(loss).backward()
+                print_memory_summary(f"Step {idx} after BWD", torch.cuda.current_device())
                 self.grad_scaler.step(self.optimizer)
+                print_memory_summary(f"Step {idx} after OPT", torch.cuda.current_device())
                 self.grad_scaler.update()
                 self.lr_scheduler.step()
 
@@ -369,6 +403,7 @@ def recipe_main() -> None:
 
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
+    torch.cuda.set_per_process_memory_fraction(fraction=0.285, device=torch.distributed.get_rank())
 
     recipe = LoRAFinetuneRecipe(params=recipe_params)
     recipe.load_checkpoint(model_checkpoint=recipe_params.model_checkpoint, lora_attn_modules=recipe_params.lora_attn_modules)

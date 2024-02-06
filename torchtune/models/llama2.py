@@ -48,6 +48,17 @@ def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         norm_eps=1e-6,
     )
 
+# Maybe move to a utils?
+
+def init_rope_embeddings(model: TransformerDecoder) -> None:
+    """
+    TODO doc
+    """
+    for module in model.modules():
+        if isinstance(module, RotaryPositionalEmbeddings):
+            module._init()
+
+
 
 def llama2_tokenizer(path: str) -> Tokenizer:
     tokenizer = Tokenizer.from_file(path)

@@ -11,7 +11,7 @@ tokenizer: llama2_tokenizer
 tokenizer_checkpoint: /tmp/tokenizer.model
 
 # Fine-tuning arguments
-batch_size: 16
+batch_size: 2
 lr: 3e-4
 num_warmup_steps: 100
 max_steps_per_epoch: 390 # 50000 // num_devices // batch_size
