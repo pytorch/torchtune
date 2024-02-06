@@ -6,7 +6,7 @@ This tutorial will walk you through the design of training-recipes in TorchTune 
 - What can I do with existing recipes?
 - How should I modify a given recipe to write my own?
 
-For information on how to launch a training run, please look at ["Getting Started"](../README.md#get-started) and the [Recipes README](../recipes/README.md)
+For information on how to launch a training run, please look at ["Getting Started"](../README.md#get-started) and the [Recipes README](../recipes/README.md).
 
 &nbsp;
 
@@ -33,6 +33,15 @@ In the following sections, we'll take a closer look at each of these components.
 - Monolithic Trainers. A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
 - Genealized entry-points. A recipe is **not** meant to support every possible model archichtecture or fine-tuning method.
 - Wrappers around external frameworks. A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch and dependencies are primarily in the form of utilities.
+
+&nbsp;
+
+## Configs
+
+If you're new to TorchTune or to LLMs generally, configs would be the first concept to understand and get familiar with. If you're an advanced user writing your own recipes, adding config files will improve your experimentation velocity and ability to collaborate on experiments.
+
+For more information on the structure of TorchTune configs, refer to the [Recipes README](../recipes/README.md)
+- TODO - point to config tutorial after this is landed
 
 &nbsp;
 
@@ -206,10 +215,3 @@ Before writing a new recipe, check the [recipes folder](../recipes/) to see if a
 
 **Adding a new training method**
 - TODO: Update this section after LoRA Recipe lands
-
-&nbsp;
-
-## Configs
-
-Configs are the entry point in TorchTune. Most users would use and modify existing configs. For more information on the structure of TorchTune configs and how to add new parameters, refer to the [Recipes README](../recipes/README.md)
-- TODO - point to config tutorial after this is landed
