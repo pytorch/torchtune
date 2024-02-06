@@ -56,15 +56,7 @@ python -m recipes.alpaca_generate --native-checkpoint-path /tmp/finetune-llm/mod
 
 &nbsp;
 
-## How to add or modify recipes
-TorchTune fully supports users that need to create recipes or scripts for their individual use cases using TorchTune components and the greater PyTorch ecosystem. Before you begin, we recommend first examining our example recipes in the library to see if any can be minimally modified to support your goals. If none meet your needs, we highly encourage users to create their own recipe and potentially contribute it to the repo so the community can benefit. Here is a guide on general principles to follow when creating a recipe.
-
-### Write the recipe
-On a local branch of the Github repo, create your recipe in the `recipes/` folder. We suggest using an existing recipe as a starting point to work off of.
-
-If you find yourself writing a recipe from scratch, you can take a look at `recipes/interfaces.py` for a loos structure on how to write your recipe. This should serve as a guideline, but not a strict format to follow.
-
-### Determine the recipe parameters
+## Creating parameters for custom recipes
 In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes. These should be collected in a dataclass object that is passed into the recipe.
 ```
 class FullFinetuneParams:
