@@ -58,7 +58,7 @@ Scripts should generally structure operations in the following order:
 - Clean up recipe state after training is complete
 
 
-Example script for [full fine-tuning](../recipes/full_finetune.py) in <10 lines of code.
+Example script for [full fine-tuning](../recipes/full_finetune.py)"
 
 ```
 # Launch using TuneCLI which uses TorchRun under the hood
@@ -88,8 +88,8 @@ recipe.cleanup()
 
 The Recipe Class carries the core logic for training a given model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. The structure of this class is as follows:
 
-- ```__init__```
-    -   Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc
+```__init__(...)```
+-   Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc
 
 ```
 self._device = utils.get_device(device=params.device)
@@ -97,40 +97,48 @@ self._dtype = utils.get_dtype(dtype=params.dtype)
 ...
 ```
 
-- ```setup```:
-    -   Load checkpoint from specified path; validatie the checkpoint and updating recipe state if resuming training
-    -   Setup the model, including FSDP wrapping, setting up activation checkpointing and loading the state dict
-    -   Load tokenizer
-    -   Setup Loss
-    -   Initialize Dataloader and Sampler
+```setup(...)```:
+-   Load checkpoint from specified path; validatie the checkpoint and updating recipe state if resuming training
+-   Setup the model, including FSDP wrapping, setting up activation checkpointing and loading the state dict
+-   Load tokenizer
+-   Setup Loss
+-   Initialize Dataloader and Sampler
 
 ```
 # Extract state dict from checkpoint
 ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
+
 
 # If we're resuming from checkpoint, the recipe's state should be updated before
 # initializing the training components.
 if self._resume_from_checkpoint:
     self._update_recipe_state(ckpt_dict)
 
+
 # Initialize model, load state_dict, enable FSDP and activation checkpointing
 self._model = self._setup_model(...)
 
+
+# Load tokenizer
 self._tokenizer = self._setup_tokenizer(...)
 
+
+# Setup Optimizer, including transforming for FSDP when resuming training
 self._optimizer = self._setup_optimizer(...)
 
-self._loss_fn = self._setup_loss(...)
 
+self._loss_fn = self._setup_loss(...)
 self._sampler, self._dataloader = self._setup_data(...)
 
 ```
 
-- ```train```:
-    -   Forward and backward across all epochs
-    -   Save checkpoint at end of each epoch; checkpoints created during training include optimizer and recipe state
+```train```:
+-   Forward and backward across all epochs
+-   Save checkpoint at end of each epoch; checkpoints created during training include optimizer and recipe state
 
 ```
+# General training loop structure
+
 self._optimizer.zero_grad()
 for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -157,5 +165,8 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
     self.save_checkpoint(epoch=curr_epoch)
 ```
 
-- ```cleanup```:
-    -   Cleanup recipe state
+```cleanup```:
+-   Cleanup recipe state
+
+
+#### How do I modify my own recipe?
