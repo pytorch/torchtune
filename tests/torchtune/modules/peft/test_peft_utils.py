@@ -13,6 +13,7 @@ from torchtune.modules.peft.peft_utils import (
     AdapterModule,
     get_adapter_params,
     set_trainable_params,
+    validate_state_dict_for_lora,
 )
 
 N_LAYERS = 3
@@ -195,3 +196,27 @@ class TestPeftUtils:
                 assert not v.requires_grad
             else:
                 raise AssertionError(f"{k} not in expected keys")
+
+    @pytest.mark.parametrize(
+        "missing_keys, unexpected_keys, lora_modules, expected_result",
+        [
+            (["a", "q_proj.weight"], [], ["q_proj"], "Missing"),
+            ([], ["b"], ["q_proj", "k_proj"], "Unexpected"),
+            (
+                ["q_proj.weight", "output_proj.weight"],
+                [],
+                ["q_proj", "output_proj"],
+                "",
+            ),
+        ],
+    )
+    def test_validate_state_dict_for_lora(
+        self, missing_keys, unexpected_keys, lora_modules, expected_result
+    ):
+        if expected_result:
+            with pytest.raises(AssertionError, match=expected_result):
+                validate_state_dict_for_lora(
+                    missing_keys, unexpected_keys, lora_modules
+                )
+        else:
+            validate_state_dict_for_lora(missing_keys, unexpected_keys, lora_modules)

@@ -1,0 +1,33 @@
+# Model Arguments
+model: lora_llama2_7b
+model_checkpoint: /tmp/llama2-7b
+lora_attn_modules: ['q_proj', 'v_proj']
+
+# Tokenizer
+tokenizer: llama2_tokenizer
+tokenizer_checkpoint: /tmp/tokenizer.model
+
+# Dataset and Sampler
+dataset: alpaca
+train_on_input: True
+shuffle: True
+batch_size: 2
+
+# Optimizer and Scheduler
+optimizer: AdamW
+lr: 3e-4
+weight_decay: 0.01
+lr_scheduler: cosine_with_warmup
+num_warmup_steps: 100
+loss: CrossEntropyLoss
+
+# Training
+epochs: 1
+
+# Environment
+device: cuda
+dtype: fp32
+
+# Logging
+output_dir: /tmp/lora_finetune_output
+metric_logger_type: wandb
