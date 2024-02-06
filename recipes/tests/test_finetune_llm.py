@@ -348,9 +348,9 @@ class TestFullFinetuneRecipe:
 
             recipe_params = FullFinetuneParams(**kwargs_values)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
-            recipe.train()
+            grad_accum_recipe = FullFinetuneRecipe(recipe_params)
+            grad_accum_recipe.setup(params=recipe_params)
+            grad_accum_recipe.train()
 
             # the first run assumes the complete batch and so we have a single loss value
             loss_value = float(
@@ -362,38 +362,17 @@ class TestFullFinetuneRecipe:
                 ][0]
             )
 
-            kwargs_values = {
-                "dataset": "alpaca",
-                "train_on_input": False,
-                "seed": 9,
-                "shuffle": True,
-                "model": model_ckpt,
-                "model_checkpoint": self._fetch_ckpt_model_path(model_ckpt),
-                "tokenizer": "llama2_tokenizer",
-                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-                "batch_size": batch_size[1],  # parametrized in the test
-                "lr": 2e-5,
-                "epochs": 1,
-                "max_steps_per_epoch": 1,
-                "optimizer": "AdamW",
-                "loss": "CrossEntropyLoss",
-                "output_dir": "/tmp",
-                "device": "cpu",
-                "dtype": "fp32",
-                "resume_from_checkpoint": False,
-                "enable_fsdp": False,
-                "enable_activation_checkpointing": False,
-                "metric_logger_type": "disk",
-                "gradient_accumulation_steps": gradient_accumulation_steps[
-                    1
-                ],  # parametrized in the test
-            }
+            # Update the dict with new values
+            kwargs_values["batch_size"] = batch_size[1]
+            kwargs_values["gradient_accumulation_steps"] = gradient_accumulation_steps[
+                1
+            ]
 
             recipe_params = FullFinetuneParams(**kwargs_values)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
-            recipe.train()
+            grad_accum_recipe = FullFinetuneRecipe(recipe_params)
+            grad_accum_recipe.setup(params=recipe_params)
+            grad_accum_recipe.train()
 
             # the second run accumulates losses and so sum these up to compare
             acc_loss_value = sum(

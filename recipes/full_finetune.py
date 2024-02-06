@@ -344,7 +344,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
     def _should_update_weights(self, curr_step: int) -> bool:
         """
         Determines whether the weights should be updated on the current step or not.
-        True is returned either if the we've accumulated gradients for enough steps or if this
+        True is returned either if we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
         should_update_weights = (
