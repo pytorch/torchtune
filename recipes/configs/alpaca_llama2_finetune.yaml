@@ -1,3 +1,8 @@
+# Runs the finetune_llm.py recipe using FullFinetuneParams
+#
+# To launch, run the following command from root:
+#    tune finetune_llm --config alpaca_llama2_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+
 # Dataset and Dataloader
 dataset: alpaca
 seed: null
