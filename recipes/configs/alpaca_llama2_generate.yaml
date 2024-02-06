@@ -1,3 +1,8 @@
+# Runs the alpaca_generate.py recipe using AlpacaGenerateParams
+#
+# To launch, run the following command from root:
+#    tune alpaca_generate --config alpaca_llama2_generate --override model_checkpoint=<your_checkpoint_dir> tokenizer_checkpoint=<your_tokenizer_dir>
+
 # Model Arguments
 model: llama2_7b
 model_checkpoint: /tmp/llama2-7b
