@@ -21,9 +21,9 @@ from lm_eval.tasks import get_task_dict, initialize_tasks
 from torchtune.models.llama2 import llama2_7b, llama2_tokenizer
 from torchtune.modules.tokenizer import Tokenizer
 from torchtune.modules.transformer import TransformerDecoder
-from torchtune.utils.device import _get_device_from_env
-from torchtune.utils.env import seed
+from torchtune.utils.device import get_device
 from torchtune.utils.generation import GenerationUtils
+from torchtune.utils.seed import set_seed
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO)
@@ -339,7 +339,7 @@ class ModelEvalWrapper(LM):
 
 def main(
     native_checkpoint_path: str,
-    tasks: List[str] = ["hellaswag"],  # noqa: B006
+    tasks: List[str] = ["mmlu"],  # noqa: B006
     limit: Optional[int] = None,
     max_seq_length: Optional[int] = None,
 ) -> None:
@@ -355,9 +355,9 @@ def main(
 
     tokenizer = llama2_tokenizer(args.tokenizer_path)
 
-    seed(1234)
+    set_seed(1234)
 
-    device = _get_device_from_env()
+    device = get_device()
     # --------- Initialize a decoder w/o kv-caching -------- #
     with device:
         model = llama2_7b()
