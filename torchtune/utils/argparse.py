@@ -6,9 +6,11 @@
 
 import argparse
 from argparse import Action, Namespace
-from typing import List, Tuple
+from typing import Callable, List, Tuple
 
 from omegaconf import OmegaConf
+
+from torchtune.utils.logging import get_logger
 
 
 class TuneArgumentParser(argparse.ArgumentParser):
@@ -70,3 +72,19 @@ class TuneArgumentParser(argparse.ArgumentParser):
         """
         assert not kwargs.get("required", False), "Required not supported"
         return super().add_argument(*args, **kwargs)
+
+
+def parse_and_run(recipe: Callable, params_class: Callable) -> None:
+    parser = TuneArgumentParser(
+        description=params_class.__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    # Get user-specified args from config and CLI and create params for recipe
+    args, _ = parser.parse_known_args()
+    args = vars(args)
+    params = params_class(**args)
+
+    logger = get_logger("DEBUG")
+    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
+
+    recipe(params)

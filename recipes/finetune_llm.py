@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import argparse
 import os
 from functools import partial
 
@@ -14,6 +13,7 @@ from torch.cuda.amp import GradScaler
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.argparse import parse_and_run
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
 from torchtune.utils.generation import generate_from_prompt
 from tqdm import tqdm
@@ -214,16 +214,4 @@ def recipe(
 
 
 if __name__ == "__main__":
-    parser = utils.TuneArgumentParser(
-        description=FullFinetuneParams.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    # Get user-specified args from config and CLI and create params for recipe
-    args, _ = parser.parse_known_args()
-    args = vars(args)
-    params = FullFinetuneParams(**args)
-
-    logger = utils.get_logger("DEBUG")
-    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
-
-    recipe(params)
+    parse_and_run(recipe, FullFinetuneParams)
