@@ -201,7 +201,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         model = models.get_model(model, device=self._device)
         model = (
-            utils.get_fsdp(
+            utils.wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,

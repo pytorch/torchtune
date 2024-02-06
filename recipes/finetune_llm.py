@@ -65,7 +65,7 @@ def recipe(
         )
 
     if distributed:  # Use FSDP model for distributed training
-        model = utils.get_fsdp(
+        model = utils.wrap_fsdp(
             model=model,
             device=device,
             dtype=dtype,
