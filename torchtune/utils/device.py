@@ -78,7 +78,6 @@ def _validate_device_from_env(device: torch.device) -> None:
     Returns:
         device
     """
-    idx = device.index
     local_rank = _get_local_rank()
 
     # Check if the device index is correct
