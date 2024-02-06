@@ -86,7 +86,7 @@ recipe.cleanup()
 
 ## Recipe Class
 
-The Recipe Class carries the core logic for training a given model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. The structure of this class is as follows:
+The Recipe Class carries the core logic for training a given model. Each class implements a relevant [interface](../recipes/interfaces.py) and exposes a set of APIs used to setup training in the Recipe Main. For fine-tuning, the structure of this class [[full finetune example](../recipes/full_finetune.py)] is as follows:
 
 ```__init__(...)```
 -   Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc
@@ -132,7 +132,7 @@ self._sampler, self._dataloader = self._setup_data(...)
 
 ```
 
-```train```:
+```train(...)```:
 -   Forward and backward across all epochs
 -   Save checkpoint at end of each epoch; checkpoints created during training include optimizer and recipe state
 
@@ -165,8 +165,28 @@ for curr_epoch in range(self.epochs_run, self.total_epochs):
     self.save_checkpoint(epoch=curr_epoch)
 ```
 
-```cleanup```:
+```cleanup(...)```:
 -   Cleanup recipe state
 
 
-#### How do I modify my own recipe?
+#### How do I write my own recipe?
+
+Before writing a new recipe, check the [recipes folder](../recipes/) to see if an existing recipe satisfies your use case. If not, following are some common scenarions in which you might need to write some code.
+
+**Adding a new dataset**
+- Add a new dataset to [datasets](../torchtune/datasets/)
+- Add the new dataset and associated params to the [params dataclass](../recipes/params.py)
+- If needed:
+    - Clone the recipe into a new file
+    - Update the ```_setup_data``` method to configure the dataloader
+    - Update the ```train``` method to read the samples/batches correctly
+
+**Adding a new model**
+- Add a new model to [models](../torchtune/models/) with associated building blocks in [modules](../torchtune/modules/). More details in [this tutorial](../tutorials/)
+- If needed:
+    - Clone the recipe into a new file
+    - Update the ```_setup_model``` method to correctly instantiate model and load the state dict
+    - Update the ```train``` method to call ```forward``` correctly
+
+**Adding a new training method**
+# TODO: Update this section after LoRA Recipe lands
