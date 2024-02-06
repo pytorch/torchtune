@@ -94,12 +94,31 @@ class TestDistributed:
     def test_wrap_fsdp_wrapping(self) -> None:
         with single_box_init():
             model = nn.Sequential(nn.Linear(3, 3), nn.Linear(3, 3))
+            orig_num_modules = len([m for m in model.modules()])
             fsdp_model = wrap_fsdp(
                 model,
                 device=torch.device("cpu"),
                 dtype=torch.float32,
                 auto_wrap_policy={nn.Linear},
             )
-            # Should create 3 FSDP units.
+            # Should create orig_num_modules FSDP units.
             fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
-            assert len(fsdp_units) == 3
+            assert len(fsdp_units) == orig_num_modules
+
+    def test_wrap_fsdp_custom_policy(self) -> None:
+        def always_wrap(*args, **kwargs):
+            return True
+
+        model = nn.Sequential(
+            nn.Linear(3, 3), nn.BatchNorm1d(10), nn.Dropout(0.25), nn.Softmax(dim=1)
+        )
+        num_modules = len([m for m in model.modules()])
+        with single_box_init():
+            fsdp_model = wrap_fsdp(
+                model,
+                device=torch.device("cpu"),
+                dtype=torch.float32,
+                auto_wrap_policy=always_wrap,
+            )
+            fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
+            assert len(fsdp_units) == num_modules
