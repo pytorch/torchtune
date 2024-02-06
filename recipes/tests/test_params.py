@@ -34,24 +34,6 @@ class TestParams:
             resume_from_checkpoint=False,
         )
 
-    def test_bad_model(self, params):
-        with pytest.raises(ValueError):
-            params["model"] = "dummy"
-            _ = FullFinetuneParams(**params)
-        with pytest.raises(TypeError):
-            params["model"] = ""
-            _ = FullFinetuneParams(**params)
-
-    def test_bad_dataset(self, params):
-        with pytest.raises(ValueError):
-            params["dataset"] = "dummy"
-            _ = FullFinetuneParams(**params)
-
-    def test_bad_tokenizer(self, params):
-        with pytest.raises(ValueError):
-            params["tokenizer"] = "dummy"
-            _ = FullFinetuneParams(**params)
-
     def test_bad_dtype(self, params):
         with pytest.raises(ValueError):
             params["dtype"] = "dummy"

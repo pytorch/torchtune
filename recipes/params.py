@@ -7,8 +7,6 @@
 from dataclasses import dataclass, field, fields
 from typing import List, Optional
 
-from torchtune.datasets import ALL_DATASETS
-from torchtune.models import ALL_MODELS, ALL_TOKENIZERS
 from torchtune.utils.metric_logging import ALL_METRIC_LOGGERS
 from torchtune.utils.precision import PRECISION_STR_TO_DTYPE
 
@@ -100,18 +98,6 @@ class FullFinetuneParams:
             )
         if self.enable_fsdp and self.device == "cpu":
             raise ValueError("FSDP is not supported on CPU.")
-        if self.model not in ALL_MODELS:
-            raise ValueError(
-                f"Model not recognized. Expected one of {ALL_MODELS}, received {self.model}."
-            )
-        if self.tokenizer not in ALL_TOKENIZERS:
-            raise ValueError(
-                f"Tokenizer not recognized. Expected one of {ALL_TOKENIZERS}, received {self.tokenizer}."
-            )
-        if self.dataset not in ALL_DATASETS:
-            raise ValueError(
-                f"Dataset not recognized. Expected one of {ALL_DATASETS}, received {self.dataset}."
-            )
         if self.metric_logger_type not in ALL_METRIC_LOGGERS:
             raise ValueError(
                 f"Metric logger not recognized. Expected one of {ALL_METRIC_LOGGERS}, received {self.metric_logger_type}."

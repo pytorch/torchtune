@@ -10,7 +10,7 @@ import torch
 from torch.optim.lr_scheduler import LambdaLR
 
 
-def get_cosine_schedule_with_warmup(
+def cosine_schedule_with_warmup(
     optimizer: torch.optim.Optimizer,
     num_warmup_steps: int,
     num_training_steps: int,
