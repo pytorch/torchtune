@@ -11,16 +11,16 @@ import pytest
 import torch
 import torch.optim as optim
 
-from tests.test_utils import assert_expected
+from torchtune.lr_schedulers.cosine_with_warmup import cosine_schedule_with_warmup
 
-from torchtune.modules import get_cosine_schedule_with_warmup
+from tests.test_utils import assert_expected
 
 
 class TestCosineLR:
     @pytest.fixture
     def scheduler(self):
         optimizer = optim.SGD([torch.ones(1)], lr=0.2)
-        scheduler = get_cosine_schedule_with_warmup(
+        scheduler = cosine_schedule_with_warmup(
             optimizer=optimizer,
             num_warmup_steps=10,
             num_training_steps=100,

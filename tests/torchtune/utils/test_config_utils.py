@@ -7,6 +7,7 @@
 
 import pytest
 import torch
+from torchtune import datasets, lr_schedulers, models, tokenizers
 from torchtune.utils.config_utils import (
     get_dataset,
     get_loss,
@@ -19,26 +20,38 @@ from torchtune.utils.config_utils import (
 
 class TestConfigUtils:
     def test_get_dataset(self):
-        _ = get_dataset("AlpacaDataset")
+        datasets.foo = lambda x: x
+        dataset = get_dataset("foo", x=1)
+        assert dataset == 1
         with pytest.raises(ValueError):
             _ = get_dataset("dummy")
 
     def test_get_model(self):
-        _ = get_model("llama2_7b", device="cpu")
+        models.foo = lambda x: x
+        model = get_model("foo", device=torch.device("cpu"), x=1)
+        assert model == 1
+
         with pytest.raises(ValueError):
-            _ = get_model("dummy")
+            _ = get_model("dummy", device=torch.device("cpu"))
 
     def test_get_tokenizer(self):
-        _ = get_tokenizer("llama2_tokenizer")
+        tokenizers.foo = lambda x: x
+        tokenizer = get_tokenizer("foo", x=1)
+        assert tokenizer == 1
+
         with pytest.raises(ValueError):
             _ = get_tokenizer("dummy")
 
     def test_get_lr_scheduler(self):
         optim = torch.optim.Adam(torch.nn.Linear(1, 1).parameters(), lr=0.01)
-        _ = get_lr_scheduler("cosine_schedule_with_warmup", optim)
-        _ = get_lr_scheduler("StepLR", optim)
+        lr_schedulers.foo = lambda x, **kwargs: x
+        lr_scheduler = get_lr_scheduler("foo", optimizer=optim, x=1)
+        assert lr_scheduler == 1
+
+        _ = get_lr_scheduler("StepLR", optimizer=optim, step_size=10)
+
         with pytest.raises(ValueError):
-            _ = get_lr_scheduler("dummy", optim)
+            _ = get_lr_scheduler("dummy", optimizer=optim)
 
     def test_get_optimizer(self):
         model = torch.nn.Linear(1, 1)

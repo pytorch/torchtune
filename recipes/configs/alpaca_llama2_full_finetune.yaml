@@ -4,7 +4,7 @@
 #    tune --nnodes 1 --nproc_per_node 1 --config alpaca_llama2_full_finetune --override model_checkpoint=<your_checkpoint_dir> ...
 
 # Dataset and Dataloader
-dataset: alpaca
+dataset: AlpacaDataset
 seed: null
 shuffle: True
 

@@ -5,9 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-
 from torchtune import models
 from torchtune.utils import get_device, get_logger, set_seed, TuneArgumentParser
+
+from torchtune.utils.config_utils import get_model, get_tokenizer
 from torchtune.utils.generation import GenerationUtils
 
 # From https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31
@@ -37,7 +38,7 @@ def recipe(
     logger = get_logger("DEBUG")
 
     # Inference setup
-    tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+    tokenizer = get_tokenizer(tokenizer, path=tokenizer_checkpoint)
 
     example = {"instruction": instruction}
     if input != "":
@@ -52,7 +53,7 @@ def recipe(
 
     device = get_device()
 
-    decoder = models.get_model(model, device=device, max_batch_size=1)
+    decoder = get_model(model, device=device, max_batch_size=1)
 
     # Load state_dict into decoder
     native_state_dict = torch.load(model_checkpoint, weights_only=True)

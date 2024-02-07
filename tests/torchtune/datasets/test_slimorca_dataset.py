@@ -6,12 +6,12 @@
 from unittest.mock import patch
 
 import pytest
-
-from tests.test_utils import get_assets_path
-
-from torchtune import datasets
 from torchtune.datasets.slimorca import _Llama2ChatFormatConstants
 from torchtune.modules.tokenizer import Tokenizer
+
+from torchtune.utils.config_utils import get_dataset
+
+from tests.test_utils import get_assets_path
 
 
 class TestSlimOrcaDataset:
@@ -24,7 +24,7 @@ class TestSlimOrcaDataset:
     @patch("torchtune.datasets.slimorca.load_dataset")
     def test_prompt_label_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)
+        dataset = get_dataset("SlimOrcaDataset", tokenizer=tokenizer)
         sample = [
             {
                 "from": "system",
@@ -66,8 +66,8 @@ class TestSlimOrcaDataset:
     @patch("torchtune.datasets.slimorca.load_dataset")
     def test_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=4096
+        dataset = get_dataset(
+            "SlimOrcaDataset", tokenizer=tokenizer, max_token_length=4096
         )
         input, label = dataset._generate_tokens("Hello ", "world!")
         assert input == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
@@ -76,8 +76,8 @@ class TestSlimOrcaDataset:
     @patch("torchtune.datasets.slimorca.load_dataset")
     def test_truncated_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=5
+        dataset = get_dataset(
+            "SlimOrcaDataset", tokenizer=tokenizer, max_token_length=5
         )
         # 5 is enough for full prompt, but not for label
         input, label = dataset._generate_tokens("Hello ", "world!")
@@ -86,8 +86,8 @@ class TestSlimOrcaDataset:
 
         # 4 is not enough for full prompt nor response but truncation
         # is still feasible
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=4
+        dataset = get_dataset(
+            "SlimOrcaDataset", tokenizer=tokenizer, max_token_length=4
         )
         input, label = dataset._generate_tokens("Hello ", "world!")
         assert input == [tokenizer.bos_id, 12, 1024, tokenizer.eos_id]
@@ -97,7 +97,7 @@ class TestSlimOrcaDataset:
     def test_value_error(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         with pytest.raises(ValueError):
-            datasets.get_dataset("slimorca", tokenizer=tokenizer, max_token_length=3)
+            get_dataset("SlimOrcaDataset", tokenizer=tokenizer, max_token_length=3)
 
     @patch("torchtune.datasets.slimorca.load_dataset")
     @pytest.mark.parametrize("max_token_length", [128, 512, 1024, 4096])
@@ -121,8 +121,8 @@ class TestSlimOrcaDataset:
                 ]
             }
         ]
-        ds = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=max_token_length
+        ds = get_dataset(
+            "SlimOrcaDataset", tokenizer=tokenizer, max_token_length=max_token_length
         )
         input, label = ds[0]
         assert len(input) <= max_token_length
