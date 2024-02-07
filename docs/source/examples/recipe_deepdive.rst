@@ -80,7 +80,7 @@ Scripts should generally structure operations in the following order:
 - Intialize th Recipe Class which in-turn intializes recipe state
 - Load and Validate checkpoint to update recipe state if resuming training
 - Initialize recipe components (model, tokeinzer, optimizer, loss and dataloader) from checkpoint (if applicable)
-- Train the model, with checkpoints at the end of every epoch
+- Train the model
 - Clean up recipe state after training is complete
 
 
