@@ -11,7 +11,8 @@ This tutorial will walk you through the design of training-recipes in TorchTune.
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
       * What are recipes?
-      * How should I structure my own recipe?
+      * What are the core components that make up a recipe?
+      * How should I structure a new recipe?
 
 
 What are Recipes?
