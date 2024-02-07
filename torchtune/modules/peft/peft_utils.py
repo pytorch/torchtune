@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List, Optional, Protocol
 
 from torch import nn
 
@@ -95,62 +95,51 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
 
 def validate_state_dict_for_lora(
     *,
+    lora_modules: List[str],
     missing_base_model_keys: Optional[List[str]] = None,
     unexpected_base_model_keys: Optional[List[str]] = None,
     missing_lora_keys: Optional[List[str]] = None,
     unexpected_lora_keys: Optional[List[str]] = None,
-    full_model_keys: Optional[List[str]] = None,
 ) -> None:
     """
     Validate that the missing and unexpected keys for loading either
     base model weights or LoRA params into LoRA model with strict=False are as expected.
 
     Args:
-        missing_base_model_keys (List[str]): List of missing keys in the state
+        lora_modules (List[str]): List of LoRA modules in the model
+        missing_base_model_keys (Optional[List[str]]): List of missing keys in the state
+            dict for the base model.
+        unexpected_base_model_keys (Optional[List[str]]): List of unexpected keys in the state
+            dict for the base model.
+        missing_lora_keys (Optional[List[str]]): List of missing keys in the state
+            dict for the LoRA model.
+        unexpected_lora_keys (Optional[List[str]]): List of unexpected keys in the state
+            dict for the LoRA model.
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If any of the missing or unexpected keys are not as expected.
 
     """
     if unexpected_base_model_keys:
-        raise AssertionError(f"Unexpected keys {unexpected_base_model_keys} in base model state dict")
+        raise AssertionError(
+            f"Unexpected keys {unexpected_base_model_keys} in base model state dict"
+        )
     if unexpected_lora_keys:
-        raise AssertionError(f"Unexpected keys {unexpected_base_model_keys} in LoRA state dict")
+        raise AssertionError(
+            f"Unexpected keys {unexpected_lora_keys} in LoRA state dict"
+        )
     if missing_base_model_keys:
         for x in missing_base_model_keys:
             if not any([k in x for k in lora_modules]):
-                raise AssertionError(f"Missing key {x} is not a LoRA module {lora_modules}")
+                raise AssertionError(
+                    f"Missing key {x} is not a LoRA module {lora_modules}"
+                )
     if missing_lora_keys:
         for x in missing_lora_keys:
             if any([k in x and "lora" in x for k in lora_modules]):
-                raise AssertionError(f"LoRA param {x} missing from loaded LoRA checkpoint")
-    if missing_lora_keys and missing_base_model_keys:
-        all_missing_keys = set(missing_lora_keys).union(set())
-
-# def validate_state_dict_for_lora(
-#     missing_keys: List[str], unexpected_keys: List[str], lora_modules: List[str], is_base_model: bool,
-# ) -> None:
-#     """
-#     Validate that the missing and unexpected keys for loading either
-#     base model weights or LoRA params into LoRA model with strict=False are as expected.
-
-#     Args:
-#         missing_keys (List[str]): List of missing keys in the state dict.
-#         unexpected_keys (List[str]): List of unexpected keys in the state dict.
-#         lora_modules (List[str]): List of LoRA modules in the model.
-
-#     Returns:
-#         None
-
-#     Raises:
-#         AssertionError: If there are unexpected keys in the loaded state dict.
-#         AssertionError: If there are missing keys in the loaded state dict that are not in the LoRA modules.
-#         # TODO: UPDATE THIS
-#     """
-#     if is_base_model:
-#         for x in missing_keys:
-#             if not any([k in x for k in lora_modules]):
-#                 raise AssertionError(f"Missing key {x} is not a LoRA module {lora_modules}")
-#     else:
-#         for x in missing_keys:
-#             if any([k in x for k in lora_modules]):
-#                 raise AssertionError(f"LoRA param {x} missing from loaded LoRA checkpoint")
-#     if unexpected_keys:
-#         raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
+                raise AssertionError(
+                    f"Missing LoRA param {x} from loaded LoRA checkpoint"
+                )

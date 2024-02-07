@@ -210,13 +210,22 @@ class TestPeftUtils:
             ),
         ],
     )
-    def test_validate_state_dict_for_lora(
+    def test_validate_lora_state_dict_base_model_only(
         self, missing_keys, unexpected_keys, lora_modules, expected_result
     ):
         if expected_result:
             with pytest.raises(AssertionError, match=expected_result):
                 validate_state_dict_for_lora(
-                    missing_keys, unexpected_keys, lora_modules
+                    lora_modules=lora_modules,
+                    missing_base_model_keys=missing_keys,
+                    unexpected_base_model_keys=unexpected_keys,
                 )
         else:
-            validate_state_dict_for_lora(missing_keys, unexpected_keys, lora_modules)
+            validate_state_dict_for_lora(
+                lora_modules=lora_modules,
+                missing_base_model_keys=missing_keys,
+                unexpected_base_model_keys=unexpected_keys,
+            )
+
+
+# TODO: add additional unit tests for validating LoRA params

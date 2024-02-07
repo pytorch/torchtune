@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -38,7 +38,11 @@ def _contains_fsdp(model: nn.Module) -> bool:
     )
 
 
-def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str, save_trainable_only: bool = False) -> None:
+def save_checkpoint(
+    ckpt_dict: Dict[str, Any],
+    output_loc: str,
+    model_key_filter: Optional[Callable[[str], bool]] = None,
+) -> None:
     """
     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
@@ -50,8 +54,7 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str, save_trainable_o
     Args:
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
         output_loc (str): Local path to save the checkpoint to.
-        save_trainable_only (bool): Whether to save only trainable parameters (e.g. if training a PEFT model).
-            Default: False
+        model_key_filter (Optional[Callable[[str], bool]]): Optional function to filter the keys in the model state dict.
     Raises:
         RuntimeError: If `ckpt_dict` does not contain a `model` key.
 
@@ -74,14 +77,73 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str, save_trainable_o
             else ckpt_dict[OPT_KEY].state_dict()
         )
         ckpt_dict[OPT_KEY] = optimizer_state_dict
-    if save_trainable_only:
-        model_state_dict = {k: v.data for k, v in ckpt_dict[MODEL_KEY].named_parameters() if v.requires_grad}
-    else:
-        model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+
+    model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+    if model_key_filter:
+        model_state_dict = {
+            k: v for k, v in model_state_dict.items() if model_key_filter(k)
+        }
     ckpt_dict[MODEL_KEY] = model_state_dict
     _, rank = get_world_size_and_rank()
     if rank == 0:
         torch.save(ckpt_dict, output_loc)
+
+
+# def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str, save_trainable_only: bool = False) -> None:
+#     """
+#     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
+#     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
+#     (currently only objects specified by "model" and "optimizer" keys). For distributed jobs, only rank 0
+#     will write out a checkpoint.
+#     Only full (unsharded) checkpoints are supported currently, i.e. full checkpoints are taken even if model and optimizer
+#     are sharded with FSDP.
+
+#     Args:
+#         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
+#         output_loc (str): Local path to save the checkpoint to.
+#         save_trainable_only (bool): Whether to save only trainable parameters (e.g. if training a PEFT model).
+#             Default: False
+#     Raises:
+#         RuntimeError: If `ckpt_dict` does not contain a `model` key.
+
+#     Example:
+#         >>> output_loc = "/tmp/output.pt"
+#         >>> ckpt_dict = {"model": model.state_dict(), "optimizer": optimizer.state_dict()}
+#         >>> torchtune.utils.checkpoint.save_checkpoint(ckpt_dict, output_loc)
+#     """
+#     if MODEL_KEY not in ckpt_dict:
+#         raise RuntimeError(
+#             "Expected `ckpt_dict` to contain a `model` key, but it does not."
+#         )
+#     if OPT_KEY in ckpt_dict:
+#         optimizer_state_dict = (
+#             FSDP.optim_state_dict(
+#                 ckpt_dict[MODEL_KEY],
+#                 ckpt_dict[OPT_KEY],
+#             )
+#             if _contains_fsdp(ckpt_dict[MODEL_KEY])
+#             else ckpt_dict[OPT_KEY].state_dict()
+#         )
+#         ckpt_dict[OPT_KEY] = optimizer_state_dict
+#     if save_trainable_only:
+#         model_state_dict = {k: v for k, v in ckpt_dict[MODEL_KEY].state_dict().items() if v.requires_grad}
+#     else:
+#         model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+#     old_sd = ckpt_dict[MODEL_KEY].state_dict()
+#     print(f"Old state dict: {list(old_sd.keys())[:10]}")
+
+#     new_sd = {k: v for k, v in ckpt_dict[MODEL_KEY].state_dict().items() if v.requires_grad}
+#     fsdp_sd = {k: v for k, v in ckpt_dict[MODEL_KEY].named_parameters() if v.requires_grad}
+
+#     print(f"New state dict: {new_sd.keys()}")
+#     print(f"FSDP state dict: {fsdp_sd.keys()}")
+#     # from torch.distributed.fsdp._state_dict_utils import _convert_to_wrapped_module_name
+#     # print(f"Mapped state dict: {[_convert_to_wrapped_module_name(x) for x in new_sd]}")
+
+#     ckpt_dict[MODEL_KEY] = model_state_dict
+#     _, rank = get_world_size_and_rank()
+#     if rank == 0:
+#         torch.save(ckpt_dict, output_loc)
 
 
 def load_checkpoint(

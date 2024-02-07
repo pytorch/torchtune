@@ -28,8 +28,8 @@ from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
     MODEL_KEY,
-    SEED_KEY,
     OPT_KEY,
+    SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
 from tqdm import tqdm
@@ -100,14 +100,20 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         # Load in base model weights
-        base_model_ckpt = self.load_checkpoint(ckpt_path=params.model_checkpoint, resume_from_checkpoint=False)
+        base_model_ckpt = self.load_checkpoint(
+            ckpt_path=params.model_checkpoint, resume_from_checkpoint=False
+        )
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
         # propagated to the relevant components
         if self._resume_from_checkpoint:
-            assert params.lora_checkpoint is not None, "Must pass lora_checkpoint when resuming training"
-            lora_ckpt = self.load_checkpoint(ckpt_path=params.lora_checkpoint, resume_from_checkpoint=True)
+            assert (
+                params.lora_checkpoint is not None
+            ), "Must pass lora_checkpoint when resuming training"
+            lora_ckpt = self.load_checkpoint(
+                ckpt_path=params.lora_checkpoint, resume_from_checkpoint=True
+            )
             self._update_recipe_state(lora_ckpt)
 
         self._model = self._setup_model(
@@ -118,7 +124,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             enable_fsdp=params.enable_fsdp,
             enable_activation_checkpointing=params.enable_activation_checkpointing,
             base_model_state_dict=base_model_ckpt[MODEL_KEY],
-            lora_weights_state_dict=lora_ckpt[MODEL_KEY] if self._resume_from_checkpoint else None
+            lora_weights_state_dict=lora_ckpt[MODEL_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._tokenizer = self._setup_tokenizer(
@@ -220,9 +228,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
-
-        adapter_params = get_adapter_params(model)
-        set_trainable_params(model, adapter_params)
+        # Note: this needs to be set before wrapping with FSDP
+        self.adapter_params = get_adapter_params(model)
+        set_trainable_params(model, self.adapter_params)
 
         # TODO: move to util in #317
         def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
@@ -251,20 +259,32 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     {modules.TransformerDecoderLayer}
                 ),
             )
-
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
-        validate_state_dict_for_lora(missing, unexpected, lora_attn_modules, is_base_model=True)
+        missing_base_model_keys, unexpected_base_model_keys = model.load_state_dict(
+            base_model_state_dict, strict=False
+        )
 
         if lora_weights_state_dict:
-            missing, unexpected = model.load_state_dict(lora_weights_state_dict, strict=False)
-            validate_state_dict_for_lora(missing, unexpected, lora_attn_modules, is_base_model=False)
-
-
+            missing_lora_keys, unexpected_lora_keys = model.load_state_dict(
+                lora_weights_state_dict, strict=False
+            )
+            validate_state_dict_for_lora(
+                lora_modules=lora_attn_modules,
+                missing_base_model_keys=missing_base_model_keys,
+                unexpected_base_model_keys=unexpected_base_model_keys,
+                missing_lora_keys=missing_lora_keys,
+                unexpected_lora_keys=unexpected_lora_keys,
+            )
+        else:
+            validate_state_dict_for_lora(
+                lora_modules=lora_attn_modules,
+                missing_base_model_keys=missing_base_model_keys,
+                unexpected_base_model_keys=unexpected_base_model_keys,
+            )
         if self._is_rank_zero:
             log.info(
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
@@ -286,7 +306,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return tokenizer
 
     def _setup_optimizer(
-        self, optimizer: str, lr: float, weight_decay: float, opt_state_dict: Optional[Dict[str, Any]] = None
+        self,
+        optimizer: str,
+        lr: float,
+        weight_decay: float,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
         optimizer = optim.get_optimizer(optimizer, self._model, lr, weight_decay)
         if opt_state_dict:
@@ -378,7 +402,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
-
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
@@ -390,7 +413,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(ckpt_dict, output_loc, save_trainable_only=True)
+        utils.save_checkpoint(
+            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
+        )
 
         if self._is_rank_zero:
             log.info(
