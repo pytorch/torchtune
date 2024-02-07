@@ -37,8 +37,8 @@ TorchTune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: Finetune a LLM with TorchTune
-   :card_description: Quickstart to get you finetuning a LLM fast.
+   :header: Finetune Llama2 with TorchTune
+   :card_description: Quickstart to get you finetuning an LLM fast.
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/first_finetune_tutorial.html
    :tags: finetuning,llama2
@@ -48,7 +48,7 @@ TorchTune tutorials.
    :card_description: Dive into TorchTune's Training Recipes
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/recipe_deepdive.html
-   :tags: finetuning,llama2
+   :tags: finetuning
 
 .. customcardend::
 

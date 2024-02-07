@@ -1,6 +1,6 @@
-==============================
-Finetune a LLM with TorchTune!
-==============================
+===============================
+Finetune Llama2 with TorchTune
+===============================
 
 This tutorial will guide you through the process of launching your first finetuning
 job using TorchTune.
@@ -21,7 +21,7 @@ job using TorchTune.
 
 Downloading a model
 -------------------
-First, you need to download a model. The preferred way to download a model is to use TorchTune's integration
+First, you need to download a model. The first way to download a model is to use TorchTune's integration
 with the `HuggingFace Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
@@ -44,15 +44,12 @@ This command will also download the model tokenizer and some other helpful files
 
 .. note::
 
-  If you'd prefer not to download via the HuggingFace Hub, you can also download the model
-  directly through the Llama2 repository. See https://llama.meta.com/get-started#getting-the-models
-  for more details.
+  You can also download the model directly through the Llama2 repository.
+  See https://llama.meta.com/get-started#getting-the-models for more details.
 
 Converting model weights
 ------------------------
-TorchTune utilizes a PyTorch-native model format. **Why?** With everything written in PyTorch,
-workflows are easier to debug and modify and allow great interopability with tools like `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_.
-To convert a model to this format, use the following command:
+TorchTune has modular native-PyTorch implementations of popular LLMs. To convert a model to this format, use the following command:
 
 .. code-block:: bash
 
@@ -71,7 +68,7 @@ Each recipe consists of three components:
 * **Recipe class**, core logic needed for training, exposed to users through a set of APIs
 * **Recipe script**, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
 
-Too see all available recipes and for more information on how to select the right recipe, see ``:ref:`recipe tutorial<>``.
+To see all available recipes and for more information on how to select the right recipe, see :ref:`recipe_deepdive`.
 For this tutorial, you'll be using the :ref:`basic full finetuning recipe<basic_finetune_llm>`.
 
 Modifying a config
@@ -80,8 +77,7 @@ YAML configs hold most of the important information needed for running your reci
 You can select a new dataset, set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, and more.
 
 .. note::
-  TorchTune integrates with `HuggingFace datasets <https://huggingface.co/docs/datasets/en/index>`_ to provide
-  easy access to the best datasets. For a list of all currently supported datasets, see `:ref:<datasets>`.
+  For a list of all currently supported datasets, see :ref:`datasets`.
 
 To modify an existing recipe config, you can use the :code:`tune` CLI to copy it to your local directory.
 Or, you can visit the specific :ref:`recipe page<basic_finetune_llm>` and copy/paste the config from there.
@@ -147,7 +143,7 @@ You should see some immediate output and see the loss going down, indicating you
   Optimizer is initialized.
   Loss is initialized.
   Dataset and Sampler are initialized.
-  1|1|Loss: 1.7553404569625854:   0%|                       | 0/26001 [00:03<?, ?it/s]
+  1|1|Loss: 1.7553404569625854:   0%|                       | 0/13000 [00:03<?, ?it/s]
 
 Next steps
 ----------
@@ -155,5 +151,5 @@ Next steps
 There's a lot more you can accomplish using TorchTune, including:
 
 * Using your finetuned model to generate some output
-* Evaluating your finetuned model on common benchmarks using Eluther AI
-* Outputting metrics to WandB or Tensorboard
+* Evaluating your finetuned model on common benchmarks using `Eluther AI Eval Harness <https://www.eleuther.ai/projects/large-language-model-evaluation>`_
+* Outputting metrics to `WandB <wandb.ai>`_ or `Tensorboard <https://www.tensorflow.org/tensorboard/>`_

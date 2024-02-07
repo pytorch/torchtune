@@ -87,7 +87,7 @@ from torchtune.modules import TransformerDecoder
 
 ## Get Started
 
-For our quickstart guide to getting you finetuning a LLM fast, see our [Finetune a LLM with TorchTune tutorial](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html). You can also follow the steps below.
+For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
 
 #### Downloading a model
 
