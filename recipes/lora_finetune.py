@@ -9,7 +9,7 @@ import os
 import sys
 
 from functools import partial
-from typing import Any, Dict, List, Set, Tuple, Type
+from typing import Any, Dict, List, Optional, Set, Tuple, Type
 
 import torch
 
@@ -29,6 +29,7 @@ from torchtune.utils.constants import (
     MAX_STEPS_KEY,
     MODEL_KEY,
     SEED_KEY,
+    OPT_KEY,
     TOTAL_EPOCHS_KEY,
 )
 from tqdm import tqdm
@@ -98,13 +99,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
-        ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
+        # Load in base model weights
+        base_model_ckpt = self.load_checkpoint(ckpt_path=params.model_checkpoint, resume_from_checkpoint=False)
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
         # propagated to the relevant components
         if self._resume_from_checkpoint:
-            self._update_recipe_state(ckpt_dict)
+            assert params.lora_checkpoint is not None, "Must pass lora_checkpoint when resuming training"
+            lora_ckpt = self.load_checkpoint(ckpt_path=params.lora_checkpoint, resume_from_checkpoint=True)
+            self._update_recipe_state(lora_ckpt)
 
         self._model = self._setup_model(
             model=params.model,
@@ -113,7 +117,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_alpha=params.lora_alpha,
             enable_fsdp=params.enable_fsdp,
             enable_activation_checkpointing=params.enable_activation_checkpointing,
-            base_model_state_dict=ckpt_dict[MODEL_KEY],
+            base_model_state_dict=base_model_ckpt[MODEL_KEY],
+            lora_weights_state_dict=lora_ckpt[MODEL_KEY] if self._resume_from_checkpoint else None
         )
 
         self._tokenizer = self._setup_tokenizer(
@@ -121,8 +126,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
 
         self._optimizer = self._setup_optimizer(
-            optimizer=params.optimizer, lr=params.lr, weight_decay=params.weight_decay
+            optimizer=params.optimizer,
+            lr=params.lr,
+            weight_decay=params.weight_decay,
+            opt_state_dict=lora_ckpt[OPT_KEY] if self._resume_from_checkpoint else None,
         )
+
         self._loss_fn = self._setup_loss(loss=params.loss)
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
@@ -165,12 +174,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             last_epoch=self.total_training_steps - 1,
         )
 
-    def load_checkpoint(self, ckpt_path: str):
+    def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
         """
         Extract the checkpoint state from file and validate.
         """
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-        utils.validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
+        utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
@@ -202,6 +211,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
+        lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         model = models.get_model(
             model,
@@ -248,7 +258,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
 
         missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
-        validate_state_dict_for_lora(missing, unexpected, lora_attn_modules)
+        validate_state_dict_for_lora(missing, unexpected, lora_attn_modules, is_base_model=True)
+
+        if lora_weights_state_dict:
+            missing, unexpected = model.load_state_dict(lora_weights_state_dict, strict=False)
+            validate_state_dict_for_lora(missing, unexpected, lora_attn_modules, is_base_model=False)
+
 
         if self._is_rank_zero:
             log.info(
@@ -271,9 +286,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return tokenizer
 
     def _setup_optimizer(
-        self, optimizer: str, lr: float, weight_decay: float
+        self, optimizer: str, lr: float, weight_decay: float, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
         optimizer = optim.get_optimizer(optimizer, self._model, lr, weight_decay)
+        if opt_state_dict:
+            # Note: technically we should check _contains_fsdp for
+            # just the state dict of the adapter params, but should be equivalent
+            opt_state_dict = utils.transform_opt_state_dict(
+                opt_state_dict, self._model, optimizer
+            )
+            optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
             log.info("Optimizer and loss are initialized.")
@@ -353,6 +375,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
         """
+        os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
 
@@ -367,7 +390,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(ckpt_dict, output_loc)
+        utils.save_checkpoint(ckpt_dict, output_loc, save_trainable_only=True)
 
         if self._is_rank_zero:
             log.info(
@@ -433,6 +456,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+            # HACK FOR TESTING
+            if self.epochs_run == 1:
+                return
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

@@ -38,7 +38,7 @@ def _contains_fsdp(model: nn.Module) -> bool:
     )
 
 
-def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
+def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str, save_trainable_only: bool = False) -> None:
     """
     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
@@ -50,7 +50,8 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     Args:
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
         output_loc (str): Local path to save the checkpoint to.
-
+        save_trainable_only (bool): Whether to save only trainable parameters (e.g. if training a PEFT model).
+            Default: False
     Raises:
         RuntimeError: If `ckpt_dict` does not contain a `model` key.
 
@@ -73,8 +74,10 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
             else ckpt_dict[OPT_KEY].state_dict()
         )
         ckpt_dict[OPT_KEY] = optimizer_state_dict
-
-    model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+    if save_trainable_only:
+        model_state_dict = {k: v.data for k, v in ckpt_dict[MODEL_KEY].named_parameters() if v.requires_grad}
+    else:
+        model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
     ckpt_dict[MODEL_KEY] = model_state_dict
     _, rank = get_world_size_and_rank()
     if rank == 0:

@@ -133,6 +133,7 @@ class LoRAFinetuneParams:
             ["q_proj", "k_proj", "v_proj", "output_proj"].
         lora_rank (int): Rank of LoRA decompositions.
         lora_alpha (float): Alpha parameter for LoRA.
+        lora_checkpoint (str): Local path to load LoRA weights from.
         tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
         tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
         dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
@@ -171,6 +172,7 @@ class LoRAFinetuneParams:
     lora_attn_modules: List[str] = field(default_factory=list)
     lora_rank: int = 8
     lora_alpha: float = 16
+    lora_checkpoint: Optional[str] = None
 
     # Tokenizer
     tokenizer: str = ""
