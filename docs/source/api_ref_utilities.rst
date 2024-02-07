@@ -19,7 +19,7 @@ Distributed
 
 .. _mp_label:
 
-Mixed Precsion
+Mixed Precision
 --------------
 
 .. autosummary::
