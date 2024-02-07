@@ -59,3 +59,34 @@ class TestLoRALinear:
         actual = lora_linear(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, out_dim))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
+
+    def test_forward_without_lora_reset(self, inputs):
+        with torch.device("meta"):
+            lora_linear = LoRALinear(
+                in_dim=in_dim,
+                out_dim=out_dim,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=True,
+            )
+
+        with pytest.raises(RuntimeError, match="lora reset_lora_params"):
+            _ = lora_linear(out)
+
+    def test_lora_meta_init_matches_device(self, in_dim, out_dim, inputs):
+        # TODO (rohan-varma): This test is quite limited and it should really test exact parity
+        # between the meta and CPU init of LoRALinear. However, this is tricky due to nondeterminsism of
+        # kaiming_uniform_. Torch 2.2 adds a generator to this API, once all workloads are on torch 2.2
+        # we can add this testing (or add this testing now and gate it on torch 2.2)
+        with torch.device("meta"):
+            lora_linear_meta = LoRALinear(
+                in_dim=in_dim,
+                out_dim=out_dim,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=True,
+            )
+        lora_linear_meta.to_empty(device=torch.device("cpu"), recurse=False)
+        lora_linear_meta.reset_lora_parameters()
+        assert not lora_linear_meta.lora_a.weight.is_meta
+        assert not lora_linear_meta.lora_b.weight.is_meta

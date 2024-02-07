@@ -7,6 +7,8 @@
 import math
 from typing import List
 
+import torch
+
 import torch.nn.functional as F
 
 from torch import nn, Tensor
@@ -68,13 +70,23 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_b = nn.Linear(
             in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
+        self._lora_params_initialized = False
+        # Skip init if we are under a meta device context
+        # if not self.lora_a.weight.is_meta:
         self.reset_lora_parameters()
 
     def reset_lora_parameters(self):
+        # TODO: this is not needed if user moves entire module off meta device and onto actual device
+        # after initialization, but might be worth keeping in as a safeguard.
+        # if self.lora_a.weight.is_meta:
+        #     self.lora_a.to_empty(device=self.weight.device)
+        # if self.lora_b.weight.is_meta:
+        #     self.lora_b.to_empty(device=self.weight.device)
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+        self._lora_params_initialized = True
 
     def adapter_params(self) -> List[str]:
         """
@@ -93,7 +105,14 @@ class LoRALinear(nn.Module, AdapterModule):
 
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
+
+        Raises:
+            RuntimeError: if reset_lora_params was never called
         """
+        # if not self._lora_params_initialized:
+        #     raise RuntimeError(
+        #         "lora reset_lora_params was never called, please file a bug."
+        #     )
         out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)

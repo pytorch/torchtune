@@ -5,7 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List, Protocol, Set, Type
+
+import torch
 
 from torch import nn
 
@@ -118,3 +120,34 @@ def validate_state_dict_for_lora(
             raise AssertionError(f"Missing key {x} is not a LoRA module {lora_modules}")
     if unexpected_keys:
         raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
+
+
+def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
+    def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
+        if recurse:
+            return True
+
+        # Assumes lora_a and lora_b are nn.Linears that are the
+        # only trainable modules in the entire network. Wraps
+        # these in separate FSDP unit to work around FSDP allocating
+        # extra gradient memory when wrapped with other modules.
+        if hasattr(module, "weight") and module.weight.requires_grad:
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return lora_wrap
+
+
+def lora_fsdp_init(module: nn.Module, device: torch.device):
+    if hasattr(module, "_init"):
+        print(f"RV: calling rope init")
+        module._init()
+    else:
+        module.to_empty(device=device, recurse=False)
+        if hasattr(module, "reset_lora_parameters"):
+            print(f"RV: calling reset_lora_parameters")
+            module.reset_lora_parameters()
+            # Debug checks to ensure lora_a and lora_b are initialized.
+            assert not module.lora_a.weight.is_meta
+            assert not module.lora_b.weight.is_meta
