@@ -37,20 +37,13 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            init_distributed()
+            init_distributed(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
-
-        if init_pg_explicit:
-            assert (
-                pg_backend == "gloo"
-            ), f"Expected 'gloo' backend, but received {pg_backend}"
-        else:
-            assert pg_backend in {
-                "undefined",
-                "nccl",
-            }, f"Expected a 'undefined' or 'nccl' backend, but received {pg_backend}"
+        assert (
+            pg_backend == "gloo"
+        ), f"Expected 'gloo' backend, but received {pg_backend}"
 
     @staticmethod
     def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
