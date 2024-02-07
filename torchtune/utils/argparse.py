@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import sys
 from argparse import Action, Namespace
 from typing import Callable, List, Tuple
 
@@ -57,7 +58,9 @@ class TuneArgumentParser(argparse.ArgumentParser):
             self.set_defaults(**config)
         if namespace.override is not None:
             cli_config = OmegaConf.from_dotlist(namespace.override)
-            assert "config" not in config, "Cannot use 'override' within CLI arguments"
+            assert (
+                "override" not in cli_config
+            ), "Cannot use 'override' within CLI arguments"
             self.set_defaults(**cli_config)
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
@@ -85,6 +88,6 @@ def parse_and_run(recipe: Callable, params_class: Callable) -> None:
     params = params_class(**args)
 
     logger = get_logger("DEBUG")
-    logger.info(msg=f"Running finetune_llm.py with parameters {params}")
+    logger.info(msg=f"Running recipe with parameters {params}")
 
-    recipe(params)
+    sys.exit(recipe(params))

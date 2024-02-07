@@ -6,11 +6,13 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import sys
 from unittest import mock
 
 import pytest
 
 from torchtune.utils import TuneArgumentParser
+from torchtune.utils.argparse import parse_and_run
 
 _CONFIG = {"a": 1, "b": 2}
 
@@ -32,6 +34,7 @@ class TestArgParse:
         assert args.b == 3, f"b == {args.b} not 3 as set in the command args."
         assert args.c == 4, f"c == {args.c} not 4 as set in the command args."
         assert len(vars(args).keys() - {"a", "b", "c"}) == 0, "Extra args found."
+        mock_load.assert_called_once_with("test.yaml")
 
     def test_required_argument(self, parser):
         """
@@ -39,3 +42,15 @@ class TestArgParse:
         """
         with pytest.raises(AssertionError):
             parser.add_argument("--d", required=True, type=int, default=0)
+
+    @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
+    def test_parse_and_run(self, mock_load):
+        testargs = "test --config test.yaml --override b=3 c=4".split()
+        final_config = {"a": 1, "b": 3, "c": 4}
+        params_class = lambda **kwargs: kwargs
+        mock_recipe = mock.MagicMock()
+        with mock.patch.object(sys, "argv", testargs):
+            with pytest.raises(SystemExit):
+                parse_and_run(recipe=mock_recipe, params_class=params_class)
+        mock_load.assert_called_once_with("test.yaml")
+        mock_recipe.assert_called_once_with(final_config)

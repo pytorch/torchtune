@@ -4,9 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import argparse
+
 import os
-import sys
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -21,6 +20,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune.utils.argparse import parse_and_run
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -427,7 +427,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._metric_logger.close()
 
 
-def recipe_main() -> None:
+def recipe_main(recipe_params: FullFinetuneParams) -> None:
     """
     Entry point for the recipe.
 
@@ -436,14 +436,6 @@ def recipe_main() -> None:
         - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
         - Overwritten by arguments from the command-line using ``TuneArgumentParser``
     """
-    parser = utils.TuneArgumentParser(
-        description=FullFinetuneParams.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    args, _ = parser.parse_known_args()
-    args = vars(args)
-    recipe_params = FullFinetuneParams(**args)
-
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
 
@@ -454,4 +446,4 @@ def recipe_main() -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(recipe_main())
+    parse_and_run(recipe_main, FullFinetuneParams)
