@@ -29,7 +29,7 @@ meaning that you need to be granted access in order to download the weights. Fol
 hosted on HuggingFace to complete this process. (This should take less than 5 minutes.)
 
 Once you have authorization, you will need to authenticate with HuggingFace Hub. The easiest way to do so is to provide an
-access token to the download script. You can find your token by visiting https://huggingface.co/settings/tokens.
+access token to the download script. You can find your token `here <https://huggingface.co/settings/tokens>`_.
 
 Then, it's as simple as:
 
@@ -45,7 +45,7 @@ This command will also download the model tokenizer and some other helpful files
 .. note::
 
   You can also download the model directly through the Llama2 repository.
-  See https://llama.meta.com/get-started#getting-the-models for more details.
+  See `this page <https://llama.meta.com/get-started#getting-the-models>`_ for more details.
 
 Converting model weights
 ------------------------

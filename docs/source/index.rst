@@ -8,7 +8,7 @@ Getting Started
 
 Topics in this section will help you get started with TorchTune.
 
-.. grid:: 2
+.. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
         What is TorchTune?
@@ -27,6 +27,12 @@ Topics in this section will help you get started with TorchTune.
         :link-type: url
 
         A step-by-step tutorial on how to install TorchTune.
+
+      ..grid-item-card:: :octicon:`file-code;1em`
+         Finetune your first model
+         :img-top: _static/img/card-background.svg
+         :link: examples/first_finetune_tutorial
+         :link-type: url
 
 Tutorials
 ~~~~~~~~~
