@@ -28,11 +28,13 @@ Topics in this section will help you get started with TorchTune.
 
         A step-by-step tutorial on how to install TorchTune.
 
-      ..grid-item-card:: :octicon:`file-code;1em`
+     .. grid-item-card:: :octicon:`file-code;1em`
          Finetune your first model
          :img-top: _static/img/card-background.svg
          :link: examples/first_finetune_tutorial
          :link-type: url
+
+         Follow a simple tutorial to finetune Llama2 with TorchTune.
 
 Tutorials
 ~~~~~~~~~
