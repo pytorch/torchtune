@@ -177,6 +177,7 @@ def wrap_fsdp(
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
             cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
+            use_orig_params=True,
             **kwargs
         )
     else:

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List
+from typing import List, Optional
 
 import torch
 
@@ -72,18 +72,18 @@ class LoRALinear(nn.Module, AdapterModule):
         )
         self._lora_params_initialized = False
         # Skip init if we are under a meta device context
-        # if not self.lora_a.weight.is_meta:
-        self.reset_lora_parameters()
+        if not self.weight.is_meta:
+            self.reset_lora_parameters()
 
-    def reset_lora_parameters(self):
-        # TODO: this is not needed if user moves entire module off meta device and onto actual device
-        # after initialization, but might be worth keeping in as a safeguard.
-        # if self.lora_a.weight.is_meta:
-        #     self.lora_a.to_empty(device=self.weight.device)
-        # if self.lora_b.weight.is_meta:
-        #     self.lora_b.to_empty(device=self.weight.device)
+    def reset_lora_parameters(self, device: Optional[torch.device] = None):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
+        # TODO (rohan-varma): not sure if there is a better way to get the default device
+        init_device = device if device is not None else torch.empty(1).device
+        # Should not be initializing on a meta device
+        assert init_device != torch.device("meta")
+        self.lora_a.to_empty(device=init_device)
+        self.lora_b.to_empty(device=init_device)
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
         self._lora_params_initialized = True
@@ -109,10 +109,10 @@ class LoRALinear(nn.Module, AdapterModule):
         Raises:
             RuntimeError: if reset_lora_params was never called
         """
-        # if not self._lora_params_initialized:
-        #     raise RuntimeError(
-        #         "lora reset_lora_params was never called, please file a bug."
-        #     )
+        if not self._lora_params_initialized:
+            raise RuntimeError(
+                "lora reset_lora_params was never called, please file a bug."
+            )
         out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)

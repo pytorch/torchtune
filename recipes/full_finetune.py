@@ -80,6 +80,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
         _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
+        # Training params
+        self._resume_from_checkpoint = params.resume_from_checkpoint
+        self._enable_fsdp = params.enable_fsdp
+        self._gradient_accumulation_steps = params.gradient_accumulation_steps
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=params.seed)
@@ -87,8 +92,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
         self.total_training_steps = 0
-
-        self._resume_from_checkpoint = params.resume_from_checkpoint
 
     def load_checkpoint(self, ckpt_path: str):
         """
@@ -155,17 +158,20 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
-
+        #
         # Number of training steps in each epoch depends on the number of batches produced
-        # by the dataloader and the max_steps_per_epoch param set by the user and is used
-        # for logging and tracking training state. This should be computed after the dataloader
-        # has been setup
-        steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch and self.max_steps_per_epoch < len(
-            self._dataloader
+        # by the dataloader, the max_steps_per_epoch param set by the user and the
+        # gradient_accumulation_steps param. This value is used for logging and tracking
+        # training state. The computation should happen after the dataloader has been setup
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
         ):
-            steps_per_epoch = self.max_steps_per_epoch
-            self.total_training_steps = self.epochs_run * steps_per_epoch
+            self._steps_per_epoch = self.max_steps_per_epoch
+        self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
         """
@@ -335,12 +341,28 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
 
+    def _should_update_weights(self, curr_step: int) -> bool:
+        """
+        Determines whether the weights should be updated on the current step or not.
+        True is returned either if we've accumulated gradients for enough steps or if this
+        is the last step in the epoch.
+        """
+        should_update_weights = (
+            curr_step + 1
+        ) % self._gradient_accumulation_steps == 0 or (
+            curr_step + 1
+        ) == self._steps_per_epoch
+        return should_update_weights
+
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
         _, rank = utils.get_world_size_and_rank()
+
+        # zero out the gradients before starting training
+        self._optimizer.zero_grad()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -354,12 +376,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
             ):
                 if (
                     self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
-
-                self.total_training_steps += 1
-                self._optimizer.zero_grad()
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -374,6 +394,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
 
+                # Note: We're always logging the loss before normalizing it
+                # Check if this is the norm or not
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
                 if self.total_training_steps % self._log_every_n_steps == 0:
@@ -386,9 +408,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
                         step=self.total_training_steps,
                     )
 
+                # Does loss normalization need to happen within autocast context?
+                loss = loss / self._gradient_accumulation_steps
                 self._grad_scaler.scale(loss).backward()
-                self._grad_scaler.step(self._optimizer)
-                self._grad_scaler.update()
+
+                if self._should_update_weights(idx):
+                    self._grad_scaler.step(self._optimizer)
+                    self._grad_scaler.update()
+                    self._optimizer.zero_grad(set_to_none=True)
+
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

@@ -9,7 +9,7 @@ import os
 import sys
 
 from functools import partial
-from typing import Any, Dict, List, Set, Tuple, Type
+from typing import Any, Dict, List, Tuple
 
 import torch
 
@@ -21,6 +21,9 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import datasets, losses, lr_schedulers, models, modules, optim, utils
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    lora_fsdp_init,
+    lora_fsdp_wrap_policy,
+    reset_lora_params,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -203,33 +206,21 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
     ) -> nn.Module:
+        # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
+        # during model init
+        init_device = "meta" if enable_fsdp else self._device
+        # init_device = self._device
         model = models.get_model(
             model,
-            device=self._device,
+            device=init_device,
             lora_attn_modules=lora_attn_modules,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
 
+        reset_lora_params(model, device=self._device)
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
-
-        # TODO: move to util in #317
-        def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
-            def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
-                if recurse:
-                    return True
-
-                # Assumes lora_a and lora_b are nn.Linears that are the
-                # only trainable modules in the entire network. Wraps
-                # these in separate FSDP unit to work around FSDP allocating
-                # extra gradient memory when wrapped with other modules.
-                if hasattr(module, "weight") and module.weight.requires_grad:
-                    return True
-
-                return isinstance(module, tuple(modules_to_wrap))
-
-            return lora_wrap
 
         if enable_fsdp:
             model = utils.wrap_fsdp(
@@ -238,9 +229,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
                 auto_wrap_policy=lora_fsdp_wrap_policy(
-                    {modules.TransformerDecoderLayer}
+                    modules_to_wrap={modules.TransformerDecoderLayer}
                 ),
+                param_init_fn=partial(lora_fsdp_init, device=self._device),
             )
+            # Ensure no params and buffers are on meta device
+            from itertools import chain
+
+            for p in chain(model.parameters(), model.buffers()):
+                assert (
+                    not p.is_meta
+                ), "Unexpected param on meta device, please file a bug."
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -249,6 +248,13 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
         validate_state_dict_for_lora(missing, unexpected, lora_attn_modules)
+        # Validate trainable params
+        # print(f"RV: use orig params {model.use_orig_params}")
+        # for n, p in model.named_parameters():
+        #     if n in adapter_params:
+        #         assert p.requires_grad, f"param {n} should be trainable!"
+        #     else:
+        #         assert not p.requires_grad, f"param {n} should NOT be trainable!"
 
         if self._is_rank_zero:
             log.info(

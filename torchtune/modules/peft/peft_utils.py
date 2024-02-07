@@ -61,6 +61,23 @@ def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
     return adapter_params
 
 
+def reset_lora_params(model: nn.Module, device: torch.device) -> None:
+    """
+    Initializes lora parameters of a given model. This is useful
+    if model is initialized on meta device and custom initialization
+    needs to be run for LoRA parameters. This method is meant to be used
+    in tandem with ``LoRALinear``'s ``reset_lora_parameters`` and simply
+    calls this method on each instance.
+
+    Args:
+        model (nn.Module): Instance of model class containing LoRA parameters
+        device (torch.device): Device to initialize LoRA parameters on.
+    """
+    for m in model.modules():
+        if hasattr(m, "reset_lora_parameters"):
+            m.reset_lora_parameters(device=device)
+
+
 @functools.lru_cache()
 def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
     """
@@ -127,7 +144,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
         if recurse:
             return True
 
-        # Assumes lora_a and lora_b are nn.Linears that are the
+        # Assumes lorbea_a and lora_b are nn.Linears that are the
         # only trainable modules in the entire network. Wraps
         # these in separate FSDP unit to work around FSDP allocating
         # extra gradient memory when wrapped with other modules.
@@ -140,14 +157,13 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
 
 
 def lora_fsdp_init(module: nn.Module, device: torch.device):
+    # Custom init for RoPE, which has buffers only
     if hasattr(module, "_init"):
-        print(f"RV: calling rope init")
-        module._init()
+        module._init(device=device)
+    # Skip init of modules that already have params on non-meta device
+    if all([not p.is_meta for p in module.parameters()]):
+        return
     else:
+        # Brings params to device with empty data. data will be
+        # overwriten when loading in checkpoint.
         module.to_empty(device=device, recurse=False)
-        if hasattr(module, "reset_lora_parameters"):
-            print(f"RV: calling reset_lora_parameters")
-            module.reset_lora_parameters()
-            # Debug checks to ensure lora_a and lora_b are initialized.
-            assert not module.lora_a.weight.is_meta
-            assert not module.lora_b.weight.is_meta

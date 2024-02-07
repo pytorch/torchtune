@@ -65,6 +65,7 @@ class FullFinetuneParams:
     optimizer: str = "SGD"
     lr: float = 2e-5
     loss: str = "CrossEntropyLoss"
+    gradient_accumulation_steps: int = 1
 
     # Training
     epochs: int = 3
