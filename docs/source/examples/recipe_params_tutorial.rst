@@ -2,7 +2,11 @@
 Creating parameters for custom recipes
 ======================================
 
-In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes. These should be collected in a dataclass object that is passed into the recipe.
+In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes.
+Exposing an excessive number of parameters will lead to bloated configs, which are more error prone, harder to read, and harder to manage.
+On the other hand, hardcoding all parameters will prevent quick experimentation without a code change. Only parametrize what is needed.
+
+Parameters should be organized in a singular dataclass that is passed into the recipe. This serves as a single source of truth for the details of a fine-tuning run that can be easily validated in code and shared with collaborators for reproducibility.
 
 .. code-block:: python
 
@@ -43,13 +47,15 @@ To validate user arguments for your dataclass and recipe, use the :code:`__post_
             if getattr(self, param.name) == "":
                 raise TypeError(f"{param.name} needs to be specified")
 
-Write config
+Writing configs
 ------------
-Now that you've set up the recipe, the parameters dataclass, and the parser, you can create a simple config in :code:`recipes/configs/` that specifies values for any of the fields you defined in the dataclass. Anything that is not specified should have a default value in the dataclass.
+Let's assume you've set up a recipe and want to add a config to run it. You can create a simple config in :code:`recipes/configs/` that specifies values for any of the fields you defined in the dataclass. Anything that is not specified should have a default value in the dataclass.
 
 Testing configs
 ---------------
-TorchTune has testing for every config added to the library, namely ensuring that it instantiates the dataclass and runs the recipe correctly. To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs.py`.
+If you plan on contributing your config to the repo, we recommend adding it to the testing suite. TorchTune has testing for every config added to the library, namely ensuring that it instantiates the dataclass and runs the recipe correctly.
+
+To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs.py`.
 
 .. code-block:: python
 
