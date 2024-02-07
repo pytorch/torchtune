@@ -64,8 +64,9 @@ ability to collaborate on experiments.
 Recipe Script
 -------------
 
-This is the primary entry point for each recipe and provides the user with control over how the recipe is setup, model(s) is(are)
+This is the primary entry point for each recipe and provides the user with control over how the recipe is setup, how models are
 trained and how the subsequent checkpoints are used. This includes:
+
 - Setting up of the environment
 - Parsing and validating configs
 - Training the model
@@ -130,9 +131,7 @@ Load checkpoint, update recipe state from checkpoint, initialize components and 
 
     def setup(...):
 
-        # Load checkpoint from specified path
         ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
-
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components.
@@ -143,19 +142,11 @@ Load checkpoint, update recipe state from checkpoint, initialize components and 
         # Setup the model, including FSDP wrapping, setting up activation checkpointing and
         # loading the state dict
         self._model = self._setup_model(...)
-
-
-        # Load tokenizer
         self._tokenizer = self._setup_tokenizer(...)
-
 
         # Setup Optimizer, including transforming for FSDP when resuming training
         self._optimizer = self._setup_optimizer(...)
-
-        # Setup loss
         self._loss_fn = self._setup_loss(...)
-
-        # Setup sampler and dataloader
         self._sampler, self._dataloader = self._setup_data(...)
 
 

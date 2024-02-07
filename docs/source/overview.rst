@@ -11,7 +11,7 @@ The library provides:
 
 - Native-PyTorch implementations of popular LLMs, with convertors to transform checkpoints into TorchTune's format
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
-- Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
+- Integration with `HuggingFace Datasets <https://huggingface.co/docs/datasets/en/index>`_ for training and `EleutherAI's Eval <https://github.com/EleutherAI/lm-evaluation-harness>`_ Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
