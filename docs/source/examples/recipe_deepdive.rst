@@ -67,22 +67,22 @@ ability to collaborate on experiments.
 Recipe Script
 -------------
 
-This is the primary entry point for each recipe and provides the user with control over how the recipe is setup, how models are
+This is the primary entry point for each recipe and provides the user with control over how the recipe is set up, how models are
 trained and how the subsequent checkpoints are used. This includes:
 
 - Setting up of the environment
 - Parsing and validating configs
 - Training the model
 - Post-training operations such as evaluation, quantization, model export, generation etc
-- Setting up multi-stage training (eg: Distillation) using multiple Recipe classes
+- Setting up multi-stage training (eg: Distillation) using multiple recipe classes
 
 
 Scripts should generally structure operations in the following order:
 
 - Extract and validate training params
-- Intialize th Recipe Class which in-turn intializes recipe state
+- Initialize the recipe class which in-turn initializes recipe state
 - Load and Validate checkpoint to update recipe state if resuming training
-- Initialize recipe components (model, tokeinzer, optimizer, loss and dataloader) from checkpoint (if applicable)
+- Initialize recipe components (model, tokenizer, optimizer, loss and dataloader) from checkpoint (if applicable)
 - Train the model
 - Clean up recipe state after training is complete
 
@@ -115,7 +115,7 @@ An example script looks something like this:
 Recipe Class
 ------------
 
-The Recipe Class carries the core logic for training a model. Each class implements a relevant interface and exposes a
+The recipe class carries the core logic for training a model. Each class implements a relevant interface and exposes a
 set of APIs. For fine-tuning, the structure of this class is as follows:
 
 Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc:
@@ -154,7 +154,7 @@ Load checkpoint, update recipe state from checkpoint, initialize components and 
 
 
 
-Run Forward and backward across all epochs and save checkpoint at end of each epoch
+Run forward and backward across all epochs and save checkpoint at end of each epoch
 
 .. code-block:: python
 
@@ -192,3 +192,108 @@ Cleanup recipe state
 
         self.metric_loggers.close()
         ...
+
+
+Defining parameters for custom recipes
+--------------------------------------
+
+In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes.
+Exposing an excessive number of parameters will lead to bloated configs, which are more error prone, harder to read, and harder to manage.
+On the other hand, hardcoding all parameters will prevent quick experimentation without a code change. Only parametrize what is needed.
+
+Parameters should be organized in a singular dataclass that is passed into the recipe.
+This serves as a single source of truth for the details of a fine-tuning run that can be easily validated in code and shared with collaborators for reproducibility.
+
+.. code-block:: python
+
+    class FullFinetuneParams:
+        # Model
+        model: str = ""
+        model_checkpoint: str = ""
+
+In the dataclass, all fields should have defaults assigned to them.
+If a reasonable value cannot be assigned or it is a required argument,
+use the null value for that data type as the default and ensure that it is set
+by the user in the :code:`__post_init__` (see Parameter Validation).
+The dataclass should go in the :code:`recipes/params/` folder and the name of
+the file should match the name of the recipe file you are creating.
+
+To link the dataclass object with config and CLI parsing,
+you can use the :class:`~torchtune.utils.argparse.TuneArgumentParser` object and
+funnel the parsed arguments into your dataclass.
+
+.. code-block:: python
+
+    if __name__ == "__main__":
+        parser = utils.TuneArgumentParser(
+            description=FullFinetuneParams.__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        # Get user-specified args from config and CLI and create params for recipe
+        args, _ = parser.parse_known_args()
+        args = vars(args)
+        params = FullFinetuneParams(**args)
+
+        logger = utils.get_logger("DEBUG")
+        logger.info(msg=f"Running finetune_llm.py with parameters {params}")
+
+        recipe(params)
+
+Parameter validation
+--------------------
+To validate user arguments for your dataclass and recipe, use the :code:`__post_init__` method to house any checks and raised exceptions.
+
+.. code-block:: python
+
+    def __post_init__(self):
+        for param in fields(self):
+            if getattr(self, param.name) == "":
+                raise TypeError(f"{param.name} needs to be specified")
+
+Writing configs
+---------------
+Once you've set up a recipe and its params, you need to create a config to run it.
+Configs serve as the primary entry point for running recipes in TorchTune. They are
+expected to be YAML files and simply list out values for parameters you want to define
+for a particular run. The config parameters should be a subset of the dataclass parameters;
+there should not be any new fields that are not in the dataclass. Any parameters that
+are not specified in the config will take on the default value defined in the dataclass.
+
+.. code-block:: yaml
+
+    dataset: alpaca
+    seed: null
+    shuffle: True
+    model: llama2_7b
+    ...
+
+
+Testing configs
+---------------
+If you plan on contributing your config to the repo, we recommend adding it to the testing suite. TorchTune has testing for every config added to the library, namely ensuring that it instantiates the dataclass and runs the recipe correctly.
+
+To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs.py`.
+
+.. code-block:: python
+
+    config_to_params = {
+        os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneParams,
+        ...,
+    }
+
+
+Command-line overrides
+----------------------
+To enable quick experimentation, you can specify override values to parameters in your config
+via the :code:`tune` command. These should be specified with the flag :code:`--override k1=v1 k2=v2 ...`
+
+The order of overrides from these parameter sources is as follows, with highest precedence first: CLI, Config, Dataclass defaults
+
+
+Running your recipe
+-------------------
+If everything is set up correctly, you should be able to run your recipe just like the existing library recipes using the :code:`tune` command:
+
+.. code-block:: bash
+
+    tune <recipe> --config <config> --override ...
