@@ -42,6 +42,8 @@ Memory Management
 
     memory.set_activation_checkpointing
 
+.. _metric_logging_label:
+
 Metric Logging
 --------------
 
