@@ -6,6 +6,7 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
+import pytest
 import torch
 import torch.nn as nn
 from torch.distributed import launcher
@@ -15,6 +16,7 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.distributed import (
     get_world_size_and_rank,
     init_distributed,
+    validate_no_meta_params,
     wrap_fsdp,
 )
 
@@ -37,15 +39,13 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            init_distributed()
+            init_distributed(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
-        expected_pg_backend = "undefined" if not init_pg_explicit else "gloo"
-        if pg_backend != expected_pg_backend:
-            raise AssertionError(
-                f"Expected different process group backend: received {pg_backend}, expected {expected_pg_backend}"
-            )
+        assert (
+            pg_backend == "gloo"
+        ), f"Expected 'gloo' backend, but received {pg_backend}"
 
     @staticmethod
     def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
@@ -122,3 +122,18 @@ class TestDistributed:
             )
             fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
             assert len(fsdp_units) == num_modules
+
+    def test_validate_no_meta_params(self) -> None:
+        with torch.device("meta"):
+            model = torch.nn.Linear(3, 3)
+
+        with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
+            validate_no_meta_params(model)
+
+        # Test model with only buffer
+        model = torch.nn.Linear(3, 3)
+        buffer = torch.ones(1, device="meta")
+        model.register_buffer("buffer", buffer)
+
+        with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
+            validate_no_meta_params(model)

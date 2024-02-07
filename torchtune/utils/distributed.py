@@ -7,6 +7,7 @@
 
 import logging
 import os
+from itertools import chain
 from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
 
 import torch
@@ -101,6 +102,23 @@ def get_world_size_and_rank() -> Tuple[int, int]:
         return 1, 0
 
 
+def validate_no_meta_params(model: nn.Module) -> None:
+    """
+    Utility to validate that model has no params or buffers on meta device.
+    If a meta param or buffer is found, an error indicating the param name will
+    be raised.
+
+    Args:
+        model (nn.Module): model to check for meta params
+
+    Raises:
+        RuntimeError: If meta params or buffers exist in model
+    """
+    for n, p in chain(model.named_parameters(), model.named_buffers()):
+        if p.is_meta:
+            raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
+
+
 def wrap_fsdp(
     model: nn.Module,
     device: torch.device,
@@ -108,7 +126,7 @@ def wrap_fsdp(
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
     cpu_offload: bool = False,
-    **kwargs
+    **kwargs,
 ) -> nn.Module:
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
     FSDP allows three primary types of data parallel training (these can be set under "strategy"):
@@ -177,8 +195,7 @@ def wrap_fsdp(
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
             cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
-            use_orig_params=True,
-            **kwargs
+            **kwargs,
         )
     else:
         raise RuntimeError(

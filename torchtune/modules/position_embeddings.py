@@ -43,9 +43,9 @@ class RotaryPositionalEmbeddings(nn.Module):
         # Don't spend time initializing if we're under a meta device context
         device_tensor = torch.ones(1)
         if not device_tensor.is_meta:
-            self._init(device=device_tensor.device)
+            self._rope_init(device=device_tensor.device)
 
-    def _init(self, device: torch.device):
+    def _rope_init(self, device: torch.device):
         # Should never be called with a meta device context
         if torch.ones(1).is_meta:
             raise RuntimeError(
@@ -57,7 +57,6 @@ class RotaryPositionalEmbeddings(nn.Module):
                 ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
             )
             self.register_buffer("theta", theta, persistent=False)
-            print(f"RV: theta is on {theta.device}", flush=True)
             self.build_rope_cache(self.max_seq_len)
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:

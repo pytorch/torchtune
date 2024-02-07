@@ -4,10 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import random
 from typing import Callable, List
 
-import pytest
+import numpy as np
 
+import pytest
 import torch
 
 from torchtune.models.llama2 import llama2
@@ -18,7 +20,27 @@ from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
-def random():
+def prevent_leaking_rng():
+    # Prevent each test from leaking the rng to all other test when they call
+    # torch.manual_seed() or random.seed() or np.random.seed().
+
+    torch_rng_state = torch.get_rng_state()
+    builtin_rng_state = random.getstate()
+    numpy_rng_state = np.random.get_state()
+    if torch.cuda.is_available():
+        cuda_rng_state = torch.cuda.get_rng_state()
+
+    yield
+
+    torch.set_rng_state(torch_rng_state)
+    random.setstate(builtin_rng_state)
+    np.random.set_state(numpy_rng_state)
+    if torch.cuda.is_available():
+        torch.cuda.set_rng_state(cuda_rng_state)
+
+
+@pytest.fixture(autouse=True)
+def random_seed():
     set_seed(42)
 
 
@@ -234,3 +256,42 @@ class TestTextGenerate:
             incremental_decode=True,
         )
         assert outputs.tolist() == outputs_kv_cache.tolist()
+
+    def test_reproducibility(self, generation_model, prompt_tokens):
+        """
+        Test to check if the `generate` function produces the same output when run with the same
+        inputs and a fixed seed.
+        """
+        min_gen_len = 1
+        max_gen_len = 20
+        # Use real values to test reproducibility of some of the transforms
+        temperature = 0.6
+        top_p = 0.9
+        top_k = 0
+        generate = _make_generate(generation_model)
+
+        torch.manual_seed(42)
+        outputs_first, _ = generate(
+            prompt_tokens=prompt_tokens,
+            min_gen_len=min_gen_len,
+            max_gen_len=max_gen_len,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            keep_prompt=False,
+            incremental_decode=False,
+        )
+
+        torch.manual_seed(42)
+        outputs_second, _ = generate(
+            prompt_tokens=prompt_tokens,
+            min_gen_len=min_gen_len,
+            max_gen_len=max_gen_len,
+            temperature=temperature,
+            top_p=top_p,
+            top_k=top_k,
+            keep_prompt=False,
+            incremental_decode=False,
+        )
+
+        assert outputs_first.tolist() == outputs_second.tolist()

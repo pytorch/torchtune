@@ -17,6 +17,23 @@ from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
 
 
+def reset_lora_params(model: nn.Module, device: torch.device) -> None:
+    """
+    Initializes lora parameters of a given model. This is useful
+    if model is initialized on meta device and custom initialization
+    needs to be run for LoRA parameters. This method is meant to be used
+    in tandem with ``LoRALinear``'s ``reset_lora_parameters`` and simply
+    calls this method on each instance.
+
+    Args:
+        model (nn.Module): Instance of model class containing LoRA parameters
+        device (torch.device): Device to initialize LoRA parameters on.
+    """
+    for m in model.modules():
+        if hasattr(m, "reset_lora_parameters"):
+            m.reset_lora_parameters(device=device)
+
+
 class LoRALinear(nn.Module, AdapterModule):
     """LoRA linear layer as introduced in `LoRA: Low-Rank Adaptation of Large Language Models <https://arxiv.org/abs/2106.09685>`_.
 
@@ -78,7 +95,8 @@ class LoRALinear(nn.Module, AdapterModule):
     def reset_lora_parameters(self, device: Optional[torch.device] = None):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
-        # TODO (rohan-varma): not sure if there is a better way to get the default device
+        # TODO: getting default / current device with torch.empty(1).device - replace with torch.get_default_device
+        # once available in latest stable version.
         init_device = device if device is not None else torch.empty(1).device
         # Should not be initializing on a meta device
         assert init_device != torch.device("meta")

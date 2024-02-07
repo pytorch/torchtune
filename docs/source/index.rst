@@ -43,6 +43,13 @@ TorchTune tutorials.
    :link: generated_examples/template_tutorial.html
    :tags: Template
 
+.. customcarditem::
+   :header: Training Recipes Deep-Dive
+   :card_description: Dive into TorchTune's Training Recipes
+   :image: _static/img/generic-pytorch-logo.png
+   :link: examples/recipe_deepdive.html
+   :tags: finetuning,llama2
+
 .. customcardend::
 
 
@@ -78,6 +85,7 @@ TorchTune tutorials.
    :hidden:
 
    generated_examples/template_tutorial
+   examples/recipe_deepdive
 
 .. toctree::
    :glob:

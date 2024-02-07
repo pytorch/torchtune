@@ -13,7 +13,7 @@ from torch import nn
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.models.llama2 import llama2
 from torchtune.models.lora_llama2 import lora_llama2
-from torchtune.modules.peft.lora import LoRALinear
+from torchtune.modules.peft.lora import LoRALinear, reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
     AdapterModule,
@@ -260,6 +260,8 @@ class TestPeftUtils:
                 lora_rank=4,
                 lora_alpha=1.0,
             )
+
+        reset_lora_params(model, device=torch.get_default_device())
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
         num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)

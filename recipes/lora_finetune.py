@@ -19,11 +19,11 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import datasets, losses, lr_schedulers, models, modules, optim, utils
+from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     lora_fsdp_init,
     lora_fsdp_wrap_policy,
-    reset_lora_params,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -34,6 +34,7 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
+from torchtune.utils.distributed import validate_no_meta_params
 from tqdm import tqdm
 
 from recipes.interfaces import FTRecipeInterface
@@ -209,7 +210,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
         init_device = "meta" if enable_fsdp else self._device
-        # init_device = self._device
         model = models.get_model(
             model,
             device=init_device,
@@ -234,12 +234,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 param_init_fn=partial(lora_fsdp_init, device=self._device),
             )
             # Ensure no params and buffers are on meta device
-            from itertools import chain
-
-            for p in chain(model.parameters(), model.buffers()):
-                assert (
-                    not p.is_meta
-                ), "Unexpected param on meta device, please file a bug."
+            validate_no_meta_params(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -248,13 +243,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
         validate_state_dict_for_lora(missing, unexpected, lora_attn_modules)
-        # Validate trainable params
-        # print(f"RV: use orig params {model.use_orig_params}")
-        # for n, p in model.named_parameters():
-        #     if n in adapter_params:
-        #         assert p.requires_grad, f"param {n} should be trainable!"
-        #     else:
-        #         assert not p.requires_grad, f"param {n} should NOT be trainable!"
 
         if self._is_rank_zero:
             log.info(

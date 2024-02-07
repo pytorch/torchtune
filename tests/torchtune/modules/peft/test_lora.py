@@ -8,6 +8,7 @@ import pytest
 
 import torch
 from torchtune.modules.peft import LoRALinear
+from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.utils.seed import set_seed
 
 from tests.test_utils import assert_expected, fixed_init_model
@@ -21,6 +22,29 @@ SEQ_LEN = 32
 @pytest.fixture(autouse=True)
 def random():
     set_seed(16)
+
+
+class TestLoRAUtils:
+    def test_reset_lora_params(self) -> None:
+        with torch.device("meta"):
+            lora_linear = LoRALinear(
+                in_dim=64,
+                out_dim=128,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=True,
+            )
+
+        # _lora_params_initialized should be False
+        assert not lora_linear._lora_params_initialized
+        # lora_a, lora_b should be on meta device
+        assert lora_linear.lora_a.weight.is_meta
+        assert lora_linear.lora_b.weight.is_meta
+        init_device = torch.device("cpu")
+        reset_lora_params(lora_linear, device=init_device)
+        assert lora_linear._lora_params_initialized
+        assert lora_linear.lora_a.weight.device == init_device
+        assert lora_linear.lora_b.weight.device == init_device
 
 
 class TestLoRALinear:

@@ -11,6 +11,8 @@ import torch
 
 from torch import nn
 
+from torchtune.utils.distributed import FSDPPolicyType
+
 
 class AdapterModule(Protocol):
     """
@@ -59,23 +61,6 @@ def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
                 current_adapter_params == []
             ), f"Adapter params {current_adapter_params} not converted"
     return adapter_params
-
-
-def reset_lora_params(model: nn.Module, device: torch.device) -> None:
-    """
-    Initializes lora parameters of a given model. This is useful
-    if model is initialized on meta device and custom initialization
-    needs to be run for LoRA parameters. This method is meant to be used
-    in tandem with ``LoRALinear``'s ``reset_lora_parameters`` and simply
-    calls this method on each instance.
-
-    Args:
-        model (nn.Module): Instance of model class containing LoRA parameters
-        device (torch.device): Device to initialize LoRA parameters on.
-    """
-    for m in model.modules():
-        if hasattr(m, "reset_lora_parameters"):
-            m.reset_lora_parameters(device=device)
 
 
 @functools.lru_cache()
@@ -139,12 +124,25 @@ def validate_state_dict_for_lora(
         raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
 
 
-def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
+def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for wrapping models trained with LoRA in FSDP. Specifically,
+    this will wrap individual LoRA a & b submodules in their own FSDP units to
+    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``.
+
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+
     def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
         if recurse:
             return True
 
-        # Assumes lorbea_a and lora_b are nn.Linears that are the
+        # Assumes lora_a and lora_b are nn.Linears that are the
         # only trainable modules in the entire network. Wraps
         # these in separate FSDP unit to work around FSDP allocating
         # extra gradient memory when wrapped with other modules.
@@ -156,10 +154,21 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
     return lora_wrap
 
 
-def lora_fsdp_init(module: nn.Module, device: torch.device):
+def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
+    """
+    A function to specific modules within a LoRA model wrapped in FSDP that was
+    initially created on the meta device. This function is meant to be
+    passed as the ``param_init_fn`` arg into ``FullyShardedDataParallel``.
+    This function specially handles details such as manually initializing
+    ``RotaryPositionalEmbeddings`` that have custom initialization schemes.
+
+    Args:
+        module (nn.Module): module to run initialization for
+        device (torch.device): device parameters should be initialized on.
+    """
     # Custom init for RoPE, which has buffers only
-    if hasattr(module, "_init"):
-        module._init(device=device)
+    if hasattr(module, "_rope_init"):
+        module._rope_init(device=device)
     # Skip init of modules that already have params on non-meta device
     if all([not p.is_meta for p in module.parameters()]):
         return
