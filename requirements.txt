@@ -2,9 +2,11 @@
 torch>=2.0.0
 
 # HuggingFace Integration Reqs
+datasets
 huggingface_hub==0.19.4
 
 # Misc
+fsspec<=2023.10.0
 sentencepiece==0.1.99
 tqdm==4.66.1
 omegaconf==2.3.0
