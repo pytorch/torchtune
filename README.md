@@ -61,8 +61,6 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 
 ## Installation
 
-This library requires PyTorch >= 2.0. Please install locally using [this guide](https://pytorch.org/get-started/locally/).
-
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
 ```
