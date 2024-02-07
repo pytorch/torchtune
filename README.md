@@ -87,6 +87,8 @@ from torchtune.modules import TransformerDecoder
 
 ## Get Started
 
+For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
+
 #### Downloading a model
 
 Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama/Llama-2-7b) repository to ensure you have access to the Llama2 model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
@@ -102,7 +104,7 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
 
 #### Converting the checkpoint into PyTorch-native
 
-Now that you have the Llama2 model weights, we need to convert them into a PyTorch-native format supported by TorchTune.
+Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
 tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>

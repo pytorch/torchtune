@@ -1,3 +1,5 @@
+.. _basic_finetune_llm:
+
 =====================
 LLM Finetuning Recipe
 =====================
