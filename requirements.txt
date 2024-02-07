@@ -2,7 +2,7 @@
 torch>=2.0.0
 
 # HuggingFace Integration Reqs
-datasets==2.15.0
+datasets
 huggingface_hub==0.19.4
 
 # Misc
