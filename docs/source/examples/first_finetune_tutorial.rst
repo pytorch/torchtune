@@ -21,7 +21,7 @@ job using TorchTune.
 
 Downloading a model
 -------------------
-First, you need to download a model. The first way to download a model is to use TorchTune's integration
+First, you need to download a model. TorchTune's supports an integration
 with the `HuggingFace Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
@@ -68,16 +68,14 @@ Each recipe consists of three components:
 * **Recipe class**, core logic needed for training, exposed to users through a set of APIs
 * **Recipe script**, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
 
-To see all available recipes and for more information on how to select the right recipe, see :ref:`recipe_deepdive`.
+To see all available recipes and for more information on how to select the right recipe, see the :ref:`recipe_deepdive` tutorial.
 For this tutorial, you'll be using the :ref:`basic full finetuning recipe<basic_finetune_llm>`.
 
 Modifying a config
 ------------------
 YAML configs hold most of the important information needed for running your recipe.
-You can select a new dataset, set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, and more.
-
-.. note::
-  For a list of all currently supported datasets, see :ref:`datasets`.
+You can set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, select a new dataset, and more.
+For a list of all currently supported datasets, see :ref:`datasets`.
 
 To modify an existing recipe config, you can use the :code:`tune` CLI to copy it to your local directory.
 Or, you can visit the specific :ref:`recipe page<basic_finetune_llm>` and copy/paste the config from there.
@@ -132,7 +130,7 @@ run using two GPUs, it's as easy as:
 
   tune --nnodes 1 --nproc_per_node 2 full_finetune.py --config custom_config.yaml
 
-You should see some immediate output and see the loss going down, indicating your model is training!
+You should see some immediate output and see the loss going down, indicating your model is training succesfully.
 
 .. code-block:: text
 
