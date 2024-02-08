@@ -107,7 +107,7 @@ Follow the instructions on the official [`meta-llama`](https://huggingface.co/me
 You can find your token at https://huggingface.co/settings/tokens
 
 ```
-tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
+tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir /tmp/llama2
 ```
 
 &nbsp;
