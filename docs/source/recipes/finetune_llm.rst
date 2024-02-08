@@ -16,25 +16,3 @@ This recipe supports:
 * :ref:`Distributed Training with FSDP<dist_label>`
 
 * :ref:`Activation Checkpointing<ac_label>`
-
-To run the recipe directly, launch with
-
-.. code-block:: bash
-
-    tune finetune_llm --config <finetune_config>
-
-Recipe
-------
-
-Copy the recipe directly into your own script or notebook to modify and edit for yourself.
-
-.. literalinclude:: ../../../recipes/finetune_llm.py
-
-Configs
--------
-
-.. tabs::
-
-    .. tab:: alpaca_llama2_finetune
-
-        .. literalinclude:: ../../../recipes/configs/alpaca_llama2_finetune.yaml
