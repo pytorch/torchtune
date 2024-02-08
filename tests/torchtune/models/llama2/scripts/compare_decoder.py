@@ -16,7 +16,7 @@ from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
 
 from torch import nn
 
-from torchtune.models import llama2
+from torchtune.models.llama2 import llama2
 
 """
 Reference implementation of Transformer from:
@@ -122,7 +122,7 @@ def compare_decoder(
     with torch.no_grad():
         output = decoder(x_input)
 
-    # value: tensor(163.8399)
+    # value: tensor(20.4800)
     print(output.mean())
 
     assert torch.allclose(output_ref, output, atol=1e-6, rtol=1e-6)
@@ -134,18 +134,18 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Compare Attention implementations")
     parser.add_argument("--bsz", type=int, default=4, help="Batch size of input tensor")
     parser.add_argument(
-        "--seq_len", type=int, default=2048, help="input sequence length"
+        "--seq_len", type=int, default=512, help="input sequence length"
     )
     parser.add_argument(
         "--embed_dim",
         type=int,
-        default=4096,
+        default=512,
         help="Embedding dimension used to compute the dim for RopE",
     )
     parser.add_argument(
         "--num_heads",
         type=int,
-        default=32,
+        default=8,
         help="Number of heads in the attention layer",
     )
     parser.add_argument(
@@ -155,9 +155,9 @@ if __name__ == "__main__":
         help="Number of key/value heads in the attention layer",
     )
     parser.add_argument(
-        "--max_seq_len", type=int, default=4096, help="max sequence length"
+        "--max_seq_len", type=int, default=512, help="max sequence length"
     )
-    parser.add_argument("--vocab_size", type=int, default=1024, help="vocab size")
+    parser.add_argument("--vocab_size", type=int, default=256, help="vocab size")
     parser.add_argument(
         "--num_layers", type=int, default=4, help="number of transformer layers"
     )
