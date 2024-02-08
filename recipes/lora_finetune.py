@@ -10,6 +10,7 @@ import sys
 
 from functools import partial
 from typing import Any, Dict, List, Optional, Set, Tuple, Type
+from warnings import warn
 
 import torch
 
@@ -264,27 +265,18 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        missing_base_model_keys, unexpected_base_model_keys = model.load_state_dict(
-            base_model_state_dict, strict=False
+        validate_state_dict_for_lora(
+            lora_modules=lora_attn_modules,
+            full_model_state_dict_keys=model.state_dict().keys(),
+            lora_state_dict_keys=lora_weights_state_dict.keys()
+            if lora_weights_state_dict is not None
+            else None,
+            base_model_state_dict_keys=base_model_state_dict.keys(),
         )
-
+        model.load_state_dict(base_model_state_dict, strict=False)
         if lora_weights_state_dict:
-            missing_lora_keys, unexpected_lora_keys = model.load_state_dict(
-                lora_weights_state_dict, strict=False
-            )
-            validate_state_dict_for_lora(
-                lora_modules=lora_attn_modules,
-                missing_base_model_keys=missing_base_model_keys,
-                unexpected_base_model_keys=unexpected_base_model_keys,
-                missing_lora_keys=missing_lora_keys,
-                unexpected_lora_keys=unexpected_lora_keys,
-            )
-        else:
-            validate_state_dict_for_lora(
-                lora_modules=lora_attn_modules,
-                missing_base_model_keys=missing_base_model_keys,
-                unexpected_base_model_keys=unexpected_base_model_keys,
-            )
+            model.load_state_dict(lora_weights_state_dict, strict=False)
+
         if self._is_rank_zero:
             log.info(
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
@@ -481,6 +473,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+            if self.epochs_run == 1:  # TODO: REMOVE
+                return
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

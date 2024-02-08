@@ -109,6 +109,11 @@ def lora_llama2_model():
 
 
 @pytest.fixture
+def lora_llama2_model_all_keys(lora_llama2_model):
+    return lora_llama2_model.state_dict().keys()
+
+
+@pytest.fixture
 def lora_llama2_expected_adapter_keys():
     keys = []
     for i in range(N_LAYERS):
@@ -198,34 +203,87 @@ class TestPeftUtils:
                 raise AssertionError(f"{k} not in expected keys")
 
     @pytest.mark.parametrize(
-        "missing_keys, unexpected_keys, lora_modules, expected_result",
+        "lora_modules, full_model_state_dict_keys, lora_state_dict_keys, base_model_state_dict_keys, expected",
         [
-            (["a", "q_proj.weight"], [], ["q_proj"], "Missing"),
-            ([], ["b"], ["q_proj", "k_proj"], "Unexpected"),
             (
-                ["q_proj.weight", "output_proj.weight"],
+                ["q_proj", "k_proj"],
+                ["q_proj.lora_a.weight", "dummy_param.weight"],
+                ["q_proj.lora_a.weight"],
+                ["dummy_param.weight"],
+                "",
+            ),
+            (["v_proj"], ["param_a", "param_b"], None, ["param_a", "param_b"], ""),
+            (
+                ["output_proj"],
+                ["output_proj.weight", "output_proj.lora_a.weight"],
+                ["output_proj.lora_a.weight"],
+                ["output_proj.weight"],
+                "",
+            ),
+            (["q_proj"], ["param_a"], [], [], "Missing non-LoRA"),
+            (
+                ["k_proj", "output_proj"],
+                ["k_proj.lora_a.weight", "param_a"],
+                ["k_proj.lora_a.weight", "param_a"],
+                ["param_a"],
+                "found in LoRA",
+            ),
+            (
+                ["k_proj"],
+                ["k_proj.lora_a.weight"],
                 [],
-                ["q_proj", "output_proj"],
+                ["k_proj.lora_a.weight"],
+                "found in base model",
+            ),
+            (["k_proj"], ["k_proj.lora_a.weight"], [], None, "Missing LoRA"),
+            (["q_proj"], [], ["a"], ["a"], "overlapping"),
+            (
+                ["v_proj"],
+                ["dummy_param.weight"],
+                ["v_proj.lora_a.weight"],
+                ["dummy_param.weight"],
+                "Extra",
+            ),
+            (
+                ["q_proj", "v_proj"],
+                "lora_llama2_model_all_keys",
+                "lora_llama2_expected_adapter_keys",
+                "lora_llama2_expected_base_model_keys",
                 "",
             ),
         ],
     )
-    def test_validate_lora_state_dict_base_model_only(
-        self, missing_keys, unexpected_keys, lora_modules, expected_result
+    def test_validate_lora_state_dict(
+        self,
+        request,
+        lora_modules,
+        full_model_state_dict_keys,
+        lora_state_dict_keys,
+        base_model_state_dict_keys,
+        expected,
     ):
-        if expected_result:
-            with pytest.raises(AssertionError, match=expected_result):
+        if isinstance(full_model_state_dict_keys, str):
+            full_model_state_dict_keys = request.getfixturevalue(
+                full_model_state_dict_keys
+            )
+        if isinstance(lora_state_dict_keys, str):
+            lora_state_dict_keys = request.getfixturevalue(lora_state_dict_keys)
+        if isinstance(base_model_state_dict_keys, str):
+            base_model_state_dict_keys = request.getfixturevalue(
+                base_model_state_dict_keys
+            )
+        if expected:
+            with pytest.raises(AssertionError, match=expected):
                 validate_state_dict_for_lora(
                     lora_modules=lora_modules,
-                    missing_base_model_keys=missing_keys,
-                    unexpected_base_model_keys=unexpected_keys,
+                    full_model_state_dict_keys=full_model_state_dict_keys,
+                    lora_state_dict_keys=lora_state_dict_keys,
+                    base_model_state_dict_keys=base_model_state_dict_keys,
                 )
         else:
             validate_state_dict_for_lora(
                 lora_modules=lora_modules,
-                missing_base_model_keys=missing_keys,
-                unexpected_base_model_keys=unexpected_keys,
+                full_model_state_dict_keys=full_model_state_dict_keys,
+                lora_state_dict_keys=lora_state_dict_keys,
+                base_model_state_dict_keys=base_model_state_dict_keys,
             )
-
-
-# TODO: add additional unit tests for validating LoRA params

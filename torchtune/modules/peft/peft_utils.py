@@ -96,50 +96,42 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
 def validate_state_dict_for_lora(
     *,
     lora_modules: List[str],
-    missing_base_model_keys: Optional[List[str]] = None,
-    unexpected_base_model_keys: Optional[List[str]] = None,
-    missing_lora_keys: Optional[List[str]] = None,
-    unexpected_lora_keys: Optional[List[str]] = None,
+    full_model_state_dict_keys: List[str],
+    lora_state_dict_keys: Optional[List[str]] = None,
+    base_model_state_dict_keys: Optional[List[str]] = None,
 ) -> None:
-    """
-    Validate that the missing and unexpected keys for loading either
-    base model weights or LoRA params into LoRA model with strict=False are as expected.
+    is_lora_param = lambda x: "lora" in x and any([k in x for k in lora_modules])
+    for k in full_model_state_dict_keys:
+        if not is_lora_param(k):
+            if base_model_state_dict_keys is not None:
+                assert (
+                    k in base_model_state_dict_keys
+                ), f"Missing non-LoRA key {k} from base model state dict"
+            if lora_state_dict_keys is not None:
+                assert (
+                    k not in lora_state_dict_keys
+                ), f"Non-LoRA key {k} found in LoRA state dict"
+        else:
+            if base_model_state_dict_keys is not None:
+                assert (
+                    k not in base_model_state_dict_keys
+                ), f"LoRA key {k} found in base model state dict"
+            if lora_state_dict_keys is not None:
+                assert (
+                    k in lora_state_dict_keys
+                ), f"Missing LoRA key {k} From LoRA state dict"
 
-    Args:
-        lora_modules (List[str]): List of LoRA modules in the model
-        missing_base_model_keys (Optional[List[str]]): List of missing keys in the state
-            dict for the base model.
-        unexpected_base_model_keys (Optional[List[str]]): List of unexpected keys in the state
-            dict for the base model.
-        missing_lora_keys (Optional[List[str]]): List of missing keys in the state
-            dict for the LoRA model.
-        unexpected_lora_keys (Optional[List[str]]): List of unexpected keys in the state
-            dict for the LoRA model.
-
-    Returns:
-        None
-
-    Raises:
-        AssertionError: If any of the missing or unexpected keys are not as expected.
-
-    """
-    if unexpected_base_model_keys:
-        raise AssertionError(
-            f"Unexpected keys {unexpected_base_model_keys} in base model state dict"
+    # Full model is disjoint union of base model and LoRA weights
+    if lora_state_dict_keys is not None and base_model_state_dict_keys is not None:
+        combined_state_dict_keys = set(lora_state_dict_keys).union(
+            base_model_state_dict_keys
         )
-    if unexpected_lora_keys:
-        raise AssertionError(
-            f"Unexpected keys {unexpected_lora_keys} in LoRA state dict"
+        shared_state_dict_keys = set(lora_state_dict_keys).intersection(
+            base_model_state_dict_keys
         )
-    if missing_base_model_keys:
-        for x in missing_base_model_keys:
-            if not any([k in x for k in lora_modules]):
-                raise AssertionError(
-                    f"Missing key {x} is not a LoRA module {lora_modules}"
-                )
-    if missing_lora_keys:
-        for x in missing_lora_keys:
-            if any([k in x and "lora" in x for k in lora_modules]):
-                raise AssertionError(
-                    f"Missing LoRA param {x} from loaded LoRA checkpoint"
-                )
+        assert (
+            shared_state_dict_keys == set()
+        ), "Base model and LoRA state dict have overlapping keys"
+        assert combined_state_dict_keys == set(
+            full_model_state_dict_keys
+        ), "Extra keys not present in full model"
