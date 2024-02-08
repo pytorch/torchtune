@@ -30,7 +30,7 @@ Topics in this section will help you get started with TorchTune.
      .. grid-item-card:: :octicon:`file-code;1em`
          Finetune your first model
          :img-top: _static/img/card-background.svg
-         :link: examples/first_finetune_tutorial
+         :link: examples/first_finetune_tutorial.html
          :link-type: url
 
          Follow a simple tutorial to finetune Llama2 with TorchTune.
@@ -44,11 +44,11 @@ TorchTune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: Finetune Llama2 with TorchTune
-   :card_description: Quickstart to get you finetuning an LLM fast.
+   :header: LLM Full Finetuning Recipe
+   :card_description: Full Finetuning for Llama 7B
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/first_finetune_tutorial.html
-   :tags: finetuning,llama2
+   :link: examples/finetune_llm.html
+   :tags: finetuning, llama7b
 
 .. customcarditem::
    :header: Training Recipes Deep-Dive
@@ -73,16 +73,7 @@ TorchTune tutorials.
 
    overview
    install
-
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Recipes
-   :hidden:
-
-   recipes/finetune_llm
-   recipes/alpaca_generate
+   examples/first_finetune_tutorial
 
 .. toctree::
    :glob:
@@ -90,7 +81,7 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   examples/first_finetune_tutorial
+   examples/finetune_llm
    examples/recipe_deepdive
 
 .. toctree::

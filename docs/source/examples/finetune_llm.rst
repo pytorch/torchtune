@@ -9,8 +9,8 @@ Given a model and a dataset comprising of input-label pairs, we train the model 
 
 .. note::
 
-  Full Fine-tuning is usally a lot more expensive that parameter-efficient techniques like LoRA, but
-  results in a higher quality model.
+  Full Fine-tuning is usually a lot more expensive that parameter-efficient techniques like LoRA, but
+  in most cases results in a higher quality model.
 
 
 This recipe supports:
@@ -52,7 +52,7 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
     enable_activation_checkpointing: True
     resume_from_checkpoint: False
 
-To run the recipe without any changes on a 4 GPUs, launch a training run using TuneCLI:
+To run the recipe without any changes on 4 GPUs, launch a training run using TuneCLI:
 
 .. code-block:: bash
 
@@ -118,17 +118,28 @@ Training
 
 .. code-block:: python
 
+    # Batch size refers to "local" batch size; global batch size is computed as
+    # batch_size * num_gpus * gradient_accumulation_steps
     batch_size: 2
     lr: 2e-5
+    epochs: 3
 
     optimizer: SGD
 
     epochs: 3
     loss: CrossEntropyLoss
 
+    # default value corresponds to no accumulation
+    gradient_accumulation_steps: 1
+
+    # resume_from_checkpoint controls how the checkpoint is loaded at the beginning
+    # of training; set this to True if a previously incomplete training is
+    # restarting
+    resume_from_checkpoint: False
+
 
 .. note::
-    The default optimizer is SGD instead of Adam since this uses lesser memory. Adam is known to result in better model
+    The default optimizer is SGD instead of Adam since this uses less memory. Adam is known to result in better model
     quality.
 
 

@@ -1,10 +1,10 @@
 .. _finetune_llama_label:
 
-===============================
-Finetune Llama2 with TorchTune
-===============================
+=======================
+Finetune your First LLM
+=======================
 
-This tutorial will guide you through the process of launching your first finetuning
+This guide will walk you through the process of launching your first finetuning
 job using TorchTune.
 
 .. grid:: 2
@@ -148,8 +148,5 @@ You should see some immediate output and see the loss going down, indicating you
 Next steps
 ----------
 
-There's a lot more you can accomplish using TorchTune, including:
-
-* Using your finetuned model to generate some output
-* Evaluating your finetuned model on common benchmarks using `Eluther AI Eval Harness <https://www.eleuther.ai/projects/large-language-model-evaluation>`_
-* Outputting metrics to `WandB <wandb.ai>`_ or `Tensorboard <https://www.tensorflow.org/tensorboard/>`_
+Now that you have trained your model and set up your environment, let's take a :ref:`closer look<basic_finetune_llm>`
+at the full fine-tuning recipe and understand the config better.
