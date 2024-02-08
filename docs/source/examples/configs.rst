@@ -1,3 +1,37 @@
+=================
+Configs Deep-Dive
+=================
+
+This tutorial will guide you through writing configs for running recipes and
+designing params for custom recipes.
+
+.. grid:: 2
+
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
+
+      * How to write a YAML config and run a recipe with it
+      * How to create a params dataclass for custom recipe
+      * How to effectively use configs, CLI overrides, and dataclasses for running recipes
+
+    .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
+
+      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
+      * Make sure to :ref:`install TorchTune<install_label>`
+      * Understand the :ref:`fundamentals of recipes<recipe_deepdive>``
+
+
+Where parameters are sourced
+----------------------------
+
+There are two primary entry points for users to configure parameters: configs and
+CLI overrides. Configs are YAML files that define all the parameters that the user
+wishes to run a recipe with in a single location. These can be overridden on the
+command-line for quick changes and experimentation without modifying the config.
+
+If you are planning to make your own custom recipe, you will need to become familiar
+with the recipe dataclass, which collects all the user arguments from config and
+CLI and passes it into the recipe itself. Here, we will discuss all three concepts:
+configs, CLI, and dataclasses.
 
 
 Defining parameters for custom recipes
