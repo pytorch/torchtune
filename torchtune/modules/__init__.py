@@ -7,8 +7,8 @@
 import torch
 
 from torch import nn
-from torch.optim.optimizer import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.optimizer import Optimizer
 
 from .attention import CausalSelfAttention  # noqa
 from .feed_forward import FeedForward  # noqa
@@ -48,6 +48,7 @@ def get_loss(loss: str) -> nn.Module:
         return getattr(nn, loss)()
     except AttributeError as e:
         raise ValueError(f"{loss} is not a valid loss from torch.nn") from e
+
 
 def get_optimizer(
     optimizer: str, model: torch.nn.Module, lr: float, weight_decay: float = 0.0
