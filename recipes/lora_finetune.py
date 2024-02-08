@@ -473,8 +473,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
-            if self.epochs_run == 1:  # TODO: REMOVE
-                return
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
