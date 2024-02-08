@@ -2,6 +2,8 @@
 model: lora_llama2_7b
 model_checkpoint: /tmp/llama2-7b
 lora_attn_modules: ['q_proj', 'v_proj']
+lora_rank: 8
+lora_alpha: 16
 
 # Tokenizer
 tokenizer: llama2_tokenizer
@@ -15,19 +17,29 @@ batch_size: 2
 
 # Optimizer and Scheduler
 optimizer: AdamW
-lr: 3e-4
 weight_decay: 0.01
+lr: 3e-4
 lr_scheduler: cosine_with_warmup
 num_warmup_steps: 100
 loss: CrossEntropyLoss
 
 # Training
 epochs: 1
+max_steps_per_epoch: null
+resume_from_checkpoint: False
+
+# Distributed
+cpu_offload: False
+enable_fsdp: True
+enable_activation_checkpointing: True
 
 # Environment
 device: cuda
 dtype: fp32
+seed: null
 
 # Logging
 output_dir: /tmp/lora_finetune_output
-metric_logger_type: wandb
+metric_logger_type: disk
+project: None
+log_every_n_steps: null
