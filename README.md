@@ -128,12 +128,12 @@ tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
 
 On a single GPU
 ```
-tune finetune_llm --config alpaca_llama2_finetune
+tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
 ```
 
 On multiple GPUs using FSDP
 ```
-tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --fsdp True
+tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
 ```
 
 &nbsp;
@@ -142,9 +142,9 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune 
 
 To copy a recipe to customize it yourself and then run
 ```
-tune recipe cp finetune_llm my_recipe/finetune_llm.py
-tune config cp alpaca_llama2_finetune my_recipe/alpaca_llama2_finetune.yaml
-tune my_recipe/finetune_llm.py --config my_recipe/alpaca_llama2_finetune.yaml
+tune recipe cp full_finetune my_recipe/full_finetune.py
+tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 ```
 
 &nbsp;
@@ -156,15 +156,11 @@ recipes. Aside from torchtune recipe utilties, it integrates with ``torch.distri
 to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
 does with the following additional functionalities:
 
-1. ``tune <recipe> <recipe_args>`` with no optional ``torchrun`` options launches a single python process
+1. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
 
 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune <path/to/recipe.py> <recipe_args>`` can be used to launch local recipes
-
-4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
-
-5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
+3. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
 
 &nbsp;
 
