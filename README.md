@@ -65,11 +65,15 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
-```
+```bash
 git clone https://github.com/pytorch-labs/torchtune.git
 cd torchtune
-pip install -e .
+pip install .
 ```
+
+For developers make sure to instead
+
+`pip install .[dev]`
 
 To confirm that the package is installed correctly, you can run the following command:
 

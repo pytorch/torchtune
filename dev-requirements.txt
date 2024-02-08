@@ -1,6 +1,0 @@
-pytest
-pytest-cov
-pre-commit
-tensorboard
-wandb
-transformers

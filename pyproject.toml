@@ -1,3 +1,10 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["torchtune", "scripts"]
+
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
@@ -5,3 +12,24 @@ exclude = 'tests/torchtune/models/llama2/scripts/'
 
 [tool.pytest.ini_options]
 addopts = ["--showlocals"] # show local variables in tracebacks
+
+[project]
+name = "torchtune"
+version = "0.0.1"
+description = "Package for finetuning LLMs and diffusion models using native PyTorch"
+readme = "README.md"
+authors = [
+  { name = "TorchTune Team", email = "oss@meta.com" },
+]
+license = { text = "MIT" }
+
+# TODO: Add versions later
+dependencies = ["torch", "datasets", "huggingface_hub", "sentencepiece", "tqdm", "omegaconf"]
+
+
+[project.scripts]
+tune = "scripts.cli_utils.tune:main"
+
+
+[project.optional-dependencies]
+dev = ["pytest", "black","pytest", "pytest-cov", "pre-commit","tensorboard","wandb","transformers"]
