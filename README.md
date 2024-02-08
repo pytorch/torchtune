@@ -26,7 +26,7 @@ NOTE: TorchTune is currently only tested with the latest stable PyTorch release,
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA]()  |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA](recipes/lora_finetune.py)  |
 
 &nbsp;
 
