@@ -11,8 +11,7 @@ import pytest
 import torch
 import torch.optim as optim
 
-from torchtune.lr_schedulers.cosine_with_warmup import get_cosine_schedule_with_warmup
-
+from torchtune.modules import get_cosine_schedule_with_warmup
 from tests.test_utils import assert_expected
 
 
