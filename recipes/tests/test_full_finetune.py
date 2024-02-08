@@ -12,7 +12,7 @@ from typing import Dict
 import pytest
 
 from recipes.full_finetune import FullFinetuneRecipe
-from recipes.params import FullFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
 from recipes.tests.utils import (
     default_recipe_kwargs,
     fetch_ckpt_model_path,

@@ -15,7 +15,7 @@ from warnings import warn
 import torch
 
 from recipes.interfaces import FTRecipeInterface
-from recipes.params import LoRAFinetuneParams
+from recipes.params.lora_finetune import LoRAFinetuneParams
 
 from torch import nn
 from torch.cuda.amp import GradScaler
