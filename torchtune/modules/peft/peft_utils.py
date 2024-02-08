@@ -100,26 +100,55 @@ def validate_state_dict_for_lora(
     lora_state_dict_keys: Optional[List[str]] = None,
     base_model_state_dict_keys: Optional[List[str]] = None,
 ) -> None:
+    """
+    Validate that the state dict keys for a LoRA model are as expected.
+
+    (1) If lora_state_dict_keys are passed, this function will confirm that they match exactly the
+        LoRA param names from the full model (as determined by lora_modules).
+    (2) If base_model_state_dict_keys are passed, this function will confirm that they are exactly the
+        complement of the LoRA param names from the full model.
+    (3) If both lora_state_dict_keys and base_model_state_dict_keys are passed, this function will
+        confirm that the full model's params are exactly their disjoint union.
+
+    Args:
+        lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
+            ["q_proj", "k_proj", "v_proj", "output_proj"]
+        full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
+        lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
+            If none, LoRA state dict keys will not be validated.
+        base_model_state_dict_keys (Optional[List[str]]): List of keys in the base model state dict.
+            If none, base model keys will not be validated.
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: If base model state dict is missing any non-LoRA params from the full model.
+        AssertionError: If LoRA state dict is missing any LoRA params from the full model.
+        AssertionError: If base model state dict has any LoRA params.
+        AssertionError: If LoRA state dict has any non-LoRA params.
+        AssertionError: If base model and LoRA state dicts have overlapping keys.
+        AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
+
+    """
     is_lora_param = lambda x: "lora" in x and any([k in x for k in lora_modules])
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
             if base_model_state_dict_keys is not None:
-                assert (
-                    k in base_model_state_dict_keys
-                ), f"Missing non-LoRA key {k} from base model state dict"
+                if k not in base_model_state_dict_keys:
+                    raise AssertionError(
+                        f"Missing non-LoRA key {k} from base model state dict"
+                    )
             if lora_state_dict_keys is not None:
-                assert (
-                    k not in lora_state_dict_keys
-                ), f"Non-LoRA key {k} found in LoRA state dict"
+                if k in lora_state_dict_keys:
+                    raise AssertionError(f"Non-LoRA key {k} found in LoRA state dict")
         else:
             if base_model_state_dict_keys is not None:
-                assert (
-                    k not in base_model_state_dict_keys
-                ), f"LoRA key {k} found in base model state dict"
+                if k in base_model_state_dict_keys:
+                    raise AssertionError(f"LoRA key {k} found in base model state dict")
             if lora_state_dict_keys is not None:
-                assert (
-                    k in lora_state_dict_keys
-                ), f"Missing LoRA key {k} From LoRA state dict"
+                if k not in lora_state_dict_keys:
+                    raise AssertionError(f"Missing LoRA key {k} From LoRA state dict")
 
     # Full model is disjoint union of base model and LoRA weights
     if lora_state_dict_keys is not None and base_model_state_dict_keys is not None:
