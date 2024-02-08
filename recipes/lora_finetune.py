@@ -9,7 +9,7 @@ import os
 import sys
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Set, Tuple, Type
+from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -19,9 +19,12 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import datasets, losses, lr_schedulers, models, modules, optim, utils
+from torchtune import datasets, models, modules, utils
+from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    lora_fsdp_init,
+    lora_fsdp_wrap_policy,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -33,6 +36,7 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
+from torchtune.utils.distributed import validate_no_meta_params
 from tqdm import tqdm
 
 from recipes.interfaces import FTRecipeInterface
@@ -59,8 +63,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             in ongoing epoch is lost.
         - Datasets are Map-style and data fits in memory (not streamed).
 
-    TODO:
-        - Support saving LoRA params only and resuming from checkpoint.
     """
 
     def __init__(self, params: LoRAFinetuneParams) -> None:
@@ -225,33 +227,22 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
+        # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
+        # during model init
+        init_device = "meta" if enable_fsdp else self._device
         model = models.get_model(
             model,
-            device=self._device,
+            device=init_device,
             lora_attn_modules=lora_attn_modules,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
+
+        reset_lora_params(model, device=self._device)
+
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
-
-        # TODO: move to util in #317
-        def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]):
-            def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
-                if recurse:
-                    return True
-
-                # Assumes lora_a and lora_b are nn.Linears that are the
-                # only trainable modules in the entire network. Wraps
-                # these in separate FSDP unit to work around FSDP allocating
-                # extra gradient memory when wrapped with other modules.
-                if hasattr(module, "weight") and module.weight.requires_grad:
-                    return True
-
-                return isinstance(module, tuple(modules_to_wrap))
-
-            return lora_wrap
 
         if enable_fsdp:
             model = utils.wrap_fsdp(
@@ -260,9 +251,14 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
                 auto_wrap_policy=lora_fsdp_wrap_policy(
-                    {modules.TransformerDecoderLayer}
+                    modules_to_wrap={modules.TransformerDecoderLayer}
                 ),
+                param_init_fn=partial(lora_fsdp_init, device=self._device),
             )
+
+            # Ensure no params and buffers are on meta device
+            validate_no_meta_params(model)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
@@ -307,7 +303,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         weight_decay: float,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        optimizer = optim.get_optimizer(optimizer, self._model, lr, weight_decay)
+        optimizer = modules.get_optimizer(optimizer, self._model, lr, weight_decay)
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter params, but should be equivalent
@@ -327,7 +323,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
-        lr_scheduler = lr_schedulers.get_lr_scheduler(
+        lr_scheduler = modules.get_lr_scheduler(
             lr_scheduler,
             self._optimizer,
             num_warmup_steps=num_warmup_steps,
@@ -339,7 +335,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = losses.get_loss(loss)
+        loss_fn = modules.get_loss(loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")

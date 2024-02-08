@@ -8,7 +8,7 @@ Getting Started
 
 Topics in this section will help you get started with TorchTune.
 
-.. grid:: 2
+.. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
         What is TorchTune?
@@ -28,6 +28,14 @@ Topics in this section will help you get started with TorchTune.
 
         A step-by-step tutorial on how to install TorchTune.
 
+     .. grid-item-card:: :octicon:`file-code;1em`
+         Finetune your first model
+         :img-top: _static/img/card-background.svg
+         :link: examples/first_finetune_tutorial
+         :link-type: url
+
+         Follow a simple tutorial to finetune Llama2 with TorchTune.
+
 Tutorials
 ~~~~~~~~~
 
@@ -37,18 +45,18 @@ TorchTune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: Template Tutorial
-   :card_description: A template tutorial. To be deleted.
+   :header: Finetune Llama2 with TorchTune
+   :card_description: Quickstart to get you finetuning an LLM fast.
    :image: _static/img/generic-pytorch-logo.png
-   :link: generated_examples/template_tutorial.html
-   :tags: Template
+   :link: examples/first_finetune_tutorial.html
+   :tags: finetuning,llama2
 
 .. customcarditem::
    :header: Training Recipes Deep-Dive
    :card_description: Dive into TorchTune's Training Recipes
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/recipe_deepdive.html
-   :tags: finetuning,llama2
+   :tags: finetuning
 
 .. customcardend::
 
@@ -84,8 +92,8 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   generated_examples/template_tutorial
    examples/recipe_deepdive
+   examples/first_finetune_tutorial
 
 .. toctree::
    :glob:
@@ -94,7 +102,6 @@ TorchTune tutorials.
    :hidden:
 
    api_ref_datasets
-   api_ref_lr_schedulers
    api_ref_models
    api_ref_modules
    api_ref_utilities

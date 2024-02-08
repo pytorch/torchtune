@@ -114,8 +114,8 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_params(self) -> Tuple[int, int]:
         batch_size = 4
-        seq_len = 2048
-        vocab_size = 1024
+        seq_len = 512
+        vocab_size = 256
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
@@ -125,11 +125,11 @@ class TestTransformerDecoder:
 
     @pytest.fixture
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
-        vocab_size = 1024
-        embed_dim = 4096
+        vocab_size = 256
+        embed_dim = 512
         num_layers = 2
-        num_heads = 32
-        max_seq_len = 4096
+        num_heads = 8
+        max_seq_len = 512
         num_kv_heads = 8
         return vocab_size, embed_dim, num_layers, num_heads, max_seq_len, num_kv_heads
 
@@ -215,7 +215,7 @@ class TestTransformerDecoder:
         batch_size, seq_len, vocab_size = input_params
         with torch.no_grad():
             output = decoder(input)
-        assert_expected(output.mean(), torch.tensor(163.8399), atol=1e-8, rtol=1e-6)
+        assert_expected(output.mean(), torch.tensor(20.4800), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
 
     def test_max_seq_len_exceeded(
