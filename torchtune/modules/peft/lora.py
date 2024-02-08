@@ -5,7 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List
+from typing import List, Optional
+
+import torch
 
 import torch.nn.functional as F
 
@@ -13,6 +15,23 @@ from torch import nn, Tensor
 
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
+
+
+def reset_lora_params(model: nn.Module, device: torch.device) -> None:
+    """
+    Initializes lora parameters of a given model. This is useful
+    if model is initialized on meta device and custom initialization
+    needs to be run for LoRA parameters. This method is meant to be used
+    in tandem with ``LoRALinear``'s ``reset_lora_parameters`` and simply
+    calls this method on each instance.
+
+    Args:
+        model (nn.Module): Instance of model class containing LoRA parameters
+        device (torch.device): Device to initialize LoRA parameters on.
+    """
+    for m in model.modules():
+        if hasattr(m, "reset_lora_parameters"):
+            m.reset_lora_parameters(device=device)
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -68,13 +87,24 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_b = nn.Linear(
             in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
-        self.reset_lora_parameters()
+        self._lora_params_initialized = False
+        # Skip init if we are under a meta device context
+        if not self.weight.is_meta:
+            self.reset_lora_parameters()
 
-    def reset_lora_parameters(self):
+    def reset_lora_parameters(self, device: Optional[torch.device] = None):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
+        # TODO: getting default / current device with torch.empty(1).device - replace with torch.get_default_device
+        # once available in latest stable version.
+        init_device = device if device is not None else torch.empty(1).device
+        # Should not be initializing on a meta device
+        assert init_device != torch.device("meta")
+        self.lora_a.to_empty(device=init_device)
+        self.lora_b.to_empty(device=init_device)
         nn.init.zeros_(self.lora_b.weight)
         nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+        self._lora_params_initialized = True
 
     def adapter_params(self) -> List[str]:
         """
@@ -93,7 +123,14 @@ class LoRALinear(nn.Module, AdapterModule):
 
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
+
+        Raises:
+            RuntimeError: if reset_lora_params was never called
         """
+        if not self._lora_params_initialized:
+            raise RuntimeError(
+                "lora reset_lora_params was never called, please file a bug."
+            )
         out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
