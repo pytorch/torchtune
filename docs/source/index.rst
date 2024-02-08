@@ -48,7 +48,7 @@ TorchTune tutorials.
    :card_description: Full Finetuning for Llama2
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/finetune_llm.html
-   :tags: finetuning, llama2
+   :tags: finetuning,llama2
 
 .. customcarditem::
    :header: Training Recipes Deep-Dive
