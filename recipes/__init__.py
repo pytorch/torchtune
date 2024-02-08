@@ -6,7 +6,10 @@
 
 
 _RECIPE_LIST = ["full_finetune", "alpaca_generate"]
-_CONFIG_LISTS = {"full_finetune": ["alpaca_llama2_full_finetune"], "alpaca_generate": []}
+_CONFIG_LISTS = {
+    "full_finetune": ["alpaca_llama2_full_finetune"],
+    "alpaca_generate": [],
+}
 
 
 def list_recipes():
