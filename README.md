@@ -72,14 +72,23 @@ pip install -e .
 To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune
+tune recipe --help
 ```
 
 And should see the following output:
 
 ```
-usage: tune [options] <recipe> [recipe_args]
-tune: error: the following arguments are required: recipe, recipe_args
+usage: tune recipe
+
+Utility for information relating to recipes
+
+positional arguments:
+
+    list      List recipes
+    cp        Copy recipe to local path
+
+options:
+  -h, --help  show this help message and exit
 ```
 
 &nbsp;
