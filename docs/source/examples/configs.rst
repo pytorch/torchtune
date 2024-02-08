@@ -36,12 +36,8 @@ CLI and passes it into the recipe itself. Here, we will discuss all three concep
 configs, CLI, and dataclasses.
 
 
-Defining parameters for custom recipes
---------------------------------------
-
-In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes.
-Exposing an excessive number of parameters will lead to bloated configs, which are more error prone, harder to read, and harder to manage.
-On the other hand, hardcoding all parameters will prevent quick experimentation without a code change. Only parametrize what is needed.
+Recipe dataclasses
+------------------
 
 Parameters should be organized in a singular dataclass that is passed into the recipe.
 This serves as a single source of truth for the details of a fine-tuning run that can be easily validated in code and shared with collaborators for reproducibility.
@@ -59,6 +55,10 @@ use the null value for that data type as the default and ensure that it is set
 by the user in the :code:`__post_init__` (see Parameter Validation).
 The dataclass should go in the :code:`recipes/params/` folder and the name of
 the file should match the name of the recipe file you are creating.
+
+In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes.
+Exposing an excessive number of parameters will lead to bloated configs, which are more error prone, harder to read, and harder to manage.
+On the other hand, hardcoding all parameters will prevent quick experimentation without a code change. Only parametrize what is needed.
 
 To link the dataclass object with config and CLI parsing,
 you can use the :class:`~torchtune.utils.argparse.TuneArgumentParser` object and
@@ -109,12 +109,25 @@ are not specified in the config will take on the default value defined in the da
     model: llama2_7b
     ...
 
+Command-line overrides
+----------------------
+To enable quick experimentation, you can specify override values to parameters in your config
+via the :code:`tune` command. These should be specified with the flag :code:`--override k1=v1 k2=v2 ...`
+
+For example, to run the :code:`full_finetune` recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:
+
+.. code-block:: bash
+
+    tune full_finetune --config alpaca_llama2_full_finetune --override model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+
+The order of overrides from these parameter sources is as follows, with highest precedence first: CLI, Config, Dataclass defaults
+
 
 Testing configs
 ---------------
 If you plan on contributing your config to the repo, we recommend adding it to the testing suite. TorchTune has testing for every config added to the library, namely ensuring that it instantiates the dataclass and runs the recipe correctly.
 
-To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs.py`.
+To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs`.
 
 .. code-block:: python
 
@@ -123,14 +136,21 @@ To add your config to this test suite, simply update the dictionary in :code:`re
         ...,
     }
 
+Linking recipes and configs with :code:`tune`
+---------------------------------------------
 
-Command-line overrides
-----------------------
-To enable quick experimentation, you can specify override values to parameters in your config
-via the :code:`tune` command. These should be specified with the flag :code:`--override k1=v1 k2=v2 ...`
+In order to run your custom recipe and configs with :code:`tune`, you must update the :code:`_RECIPE_LIST`
+and :code:`_CONFIG_LISTS` in :code:`recipes/__init__.py`
 
-The order of overrides from these parameter sources is as follows, with highest precedence first: CLI, Config, Dataclass defaults
+.. code-block:: python
 
+    _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", ...]
+    _CONFIG_LISTS = {
+        "full_finetune": ["alpaca_llama2_full_finetune"],
+        "lora_finetune": ["alpaca_llama2_lora_finetune"],
+        "alpaca_generate": [],
+        "<your_recipe>": ["<your_config"],
+    }
 
 Running your recipe
 -------------------
