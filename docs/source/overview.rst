@@ -25,7 +25,7 @@ TorchTune provides:
 - Yaml configs for easily configuring training runs
 
 Excited? To get started, visit the `Get Started <https://github.com/pytorch-labs/torchtune?tab=readme-ov-file#get-started>`_ section
-on the github repo and download your LLM of choice. You can also read through the tutorial on Finetuning Llama 7B (TODO add link) to
+on the github repo and download your LLM of choice. You can also read through the tutorial on :ref:`Finetuning Llama2<finetune_llama_label>` to
 finetune your first LLM with TorchTune.
 
 |

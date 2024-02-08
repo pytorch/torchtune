@@ -16,9 +16,8 @@ Topics in this section will help you get started with TorchTune.
         :link: overview.html
         :link-type: url
 
-        A gentle introduction to TorchTune. In this section,
-        you will learn about main features of TorchTune
-        and how you can use them in your projects.
+        A gentle introduction to TorchTune and how you can
+        use the library in your projects.
 
      .. grid-item-card:: :octicon:`file-code;1em`
         Installation instructions
@@ -92,8 +91,8 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   examples/recipe_deepdive
    examples/first_finetune_tutorial
+   examples/recipe_deepdive
 
 .. toctree::
    :glob:

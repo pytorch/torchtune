@@ -1,3 +1,5 @@
+.. _finetune_llama_label:
+
 ===============================
 Finetune Llama2 with TorchTune
 ===============================
