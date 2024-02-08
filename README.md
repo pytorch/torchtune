@@ -20,6 +20,8 @@ The library provides:
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
+NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2.0](https://pytorch.org/get-started/locally/).
+
 &nbsp;
 
 | Model                                         | Sizes     |   Finetuning Methods |
