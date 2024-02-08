@@ -1,3 +1,5 @@
+.. _config_tutorial_label:
+
 =================
 Configs Deep-Dive
 =================
@@ -17,7 +19,7 @@ designing params for custom recipes.
 
       * Be familiar with the :ref:`overview of TorchTune<overview_label>`
       * Make sure to :ref:`install TorchTune<install_label>`
-      * Understand the :ref:`fundamentals of recipes<recipe_deepdive>``
+      * Understand the :ref:`fundamentals of recipes<recipe_deepdive>`
 
 
 Where parameters are sourced

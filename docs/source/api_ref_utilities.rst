@@ -7,7 +7,7 @@ torchtune.utils
 .. _dist_label:
 
 Distributed
-------------
+-----------
 
 .. autosummary::
     :toctree: generated/
@@ -20,7 +20,7 @@ Distributed
 .. _mp_label:
 
 Mixed Precision
---------------
+---------------
 
 .. autosummary::
     :toctree: generated/
@@ -58,7 +58,7 @@ Metric Logging
     metric_logging.DiskLogger
 
 Data
------
+----
 
 .. autosummary::
     :toctree: generated/
@@ -68,7 +68,7 @@ Data
     collate.padded_collate
 
 Checkpoint saving & loading
-----------------------------
+---------------------------
 
 .. autosummary::
     :toctree: generated/

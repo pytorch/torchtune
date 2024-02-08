@@ -54,16 +54,6 @@ What Recipes are not?
 - **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EluetherAI's evaluation harness).
 
 
-Configs
--------
-
-If you're new to TorchTune or to LLMs generally, configs would be the first concept to understand and get familiar with.
-If you're an advanced user writing your own recipes, adding config files will improve your experimentation velocity and
-ability to collaborate on experiments.
-
-- TODO - point to config tutorial after this is landed
-
-
 Recipe Script
 -------------
 
@@ -192,3 +182,9 @@ Cleanup recipe state
 
         self.metric_loggers.close()
         ...
+
+Running Recipes with Configs
+----------------------------
+
+To run a recipe with a set of user-defined parameters, you will need to write a config file.
+You can learn all about configs in our :ref:`config tutorial<config_tutorial_label>`.
