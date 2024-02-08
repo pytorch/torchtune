@@ -64,21 +64,31 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
 ```
-git clone https://github.com/pytorch-labs/torchtune
+git clone https://github.com/pytorch-labs/torchtune.git
 cd torchtune
 pip install -e .
 ```
 
-To verify successful installation, one can run:
+To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune recipe list
+tune recipe --help
 ```
 
-And as an example, the following import should work:
+And should see the following output:
 
 ```
-from torchtune.modules import TransformerDecoder
+usage: tune recipe
+
+Utility for information relating to recipes
+
+positional arguments:
+
+    list      List recipes
+    cp        Copy recipe to local path
+
+options:
+  -h, --help  show this help message and exit
 ```
 
 &nbsp;
