@@ -10,7 +10,7 @@ Given a model and a dataset comprising of input-label pairs, we train the model 
 .. note::
 
   Full Fine-tuning is usually a lot more expensive that parameter-efficient techniques like LoRA, but
-  in most cases results in a higher quality model.
+  can result in a higher quality model.
 
 
 This recipe supports:
