@@ -101,6 +101,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         # Load in base model weights
+        # Note that we set resume_from_checkpoint=False when loading the base model.
+        # This is because we only save LoRA weights during training, so only lora_checkpoint
+        # will contain training state, while model_checkpoint contains model weights only.
         base_model_ckpt = self.load_checkpoint(
             ckpt_path=params.model_checkpoint, resume_from_checkpoint=False
         )

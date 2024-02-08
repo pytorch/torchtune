@@ -55,6 +55,8 @@ def save_checkpoint(
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
         output_loc (str): Local path to save the checkpoint to.
         model_key_filter (Optional[Callable[[str], bool]]): Optional function to filter the keys in the model state dict.
+            This function should return True if the key is intended to be included in the saved checkpoint
+            and False otherwise.
     Raises:
         RuntimeError: If `ckpt_dict` does not contain a `model` key.
 
