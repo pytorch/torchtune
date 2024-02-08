@@ -191,7 +191,7 @@ def wrap_fsdp(
         return FSDP(
             model,
             auto_wrap_policy=wrap_policy,
-            device_id=device,
+            # device_id=device,
             mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
             cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,

@@ -43,6 +43,18 @@ from recipes.params import LoRAFinetuneParams
 log = utils.get_logger("DEBUG")
 
 
+def print_memory_summary(prefix, device):
+    rank = torch.distributed.get_rank()
+    if rank == 0:
+        peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
+        print(
+            f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) // 1e9}GB, "
+            f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) // 1e9}GB, "
+            f"GPU peak memory active: {peak_memory_active // 1e9}GB"
+        )
+    torch.cuda.reset_peak_memory_stats(device)
+
+
 class LoRAFinetuneRecipe(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
@@ -119,6 +131,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             enable_activation_checkpointing=params.enable_activation_checkpointing,
             base_model_state_dict=ckpt_dict[MODEL_KEY],
         )
+        print_memory_summary("After model init", torch.cuda.current_device())
 
         self._tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
@@ -128,6 +141,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             optimizer=params.optimizer, lr=params.lr, weight_decay=params.weight_decay
         )
         self._loss_fn = self._setup_loss(loss=params.loss)
+        print_memory_summary("After optim and loss init", torch.cuda.current_device())
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -209,7 +223,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     ) -> nn.Module:
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
+        import time
+        start = time.time()
         init_device = "meta" if enable_fsdp else self._device
+        # init_device=self._device
         model = models.get_model(
             model,
             device=init_device,
@@ -217,6 +234,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
+        model = model.to(torch.bfloat16)
 
         reset_lora_params(model, device=self._device)
         adapter_params = get_adapter_params(model)
@@ -241,13 +259,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
+        for k, v in base_model_state_dict.items():
+            base_model_state_dict[k] = v.to(torch.bfloat16)
+        missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False, assign=True)
         validate_state_dict_for_lora(missing, unexpected, lora_attn_modules)
 
         if self._is_rank_zero:
             log.info(
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
             )
+
+        print(f"RV: setup_model took {time.time() - start}")
         return model
 
     def _setup_tokenizer(
@@ -391,6 +413,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     break
                 self.total_training_steps += 1
                 self._optimizer.zero_grad()
+                print_memory_summary(f"Step {idx} after zero_grad", torch.cuda.current_device())
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -404,6 +427,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     logits = logits.transpose(1, 2)
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
+                    print_memory_summary(f"Step {idx} after FWD", torch.cuda.current_device())
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
@@ -421,7 +445,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     )
 
                 self._grad_scaler.scale(loss).backward()
+                print_memory_summary(f"Step {idx} after BWD", torch.cuda.current_device())
                 self._grad_scaler.step(self._optimizer)
+                print_memory_summary(f"Step {idx} after OPT", torch.cuda.current_device())
                 self._grad_scaler.update()
                 self._lr_scheduler.step()
 

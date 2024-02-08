@@ -175,4 +175,5 @@ def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
     else:
         # Brings params to device with empty data. data will be
         # overwriten when loading in checkpoint.
+        pass
         module.to_empty(device=device, recurse=False)
