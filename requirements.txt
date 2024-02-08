@@ -1,5 +1,5 @@
 # Install PyTorch
-torch>=2.0.0
+torch>=2.2.0
 
 # HuggingFace Integration Reqs
 datasets==2.15.0

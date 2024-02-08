@@ -18,7 +18,7 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import datasets, losses, lr_schedulers, models, modules, optim, utils
+from torchtune import datasets, models, modules, utils
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
@@ -267,7 +267,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     def _setup_optimizer(
         self, optimizer: str, lr: float, weight_decay: float
     ) -> Optimizer:
-        optimizer = optim.get_optimizer(optimizer, self._model, lr, weight_decay)
+        optimizer = modules.get_optimizer(optimizer, self._model, lr, weight_decay)
 
         if self._is_rank_zero:
             log.info("Optimizer and loss are initialized.")
@@ -280,7 +280,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
-        lr_scheduler = lr_schedulers.get_lr_scheduler(
+        lr_scheduler = modules.get_lr_scheduler(
             lr_scheduler,
             self._optimizer,
             num_warmup_steps=num_warmup_steps,
@@ -292,7 +292,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = losses.get_loss(loss)
+        loss_fn = modules.get_loss(loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")

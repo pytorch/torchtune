@@ -20,6 +20,8 @@ The library provides:
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
+NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
+
 &nbsp;
 
 | Model                                         | Sizes     |   Finetuning Methods |
@@ -64,21 +66,31 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
 
 ```
-git clone https://github.com/pytorch-labs/torchtune
+git clone https://github.com/pytorch-labs/torchtune.git
 cd torchtune
 pip install -e .
 ```
 
-To verify successful installation, one can run:
+To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune recipe list
+tune recipe --help
 ```
 
-And as an example, the following import should work:
+And should see the following output:
 
 ```
-from torchtune.modules import TransformerDecoder
+usage: tune recipe
+
+Utility for information relating to recipes
+
+positional arguments:
+
+    list      List recipes
+    cp        Copy recipe to local path
+
+options:
+  -h, --help  show this help message and exit
 ```
 
 &nbsp;
@@ -86,6 +98,8 @@ from torchtune.modules import TransformerDecoder
 ---
 
 ## Get Started
+
+For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
 
 #### Downloading a model
 
@@ -95,14 +109,14 @@ Follow the instructions on the official [`meta-llama`](https://huggingface.co/me
 You can find your token at https://huggingface.co/settings/tokens
 
 ```
-tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
+tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir /tmp/llama2
 ```
 
 &nbsp;
 
 #### Converting the checkpoint into PyTorch-native
 
-Now that you have the Llama2 model weights, we need to convert them into a PyTorch-native format supported by TorchTune.
+Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
 tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
@@ -114,12 +128,12 @@ tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
 
 On a single GPU
 ```
-tune finetune_llm --config alpaca_llama2_finetune
+tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
 ```
 
 On multiple GPUs using FSDP
 ```
-tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --fsdp True
+tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
 ```
 
 &nbsp;
@@ -128,9 +142,9 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune 
 
 To copy a recipe to customize it yourself and then run
 ```
-tune recipe cp finetune_llm my_recipe/finetune_llm.py
-tune config cp alpaca_llama2_finetune my_recipe/alpaca_llama2_finetune.yaml
-tune my_recipe/finetune_llm.py --config my_recipe/alpaca_llama2_finetune.yaml
+tune recipe cp full_finetune my_recipe/full_finetune.py
+tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 ```
 
 &nbsp;
@@ -142,15 +156,11 @@ recipes. Aside from torchtune recipe utilties, it integrates with ``torch.distri
 to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
 does with the following additional functionalities:
 
-1. ``tune <recipe> <recipe_args>`` with no optional ``torchrun`` options launches a single python process
+1. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
 
 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune <path/to/recipe.py> <recipe_args>`` can be used to launch local recipes
-
-4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
-
-5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
+3. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
 
 &nbsp;
 

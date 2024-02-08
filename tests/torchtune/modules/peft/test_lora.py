@@ -84,7 +84,7 @@ class TestLoRALinear:
         assert_expected(actual.shape, (BSZ, SEQ_LEN, out_dim))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
-    def test_forward_without_lora_reset(self, inputs):
+    def test_forward_without_lora_reset(self, in_dim, out_dim, inputs):
         with torch.device("meta"):
             lora_linear = LoRALinear(
                 in_dim=in_dim,
@@ -95,7 +95,7 @@ class TestLoRALinear:
             )
 
         with pytest.raises(RuntimeError, match="lora reset_lora_params"):
-            _ = lora_linear(out)
+            _ = lora_linear(inputs)
 
     def test_lora_meta_init_matches_device(self, in_dim, out_dim, inputs):
         # TODO (rohan-varma): This test is quite limited and it should really test exact parity

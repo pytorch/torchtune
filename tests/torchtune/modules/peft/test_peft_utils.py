@@ -261,7 +261,7 @@ class TestPeftUtils:
                 lora_alpha=1.0,
             )
 
-        reset_lora_params(model, device=torch.get_default_device())
+        reset_lora_params(model, device=torch.device("cpu"))
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
         num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
