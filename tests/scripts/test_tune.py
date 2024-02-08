@@ -32,7 +32,7 @@ class TestTuneCLI:
 
     def test_recipe_cp(self, tmp_path, capsys):
         # Valid recipe
-        recipe = "finetune_llm"
+        recipe = "full_finetune"
         path = tmp_path / "dummy.py"
         testargs = f"tune recipe cp {recipe} {path}".split()
         with patch.object(sys, "argv", testargs):
@@ -69,7 +69,7 @@ class TestTuneCLI:
             assert os.path.exists(recipe_path), f"{recipe_path} must exist"
 
     def test_config_list(self, capsys):
-        recipe = "finetune_llm"
+        recipe = "full_finetune"
         testargs = f"tune config list --recipe {recipe}".split()
         with patch.object(sys, "argv", testargs):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -82,7 +82,7 @@ class TestTuneCLI:
 
     def test_config_cp(self, tmp_path, capsys):
         # Valid recipe
-        config = "alpaca_llama2_finetune"
+        config = "alpaca_llama2_full_finetune"
         path = tmp_path / "dummy.yaml"
         testargs = f"tune config cp {config} {path}".split()
         with patch.object(sys, "argv", testargs):
@@ -123,10 +123,10 @@ class TestTuneCLI:
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
     def test_run(self, capsys):
-        recipe = "finetune_llm"
+        recipe = "full_finetune"
         # Make sure we're not running on GPU which can lead to issues on GH CI
         testargs = f"\
-            tune {recipe} --config alpaca_llama2_finetune --override tokenizer=fake \
+            tune {recipe} --config alpaca_llama2_full_finetune --override tokenizer=fake \
             device=cpu enable_fsdp=False enable_activation_checkpointing=False \
         ".split()
         with patch.object(sys, "argv", testargs):
