@@ -37,7 +37,11 @@ The config is the primary entry point for users, with CLI overrides providing fl
 
 ## Examples
 
-To run the `finetune_llm` recipe with the `alpaca_llama2_finetune.yaml` config, run this command:
+If you have not already done so, follow the instructions [here](https://github.com/pytorch-labs/torchtune/blob/main/README.md#downloading-a-model) to download the Llama2 model and convert the weights.
+
+### Full finetune
+
+To run the `finetune_llm` recipe with the `alpaca_llama2_full_finetune.yaml` config, run this command:
 
 On GPU (without PyTorch Distributed):
 ```
@@ -48,6 +52,22 @@ On multiple GPUs with FSDP:
 ```
 tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --override enable_fsdp=True enable_activation_checkpointing=False device=cuda
 ```
+
+### LoRA finetune
+
+To finetune with LoRA, you can use the `finetune_lora` recipe with the `alpaca_llama2_lora_finetune.yaml` config. E.g. on two devices
+
+```
+tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune
+```
+
+FSDP and activation checkpointing are enabled by default, and LoRA weights are added to the Q and V projections in self-attention. If you additionally want to apply LoRA to K and want to reduce the rank from the default of 8, you can run
+
+```
+tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune --overrides lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
+```
+
+### Generation
 
 To run the generation recipe, run this command from inside the main `/torchtune` directory:
 ```
