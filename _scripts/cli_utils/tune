@@ -42,7 +42,7 @@ from torch.distributed.run import get_args_parser, run
 
 import torchtune
 from recipes import list_recipes
-from scripts import list_scripts
+from _scripts import list_scripts
 
 
 def _update_parser_help(parser):
@@ -82,10 +82,10 @@ if __name__ == "__main__":
         pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
         if cmd == "recipe":
             assert not distributed_args, "You can't use distributed args with the recipe util"
-            cmd = os.path.join(pkg_path, "scripts", "cli_utils", "recipe_utils.py")
+            cmd = os.path.join(pkg_path, "_scripts", "cli_utils", "recipe_utils.py")
         elif cmd == "config":
             assert not distributed_args, "You can't use distributed args with the config util"
-            cmd = os.path.join(pkg_path, "scripts", "cli_utils", "config_utils.py")
+            cmd = os.path.join(pkg_path, "_scripts", "cli_utils", "config_utils.py")
         elif cmd in list_recipes():
             cmd = os.path.join(pkg_path, "recipes", f"{cmd}.py")
             args.recipe = cmd
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                 if not config.endswith(".yaml"):
                     args.recipe_args[cfg_idx] = os.path.join(pkg_path, "recipes", "configs", f"{config}.yaml")
         elif cmd in list_scripts():
-            cmd = os.path.join(pkg_path, "scripts", f"{cmd}.py")
+            cmd = os.path.join(pkg_path, "_scripts", f"{cmd}.py")
             args.recipe = cmd
             assert not distributed_args, "You can't use distributed args with scripts"
         else:
