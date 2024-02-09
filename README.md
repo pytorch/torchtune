@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
 
 &nbsp;
 
@@ -20,9 +20,9 @@ The library provides:
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
-NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
-
 &nbsp;
+
+The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
@@ -45,33 +45,6 @@ experience different peak memory utilization based on changes made in configurat
 
 NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
----
-
-## Design Principles
-
-TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
-
-#### Native PyTorch
-
-TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
-
-#### Simplicity and Extensibility
-
-TorchTune is designed to be easy to understand, use and extend.
-
-- Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend
-- No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases
-- Code duplication is prefered over unecessary abstractions
-- Modular building blocks over monolithic components
-
-#### Correctness
-
-TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
-
-- Extensive unit-tests to ensure component-level numerical parity with reference implementations
-- Checkpoint-tests to ensure model-level numerical parity with reference implementations
-- Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
-
 &nbsp;
 
 ---
@@ -79,6 +52,8 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 ## Installation
 
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
+
+NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
 
 ```
 git clone https://github.com/pytorch-labs/torchtune.git
@@ -134,7 +109,7 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir
 Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
-tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
+tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native
 ```
 
 &nbsp;
@@ -157,7 +132,7 @@ Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via
 tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune
 ```
 
-Again, the argument to `--nproc_per_node` can be varied subject to memory constraints.
+Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
 
 &nbsp;
 
@@ -188,6 +163,33 @@ does with the following additional functionalities:
 &nbsp;
 
 ---
+
+## Design Principles
+
+TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
+
+#### Native PyTorch
+
+TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
+
+#### Simplicity and Extensibility
+
+TorchTune is designed to be easy to understand, use and extend.
+
+- Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend
+- No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases
+- Code duplication is prefered over unecessary abstractions
+- Modular building blocks over monolithic components
+
+#### Correctness
+
+TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
+
+- Extensive unit-tests to ensure component-level numerical parity with reference implementations
+- Checkpoint-tests to ensure model-level numerical parity with reference implementations
+- Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
+
+&nbsp;
 
 ## Contributing
 
