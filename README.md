@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
 
 &nbsp;
 
