@@ -16,9 +16,8 @@ Topics in this section will help you get started with TorchTune.
         :link: overview.html
         :link-type: url
 
-        A gentle introduction to TorchTune. In this section,
-        you will learn about main features of TorchTune
-        and how you can use them in your projects.
+        A gentle introduction to TorchTune and how you can
+        use the library in your projects.
 
      .. grid-item-card:: :octicon:`file-code;1em`
         Installation instructions
@@ -31,7 +30,7 @@ Topics in this section will help you get started with TorchTune.
      .. grid-item-card:: :octicon:`file-code;1em`
          Finetune your first model
          :img-top: _static/img/card-background.svg
-         :link: examples/first_finetune_tutorial
+         :link: examples/first_finetune_tutorial.html
          :link-type: url
 
          Follow a simple tutorial to finetune Llama2 with TorchTune.
@@ -45,10 +44,10 @@ TorchTune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: Finetune Llama2 with TorchTune
-   :card_description: Quickstart to get you finetuning an LLM fast.
+   :header: LLM Full Finetuning Recipe
+   :card_description: Full Finetuning for Llama2
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/first_finetune_tutorial.html
+   :link: examples/finetune_llm.html
    :tags: finetuning,llama2
 
 .. customcarditem::
@@ -74,17 +73,7 @@ TorchTune tutorials.
 
    overview
    install
-
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Recipes
-   :hidden:
-
-   recipes/how_to_run
-   recipes/finetune_llm
-   recipes/alpaca_generate
+   examples/first_finetune_tutorial
 
 .. toctree::
    :glob:
@@ -92,8 +81,9 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
+   examples/finetune_llm
    examples/recipe_deepdive
-   examples/first_finetune_tutorial
+   examples/configs
 
 .. toctree::
    :glob:
@@ -102,7 +92,6 @@ TorchTune tutorials.
    :hidden:
 
    api_ref_datasets
-   api_ref_lr_schedulers
    api_ref_models
    api_ref_modules
    api_ref_utilities

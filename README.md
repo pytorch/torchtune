@@ -20,13 +20,30 @@ The library provides:
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
+NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
+
 &nbsp;
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA]()  |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA](recipes/lora_finetune.py)  |
 
 &nbsp;
+
+### Finetuning resource requirements
+
+Note: These resource requirements are based on GPU peak memory reserved during training using the specified configs. You may
+experience different peak memory utilization based on changes made in configuration / training. Please see the linked configs in the table for specific settings such as batch size, FSDP, activation checkpointing, optimizer, etc used to obtain the peak memory.
+
+| HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
+|--------------|-------------------|---------|------------|---------------------|
+| 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
+| 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
+| 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
+| 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
+
+
+NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
 ---
 
@@ -107,7 +124,7 @@ Follow the instructions on the official [`meta-llama`](https://huggingface.co/me
 You can find your token at https://huggingface.co/settings/tokens
 
 ```
-tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
+tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir /tmp/llama2
 ```
 
 &nbsp;
@@ -117,7 +134,7 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN>
 Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
-tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH> --output-path /tmp/llama2_native
+tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native
 ```
 
 &nbsp;
@@ -126,12 +143,12 @@ tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH> --output-path /tmp/l
 
 On a single GPU
 ```
-tune finetune_llm --config alpaca_llama2_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
+tune full_finetune --nnodes 1 --nproc_per_node 1 --config alpaca_llama2_full_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
 ```
 
 On multiple GPUs using FSDP
 ```
-tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
+tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
 ```
 
 &nbsp;
@@ -140,9 +157,9 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune 
 
 To copy a recipe to customize it yourself and then run
 ```
-tune recipe cp finetune_llm my_recipe/finetune_llm.py
-tune config cp alpaca_llama2_finetune my_recipe/alpaca_llama2_finetune.yaml
-tune my_recipe/finetune_llm.py --config my_recipe/alpaca_llama2_finetune.yaml
+tune recipe cp full_finetune my_recipe/full_finetune.py
+tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 ```
 
 &nbsp;
@@ -154,15 +171,11 @@ recipes. Aside from torchtune recipe utilties, it integrates with ``torch.distri
 to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
 does with the following additional functionalities:
 
-1. ``tune <recipe> <recipe_args>`` with no optional ``torchrun`` options launches a single python process
+1. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
 
 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune <path/to/recipe.py> <recipe_args>`` can be used to launch local recipes
-
-4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
-
-5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
+3. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
 
 &nbsp;
 

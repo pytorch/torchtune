@@ -20,7 +20,7 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import datasets, losses, models, modules, optim, utils
+from torchtune import datasets, models, modules, utils
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -251,7 +251,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Set up the optimizer. This method also handles transforing the state dict
         for FSDP.
         """
-        optimizer = optim.get_optimizer(optimizer, self._model, lr)
+        optimizer = modules.get_optimizer(optimizer, self._model, lr)
         if opt_state_dict:
             opt_state_dict = utils.transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
@@ -263,7 +263,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         return optimizer
 
     def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = losses.get_loss(loss)
+        loss_fn = modules.get_loss(loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
