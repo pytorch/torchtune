@@ -22,8 +22,8 @@ designing params for custom recipes.
       * Understand the :ref:`fundamentals of recipes<recipe_deepdive>`
 
 
-Where parameters are sourced
-----------------------------
+Where do parameters live?
+-------------------------
 
 There are two primary entry points for you to configure parameters: **configs** and
 **CLI overrides**. Configs are YAML files that define all the
@@ -100,7 +100,7 @@ Once you've set up a recipe and its params, you need to create a config to run i
 Configs serve as the primary entry point for running recipes in TorchTune. They are
 expected to be YAML files and simply list out values for parameters you want to define
 for a particular run. The config parameters should be a subset of the dataclass parameters;
-there should not be any new fields that are not in the dataclass. Any parameters that
+there should not be any new fields that are not already in the dataclass. Any parameters that
 are not specified in the config will take on the default value defined in the dataclass.
 
 .. code-block:: yaml
