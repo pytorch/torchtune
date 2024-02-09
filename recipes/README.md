@@ -41,16 +41,10 @@ If you have not already done so, follow the instructions [here](https://github.c
 
 ### Full finetune
 
-To run the `finetune_llm` recipe with the `alpaca_llama2_full_finetune.yaml` config, run this command:
+To run the `full_finetune` recipe with the `alpaca_llama2_full_finetune.yaml` config on 4 GPUs with FSDP, run this command:
 
-On GPU (without PyTorch Distributed):
 ```
-tune finetune_llm --config alpaca_llama2_finetune --override device=cuda
-```
-
-On multiple GPUs with FSDP:
-```
-tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune --override enable_fsdp=True enable_activation_checkpointing=False device=cuda
+tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune
 ```
 
 ### LoRA finetune
@@ -61,7 +55,7 @@ To finetune with LoRA, you can use the `finetune_lora` recipe with the `alpaca_l
 tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune
 ```
 
-FSDP and activation checkpointing are enabled by default, and LoRA weights are added to the Q and V projections in self-attention. If you additionally want to apply LoRA to K and want to reduce the rank from the default of 8, you can run
+FSDP and activation checkpointing are enabled by default, and LoRA weights are added to the Q and V projections in self-attention. If you additionally want to apply LoRA to K and would like to reduce the rank from the default of 8, you can run
 
 ```
 tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune --overrides lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
