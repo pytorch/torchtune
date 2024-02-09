@@ -25,21 +25,21 @@ designing params for custom recipes.
 Where parameters are sourced
 ----------------------------
 
-There are two primary entry points for users to configure parameters: configs and
-CLI overrides. Configs are YAML files that define all the parameters that the user
-wishes to run a recipe with in a single location. These can be overridden on the
+There are two primary entry points for you to configure parameters: **configs** and
+**CLI overrides**. Configs are YAML files that define in a single location all the
+parameters needed to run a recipe with in a single location. These can be overridden on the
 command-line for quick changes and experimentation without modifying the config.
 
 If you are planning to make your own custom recipe, you will need to become familiar
-with the recipe dataclass, which collects all the user arguments from config and
+with the **recipe dataclass**, which collects all your arguments from config and
 CLI and passes it into the recipe itself. Here, we will discuss all three concepts:
-configs, CLI, and dataclasses.
+**configs**, **CLI**, and **dataclasses**.
 
 
 Recipe dataclasses
 ------------------
 
-Parameters should be organized in a singular dataclass that is passed into the recipe.
+Parameters should be organized in a single dataclass that is passed into the recipe.
 This serves as a single source of truth for the details of a fine-tuning run that can be easily validated in code and shared with collaborators for reproducibility.
 
 .. code-block:: python
@@ -52,7 +52,7 @@ This serves as a single source of truth for the details of a fine-tuning run tha
 In the dataclass, all fields should have defaults assigned to them.
 If a reasonable value cannot be assigned or it is a required argument,
 use the null value for that data type as the default and ensure that it is set
-by the user in the :code:`__post_init__` (see Parameter Validation).
+by the user in the :code:`__post_init__` (see :ref:`Parameter Validation<parameter_validation_label>`).
 The dataclass should go in the :code:`recipes/params/` folder and the name of
 the file should match the name of the recipe file you are creating.
 
@@ -81,9 +81,11 @@ funnel the parsed arguments into your dataclass.
 
         recipe(params)
 
+.. _parameter_validation_label:
+
 Parameter validation
 --------------------
-To validate user arguments for your dataclass and recipe, use the :code:`__post_init__` method to house any checks and raised exceptions.
+To validate arguments for your dataclass and recipe, use the :code:`__post_init__` method to house any checks and raised exceptions.
 
 .. code-block:: python
 
