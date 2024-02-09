@@ -33,7 +33,7 @@ NOTE: TorchTune is currently only tested with the latest stable PyTorch release,
 ### Finetuning resource requirements
 
 Note: These resource requirements are based on GPU peak memory reserved during training using the specified configs. You may
-experience different peak memory utilization based on changes made in configuration / training.
+experience different peak memory utilization based on changes made in configuration / training. Please see the linked configs in the table for specific settings such as batch size, FSDP, activation checkpointing, optimizer, etc used to obtain the peak memory.
 
 | HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
