@@ -138,22 +138,6 @@ To add your config to this test suite, simply update the dictionary in :code:`re
         ...,
     }
 
-Linking recipes and configs with :code:`tune`
----------------------------------------------
-
-In order to run your custom recipe and configs with :code:`tune`, you must update the :code:`_RECIPE_LIST`
-and :code:`_CONFIG_LISTS` in :code:`recipes/__init__.py`
-
-.. code-block:: python
-
-    _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", ...]
-    _CONFIG_LISTS = {
-        "full_finetune": ["alpaca_llama2_full_finetune"],
-        "lora_finetune": ["alpaca_llama2_lora_finetune"],
-        "alpaca_generate": [],
-        "<your_recipe>": ["<your_config"],
-    }
-
 Running your recipe
 -------------------
 If everything is set up correctly, you should be able to run your recipe just like the existing library recipes using the :code:`tune` command:
