@@ -30,7 +30,7 @@ There are two primary entry points for you to configure parameters: **configs** 
 parameters needed to run a recipe within a single location. These can be overridden on the
 command-line for quick changes and experimentation without modifying the config.
 
-If you are planning to make your own custom recipe, you will need to become familiar
+If you are planning to make a custom recipe, you will need to become familiar
 with the **recipe dataclass**, which collects all your arguments from config and
 CLI, and passes it into the recipe itself. Here, we will discuss all three concepts:
 **configs**, **CLI**, and **dataclasses**.
