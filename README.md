@@ -35,12 +35,14 @@ NOTE: TorchTune is currently only tested with the latest stable PyTorch release,
 Note: These resource requirements are based on GPU peak memory reserved during training using the specified configs. You may
 experience different peak memory utilization based on changes made in configuration / training.
 
+| HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
+|--------------|-------------------|---------|------------|---------------------|
+| 2 x RTX 4090 |     LoRA          | [lora_finetune]([url](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml))    |    7B      |    18 G *           |
+| 4 x T4       |     LoRA          | [lora_finetune]([url](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml))    |    7B      |    12 G *           |
+| 2 x A100 80G |   Full finetune   | [full_finetune]([url](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml))    |    7B      |    62 G *           |
 
-| Finetuning Method                        | Model Size |  Config      |  Min. # GPUs    |  Peak Memory |  Example HW Resources
-|------------------------------------------|------------|--------------|-----------------|--------------|--------------------------|
-| Full Finetune                            |     7B     | [full_finetune]([url](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml))| 2                |     62 G     |      2 x A100 80G
-| LoRA Finetune                            |     7B     | [lora_finetune]([url](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml))| 2                |     18 G     |      2 x RTX 4090   |
 
+NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
 ---
 
