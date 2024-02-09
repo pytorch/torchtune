@@ -134,7 +134,7 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir
 Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
-tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
+tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native
 ```
 
 &nbsp;
@@ -143,12 +143,12 @@ tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
 
 On a single GPU
 ```
-tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
+tune full_finetune --nnodes 1 --nproc_per_node 1 --config alpaca_llama2_full_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
 ```
 
 On multiple GPUs using FSDP
 ```
-tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
+tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune --override model_checkpoint=/tmp/llama2_native tokenizer_checkpoint=/tmp/llama2/tokenizer.model
 ```
 
 &nbsp;
