@@ -141,20 +141,6 @@ tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
 
 #### Running recipes
 
-On a single GPU
-```
-tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
-```
-
-On multiple GPUs using FSDP
-```
-tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
-```
-
-&nbsp;
-
-#### Running recipes
-
 TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
 
 To run a full finetune on N devices on the Alpaca dataset:
@@ -169,8 +155,17 @@ Similarly, we can finetune with LoRA on the Alpaca dataset via
 
 ```
 tune --nnodes 1 --nproc_per_node N lora_finetune --config alpaca_llama2_lora_finetune
+```
 
 &nbsp;
+
+#### Copy and edit a custom recipe
+
+To copy a recipe to customize it yourself and then run
+```
+tune recipe cp full_finetune my_recipe/full_finetune.py
+tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 
 #### Command Utilities
 
