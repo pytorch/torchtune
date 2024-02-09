@@ -124,7 +124,7 @@ To run a full finetune on 2 devices on the Alpaca dataset using FSDP:
 tune --nnodes 1 --nproc_per_node 2 full_finetune --config alpaca_llama2_full_finetune
 ```
 
-The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
+The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
 
 Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via
 

@@ -58,7 +58,7 @@ tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_fin
 FSDP and activation checkpointing are enabled by default, and LoRA weights are added to the Q and V projections in self-attention. If you additionally want to apply LoRA to K and would like to reduce the rank from the default of 8, you can run
 
 ```
-tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune --overrides lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
+tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune --override lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
 ```
 
 ### Generation
