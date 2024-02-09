@@ -83,6 +83,7 @@ TorchTune tutorials.
 
    examples/finetune_llm
    examples/recipe_deepdive
+   examples/configs
 
 .. toctree::
    :glob:

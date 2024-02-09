@@ -51,38 +51,28 @@ What Recipes are not?
 
 - **Monolithic Trainers.** A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
 - **Genealized entry-points.** A recipe is **not** meant to support every possible model archichtecture or fine-tuning method.
-- **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EluetherAI's evaluation harness).
-
-
-Configs
--------
-
-If you're new to TorchTune or to LLMs generally, configs would be the first concept to understand and get familiar with.
-If you're an advanced user writing your own recipes, adding config files will improve your experimentation velocity and
-ability to collaborate on experiments.
-
-- TODO - point to config tutorial after this is landed
+- **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI's evaluation harness).
 
 
 Recipe Script
 -------------
 
-This is the primary entry point for each recipe and provides the user with control over how the recipe is setup, how models are
+This is the primary entry point for each recipe and provides the user with control over how the recipe is set up, how models are
 trained and how the subsequent checkpoints are used. This includes:
 
 - Setting up of the environment
 - Parsing and validating configs
 - Training the model
 - Post-training operations such as evaluation, quantization, model export, generation etc
-- Setting up multi-stage training (eg: Distillation) using multiple Recipe classes
+- Setting up multi-stage training (eg: Distillation) using multiple recipe classes
 
 
 Scripts should generally structure operations in the following order:
 
 - Extract and validate training params
-- Intialize th Recipe Class which in-turn intializes recipe state
+- Initialize the recipe class which in-turn initializes recipe state
 - Load and Validate checkpoint to update recipe state if resuming training
-- Initialize recipe components (model, tokeinzer, optimizer, loss and dataloader) from checkpoint (if applicable)
+- Initialize recipe components (model, tokenizer, optimizer, loss and dataloader) from checkpoint (if applicable)
 - Train the model
 - Clean up recipe state after training is complete
 
@@ -115,7 +105,7 @@ An example script looks something like this:
 Recipe Class
 ------------
 
-The Recipe Class carries the core logic for training a model. Each class implements a relevant interface and exposes a
+The recipe class carries the core logic for training a model. Each class implements a relevant interface and exposes a
 set of APIs. For fine-tuning, the structure of this class is as follows:
 
 Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc:
@@ -154,7 +144,7 @@ Load checkpoint, update recipe state from checkpoint, initialize components and 
 
 
 
-Run Forward and backward across all epochs and save checkpoint at end of each epoch
+Run forward and backward across all epochs and save checkpoint at end of each epoch
 
 .. code-block:: python
 
@@ -192,3 +182,9 @@ Cleanup recipe state
 
         self.metric_loggers.close()
         ...
+
+Running Recipes with Configs
+----------------------------
+
+To run a recipe with a set of user-defined parameters, you will need to write a config file.
+You can learn all about configs in our :ref:`config tutorial<config_tutorial_label>`.
