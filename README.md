@@ -118,7 +118,7 @@ tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --outp
 
 TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
 
-To run a full finetune on 2 devices on the Alpaca dataset using FSDP:
+To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 full_finetune --config alpaca_llama2_full_finetune
