@@ -166,6 +166,9 @@ To copy a recipe to customize it yourself and then run
 tune recipe cp full_finetune my_recipe/full_finetune.py
 tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
 tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
+```
+
+&nbsp;
 
 #### Command Utilities
 
