@@ -26,8 +26,8 @@ Where parameters are sourced
 ----------------------------
 
 There are two primary entry points for you to configure parameters: **configs** and
-**CLI overrides**. Configs are YAML files that define in a single location all the
-parameters needed to run a recipe with in a single location. These can be overridden on the
+**CLI overrides**. Configs are YAML files that define all the
+parameters needed to run a recipe within a single location. These can be overridden on the
 command-line for quick changes and experimentation without modifying the config.
 
 If you are planning to make your own custom recipe, you will need to become familiar
