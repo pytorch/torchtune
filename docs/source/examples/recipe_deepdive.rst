@@ -50,7 +50,7 @@ What Recipes are not?
 ---------------------
 
 - **Monolithic Trainers.** A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
-- **Genealized entry-points.** A recipe is **not** meant to support every possible model archichtecture or fine-tuning method.
+- **Generalized entry-points.** A recipe is **not** meant to support every possible model architecture or fine-tuning method.
 - **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI's evaluation harness).
 
 
