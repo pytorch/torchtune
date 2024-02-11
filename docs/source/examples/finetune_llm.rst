@@ -15,7 +15,7 @@ Given a model and a dataset comprising of input-label pairs, we train the model 
 
 This recipe supports:
 
-* :ref:`Mixed Precsion Training<mp_label>`
+* :ref:`Mixed Precision Training<mp_label>`
 
 * :ref:`Distributed Training with FSDP<dist_label>`
 
