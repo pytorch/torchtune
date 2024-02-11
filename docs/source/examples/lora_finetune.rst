@@ -4,8 +4,9 @@
 Finetuning Llama2 with LoRA
 ===========================
 
-This guide will show you how to use TorchTune to finetune a Llama2 model with `LoRA <https://arxiv.org/abs/2106.09685>`_,
-a parameter-efficient finetuning technique. If you already know what LoRA is and want to get straight to running
+This guide will teach you about `LoRA <https://arxiv.org/abs/2106.09685>`_, a parameter-efficient finetuning technique,
+and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
+If you already know what LoRA is and want to get straight to running
 your own LoRA finetune in TorchTune, you can jump to :ref:`this section<lora_recipe_label>`.
 
 .. grid:: 2
@@ -26,17 +27,17 @@ your own LoRA finetune in TorchTune, you can jump to :ref:`this section<lora_rec
 What is LoRA?
 -------------
 
-`LoRA <https://arxiv.org/abs/2106.09685>`_ is a parameter-efficient fine-tuning technique that adds a trainable
+`LoRA <https://arxiv.org/abs/2106.09685>`_ is a parameter-efficient finetuning technique that adds a trainable
 low-rank decomposition to different layers of a neural network, then freezes
 the network's remaining parameters. LoRA is most commonly applied to
 transformer models, in which case it is common to add the low-rank matrices
 to some of the self-attention projections in each transformer layer.
 
-By fine-tuning with LoRA (as opposed to fine-tuning all model parameters),
+By finetuning with LoRA (as opposed to finetuning all model parameters),
 you can expect to see memory savings due to a substantial reduction in the
 number of gradient parameters. When using an optimizer with momentum,
 like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_,
-you can expect to see further memory savings.
+you can expect to see further memory savings from the optimizer state.
 
 .. note::
 
@@ -50,10 +51,11 @@ How does LoRA work?
 LoRA replaces weight update matrices with a low-rank approximation. In general, weight updates
 for a given linear layer mapping dimension :code:`in_dim` to dimension :code:`out_dim` can have rank as high as
 :code:`min(in_dim,out_dim)`. LoRA (and other related papers such as `Aghajanyan et al. <https://arxiv.org/abs/2012.13255>`_)
-hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_ can be much lower.
-To take advantage of this property, LoRA fine-tuning will freeze the original model,
+hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_
+of these updates during LLM fine-tuning can in fact be much lower.
+To take advantage of this property, LoRA finetuning will freeze the original model,
 then add a trainable weight update from a low-rank projection. More explicitly, LoRA trains two
-matrices :code:`A` and :code:`B`. :code:`A` projects the inputs down to a much smaller rank (often 4 or 8 in practice), and
+matrices :code:`A` and :code:`B`. :code:`A` projects the inputs down to a much smaller rank (often four or eight in practice), and
 :code:`B` projects back up to the dimension output by the original linear layer.
 
 Although this introduces a few extra parameters in the model :code:`forward()`, only the LoRA matrices are trainable.
@@ -180,7 +182,7 @@ as expected. Additionally, inspecting the type of :code:`lora_model` and
 :code:`base_model`, would show that they are both instances of the same :class:`~torchtune.modules.TransformerDecoder`.
 (Feel free to verify this for yourself.)
 
-Why does this matter? TorchTune makes it easy to load checkpoints for LoRA directly from a Llama2
+Why does this matter? TorchTune makes it easy to load checkpoints for LoRA directly from our Llama2
 model without any wrappers or custom checkpoint conversion logic.
 
 .. code-block:: python
@@ -216,6 +218,7 @@ Once we've loaded the base model weights, we also want to set only LoRA paramete
     {total_params} total params,
     {trainable_params}" trainable params,
     {(100.0 * trainable_params / total_params):.2f}% of all params are trainable.
+    """
   )
 
   6742609920 total params,
@@ -234,8 +237,8 @@ LoRA finetuning recipe in TorchTune
 -----------------------------------
 
 Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch-labs/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
-Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`
-You can then run the following command to perform LoRA finetuning on Llama2 using the Alpaca dataset on two GPUs:
+Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
+You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs:
 
 .. code-block:: bash
 
@@ -243,19 +246,36 @@ You can then run the following command to perform LoRA finetuning on Llama2 usin
 
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
-    either by adding :code:`--override model_checkpoint=my_checkpoint_path tokenizer_`
+    either by adding :code:`--override model_checkpoint=my_model_checkpoint_path tokenizer_checkpoint=my_tokenizer_checkpoint_path`
+    or by directly modifying the :code:`alpaca_llama2_lora_finetune.yaml` file. See our :ref:`config_tutorial_label`
+    for more details on how you can easily clone and modify TorchTune configs.
 
 .. note::
-    You can modify the value of `nproc_per_node` depending on (a) the number of GPUs you have available,
+    You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
     and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch-labs/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
     for peak memory of LoRA finetuning in a couple of common hardware setups.
 
-Let's take a closer look at some of the :code:`alpaca_llama2_lora_finetune` config:
+The preceding command will run a LoRA finetune with TorchTune's factory settings, but we may want to experiment a bit.
+Let's take a closer look at some of the :code:`alpaca_llama2_lora_finetune` config.
 
 .. code-block:: yaml
+
   # Model Arguments
   model: lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
   lora_rank: 8
   lora_alpha: 16
   ...
+
+We see that the default is to apply LoRA to Q and V projections with a rank of 8.
+Some experiments with LoRA have found that it can be beneficial to apply LoRA to all linear layers in
+the self-attention, and to increase the rank to 16. Note that this is likely to increase our max memory,
+but as long as we keep :code:`rank<<embed_dim`, the impact should be relatively minor.
+
+We can run this experiment via
+
+.. code-block:: bash
+
+    tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune\
+    --override lora_attn_modules='q_proj,k_proj,v_proj,output_proj'\
+    lora_rank=16 output_dir=./lora_experiment_1
