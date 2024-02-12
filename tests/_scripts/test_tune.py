@@ -15,7 +15,7 @@ import pytest
 import torchtune
 from recipes import list_configs, list_recipes
 
-from tests.scripts.common import TUNE_PATH
+from tests._scripts.common import TUNE_PATH
 
 
 class TestTuneCLI:

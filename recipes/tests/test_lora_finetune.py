@@ -54,8 +54,4 @@ class TestLoRAFinetuneRecipe:
         recipe.train()
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
-        logger.info("Expected loss values : ", expected_loss_values)
-        logger.info("Loss values from Finetune : ", loss_values)
         validate_loss_values(loss_values, expected_loss_values)
-        # not for commit, just to make sure CI runs this
-        assert False

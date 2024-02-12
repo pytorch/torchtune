@@ -10,6 +10,8 @@ import pytest
 
 import torch
 
+from tests.test_utils import assert_expected, init_weights_with_constant
+
 from torch import nn, Tensor
 
 from torchtune.models.llama2 import _scale_hidden_dim_for_mlp, llama2
@@ -22,8 +24,6 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)

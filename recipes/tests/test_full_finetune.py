@@ -63,9 +63,6 @@ class TestFullFinetuneRecipe:
         recipe.train()
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
-        logger.info("Expected loss values : ", expected_loss_values)
-        logger.info("Loss values from Finetune : ", loss_values)
-
         validate_loss_values(loss_values, expected_loss_values)
 
     def test_training_state_on_resume(self):

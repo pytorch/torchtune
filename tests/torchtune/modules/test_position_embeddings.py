@@ -8,12 +8,12 @@ from typing import Tuple
 
 import pytest
 import torch
+
+from tests.test_utils import assert_expected
 from torch import tensor
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
