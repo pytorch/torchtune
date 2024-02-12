@@ -20,7 +20,14 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import datasets, models, modules, utils
+from torchtune import datasets, models, modules
+from torchtune.utils.argparse import TuneArgumentParser
+from torchtune.utils.checkpoint import (
+    save_checkpoint,
+    transform_opt_state_dict,
+    validate_checkpoint,
+)
+from torchtune.utils.collate import padded_collate
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -30,13 +37,21 @@ from torchtune.utils.constants import (
     TOTAL_EPOCHS_KEY,
 )
 
+from torchtune.utils.device import get_device
+from torchtune.utils.distributed import get_world_size_and_rank, wrap_fsdp
+from torchtune.utils.logging import get_logger
+from torchtune.utils.memory import set_activation_checkpointing
+from torchtune.utils.metric_logging import get_metric_logger
+from torchtune.utils.precision import get_autocast, get_dtype, get_gradient_scaler
+from torchtune.utils.seed import set_seed
+
 from tqdm import tqdm
 
 from recipes.interfaces import FTRecipeInterface
 from recipes.params import FullFinetuneParams
 
 
-log = utils.get_logger("DEBUG")
+log = get_logger("DEBUG")
 
 
 class FullFinetuneRecipe(FTRecipeInterface):
@@ -61,12 +76,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def __init__(self, params: FullFinetuneParams) -> None:
 
-        self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype)
+        self._device = get_device(device=params.device)
+        self._dtype = get_dtype(dtype=params.dtype)
 
         # logging attributes
         self._output_dir = params.output_dir
-        self._metric_logger = utils.get_metric_logger(
+        self._metric_logger = get_metric_logger(
             metric_logger_type=params.metric_logger_type,
             project=params.project,
             log_dir=params.output_dir,
@@ -77,7 +92,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # Training params
@@ -87,7 +102,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=params.seed)
+        self.seed = set_seed(seed=params.seed)
         self.epochs_run = 0
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
@@ -98,7 +113,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Extract the checkpoint state from file and validate.
         """
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-        utils.validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
+        validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
         return ckpt_dict
 
     def setup(self, params: FullFinetuneParams) -> None:
@@ -149,10 +164,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
         )
 
         # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
+        self._autocast = get_autocast(self._dtype, self._device)
         self._grad_scaler = None
         if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
+            self._grad_scaler = get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
 
@@ -188,7 +203,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 message="""Configured value for seed, epochs or max_steps_per_epoch
                 does not match the value stored in checkpoint."""
             )
-        self.seed = utils.set_seed(seed=ckpt_dict[SEED_KEY])
+        self.seed = set_seed(seed=ckpt_dict[SEED_KEY])
         self.epochs_run = ckpt_dict[EPOCHS_KEY]
         self.total_epochs = ckpt_dict[TOTAL_EPOCHS_KEY]
         self.max_steps_per_epoch = ckpt_dict[MAX_STEPS_KEY]
@@ -207,7 +222,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         model = models.get_model(model, device=self._device)
         model = (
-            utils.wrap_fsdp(
+            wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,
@@ -218,7 +233,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             else model
         )
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
@@ -253,7 +268,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         optimizer = modules.get_optimizer(optimizer, self._model, lr)
         if opt_state_dict:
-            opt_state_dict = utils.transform_opt_state_dict(
+            opt_state_dict = transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
             )
             optimizer.load_state_dict(opt_state_dict)
@@ -278,7 +293,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = get_world_size_and_rank()
         ds = datasets.get_dataset(
             dataset,
             split="train",
@@ -297,7 +312,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
             ),
@@ -334,7 +349,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(ckpt_dict, output_loc)
+        save_checkpoint(ckpt_dict, output_loc)
 
         if self._is_rank_zero:
             log.info(
@@ -359,7 +374,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = get_world_size_and_rank()
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -436,7 +451,7 @@ def recipe_main() -> None:
         - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
         - Overwritten by arguments from the command-line using ``TuneArgumentParser``
     """
-    parser = utils.TuneArgumentParser(
+    parser = TuneArgumentParser(
         description=FullFinetuneParams.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )

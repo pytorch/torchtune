@@ -19,7 +19,7 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import datasets, models, modules, utils
+from torchtune import datasets, models, modules
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
@@ -28,6 +28,13 @@ from torchtune.modules.peft.peft_utils import (
     set_trainable_params,
     validate_state_dict_for_lora,
 )
+from torchtune.utils.argparse import TuneArgumentParser
+from torchtune.utils.checkpoint import (
+    save_checkpoint,
+    transform_opt_state_dict,
+    validate_checkpoint,
+)
+from torchtune.utils.collate import padded_collate
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -36,13 +43,23 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import validate_no_meta_params
+from torchtune.utils.device import get_device
+from torchtune.utils.distributed import (
+    get_world_size_and_rank,
+    validate_no_meta_params,
+    wrap_fsdp,
+)
+from torchtune.utils.logging import get_logger
+from torchtune.utils.memory import set_activation_checkpointing
+from torchtune.utils.metric_logging import get_metric_logger
+from torchtune.utils.precision import get_autocast, get_dtype, get_gradient_scaler
+from torchtune.utils.seed import set_seed
 from tqdm import tqdm
 
 from recipes.interfaces import FTRecipeInterface
 from recipes.params import LoRAFinetuneParams
 
-log = utils.get_logger("DEBUG")
+log = get_logger("DEBUG")
 
 
 class LoRAFinetuneRecipe(FTRecipeInterface):
@@ -67,12 +84,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
     def __init__(self, params: LoRAFinetuneParams) -> None:
 
-        self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype)
+        self._device = get_device(device=params.device)
+        self._dtype = get_dtype(dtype=params.dtype)
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -81,7 +98,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             params.log_every_n_steps if params.log_every_n_steps else 1
         )
         if self._is_rank_zero:
-            self._metric_logger = utils.get_metric_logger(
+            self._metric_logger = get_metric_logger(
                 metric_logger_type=params.metric_logger_type,
                 project=params.project,
                 log_dir=params.output_dir,
@@ -89,7 +106,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=params.seed)
+        self.seed = set_seed(seed=params.seed)
         self.epochs_run = 0
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
@@ -159,9 +176,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
 
         # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
+        self._autocast = get_autocast(self._dtype, self._device)
         if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
+            self._grad_scaler = get_gradient_scaler(fsdp=params.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
 
@@ -193,7 +210,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Extract the checkpoint state from file and validate.
         """
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-        utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
+        validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
 
     def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
@@ -211,7 +228,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 message="""Configured value for seed, epochs or max_steps_per_epoch
                 does not match the value stored in checkpoint."""
             )
-        self.seed = utils.set_seed(seed=ckpt_dict[SEED_KEY])
+        self.seed = set_seed(seed=ckpt_dict[SEED_KEY])
         self.epochs_run = ckpt_dict[EPOCHS_KEY]
         self.total_epochs = ckpt_dict[TOTAL_EPOCHS_KEY]
         self.max_steps_per_epoch = ckpt_dict[MAX_STEPS_KEY]
@@ -245,7 +262,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         set_trainable_params(model, self.adapter_params)
 
         if enable_fsdp:
-            model = utils.wrap_fsdp(
+            model = wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,
@@ -260,7 +277,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             validate_no_meta_params(model)
 
         if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
+            set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
@@ -307,7 +324,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter params, but should be equivalent
-            opt_state_dict = utils.transform_opt_state_dict(
+            opt_state_dict = transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
             )
             optimizer.load_state_dict(opt_state_dict)
@@ -355,7 +372,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
+        world_size, rank = get_world_size_and_rank()
         ds = datasets.get_dataset(
             dataset,
             split="train",
@@ -374,7 +391,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             batch_size=batch_size,
             sampler=sampler,
             collate_fn=partial(
-                utils.padded_collate,
+                padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
             ),
@@ -404,7 +421,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(
+        save_checkpoint(
             ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         )
 
@@ -417,7 +434,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         """
         The core training loop.
         """
-        _, rank = utils.get_world_size_and_rank()
+        _, rank = get_world_size_and_rank()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -487,7 +504,7 @@ def recipe_main() -> None:
         - Overwritten by Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
         - Overwritten by arguments from the command-line using ``TuneArgumentParser``
     """
-    parser = utils.TuneArgumentParser(
+    parser = TuneArgumentParser(
         description=LoRAFinetuneParams.__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
