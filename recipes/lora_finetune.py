@@ -44,6 +44,17 @@ from recipes.params import LoRAFinetuneParams
 
 log = utils.get_logger("DEBUG")
 
+def print_memory_summary(prefix, device):
+    rank = torch.distributed.get_rank()
+    if rank == 0:
+        peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
+        print(
+            f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) // 1e9}GB, "
+            f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) // 1e9}GB, "
+            f"GPU peak memory active: {peak_memory_active // 1e9}GB"
+        )
+    torch.cuda.reset_peak_memory_stats(device)
+
 
 class LoRAFinetuneRecipe(FTRecipeInterface):
     """
@@ -69,7 +80,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         self._device = utils.get_device(device=params.device)
         self._dtype = utils.get_dtype(dtype=params.dtype)
-
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
         _, rank = utils.get_world_size_and_rank()
@@ -187,12 +197,13 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             num_training_steps=self.total_epochs * steps_per_epoch,
             last_epoch=self.total_training_steps - 1,
         )
+        print_memory_summary("After model init", torch.cuda.current_device())
 
     def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
         """
         Extract the checkpoint state from file and validate.
         """
-        ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        ckpt_dict = torch.load(ckpt_path, map_location=str(self._device), weights_only=True, mmap=True)
         utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
 
@@ -230,6 +241,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
         init_device = "meta" if enable_fsdp else self._device
+        self._enable_fsdp = enable_fsdp
+        init_device = "meta"
+        prev_dtype = torch.get_default_dtype()
+        torch.set_default_dtype(torch.bfloat16)
         model = models.get_model(
             model,
             device=init_device,
@@ -237,8 +252,14 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
+       # print(f"RV: dtype is {next(model.parameters()).dtype}")
+
+        # prev_dtype = torch.get_default_dty
 
         reset_lora_params(model, device=self._device)
+        for m in model.modules():
+            if hasattr(m, '_rope_init'):
+                m._rope_init(device=self._device)
 
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
@@ -272,14 +293,18 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             else None,
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
-        model.load_state_dict(base_model_state_dict, strict=False)
+        model.load_state_dict(base_model_state_dict, strict=False, assign=not self._enable_fsdp)
         if lora_weights_state_dict:
-            model.load_state_dict(lora_weights_state_dict, strict=False)
+            model.load_state_dict(lora_weights_state_dict, strict=False, assign=not self._enable_fsdp)
 
         if self._is_rank_zero:
             log.info(
                 "Model is initialized. FSDP and Activation Checkpointing are enabled."
             )
+
+        torch.set_default_dtype(prev_dtype)
+        # Ensure no params and buffers are on meta device
+        validate_no_meta_params(model)
         return model
 
     def _setup_tokenizer(
@@ -436,6 +461,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     break
                 self.total_training_steps += 1
                 self._optimizer.zero_grad()
+                print_memory_summary("After zg ", torch.cuda.current_device())
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -449,6 +475,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     logits = logits.transpose(1, 2)
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
+
+                print_memory_summary("After forward ", torch.cuda.current_device())
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
@@ -466,7 +494,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     )
 
                 self._grad_scaler.scale(loss).backward()
+                print_memory_summary("After bwd ", torch.cuda.current_device())
                 self._grad_scaler.step(self._optimizer)
+                print_memory_summary("After opt ", torch.cuda.current_device())
                 self._grad_scaler.update()
                 self._lr_scheduler.step()
 
