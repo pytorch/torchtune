@@ -10,13 +10,13 @@ import pytest
 
 import torch
 
+from tests.test_utils import assert_expected
+
 from torchtune.utils.logits_transforms import (
     TemperatureTransform,
     TopKTransform,
     TopPTransform,
 )
-
-from tests.test_utils import assert_expected
 
 
 class TestTemperatureTransform:
