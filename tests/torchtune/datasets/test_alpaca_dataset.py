@@ -8,11 +8,11 @@ from unittest.mock import patch
 
 import pytest
 
+from tests.test_utils import get_assets_path
+
 from torchtune import datasets
 from torchtune.datasets.alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizer import Tokenizer
-
-from tests.test_utils import get_assets_path
 
 
 class TestAlpacaDataset:

@@ -12,9 +12,9 @@ from typing import Dict, List, Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
-from typing_extensions import Protocol
 
 from torchtune.utils.distributed import get_world_size_and_rank
+from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
 
