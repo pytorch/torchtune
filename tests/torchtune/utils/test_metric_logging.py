@@ -12,6 +12,8 @@ from unittest.mock import patch
 
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
+from tests.test_utils import assert_expected, captured_output
+
 from torchtune.utils.metric_logging import (
     DiskLogger,
     get_metric_logger,
@@ -20,8 +22,6 @@ from torchtune.utils.metric_logging import (
     TensorBoardLogger,
     WandBLogger,
 )
-
-from tests.test_utils import assert_expected, captured_output
 
 
 class TestMetricLogger:
