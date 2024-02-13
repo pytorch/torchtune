@@ -7,7 +7,7 @@ Finetuning Llama2 with LoRA
 This guide will teach you about `LoRA <https://arxiv.org/abs/2106.09685>`_, a parameter-efficient finetuning technique,
 and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
 If you already know what LoRA is and want to get straight to running
-your own LoRA finetune in TorchTune, you can jump to :ref:`this section<lora_recipe_label>`.
+your own LoRA finetune in TorchTune, you can jump to :ref:`LoRA finetuning recipe in TorchTune<lora_recipe_label>`.
 
 .. grid:: 2
 
@@ -20,22 +20,27 @@ your own LoRA finetune in TorchTune, you can jump to :ref:`this section<lora_rec
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
+      * Be familiar with :ref:`TorchTune<overview_label>`
       * Make sure to :ref:`install TorchTune<install_label>`
       * Make sure you have downloaded the :ref:`Llama2-7B model weights<download_llama_label>`
 
 What is LoRA?
 -------------
 
-`LoRA <https://arxiv.org/abs/2106.09685>`_ is a parameter-efficient finetuning technique that adds a trainable
-low-rank decomposition to different layers of a neural network, then freezes
+`LoRA <https://arxiv.org/abs/2106.09685>`_ is a parameter-efficient finetuning technique that adds trainable
+low-rank decomposition matrices to different layers of a neural network, then freezes
 the network's remaining parameters. LoRA is most commonly applied to
 transformer models, in which case it is common to add the low-rank matrices
-to some of the self-attention projections in each transformer layer.
+to some of the linear projections in each transformer layer's self-attention.
 
-By finetuning with LoRA (as opposed to finetuning all model parameters),
+.. note::
+
+    If you're unfamiliar, check out these references for the `definition of rank <https://en.wikipedia.org/wiki/Rank_(linear_algebra)>`_
+    and discussion of `low-rank approximations <https://en.wikipedia.org/wiki/Low-rank_approximation>`_.
+
+By finetuning with LoRA (as opposed to :ref:`finetuning all model parameters<finetune_llama_label>` ),
 you can expect to see memory savings due to a substantial reduction in the
-number of gradient parameters. When using an optimizer with momentum,
+number of parameters with gradients. When using an optimizer with momentum,
 like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_,
 you can expect to see further memory savings from the optimizer state.
 
@@ -49,7 +54,7 @@ How does LoRA work?
 -------------------
 
 LoRA replaces weight update matrices with a low-rank approximation. In general, weight updates
-for a given linear layer mapping dimension :code:`in_dim` to dimension :code:`out_dim` can have rank as high as
+for an :code:`nn.Linear(in_dim, out_dim)` layer can have rank as high as
 :code:`min(in_dim,out_dim)`. LoRA (and other related papers such as `Aghajanyan et al. <https://arxiv.org/abs/2012.13255>`_)
 hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_
 of these updates during LLM fine-tuning can in fact be much lower.
@@ -58,7 +63,13 @@ then add a trainable weight update from a low-rank projection. More explicitly, 
 matrices :code:`A` and :code:`B`. :code:`A` projects the inputs down to a much smaller rank (often four or eight in practice), and
 :code:`B` projects back up to the dimension output by the original linear layer.
 
-Although this introduces a few extra parameters in the model :code:`forward()`, only the LoRA matrices are trainable.
+The image below gives a simplified representation of a single weight update step from a full finetune
+(on the left) compared to a weight update step with LoRA (on the right). The LoRA matrices :code:`A` and :code:`B`
+serve as an approximation to the full rank weight update in blue.
+
+.. image:: /_static/img/lora_diagram.png
+
+Although LoRA introduces a few extra parameters in the model :code:`forward()`, only the :code:`A` and :code:`B` matrices are trainable.
 This means that with a rank :code:`r` LoRA decomposition, the number of gradients we need to store reduces
 from :code:`in_dim*out_dim` to :code:`r*(in_dim+out_dim)`. (Remember that in general :code:`r`
 is much smaller than :code:`in_dim` and :code:`out_dim`.)
@@ -115,9 +126,9 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
       # and add to the original model's outputs
       return frozen_out + (self.alpha / self.rank) * lora_out
 
-There are some other details around initialization which we omit here, but otherwise that's
-pretty much it. Now that we understand what LoRA is doing, let's look at how we can apply it
-to our favorite models.
+There are some other details around initialization which we omit here, but if you'd like to know more
+you can see our implementation in :class:`~torchtune.modules.peft.LoRALinear`.
+Now that we understand what LoRA is doing, let's look at how we can apply it to our favorite models.
 
 Applying LoRA to Llama2 models
 ------------------------------
@@ -238,7 +249,7 @@ LoRA finetuning recipe in TorchTune
 
 Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch-labs/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs:
+You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
 
 .. code-block:: bash
 
@@ -269,13 +280,26 @@ Let's take a closer look at some of the :code:`alpaca_llama2_lora_finetune` conf
 
 We see that the default is to apply LoRA to Q and V projections with a rank of 8.
 Some experiments with LoRA have found that it can be beneficial to apply LoRA to all linear layers in
-the self-attention, and to increase the rank to 16. Note that this is likely to increase our max memory,
+the self-attention, and to increase the rank to 16 or 32. Note that this is likely to increase our max memory,
 but as long as we keep :code:`rank<<embed_dim`, the impact should be relatively minor.
 
-We can run this experiment via
+Let's run this experiment. We can also increase alpha (in general it is good practice to scale alpha and rank together).
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune\
-    --override lora_attn_modules='q_proj,k_proj,v_proj,output_proj'\
-    lora_rank=16 output_dir=./lora_experiment_1
+    tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune \
+    --override lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
+    lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
+
+A comparison of the (smoothed) loss curves between this run and our baseline over the first 500 steps can be seen below.
+
+.. image:: /_static/img/lora_experiment_loss_curves.png
+
+.. note::
+    The above figure was generated with W&B. You can use TorchTune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    to generate similar loss curves, but you will need to install W&B and setup an account separately.
+
+As an exercise, you can also try running some evaluation tasks or manually inspecting generations
+output by your saved checkpoints (which can be found in :code:`output_dir`).
+You may want to train the model for longer first, as here we only looked at 500 steps
+(which corresponds to about 2% of one epoch of the Alpaca dataset).
