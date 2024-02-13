@@ -164,6 +164,7 @@ does with the following additional functionalities:
 
 ---
 
+
 ## Design Principles
 
 TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
@@ -188,6 +189,7 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 - Extensive unit-tests to ensure component-level numerical parity with reference implementations
 - Checkpoint-tests to ensure model-level numerical parity with reference implementations
 - Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
+
 
 &nbsp;
 
