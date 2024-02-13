@@ -118,21 +118,25 @@ tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --outp
 
 TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
 
-To run a full finetune on two devices on the Alpaca dataset using FSDP:
+To run a full finetune on a single device on the Alpaca dataset using FSDP:
 
 ```
-tune --nnodes 1 --nproc_per_node 2 full_finetune --config alpaca_llama2_full_finetune
+tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
 ```
 
 The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
 
-Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via
+Similarly, you can finetune with LoRA on the Alpaca dataset a single device via
+
+```
+tune --nnodes 1 --nproc_per_node 1 lora_finetune --config alpaca_llama2_lora_finetune
+```
+
+Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s). For example, if you want to finetune with LoRA on two devices:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune
 ```
-
-Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
 
 &nbsp;
 
