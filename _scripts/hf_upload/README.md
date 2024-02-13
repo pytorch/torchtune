@@ -49,11 +49,10 @@ Default `LICENSE` is the Llama2 one
 
 ```bash
 python upload.py \
-  --repo_name tune \
+  --repo_name <YOUR_REPO_NAME> \
   --model_path <PATH_TO_PTH_FILE> \
   --hf_username <YOUR_HF_USERNAME> \
   --hf_token <YOUR_HF_TOKEN> \
-  --private
 ```
 
 ## Eval
