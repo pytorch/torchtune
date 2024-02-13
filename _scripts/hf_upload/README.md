@@ -47,12 +47,12 @@ python script_name.py \
 Default `README.md` is the torchtune one
 Default `LICENSE` is the Llama2 one
 
+```bash
 python upload.py \
-  --repo_name tune \
-  --model_path /home/ubuntu/.cache/torch/hub/checkpoints/resnet18-f37072fd.pth \
-  --hf_username marksaroufim \
-  --hf_token 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 \
-  --private
-
+  --repo_name <YOUR_REPO_NAME> \
+  --model_path <PATH_TO_PTH_FILE> \
+  --hf_username <YOUR_HF_USERNAME> \
+  --hf_token <YOUR_HF_TOKEN> \
+```
 
 ## Eval
