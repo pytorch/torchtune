@@ -12,11 +12,11 @@ import numpy as np
 import pytest
 import torch
 
+from tests.test_utils import assert_expected, init_weights_with_constant
+
 from torchtune.models.llama2 import llama2
 from torchtune.utils.generation import GenerationUtils
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)

@@ -7,11 +7,11 @@
 import pytest
 
 import torch
+
+from tests.test_utils import assert_expected, fixed_init_model
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, fixed_init_model
 
 RANK = 4
 ALPHA = 1.0

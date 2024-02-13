@@ -46,7 +46,7 @@ class LoRALinearRef(nn.Linear, LoRALayer):
         fan_in_fan_out: bool = False,
         # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
         merge_weights: bool = True,
-        **kwargs
+        **kwargs,
     ):
         nn.Linear.__init__(self, in_features, out_features, **kwargs)
         LoRALayer.__init__(

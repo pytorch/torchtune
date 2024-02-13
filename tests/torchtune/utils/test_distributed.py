@@ -9,6 +9,8 @@
 import pytest
 import torch
 import torch.nn as nn
+
+from tests.test_utils import get_pet_launch_config, single_box_init
 from torch.distributed import launcher
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -19,8 +21,6 @@ from torchtune.utils.distributed import (
     validate_no_meta_params,
     wrap_fsdp,
 )
-
-from tests.test_utils import get_pet_launch_config, single_box_init
 
 
 class TestDistributed:

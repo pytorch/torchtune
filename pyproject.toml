@@ -1,3 +1,9 @@
+[tool.usort]
+first_party_detection = false
+
+[tool.black]
+target-version = ["py38"]
+
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'

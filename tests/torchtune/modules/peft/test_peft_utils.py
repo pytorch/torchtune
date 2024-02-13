@@ -9,6 +9,8 @@ from itertools import chain
 
 import pytest
 import torch
+
+from tests.test_utils import single_box_init
 from torch import nn
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.models.llama2 import llama2
@@ -24,8 +26,6 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.modules.transformer import TransformerDecoderLayer
-
-from tests.test_utils import single_box_init
 
 N_LAYERS = 3
 IN_DIM = 5
