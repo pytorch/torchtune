@@ -17,14 +17,14 @@ from recipes.tests.utils import (
     default_recipe_kwargs,
     fetch_ckpt_model_path,
     fetch_loss_values,
-    small_test_ckpt,
+    llama2_small_test_ckpt,
     validate_loss_values,
 )
 
 from tests.test_utils import assert_expected
 from torchtune import models
 
-models.ALL_MODELS["small_test_ckpt"] = small_test_ckpt
+models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
