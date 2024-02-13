@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
 
 &nbsp;
 
@@ -20,42 +20,30 @@ The library provides:
 - Support for distributed training using FSDP from PyTorch Distributed
 - Yaml configs for easily configuring training runs
 
-NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2.0](https://pytorch.org/get-started/locally/).
-
 &nbsp;
+
+The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA]()  |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA](recipes/lora_finetune.py)  |
 
 &nbsp;
 
----
+### Finetuning resource requirements
 
-## Design Principles
+Note: These resource requirements are based on GPU peak memory reserved during training using the specified configs. You may
+experience different peak memory utilization based on changes made in configuration / training. Please see the linked configs in the table for specific settings such as batch size, FSDP, activation checkpointing, optimizer, etc used to obtain the peak memory.
 
-TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
+| HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
+|--------------|-------------------|---------|------------|---------------------|
+| 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
+| 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
+| 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
+| 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
 
-#### Native PyTorch
 
-TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
-
-#### Simplicity and Extensibility
-
-TorchTune is designed to be easy to understand, use and extend.
-
-- Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend
-- No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases
-- Code duplication is prefered over unecessary abstractions
-- Modular building blocks over monolithic components
-
-#### Correctness
-
-TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
-
-- Extensive unit-tests to ensure component-level numerical parity with reference implementations
-- Checkpoint-tests to ensure model-level numerical parity with reference implementations
-- Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
+NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
 &nbsp;
 
@@ -64,6 +52,8 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 ## Installation
 
 Currently, `torchtune` must be built via cloning the repository and installing as follows:
+
+NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
 
 ```
 git clone https://github.com/pytorch-labs/torchtune.git
@@ -119,22 +109,30 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir
 Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
-tune convert_checkpoint --checkpoint-path <CHECKPOINT_PATH>
+tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native
 ```
 
 &nbsp;
 
 #### Running recipes
 
-On a single GPU
+TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
+
+To run a full finetune on two devices on the Alpaca dataset using FSDP:
+
 ```
-tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune
+tune --nnodes 1 --nproc_per_node 2 full_finetune --config alpaca_llama2_full_finetune
 ```
 
-On multiple GPUs using FSDP
+The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
+
+Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via
+
 ```
-tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
+tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune
 ```
+
+Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
 
 &nbsp;
 
@@ -165,6 +163,33 @@ does with the following additional functionalities:
 &nbsp;
 
 ---
+
+## Design Principles
+
+TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
+
+#### Native PyTorch
+
+TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
+
+#### Simplicity and Extensibility
+
+TorchTune is designed to be easy to understand, use and extend.
+
+- Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend
+- No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases
+- Code duplication is prefered over unecessary abstractions
+- Modular building blocks over monolithic components
+
+#### Correctness
+
+TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
+
+- Extensive unit-tests to ensure component-level numerical parity with reference implementations
+- Checkpoint-tests to ensure model-level numerical parity with reference implementations
+- Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
+
+&nbsp;
 
 ## Contributing
 

@@ -14,6 +14,7 @@ Modeling Components and Building Blocks
     CausalSelfAttention
     FeedForward
     KVCache
+    get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
     Tokenizer

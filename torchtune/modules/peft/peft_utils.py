@@ -5,9 +5,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Set, Type
+
+import torch
 
 from torch import nn
+
+from torchtune.utils.distributed import FSDPPolicyType
 
 
 class AdapterModule(Protocol):
@@ -94,27 +98,127 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
 
 
 def validate_state_dict_for_lora(
-    missing_keys: List[str], unexpected_keys: List[str], lora_modules: List[str]
+    *,
+    lora_modules: List[str],
+    full_model_state_dict_keys: List[str],
+    lora_state_dict_keys: Optional[List[str]] = None,
+    base_model_state_dict_keys: Optional[List[str]] = None,
 ) -> None:
     """
-    Validate that the missing and unexpected keys for loading a base model into LoRA
-    model with strict=False are as expected.
+    Validate that the state dict keys for a LoRA model are as expected.
+
+    (1) If lora_state_dict_keys are passed, this function will confirm that they match exactly the
+        LoRA param names from the full model (as determined by lora_modules).
+    (2) If base_model_state_dict_keys are passed, this function will confirm that they are exactly the
+        complement of the LoRA param names from the full model.
+    (3) If both lora_state_dict_keys and base_model_state_dict_keys are passed, this function will
+        confirm that the full model's params are exactly their disjoint union.
 
     Args:
-        missing_keys (List[str]): List of missing keys in the state dict.
-        unexpected_keys (List[str]): List of unexpected keys in the state dict.
-        lora_modules (List[str]): List of LoRA modules in the model.
+        lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
+            ["q_proj", "k_proj", "v_proj", "output_proj"]
+        full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
+        lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
+            If none, LoRA state dict keys will not be validated.
+        base_model_state_dict_keys (Optional[List[str]]): List of keys in the base model state dict.
+            If none, base model keys will not be validated.
 
     Returns:
         None
 
     Raises:
-        AssertionError: If there are unexpected keys in the loaded state dict.
-        AssertionError: If there are missing keys in the loaded state dict that are not in the LoRA modules.
+        AssertionError: If base model state dict is missing any non-LoRA params from the full model.
+        AssertionError: If LoRA state dict is missing any LoRA params from the full model.
+        AssertionError: If base model state dict has any LoRA params.
+        AssertionError: If LoRA state dict has any non-LoRA params.
+        AssertionError: If base model and LoRA state dicts have overlapping keys.
+        AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
 
     """
-    for x in missing_keys:
-        if not any([k in x for k in lora_modules]):
-            raise AssertionError(f"Missing key {x} is not a LoRA module {lora_modules}")
-    if unexpected_keys:
-        raise AssertionError(f"Unexpected keys {unexpected_keys} in state dict")
+    is_lora_param = lambda x: "lora" in x and any([k in x for k in lora_modules])
+    for k in full_model_state_dict_keys:
+        if not is_lora_param(k):
+            if base_model_state_dict_keys is not None:
+                if k not in base_model_state_dict_keys:
+                    raise AssertionError(
+                        f"Missing non-LoRA key {k} from base model state dict"
+                    )
+            if lora_state_dict_keys is not None:
+                if k in lora_state_dict_keys:
+                    raise AssertionError(f"Non-LoRA key {k} found in LoRA state dict")
+        else:
+            if base_model_state_dict_keys is not None:
+                if k in base_model_state_dict_keys:
+                    raise AssertionError(f"LoRA key {k} found in base model state dict")
+            if lora_state_dict_keys is not None:
+                if k not in lora_state_dict_keys:
+                    raise AssertionError(f"Missing LoRA key {k} From LoRA state dict")
+
+    # Full model is disjoint union of base model and LoRA weights
+    if lora_state_dict_keys is not None and base_model_state_dict_keys is not None:
+        combined_state_dict_keys = set(lora_state_dict_keys).union(
+            base_model_state_dict_keys
+        )
+        shared_state_dict_keys = set(lora_state_dict_keys).intersection(
+            base_model_state_dict_keys
+        )
+        assert (
+            shared_state_dict_keys == set()
+        ), "Base model and LoRA state dict have overlapping keys"
+        assert combined_state_dict_keys == set(
+            full_model_state_dict_keys
+        ), "Extra keys not present in full model"
+
+
+def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for wrapping models trained with LoRA in FSDP. Specifically,
+    this will wrap individual LoRA a & b submodules in their own FSDP units to
+    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``.
+
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+
+    def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
+        if recurse:
+            return True
+
+        # Assumes lora_a and lora_b are nn.Linears that are the
+        # only trainable modules in the entire network. Wraps
+        # these in separate FSDP unit to work around FSDP allocating
+        # extra gradient memory when wrapped with other modules.
+        if hasattr(module, "weight") and module.weight.requires_grad:
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return lora_wrap
+
+
+def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
+    """
+    A function to specific modules within a LoRA model wrapped in FSDP that was
+    initially created on the meta device. This function is meant to be
+    passed as the ``param_init_fn`` arg into ``FullyShardedDataParallel``.
+    This function specially handles details such as manually initializing
+    ``RotaryPositionalEmbeddings`` that have custom initialization schemes.
+
+    Args:
+        module (nn.Module): module to run initialization for
+        device (torch.device): device parameters should be initialized on.
+    """
+    # Custom init for RoPE, which has buffers only
+    if hasattr(module, "_rope_init"):
+        module._rope_init(device=device)
+    # Skip init of modules that already have params on non-meta device
+    if all([not p.is_meta for p in module.parameters()]):
+        return
+    else:
+        # Brings params to device with empty data. data will be
+        # overwriten when loading in checkpoint.
+        module.to_empty(device=device, recurse=False)

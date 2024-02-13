@@ -8,12 +8,12 @@ from typing import Tuple
 
 import pytest
 import torch
+
+from tests.test_utils import assert_expected
 from torch import tensor
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
@@ -74,3 +74,18 @@ class TestRotaryPositionEmbedding:
 
         # check shapes
         assert_expected(x_out.shape, input.shape)
+
+    def test_rope_init_meta_device(self, input_params):
+        _, _, head_dim, _, max_seq_len = input_params
+        rope_on_device = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=max_seq_len
+        )
+        with torch.device("meta"):
+            meta_rope = RotaryPositionalEmbeddings(
+                dim=head_dim, max_seq_len=max_seq_len
+            )
+
+        meta_rope._rope_init(device=torch.device("cpu"))
+
+        for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
+            torch.testing.assert_close(p1, p2)

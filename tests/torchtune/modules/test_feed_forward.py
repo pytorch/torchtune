@@ -9,12 +9,12 @@ from typing import Tuple
 import pytest
 
 import torch
+
+from tests.test_utils import assert_expected, fixed_init_model
 from torch import Tensor
 
 from torchtune.modules import FeedForward
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)

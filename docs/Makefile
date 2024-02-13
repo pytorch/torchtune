@@ -32,8 +32,8 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf $(SOURCEDIR)/generated_examples/  # sphinx-gallery
 	rm -rf $(SOURCEDIR)/gen_modules/  # sphinx-gallery
+	rm -rf $(SOURCEDIR)/sg_execution_times.rst  # sphinx-gallery
 	rm -rf $(SOURCEDIR)/generated/  # autosummary
-	rm -rf $(SOURCEDIR)/models/generated  # autosummary
 
 .PHONY: help Makefile docset
 

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -38,7 +38,11 @@ def _contains_fsdp(model: nn.Module) -> bool:
     )
 
 
-def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
+def save_checkpoint(
+    ckpt_dict: Dict[str, Any],
+    output_loc: str,
+    model_key_filter: Optional[Callable[[str], bool]] = None,
+) -> None:
     """
     Saves `ckpt_dict` to `output_loc`. `ckpt_dict` is expected to have at least a key `model` which represents
     the model to be checkpointed. This function will call `state_dict` in a distributed-aware fashion on checkpointable objects
@@ -50,7 +54,9 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
     Args:
         ckpt_dict (Dict[str, Any]): Dictionary containing the checkpoint to be saved. Must have at least `model` key.
         output_loc (str): Local path to save the checkpoint to.
-
+        model_key_filter (Optional[Callable[[str], bool]]): Optional function to filter the keys in the model state dict.
+            This function should return True if the key is intended to be included in the saved checkpoint
+            and False otherwise.
     Raises:
         RuntimeError: If `ckpt_dict` does not contain a `model` key.
 
@@ -75,6 +81,10 @@ def save_checkpoint(ckpt_dict: Dict[str, Any], output_loc: str) -> None:
         ckpt_dict[OPT_KEY] = optimizer_state_dict
 
     model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
+    if model_key_filter:
+        model_state_dict = {
+            k: v for k, v in model_state_dict.items() if model_key_filter(k)
+        }
     ckpt_dict[MODEL_KEY] = model_state_dict
     _, rank = get_world_size_and_rank()
     if rank == 0:

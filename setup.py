@@ -4,12 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
-
 from setuptools import find_packages, setup
 
 
@@ -26,7 +20,7 @@ setup(
     packages=find_packages(),
     python_requires=">=3.8",
     install_requires=read_requirements("requirements.txt"),
-    scripts=["scripts/cli_utils/tune"],
+    scripts=["_scripts/cli_utils/tune"],
     description="Package for finetuning LLMs and diffusion models using native PyTorch",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",

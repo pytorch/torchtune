@@ -6,8 +6,11 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
+import pytest
 import torch
 import torch.nn as nn
+
+from tests.test_utils import get_pet_launch_config, single_box_init
 from torch.distributed import launcher
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -15,10 +18,9 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.distributed import (
     get_world_size_and_rank,
     init_distributed,
+    validate_no_meta_params,
     wrap_fsdp,
 )
-
-from tests.test_utils import get_pet_launch_config, single_box_init
 
 
 class TestDistributed:
@@ -120,3 +122,18 @@ class TestDistributed:
             )
             fsdp_units = [m for m in fsdp_model.modules() if isinstance(m, FSDP)]
             assert len(fsdp_units) == num_modules
+
+    def test_validate_no_meta_params(self) -> None:
+        with torch.device("meta"):
+            model = torch.nn.Linear(3, 3)
+
+        with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
+            validate_no_meta_params(model)
+
+        # Test model with only buffer
+        model = torch.nn.Linear(3, 3)
+        buffer = torch.ones(1, device="meta")
+        model.register_buffer("buffer", buffer)
+
+        with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
+            validate_no_meta_params(model)

@@ -43,7 +43,7 @@ def download(repo_id: str, output_dir: Path, hf_token: str) -> None:
     print(
         "Succesfully downloaded model repo and wrote to the following locations:",
         *list(output_dir.iterdir()),
-        sep="\n"
+        sep="\n",
     )
 
 

@@ -70,7 +70,7 @@ class AlpacaDataset(Dataset):
         tokenizer: Tokenizer,
         train_on_input: bool = True,
         use_clean: bool = False,
-        **kwargs
+        **kwargs,
     ) -> None:
         dataset_path = "yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca"
         self._data = load_dataset(dataset_path, split="train")
