@@ -31,8 +31,8 @@ of which user someone ends up being, the way they start will almost always be th
 ## Current problems with our CLI tool
 
 We did a limited release internally, and also collected targeted feedback from some
-people close to the project: Laurence & Matt. We directed them to [our documentation](https://deploy-preview-368--torchtune-preview.netlify.app/examples/first_finetune_tutorial)
-and had them go from overview -> install -> first finetune. Some of Matt's direct feedback
+people close to the project. We directed them to [our documentation](https://deploy-preview-368--torchtune-preview.netlify.app/examples/first_finetune_tutorial)
+and had them go from overview -> install -> first finetune. Some direct feedback
 can be found in our [Issues](https://github.com/pytorch-labs/torchtune/issues/372), but other feedback was delivered via video recording and in person. Please ping me for access to the former.
 While they had plenty of feedback on the whole onboarding experience, this RFC will focus on the specific feedback for the CLI.
 
