@@ -24,7 +24,7 @@ from recipes.tests.utils import (
 from tests.test_utils import assert_expected
 from torchtune import models
 
-models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
+models.small_test_ckpt = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -80,7 +80,7 @@ class TestFullFinetuneRecipe:
         with tempfile.TemporaryDirectory() as tmpdirname:
 
             kwargs_values = {
-                "dataset": "alpaca",
+                "dataset": "AlpacaDataset",
                 "seed": 9,
                 "shuffle": True,
                 "model": model_ckpt,
@@ -107,7 +107,7 @@ class TestFullFinetuneRecipe:
             # Note this will raise some warnings in the logs, but is a
             # stronger test
             kwargs_values_resume = {
-                "dataset": "alpaca",
+                "dataset": "AlpacaDataset",
                 "shuffle": True,
                 "model": model_ckpt,
                 "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
@@ -146,7 +146,7 @@ class TestFullFinetuneRecipe:
 
         for i in range(len(gradient_accumulation_steps)):
             kwargs_values = {
-                "dataset": "alpaca",
+                "dataset": "AlpacaDataset",
                 "train_on_input": False,
                 "seed": 9,
                 "shuffle": True,
@@ -166,7 +166,7 @@ class TestFullFinetuneRecipe:
                 "resume_from_checkpoint": False,
                 "enable_fsdp": False,
                 "enable_activation_checkpointing": False,
-                "metric_logger_type": "disk",
+                "metric_logger_type": "DiskLogger",
                 "gradient_accumulation_steps": gradient_accumulation_steps[
                     0
                 ],  # parametrized in the test

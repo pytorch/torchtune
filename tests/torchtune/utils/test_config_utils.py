@@ -7,11 +7,14 @@
 
 import pytest
 import torch
-from torchtune import datasets, lr_schedulers, models, tokenizers
+from torchtune import datasets, models, tokenizers
+from torchtune.modules import lr_schedulers
+from torchtune.utils import metric_logging
 from torchtune.utils.config_utils import (
     get_dataset,
     get_loss,
     get_lr_scheduler,
+    get_metric_logger,
     get_model,
     get_optimizer,
     get_tokenizer,
@@ -63,3 +66,11 @@ class TestConfigUtils:
         _ = get_loss("CrossEntropyLoss")
         with pytest.raises(ValueError):
             _ = get_loss("dummy")
+
+    def test_get_metric_logger(self):
+        metric_logging.foo = lambda x: x
+        logger = get_metric_logger("foo", x=1)
+        assert logger == 1
+
+        with pytest.raises(ValueError):
+            _ = get_metric_logger("dummy")

@@ -13,8 +13,11 @@ from torch.optim.lr_scheduler import LRScheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import Dataset
 
-from torchtune import datasets, lr_schedulers, models, tokenizers
+from torchtune import datasets, models, tokenizers
+from torchtune.modules import lr_schedulers
+from torchtune.utils import metric_logging
 from torchtune.utils.device import get_device
+from torchtune.utils.metric_logging import MetricLoggerInterface
 
 
 def _raise_not_valid_object(name: str, module_path: str) -> None:
@@ -102,7 +105,7 @@ def get_lr_scheduler(
         return _get_torchtune_object(
             lr_scheduler,
             lr_schedulers,
-            "torchtune.lr_schedulers",
+            "torchtune.modules.lr_schedulers",
             optimizer=optimizer,
             **kwargs,
         )
@@ -119,3 +122,21 @@ def get_lr_scheduler(
             raise ValueError(
                 f"{lr_scheduler} is not a valid object from torch.optim.lr_scheduler or torchtune"
             ) from e
+
+
+def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLoggerInterface":
+    """Get a metric logger based on provided arguments.
+
+    Args:
+        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
+        **kwargs: additional arguments to pass to the metric logger
+
+    Returns:
+        MetricLoggerInterface: metric logger
+    """
+    return _get_torchtune_object(
+        metric_logger_type,
+        metric_logging,
+        "torchtune.utils.metric_logging",
+        **kwargs,
+    )

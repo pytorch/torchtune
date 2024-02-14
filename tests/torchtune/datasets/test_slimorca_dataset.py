@@ -6,12 +6,12 @@
 from unittest.mock import patch
 
 import pytest
+
+from tests.test_utils import get_assets_path
 from torchtune.datasets.slimorca import _Llama2ChatFormatConstants
 from torchtune.modules.tokenizer import Tokenizer
 
 from torchtune.utils.config_utils import get_dataset
-
-from tests.test_utils import get_assets_path
 
 
 class TestSlimOrcaDataset:

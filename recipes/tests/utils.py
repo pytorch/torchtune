@@ -81,7 +81,7 @@ def validate_loss_values(loss_values, expected_loss_values):
 
 def default_recipe_kwargs(ckpt):
     return {
-        "dataset": "alpaca",
+        "dataset": "AlpacaDataset",
         "train_on_input": False,
         "seed": 9,
         "shuffle": True,
@@ -101,5 +101,5 @@ def default_recipe_kwargs(ckpt):
         "resume_from_checkpoint": False,
         "enable_fsdp": False,
         "enable_activation_checkpointing": False,
-        "metric_logger_type": "disk",
+        "metric_logger_type": "DiskLogger",
     }

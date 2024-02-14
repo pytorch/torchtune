@@ -7,11 +7,20 @@ from .argparse import TuneArgumentParser
 from .checkpoint import save_checkpoint, transform_opt_state_dict, validate_checkpoint
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
+from .config_utils import (
+    get_dataset,
+    get_loss,
+    get_lr_scheduler,
+    get_metric_logger,
+    get_model,
+    get_optimizer,
+    get_tokenizer,
+)
 from .device import get_device
 from .distributed import get_world_size_and_rank, init_distributed, wrap_fsdp
 from .logging import get_logger
 from .memory import set_activation_checkpointing
-from .metric_logging import get_metric_logger, list_metric_loggers
+from .metric_logging import list_metric_loggers
 from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
 from .seed import set_seed
 
@@ -20,10 +29,16 @@ __all__ = [
     "save_checkpoint",
     "transform_opt_state_dict",
     "validate_checkpoint",
-    "get_metric_logger",
     "get_autocast",
     "get_device",
     "get_dtype",
+    "get_loss",
+    "get_dataset",
+    "get_model",
+    "get_optimizer",
+    "get_tokenizer",
+    "get_lr_scheduler",
+    "get_metric_logger",
     "wrap_fsdp",
     "get_gradient_scaler",
     "get_logger",
