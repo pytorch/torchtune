@@ -10,7 +10,7 @@ from functools import partial
 from typing import Dict
 
 from recipes.lora_finetune import LoRAFinetuneRecipe
-from recipes.params import LoRAFinetuneParams
+from recipes.params.lora_finetune import LoRAFinetuneParams
 
 from recipes.tests.utils import (
     default_recipe_kwargs,
