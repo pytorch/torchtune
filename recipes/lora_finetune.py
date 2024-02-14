@@ -22,7 +22,7 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import datasets, models, modules, utils
+from torchtune import modules, utils
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
@@ -230,7 +230,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
         init_device = "meta" if enable_fsdp else self._device
-        model = models.get_model(
+        model = utils.get_model(
             model,
             device=init_device,
             lora_attn_modules=lora_attn_modules,
@@ -290,7 +290,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         tokenizer model. This is related to how the tokenizer is implemented and should
         change in a future iteration.
         """
-        tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+        tokenizer = utils.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
 
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
@@ -303,7 +303,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         weight_decay: float,
         opt_state_dict: Optional[Dict[str, Any]] = None,
     ) -> Optimizer:
-        optimizer = modules.get_optimizer(optimizer, self._model, lr, weight_decay)
+        optimizer = utils.get_optimizer(
+            optimizer, self._model, lr, weight_decay=weight_decay
+        )
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter params, but should be equivalent
@@ -323,7 +325,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
-        lr_scheduler = modules.get_lr_scheduler(
+        lr_scheduler = utils.get_lr_scheduler(
             lr_scheduler,
             self._optimizer,
             num_warmup_steps=num_warmup_steps,
@@ -335,7 +337,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = modules.get_loss(loss)
+        loss_fn = utils.get_loss(loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
@@ -356,7 +358,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = datasets.get_dataset(
+        ds = utils.get_dataset(
             dataset,
             split="train",
             tokenizer=self._tokenizer,

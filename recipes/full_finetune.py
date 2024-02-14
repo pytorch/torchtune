@@ -24,13 +24,6 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import modules, utils
-from torchtune.utils.config_utils import (
-    get_dataset,
-    get_loss,
-    get_model,
-    get_optimizer,
-    get_tokenizer,
-)
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -212,7 +205,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        model = get_model(model, device=self._device)
+        model = utils.get_model(model, device=self._device)
         model = (
             utils.wrap_fsdp(
                 model=model,
@@ -245,7 +238,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         tokenizer model. This is related to how the tokenizer is implemented and should
         change in a future iteration.
         """
-        tokenizer = get_tokenizer(tokenizer, path=tokenizer_checkpoint)
+        tokenizer = utils.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
 
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
@@ -258,7 +251,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Set up the optimizer. This method also handles transforing the state dict
         for FSDP.
         """
-        optimizer = get_optimizer(optimizer, self._model, lr)
+        optimizer = utils.get_optimizer(optimizer, self._model, lr)
         if opt_state_dict:
             opt_state_dict = utils.transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
@@ -270,7 +263,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         return optimizer
 
     def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = get_loss(loss)
+        loss_fn = utils.get_loss(loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
@@ -286,7 +279,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = get_dataset(
+        ds = utils.get_dataset(
             dataset,
             split="train",
             tokenizer=self._tokenizer,

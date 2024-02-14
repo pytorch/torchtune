@@ -171,7 +171,7 @@ class LoRAFinetuneParams:
     optimizer: str = "AdamW"
     weight_decay: float = 0.01
     lr: float = 3e-4
-    lr_scheduler: str = "cosine_with_warmup"
+    lr_scheduler: str = "cosine_schedule_with_warmup"
     num_warmup_steps: int = 100
     loss: str = "CrossEntropyLoss"
 

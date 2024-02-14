@@ -69,19 +69,27 @@ def get_loss(loss: str) -> nn.Module:
     return _get_torchtune_object(loss, torch.nn, "torch.nn")
 
 
-def get_optimizer(optimizer: str, model: torch.nn.Module, lr: float) -> Optimizer:
+def get_optimizer(
+    optimizer: str, model: torch.nn.Module, lr: float, **kwargs
+) -> Optimizer:
     """Returns an optimizer function from torch.optim.
 
     Args:
         optimizer (str): name of the optimizer.
         model (torch.nn.Module): model to optimize.
         lr (float): learning rate.
+        **kwargs: additional arguments to pass to the optimizer.
 
     Returns:
         Optimizer: optimizer function.
     """
     return _get_torchtune_object(
-        optimizer, torch.optim, "torch.optim", params=model.parameters(), lr=lr
+        optimizer,
+        torch.optim,
+        "torch.optim",
+        params=model.parameters(),
+        lr=lr,
+        **kwargs,
     )
 
 
