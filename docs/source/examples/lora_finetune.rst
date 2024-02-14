@@ -27,9 +27,9 @@ your own LoRA finetune in TorchTune, you can jump to :ref:`LoRA finetuning recip
 What is LoRA?
 -------------
 
-`LoRA <https://arxiv.org/abs/2106.09685>`_ is a parameter-efficient finetuning technique that adds trainable
-low-rank decomposition matrices to different layers of a neural network, then freezes
-the network's remaining parameters. LoRA is most commonly applied to
+`LoRA <https://arxiv.org/abs/2106.09685>`_ is an adapter-based method for
+parameter-efficient finetuning that adds trainable low-rank decomposition matrices to different layers of a neural network,
+then freezes the network's remaining parameters. LoRA is most commonly applied to
 transformer models, in which case it is common to add the low-rank matrices
 to some of the linear projections in each transformer layer's self-attention.
 
@@ -54,7 +54,7 @@ How does LoRA work?
 -------------------
 
 LoRA replaces weight update matrices with a low-rank approximation. In general, weight updates
-for an :code:`nn.Linear(in_dim, out_dim)` layer can have rank as high as
+for an arbitrary :code:`nn.Linear(in_dim, out_dim)` layer could have rank as high as
 :code:`min(in_dim,out_dim)`. LoRA (and other related papers such as `Aghajanyan et al. <https://arxiv.org/abs/2012.13255>`_)
 hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_
 of these updates during LLM fine-tuning can in fact be much lower.
