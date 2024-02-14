@@ -54,7 +54,7 @@ How does LoRA work?
 -------------------
 
 LoRA replaces weight update matrices with a low-rank approximation. In general, weight updates
-for an arbitrary :code:`nn.Linear(in_dim, out_dim)` layer could have rank as high as
+for an arbitrary :code:`nn.Linear(in_dim,out_dim)` layer could have rank as high as
 :code:`min(in_dim,out_dim)`. LoRA (and other related papers such as `Aghajanyan et al. <https://arxiv.org/abs/2012.13255>`_)
 hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_
 of these updates during LLM fine-tuning can in fact be much lower.
