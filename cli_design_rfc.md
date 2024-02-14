@@ -425,7 +425,7 @@ Highly recommend reading through the following resources on your own time or if 
 you'd like to see implemented in the CLI tool.
 
 - Design guidelines
-    - [Overview and philosophies](https://clig.dev/) (posted in WP group already)
+    - [Overview and philosophies](https://clig.dev/)
     - [Revamping a CLI](https://uxdesign.cc/user-experience-clis-and-breaking-the-world-baed8709244f)
     - [On naming within a CLI](https://smallstep.com/blog/the-poetics-of-cli-command-names/)
     - Heroku devs [on building a CLI](https://medium.com/@jdxcode/12-factor-cli-apps-dd3c227a0e46)
