@@ -13,7 +13,7 @@ repos:
     -   id: no-commit-to-branch
         args: ['--branch=main']
     -   id: check-added-large-files
-        args: ['--maxkb=500']
+        args: ['--maxkb=1000']
     -   id: end-of-file-fixer
         exclude: '^(.*\.svg)$'
 
