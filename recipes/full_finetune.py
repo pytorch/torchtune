@@ -225,9 +225,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         if self._is_rank_zero:
-            log.info(
-                "Model is initialized. FSDP and Activation Checkpointing are enabled."
-            )
+            log.info("Model is initialized.")
         return model
 
     def _setup_tokenizer(

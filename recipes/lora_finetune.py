@@ -277,9 +277,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
         if self._is_rank_zero:
-            log.info(
-                "Model is initialized. FSDP and Activation Checkpointing are enabled."
-            )
+            log.info("Model is initialized.")
         return model
 
     def _setup_tokenizer(
