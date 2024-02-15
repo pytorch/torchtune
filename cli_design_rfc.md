@@ -241,7 +241,7 @@ EXAMPLES
 View all documentation for commands at https://pytorch.org/torchtune/docs.
 ```
 
-### `ls`
+### `ls` (P0, eng time <1 day)
 
 Key Points:
 - This lists **only** the built-in recipes and configs, meant only to get
@@ -267,7 +267,7 @@ To get started you can run:
 $ tune run full_finetune.py --config alpaca_llama2_full_finetune.yaml
 ```
 
-### `cp`
+### `cp` (P0, eng time <1 day)
 
 Key Points
 - User still needs some way to copy a config or recipe into their local dir in
@@ -294,7 +294,7 @@ EXAMPLES
 Need to see all possible configs to copy? Try running `tune ls`
 ```
 
-### `download`
+### `download` (P0, additional eng time <1 day)
 
 Key Points:
 - User generally doesn't care where the model comes from, just that it's easy to get the correct model,
@@ -338,7 +338,7 @@ EXAMPLES
 For a full list of supported models, see https://pytorch.org/torchtune/docs/models
 ```
 
-### `run`
+### `run` (P0, eng time <3 days)
 
 Key Points:
 - Shadowing `torchrun` was an effective way to get up and running quickly, but
@@ -363,7 +363,7 @@ through the command line, e.g. `$ tune run example.py --config example_config.ya
 Take a look at the recipes documentation page for all possible overrides: <LINK>.
 ```
 
-### `upload`
+### `upload` (P1, eng time <3 days)
 
 ```
 $ tune upload --help
@@ -387,7 +387,7 @@ EXAMPLES
     You can find your model at https://huggingface.co/hub/my-model
 ```
 
-### `share`
+### `share` (P1, eng time ? need more information)
 
 Key Points:
 - We need an easy and quick way to share for debugging and exploratory reasons,
