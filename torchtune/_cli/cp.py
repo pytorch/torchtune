@@ -67,6 +67,8 @@ if __name__ == "__main__":
         examples:
             $ tune cp alpaca_llama2_lora_finetune.yaml ./my_custom_llama2_lora.yaml
             $ tune cp full_finetune ./my_custom_full_finetune
+
+        Need to see all possible recipes/configs to copy? Try running `tune ls`.
         """
         ),
         formatter_class=argparse.RawTextHelpFormatter,
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "file",
         type=str,
-        help="Recipe or config to copy. For a list of all possible options, run `tune ls`",
+        help="Recipe/config to copy. For a list of all possible options, run `tune ls`",
     )
     parser.add_argument(
         "destination",
