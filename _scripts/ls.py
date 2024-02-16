@@ -11,6 +11,8 @@ import textwrap
 
 from recipes import list_configs, list_recipes
 
+_NULL_VALUE = "<>"
+
 
 def main():
     # Print table header
@@ -22,7 +24,7 @@ def main():
         configs = list_configs(recipe)
         # If there are no configs for a recipe, print a blank config
         if len(configs) == 0:
-            row = f"{recipe:<20} {'<>':<15}"
+            row = f"{recipe:<20} {_NULL_VALUE:<15}"
             print(row)
         for i, config in enumerate(configs):
             # If there are multiple configs for a single recipe, omit the recipe name
