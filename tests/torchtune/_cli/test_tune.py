@@ -117,9 +117,7 @@ class TestTuneCLI:
             configs = list_configs(recipe)
             for config in configs:
                 pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
-                config_path = os.path.join(
-                    pkg_path, "recipes", "configs", f"{config}.yaml"
-                )
+                config_path = os.path.join(pkg_path, "recipes", "configs", config)
                 assert os.path.exists(config_path), f"{config_path} must exist"
 
     def test_run(self, capsys):

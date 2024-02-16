@@ -18,7 +18,7 @@ def _is_config_file(file_name: str) -> bool:
     return file_name.endswith(".yaml")
 
 
-def _get_path(file_name: str) -> Path:
+def _get_absolute_path(file_name: str) -> Path:
     pkg_path = Path(torchtune.__file__).parent.parent.absolute()
     recipes_path = pkg_path / "recipes"
     if _is_config_file(file_name):
@@ -43,7 +43,7 @@ def main(parser):
 
     # Get file path
     file_name = args.file
-    src = _get_path(file_name)
+    src = _get_absolute_path(file_name)
 
     # Copy file
     try:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--no-clobber",
         action="store_true",
-        help="Do not overwrite existing files",
+        help="Do not overwrite destination if it already exists",
         default=False,
     )
     main(parser)
