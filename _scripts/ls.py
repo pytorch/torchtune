@@ -14,7 +14,7 @@ from recipes import list_configs, list_recipes
 
 def main():
     # Print table header
-    header = "{:<20} {:<15}".format("RECIPE", "CONFIG")
+    header = f"{'RECIPE':<20} {'CONFIG':<15}"
     print(header)
 
     # Print recipe/config pairs
@@ -22,14 +22,14 @@ def main():
         configs = list_configs(recipe)
         # If there are no configs for a recipe, print a blank config
         if len(configs) == 0:
-            row = "{:<20} {:<15}".format(recipe, "<>")
+            row = f"{recipe:<20} {'<>':<15}"
             print(row)
         for i, config in enumerate(configs):
             # If there are multiple configs for a single recipe, omit the recipe name
             # on latter configs
             if i > 0:
                 recipe = ""
-            row = "{:<20} {:<15}".format(recipe, config)
+            row = f"{recipe:<20} {config:<15}"
             print(row)
 
 
