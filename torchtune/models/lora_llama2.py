@@ -8,7 +8,7 @@ from typing import List, Literal, Optional
 
 from torch import nn
 
-from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2 import _llama_mlp, _scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -155,8 +155,45 @@ def _lora_llama_self_attention(
     return self_attn
 
 
+def _lora_llama_mlp(
+    *,
+    dim: int,
+    hidden_dim: int,
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+) -> FeedForward:
+    linear1 = LoRALinear(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    linear2 = LoRALinear(
+        in_dim=hidden_dim,
+        out_dim=dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    linear3 = LoRALinear(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    return FeedForward(
+        linear1=linear1,
+        linear2=linear2,
+        linear3=linear3,
+    )
+
+
 def lora_llama2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
     *,
     # llama2 args
     vocab_size: int,
@@ -181,6 +218,8 @@ def lora_llama2(
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
@@ -217,9 +256,16 @@ def lora_llama2(
         lora_dropout=lora_dropout,
     )
 
-    # TODO: MLP class is not LoRA-ready yet
     hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+    if apply_lora_to_mlp:
+        mlp = _lora_llama_mlp(
+            in_dim=embed_dim,
+            hidden_dim=hidden_dim,
+            lora_rank=lora_rank,
+            lora_alpha=lora,
+        )
+    else:
+        mlp = _llama_mlp(in_dim=embed_dim, hidden_dim=hidden_dim)
 
     layer = TransformerDecoderLayer(
         attn=self_attn,

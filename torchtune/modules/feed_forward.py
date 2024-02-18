@@ -12,21 +12,21 @@ class FeedForward(nn.Module):
     """This class implements the feed-forward network derived from Llama2.
 
     Args:
-        dim (int): Input dimension.
-        hidden_dim (int): Hidden dimension.
-        linear_class (nn.Module): Linear module, can be switched with a custom implementation, e.g. LoRALinear.
+        linear1 (nn.Module): TO ADD
+        linear2 (nn.Module): TO ADD
+        linear3 (nn.Module): TO ADD
     """
 
     def __init__(
         self,
-        dim: int,
-        hidden_dim: int,
-        linear_class: nn.Module,
+        linear1: nn.Module,
+        linear2: nn.Module,
+        linear3: nn.Module,
     ):
         super().__init__()
-        self.w1 = linear_class(dim, hidden_dim, bias=False)
-        self.w2 = linear_class(hidden_dim, dim, bias=False)
-        self.w3 = linear_class(dim, hidden_dim, bias=False)
+        self.w1 = linear1
+        self.w2 = linear2
+        self.w3 = linear3
         self.activation = F.silu
 
     def forward(self, x: Tensor) -> Tensor:

@@ -74,6 +74,13 @@ def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
     return hidden_dim
 
 
+def _llama_mlp(dim: int, hidden_dim: int) -> FeedForward:
+    linear1 = nn.Linear(dim, hidden_dim, bias=False)
+    linear2 = nn.Linear(hidden_dim, dim, bias=False)
+    linear3 = nn.Linear(dim, hidden_dim, bias=False)
+    return FeedForward(linear1=linear1, linear2=linear2, linear3=linear3)
+
+
 def llama2(
     vocab_size: int,
     num_layers: int,
@@ -113,7 +120,7 @@ def llama2(
         attn_dropout=attn_dropout,
     )
     hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+    mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
