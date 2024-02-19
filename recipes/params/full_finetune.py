@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from dataclasses import dataclass, fields
+from dataclasses import fields
 from typing import Optional
 
 from recipes.params.params import Params
@@ -15,7 +15,6 @@ from torchtune.utils.metric_logging import ALL_METRIC_LOGGERS
 from torchtune.utils.precision import PRECISION_STR_TO_DTYPE
 
 
-@dataclass
 class FullFinetuneParams(Params):
     """Arguments for the finetune_llm recipe.
 

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from dataclasses import dataclass, field, fields
+from dataclasses import field, fields
 from typing import List, Optional
 
 from recipes.params.params import Params
@@ -15,7 +15,6 @@ from torchtune.utils.metric_logging import ALL_METRIC_LOGGERS
 from torchtune.utils.precision import PRECISION_STR_TO_DTYPE
 
 
-@dataclass
 class LoRAFinetuneParams(Params):
     """Arguments for the finetune_lora recipe. Note that LoRA is currently only supported
     for attention modules (i.e. Q, K, V, output projections), and not for MLP layers.
