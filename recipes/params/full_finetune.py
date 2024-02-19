@@ -7,6 +7,8 @@
 from dataclasses import dataclass, fields
 from typing import Optional
 
+from recipes.params.params import Params
+
 from torchtune.datasets import ALL_DATASETS
 from torchtune.models import ALL_MODELS, ALL_TOKENIZERS
 from torchtune.utils.metric_logging import ALL_METRIC_LOGGERS
@@ -14,7 +16,7 @@ from torchtune.utils.precision import PRECISION_STR_TO_DTYPE
 
 
 @dataclass
-class FullFinetuneParams:
+class FullFinetuneParams(Params):
     """Arguments for the finetune_llm recipe.
 
     Args:
@@ -89,7 +91,7 @@ class FullFinetuneParams:
     project: Optional[str] = None
     log_every_n_steps: Optional[int] = None
 
-    def __post_init__(self):
+    def validate(self):
         for param in fields(self):
             if getattr(self, param.name) == "":
                 raise TypeError(f"{param.name} needs to be specified")
