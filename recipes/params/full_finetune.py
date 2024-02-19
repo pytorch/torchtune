@@ -33,6 +33,7 @@ class FullFinetuneParams:
         optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
         loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
         lr (float): Learning rate to use for optimizer.
+        optimizer_in_bwd (bool): Whether to fuse the optimizer step into the backward pass
         activation_checkpointing (bool): Whether to use activation checkpointing.
         output_dir (str): Local path to save checkpoints and logs to.
         run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
@@ -66,6 +67,7 @@ class FullFinetuneParams:
     lr: float = 2e-5
     loss: str = "CrossEntropyLoss"
     gradient_accumulation_steps: int = 1
+    optimizer_in_bwd: bool = False
 
     # Training
     epochs: int = 3
