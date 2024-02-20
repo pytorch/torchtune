@@ -60,7 +60,9 @@ class TestTuneCLIWithCopyScript:
             existing_file = tmpdir_path / "existing_file.yaml"
             existing_file.touch()
 
-            args = f"tune cp alpaca_llama2_full_finetune.yaml {existing_file} -n".split()
+            args = (
+                f"tune cp alpaca_llama2_full_finetune.yaml {existing_file} -n".split()
+            )
 
             monkeypatch.setattr(sys, "argv", args)
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -73,7 +75,6 @@ class TestTuneCLIWithCopyScript:
             assert (
                 "not overwriting" in output
             ), f"Expected 'not overwriting' message, got '{output}'"
-
 
     def test_copy_fails_when_given_invalid_recipe(self, capsys, monkeypatch):
         args = "tune cp non_existent_recipe .".split()

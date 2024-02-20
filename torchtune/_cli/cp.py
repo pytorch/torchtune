@@ -50,6 +50,8 @@ def main(parser):
         if args.no_clobber and destination.exists():
             print(f"File already exists at {destination.absolute()}, not overwriting")
         else:
+            if args.make_parents:
+                destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, destination)
     except FileNotFoundError:
         parser.error(
@@ -67,8 +69,10 @@ if __name__ == "__main__":
         examples:
             $ tune cp alpaca_llama2_lora_finetune.yaml ./my_custom_llama2_lora.yaml
             $ tune cp full_finetune ./my_custom_full_finetune
+            $ tune cp full_finetune ./new_dir/my_custom_full_finetune --make-parents
 
         Need to see all possible recipes/configs to copy? Try running `tune ls`.
+        And as always, you can also run `tune cp --help` for more information.
         """
         ),
         formatter_class=argparse.RawTextHelpFormatter,
@@ -84,9 +88,17 @@ if __name__ == "__main__":
         help="Location to copy the file to",
     )
     parser.add_argument(
-        "-n", "--no-clobber",
+        "-n",
+        "--no-clobber",
         action="store_true",
         help="Do not overwrite destination if it already exists",
+        default=False,
+    )
+    parser.add_argument(
+        "--make-parents",
+        action="store_true",
+        help="Create parent directories for destination if they do not exist."
+        "If not set to True, will error if parent directories do not exist",
         default=False,
     )
     main(parser)
