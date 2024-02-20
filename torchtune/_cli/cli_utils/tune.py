@@ -118,12 +118,12 @@ def main():
             print("Unknown command, for a list of available commands, run with --help")
 
     if distributed_args:
-        args.training_script = cmd  # arg names expected by torchrun
+        args.training_script = str(cmd)  # arg names expected by torchrun
         args.training_script_args = args.recipe_args
         run(args)
     else:
         sys.argv = [str(cmd)] + args.recipe_args
-        runpy.run_path(cmd, run_name="__main__")
+        runpy.run_path(str(cmd), run_name="__main__")
 
 
 if __name__ == "__main__":
