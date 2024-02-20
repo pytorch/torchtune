@@ -112,7 +112,7 @@ def main():
                     )
         elif cmd in list_scripts():
             cmd = pkg_path / "_cli" / f"{cmd}.py"
-            args.recipe = cmd
+            args.recipe = str(cmd)
             assert not distributed_args, "You can't use distributed args with scripts"
         else:
             print("Unknown command, for a list of available commands, run with --help")
