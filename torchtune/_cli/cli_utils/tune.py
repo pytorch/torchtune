@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 # Copyright (c) Facebook, Inc. and its affiliates.
 # All rights reserved.
 #
@@ -31,15 +37,14 @@ does with the following additional functionalities:
           It is equivalent to invoking ``python -m scripts.cli_utils.tune``.
 """
 import argparse
-import os
-from pathlib import Path
 import runpy
 import sys
 import textwrap
-from torch.distributed.run import get_args_parser, run
+from pathlib import Path
 
 import torchtune
 from recipes import list_recipes
+from torch.distributed.run import get_args_parser, run
 from torchtune._cli import list_scripts
 
 
@@ -47,11 +52,13 @@ def _update_parser_help(parser):
     parser.description = "Torch Tune Recipe Launcher"
     parser.usage = "tune [options] <recipe> [recipe_args]"
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.epilog = textwrap.dedent("""\
+    parser.epilog = textwrap.dedent(
+        """\
     utilities (usage: tune <command>):
         recipe      Utilities for built in recipes
         config      Utilities for built in configs
-    """)
+    """
+    )
 
     # Update torchrun argparse name for more accurate CLI help
     actions = [a.dest for a in parser._actions]
@@ -64,10 +71,12 @@ def _update_parser_help(parser):
     idx = actions.index("training_script_args")
     parser._actions[idx].dest = "recipe_args"
 
+
 def _is_distributed_args(args):
-    total = len(sys.argv) - 1 # total args minus "tune"
-    script_args = len(args.recipe_args) + 1 # script args + 1 for script name
+    total = len(sys.argv) - 1  # total args minus "tune"
+    script_args = len(args.recipe_args) + 1  # script args + 1 for script name
     return total > script_args
+
 
 def main():
     parser = get_args_parser()
@@ -79,10 +88,14 @@ def main():
     if not cmd.endswith(".py"):
         pkg_path = Path(torchtune.__file__).parent.absolute()
         if cmd == "recipe":
-            assert not distributed_args, "You can't use distributed args with the recipe util"
+            assert (
+                not distributed_args
+            ), "You can't use distributed args with the recipe util"
             cmd = pkg_path / "_cli" / "cli_utils" / "recipe_utils.py"
         elif cmd == "config":
-            assert not distributed_args, "You can't use distributed args with the config util"
+            assert (
+                not distributed_args
+            ), "You can't use distributed args with the config util"
             cmd = pkg_path / "_cli" / "cli_utils" / "config_utils.py"
         elif cmd in list_recipes():
             recipes_pkg_path = pkg_path.parent / "recipes"
@@ -94,7 +107,9 @@ def main():
                 cfg_idx = args.recipe_args.index("--config") + 1
                 config = args.recipe_args[cfg_idx]
                 if not config.endswith(".yaml"):
-                    args.recipe_args[cfg_idx] = str(recipes_pkg_path / "configs" / f"{config}.yaml")
+                    args.recipe_args[cfg_idx] = str(
+                        recipes_pkg_path / "configs" / f"{config}.yaml"
+                    )
         elif cmd in list_scripts():
             cmd = pkg_path / "_cli" / f"{cmd}.py"
             args.recipe = cmd
@@ -103,7 +118,7 @@ def main():
             print("Unknown command, for a list of available commands, run with --help")
 
     if distributed_args:
-        args.training_script = cmd # arg names expected by torchrun
+        args.training_script = cmd  # arg names expected by torchrun
         args.training_script_args = args.recipe_args
         run(args)
     else:
