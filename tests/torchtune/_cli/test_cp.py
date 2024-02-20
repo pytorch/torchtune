@@ -26,6 +26,13 @@ class TestTuneCLIWithCopyScript:
             captured = capsys.readouterr()
             output = captured.err.rstrip("\n")
 
+            tmpdir_path = Path(tmpdir)
+            # list out all files in tmpdir
+            files = [f for f in tmpdir_path.iterdir() if f.is_file()]
+            print(files)
+
+            file_path = Path(tmpdir) / "alpaca_llama2_full_finetune.yaml"
+            assert file_path.exists(), f"Expected {file_path} to exist"
             assert output == "", f"Expected no output, got {output}"
 
     def test_copy_successful_when_dest_already_exists(self, capsys, monkeypatch):
@@ -42,9 +49,10 @@ class TestTuneCLIWithCopyScript:
             captured = capsys.readouterr()
             output = captured.err.rstrip("\n")
 
+            assert existing_file.exists(), f"Expected {existing_file} to exist"
             assert output == "", f"Expected no output, got {output}"
 
-    def test_copy_fails_when_dest_already_exists_and_no_clobber_is_true(
+    def test_copy_skips_when_dest_already_exists_and_no_clobber_is_true(
         self, capsys, monkeypatch
     ):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -52,7 +60,7 @@ class TestTuneCLIWithCopyScript:
             existing_file = tmpdir_path / "existing_file.yaml"
             existing_file.touch()
 
-            args = f"tune cp alpaca_llama2_full_finetune.yaml {existing_file} --no-clobber".split()
+            args = f"tune cp alpaca_llama2_full_finetune.yaml {existing_file} -n".split()
 
             monkeypatch.setattr(sys, "argv", args)
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -65,6 +73,7 @@ class TestTuneCLIWithCopyScript:
             assert (
                 "not overwriting" in output
             ), f"Expected 'not overwriting' message, got '{output}'"
+
 
     def test_copy_fails_when_given_invalid_recipe(self, capsys, monkeypatch):
         args = "tune cp non_existent_recipe .".split()

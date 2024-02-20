@@ -84,7 +84,7 @@ if __name__ == "__main__":
         help="Location to copy the file to",
     )
     parser.add_argument(
-        "--no-clobber",
+        "-n", "--no-clobber",
         action="store_true",
         help="Do not overwrite destination if it already exists",
         default=False,
