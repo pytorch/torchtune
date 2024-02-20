@@ -97,7 +97,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--make-parents",
         action="store_true",
-        help="Create parent directories for destination if they do not exist."
+        help="Create parent directories for destination if they do not exist. "
         "If not set to True, will error if parent directories do not exist",
         default=False,
     )
