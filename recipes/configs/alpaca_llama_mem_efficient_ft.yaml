@@ -1,0 +1,30 @@
+# Runs the full_finetune.py recipe using FullFinetuneParams
+#
+# To launch, run the following command from root:
+#    tune --nnodes 1 --nproc_per_node 1 --config alpaca_llama2_full_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+
+# Dataset and Dataloader
+dataset: alpaca
+seed: null
+shuffle: True
+
+# Model Arguments
+model: llama2_7b
+model_checkpoint: /tmp/llama2-7b
+tokenizer: llama2_tokenizer
+tokenizer_checkpoint: /tmp/tokenizer.model
+
+# Fine-tuning arguments
+batch_size: 1
+lr: 2e-5
+epochs: 3
+optimizer: SGD
+optim_in_bwd: True
+loss: CrossEntropyLoss
+output_dir: /tmp/alpaca-llama2-finetune
+device: cuda
+dtype: fp32
+enable_fsdp: False
+cpu_offload: False
+enable_activation_checkpointing: False
+resume_from_checkpoint: False
