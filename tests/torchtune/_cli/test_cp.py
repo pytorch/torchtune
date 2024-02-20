@@ -18,7 +18,9 @@ from tests._scripts.common import TUNE_PATH
 class TestTuneCLIWithCopyScript:
     def test_copy_successful(self, capsys, monkeypatch):
         with tempfile.TemporaryDirectory() as tmpdir:
-            args = "tune cp alpaca_llama2_full_finetune.yaml .".split()
+            tmpdir_path = Path(tmpdir)
+            dest = tmpdir_path / "my_custom_finetune.yaml"
+            args = f"tune cp alpaca_llama2_full_finetune.yaml {dest}".split()
 
             monkeypatch.setattr(sys, "argv", args)
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -26,13 +28,7 @@ class TestTuneCLIWithCopyScript:
             captured = capsys.readouterr()
             output = captured.err.rstrip("\n")
 
-            tmpdir_path = Path(tmpdir)
-            # list out all files in tmpdir
-            files = [f for f in tmpdir_path.iterdir() if f.is_file()]
-            print(files)
-
-            file_path = Path(tmpdir) / "alpaca_llama2_full_finetune.yaml"
-            assert file_path.exists(), f"Expected {file_path} to exist"
+            assert dest.exists(), f"Expected {dest} to exist"
             assert output == "", f"Expected no output, got {output}"
 
     def test_copy_successful_when_dest_already_exists(self, capsys, monkeypatch):
