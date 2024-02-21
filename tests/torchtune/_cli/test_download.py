@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import pytest
 
-from tests._cli.common import TUNE_PATH
+from tests.torchtune._cli.common import TUNE_PATH
 
 
 class TestTuneCLIWithDownloadScript:
