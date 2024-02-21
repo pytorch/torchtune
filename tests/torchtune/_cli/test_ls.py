@@ -8,11 +8,11 @@
 import runpy
 import sys
 
-from _scripts.ls import _NULL_VALUE
-
 from recipes import list_configs, list_recipes
 
-from tests._scripts.common import TUNE_PATH
+from tests.torchtune._cli.common import TUNE_PATH
+
+from torchtune._cli.ls import _NULL_VALUE
 
 
 class TestTuneCLIWithListScript:
