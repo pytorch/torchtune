@@ -14,7 +14,6 @@ from warnings import warn
 
 import torch
 
-from recipes.interfaces import FTRecipeInterface
 from recipes.params.lora_finetune import LoRAFinetuneParams
 
 from torch import nn
@@ -22,7 +21,7 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import datasets, models, modules, utils
+from torchtune import datasets, models, modules, utils, FTRecipeInterface
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,

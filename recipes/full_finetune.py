@@ -14,7 +14,6 @@ from warnings import warn
 
 import torch
 
-from recipes.interfaces import FTRecipeInterface
 from recipes.params.full_finetune import FullFinetuneParams
 
 from torch import nn
@@ -23,7 +22,7 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import datasets, models, modules, utils
+from torchtune import datasets, models, modules, utils, FTRecipeInterface
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
