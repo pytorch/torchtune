@@ -165,7 +165,7 @@ class DummyModel(nn.Module):
         return out
 
 
-def dummy_grad_accum_ckpt(vocab_size: int = 32_000, embed_dim=16):
+def dummy_grad_accum_ckpt():
     model = DummyModel()
     fixed_init_model(model)
     return model
