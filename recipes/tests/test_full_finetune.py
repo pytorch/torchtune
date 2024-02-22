@@ -25,6 +25,7 @@ from recipes.tests.utils import (
 
 from torch import nn
 from torchtune import models
+from torchtune.datasets.alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils.collate import padded_collate
 
 models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
@@ -140,7 +141,10 @@ class TestFullFinetuneRecipe:
 
 # Custom collate function reducing vocab size to build a smaller model
 def custom_collate(
-    batch, padding_idx: int = 0, ignore_idx: int = -100, reduced_vocab_dim: int = 10
+    batch,
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    reduced_vocab_dim: int = 10,
 ):
     input_ids, labels = padded_collate(batch, padding_idx, ignore_idx)
     input_ids = torch.remainder(input_ids, reduced_vocab_dim)
@@ -269,7 +273,7 @@ class TestRecipeGradientAccumulation:
         normalization_factors = []
         for i, batch in enumerate(dummy_dataloader):
             labels = batch[1]
-            num_unmasked_pos = (labels != -100).sum().item()
+            num_unmasked_pos = (labels != CROSS_ENTROPY_IGNORE_IDX).sum().item()
             normalization_factors.append(num_unmasked_pos)
             if (i + 1) == full_batch_size:
                 break
