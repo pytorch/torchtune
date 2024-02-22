@@ -11,7 +11,7 @@ import pytest
 import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
-from torch import Tensor
+from torch import nn, Tensor
 
 from torchtune.modules import FeedForward
 from torchtune.utils.seed import set_seed
@@ -39,7 +39,10 @@ class TestFeedForward:
     @pytest.fixture
     def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
-        ff = FeedForward(dim, hidden_dim, linear_class=torch.nn.Linear).eval()
+        linear1 = nn.Linear(dim, hidden_dim, bias=False)
+        linear2 = nn.Linear(hidden_dim, dim, bias=False)
+        linear3 = nn.Linear(dim, hidden_dim, bias=False)
+        ff = FeedForward(linear1, linear2, linear3).eval()
         fixed_init_model(ff)
         ff.eval()
         return ff
