@@ -5,7 +5,7 @@ our packaging needed to be fixed and fast.
 1. _scripts needs to be a proper entrypoint in the `torchtune` package: resolved
 in [this commit](https://github.com/pytorch-labs/torchtune/commit/5ae616964546813f23f8d9b1beaae06d3877bd1e).
 2. `recipes` should not be an importable module in the `torchtune` package.
-3. `tests` should not be an importable module in the `torchtune` package.
+3. `tests` should not be included in the `torchtune` package.
 
 Specifically for 2, we were relying on being able to import things from a package (`recipes`)
 that *should not* have been importable and hardcoding values to point to that package. This RFC will
@@ -37,7 +37,7 @@ but
 
 Now that the `recipes` folder is not a package, there's no way to do `from recipes import list_recipes`. This function
 is necessary for running both `tune ls` and `tune cp`. It's bad UX to force a user to consult the web documentation
-to do something that's a core functionality. (See [my previous RFC]())
+to do something that's a core functionality. (See [my previous RFC](https://github.com/pytorch-labs/torchtune/pull/383))
 
 The list and copy functionality is based on a hardcoded list and dictionary that we maintain in the recipes directory.
 We can easily move this functionality to the core `torchtune` directory, thereby making these functions importable.
