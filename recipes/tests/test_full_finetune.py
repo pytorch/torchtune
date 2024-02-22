@@ -9,7 +9,6 @@ import os
 import tempfile
 from copy import deepcopy
 from typing import Dict
-from unittest.mock import patch
 
 import pytest
 
@@ -191,7 +190,9 @@ class TestRecipeGradientAccumulation:
     @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
     @pytest.mark.usefixtures("create_mock_load_checkpoint")
     @pytest.mark.usefixtures("create_mock_collate_fn")
-    def test_gradient_accumulation(self, full_batch_size, micro_batch_size, capsys):
+    def test_gradient_accumulation(
+        self, full_batch_size, micro_batch_size, capsys, mocker
+    ):
         """
         Test gradient accumulation. Since this is model agnostic, we can just
         run this on a small dummy model.
@@ -231,7 +232,7 @@ class TestRecipeGradientAccumulation:
 
         # Patch the recipe to use DummyModel class
         # Note that this cannot be done via a decorator because we use patch two separate times
-        with patch(
+        with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
             return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
         ):
@@ -255,7 +256,7 @@ class TestRecipeGradientAccumulation:
 
         # Patch the recipe to use DummyModel class. We use a separate patch
         # because otherwise the model params would remain the same from the baseline
-        with patch(
+        with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
             return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
         ):
