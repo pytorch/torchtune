@@ -47,11 +47,15 @@ We can easily move this functionality to the core `torchtune` directory, thereby
 2. Add a [`MANIFEST.in`](https://setuptools.pypa.io/en/latest/userguide/miscellaneous.html#controlling-files-in-the-distribution) file
 to the base directory that explicitly adds all files in recipes to the package. (This is the standard way to include files outside of a package.)
 3. Move `list_recipes` and `list_configs` functions to `torchtune/__init__.py`
-4. Move `interfaces.py` to `torchtune/_recipe_interfaces.py`
+4. Move `interfaces.py` to `torchtune/_recipe_interfaces.py` (Also has the advantage of now requiring explicit documentation on our RST pages,
+making it easier for others to find the interface and use it with their own recipes.)
 
 **Why are you moving `interfaces.py` under the `torchtune` directory?** Nothing in `recipes/` should be importable.
 Recipe interfaces are helpers for setting up different recipes. As such, people should be able to import and use as needed, therefore,
 it should be included underneath the `torchtune` directory.
+
+**How will you run the recipe tests?** A great point; however, one which I view to be too low-level for a RFC. The implementation details
+for the recipe testing will be covered in the *actual* PR.
 
 ### Alternatives Considered
 
