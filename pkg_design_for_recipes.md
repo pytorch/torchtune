@@ -8,7 +8,8 @@ in [this commit](https://github.com/pytorch-labs/torchtune/commit/5ae61696454681
 3. `tests` should not be an importable module in the `torchtune` package.
 
 Specifically for 2, we were relying on being able to import things from a package (`recipes`)
-that *should not* have been importable and hardcoding values to point to that package.
+that *should not* have been importable and hardcoding values to point to that package. This RFC will
+cover how to solve this issue only.
 
 ### The Journey of 10k (or, like, 4) Questions
 
