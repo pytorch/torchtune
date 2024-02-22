@@ -339,17 +339,15 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
             )
 
-    def _should_update_weights(self, curr_step: int) -> bool:
+    def _should_update_weights(self, current_iteration: int) -> bool:
         """
-        Determines whether the weights should be updated on the current step or not.
+        Determines whether the weights should be updated on the current iteration or not.
         True is returned either if we've accumulated gradients for enough steps or if this
         is the last step in the epoch.
         """
         should_update_weights = (
-            curr_step + 1
-        ) % self._gradient_accumulation_steps == 0 or (
-            curr_step + 1
-        ) == self._steps_per_epoch
+            current_iteration + 1
+        ) % self._gradient_accumulation_steps == 0
         return should_update_weights
 
     def train(self) -> None:
@@ -409,7 +407,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 # Does loss normalization need to happen within autocast context?
                 loss = loss / self._gradient_accumulation_steps
                 self._grad_scaler.scale(loss).backward()
-
                 if self._should_update_weights(idx):
                     self._grad_scaler.step(self._optimizer)
                     self._grad_scaler.update()
