@@ -159,13 +159,7 @@ class DummyModel(nn.Module):
         self.embed = nn.Embedding(reduced_vocab_size, embed_dim)
         self.out = nn.Linear(embed_dim, reduced_vocab_size, bias=False)
 
-    # @torch.no_grad()
-    # def reduce_vocab_dim(self, x):
-    #     x = torch.remainder(x, self.reduced_vocab_size)
-    #     return x
-
     def forward(self, x):
-        # x = self.reduce_vocab_dim(x)
         embeddings = self.embed(x)
         out = self.out(embeddings)
         return out
