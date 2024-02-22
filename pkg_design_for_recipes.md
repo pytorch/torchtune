@@ -4,8 +4,8 @@ As brought up in [#394](https://github.com/pytorch-labs/torchtune/issues/394),
 our packaging needed to be fixed and fast.
 1. _scripts needs to be a proper entrypoint in the `torchtune` package: resolved
 in [this commit](https://github.com/pytorch-labs/torchtune/commit/5ae616964546813f23f8d9b1beaae06d3877bd1e).
-2. `recipes` should not be an importable module in the `torchtune` package.
-3. `tests` should not be included in the `torchtune` package.
+2. `recipes` should not be an importable module in the `torchtune` package, but should still be included in the package
+3. `tests` should not be included in the `torchtune` package, but should still be importable
 
 Specifically for 2, we were relying on being able to import things from a package (`recipes`)
 that *should not* have been importable and hardcoding values to point to that package. This RFC will
@@ -69,7 +69,7 @@ it's not a module and therefore would not be importable.
 and users should be able to take a quick look and extend or modify them. As such, including recipes under the torchtune directory
 would, in my mind, only serve to confuse users and make them harder to find.
 
-#### Moving `recipes` to its own repository
+#### Moving `recipes` to its own Github repository
 
 **Pros**: This would definitely accomplish the goal of not packaging recipes with our `torchtune` package and would
 be easy way to allow a bunch of people to hack onto and add their own recipes.
