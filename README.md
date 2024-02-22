@@ -194,3 +194,9 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 ## Contributing
 
 We welcome any feature requests, bug reports, or pull requests from the community. See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
+
+&nbsp;
+
+## License
+
+TorchTune is released under the BSD 3 license.
