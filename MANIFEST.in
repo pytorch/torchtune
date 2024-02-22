@@ -1,3 +1,6 @@
-include recipes/configs *.yaml
-include recipes/params *.py
-include recipes/ *.py
+# Add necessary recipe files
+recursive-include recipes *.py *yaml
+
+# Exclude any test files from package
+prune tests
+prune recipes/tests
