@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
 &nbsp;
 
@@ -199,4 +199,4 @@ We welcome any feature requests, bug reports, or pull requests from the communit
 
 ## License
 
-TorchTune is released under the BSD 3 license.
+TorchTune is released under the [BSD 3 license](./LICENSE).
