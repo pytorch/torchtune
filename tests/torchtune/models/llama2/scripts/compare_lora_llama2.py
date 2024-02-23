@@ -106,7 +106,9 @@ def compare_lora_llama2(
     with torch.no_grad():
         out_ref = lora_llama_ref(x)
 
-    print(lora_modules, out.mean(), out_ref.mean(), out.shape, out_ref.shape)
+    print(
+        lora_modules, lora_in_mlp, out.mean(), out_ref.mean(), out.shape, out_ref.shape
+    )
 
     # output tensors should be similar
     assert torch.allclose(out, out_ref, atol=1e-5, rtol=1e-3)
