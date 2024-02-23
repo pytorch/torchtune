@@ -11,7 +11,7 @@ import pytest
 from tests.test_utils import get_assets_path
 
 from torchtune import datasets
-from torchtune.datasets.alpaca import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -22,7 +22,7 @@ class TestAlpacaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    @patch("torchtune.datasets.alpaca.load_dataset")
+    @patch("torchtune.datasets._alpaca.load_dataset")
     def test_prompt_generation(self, load_dataset, tokenizer):
         """
         Test the prompt generation based on the alpaca template is correct.
@@ -74,7 +74,7 @@ class TestAlpacaDataset:
                 sample["instruction"], sample["input"]
             )
 
-    @patch("torchtune.datasets.alpaca.load_dataset")
+    @patch("torchtune.datasets._alpaca.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -101,7 +101,7 @@ class TestAlpacaDataset:
         assert input[0] == tokenizer.bos_id
         assert CROSS_ENTROPY_IGNORE_IDX not in labels
 
-    @patch("torchtune.datasets.alpaca.load_dataset")
+    @patch("torchtune.datasets._alpaca.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
@@ -138,7 +138,7 @@ class TestAlpacaDataset:
         assert input[0] == tokenizer.bos_id
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == len(encoded_prompt)
 
-    @patch("torchtune.datasets.alpaca.load_dataset")
+    @patch("torchtune.datasets._alpaca.load_dataset")
     def test_alpaca_clean(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.

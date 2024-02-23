@@ -6,8 +6,8 @@
 
 from torch.utils.data import Dataset
 
-from .alpaca import AlpacaDataset
-from .slimorca import SlimOrcaDataset
+from ._alpaca import AlpacaDataset
+from ._slimorca import SlimOrcaDataset
 
 ALL_DATASETS = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
 

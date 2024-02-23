@@ -10,7 +10,7 @@ import pytest
 from tests.test_utils import get_assets_path
 
 from torchtune import datasets
-from torchtune.datasets.slimorca import _Llama2ChatFormatConstants
+from torchtune.datasets._slimorca import _Llama2ChatFormatConstants
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -21,7 +21,7 @@ class TestSlimOrcaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_prompt_label_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)
@@ -63,7 +63,7 @@ class TestSlimOrcaDataset:
         )
         assert label == " lo "
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         dataset = datasets.get_dataset(
@@ -73,7 +73,7 @@ class TestSlimOrcaDataset:
         assert input == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
         assert label == ([-100] * 3 + [1024, 103, tokenizer.eos_id])
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_truncated_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         dataset = datasets.get_dataset(
@@ -93,13 +93,13 @@ class TestSlimOrcaDataset:
         assert input == [tokenizer.bos_id, 12, 1024, tokenizer.eos_id]
         assert label == ([-100] * 2 + [1024, tokenizer.eos_id])
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_value_error(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         with pytest.raises(ValueError):
             datasets.get_dataset("slimorca", tokenizer=tokenizer, max_token_length=3)
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     @pytest.mark.parametrize("max_token_length", [128, 512, 1024, 4096])
     def test_dataset_get_item(self, load_dataset, tokenizer, max_token_length):
         # Sample data from slimorca dataset
