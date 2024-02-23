@@ -132,6 +132,8 @@ def eval(
 def main(
     model_name: str,
     model_checkpoint: str,
+    peft_checkpoint: Optional[str],
+    lora_attn_modules: Optional[List[str]],
     tokenizer_name: str,
     tokenizer_checkpoint: str,
     device: str = "cuda",
@@ -145,6 +147,11 @@ def main(
     Args:
         model_name (str): The name of the model to evaluate.
         model_checkpoint (str): The path to the model checkpoint.
+        peft_checkpoint(Optional[str]): The path to PEFT checkpoint containing trained adapter parameters.
+            This checkpoint will be loaded in after loading in `model_checkpoint`. If ``None``, no PEFT
+            checkpoint will be loaded in.
+        lora_attn_modules(Optional[List[str]]): The list of modules to use for LoRA. Must be specified if
+            LoRA trained model is being evaluated. Default: ``None``.
         tokenizer_name (str): The name of the tokenizer to use.
         tokenizer_checkpoint (str): The path to the tokenizer checkpoint.
         device (str): The device to run evaluation on. Can be "cpu", "cuda", or "cuda:<device_id>"
@@ -159,13 +166,43 @@ def main(
         task_list = _default_tasks
     # Create tokenizer and model.
     tokenizer = models.get_tokenizer(tokenizer_name, path=tokenizer_checkpoint)
-    model = models.get_model(model_name, device=device)
+    additional_model_kwargs = {}
+    if "lora" in model_name:
+        assert (
+            lora_attn_modules is not None
+        ), f"Must specify lora_attn_modules as arg for model {model_name}"
+        additional_model_kwargs["lora_attn_modules"] = lora_attn_modules
+    model = models.get_model(model_name, device=device, **additional_model_kwargs)
     model_state_dict = torch.load(
         f=model_checkpoint,
         weights_only=True,
         map_location="cpu",
     )
-    model.load_state_dict(model_state_dict["model"])
+    base_missing, base_unexpected = model.load_state_dict(
+        model_state_dict["model"], strict=False
+    )
+    # Base model should not be loading in any unexpected keys
+    assert not base_unexpected, f"Unexpected keys {base_unexpected}"
+
+    if peft_checkpoint is not None:
+        peft_state_dict = torch.load(
+            f=peft_checkpoint,
+            weights_only=True,
+            map_location="cpu",
+        )
+        peft_missing, peft_unexpected = model.load_state_dict(
+            peft_state_dict["model"], strict=False
+        )
+        assert not peft_unexpected, f"Unexpected keys {peft_unexpected}"
+        # peft_missing + base_missing should cover entire state_dict.
+        peft_missing = set(peft_missing)
+        base_missing = set(base_missing)
+        assert not (
+            peft_missing & base_missing
+        ), f"Missing keys {peft_missing & base_missing}"
+    else:
+        # Should be no missing base keys
+        assert not base_missing, f"Unexpected missing keys {base_missing}"
     logger.info(
         f"Initialized model and tokenizer from {model_checkpoint} and {tokenizer_checkpoint}. Running eval."
     )
@@ -227,10 +264,29 @@ if __name__ == "__main__":
         default="cuda",
         help="Device for eval. Can be cpu, cuda, or cuda:<device_id>",
     )
+    parser.add_argument(
+        "--peft-checkpoint",
+        type=str,
+        default=None,
+        help="Path to checkpoint for PEFT parameters. These parameters will be loaded in after loading in model-checkpoint.",
+    )
+
+    # TODO: having user specify this is a bit hacky and not generalizable, we should fix, possibly by storing / checkpointing the
+    # LoRA attention modules and additional data needed to fully reconstruct the model.
+    parser.add_argument(
+        "--lora_attn_modules",
+        type=str,
+        nargs="+",
+        default=None,
+        help="""LoRA attention modules to use to initialize LoRA. Must be specified if LoRA model is being used for eval,
+            and must be the same set of LoRA attention modules used to train with. Example: --lora_attn_modules q_proj v_proj""",
+    )
     args = parser.parse_args()
     main(
         model_name=args.model,
         model_checkpoint=args.model_checkpoint,
+        peft_checkpoint=args.peft_checkpoint,
+        lora_attn_modules=args.lora_attn_modules,
         tokenizer_name=args.tokenizer,
         tokenizer_checkpoint=args.tokenizer_checkpoint,
         device=args.device,

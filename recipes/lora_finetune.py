@@ -15,7 +15,7 @@ from warnings import warn
 import torch
 
 from recipes.interfaces import FTRecipeInterface
-from recipes.params import LoRAFinetuneParams
+from recipes.params.lora_finetune import LoRAFinetuneParams
 
 from torch import nn
 from torch.cuda.amp import GradScaler
@@ -277,9 +277,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
         if self._is_rank_zero:
-            log.info(
-                "Model is initialized. FSDP and Activation Checkpointing are enabled."
-            )
+            log.info("Model is initialized.")
         return model
 
     def _setup_tokenizer(

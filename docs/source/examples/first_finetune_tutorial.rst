@@ -20,6 +20,7 @@ job using TorchTune.
       * Be familiar with the :ref:`overview of TorchTune<overview_label>`
       * Make sure to :ref:`install TorchTune<install_label>`
 
+.. _download_llama_label:
 
 Downloading a model
 -------------------

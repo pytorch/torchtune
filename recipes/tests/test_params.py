@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from recipes.params import FullFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
 
 
 class TestParams:

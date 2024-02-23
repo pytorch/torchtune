@@ -1,4 +1,10 @@
 #!/bin/bash
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 # Script to run recipe test locally
 # Shorter Test using test checkpoint: ./run_test.sh
 # Longer Test using llama 7b checkpoint: ./run_test.sh --large-scale

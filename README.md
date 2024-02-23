@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
 &nbsp;
 
@@ -164,7 +164,6 @@ does with the following additional functionalities:
 
 ---
 
-
 ## Design Principles
 
 TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
@@ -190,9 +189,14 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 - Checkpoint-tests to ensure model-level numerical parity with reference implementations
 - Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
 
-
 &nbsp;
 
 ## Contributing
 
 We welcome any feature requests, bug reports, or pull requests from the community. See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
+
+&nbsp;
+
+## License
+
+TorchTune is released under the [BSD 3 license](./LICENSE).
