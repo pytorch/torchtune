@@ -26,6 +26,7 @@ Replicating code here to minimize dependencies. The code is modified to
 include params for the constructor and remove start_pos (not supported).
 """
 
+from typing import Optional
 # TODO: Move this to standalone ref implementation
 class Transformer(nn.Module):
     def __init__(
@@ -36,6 +37,8 @@ class Transformer(nn.Module):
         n_heads: int,
         max_seq_len: int,
         n_kv_heads: int,
+        hidden_layer_dim_multiple_of: int = 256,
+        ffn_dim_multiplier: Optional[float] = None,
     ):
 
         super().__init__()
@@ -47,7 +50,7 @@ class Transformer(nn.Module):
         self.layers = torch.nn.ModuleList()
         for _ in range(n_layers):
             self.layers.append(
-                TransformerBlock(n_heads=n_heads, dim=dim, n_kv_heads=n_kv_heads)
+                TransformerBlock(n_heads=n_heads, dim=dim, n_kv_heads=n_kv_heads, hidden_layer_dim_multiple_of=hidden_layer_dim_multiple_of, ffn_dim_multiplier=ffn_dim_multiplier)
             )
 
         self.norm = RMSNormRef(dim)

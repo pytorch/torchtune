@@ -95,10 +95,18 @@ a class. Replicating code here to minimize dependencies.
 
 def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0) -> torch.Tensor:
     freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+    print(f"RV: freqs device {freqs.device}")
     t = torch.arange(end, device=freqs.device)  # type: ignore
     freqs = torch.outer(t, freqs).float()  # type: ignore
     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
     return freqs_cis
+
+# def precompute_freqs_cis(dim: int, end: int, theta: float = 10000.0):
+#     freqs = 1.0 / (theta ** (torch.arange(0, dim, 2)[: (dim // 2)].float() / dim))
+#     t = torch.arange(end, device=freqs.device)  # type: ignore
+#     freqs = torch.outer(t, freqs).float()  # type: ignore
+#     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)  # complex64
+#     return freqs_cis
 
 
 def reshape_for_broadcast(freqs_cis: torch.Tensor, x: torch.Tensor) -> torch.Tensor:

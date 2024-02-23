@@ -56,7 +56,7 @@ def llama2_tokenizer(path: str) -> Tokenizer:
     return tokenizer
 
 
-def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
+def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256, ffn_dim_multiplier: Optional[int] = None) -> int:
     """Scale hidden dimension for MLP to keep number of parameters and computation constant.
 
     Args:
@@ -69,6 +69,10 @@ def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
     # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
     # parameters and computation constant
     hidden_dim = 4 * int(2 * dim / 3)
+    # custom dim factor multiplier
+    if ffn_dim_multiplier is not None:
+        hidden_dim = int(ffn_dim_multiplier * hidden_dim)
+
     # Round hidden dimension to nearest multiple of `multiple_of`
     hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
     return hidden_dim
@@ -84,7 +88,9 @@ def llama2(
     attn_dropout: float = 0.0,
     max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
-):
+    hidden_layer_dim_multiple_of: int = 256,
+    ffn_dim_multiplier: Optional[int] = None,
+ ):
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     kv_cache = (
@@ -112,7 +118,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim, multiple_of=hidden_layer_dim_multiple_of, ffn_dim_multiplier=ffn_dim_multiplier)
     mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
     layer = TransformerDecoderLayer(
         attn=self_attn,

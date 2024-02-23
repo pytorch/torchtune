@@ -31,6 +31,7 @@ class KVCache(nn.Module):
         dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
+        dtype = torch.bfloat16
         cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
         self.register_buffer(
             "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False

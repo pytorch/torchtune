@@ -123,7 +123,7 @@ def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
     return from_name, number
 
 
-def _convert_llama_from_fair(checkpoint_path: Path) -> Dict[str, torch.Tensor]:
+def _convert_llama_from_fair(checkpoint_path: Path, orig_state_dict=None) -> Dict[str, torch.Tensor]:
     """Convert FAIR model checkpoint to TorchTune's native-PyTorch format.
 
     Args:
@@ -133,9 +133,13 @@ def _convert_llama_from_fair(checkpoint_path: Path) -> Dict[str, torch.Tensor]:
         state_dict: PyTorch-native state dict.
     """
     # Load the original state dict
-    original_state_dict = torch.load(
-        checkpoint_path, map_location="cpu", weights_only=True
-    )
+    if orig_state_dict is None:
+        original_state_dict = torch.load(
+            checkpoint_path, map_location="cpu", weights_only=True
+        )
+    else:
+        original_state_dict = orig_state_dict
+
     _LOGGER.info(msg="Loaded original state dict")
 
     # Construct mapping

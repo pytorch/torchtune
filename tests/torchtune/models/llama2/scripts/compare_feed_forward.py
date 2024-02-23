@@ -22,7 +22,7 @@ https://github.com/facebookresearch/llama/blob/main/llama/model.py#L307
 
 Replicating code here to minimize dependencies.
 """
-
+from typing import Optional
 
 class FeedForwardRef(nn.Module):
     def __init__(

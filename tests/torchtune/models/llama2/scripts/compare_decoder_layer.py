@@ -61,13 +61,13 @@ include params for the constructor and remove start_pos (not supported).
 
 
 class TransformerBlock(nn.Module):
-    def __init__(self, n_heads: int, dim: int, n_kv_heads: int):
+    def __init__(self, n_heads: int, dim: int, n_kv_heads: int, hidden_layer_dim_multiple_of: int = 256, ffn_dim_multiplier: Optional[float] = None):
         super().__init__()
         self.n_heads = n_heads
         self.dim = dim
         # self.head_dim = args.dim // args.n_heads
         self.attention = Attention(n_heads=n_heads, n_kv_heads=n_kv_heads, dim=dim)
-        self.feed_forward = FeedForwardRef(dim=dim, hidden_dim=4 * dim)
+        self.feed_forward = FeedForwardRef(dim=dim, hidden_dim=4 * dim, multiple_of=hidden_layer_dim_multiple_of, ffn_dim_multiplier=ffn_dim_multiplier)
         self.attention_norm = RMSNormRef(dim=dim)
         self.ffn_norm = RMSNormRef(dim=dim)
 
