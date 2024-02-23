@@ -125,6 +125,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self._model = self._setup_model(
             model=params.model,
             lora_attn_modules=params.lora_attn_modules,
+            apply_lora_in_mlp=params.apply_lora_in_mlp,
             lora_rank=params.lora_rank,
             lora_alpha=params.lora_alpha,
             enable_fsdp=params.enable_fsdp,
@@ -220,6 +221,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self,
         model: str,
         lora_attn_modules: List[str],
+        apply_lora_in_mlp: bool,
         lora_rank: int,
         lora_alpha: float,
         enable_fsdp: bool,
@@ -234,6 +236,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             model,
             device=init_device,
             lora_attn_modules=lora_attn_modules,
+            apply_lora_in_mlp=apply_lora_in_mlp,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
         )
@@ -263,7 +266,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-
+        lora_modules = lora_attn_modules + (
+            ["w1", "w2", "w3"] if apply_lora_in_mlp else []
+        )
         validate_state_dict_for_lora(
             lora_modules=lora_attn_modules,
             full_model_state_dict_keys=model.state_dict().keys(),

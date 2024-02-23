@@ -23,6 +23,7 @@ class LoRAFinetuneParams:
         model_checkpoint (str): Local path to load model checkpoint from.
         lora_attn_modules (List[str]): List of attention modules to use for LoRA. Supported values are
             ["q_proj", "k_proj", "v_proj", "output_proj"].
+        apply_lora_in_mlp (bool): Whether to use LoRA in MLP linear layers.
         lora_rank (int): Rank of LoRA decompositions.
         lora_alpha (float): Alpha parameter for LoRA.
         lora_checkpoint (str): Local path to load LoRA weights from.
@@ -62,6 +63,7 @@ class LoRAFinetuneParams:
     model: str = ""
     model_checkpoint: str = ""
     lora_attn_modules: List[str] = field(default_factory=list)
+    apply_lora_in_mlp: bool = False
     lora_rank: int = 8
     lora_alpha: float = 16
     lora_checkpoint: Optional[str] = None

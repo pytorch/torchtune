@@ -116,7 +116,7 @@ def validate_state_dict_for_lora(
 
     Args:
         lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
-            ["q_proj", "k_proj", "v_proj", "output_proj"]
+            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj"]
         full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
         lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
             If none, LoRA state dict keys will not be validated.

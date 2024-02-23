@@ -271,6 +271,13 @@ class TestPeftUtils:
                 "Extra",
             ),
             (
+                ["w1", "w2", "w3"],
+                ["w1.lora_a.weight", "w2.weight", "q_proj.weight"],
+                ["w1.lora_a.weight"],
+                ["q_proj.weight"],
+                "Missing non-LoRA key",
+            ),
+            (
                 ["q_proj", "v_proj"],
                 "lora_llama2_model_all_keys",
                 "lora_llama2_expected_adapter_keys",

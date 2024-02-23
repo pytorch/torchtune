@@ -259,13 +259,13 @@ def lora_llama2(
     hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
     if apply_lora_to_mlp:
         mlp = _lora_llama_mlp(
-            in_dim=embed_dim,
+            dim=embed_dim,
             hidden_dim=hidden_dim,
             lora_rank=lora_rank,
-            lora_alpha=lora,
+            lora_alpha=lora_alpha,
         )
     else:
-        mlp = _llama_mlp(in_dim=embed_dim, hidden_dim=hidden_dim)
+        mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
 
     layer = TransformerDecoderLayer(
         attn=self_attn,
