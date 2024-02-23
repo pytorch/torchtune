@@ -28,6 +28,7 @@ LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 def lora_llama2_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
@@ -40,6 +41,7 @@ def lora_llama2_7b(
     """
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
