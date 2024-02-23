@@ -4,25 +4,43 @@
 #    tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune --override model_checkpoint=<your_checkpoint_dir> ...
 
 # Dataset and Dataloader
-dataset: alpaca
+dataset:
+  _target_: torchtune.datasets.AlpacaDataset
+  train_on_input: True
+
 seed: null
 shuffle: True
 
 # Model Arguments
-model: llama2_7b
+model:
+  _target_: torchtune.models.llama2_7b
+
 model_checkpoint: /tmp/llama2_native
-tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/llama2/tokenizer.model
+tokenizer:
+  _target_: torchtune.models.llama2_tokenizer
+  path: /tmp/llama2/tokenizer.model
 
 # Fine-tuning arguments
 batch_size: 2
-lr: 2e-5
 epochs: 3
-optimizer: SGD
-loss: CrossEntropyLoss
+optimizer:
+  _target_: torch.optim.SGD
+  lr: 2e-5
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+log_every_n_steps: null
+run_generation: null
+
+loss:
+  _target_: torch.nn.CrossEntropyLoss
+
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
 dtype: fp32
 enable_fsdp: True
 enable_activation_checkpointing: True
+cpu_offload: False
 resume_from_checkpoint: False
+metric_logger:
+  _target_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}

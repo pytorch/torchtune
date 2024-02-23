@@ -5,7 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 
-_RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", "full_finetune_hydra"]
+_RECIPE_LIST = [
+    "full_finetune",
+    "lora_finetune",
+    "alpaca_generate",
+]
 _CONFIG_LISTS = {
     "full_finetune": ["alpaca_llama2_full_finetune"],
     "lora_finetune": ["alpaca_llama2_lora_finetune"],
