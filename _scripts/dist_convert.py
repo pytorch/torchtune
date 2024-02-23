@@ -245,6 +245,7 @@ def build_distributed_state_dict_from_consolidated(
 
 def main():
     from torch.distributed import init_process_group
+
     init_process_group(backend="nccl")
     mp_size = dist.get_world_size()
     model_size = "7b" if mp_size == 1 else "70b"
@@ -258,8 +259,8 @@ def main():
     if local_rank == -1:
         raise RuntimeError("Expected local_rank to be set, but it is not!")
     mp_rank = local_rank % model_parallel_size
-    from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
-    from tests.torchtune.models.llama2.scripts.compare_decoder_layer import TransformerBlock
+    from dataclasses import dataclass
+
     #     def args_70b(
     #     max_seq_len: int = _DEFAULT_MAX_SEQ_LEN,
     #     max_batch_size: int = _DEFAULT_MAX_BATCH_SIZE,
@@ -280,7 +281,11 @@ def main():
     #     )
 
     from typing import Optional
-    from dataclasses import dataclass
+
+    from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
+    from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
+        TransformerBlock,
+    )
 
     @dataclass
     class LlamaArgs:
@@ -351,8 +356,10 @@ def main():
     with torch.device("meta"):
         meta_model = build_ref_model(model_size)
 
+    from tests.torchtune.models.llama2.scripts.compare_attention import (
+        precompute_freqs_cis,
+    )
 
-    from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
     # meta
     # meta_model.freqs_cis = precompute_freqs_cis(
     #     8192 // 64, 2048 * 2
@@ -394,7 +401,6 @@ def main():
     else:
         dist_state_dict = state_dict
 
-
     print(f"RV: about to map weights")
     torchtune_sd = _convert_llama_from_fair("blah", dist_state_dict)
     print(f"RV: DONE mapping weights, now converting state_dict")
@@ -421,16 +427,26 @@ def main():
     #     except AttributeError:
     #         pass
     torch.manual_seed(0)
-    from torchtune.modules.peft.peft_utils import lora_fsdp_init
     from functools import partial
+
+    from torchtune.modules.peft.peft_utils import lora_fsdp_init
+
     aasdfjkll = partial(lora_fsdp_init, device=torch.cuda.current_device())
+    from torch.distributed.fsdp import CPUOffload
+
     torchtune_model = FSDP(
         torchtune_model,
         auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}),
         device_id=torch.cuda.current_device(),
         param_init_fn=aasdfjkll,
-        use_orig_params=True,
+        # use_orig_params=True,
+        # cpu_offload=CPUOffload(offload_params=True),
     )
+    from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+        apply_activation_checkpointing,
+    )
+    apply_activation_checkpointing(torchtune_model, auto_wrap_policy=ModuleWrapPolicy({TransformerDecoderLayer}))
+
     # torchtune_model.eval()
     from torch.distributed.fsdp.api import StateDictType
 
@@ -445,7 +461,15 @@ def main():
         if v.dtype != torch.bfloat16:
             print(f"Expected {k} to be bf16, got {v.dtype}")
     print(f"RV: missing {missing} unexpected {unexpected}")
-    inp = torch.randint(0, 32_000, (1, 4)).to(torch.cuda.current_device())
+    inp = torch.randint(0, 32_000, (1, 256)).to(torch.cuda.current_device())
+    # optim = torch.optim.AdamW(torchtune_model.parameters(), lr=0.03, foreach=False)
+    # import bitsandbytes as bnb
+    # optim = bnb.optim.PagedAdamW(torchtune_model.parameters(), lr=0.03)
+    # # optim = torch.optim.SGD(torchtune_model.parameters(), lr=0.03)
+    # out = torchtune_model(inp).sum().backward()
+    # optim.step()
+    # print(f"RV: done w/backward + step")
+    # exit(0)
     # with FSDP.summon_full_params(torchtune_model):
     #     from copy import deepcopy
     #     torchtune_model = deepcopy(torchtune_model.module)
@@ -453,13 +477,17 @@ def main():
         out = torchtune_model(inp)
 
     del torchtune_model
-    import gc ; gc.collect()
+    import gc
+
+    gc.collect()
     torch.cuda.empty_cache()
     torch.manual_seed(0)
     with torch.device("meta"):
         meta_model = build_ref_model(model_size)
 
-    from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
+    from tests.torchtune.models.llama2.scripts.compare_attention import (
+        precompute_freqs_cis,
+    )
 
     torch.set_default_device(torch.cuda.current_device())
     args = args_7b() if model_size == "7b" else args_70b()
@@ -508,13 +536,13 @@ def main():
         # if not torch.allclose(out, out2, atol=1e-4):
         #     print(f"RV: {out} vs {out2}")
 
-
     # print(f"RV: {out} vs {out2}")
 
 
 if __name__ == "__main__":
-    import sys
     import argparse
+    import sys
+
     parser = argparse.ArgumentParser()
     sys.exit(main())
     # parser.add_argument("--model_parallel_size", type=int, default=8)
