@@ -7,10 +7,12 @@
 import logging
 import os
 import tempfile
+from copy import deepcopy
 from typing import Dict
 
 import pytest
 
+import torch
 from recipes.full_finetune import FullFinetuneRecipe
 from recipes.params.full_finetune import FullFinetuneParams
 from recipes.tests.utils import (
@@ -21,12 +23,16 @@ from recipes.tests.utils import (
     validate_loss_values,
 )
 
-from tests.test_utils import assert_expected
+from torch import nn
 from torchtune import models
+from torchtune.datasets.alpaca import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.utils.collate import padded_collate
 
 models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+from tests.test_utils import fixed_init_model
 
 
 class TestFullFinetuneRecipe:
@@ -78,7 +84,6 @@ class TestFullFinetuneRecipe:
         expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-
             kwargs_values = {
                 "dataset": "alpaca",
                 "seed": 9,
@@ -133,76 +138,156 @@ class TestFullFinetuneRecipe:
                 3 * kwargs_values["max_steps_per_epoch"]
             )
 
-    @pytest.mark.parametrize("gradient_accumulation_steps", [(1, 4), (1, 8)])
-    @pytest.mark.parametrize("batch_size", [(4, 1), (8, 1)])
+
+# Custom collate function reducing vocab size to build a smaller model
+def custom_collate(
+    batch,
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+    reduced_vocab_dim: int = 10,
+):
+    input_ids, labels = padded_collate(batch, padding_idx, ignore_idx)
+    input_ids = torch.remainder(input_ids, reduced_vocab_dim)
+    labels = torch.where(
+        labels == ignore_idx, labels, torch.remainder(labels, reduced_vocab_dim)
+    )
+    return input_ids, labels
+
+
+# Dummy model class containing just an nn.Embedding and nn.Linear
+class DummyModel(nn.Module):
+    def __init__(self, reduced_vocab_size=10, embed_dim=16):
+        super().__init__()
+        self.reduced_vocab_size = reduced_vocab_size
+        self.embed = nn.Embedding(reduced_vocab_size, embed_dim)
+        self.out = nn.Linear(embed_dim, reduced_vocab_size, bias=False)
+
+    def forward(self, x):
+        embeddings = self.embed(x)
+        out = self.out(embeddings)
+        return out
+
+
+def dummy_grad_accum_ckpt():
+    model = DummyModel()
+    fixed_init_model(model)
+    return model
+
+
+models.ALL_MODELS["dummy_grad_accum_ckpt"] = dummy_grad_accum_ckpt
+
+
+@pytest.fixture
+def create_mock_load_checkpoint(mocker):
+    mocker.patch(
+        "recipes.full_finetune.FullFinetuneRecipe.load_checkpoint",
+        return_value={"model": None},
+    )
+
+
+@pytest.fixture
+def create_mock_collate_fn(mocker):
+    mocker.patch("torchtune.utils.padded_collate", wraps=custom_collate)
+
+
+class TestRecipeGradientAccumulation:
+    @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
+    @pytest.mark.usefixtures("create_mock_load_checkpoint")
+    @pytest.mark.usefixtures("create_mock_collate_fn")
     def test_gradient_accumulation(
-        self, gradient_accumulation_steps, batch_size, capsys, pytestconfig
+        self, full_batch_size, micro_batch_size, capsys, mocker
     ):
         """
-        Test gradient accumulation. Since this is model agnostic, we should just
-        run this on the small model.
+        Test gradient accumulation. Since this is model agnostic, we can just
+        run this on a small dummy model.
         """
-        model_ckpt = "small_test_ckpt"
 
-        for i in range(len(gradient_accumulation_steps)):
-            kwargs_values = {
-                "dataset": "alpaca",
-                "train_on_input": False,
-                "seed": 9,
-                "shuffle": True,
-                "model": model_ckpt,
-                "model_checkpoint": fetch_ckpt_model_path(model_ckpt),
-                "tokenizer": "llama2_tokenizer",
-                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-                "batch_size": batch_size[0],  # parametrized in the test
-                "lr": 2e-5,
-                "epochs": 1,  # make sure to run for 1 epoch
-                "max_steps_per_epoch": 1,
-                "optimizer": "AdamW",
-                "loss": "CrossEntropyLoss",
-                "output_dir": "/tmp",
-                "device": "cpu",
-                "dtype": "fp32",
-                "resume_from_checkpoint": False,
-                "enable_fsdp": False,
-                "enable_activation_checkpointing": False,
-                "metric_logger_type": "disk",
-                "gradient_accumulation_steps": gradient_accumulation_steps[
-                    0
-                ],  # parametrized in the test
-            }
+        model_ckpt = "dummy_grad_accum_ckpt"
+        gradient_accumulation_steps = full_batch_size // micro_batch_size
+        kwargs_values = {
+            "dataset": "alpaca",
+            "train_on_input": False,
+            "seed": 9,
+            "shuffle": True,
+            "model": model_ckpt,
+            "model_checkpoint": None,
+            "tokenizer": "llama2_tokenizer",
+            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "batch_size": full_batch_size,
+            "lr": 2e-5,
+            "epochs": 1,  # make sure to run for 1 epoch
+            "max_steps_per_epoch": 1,
+            "optimizer": "AdamW",
+            "loss": "CrossEntropyLoss",
+            "output_dir": "/tmp",
+            "device": "cpu",
+            "dtype": "fp32",
+            "resume_from_checkpoint": False,
+            "enable_fsdp": False,
+            "enable_activation_checkpointing": False,
+            "metric_logger_type": "disk",
+            "gradient_accumulation_steps": 1,
+        }
 
-            recipe_params = FullFinetuneParams(**kwargs_values)
+        # First run without gradient accumulation
+        baseline_params = kwargs_values.copy()
+        baseline_recipe_params = FullFinetuneParams(**baseline_params)
+        baseline_recipe = FullFinetuneRecipe(baseline_recipe_params)
 
-            grad_accum_recipe = FullFinetuneRecipe(recipe_params)
-            grad_accum_recipe.setup(params=recipe_params)
-            grad_accum_recipe.train()
+        # Patch the recipe to use DummyModel class
+        # Note that this cannot be done via a decorator because we use patch two separate times
+        with mocker.patch(
+            "recipes.full_finetune.FullFinetuneRecipe._setup_model",
+            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+        ):
+            baseline_recipe.setup(params=baseline_recipe_params)
+        baseline_recipe.train()
 
-            # the first run assumes the complete batch and so we have a single loss value
-            loss_value = float(
-                [
-                    value
-                    for key, value in fetch_loss_values(capsys.readouterr().err).items()
-                ][0]
-            )
+        # the first run assumes the complete batch and so we have a single loss value
+        loss_value = float(
+            [
+                value
+                for key, value in fetch_loss_values(capsys.readouterr().err).items()
+            ][0]
+        )
 
-            # Update the dict with new values
-            kwargs_values["batch_size"] = batch_size[1]
-            kwargs_values["gradient_accumulation_steps"] = gradient_accumulation_steps[
-                1
+        # Update the dict with new values for gradient accumulation
+        grad_accum_params = kwargs_values.copy()
+        grad_accum_params["batch_size"] = micro_batch_size
+        grad_accum_params["gradient_accumulation_steps"] = gradient_accumulation_steps
+        grad_accum_recipe_params = FullFinetuneParams(**grad_accum_params)
+        grad_accum_recipe = FullFinetuneRecipe(grad_accum_recipe_params)
+
+        # Patch the recipe to use DummyModel class. We use a separate patch
+        # because otherwise the model params would remain the same from the baseline
+        with mocker.patch(
+            "recipes.full_finetune.FullFinetuneRecipe._setup_model",
+            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+        ):
+            grad_accum_recipe.setup(params=grad_accum_recipe_params)
+
+        # Copy the dataloader and run a few iterations. CrossEntropyLoss is normalized
+        # by the number of unmasked tokens, so we need to derive these values per sample
+        # to appropriately compare losses with and without gradient accumulation.
+        dummy_dataloader = deepcopy(grad_accum_recipe._dataloader)
+        normalization_factors = []
+        for i, batch in enumerate(dummy_dataloader):
+            labels = batch[1]
+            num_unmasked_pos = (labels != CROSS_ENTROPY_IGNORE_IDX).sum().item()
+            normalization_factors.append(num_unmasked_pos)
+            if (i + 1) == full_batch_size:
+                break
+
+        grad_accum_recipe.train()
+
+        # the second run accumulates losses and so sum these up to compare
+        acc_loss_value = sum(
+            [
+                normalization_factors[i] * float(value)
+                for i, value in enumerate(
+                    fetch_loss_values(capsys.readouterr().err).values()
+                )
             ]
+        ) / sum(normalization_factors)
 
-            recipe_params = FullFinetuneParams(**kwargs_values)
-
-            grad_accum_recipe = FullFinetuneRecipe(recipe_params)
-            grad_accum_recipe.setup(params=recipe_params)
-            grad_accum_recipe.train()
-
-            # the second run accumulates losses and so sum these up to compare
-            acc_loss_value = sum(
-                [
-                    float(value) / (gradient_accumulation_steps[1])
-                    for key, value in fetch_loss_values(capsys.readouterr().err).items()
-                ]
-            )
-            assert_expected(loss_value, acc_loss_value, rtol=1e-1)
+        torch.testing.assert_close(loss_value, acc_loss_value)
