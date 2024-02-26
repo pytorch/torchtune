@@ -17,8 +17,12 @@ def read_requirements(file):
 setup(
     name="torchtune",
     version="0.0.1",
-    include_package_data=True,
-    packages=find_packages(exclude=("recipes*")),
+    packages=find_packages(
+        exclude=(
+            "recipes*",
+            "tests*",
+        )
+    ),
     python_requires=">=3.8",
     install_requires=read_requirements("requirements.txt"),
     entry_points={
