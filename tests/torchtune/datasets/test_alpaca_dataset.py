@@ -10,8 +10,7 @@ import pytest
 
 from tests.test_utils import get_assets_path
 
-from torchtune import datasets
-from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._alpaca import AlpacaDataset, CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -64,7 +63,7 @@ class TestAlpacaDataset:
             ),
         ]
 
-        alpaca_dataset = datasets.get_dataset("alpaca", tokenizer=tokenizer)
+        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer)
 
         # alpaca_dataset._data contains the raw data loaded from HF's dataset. We need the raw data
         # to test the prompt generation since calling __getitem__ on the alpaca_dataset object will
@@ -93,7 +92,7 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = datasets.get_dataset("alpaca", tokenizer=tokenizer)
+        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer)
         input, labels = alpaca_dataset[0]
 
         assert len(input) == len(labels)
@@ -120,9 +119,7 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = datasets.get_dataset(
-            "alpaca", tokenizer=tokenizer, train_on_input=False
-        )
+        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer, train_on_input=False)
 
         # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
         # input correctly
@@ -157,9 +154,7 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = datasets.get_dataset(
-            "alpaca", tokenizer=tokenizer, use_clean=True
-        )
+        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer, use_clean=True)
         input, labels = alpaca_dataset[0]
 
         assert len(input) == len(labels)

@@ -6,16 +6,17 @@
 import os
 
 import pytest
+from omegaconf import OmegaConf
+from recipes.full_finetune import FullFinetuneRecipe
+from recipes.lora_finetune import LoRAFinetuneRecipe
 
-from recipes.params.full_finetune import FullFinetuneParams
-from recipes.params.lora_finetune import LoRAFinetuneParams
 from torchtune.utils.argparse import TuneArgumentParser
 
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
 
-config_to_params = {
-    os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneParams,
-    os.path.join(ROOT_DIR, "alpaca_llama2_lora_finetune.yaml"): LoRAFinetuneParams,
+config_to_recipe = {
+    os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneRecipe,
+    os.path.join(ROOT_DIR, "alpaca_llama2_lora_finetune.yaml"): LoRAFinetuneRecipe,
 }
 
 
@@ -30,11 +31,12 @@ class TestConfigs:
         return parser
 
     def test_configs(self, parser) -> None:
-        for config_path, params in config_to_params.items():
+        for config_path, recipe in config_to_recipe.items():
             args, _ = parser.parse_known_args(["--config", config_path])
             try:
-                _ = params(**vars(args))
+                cfg = OmegaConf.create(vars(args))
+                recipe(cfg)
             except ValueError as e:
                 raise AssertionError(
-                    f"Config {config_path} using params {params.__name__} is not well formed"
+                    f"Config {config_path} for recipe {recipe.__name__} is not well formed"
                 ) from e

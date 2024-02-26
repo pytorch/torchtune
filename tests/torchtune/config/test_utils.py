@@ -7,6 +7,7 @@
 import pytest
 from torchtune.config._utils import get_object_from_path
 
+
 class TestUtils:
     def test_get_object_from_path(self):
         good_paths = [

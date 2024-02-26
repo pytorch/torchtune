@@ -13,8 +13,8 @@ from typing import Dict
 import pytest
 
 import torch
+from omegaconf import OmegaConf
 from recipes.full_finetune import FullFinetuneRecipe
-from recipes.params.full_finetune import FullFinetuneParams
 from recipes.tests.utils import (
     default_recipe_kwargs,
     fetch_ckpt_model_path,
@@ -28,7 +28,7 @@ from torchtune import models
 from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils.collate import padded_collate
 
-models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
+models.small_test_ckpt = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -62,10 +62,10 @@ class TestFullFinetuneRecipe:
 
         kwargs_values = default_recipe_kwargs(ckpt)
 
-        recipe_params = FullFinetuneParams(**kwargs_values)
+        recipe_cfg = OmegaConf.create(kwargs_values)
 
-        recipe = FullFinetuneRecipe(recipe_params)
-        recipe.setup(params=recipe_params)
+        recipe = FullFinetuneRecipe(recipe_cfg)
+        recipe.setup(params=recipe_cfg)
         recipe.train()
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
@@ -100,10 +100,10 @@ class TestFullFinetuneRecipe:
                 "enable_fsdp": False,
             }
 
-            recipe_params = FullFinetuneParams(**kwargs_values)
+            recipe_cfg = OmegaConf.create(kwargs_values)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
+            recipe = FullFinetuneRecipe(recipe_cfg)
+            recipe.setup(params=recipe_cfg)
             recipe.train()
             recipe.cleanup()
 
@@ -125,10 +125,10 @@ class TestFullFinetuneRecipe:
                 "enable_fsdp": False,
             }
 
-            recipe_params = FullFinetuneParams(**kwargs_values_resume)
+            recipe_cfg = OmegaConf.create(kwargs_values)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
+            recipe = FullFinetuneRecipe(recipe_cfg)
+            recipe.setup(params=recipe_cfg)
 
             assert recipe.epochs_run == 3
             assert recipe.seed == kwargs_values["seed"]
@@ -174,7 +174,7 @@ def dummy_grad_accum_ckpt():
     return model
 
 
-models.ALL_MODELS["dummy_grad_accum_ckpt"] = dummy_grad_accum_ckpt
+models.dummy_grad_accum_ckpt = dummy_grad_accum_ckpt
 
 
 @pytest.fixture
@@ -231,8 +231,8 @@ class TestRecipeGradientAccumulation:
 
         # First run without gradient accumulation
         baseline_params = kwargs_values.copy()
-        baseline_recipe_params = FullFinetuneParams(**baseline_params)
-        baseline_recipe = FullFinetuneRecipe(baseline_recipe_params)
+        baseline_recipe_cfg = OmegaConf.create(baseline_params)
+        baseline_recipe = FullFinetuneRecipe(baseline_recipe_cfg)
 
         # Patch the recipe to use DummyModel class
         # Note that this cannot be done via a decorator because we use patch two separate times
@@ -240,7 +240,7 @@ class TestRecipeGradientAccumulation:
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
             return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
         ):
-            baseline_recipe.setup(params=baseline_recipe_params)
+            baseline_recipe.setup(params=baseline_recipe_cfg)
         baseline_recipe.train()
 
         # the first run assumes the complete batch and so we have a single loss value
@@ -255,8 +255,8 @@ class TestRecipeGradientAccumulation:
         grad_accum_params = kwargs_values.copy()
         grad_accum_params["batch_size"] = micro_batch_size
         grad_accum_params["gradient_accumulation_steps"] = gradient_accumulation_steps
-        grad_accum_recipe_params = FullFinetuneParams(**grad_accum_params)
-        grad_accum_recipe = FullFinetuneRecipe(grad_accum_recipe_params)
+        grad_accum_recipe_cfg = OmegaConf.create(grad_accum_params)
+        grad_accum_recipe = FullFinetuneRecipe(grad_accum_recipe_cfg)
 
         # Patch the recipe to use DummyModel class. We use a separate patch
         # because otherwise the model params would remain the same from the baseline
@@ -264,7 +264,7 @@ class TestRecipeGradientAccumulation:
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
             return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
         ):
-            grad_accum_recipe.setup(params=grad_accum_recipe_params)
+            grad_accum_recipe.setup(params=grad_accum_recipe_cfg)
 
         # Copy the dataloader and run a few iterations. CrossEntropyLoss is normalized
         # by the number of unmasked tokens, so we need to derive these values per sample

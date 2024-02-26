@@ -11,8 +11,6 @@ from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
-import hydra
-
 import torch
 from omegaconf import DictConfig
 
@@ -23,13 +21,13 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torchtune import modules, utils
-from torchtune.modules.peft.lora import reset_lora_cfg
+from torchtune import config, modules, utils
+from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
-    get_adapter_cfg,
+    get_adapter_params,
     lora_fsdp_init,
     lora_fsdp_wrap_policy,
-    set_trainable_cfg,
+    set_trainable_params,
     validate_state_dict_for_lora,
 )
 from torchtune.utils.constants import (
@@ -40,7 +38,7 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import validate_no_meta_cfg
+from torchtune.utils.distributed import validate_no_meta_params
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -80,7 +78,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
         if self._is_rank_zero:
-            self._metric_logger = hydra.utils.instantiate(cfg.metric_logger)
+            self._metric_logger = config.instantiate(cfg.metric_logger)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -215,13 +213,13 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # during model init
         init_device = "meta" if enable_fsdp else self._device
         with init_device:
-            model = hydra.utils.instantiate(cfg_model)
+            model = config.instantiate(cfg_model)
 
-        reset_lora_cfg(model, device=self._device)
+        reset_lora_params(model, device=self._device)
 
         # Note: this needs to be set before wrapping with FSDP
-        self.adapter_cfg = get_adapter_cfg(model)
-        set_trainable_cfg(model, self.adapter_cfg)
+        self.adapter_params = get_adapter_params(model)
+        set_trainable_params(model, self.adapter_params)
 
         if enable_fsdp:
             model = utils.wrap_fsdp(
@@ -235,8 +233,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 param_init_fn=partial(lora_fsdp_init, device=self._device),
             )
 
-            # Ensure no cfg and buffers are on meta device
-            validate_no_meta_cfg(model)
+            # Ensure no params and buffers are on meta device
+            validate_no_meta_params(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -268,7 +266,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         tokenizer model. This is related to how the tokenizer is implemented and should
         change in a future iteration.
         """
-        tokenizer = hydra.utils.instantiate(cfg_tokenizer)
+        tokenizer = config.instantiate(cfg_tokenizer)
 
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
@@ -277,7 +275,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
-        optimizer = hydra.utils.instantiate(cfg_optimizer, self._model.parameters())
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
@@ -296,7 +294,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         num_training_steps: int,
         last_epoch: int,
     ) -> Optimizer:
-        lr_scheduler = hydra.utils.instantiate(
+        lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
@@ -306,7 +304,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         return lr_scheduler
 
     def _setup_loss(self, cfg_loss: DictConfig) -> nn.Module:
-        loss_fn = hydra.utils.instantiate(cfg_loss)
+        loss_fn = config.instantiate(cfg_loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
@@ -325,7 +323,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = hydra.utils.instantiate(
+        ds = config.instantiate(
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
@@ -372,7 +370,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 }
             )
         utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_cfg
+            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         )
 
         if self._is_rank_zero:
@@ -445,7 +443,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             self._metric_logger.close()
 
 
-@hydra.main(config_path="configs")
+@config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """
     Entry point for the recipe.

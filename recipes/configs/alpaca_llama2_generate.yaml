@@ -1,0 +1,18 @@
+# Runs the alpaca_generate.py recipe using AlpacaGenerateParams
+#
+# To launch, run the following command from root:
+#    tune alpaca_generate --config alpaca_llama2_generate --override model_checkpoint=<your_checkpoint_dir> tokenizer_checkpoint=<your_tokenizer_dir>
+
+# Model Arguments
+model:
+  _path_: torchtune.models.llama2_7b
+
+model_checkpoint: /tmp/llama2-7b
+tokenizer:
+  _path_: torchtune.models.llama2_tokenizer
+  path: /tmp/tokenizer.model
+
+# Generation arguments
+instruction: "Answer the question."
+input: "What is some cool music from the 1920s?"
+max_gen_len: 64

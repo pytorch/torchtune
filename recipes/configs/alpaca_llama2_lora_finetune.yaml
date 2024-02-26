@@ -1,6 +1,6 @@
 # Model Arguments
 model:
-  _target_: lora_llama2_7b
+  _path_: lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
   lora_rank: 8
   lora_alpha: 16
@@ -14,7 +14,7 @@ tokenizer_checkpoint: /tmp/llama2/tokenizer.model
 
 # Dataset and Sampler
 dataset:
-  _target_: torchtune.datasets.AlpacaDataset
+  _path_: torchtune.datasets.AlpacaDataset
   train_on_input: True
   use_clean: True
 shuffle: True
@@ -22,15 +22,15 @@ batch_size: 2
 
 # Optimizer and Scheduler
 optimizer:
-  _target_: AdamW
+  _path_: AdamW
   weight_decay: 0.01
   lr: 3e-4
 lr_scheduler:  # TODO: this is a partial instantiation, make this more elegant
-  _target_: torchtune.modules.get_cosine_schedule_with_warmup
+  _path_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 
 loss:
-  _target_: torch.nn.CrossEntropyLoss
+  _path_: torch.nn.CrossEntropyLoss
 
 # Training
 epochs: 1
@@ -39,7 +39,7 @@ resume_from_checkpoint: False
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _target_: torchtune.utils.metric_logging.DiskLogger
+  _path_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 
 # Environment

@@ -11,8 +11,6 @@ from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
-import hydra
-
 import torch
 from omegaconf import DictConfig
 
@@ -24,7 +22,7 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import modules, utils
+from torchtune import config, modules, utils
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -96,7 +94,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._metric_logger = hydra.utils.instantiate(cfg.metric_logger)
+        self._metric_logger = config.instantiate(cfg.metric_logger)
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -228,7 +226,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         running tests on CPUs.
         """
         with self._device:
-            model = hydra.utils.instantiate(cfg_model)
+            model = config.instantiate(cfg_model)
 
         model = (
             utils.wrap_fsdp(
@@ -261,7 +259,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         tokenizer model. This is related to how the tokenizer is implemented and should
         change in a future iteration.
         """
-        tokenizer = hydra.utils.instantiate(cfg_tokenizer)
+        tokenizer = config.instantiate(cfg_tokenizer)
 
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
@@ -274,7 +272,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Set up the optimizer. This method also handles transforing the state dict
         for FSDP.
         """
-        optimizer = hydra.utils.instantiate(cfg_optimizer, self._model.parameters())
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             opt_state_dict = utils.transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
@@ -286,7 +284,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         return optimizer
 
     def _setup_loss(self, cfg_loss: DictConfig) -> nn.Module:
-        loss_fn = hydra.utils.instantiate(cfg_loss)
+        loss_fn = config.instantiate(cfg_loss)
 
         if self._is_rank_zero:
             log.info("Loss is initialized.")
@@ -305,7 +303,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = hydra.utils.instantiate(
+        ds = config.instantiate(
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
@@ -448,7 +446,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._metric_logger.close()
 
 
-@hydra.main(config_path="configs")
+@config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """
     Entry point for the recipe.

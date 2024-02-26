@@ -8,6 +8,7 @@ import logging
 from typing import Optional
 
 import recipes.alpaca_generate as alpaca_generate
+from omegaconf import OmegaConf
 from torchtune import models
 from torchtune.models.llama2 import llama2
 from torchtune.modules import TransformerDecoder
@@ -26,7 +27,7 @@ def small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     )
 
 
-models.ALL_MODELS["small_test_ckpt"] = small_test_ckpt
+models.small_test_ckpt = small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -44,12 +45,15 @@ class TestAlpacaGenerateRecipe:
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
 
         kwargs_values = {
-            "model": ckpt,
+            "model": {"_path_": f"torchtune.models.{ckpt}"},
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
-            "tokenizer": "llama2_tokenizer",
-            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "tokenizer": {
+                "_path_": "torchtune.models.llama2_tokenizer",
+                "path": "/tmp/test-artifacts/tokenizer.model",
+            },
             "instruction": "Answer the question.",
             "input": "What is some cool music from the 1920s?",
             "max_gen_len": 64,
         }
-        alpaca_generate.recipe(**kwargs_values)
+        cfg = OmegaConf.create(kwargs_values)
+        alpaca_generate.recipe(cfg)
