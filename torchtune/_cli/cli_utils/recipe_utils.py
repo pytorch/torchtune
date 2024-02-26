@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 import torchtune
-from recipes import list_recipes
+from torchtune import list_recipes
 
 
 def print_help(parser):

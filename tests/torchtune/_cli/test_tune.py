@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 import torchtune
-from recipes import list_configs, list_recipes
+from torchtune import list_configs, list_recipes
 
 from tests.torchtune._cli.common import TUNE_PATH
 

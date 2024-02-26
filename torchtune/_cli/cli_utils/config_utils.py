@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 import torchtune
-from recipes import list_configs
+from torchtune import list_configs
 
 
 def print_help(parser):

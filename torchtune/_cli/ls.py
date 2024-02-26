@@ -9,7 +9,7 @@
 import argparse
 import textwrap
 
-from recipes import list_configs, list_recipes
+from torchtune import list_configs, list_recipes
 
 _NULL_VALUE = "<>"
 
