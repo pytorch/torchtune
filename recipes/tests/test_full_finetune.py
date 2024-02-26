@@ -182,8 +182,9 @@ class DummyModel(nn.Module):
 
 
 def dummy_grad_accum_ckpt():
-    model = DummyModel()
-    fixed_init_model(model)
+    with torch.device("cpu"):
+        model = DummyModel()
+        fixed_init_model(model)
     return model
 
 
@@ -239,11 +240,12 @@ class TestRecipeGradientAccumulation:
             "resume_from_checkpoint": False,
             "enable_fsdp": False,
             "enable_activation_checkpointing": False,
-            "metric_logger_type": {
+            "metric_logger": {
                 "_path_": "torchtune.utils.metric_logging.DiskLogger",
                 "log_dir": "${output_dir}",
             },
             "gradient_accumulation_steps": 1,
+            "log_every_n_steps": None,
         }
 
         # First run without gradient accumulation
@@ -255,7 +257,7 @@ class TestRecipeGradientAccumulation:
         # Note that this cannot be done via a decorator because we use patch two separate times
         with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+            return_value=dummy_grad_accum_ckpt(),
         ):
             baseline_recipe.setup(cfg=baseline_recipe_cfg)
         baseline_recipe.train()
@@ -279,7 +281,7 @@ class TestRecipeGradientAccumulation:
         # because otherwise the model params would remain the same from the baseline
         with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+            return_value=dummy_grad_accum_ckpt(),
         ):
             grad_accum_recipe.setup(cfg=grad_accum_recipe_cfg)
 
