@@ -25,7 +25,7 @@ from recipes.tests.utils import (
 
 from torch import nn
 from torchtune import models
-from torchtune.datasets.alpaca import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils.collate import padded_collate
 
 models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
