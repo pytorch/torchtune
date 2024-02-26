@@ -13,9 +13,9 @@ from typing import Any, Dict, List, Optional, Tuple
 from warnings import warn
 
 import torch
+from recipes._recipe_interfaces import FTRecipeInterface
 
 from recipes.params.lora_finetune import LoRAFinetuneParams
-from recipes._recipe_interfaces import FTRecipeInterface
 
 from torch import nn
 from torch.cuda.amp import GradScaler
