@@ -1,2 +1,2 @@
-# Add necessary recipe files
-recursive-include recipes *.py *yaml
+# Add necessary recipe files (not as an importable package)
+#recursive-include recipes *.py *yaml

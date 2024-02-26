@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune import datasets, models, modules, utils
-from torchtune._recipe_interfaces import FTRecipeInterface
 
 _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate"]
 _CONFIG_LISTS = {
@@ -32,7 +31,6 @@ __all__ = [
     models,
     modules,
     utils,
-    FTRecipeInterface,
     list_recipes,
     list_configs,
 ]
