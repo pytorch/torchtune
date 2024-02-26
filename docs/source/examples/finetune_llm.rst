@@ -61,7 +61,7 @@ To run the recipe without any changes on 4 GPUs, launch a training run using Tun
 Dataset
 -------
 
-In this example, we use the `Alpaca Dataset <https://github.com/pytorch-labs/torchtune/blob/main/torchtune/datasets/alpaca.py>`_
+In this example, we use :class:`~torchtune.datasets.AlpacaDataset`
 from Stanford. The following parameters are related to the data:
 
 .. code-block:: python
