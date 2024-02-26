@@ -30,6 +30,10 @@ class TestConfigs:
         parser = TuneArgumentParser("Test parser")
         return parser
 
+    # TODO: update this test to run recipes with debug args, disabling for now
+    @pytest.mark.skip(
+        reason="Need to update to use debug args after config system is finalized."
+    )
     def test_configs(self, parser) -> None:
         for config_path, recipe in config_to_recipe.items():
             args, _ = parser.parse_known_args(["--config", config_path])

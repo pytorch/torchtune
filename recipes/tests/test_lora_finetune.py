@@ -48,11 +48,17 @@ class TestLoRAFinetuneRecipe:
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
         kwargs_values = default_recipe_kwargs(ckpt)
-        kwargs_values["lora_attn_modules"] = test_lora_attn_modules
+        kwargs_values["model"].update(
+            {
+                "lora_attn_modules": test_lora_attn_modules,
+                "lora_rank": 8,
+                "lora_alpha": 16,
+            }
+        )
         recipe_cfg = OmegaConf.create(kwargs_values)
 
         recipe = LoRAFinetuneRecipe(recipe_cfg)
-        recipe.setup(params=recipe_cfg)
+        recipe.setup(cfg=recipe_cfg)
         recipe.train()
 
         loss_values = fetch_loss_values(capsys.readouterr().err)

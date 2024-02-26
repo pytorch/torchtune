@@ -26,7 +26,6 @@ PROMPT_DICT = {
 }
 
 
-@config.parse
 def recipe(
     cfg: DictConfig,
 ):
@@ -75,3 +74,8 @@ def recipe(
 
         generated_tokens = tokenizer.decode(generations.tolist())
     logger.info(msg=generated_tokens[0])
+
+
+@config.parse
+def main(cfg: DictConfig) -> None:
+    recipe(cfg)

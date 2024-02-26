@@ -80,25 +80,37 @@ def validate_loss_values(loss_values, expected_loss_values):
 
 def default_recipe_kwargs(ckpt):
     return {
-        "dataset": "alpaca",
-        "train_on_input": False,
+        "dataset": {
+            "_path_": "torchtune.datasets.AlpacaDataset",
+            "train_on_input": False,
+        },
         "seed": 9,
         "shuffle": True,
-        "model": ckpt,
+        "model": {"_path_": f"torchtune.models.{ckpt}"},
         "model_checkpoint": fetch_ckpt_model_path(ckpt),
-        "tokenizer": "llama2_tokenizer",
-        "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+        "tokenizer": {
+            "_path_": "torchtune.models.llama2_tokenizer",
+            "path": "/tmp/test-artifacts/tokenizer.model",
+        },
         "batch_size": 8,
-        "lr": 2e-5,
         "epochs": 2,
         "max_steps_per_epoch": 2,
-        "optimizer": "AdamW",
-        "loss": "CrossEntropyLoss",
+        "optimizer": {"_path_": "torch.optim.AdamW", "lr": 2e-5},
+        "loss": {"_path_": "torch.nn.CrossEntropyLoss"},
         "output_dir": "/tmp",
         "device": "cpu",
         "dtype": "fp32",
         "resume_from_checkpoint": False,
         "enable_fsdp": False,
         "enable_activation_checkpointing": False,
-        "metric_logger_type": "disk",
+        "metric_logger": {
+            "_path_": "torchtune.utils.metric_logging.DiskLogger",
+            "log_dir": "${output_dir}",
+        },
+        "log_every_n_steps": None,
+        "gradient_accumulation_steps": 1,
+        "lr_scheduler": {
+            "_path_": "torchtune.modules.get_cosine_schedule_with_warmup",
+            "num_warmup_steps": 100,
+        },
     }

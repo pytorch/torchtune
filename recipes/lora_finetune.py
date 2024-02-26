@@ -296,6 +296,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     ) -> Optimizer:
         lr_scheduler = config.instantiate(
             cfg_lr_scheduler,
+            self._optimizer,
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
