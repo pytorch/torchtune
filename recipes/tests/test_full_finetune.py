@@ -219,8 +219,10 @@ class TestRecipeGradientAccumulation:
         model_ckpt = "dummy_grad_accum_ckpt"
         gradient_accumulation_steps = full_batch_size // micro_batch_size
         kwargs_values = {
-            "dataset": {"_path_": "torchtune.datasets.AlpacaDataset"},
-            "train_on_input": False,
+            "dataset": {
+                "_path_": "torchtune.datasets.AlpacaDataset",
+                "train_on_input": False,
+            },
             "seed": 9,
             "shuffle": True,
             "model": {"_path_": f"torchtune.models.{model_ckpt}"},
