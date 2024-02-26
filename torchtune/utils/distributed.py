@@ -6,6 +6,7 @@
 
 
 import logging
+import math
 import os
 from itertools import chain
 from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
@@ -20,7 +21,7 @@ from torch.distributed.fsdp import (
     ShardingStrategy,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
+from torchtune.modules.peft import LoRALinear
 from torchtune.utils.device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
 
@@ -126,6 +127,7 @@ def wrap_fsdp(
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
     cpu_offload: bool = False,
+    use_meta_device: bool = False,
     **kwargs,
 ) -> nn.Module:
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
@@ -162,6 +164,7 @@ def wrap_fsdp(
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
         cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
+        use_meta_device (bool): TODO: add docstring
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:
@@ -175,6 +178,8 @@ def wrap_fsdp(
         significant training performance issues at the moment.
     """
     if dist.is_available() and dist.is_initialized():
+        if use_meta_device:
+            model = prepare_model_for_fsdp_with_meta_device(model)
         if strategy is None:
             strategy = "FULL_SHARD"
         _validate_device_from_env(device)
@@ -201,3 +206,59 @@ def wrap_fsdp(
         raise RuntimeError(
             "Distributed environment is not setup. Please run init_distributed() first."
         )
+
+
+# TODO: all stuff below here can go somewhere else (just not in peft_utils)
+def dummy_reset_params(self):
+    return
+
+
+def lora_a_reset_params(self):
+    nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+
+
+def lora_b_reset_params(self):
+    nn.init.zeros_(self.weight)
+
+
+def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
+    for k, v in model.named_modules():
+        if isinstance(v, LoRALinear):
+            v.reset_parameters = dummy_reset_params.__get__(v)
+            v.lora_a.reset_parameters = lora_a_reset_params.__get__(v.lora_a)
+            v.lora_b.reset_parameters = lora_b_reset_params.__get__(v.lora_b)
+        else:
+            reset_params = getattr(v, "reset_parameters", None)
+            if not callable(reset_params):
+                v.reset_parameters = dummy_reset_params.__get__(v)
+    return model
+
+
+def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for wrapping models trained with LoRA in FSDP. Specifically,
+    this will wrap individual LoRA a & b submodules in their own FSDP units to
+    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``.
+
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+
+    def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
+        if recurse:
+            return True
+
+        # Assumes lora_a and lora_b are nn.Linears that are the
+        # only trainable modules in the entire network. Wraps
+        # these in separate FSDP unit to work around FSDP allocating
+        # extra gradient memory when wrapped with other modules.
+        if hasattr(module, "weight") and module.weight.requires_grad:
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return lora_wrap

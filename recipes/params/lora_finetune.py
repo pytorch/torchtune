@@ -92,8 +92,8 @@ class LoRAFinetuneParams:
 
     # Distributed
     cpu_offload: bool = False
-    enable_fsdp: bool = True
-    enable_activation_checkpointing: bool = True
+    enable_fsdp: bool = False
+    enable_activation_checkpointing: bool = False
 
     # Environment
     device: str = "cuda"

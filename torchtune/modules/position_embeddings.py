@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional
+
 import torch
 
 from torch import nn, Tensor
@@ -40,24 +42,16 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        # Don't spend time initializing if we're under a meta device context
-        device_tensor = torch.ones(1)
-        if not device_tensor.is_meta:
-            self._rope_init(device=device_tensor.device)
+        self.reset_parameters(device=device_tensor.device)
 
-    def _rope_init(self, device: torch.device):
-        # Should never be called with a meta device context
-        if torch.ones(1).is_meta:
-            raise RuntimeError(
-                "RoPE init should not be called under meta device context, please file a bug."
-            )
-        with torch.device(device):
-            theta = 1.0 / (
-                self.base
-                ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
-            )
-            self.register_buffer("theta", theta, persistent=False)
-            self.build_rope_cache(self.max_seq_len)
+    # TODO: does this actually work?
+    def reset_parameters(self, device: Optional[torch.device] = None):
+        theta = 1.0 / (
+            self.base
+            ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
+        )
+        self.register_buffer("theta", theta, persistent=False)
+        self.build_rope_cache(self.max_seq_len)
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`

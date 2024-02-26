@@ -23,11 +23,8 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import datasets, models, modules, utils
-from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    lora_fsdp_init,
-    lora_fsdp_wrap_policy,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -238,8 +235,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_alpha=lora_alpha,
         )
 
-        reset_lora_params(model, device=self._device)
-
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
@@ -250,10 +245,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 device=self._device,
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
-                auto_wrap_policy=lora_fsdp_wrap_policy(
+                auto_wrap_policy=utils.distributed.lora_fsdp_wrap_policy(
                     modules_to_wrap={modules.TransformerDecoderLayer}
                 ),
-                param_init_fn=partial(lora_fsdp_init, device=self._device),
+                use_meta_device=True,
             )
 
             # Ensure no params and buffers are on meta device
