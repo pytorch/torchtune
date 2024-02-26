@@ -43,8 +43,8 @@ import textwrap
 from pathlib import Path
 
 import torchtune
-from torchtune import list_recipes
 from torch.distributed.run import get_args_parser, run
+from torchtune import list_recipes
 from torchtune._cli import list_scripts
 
 
