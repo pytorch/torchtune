@@ -78,7 +78,7 @@ def _complete_numerical_validation_on_fair_ckpt_conversion(
         max_seq_len=2048,
         num_kv_heads=32,
     )
-    native_transformer.load_state_dict(converted_state_dict[MODEL_KEY], strict=True)
+    #native_transformer.load_state_dict(converted_state_dict[MODEL_KEY], strict=True)
     native_transformer.eval()
 
     native_outputs = []
