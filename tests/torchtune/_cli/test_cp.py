@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from tests._scripts.common import TUNE_PATH
+from tests.torchtune._cli.common import TUNE_PATH
 
 
 class TestTuneCLIWithCopyScript:
