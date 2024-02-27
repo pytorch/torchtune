@@ -122,7 +122,8 @@ class WandBLogger(MetricLoggerInterface):
         project (str): WandB project name
         entity (Optional[str]): WandB entity name
         group (Optional[str]): WandB group name
-        **kwargs: additional arguments to pass to wandb.init
+        config_params (Optional[Dict[str, Any]]): additional arguments to pass to wandb.init. Default is
+            ``None``.
 
     Example:
         >>> from torchtune.utils.metric_logging import WandBLogger
@@ -146,7 +147,7 @@ class WandBLogger(MetricLoggerInterface):
         project: str,
         entity: Optional[str] = None,
         group: Optional[str] = None,
-        **kwargs,
+        config_params: Optional[Dict[str, Any]] = None,
     ):
         try:
             import wandb
@@ -162,7 +163,7 @@ class WandBLogger(MetricLoggerInterface):
             group=group,
             reinit=True,
             resume="allow",
-            config=kwargs,
+            config=config_params,
         )
 
     def log(self, name: str, data: Scalar, step: int) -> None:

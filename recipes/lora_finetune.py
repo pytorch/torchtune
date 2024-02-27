@@ -41,6 +41,7 @@ from torchtune.utils.constants import (
 )
 from torchtune.utils.distributed import validate_no_meta_params
 from tqdm import tqdm
+from dataclasses import asdict
 
 log = utils.get_logger("DEBUG")
 
@@ -66,7 +67,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     """
 
     def __init__(self, params: LoRAFinetuneParams) -> None:
-
+        log.info(f"RV: params are {params}")
         self._device = utils.get_device(device=params.device)
         self._dtype = utils.get_dtype(dtype=params.dtype)
 
@@ -85,6 +86,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 metric_logger_type=params.metric_logger_type,
                 project=params.project,
                 log_dir=params.output_dir,
+                config_params=asdict(self.params)
             )
 
         # These are public properties which are updated by the checkpoint loader
@@ -432,6 +434,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     and idx == self.max_steps_per_epoch
                 ):
                     break
+                iter_start_event = torch.cuda.Event(enable_timing=True)
+                iter_end_event = torch.cuda.Event(enable_timing=True)
+                iter_start_event.record()
                 self.total_training_steps += 1
                 self._optimizer.zero_grad()
 
@@ -448,6 +453,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
 
+                self._grad_scaler.scale(loss).backward()
+                self._grad_scaler.step(self._optimizer)
+                self._grad_scaler.update()
+                self._lr_scheduler.step()
+                iter_end_event.record()
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
                 if (
@@ -462,11 +472,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                         },
                         step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                     )
-
-                self._grad_scaler.scale(loss).backward()
-                self._grad_scaler.step(self._optimizer)
-                self._grad_scaler.update()
-                self._lr_scheduler.step()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
