@@ -71,7 +71,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self._lora_params_initialized = False
         # Skip init if we are under a meta device context
         if not self.weight.is_meta:
-            self.reset_lora_parameters()
+            self.reset_parameters()
 
     def reset_parameters(self):
         # Initialize as in

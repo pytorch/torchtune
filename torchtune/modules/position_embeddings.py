@@ -42,7 +42,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self.reset_parameters(device=device_tensor.device)
+        self.reset_parameters()
 
     # TODO: does this actually work?
     def reset_parameters(self, device: Optional[torch.device] = None):
