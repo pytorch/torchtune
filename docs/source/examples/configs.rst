@@ -4,16 +4,15 @@
 Configs Deep-Dive
 =================
 
-This tutorial will guide you through writing configs for running recipes and
-designing params for custom recipes.
+This tutorial will guide you through writing configs for running recipes.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
       * How to write a YAML config and run a recipe with it
-      * How to create a params dataclass for custom recipe
-      * How to effectively use configs, CLI overrides, and dataclasses for running recipes
+      * How to use :code:`instantiate` and :code:`parse` APIs
+      * How to effectively use configs and CLI overrides for running recipes
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
@@ -27,94 +26,119 @@ Where do parameters live?
 
 There are two primary entry points for you to configure parameters: **configs** and
 **CLI overrides**. Configs are YAML files that define all the
-parameters needed to run a recipe within a single location. These can be overridden on the
-command-line for quick changes and experimentation without modifying the config.
+parameters needed to run a recipe within a single location. They are the single
+source of truth for reproducing a run. The config parameters can be overridden on the
+command-line using :code:`tune` for quick changes and experimentation without
+modifying the config.
 
-If you are planning to make a custom recipe, you will need to become familiar
-with the **recipe dataclass**, which collects all of your arguments from config and
-CLI, and passes it into the recipe itself. Here, we will discuss all three concepts:
-**configs**, **CLI**, and **dataclasses**.
-
-
-Recipe dataclasses
-------------------
-
-Parameters should be organized in a single dataclass that is passed into the recipe.
-This serves as a single source of truth for the details of a fine-tuning run that can be easily validated in code and shared with collaborators for reproducibility.
-
-.. code-block:: python
-
-    class FullFinetuneParams:
-        # Model
-        model: str = ""
-        model_checkpoint: str = ""
-
-In the dataclass, all fields should have defaults assigned to them.
-If a reasonable value cannot be assigned or it is a required argument,
-use the null value for that data type as the default and ensure that it is set
-by the user in the :code:`__post_init__` (see :ref:`Parameter Validation<parameter_validation_label>`).
-The dataclass should go in the :code:`recipes/params/` folder and the name of
-the file should match the name of the recipe file you are creating.
-
-In general, you should expose the minimal amount of parameters you need to run and experiment with your recipes.
-Exposing an excessive number of parameters will lead to bloated configs, which are more error prone, harder to read, and harder to manage.
-On the other hand, hardcoding all parameters will prevent quick experimentation without a code change. Only parametrize what is needed.
-
-To link the dataclass object with config and CLI parsing,
-you can use the :class:`~torchtune.utils.argparse.TuneArgumentParser` object and
-funnel the parsed arguments into your dataclass.
-
-.. code-block:: python
-
-    if __name__ == "__main__":
-        parser = utils.TuneArgumentParser(
-            description=FullFinetuneParams.__doc__,
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
-        # Get user-specified args from config and CLI and create params for recipe
-        args, _ = parser.parse_known_args()
-        args = vars(args)
-        params = FullFinetuneParams(**args)
-
-        logger = utils.get_logger("DEBUG")
-        logger.info(msg=f"Running finetune_llm.py with parameters {params}")
-
-        recipe(params)
-
-.. _parameter_validation_label:
-
-Parameter validation
---------------------
-To validate arguments for your dataclass and recipe, use the :code:`__post_init__` method to house any checks and raised exceptions.
-
-.. code-block:: python
-
-    def __post_init__(self):
-        for param in fields(self):
-            if getattr(self, param.name) == "":
-                raise TypeError(f"{param.name} needs to be specified")
 
 Writing configs
 ---------------
-Once you've set up a recipe and its params, you need to create a config to run it.
 Configs serve as the primary entry point for running recipes in TorchTune. They are
-expected to be YAML files and simply list out values for parameters you want to define
-for a particular run. The config parameters should be a subset of the dataclass parameters;
-there should not be any new fields that are not already in the dataclass. Any parameters that
-are not specified in the config will take on the default value defined in the dataclass.
+expected to be YAML files and they simply list out values for parameters you want to define
+for a particular run.
 
 .. code-block:: yaml
 
-    dataset: alpaca
     seed: null
     shuffle: True
-    model: llama2_7b
+    device: cuda
+    dtype: fp32
+    enable_fsdp: True
     ...
+
+Configurating components using :code:`instantiate`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Many fields will require specifying TorchTune objects with associated keyword
+arguments as parameters. Models, datasets, optimizers, and loss functions are
+common examples of this. You can easily do this using the :code:`_component_`
+subfield. In :code:`_component_`, you need to specify the dotpath of the object
+you wish to instantiate in the recipe. The dotpath is the exact path you would use
+to import the object normally in a Python file. For example, to specify the
+:class:`~torchtune.datasets._alpaca.AlpacaDataset` in your config with custom
+arguments:
+
+.. code-block:: yaml
+
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: False
+
+Here, we are changing the default value for :code:`train_on_input` from :code:`True`
+to :code:`False`.
+
+.. note::
+    :class:`~torchtune.datasets._alpaca.AlpacaDataset` is located in a private file,
+    :code:`_alpaca.py`, but is exposed as public in :code:`torchtune/datasets/__init__.py`.
+    When specifying dotpaths in your config, use the public path and not the private
+    path for guarantee of API stability, i.e., :code:`torchtune.datasets.AlpacaDataset`
+    and not :code:`torchtune.datasets._alpaca.AlpacaDataset`. There should not be
+    underscores in your dotpath.
+
+Once you've specified the :code:`_component_` in your config, you can create an
+instance of the specified object in your recipe's setup like so:
+
+.. code-block:: python
+
+    from torchtune import config
+
+    # Access the dataset field and create the object instance
+    dataset = config.instantiate(cfg.dataset)
+
+This will automatically use any keyword arguments specified in the fields under
+:code:`dataset`.
+
+This example will actually throw an error. If you look at the constructor for :class:`~torchtune.datasets._alpaca.AlpacaDataset`,
+you'll notice that we're missing a required positional argument, the tokenizer.
+Since this is another TorchTune object, we cannot recursively instantiate this in
+the config. Let's take a look at the :func:`~torchtune.config._instantiate.instantiate`
+API to see how we can handle this.
+
+.. code-block:: python
+
+    def instantiate(
+        config: Union[DictConfig, Dict[str, Any]],
+        *args: Tuple[Any, ...],
+        **kwargs: Dict[str, Any],
+    )
+
+:func:`~torchtune.config._instantiate.instantiate` also accepts positional arguments
+and keyword arguments and automatically uses that with the config when creating
+the object. This means we can not only pass in the tokenizer, but also add additional
+keyword arguments not specified in the config if we'd like:
+
+.. code-block:: python
+
+    from torchtune import config
+
+    tokenizer = config.instantiate(cfg.tokenizer)
+    dataset = config.instantiate(
+        cfg.dataset,
+        tokenizer,
+        use_clean=True,
+    )
+
+Referencing other config fields with interpolations
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Sometimes you need to use the same value more than once for multiple fields. You
+can use *interpolations* to reference another field, and :func:`~torchtune.config._instantiate.instantiate`
+will automatically resolve it for you.
+
+.. code-block:: yaml
+
+    output_dir: /tmp/alpaca-llama2-finetune
+    metric_logger:
+      _component_: torchtune.utils.metric_logging.DiskLogger
+      log_dir: ${output_dir}
+
 
 Command-line overrides
 ----------------------
-To enable quick experimentation, you can specify override values to parameters in your config
-via the :code:`tune` command. These should be specified with the flag :code:`--override k1=v1 k2=v2 ...`
+Configs are the primary location to collect all your parameters to run a recipe,
+but sometimes you may want to quickly try different values without having to update
+the config itself. To enable quick experimentation, you can specify override values
+to parameters in your config via the :code:`tune` command. These should be specified
+with the flag :code:`--override k1=v1 k2=v2 ...`
 
 For example, to run the :code:`full_finetune` recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:
 
@@ -122,21 +146,18 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 
     tune full_finetune --config alpaca_llama2_full_finetune --override model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
 
-The order of overrides from these parameter sources is as follows, with highest precedence first: CLI, Config, Dataclass defaults
+
+Config and CLI parsing using :code:`parse`
+------------------------------------------
+We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
+your recipe to enable running from the command-line with :code:`tune` with config
+and CLI override parsing.
 
 
 Testing configs
 ---------------
-If you plan on contributing your config to the repo, we recommend adding it to the testing suite. TorchTune has testing for every config added to the library, namely ensuring that it instantiates the dataclass and runs the recipe correctly.
+TODO: figure out config testing story
 
-To add your config to this test suite, simply update the dictionary in :code:`recipes/tests/configs/test_configs`.
-
-.. code-block:: python
-
-    config_to_params = {
-        os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneParams,
-        ...,
-    }
 
 Linking recipes and configs with :code:`tune`
 ---------------------------------------------

@@ -99,6 +99,7 @@ TorchTune tutorials.
    :caption: API Reference
    :hidden:
 
+   api_ref_config
    api_ref_datasets
    api_ref_models
    api_ref_modules

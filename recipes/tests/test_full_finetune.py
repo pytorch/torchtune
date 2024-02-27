@@ -87,13 +87,13 @@ class TestFullFinetuneRecipe:
             kwargs_values = default_recipe_kwargs(model_ckpt)
             kwargs_values.update(
                 {
-                    "dataset": {"_path_": "torchtune.datasets.AlpacaDataset"},
+                    "dataset": {"_component_": "torchtune.datasets.AlpacaDataset"},
                     "seed": 9,
                     "shuffle": True,
-                    "model": {"_path_": f"torchtune.models.{model_ckpt}"},
+                    "model": {"_component_": f"torchtune.models.{model_ckpt}"},
                     "model_checkpoint": fetch_ckpt_model_path(model_ckpt),
                     "tokenizer": {
-                        "_path_": "torchtune.models.llama2_tokenizer",
+                        "_component_": "torchtune.models.llama2_tokenizer",
                         "path": "/tmp/test-artifacts/tokenizer.model",
                     },
                     "epochs": 4,
@@ -120,14 +120,14 @@ class TestFullFinetuneRecipe:
             kwargs_values_resume = deepcopy(kwargs_values)
             kwargs_values_resume.update(
                 {
-                    "dataset": {"_path_": "torchtune.datasets.AlpacaDataset"},
+                    "dataset": {"_component_": "torchtune.datasets.AlpacaDataset"},
                     "seed": None,
                     "max_steps_per_epoch": None,
                     "shuffle": True,
-                    "model": {"_path_": f"torchtune.models.{model_ckpt}"},
+                    "model": {"_component_": f"torchtune.models.{model_ckpt}"},
                     "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
                     "tokenizer": {
-                        "_path_": "torchtune.models.llama2_tokenizer",
+                        "_component_": "torchtune.models.llama2_tokenizer",
                         "path": "/tmp/test-artifacts/tokenizer.model",
                     },
                     "epochs": 4,
@@ -220,22 +220,22 @@ class TestRecipeGradientAccumulation:
         gradient_accumulation_steps = full_batch_size // micro_batch_size
         kwargs_values = {
             "dataset": {
-                "_path_": "torchtune.datasets.AlpacaDataset",
+                "_component_": "torchtune.datasets.AlpacaDataset",
                 "train_on_input": False,
             },
             "seed": 9,
             "shuffle": True,
-            "model": {"_path_": f"torchtune.models.{model_ckpt}"},
+            "model": {"_component_": f"torchtune.models.{model_ckpt}"},
             "model_checkpoint": None,
             "tokenizer": {
-                "_path_": "torchtune.models.llama2_tokenizer",
+                "_component_": "torchtune.models.llama2_tokenizer",
                 "path": "/tmp/test-artifacts/tokenizer.model",
             },
             "batch_size": full_batch_size,
             "epochs": 1,  # make sure to run for 1 epoch
             "max_steps_per_epoch": 1,
-            "optimizer": {"_path_": "torch.optim.AdamW", "lr": 2e-5},
-            "loss": {"_path_": "torch.nn.CrossEntropyLoss"},
+            "optimizer": {"_component_": "torch.optim.AdamW", "lr": 2e-5},
+            "loss": {"_component_": "torch.nn.CrossEntropyLoss"},
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
@@ -243,7 +243,7 @@ class TestRecipeGradientAccumulation:
             "enable_fsdp": False,
             "enable_activation_checkpointing": False,
             "metric_logger": {
-                "_path_": "torchtune.utils.metric_logging.DiskLogger",
+                "_component_": "torchtune.utils.metric_logging.DiskLogger",
                 "log_dir": "${output_dir}",
             },
             "gradient_accumulation_steps": 1,

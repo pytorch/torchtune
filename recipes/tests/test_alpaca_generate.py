@@ -45,10 +45,10 @@ class TestAlpacaGenerateRecipe:
         ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
 
         kwargs_values = {
-            "model": {"_path_": f"torchtune.models.{ckpt}"},
+            "model": {"_component_": f"torchtune.models.{ckpt}"},
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": {
-                "_path_": "torchtune.models.llama2_tokenizer",
+                "_component_": "torchtune.models.llama2_tokenizer",
                 "path": "/tmp/test-artifacts/tokenizer.model",
             },
             "instruction": "Answer the question.",

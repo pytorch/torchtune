@@ -5,11 +5,11 @@
 
 # Model Arguments
 model:
-  _path_: torchtune.models.llama2_7b
+  _component_: torchtune.models.llama2_7b
 
 model_checkpoint: /tmp/llama2-7b
 tokenizer:
-  _path_: torchtune.models.llama2_tokenizer
+  _component_: torchtune.models.llama2_tokenizer
   path: /tmp/tokenizer.model
 
 # Generation arguments

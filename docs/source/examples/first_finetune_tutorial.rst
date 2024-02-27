@@ -96,22 +96,27 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 .. code-block:: yaml
 
   # Dataset and Dataloader
-  dataset: alpaca
+  dataset:
+    _component_: torchtune.datasets.AlpacaDataset
   seed: 42
   shuffle: True
 
   # Model Arguments
-  model: llama2_7b
+  model:
+    _component_: torchtune.models.llama2_7b
   model_checkpoint: /tmp/llama2/native_pytorch_model.pt
-  tokenizer: llama2_tokenizer
-  tokenizer_checkpoint: /tmp/llama2/tokenizer.model
+  tokenizer:
+    _component_: torchtune.models.llama2_tokenizer
+    path: /tmp/tokenizer.model
 
   # Fine-tuning arguments
   batch_size: 2
-  lr: 1e-5
   epochs: 1
-  optimizer: SGD
-  loss: CrossEntropyLoss
+  optimizer:
+    _component_: torch.optim.SGD
+    lr: 1e-5
+  loss:
+    _component_: torch.nn.CrossEntropyLoss
   output_dir: /tmp/alpaca-llama2-finetune
   device: cuda
   dtype: fp32

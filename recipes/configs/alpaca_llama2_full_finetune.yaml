@@ -5,7 +5,7 @@
 
 # Dataset and Dataloader
 dataset:
-  _path_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.AlpacaDataset
   train_on_input: True
 
 seed: null
@@ -13,18 +13,18 @@ shuffle: True
 
 # Model Arguments
 model:
-  _path_: torchtune.models.llama2_7b
+  _component_: torchtune.models.llama2_7b
 
 model_checkpoint: /tmp/llama2_native
 tokenizer:
-  _path_: torchtune.models.llama2_tokenizer
+  _component_: torchtune.models.llama2_tokenizer
   path: /tmp/llama2/tokenizer.model
 
 # Fine-tuning arguments
 batch_size: 2
 epochs: 3
 optimizer:
-  _path_: torch.optim.SGD
+  _component_: torch.optim.SGD
   lr: 2e-5
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
@@ -32,7 +32,7 @@ log_every_n_steps: null
 run_generation: null
 
 loss:
-  _path_: torch.nn.CrossEntropyLoss
+  _component_: torch.nn.CrossEntropyLoss
 
 output_dir: /tmp/alpaca-llama2-finetune
 device: cuda
@@ -42,5 +42,5 @@ enable_activation_checkpointing: True
 cpu_offload: False
 resume_from_checkpoint: False
 metric_logger:
-  _path_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}

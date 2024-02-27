@@ -58,33 +58,32 @@ class FullFinetuneRecipe(FTRecipeInterface):
         - Datasets are Map-style and data fits in memory (not streamed).
 
     Args:
-        device (str): Device to use for training. Options are "cpu" and "cuda"
-        dtype (str): Data type to use for training.
-        seed (int): Random seed to use for training.
-        model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
-        model_checkpoint (str): Local path to load model checkpoint from.
-        tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
-        tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
-        dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
-            Currently, only predefined datasets in library are supported.
-        shuffle (bool): Whether to shuffle dataset.
-        batch_size (int): Batch size to use for training.
-        epochs (int): Number of epochs to train for.
-        optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
-        loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
-        lr (float): Learning rate to use for optimizer.
-        activation_checkpointing (bool): Whether to use activation checkpointing.
-        output_dir (str): Local path to save checkpoints and logs to.
-        run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
-        max_steps_per_epoch (int): Maximum number of steps to take per epoch.
-        metric_logger_type (str): String specifying metric logger to use. See ``torchtune.utils.get_metric_logger``
-            for options.
-        project (str): Project name to use for logging. Used by ``WandBLogger``.
-        resume_from_previous_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
-        cpu_offload (bool): Whether to offload model to CPU.
+        cfg (DictConfig): OmegaConf object parsed from yaml file that contains the following fields:
 
-    Raises:
-        ValueError: If ``cpu_offload`` is ``True`` but ``device`` is not ``cuda`` and <= 1 GPUs.
+            device (str): Device to use for training. Options are "cpu" and "cuda"
+            dtype (str): Data type to use for training.
+            seed (int): Random seed to use for training.
+            model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
+            model_checkpoint (str): Local path to load model checkpoint from.
+            tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
+            tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
+            dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
+                Currently, only predefined datasets in library are supported.
+            shuffle (bool): Whether to shuffle dataset.
+            batch_size (int): Batch size to use for training.
+            epochs (int): Number of epochs to train for.
+            optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
+            loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
+            lr (float): Learning rate to use for optimizer.
+            activation_checkpointing (bool): Whether to use activation checkpointing.
+            output_dir (str): Local path to save checkpoints and logs to.
+            run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
+            max_steps_per_epoch (int): Maximum number of steps to take per epoch.
+            metric_logger (str): String specifying metric logger to use. See ``torchtune.utils.metric_logging``
+                for options.
+            project (str): Project name to use for logging. Used by ``WandBLogger``.
+            resume_from_previous_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
+            cpu_offload (bool): Whether to offload model to CPU.
     """
 
     def __init__(self, cfg: DictConfig) -> None:

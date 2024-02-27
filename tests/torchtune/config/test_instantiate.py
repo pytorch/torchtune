@@ -22,7 +22,7 @@ class TestInstantiate:
         a: b
         b: c
         test:
-          _path_: torchtune.modules.RMSNorm
+          _component_: torchtune.modules.RMSNorm
           dim: 5
         """
         return OmegaConf.create(s)

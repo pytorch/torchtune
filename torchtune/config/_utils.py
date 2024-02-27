@@ -17,6 +17,14 @@ def get_object_from_path(path: str) -> Any:
 
     Args:
         path (str): Dotted path of the object
+
+    Returns:
+        Any: The object
+
+    Raises:
+        ImportError: If the path is empty or there is an exception loading the
+            object from the provided path
+        ValueError: If a relative or invalid dotpath is passed in
     """
     if path == "":
         raise ImportError("Empty path")

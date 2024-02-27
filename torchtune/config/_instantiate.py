@@ -11,33 +11,31 @@ from omegaconf import DictConfig, OmegaConf
 from torchtune.config._utils import get_object_from_path
 
 
-def has_path(node: Union[DictConfig, Dict[str, Any]]) -> bool:
-    if isinstance(node, dict):
-        return "_path_" in node
-    if OmegaConf.is_dict(node):
-        return "_path_" in node
+def has_component(node: Union[DictConfig, Dict[str, Any]]) -> bool:
+    if isinstance(node, dict) or OmegaConf.is_dict(node):
+        return "_component_" in node
     return False
 
 
-def call_object(
-    _path_: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
+def create_component(
+    _component_: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
 ):
-    return _path_(*args, **kwargs)
+    return _component_(*args, **kwargs)
 
 
 def instantiate_node(node: Union[DictConfig, Dict[str, Any]], *args: Tuple[Any, ...]):
     """
-    Creates the object specified in _path_ field with provided positional args
-    and kwargs already merged. Raises a ValueError if _path_ is not specified.
+    Creates the object specified in _component_ field with provided positional args
+    and kwargs already merged. Raises a ValueError if _component_ is not specified.
     """
-    if has_path(node):
-        _path_ = get_object_from_path(node.get("_path_"))
-        kwargs = {k: v for k, v in node.items() if k != "_path_"}
-        return call_object(_path_, args, kwargs)
+    if has_component(node):
+        _component_ = get_object_from_path(node.get("_component_"))
+        kwargs = {k: v for k, v in node.items() if k != "_component_"}
+        return create_component(_component_, args, kwargs)
     else:
         raise ValueError(
             "Cannot instantiate specified object."
-            + "\nMake sure you've specified a _path_ field with a valid dotpath."
+            + "\nMake sure you've specified a _component_ field with a valid dotpath."
         )
 
 
@@ -47,7 +45,7 @@ def instantiate(
     **kwargs: Dict[str, Any],
 ) -> Any:
     """
-    Given a DictConfig/Dict with a _path_ field specifying the object to instantiate and
+    Given a DictConfig/Dict with a _component_ field specifying the object to instantiate and
     additional fields for keyword arguments, create an instance of the specified object.
     You can use this function to create the exact instance of a TorchTune object you want
     to use in your recipe using the specification from the config.
@@ -56,12 +54,12 @@ def instantiate(
     function call. These are automatically merged with the provided config.
 
     Examples:
-        config.yaml:
-            model:
-              _path_: torchtune.models.llama2
-              num_layers: 32
-              num_heads: 32
-              num_kv_heads: 32
+        >>> config.yaml:
+        >>>     model:
+        >>>       _component_: torchtune.models.llama2
+        >>>       num_layers: 32
+        >>>       num_heads: 32
+        >>>       num_kv_heads: 32
 
         >>> from torchtune import config
         >>> vocab_size = 32000
@@ -71,10 +69,17 @@ def instantiate(
         >>> model = config.instantiate(parsed_yaml.model, vocab_size, max_seq_len=4096, embed_dim=4096)
 
     Args:
-        config (DictConfig or Dict): the OmegaConf object parsed from the yaml file, or a plain dict.
-            This is expected to have a _path_ field specifying the path of the object to instantiate.
-        *args (Any): positional arguments to pass to the object to instantiate.
-        **kwargs (Any): keyword arguments to pass to the object to instantiate.
+        config (Union[DictConfig, Dict[str, Any]]): a single field in the OmegaConf object parsed from the yaml file,
+            or a plain dict. This is expected to have a _component_ field specifying the path of the object
+            to instantiate.
+        *args (Tuple[Any, ...]): positional arguments to pass to the object to instantiate.
+        **kwargs (Dict[str, Any]): keyword arguments to pass to the object to instantiate.
+
+    Returns:
+        Any: the instantiated object.
+
+    Raises:
+        ValueError: if config is not a DictConfig or Dict.
     """
 
     # Return None if config is None
