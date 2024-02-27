@@ -7,8 +7,8 @@
 import pytest
 from omegaconf import OmegaConf
 from torchtune.config._instantiate import (
-    call_object,
-    has_path,
+    create_component,
+    has_component,
     instantiate,
     instantiate_node,
 )
@@ -35,14 +35,14 @@ class TestInstantiate:
         return rms_norm.scale.shape[0]
 
     def test_has_path(self, config):
-        assert has_path(config.test)
-        assert not has_path(config.a)
+        assert has_component(config.test)
+        assert not has_component(config.a)
 
     def test_call_object(self, module):
         obj = RMSNorm
         args = (5,)
         kwargs = {"eps": 1e-4}
-        actual = call_object(obj, args, kwargs)
+        actual = create_component(obj, args, kwargs)
         expected = module
         assert isinstance(actual, RMSNorm)
         assert self.get_dim(actual) == self.get_dim(expected)
