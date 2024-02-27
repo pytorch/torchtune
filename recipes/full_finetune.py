@@ -15,7 +15,7 @@ from warnings import warn
 import torch
 
 from recipes.interfaces import FTRecipeInterface
-from recipes.params import FullFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
 
 from torch import nn
 from torch.cuda.amp import GradScaler
@@ -225,9 +225,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         if self._is_rank_zero:
-            log.info(
-                "Model is initialized. FSDP and Activation Checkpointing are enabled."
-            )
+            log.info("Model is initialized.")
         return model
 
     def _setup_tokenizer(

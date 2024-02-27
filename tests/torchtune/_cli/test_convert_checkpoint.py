@@ -13,13 +13,13 @@ from unittest.mock import patch
 
 import pytest
 import torch
-
-from tests._scripts.common import TUNE_PATH
 from tests.test_utils import assert_expected
+
+from tests.torchtune._cli.common import TUNE_PATH
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 from torchtune.models.llama2 import llama2
 
-ASSETS = Path(__file__).parent.parent / "assets"
+ASSETS = Path(__file__).parent.parent.parent / "assets"
 
 # Generating `tiny_state_dict_with_one_key.pt`
 # >>> import torch

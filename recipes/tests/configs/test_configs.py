@@ -7,7 +7,8 @@ import os
 
 import pytest
 
-from recipes.params import FullFinetuneParams, LoRAFinetuneParams
+from recipes.params.full_finetune import FullFinetuneParams
+from recipes.params.lora_finetune import LoRAFinetuneParams
 from torchtune.utils.argparse import TuneArgumentParser
 
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")

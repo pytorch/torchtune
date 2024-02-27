@@ -26,9 +26,10 @@ TorchTune provides:
 - Support for distributed training using `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_
 - Yaml configs for easily configuring training runs
 
-Excited? To get started, checkout the :ref:`this tutorial<finetune_llama_label>` to get started and finetune your first LLM using TorchTune.
+Excited? To get started, checkout some of our tutorials, including:
 
-|
+- our :ref:`full finetuning tutorial <finetune_llama_label>` to get started and finetune your first LLM using TorchTune.
+- our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with TorchTune.
 
 Key Concepts
 ------------
