@@ -1,5 +1,6 @@
 pytest
 pytest-cov
+pytest-mock
 pre-commit
 tensorboard
 wandb

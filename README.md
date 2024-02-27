@@ -43,7 +43,7 @@ experience different peak memory utilization based on changes made in configurat
 | 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
 
 
-NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
+NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Peak memory per GPU is as reported by `nvidia-smi` monitored over a couple hundred training iterations. Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
 &nbsp;
 
@@ -164,22 +164,6 @@ does with the following additional functionalities:
 
 ---
 
-#### Evaluation Utilities
-
-TorchTune provides a basic wrapper around EleutherAI's lm-evaluation-harness [library](https://github.com/EleutherAI/lm-evaluation-harness/tree/main) for running basic evaluation tasks on finetuned
-models. To launch an eval flow, run the following command:
-
-```
-python eval.py --model-checkpoint <path> --tokenizer-checkpoint <path> --limit 100 --tasks hellaswag,mmlu
-```
-
-This will launch an eval using a Llama-7b pretrained or finetuned model as given by `model-checkpoint` on the [hellaswag](https://paperswithcode.com/dataset/hellaswag) and
-[MMLU](https://paperswithcode.com/dataset/mmlu) with a limit of 100 samples (on each task).
-
-&nbsp;
-
----
-
 ## Design Principles
 
 TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
@@ -204,7 +188,6 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 - Extensive unit-tests to ensure component-level numerical parity with reference implementations
 - Checkpoint-tests to ensure model-level numerical parity with reference implementations
 - Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks
-
 
 &nbsp;
 

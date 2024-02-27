@@ -48,7 +48,7 @@ def lora_llama2_7b(
         max_seq_len=4096,
         max_batch_size=max_batch_size,
         attn_dropout=0.0,
-        norm_eps=1e-6,
+        norm_eps=1e-5,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,

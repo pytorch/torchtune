@@ -58,10 +58,15 @@ class _EvalWrapper(HFLM):
 
     @property
     def max_gen_toks(self):
-        return 512
+        # Sample text from model undergoing eval until this maximum output length. Using
+        # 256 for now for parity with what eleuther does by default for HF models
+        # (https://github.com/EleutherAI/lm-evaluation-harness/blob/96d185fa6232a5ab685ba7c43e45d1dbb3bb906d/lm_eval/models/huggingface.py#L376),
+        # and we benchmark against HF llama-2 7b for correctness.
+        return 256
 
     @property
     def batch_size(self):
+        # batch size used for evaluation
         return 32
 
     @property
@@ -69,6 +74,11 @@ class _EvalWrapper(HFLM):
         return self._device
 
     def tok_encode(self, string: str, **kwargs):
+        # Note on add_bos flag: setting to False as this gives better results, for example
+        # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
+        # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
+        # though notably fast-gpt does the opposite
+        # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         encoded = self._tokenizer.encode(text=string, add_bos=False, add_eos=False)
         return encoded
 
@@ -264,6 +274,9 @@ if __name__ == "__main__":
         default="cuda",
         help="Device for eval. Can be cpu, cuda, or cuda:<device_id>",
     )
+    # TODO: LoRA specific arguments follow. This is just to enable eval of LoRA finetuned models for
+    # the time being, and we expect this experience to significantly change once LoRA weight merging
+    # is completed and unified checkpoint format can be offered regardless of finetuning technique.
     parser.add_argument(
         "--peft-checkpoint",
         type=str,
