@@ -10,9 +10,9 @@ shuffle: True
 
 # Model Arguments
 model: llama2_7b
-model_checkpoint: /tmp/llama2-7b
+model_checkpoint: /tmp/llama2_native
 tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/tokenizer.model
+tokenizer_checkpoint: /tmp/llama2/tokenizer.model
 
 # Fine-tuning arguments
 batch_size: 2

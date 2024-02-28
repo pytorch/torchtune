@@ -1,6 +1,6 @@
 # Model Arguments
 model: lora_llama2_7b
-model_checkpoint: /tmp/llama2-7b
+model_checkpoint: /tmp/llama2_native
 lora_attn_modules: ['q_proj', 'v_proj']
 lora_rank: 8
 lora_alpha: 16
@@ -8,7 +8,7 @@ lora_checkpoint: null
 
 # Tokenizer
 tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/tokenizer.model
+tokenizer_checkpoint: /tmp/llama2/tokenizer.model
 
 # Dataset and Sampler
 dataset: alpaca
