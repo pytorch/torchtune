@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 import torch
 
-from tests.test_utils import assert_expected, init_weights_with_constant
+from tests.test_utils import assert_expected, init_weights_with_constant, set_dtype
 
 from torchtune.models.llama2 import llama2
 from torchtune.utils.generation import GenerationUtils
@@ -71,11 +71,7 @@ class TestTextGenerate:
     def _batch_size(self):
         return 2
 
-    @pytest.fixture
-    def generation_model(self):
-        """
-        A dummy model to test `generate` API
-        """
+    def _get_generation_model(self, use_kv_cache):
         model = llama2(
             vocab_size=4_000,
             embed_dim=128,
@@ -83,10 +79,18 @@ class TestTextGenerate:
             num_heads=4,
             num_kv_heads=None,
             max_seq_len=2048,
+            max_batch_size=None if not use_kv_cache else 2,
         )
         init_weights_with_constant(model)
         model.eval()
         return model
+
+    @pytest.fixture
+    def generation_model(self):
+        """
+        A dummy model to test `generate` API
+        """
+        return self._get_generation_model(use_kv_cache=False)
 
     @pytest.fixture
     def generation_model_kv_cache(self):
@@ -94,18 +98,7 @@ class TestTextGenerate:
         A dummy model to test incremental decoding portion of `generate` API
         w/kv-caching enabled.
         """
-        generation_model_kv_cache = llama2(
-            vocab_size=4_000,
-            embed_dim=128,
-            num_layers=2,
-            num_heads=4,
-            num_kv_heads=None,
-            max_seq_len=2048,
-            max_batch_size=2,
-        )
-        init_weights_with_constant(generation_model_kv_cache)
-        generation_model_kv_cache.eval()
-        return generation_model_kv_cache
+        return self._get_generation_model(use_kv_cache=True)
 
     @pytest.fixture
     def prompt_tokens(self) -> List[int]:
@@ -221,41 +214,43 @@ class TestTextGenerate:
         assert_expected(outputs[0].shape, outputs[1].shape)
         assert isinstance(outputs[1], torch.FloatTensor)
 
-    def test_kv_cache_incremental_decode_parity(
-        self, generation_model, generation_model_kv_cache, prompt_tokens
-    ):
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
+    def test_kv_cache_incremental_decode_parity(self, prompt_tokens, dtype):
         """
         Test to check if the `generate` function produces the same output when run with and without
         incremental decoding, where we use a kv-caching model with incremental_decode=True.
         """
-        min_gen_len = 1
-        max_gen_len = 20
-        temperature = 1.0
-        top_p = 1.0
-        top_k = 0
-        generate = _make_generate(generation_model)
-        generate_kv_cache = _make_generate(generation_model_kv_cache)
-        outputs, _ = generate(
-            prompt_tokens=prompt_tokens,
-            min_gen_len=min_gen_len,
-            max_gen_len=max_gen_len,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            keep_prompt=False,
-            incremental_decode=False,
-        )
-        outputs_kv_cache, _ = generate_kv_cache(
-            prompt_tokens=prompt_tokens,
-            min_gen_len=min_gen_len,
-            max_gen_len=max_gen_len,
-            temperature=temperature,
-            top_p=top_p,
-            top_k=top_k,
-            keep_prompt=False,
-            incremental_decode=True,
-        )
-        assert outputs.tolist() == outputs_kv_cache.tolist()
+        with set_dtype(dtype):
+            min_gen_len = 1
+            max_gen_len = 20
+            temperature = 1.0
+            top_p = 1.0
+            top_k = 0
+            gen_model = self._get_generation_model(use_kv_cache=False)
+            gen_model_kv = self._get_generation_model(use_kv_cache=True)
+            generate = _make_generate(gen_model)
+            generate_kv_cache = _make_generate(gen_model_kv)
+            outputs, _ = generate(
+                prompt_tokens=prompt_tokens,
+                min_gen_len=min_gen_len,
+                max_gen_len=max_gen_len,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                keep_prompt=False,
+                incremental_decode=False,
+            )
+            outputs_kv_cache, _ = generate_kv_cache(
+                prompt_tokens=prompt_tokens,
+                min_gen_len=min_gen_len,
+                max_gen_len=max_gen_len,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                keep_prompt=False,
+                incremental_decode=True,
+            )
+            assert outputs.tolist() == outputs_kv_cache.tolist()
 
     def test_reproducibility(self, generation_model, prompt_tokens):
         """

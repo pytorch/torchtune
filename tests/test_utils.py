@@ -137,6 +137,16 @@ def single_box_init():
 
 
 @contextmanager
+def set_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
+    old_dtype = torch.get_default_dtype()
+    torch.set_default_dtype(dtype)
+    try:
+        yield
+    finally:
+        torch.set_default_dtype(old_dtype)
+
+
+@contextmanager
 def captured_output() -> Generator[Tuple[TextIO, TextIO], None, None]:
     new_out, new_err = StringIO(), StringIO()
     old_out, old_err = sys.stdout, sys.stderr
