@@ -44,9 +44,9 @@ if __name__ == "__main__":
         examples:
             $ tune ls
             RECIPE               CONFIG
-            full_finetune        alpaca_llama2_full_finetune.yaml
-            lora_finetune        alpaca_llama2_lora_finetune.yaml
-            alpaca_generate      <>
+            full_finetune.py     alpaca_llama2_full_finetune.yaml
+            lora_finetune.py     alpaca_llama2_lora_finetune.yaml
+            alpaca_generate.py   <>
 
         To run one of these recipes:
             $ tune full_finetune --config alpaca_llama2_full_finetune.yaml
