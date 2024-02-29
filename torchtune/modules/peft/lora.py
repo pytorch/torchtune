@@ -118,9 +118,6 @@ class LoRALinear(nn.Module, AdapterModule):
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
-    # def merge_weights(self):
-    #     self.weight, self.bias = self.get_merged_weights()
-
     def get_merged_weights(self) -> Tuple[Tensor, Optional[Tensor]]:
         if self.use_bias_in_lora_matrices:
             raise ValueError("Cannot merge weights with biases in A and B matrices")
