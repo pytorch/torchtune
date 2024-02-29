@@ -1,4 +1,7 @@
 # Config for LoRAFinetuneRecipe in lora_finetune.py
+#
+# To launch, run the following command from root:
+#    tune --nnodes 1 --nproc_per_node 1 lora_finetune --config alpaca_llama2_lora_finetune --override model_checkpoint=<your_checkpoint_dir> ...
 
 # Model Arguments
 model:
@@ -20,6 +23,7 @@ dataset:
   _component_: torchtune.datasets.AlpacaDataset
   train_on_input: True
   use_clean: True
+seed: null
 shuffle: True
 batch_size: 2
 
@@ -44,6 +48,7 @@ output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
+log_every_n_steps: 1
 
 # Environment
 device: cuda

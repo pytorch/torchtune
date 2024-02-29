@@ -13,17 +13,17 @@ _RECIPE_LIST = [
 _CONFIG_LISTS = {
     "full_finetune": ["alpaca_llama2_full_finetune"],
     "lora_finetune": ["alpaca_llama2_lora_finetune"],
-    "alpaca_generate": [],
+    "alpaca_generate": ["alpaca_llama2_generate"],
 }
 
 
 def list_recipes():
-    """List of availabe recipes available from the CLI"""
+    """List of recipes available from the CLI"""
     return _RECIPE_LIST
 
 
 def list_configs(recipe: str):
-    """List of availabe configs available from the CLI given a recipe"""
+    """List of configs available from the CLI given a recipe"""
     if recipe not in _CONFIG_LISTS:
         raise ValueError(f"Unknown recipe: {recipe}")
     return _CONFIG_LISTS[recipe]

@@ -222,7 +222,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     ) -> nn.Module:
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
-        init_device = "meta" if enable_fsdp else self._device
+        init_device = torch.device("meta") if enable_fsdp else self._device
         with init_device:
             model = config.instantiate(cfg_model)
 

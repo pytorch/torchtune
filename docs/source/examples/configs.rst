@@ -67,14 +67,6 @@ arguments:
 Here, we are changing the default value for :code:`train_on_input` from :code:`True`
 to :code:`False`.
 
-.. note::
-    :class:`~torchtune.datasets._alpaca.AlpacaDataset` is located in a private file,
-    :code:`_alpaca.py`, but is exposed as public in :code:`torchtune/datasets/__init__.py`.
-    When specifying dotpaths in your config, use the public path and not the private
-    path for guarantee of API stability, i.e., :code:`torchtune.datasets.AlpacaDataset`
-    and not :code:`torchtune.datasets._alpaca.AlpacaDataset`. There should not be
-    underscores in your dotpath.
-
 Once you've specified the :code:`_component_` in your config, you can create an
 instance of the specified object in your recipe's setup like so:
 
@@ -106,11 +98,40 @@ and keyword arguments and automatically uses that with the config when creating
 the object. This means we can not only pass in the tokenizer, but also add additional
 keyword arguments not specified in the config if we'd like:
 
+.. code-block:: yaml
+
+    # Tokenizer is needed for the dataset, configure it first
+    tokenizer:
+      _component_: torchtune.models.llama2_tokenizer
+      path: /tmp/tokenizer.model
+
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
+
 .. code-block:: python
+
+    # Note the API of the tokenizer we specified - we need to pass in a path
+    def llama2_tokenizer(path: str) -> Tokenizer;
+
+    # Note the API of the dataset we specified - we need to pass in a tokenizer
+    # and any optional keyword arguments
+    class AlpacaDataset(Dataset):
+        def __init__(
+            self,
+            tokenizer: Tokenizer,
+            train_on_input: bool = True,
+            use_clean: bool = False,
+            **kwargs,
+        ) -> None;
 
     from torchtune import config
 
+    # Since we've already specified the path in the config, we don't need to pass
+    # it in
     tokenizer = config.instantiate(cfg.tokenizer)
+    # We pass in the instantiated tokenizer as the first required argument, then
+    # we change an optional keyword argument
     dataset = config.instantiate(
         cfg.dataset,
         tokenizer,
@@ -161,32 +182,13 @@ make it significantly easier to debug.
       _component_: torchtune.datasets.AlpacaDataset
       train_on_input: True
 
-Order in config is order of instantiation
-"""""""""""""""""""""""""""""""""""""""""
-There will be many cases where a configured component requires another configured
-component as an argument (for example, the tokenizer used with the dataset, or
-the model parameters in the optimizer). The order of instantiation is handled in
-the recipe code itself, but keeping the same order in the config can help communicate
-this to other users and also help remind yourself when a configured component needs
-to be passed in as an argument.
-
-.. code-block:: yaml
-
-    # Tokenizer is needed for the dataset, configure it first
-    tokenizer:
-      _component_: torchtune.models.llama2_tokenizer
-      path: /tmp/tokenizer.model
-
-    dataset:
-      _component_: torchtune.datasets.AlpacaDataset
-      train_on_input: True
-
 Use public APIs only
 """"""""""""""""""""
 If a component you wish to specify in a config is located in a private file, use
 the public dotpath in your config. These components are typically exposed in their
 parent module's :code:`__init__.py` file. This way, you can guarantee the stability
-of the API you are using in your config.
+of the API you are using in your config. There should be no underscores in your
+component dotpath.
 
 .. code-block:: yaml
 

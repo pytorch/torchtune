@@ -205,26 +205,11 @@ and CLI override parsing.
         recipe.cleanup()
 
 
-Linking recipes and configs with :code:`tune`
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-In order to run your custom recipe and configs with :code:`tune`, you must update the :code:`_RECIPE_LIST`
-and :code:`_CONFIG_LISTS` in :code:`recipes/__init__.py`
-
-.. code-block:: python
-
-    _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", ...]
-    _CONFIG_LISTS = {
-        "full_finetune": ["alpaca_llama2_full_finetune"],
-        "lora_finetune": ["alpaca_llama2_lora_finetune"],
-        "alpaca_generate": [],
-        "<your_recipe>": ["<your_config"],
-    }
-
 Running your recipe
 ^^^^^^^^^^^^^^^^^^^
-If everything is set up correctly, you should be able to run your recipe just like the existing library recipes using the :code:`tune` command:
+You should be able to run your recipe by providing the direct paths to your custom
+recipe and custom config using the :code:`tune` command:
 
 .. code-block:: bash
 
-    tune <recipe> --config <config> --override ...
+    tune <path/to/recipe> --config <path/to/config> --override ...
