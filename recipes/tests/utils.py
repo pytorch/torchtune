@@ -7,8 +7,7 @@
 from typing import Dict, Optional
 
 import pytest
-from torchtune.models import lora_llama2
-from torchtune.models.llama2 import llama2
+from torchtune.models.llama2 import llama2, lora_llama2
 
 from torchtune.modules import TransformerDecoder
 

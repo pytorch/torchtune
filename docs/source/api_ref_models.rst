@@ -2,7 +2,7 @@
 torchtune.models
 ================
 
-.. currentmodule:: torchtune.models
+.. currentmodule:: torchtune.models.llama2
 
 .. autosummary::
     :toctree: generated/

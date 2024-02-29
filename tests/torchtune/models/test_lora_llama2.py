@@ -9,8 +9,8 @@ import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
-from torchtune.models.llama2 import llama2
-from torchtune.models.lora_llama2 import _lora_llama_self_attention, lora_llama2
+from torchtune.models.llama2 import llama2, lora_llama2
+from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
 from torchtune.utils.seed import set_seed
 
 RANK = 4

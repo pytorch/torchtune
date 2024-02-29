@@ -11,10 +11,7 @@ from torch.nn import Module
 
 from torchtune.utils import get_device
 
-from .llama2 import llama2_7b, llama2_tokenizer
-from .lora_llama2 import lora_llama2, lora_llama2_7b
-
-__all__ = ["llama2_7b", "llama2_tokenizer", "lora_llama2", "lora_llama2_7b"]
+from torchtune.models.llama2 import llama2_7b, llama2_tokenizer, lora_llama2_7b
 
 ALL_MODELS = {"llama2_7b": llama2_7b, "lora_llama2_7b": lora_llama2_7b}
 ALL_TOKENIZERS = {"llama2_tokenizer": llama2_tokenizer}

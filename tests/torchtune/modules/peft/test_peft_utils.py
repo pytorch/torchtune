@@ -13,8 +13,7 @@ import torch
 from tests.test_utils import single_box_init
 from torch import nn
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torchtune.models.llama2 import llama2
-from torchtune.models.lora_llama2 import lora_llama2
+from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft.lora import LoRALinear, reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
