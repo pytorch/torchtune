@@ -12,7 +12,7 @@ from typing import Optional
 
 import torch
 
-from torchtune.models._llama2 import convert_llama2
+from torchtune.models.llama2 import convert_llama2
 from torchtune.utils import get_logger
 from torchtune.utils.constants import MODEL_KEY
 
