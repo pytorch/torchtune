@@ -136,9 +136,6 @@ will automatically resolve it for you.
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-- don't use private paths
-- order them in instantiate order
-- don't put multiple options for same field in same config
 Let's discuss some guidelines for writing configs to get the most out of them.
 
 Airtight configs
