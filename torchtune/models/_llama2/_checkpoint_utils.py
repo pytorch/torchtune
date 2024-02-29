@@ -10,6 +10,10 @@ import torch
 
 from tqdm import tqdm
 
+from torchtune.utils import get_logger
+
+log = get_logger("DEBUG")
+
 
 def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
     """
@@ -30,7 +34,8 @@ def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
 
 
 def convert_llama2(
-    original_state_dict: Dict[str, torch.Tensor]
+    original_state_dict: Dict[str, torch.Tensor],
+    output_numerical_validation: bool = False,
 ) -> Dict[str, torch.Tensor]:
     """
     Convert Llama2 state dict into TorchTune's native-PyTorch format. This function assumes
@@ -40,6 +45,8 @@ def convert_llama2(
     Args:
         original_state_dict (Dict[str, torch.Tensor]): State dict with keys corresponding to the original Llama2
             checkpoint.
+        output_numerical_validation (bool): Whether to compare numerical parity between original and converted state dicts.
+            Since this is a semi-expensive operation, it is disabled by default.
 
     Returns:
         state_dict: PyTorch-native state dict.
@@ -89,10 +96,18 @@ def convert_llama2(
                 "the original checkpoint from FAIR."
             ) from e
 
+    if output_numerical_validation:
+        log.info(
+            "Running validation to ensure original checkpoint and converted checkpoint "
+            "are numerically equivalent"
+        )
+        _run_numerical_validation(original_state_dict, state_dict)
+        log.info("Numerical validation complete. All outputs match!")
+
     return state_dict
 
 
-def run_numerical_validation(
+def _run_numerical_validation(
     original_state_dict: Dict[str, torch.Tensor],
     converted_state_dict: Dict[str, torch.Tensor],
 ):

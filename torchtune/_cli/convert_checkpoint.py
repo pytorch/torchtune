@@ -12,7 +12,7 @@ from typing import Optional
 
 import torch
 
-from torchtune.models._llama2 import convert_llama2, run_numerical_validation
+from torchtune.models._llama2 import convert_llama2
 from torchtune.utils import get_logger
 from torchtune.utils.constants import MODEL_KEY
 
@@ -46,18 +46,9 @@ def convert_checkpoint(
 
     # Convert checkpoint
     if model == "llama2":
-        state_dict = convert_llama2(original_state_dict)
+        state_dict = convert_llama2(original_state_dict, output_numerical_validation)
     else:
         raise NotImplementedError(f"Model {model} is not supported in TorchTune.")
-
-    # Run numerical validation
-    if output_numerical_validation:
-        log.info(
-            "Running validation to ensure original checkpoint and converted checkpoint "
-            "are numerically equivalent"
-        )
-        run_numerical_validation(original_state_dict, state_dict)
-        log.info("Numerical validation complete. All outputs match!")
 
     # Save the state dict
     if output_path is None:
