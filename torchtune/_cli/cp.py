@@ -24,7 +24,8 @@ def _get_absolute_path(file_name: str) -> Path:
     if _is_config_file(file_name):
         path = recipes_path / "configs" / file_name
     else:
-        path = recipes_path / f"{file_name}.py"
+        assert file_name.endswith(".py"), f"Expected .py file, got {file_name}"
+        path = recipes_path / file_name
     return path
 
 
@@ -38,7 +39,7 @@ def main(parser):
     ]
     if args.file not in all_recipes_and_configs:
         parser.error(
-            f"Invalid file name: {args.file}. Try 'tune ls' to see all available files to copy."
+            f"Invalid file name: {args.file}. Try `tune ls` to see all available files to copy."
         )
 
     # Get file path
@@ -68,8 +69,8 @@ if __name__ == "__main__":
             """\
         examples:
             $ tune cp alpaca_llama2_lora_finetune.yaml ./my_custom_llama2_lora.yaml
-            $ tune cp full_finetune ./my_custom_full_finetune
-            $ tune cp full_finetune ./new_dir/my_custom_full_finetune --make-parents
+            $ tune cp full_finetune.py ./my_custom_full_finetune.py
+            $ tune cp full_finetune.py ./new_dir/my_custom_full_finetune.py --make-parents
 
         Need to see all possible recipes/configs to copy? Try running `tune ls`.
         And as always, you can also run `tune cp --help` for more information.
