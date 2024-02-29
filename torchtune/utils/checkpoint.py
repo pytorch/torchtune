@@ -88,6 +88,7 @@ def save_checkpoint(
     ckpt_dict[MODEL_KEY] = model_state_dict
     _, rank = get_world_size_and_rank()
     if rank == 0:
+        print(list(ckpt_dict["model"].keys())[:10])
         torch.save(ckpt_dict, output_loc)
 
 

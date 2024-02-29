@@ -56,6 +56,8 @@ class LoRAFinetuneParams:
             for options.
         project (str): Project name to use for logging. Used by ``WandBLogger``.
         log_every_n_steps (int): How often to log metrics.
+        save_full_final_checkpoint (bool): Whether to save both LoRA and base model weights for the final checkpoint.
+        save_llama2_native_format (bool): Whether to merge LoRA + base weights and cast into Llama2 format for the final checkpoint.
     """
 
     # Model
@@ -105,6 +107,10 @@ class LoRAFinetuneParams:
     metric_logger_type: str = "disk"
     project: Optional[str] = None
     log_every_n_steps: Optional[int] = None
+
+    # Final checkpoint configs
+    save_full_final_checkpoint: bool = True
+    save_llama2_native_format: bool = True
 
     def __post_init__(self):
         for param in fields(self):

@@ -23,7 +23,7 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import datasets, models, modules, utils
-from torchtune.modules.peft.lora import reset_lora_params
+from torchtune.modules.peft.lora import get_merged_lora_weights, reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     lora_fsdp_init,
@@ -96,6 +96,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = params.resume_from_checkpoint
+        self._save_full_final_checkpoint = params.save_full_final_checkpoint
+        self._save_llama2_native_format = params.save_llama2_native_format
 
     def setup(self, params: LoRAFinetuneParams) -> None:
         """
@@ -134,7 +136,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             if self._resume_from_checkpoint
             else None,
         )
-
         self._tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
         )
@@ -383,14 +384,24 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(
+        self,
+        epoch: int,
+        save_full_weights: bool = False,
+        merge_lora_weights: bool = False,
+    ) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
         """
+        print("hi", save_full_weights, merge_lora_weights)
         os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
-        ckpt_dict = {MODEL_KEY: self._model}
+        ckpt_dict = {
+            MODEL_KEY: get_merged_lora_weights(self._model)
+            if merge_lora_weights
+            else self._model
+        }
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
@@ -402,9 +413,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
-        )
+        key_filter = None if save_full_weights else lambda x: x in self.adapter_params
+        utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=key_filter)
 
         if self._is_rank_zero:
             log.info(
@@ -469,7 +479,18 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+
+            save_full_weights = self._save_full_final_checkpoint and (
+                curr_epoch == self.total_epochs - 1
+            )
+            merge_lora_weights = self._save_llama2_native_format and (
+                curr_epoch == self.total_epochs - 1
+            )
+            self.save_checkpoint(
+                epoch=curr_epoch,
+                save_full_weights=save_full_weights,
+                merge_lora_weights=merge_lora_weights,
+            )
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

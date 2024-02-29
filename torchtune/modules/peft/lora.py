@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 import torch
 
@@ -70,6 +70,7 @@ class LoRALinear(nn.Module, AdapterModule):
         super().__init__()
         self.rank = rank
         self.alpha = alpha
+        self.in_dim = in_dim
         self.out_dim = out_dim
         linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
         # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
@@ -91,6 +92,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # Skip init if we are under a meta device context
         if not self.weight.is_meta:
             self.reset_lora_parameters()
+        self.merged = False
 
     def reset_lora_parameters(self, device: Optional[torch.device] = None):
         # Initialize as in
@@ -116,6 +118,17 @@ class LoRALinear(nn.Module, AdapterModule):
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
+    # def merge_weights(self):
+    #     self.weight, self.bias = self.get_merged_weights()
+
+    def get_merged_weights(self) -> Tuple[Tensor, Optional[Tensor]]:
+        if self.use_bias_in_lora_matrices:
+            raise ValueError("Cannot merge weights with biases in A and B matrices")
+        weight = (self.alpha / self.rank) * (
+            self.lora_b.weight @ self.lora_a.weight
+        ) + self.weight
+        return weight, self.bias
+
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:
@@ -135,3 +148,23 @@ class LoRALinear(nn.Module, AdapterModule):
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out
+
+
+def _get_submodules(model, key):
+    parent = model.get_submodule(".".join(key.split(".")[:-1]))
+    target_name = key.split(".")[-1]
+    target = model.get_submodule(key)
+    return parent, target, target_name
+
+
+def get_merged_lora_weights(model: nn.Module) -> nn.Module:
+    for k, v in model.named_modules():
+        if isinstance(v, LoRALinear):
+            merged = nn.Linear(v.in_dim, v.out_dim, bias=v.bias is not None)
+            merged_weights = v.get_merged_weights()
+            merged.weight = nn.Parameter(merged_weights[0], requires_grad=False)
+            if v.bias:
+                merged.bias = nn.Parameter(merged_weights[1], requires_grad=False)
+            parent, target, target_name = _get_submodules(model, k)
+            setattr(parent, target_name, merged)
+    return model
