@@ -28,7 +28,12 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
 
 .. code-block:: yaml
 
-    # Dataset and Dataloader
+    # Tokenizer
+    tokenizer:
+      _component_: torchtune.models.llama2_tokenizer
+      path: /tmp/tokenizer.model
+
+    # Dataset
     dataset:
       _component_: torchtune.datasets.AlpacaDataset
     shuffle: True
@@ -36,11 +41,7 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
     # Model Arguments
     model:
       _component_: torchtune.models.llama2_7b
-
     model_checkpoint: /tmp/llama2-7b
-    tokenizer:
-      _component_: torchtune.models.llama2_tokenizer
-      path: /tmp/tokenizer.model
 
     # Fine-tuning arguments
     batch_size: 2

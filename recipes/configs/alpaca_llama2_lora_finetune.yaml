@@ -1,6 +1,8 @@
+# Config for LoRAFinetuneRecipe in lora_finetune.py
+
 # Model Arguments
 model:
-  _component_: lora_llama2_7b
+  _component_: torchtune.models.lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
   lora_rank: 8
   lora_alpha: 16
@@ -9,8 +11,9 @@ model_checkpoint: /tmp/llama2_native
 lora_checkpoint: null
 
 # Tokenizer
-tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/llama2/tokenizer.model
+tokenizer:
+  _component_: torchtune.models.llama2_tokenizer
+  path: /tmp/llama2/tokenizer.model
 
 # Dataset and Sampler
 dataset:
@@ -22,10 +25,10 @@ batch_size: 2
 
 # Optimizer and Scheduler
 optimizer:
-  _component_: AdamW
+  _component_: torch.optim.AdamW
   weight_decay: 0.01
   lr: 3e-4
-lr_scheduler:  # TODO: this is a partial instantiation, make this more elegant
+lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
 

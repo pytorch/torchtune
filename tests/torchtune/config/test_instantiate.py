@@ -7,11 +7,12 @@
 import pytest
 from omegaconf import OmegaConf
 from torchtune.config._instantiate import (
-    create_component,
-    has_component,
+    _create_component,
+    _has_component,
+    _instantiate_node,
     instantiate,
-    instantiate_node,
 )
+from torchtune.config._utils import InstantiationError
 from torchtune.modules import RMSNorm
 
 
@@ -35,27 +36,29 @@ class TestInstantiate:
         return rms_norm.scale.shape[0]
 
     def test_has_path(self, config):
-        assert has_component(config.test)
-        assert not has_component(config.a)
+        assert _has_component(config.test)
+        assert not _has_component(config.a)
 
     def test_call_object(self, module):
         obj = RMSNorm
         args = (5,)
         kwargs = {"eps": 1e-4}
-        actual = create_component(obj, args, kwargs)
+        actual = _create_component(obj, args, kwargs)
         expected = module
         assert isinstance(actual, RMSNorm)
         assert self.get_dim(actual) == self.get_dim(expected)
         assert actual.eps == expected.eps
 
     def test_instantiate_node(self, config, module):
-        actual = instantiate_node(config.test)
+        actual = _instantiate_node(config.test)
         expected = module
         assert isinstance(actual, RMSNorm)
         assert self.get_dim(actual) == self.get_dim(expected)
 
-        with pytest.raises(ValueError, match="Cannot instantiate specified object"):
-            _ = instantiate_node(config.a)
+        with pytest.raises(
+            InstantiationError, match="Cannot instantiate specified object"
+        ):
+            _ = _instantiate_node(config.a)
 
     def test_instantiate(self, config, module):
         actual = instantiate(config.test)

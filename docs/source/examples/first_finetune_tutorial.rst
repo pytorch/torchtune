@@ -95,7 +95,12 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
 .. code-block:: yaml
 
-  # Dataset and Dataloader
+  # Tokenizer
+  tokenizer:
+    _component_: torchtune.models.llama2_tokenizer
+    path: /tmp/tokenizer.model
+
+  # Dataset
   dataset:
     _component_: torchtune.datasets.AlpacaDataset
   seed: 42
@@ -105,9 +110,6 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
   model:
     _component_: torchtune.models.llama2_7b
   model_checkpoint: /tmp/llama2/native_pytorch_model.pt
-  tokenizer:
-    _component_: torchtune.models.llama2_tokenizer
-    path: /tmp/tokenizer.model
 
   # Fine-tuning arguments
   batch_size: 2

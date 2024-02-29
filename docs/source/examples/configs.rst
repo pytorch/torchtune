@@ -47,7 +47,7 @@ for a particular run.
     enable_fsdp: True
     ...
 
-Configurating components using :code:`instantiate`
+Configuring components using :code:`instantiate`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Many fields will require specifying TorchTune objects with associated keyword
 arguments as parameters. Models, datasets, optimizers, and loss functions are
@@ -88,16 +88,15 @@ instance of the specified object in your recipe's setup like so:
 This will automatically use any keyword arguments specified in the fields under
 :code:`dataset`.
 
-This example will actually throw an error. If you look at the constructor for :class:`~torchtune.datasets._alpaca.AlpacaDataset`,
+As written, the preceding example will actually throw an error. If you look at the constructor for :class:`~torchtune.datasets._alpaca.AlpacaDataset`,
 you'll notice that we're missing a required positional argument, the tokenizer.
-Since this is another TorchTune object, we cannot recursively instantiate this in
-the config. Let's take a look at the :func:`~torchtune.config._instantiate.instantiate`
-API to see how we can handle this.
+Since this is another configurable TorchTune object, let's understand how to handle
+this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` API.
 
 .. code-block:: python
 
     def instantiate(
-        config: Union[DictConfig, Dict[str, Any]],
+        config: DictConfig,
         *args: Tuple[Any, ...],
         **kwargs: Dict[str, Any],
     )
@@ -118,6 +117,9 @@ keyword arguments not specified in the config if we'd like:
         use_clean=True,
     )
 
+Note that additional keyword arguments will overwrite any duplicated keys in the
+config.
+
 Referencing other config fields with interpolations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Sometimes you need to use the same value more than once for multiple fields. You
@@ -130,6 +132,76 @@ will automatically resolve it for you.
     metric_logger:
       _component_: torchtune.utils.metric_logging.DiskLogger
       log_dir: ${output_dir}
+
+
+Best practices for writing configs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- don't use private paths
+- order them in instantiate order
+- don't put multiple options for same field in same config
+Let's discuss some guidelines for writing configs to get the most out of them.
+
+Airtight configs
+""""""""""""""""
+While it may be tempting to put as much as you can in the config to give you
+maximum flexibility in switching parameters for your experiments, we encourage
+you to only include fields in the config that will be used or instantiated in the
+recipe. This ensures full clarity on the options a recipe was run with and will
+make it significantly easier to debug.
+
+.. code-block:: yaml
+
+    # dont do this
+    alpaca_dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
+    slimorca_dataset:
+      ...
+
+    # do this
+    dataset:
+      # change this in config or override when needed
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
+
+Order in config is order of instantiation
+"""""""""""""""""""""""""""""""""""""""""
+There will be many cases where a configured component requires another configured
+component as an argument (for example, the tokenizer used with the dataset, or
+the model parameters in the optimizer). The order of instantiation is handled in
+the recipe code itself, but keeping the same order in the config can help communicate
+this to other users and also help remind yourself when a configured component needs
+to be passed in as an argument.
+
+.. code-block:: yaml
+
+    # Tokenizer is needed for the dataset, configure it first
+    tokenizer:
+      _component_: torchtune.models.llama2_tokenizer
+      path: /tmp/tokenizer.model
+
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
+
+Use public APIs only
+""""""""""""""""""""
+If a component you wish to specify in a config is located in a private file, use
+the public dotpath in your config. These components are typically exposed in their
+parent module's :code:`__init__.py` file. This way, you can guarantee the stability
+of the API you are using in your config.
+
+.. code-block:: yaml
+
+    # don't do this
+    dataset:
+      _component_: torchtune.datasets._alpaca.AlpacaDataset
+      train_on_input: True
+
+    # do this
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
 
 
 Command-line overrides
@@ -145,40 +217,3 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 .. code-block:: bash
 
     tune full_finetune --config alpaca_llama2_full_finetune --override model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
-
-
-Config and CLI parsing using :code:`parse`
-------------------------------------------
-We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
-your recipe to enable running from the command-line with :code:`tune` with config
-and CLI override parsing.
-
-
-Testing configs
----------------
-TODO: figure out config testing story
-
-
-Linking recipes and configs with :code:`tune`
----------------------------------------------
-
-In order to run your custom recipe and configs with :code:`tune`, you must update the :code:`_RECIPE_LIST`
-and :code:`_CONFIG_LISTS` in :code:`recipes/__init__.py`
-
-.. code-block:: python
-
-    _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", ...]
-    _CONFIG_LISTS = {
-        "full_finetune": ["alpaca_llama2_full_finetune"],
-        "lora_finetune": ["alpaca_llama2_lora_finetune"],
-        "alpaca_generate": [],
-        "<your_recipe>": ["<your_config"],
-    }
-
-Running your recipe
--------------------
-If everything is set up correctly, you should be able to run your recipe just like the existing library recipes using the :code:`tune` command:
-
-.. code-block:: bash
-
-    tune <recipe> --config <config> --override ...

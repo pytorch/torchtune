@@ -9,7 +9,11 @@ from types import ModuleType
 from typing import Any
 
 
-def get_object_from_path(path: str) -> Any:
+class InstantiationError(Exception):
+    pass
+
+
+def _get_component_from_path(path: str) -> Any:
     """
     Return an object by name or dotted path, importing as necessary.
     The base functionality relies on ``getattr()`` and handles all
@@ -27,7 +31,7 @@ def get_object_from_path(path: str) -> Any:
         ValueError: If a relative or invalid dotpath is passed in
     """
     if path == "":
-        raise ImportError("Empty path")
+        raise ValueError("Empty path")
 
     parts = [part for part in path.split(".")]
     for part in parts:
@@ -37,26 +41,24 @@ def get_object_from_path(path: str) -> Any:
                 f"Error loading '{path}': invalid dotstring."
                 + "\nRelative imports are not supported."
             )
-    # Ensure a valid dotpath was passed in
-    if len(parts) == 0:
-        raise ValueError(
-            f"Error loading '{path}': invalid dotstring."
-            + "\nRelative imports are not supported."
-        )
     # First module requires trying to import to validate
     part0 = parts[0]
     try:
         obj = import_module(part0)
-    except Exception as exc_import:
-        raise ImportError(
+    except ImportError as exc_import:
+        raise InstantiationError(
             f"Error loading '{path}':\n{repr(exc_import)}"
             + f"\nAre you sure that module '{part0}' is installed?"
         ) from exc_import
-    # Subsequent modules can be checked via getattr() on first module
+    # Subsequent components can be checked via getattr() on first module
+    # It can either be an attribute that we can return or a submodule that we
+    # can import and continue searching
     for m in range(1, len(parts)):
         part = parts[m]
         try:
             obj = getattr(obj, part)
+        # If getattr fails, check to see if it's a module we can import and
+        # continue down the path
         except AttributeError as exc_attr:
             parent_dotpath = ".".join(parts[:m])
             if isinstance(obj, ModuleType):
@@ -65,15 +67,18 @@ def get_object_from_path(path: str) -> Any:
                     obj = import_module(mod)
                     continue
                 except ModuleNotFoundError as exc_import:
-                    raise ImportError(
+                    raise InstantiationError(
                         f"Error loading '{path}':\n{repr(exc_import)}"
                         + f"\nAre you sure that '{part}' is importable from module '{parent_dotpath}'?"
                     ) from exc_import
+                # Any other error trying to import module can be raised as
+                # InstantiationError
                 except Exception as exc_import:
-                    raise ImportError(
+                    raise InstantiationError(
                         f"Error loading '{path}':\n{repr(exc_import)}"
                     ) from exc_import
-            raise ImportError(
+            # If the component is not an attribute nor a module, it doesn't exist
+            raise InstantiationError(
                 f"Error loading '{path}':\n{repr(exc_attr)}"
                 + f"\nAre you sure that '{part}' is an attribute of '{parent_dotpath}'?"
             ) from exc_attr

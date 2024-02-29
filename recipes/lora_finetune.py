@@ -62,6 +62,14 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             in ongoing epoch is lost.
         - Datasets are Map-style and data fits in memory (not streamed).
 
+    The following configs can be used to run this recipe:
+        >>> tune ls
+        RECIPE               CONFIG
+        lora_finetune        alpaca_llama2_lora_finetune
+
+    Args:
+        cfg (DictConfig): OmegaConf object parsed from yaml file
+
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -77,8 +85,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        if self._is_rank_zero:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -95,6 +101,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
+        if self._is_rank_zero:
+            self._metric_logger = config.instantiate(cfg.metric_logger)
+
         # Load in base model weights
         # Note that we set resume_from_checkpoint=False when loading the base model.
         # This is because we only save LoRA weights during training, so only lora_checkpoint
@@ -125,16 +134,18 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             else None,
         )
 
-        self._tokenizer = self._setup_tokenizer(
-            cfg_tokenizer=cfg.tokenizer,
-        )
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        if self._is_rank_zero:
+            log.info("Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=lora_ckpt[OPT_KEY] if self._resume_from_checkpoint else None,
         )
 
-        self._loss_fn = self._setup_loss(cfg_loss=cfg.loss)
+        self._loss_fn = config.instantiate(cfg.loss)
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after all of these are setup
@@ -257,21 +268,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             log.info("Model is initialized.")
         return model
 
-    def _setup_tokenizer(
-        self,
-        cfg_tokenizer: DictConfig,
-    ) -> modules.Tokenizer:
-        """
-        Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
-        tokenizer model. This is related to how the tokenizer is implemented and should
-        change in a future iteration.
-        """
-        tokenizer = config.instantiate(cfg_tokenizer)
-
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
-        return tokenizer
-
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
@@ -303,14 +299,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
-
-    def _setup_loss(self, cfg_loss: DictConfig) -> nn.Module:
-        loss_fn = config.instantiate(cfg_loss)
-
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
-
-        return loss_fn
 
     def _setup_data(
         self,
@@ -450,9 +438,8 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``LoRAFinetunecfg``
-        - Overwritten by Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
-        - Overwritten by arguments from the command-line using ``TuneArgumentParser``
+        - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
+        - Overwritten by arguments from the command-line using ``--override``
     """
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")

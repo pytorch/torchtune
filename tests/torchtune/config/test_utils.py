@@ -5,22 +5,24 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.config._utils import get_object_from_path
+from torchtune.config._utils import _get_component_from_path, InstantiationError
 
 
 class TestUtils:
-    def test_get_object_from_path(self):
+    def test_get_component_from_path(self):
         good_paths = [
             "torchtune",  # Test single module without dot
             "torchtune.models",  # Test dotpath for a module
             "torchtune.models.llama2_7b",  # Test dotpath for an object
         ]
         for path in good_paths:
-            _ = get_object_from_path(path)
+            _ = _get_component_from_path(path)
 
         # Test that a relative path fails
         with pytest.raises(ValueError, match="Relative imports are not supported"):
-            _ = get_object_from_path(".test")
+            _ = _get_component_from_path(".test")
         # Test that a non-existent path fails
-        with pytest.raises(ImportError, match="Error loading 'torchtune.models.dummy'"):
-            _ = get_object_from_path("torchtune.models.dummy")
+        with pytest.raises(
+            InstantiationError, match="Error loading 'torchtune.models.dummy'"
+        ):
+            _ = _get_component_from_path("torchtune.models.dummy")

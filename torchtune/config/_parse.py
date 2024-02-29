@@ -16,7 +16,7 @@ from torchtune.utils.logging import get_logger
 Recipe = Callable[[DictConfig], Any]
 
 
-def parse(function_to_run: Recipe) -> Callable[[Recipe], Any]:
+def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
     """
     Decorator that handles parsing the config file and CLI overrides
     for a recipe. Use it on the recipe's main function.
@@ -30,17 +30,17 @@ def parse(function_to_run: Recipe) -> Callable[[Recipe], Any]:
         >>> tune my_recipe --config config.yaml --override foo=bar
 
     Args:
-        function_to_run (Recipe): The main method that initializes
+        recipe_main (Recipe): The main method that initializes
             and runs the recipe
 
     Returns:
         Callable[[Recipe], Any]: the decorated main
     """
 
-    @functools.wraps(function_to_run)
+    @functools.wraps(recipe_main)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
         parser = TuneArgumentParser(
-            description=function_to_run.__doc__,
+            description=recipe_main.__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         # Get user-specified args from config and CLI and create params for recipe
@@ -48,8 +48,8 @@ def parse(function_to_run: Recipe) -> Callable[[Recipe], Any]:
         params = OmegaConf.create(vars(params))
 
         logger = get_logger("DEBUG")
-        logger.info(msg=f"Running {function_to_run.__name__} with parameters {params}")
+        logger.info(msg=f"Running {recipe_main.__name__} with parameters {params}")
 
-        sys.exit(function_to_run(params))
+        sys.exit(recipe_main(params))
 
     return wrapper

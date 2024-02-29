@@ -57,33 +57,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
         - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
         - Datasets are Map-style and data fits in memory (not streamed).
 
-    Args:
-        cfg (DictConfig): OmegaConf object parsed from yaml file that contains the following fields:
+    The following configs can be used to run this recipe:
+        >>> tune ls
+        RECIPE               CONFIG
+        full_finetune        alpaca_llama2_full_finetune
 
-            device (str): Device to use for training. Options are "cpu" and "cuda"
-            dtype (str): Data type to use for training.
-            seed (int): Random seed to use for training.
-            model (str): String specifying model architecture to fine-tune. See ``torchtune.models.get_model`` for options.
-            model_checkpoint (str): Local path to load model checkpoint from.
-            tokenizer (str): String specifying tokenizer to use. See ``torchtune.models.get_tokenizer`` for options.
-            tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
-            dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
-                Currently, only predefined datasets in library are supported.
-            shuffle (bool): Whether to shuffle dataset.
-            batch_size (int): Batch size to use for training.
-            epochs (int): Number of epochs to train for.
-            optimizer (str): String specifying optimizer to use. See ``torchtune.optim.get_optimizer`` for options.
-            loss (str): String specifying loss function to use. See ``torchtune.losses.get_loss`` for options.
-            lr (float): Learning rate to use for optimizer.
-            activation_checkpointing (bool): Whether to use activation checkpointing.
-            output_dir (str): Local path to save checkpoints and logs to.
-            run_generation (int): Run eval on a prompt every ``run_generation`` steps. Set to 0 to disable.
-            max_steps_per_epoch (int): Maximum number of steps to take per epoch.
-            metric_logger (str): String specifying metric logger to use. See ``torchtune.utils.metric_logging``
-                for options.
-            project (str): Project name to use for logging. Used by ``WandBLogger``.
-            resume_from_previous_checkpoint (bool): Whether to resume fine-tuning from a previous checkpoint.
-            cpu_offload (bool): Whether to offload model to CPU.
+    Args:
+        cfg (DictConfig): OmegaConf object parsed from yaml file
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -93,7 +73,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._metric_logger = config.instantiate(cfg.metric_logger)
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -127,6 +106,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Sets up the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
+        self._metric_logger = config.instantiate(cfg.metric_logger)
 
         ckpt_dict = self.load_checkpoint(ckpt_path=cfg.model_checkpoint)
 
@@ -146,9 +126,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
             model_state_dict=ckpt_dict[MODEL_KEY],
         )
 
-        self._tokenizer = self._setup_tokenizer(
-            cfg_tokenizer=cfg.tokenizer,
-        )
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        if self._is_rank_zero:
+            log.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
@@ -157,7 +137,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
             opt_state_dict=ckpt_dict[OPT_KEY] if self._resume_from_checkpoint else None,
         )
 
-        self._loss_fn = self._setup_loss(cfg_loss=cfg.loss)
+        self._loss_fn = config.instantiate(cfg.loss)
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -249,21 +231,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
             log.info("Model is initialized.")
         return model
 
-    def _setup_tokenizer(
-        self,
-        cfg_tokenizer: DictConfig,
-    ) -> modules.Tokenizer:
-        """
-        Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
-        tokenizer model. This is related to how the tokenizer is implemented and should
-        change in a future iteration.
-        """
-        tokenizer = config.instantiate(cfg_tokenizer)
-
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
-        return tokenizer
-
     def _setup_optimizer(
         self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
@@ -281,14 +248,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         if self._is_rank_zero:
             log.info("Optimizer is initialized.")
         return optimizer
-
-    def _setup_loss(self, cfg_loss: DictConfig) -> nn.Module:
-        loss_fn = config.instantiate(cfg_loss)
-
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
-
-        return loss_fn
 
     def _setup_data(
         self,
@@ -451,9 +410,8 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``FullFinetuneParams``
-        - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
-        - Overwritten by arguments from the command-line using ``TuneArgumentParser``
+        - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
+        - Overwritten by arguments from the command-line using ``--override``
     """
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")

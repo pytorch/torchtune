@@ -188,3 +188,43 @@ Running Recipes with Configs
 
 To run a recipe with a set of user-defined parameters, you will need to write a config file.
 You can learn all about configs in our :ref:`config tutorial<config_tutorial_label>`.
+
+Config and CLI parsing using :code:`parse`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
+your recipe to enable running from the command-line with :code:`tune` with config
+and CLI override parsing.
+
+.. code-block:: python
+
+    @config.parse
+    def recipe_main(cfg: DictConfig) -> None:
+        recipe = FullFinetuneRecipe(cfg=cfg)
+        recipe.setup(cfg=cfg)
+        recipe.train()
+        recipe.cleanup()
+
+
+Linking recipes and configs with :code:`tune`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+In order to run your custom recipe and configs with :code:`tune`, you must update the :code:`_RECIPE_LIST`
+and :code:`_CONFIG_LISTS` in :code:`recipes/__init__.py`
+
+.. code-block:: python
+
+    _RECIPE_LIST = ["full_finetune", "lora_finetune", "alpaca_generate", ...]
+    _CONFIG_LISTS = {
+        "full_finetune": ["alpaca_llama2_full_finetune"],
+        "lora_finetune": ["alpaca_llama2_lora_finetune"],
+        "alpaca_generate": [],
+        "<your_recipe>": ["<your_config"],
+    }
+
+Running your recipe
+^^^^^^^^^^^^^^^^^^^
+If everything is set up correctly, you should be able to run your recipe just like the existing library recipes using the :code:`tune` command:
+
+.. code-block:: bash
+
+    tune <recipe> --config <config> --override ...
