@@ -138,7 +138,7 @@ Let's take a look at how to construct Llama2 models in TorchTune with and withou
 
 .. code-block:: python
 
-  from torchtune.models import llama2_7b, lora_llama2_7b
+  from torchtune.models.llama2 import llama2_7b, lora_llama2_7b
 
   # Build Llama2 without any LoRA layers
   base_model = llama2_7b()

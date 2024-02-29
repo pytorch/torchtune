@@ -65,4 +65,4 @@ jobs:
           python -m pip install -e .
       - name: Run conversion test
         run: |
-          pytest tests/scripts/test_convert_checkpoint.py --large-scale True
+          pytest tests/torchtune/_cli/test_convert_checkpoint.py --large-scale True
