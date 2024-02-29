@@ -33,7 +33,7 @@ def _layer_template(layer_name: str, idx: int) -> Tuple[str, int]:
     return from_name, number
 
 
-def convert_llama2(
+def convert_llama2_fair_format(
     original_state_dict: Dict[str, torch.Tensor],
     output_numerical_validation: bool = False,
 ) -> Dict[str, torch.Tensor]:

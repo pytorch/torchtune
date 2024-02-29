@@ -12,7 +12,7 @@ from typing import Optional
 
 import torch
 
-from torchtune.models.llama2 import convert_llama2
+from torchtune.models.llama2 import convert_llama2_fair_format
 from torchtune.utils import get_logger
 from torchtune.utils.constants import MODEL_KEY
 
@@ -46,7 +46,9 @@ def convert_checkpoint(
 
     # Convert checkpoint
     if model == "llama2":
-        state_dict = convert_llama2(original_state_dict, output_numerical_validation)
+        state_dict = convert_llama2_fair_format(
+            original_state_dict, output_numerical_validation
+        )
     else:
         raise NotImplementedError(f"Model {model} is not supported in TorchTune.")
 
