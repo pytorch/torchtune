@@ -8,9 +8,9 @@ from typing import Dict, Tuple
 
 import torch
 
-from tqdm import tqdm
-
 from torchtune.utils import get_logger
+
+from tqdm import tqdm
 
 log = get_logger("DEBUG")
 
