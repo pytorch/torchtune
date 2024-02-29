@@ -14,14 +14,10 @@ import torchtune
 from recipes import list_configs, list_recipes
 
 
-def _is_config_file(file_name: str) -> bool:
-    return file_name.endswith(".yaml")
-
-
 def _get_absolute_path(file_name: str) -> Path:
     pkg_path = Path(torchtune.__file__).parent.parent.absolute()
     recipes_path = pkg_path / "recipes"
-    if _is_config_file(file_name):
+    if file_name.endswith(".yaml"):
         path = recipes_path / "configs" / file_name
     else:
         assert file_name.endswith(".py"), f"Expected .py file, got {file_name}"
@@ -49,14 +45,16 @@ def main(parser):
     # Copy file
     try:
         if args.no_clobber and destination.exists():
-            print(f"File already exists at {destination.absolute()}, not overwriting")
+            print(f"File already exists at {destination.absolute()}, not overwriting.")
         else:
             if args.make_parents:
                 destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, destination)
     except FileNotFoundError:
         parser.error(
-            f"Cannot create regular file: '{destination}'. No such file or directory"
+            f"Cannot create regular file: '{destination}'. No such file or directory. "
+            "If the specified destination's parent directory does not exist and you would "
+            "like to create it on-the-fly, use the --make-parents flag."
         )
 
 
