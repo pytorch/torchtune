@@ -1,6 +1,6 @@
-================
-torchtune.models
-================
+=======================
+torchtune.models.llama2
+=======================
 
 .. currentmodule:: torchtune.models.llama2
 
