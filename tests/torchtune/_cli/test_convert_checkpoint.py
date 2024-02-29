@@ -60,9 +60,7 @@ class TestTuneCLIWithConvertCheckpointScript:
             f"tune convert_checkpoint --checkpoint-path {incorrect_state_dict_loc} --model gemma"
         ).split()
         with patch.object(sys, "argv", testargs):
-            with pytest.raises(
-                Exception, match=r".*not supported in TorchTune.*"
-            ) as e:
+            with pytest.raises(Exception, match=r".*not supported in TorchTune.*") as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
     def _tiny_fair_transformer(self, ckpt):
