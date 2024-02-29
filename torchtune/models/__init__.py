@@ -9,12 +9,12 @@ from typing import Callable, Union
 import torch
 from torch.nn import Module
 
-from torchtune.models.llama2 import llama2_7b, llama2_tokenizer, lora_llama2_7b
+from torchtune.models import llama2
 
 from torchtune.utils import get_device
 
-ALL_MODELS = {"llama2_7b": llama2_7b, "lora_llama2_7b": lora_llama2_7b}
-ALL_TOKENIZERS = {"llama2_tokenizer": llama2_tokenizer}
+ALL_MODELS = {"llama2_7b": llama2.llama2_7b, "lora_llama2_7b": llama2.lora_llama2_7b}
+ALL_TOKENIZERS = {"llama2_tokenizer": llama2.llama2_tokenizer}
 
 
 def get_model(name: str, device: Union[str, torch.device], **kwargs) -> Module:
