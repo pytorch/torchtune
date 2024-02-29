@@ -9,9 +9,9 @@ from typing import Callable, Union
 import torch
 from torch.nn import Module
 
-from torchtune.utils import get_device
-
 from torchtune.models.llama2 import llama2_7b, llama2_tokenizer, lora_llama2_7b
+
+from torchtune.utils import get_device
 
 ALL_MODELS = {"llama2_7b": llama2_7b, "lora_llama2_7b": lora_llama2_7b}
 ALL_TOKENIZERS = {"llama2_tokenizer": llama2_tokenizer}
