@@ -65,11 +65,11 @@ class TestTuneCLI:
         recipes = list_recipes()
         for recipe in recipes:
             pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
-            recipe_path = os.path.join(pkg_path, "recipes", f"{recipe}.py")
+            recipe_path = os.path.join(pkg_path, "recipes", recipe)
             assert os.path.exists(recipe_path), f"{recipe_path} must exist"
 
     def test_config_list(self, capsys):
-        recipe = "full_finetune"
+        recipe = "full_finetune.py"
         testargs = f"tune config list --recipe {recipe}".split()
         with patch.object(sys, "argv", testargs):
             runpy.run_path(TUNE_PATH, run_name="__main__")
