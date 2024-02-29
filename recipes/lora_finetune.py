@@ -273,6 +273,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
         model.load_state_dict(base_model_state_dict, strict=False)
+        print(f"RV: loaded state_dict, calling summon_full_params")
+        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+        with FSDP.summon_full_params(model):
+            print(f"RV: done summoning full params!")
+
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
 

@@ -27,6 +27,9 @@ class FullFinetuneParams:
         tokenizer_checkpoint (str): Local path to load tokenizer checkpoint from.
         dataset (str): String specifying dataset to use. See ``torchtune.datasets.get_dataset`` for options.
             Currently, only predefined datasets in library are supported.
+        cache_dir (str): Allows using a locally cached dataset by specifying a string indicating the
+            directory the dataset is cached in. If specified and valid, the dataset will be loaded from the
+            local directory as opposed to making network calls to download the dataset.
         shuffle (bool): Whether to shuffle dataset.
         batch_size (int): Batch size to use for training.
         epochs (int): Number of epochs to train for.
@@ -57,6 +60,7 @@ class FullFinetuneParams:
 
     # Dataset and Sampler
     dataset: str = ""
+    cache_dir: str = ""
     train_on_input: bool = True
     shuffle: bool = True
     batch_size: int = 2

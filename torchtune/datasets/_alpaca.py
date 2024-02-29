@@ -67,12 +67,17 @@ class AlpacaDataset(Dataset):
 
     def __init__(
         self,
+        cache_dir: str,
         tokenizer: Tokenizer,
         train_on_input: bool = True,
         use_clean: bool = False,
         **kwargs,
     ) -> None:
         dataset_path = "yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca"
+        cache_path = "~/.cache/huggingface/datasets"
+        cache_path = " ~/.cache/huggingface/datasets/tatsu-lab___alpaca/"
+        # import os ; os.environ["HF_HUB_OFFLINE"] = "1"
+        import os ; os.environ["HF_DATASETS_OFFLINE"] = "1"
         self._data = load_dataset(dataset_path, split="train")
         self._tokenizer = tokenizer
         self.train_on_input = train_on_input

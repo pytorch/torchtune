@@ -143,6 +143,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # setup after both of these are initialized
         self._sampler, self._dataloader = self._setup_data(
             dataset=params.dataset,
+            cache_dir=params.cache_dir,
             train_on_input=params.train_on_input,
             shuffle=params.shuffle,
             batch_size=params.batch_size,
@@ -269,7 +270,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         return loss_fn
 
     def _setup_data(
-        self, dataset: str, shuffle: bool, batch_size: int, train_on_input: bool
+        self, dataset: str, cache_dir: str, shuffle: bool, batch_size: int, train_on_input: bool
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -279,6 +280,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         world_size, rank = utils.get_world_size_and_rank()
         ds = datasets.get_dataset(
             dataset,
+            cache_dir=cache_dir,
             split="train",
             tokenizer=self._tokenizer,
             train_on_input=train_on_input,
