@@ -45,10 +45,12 @@ ASSETS = Path(__file__).parent.parent.parent / "assets"
 class TestTuneCLIWithConvertCheckpointScript:
     def test_convert_checkpoint_errors_on_bad_conversion(self, capsys):
         incorrect_state_dict_loc = ASSETS / "tiny_state_dict_with_one_key.pt"
-        testargs = f"tune convert_checkpoint --checkpoint-path {incorrect_state_dict_loc}".split()
+        testargs = (
+            f"tune convert_checkpoint --checkpoint-path {incorrect_state_dict_loc} --model llama2"
+        ).split()
         with patch.object(sys, "argv", testargs):
             with pytest.raises(
-                Exception, match=r".*Are you sure this is a FAIR Llama2 checkpoint.*"
+                Exception, match=r".*Error converting the original Llama2.*"
             ) as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -129,7 +131,9 @@ class TestTuneCLIWithConvertCheckpointScript:
             fair_transformer = self._tiny_fair_transformer(ckpt)
 
         output_path = tempfile.NamedTemporaryFile(delete=True).name
-        testargs = f"tune convert_checkpoint --checkpoint-path {ckpt} --output-path {output_path}".split()
+        testargs = (
+            f"tune convert_checkpoint --checkpoint-path {ckpt} --output-path {output_path} --model llama2"
+        ).split()
         with patch.object(sys, "argv", testargs):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
