@@ -69,7 +69,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output-path",
         type=Path,
-        help="Where to write the converted checkpoint."
+        help="Where to write the converted checkpoint. "
         "Will default to the same directory as the original checkpoint if no arg is provided"
         f"under the filename {_PYTORCH_MODEL_FILENAME}.",
         required=False,
@@ -79,6 +79,7 @@ if __name__ == "__main__":
         "--model",
         type=str,
         help="model name",
+        choices=["llama2"],
         required=True,
     )
     parser.add_argument(
