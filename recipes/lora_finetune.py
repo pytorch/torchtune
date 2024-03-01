@@ -41,15 +41,6 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-def memory_stats_log(msg: str) -> str:
-    return f"""
-    Memory Stats {msg}:
-    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
-    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
-    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
-    """
-
-
 class LoRAFinetuneRecipe(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
@@ -117,8 +108,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         base_model_ckpt = self.load_checkpoint(
             ckpt_path=cfg.model_checkpoint, resume_from_checkpoint=False
         )
-
-        log.info(memory_stats_log("after checkpoint load"))
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly

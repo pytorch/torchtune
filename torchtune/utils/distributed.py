@@ -6,7 +6,6 @@
 
 
 import logging
-import math
 import os
 from itertools import chain
 from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
@@ -21,7 +20,11 @@ from torch.distributed.fsdp import (
     ShardingStrategy,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torchtune.modules.peft import LoRALinear
+from torchtune.modules.peft.lora import (
+    _lora_a_init_params,
+    _lora_b_init_params,
+    LoRALinear,
+)
 from torchtune.utils.device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
 
@@ -164,7 +167,8 @@ def wrap_fsdp(
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
         cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
-        use_meta_device (bool): TODO: add docstring
+        use_meta_device (bool): Whether model is initialized on meta device. If so, we will
+            ensure the `reset_parameters()` method is defined on all submodules. Default: False
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:
@@ -208,28 +212,12 @@ def wrap_fsdp(
         )
 
 
-def _dummy_reset_params(self):
+def _dummy_reset_params(x: nn.Module) -> None:
     """
     Dummy method for patching no-op reset_parameters() when using
     FSDP with meta device.
     """
     return
-
-
-def _lora_a_reset_params(self):
-    """
-    Define a reset_parameters method directly on LoRALinear's lora_a weight
-    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
-    """
-    nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
-
-
-def _lora_b_reset_params(self):
-    """
-    Define a reset_parameters method directly on LoRALinear's lora_b weight
-    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
-    """
-    nn.init.zeros_(self.weight)
 
 
 def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
@@ -255,8 +243,8 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
         # This will define reset_parameters for LoRA weight initialization
         # directly on any LoRALinear submodules lora_a and lora_b.
         if isinstance(v, LoRALinear):
-            v.lora_a.reset_parameters = _lora_a_reset_params.__get__(v.lora_a)
-            v.lora_b.reset_parameters = _lora_b_reset_params.__get__(v.lora_b)
+            v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
+            v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
 
     return model
 
