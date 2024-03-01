@@ -6,15 +6,18 @@
 
 import contextlib
 import logging
+import runpy
+
+import sys
 
 from functools import partial
 from typing import Dict
 
 import pytest
-from omegaconf import OmegaConf
-from recipes.lora_finetune import LoRAFinetuneRecipe
-from recipes.tests.utils import (
-    default_recipe_kwargs,
+from tests.common import TUNE_PATH
+from tests.recipes.common import RECIPE_DIR, RECIPE_TESTS_DIR
+
+from tests.recipes.utils import (
     fetch_loss_values,
     lora_llama2_small_test_ckpt,
     validate_loss_values,
@@ -47,27 +50,23 @@ class TestLoRAFinetuneRecipe:
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     @pytest.mark.parametrize("enable_fsdp", [False, True])
-    def test_loss(self, enable_fsdp, capsys, pytestconfig):
-        context_manager = single_box_init if enable_fsdp else contextlib.nullcontext
+    def test_loss(self, capsys, tmpdir):
+        # No support for large scale test yet for LoRA
+        ckpt = "lora_small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+        cmd = f"tune lora_finetune --config {config_path} --override model-checkpoint={ckpt} output-dir=".split()
+
+        if enable_fsdp:
+            cmd.append("--enable-fsdp")
+            context_manager = contextlib.nullcontext
+        else:
+            context_manager = single_box_init
+
         with context_manager():
-            # No support for large scale test yet for LoRA
-            ckpt = "lora_small_test_ckpt"
-            expected_loss_values = self._fetch_expected_loss_values(ckpt)
-            kwargs_values = default_recipe_kwargs(ckpt)
-            kwargs_values.update(enable_fsdp=enable_fsdp)
-            kwargs_values["model"].update(
-                {
-                    "lora_attn_modules": test_lora_attn_modules,
-                    "apply_lora_to_mlp": False,
-                    "lora_rank": 8,
-                    "lora_alpha": 16,
-                }
-            )
-            recipe_cfg = OmegaConf.create(kwargs_values)
+            with patch.object(sys, "argv", cmd):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
 
-            recipe = LoRAFinetuneRecipe(recipe_cfg)
-            recipe.setup(cfg=recipe_cfg)
-            recipe.train()
-
-            loss_values = fetch_loss_values(capsys.readouterr().err)
-            validate_loss_values(loss_values, expected_loss_values)
+        loss_values = fetch_loss_values(capsys.readouterr().err)
+        validate_loss_values(loss_values, expected_loss_values)
