@@ -18,11 +18,11 @@ class TestTuneCLIWithCopyScript:
     @pytest.mark.parametrize("already_exists", (True, False))
     def test_copy_successful(self, capsys, monkeypatch, tmpdir, already_exists):
         tmpdir_path = Path(tmpdir)
+        dest = tmpdir_path / "my_custom_finetune.yaml"
+
         if already_exists:
-            dest = tmpdir_path / "my_custom_finetune.yaml"
             dest.touch()
 
-        dest = tmpdir_path / "my_custom_finetune.yaml"
         args = f"tune cp alpaca_llama2_full_finetune.yaml {dest}".split()
 
         monkeypatch.setattr(sys, "argv", args)
