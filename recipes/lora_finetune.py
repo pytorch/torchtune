@@ -18,8 +18,8 @@ from recipes.interfaces import FTRecipeInterface
 
 from torch import nn
 from torch.cuda.amp import GradScaler
-from torch.optim import Optimizer
 from torch.distributed import init_process_group
+from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.lora import reset_lora_params

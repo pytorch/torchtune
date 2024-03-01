@@ -17,8 +17,8 @@ from omegaconf import DictConfig
 from recipes.interfaces import FTRecipeInterface
 
 from torch import nn
-from torch.distributed import init_process_group
 from torch.cuda.amp import GradScaler
+from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 

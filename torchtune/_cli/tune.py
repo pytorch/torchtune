@@ -41,7 +41,6 @@ from pathlib import Path
 
 import torchtune
 from recipes import list_recipes
-from torch.distributed import init_process_group
 from torch.distributed.run import get_args_parser, run
 from torchtune._cli import list_scripts
 
