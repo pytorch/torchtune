@@ -26,8 +26,6 @@ does with the following additional functionalities:
 
 4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
 
-5. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
-
 .. note:: ``tune`` is a python
           `console script <https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts>`_
           to the main module
@@ -39,7 +37,6 @@ does with the following additional functionalities:
 import argparse
 import runpy
 import sys
-import textwrap
 from pathlib import Path
 
 import torchtune
@@ -52,13 +49,6 @@ def _update_parser_help(parser):
     parser.description = "Torch Tune Recipe Launcher"
     parser.usage = "tune [options] <recipe> [recipe_args]"
     parser.formatter_class = argparse.RawDescriptionHelpFormatter
-    parser.epilog = textwrap.dedent(
-        """\
-    utilities (usage: tune <command>):
-        recipe      Utilities for built in recipes
-        config      Utilities for built in configs
-    """
-    )
 
     # Update torchrun argparse name for more accurate CLI help
     actions = [a.dest for a in parser._actions]
@@ -87,17 +77,7 @@ def main():
     cmd = args.recipe
     if not cmd.endswith(".py"):
         pkg_path = Path(torchtune.__file__).parent.absolute()
-        if cmd == "recipe":
-            assert (
-                not distributed_args
-            ), "You can't use distributed args with the recipe util"
-            cmd = pkg_path / "_cli" / "cli_utils" / "recipe_utils.py"
-        elif cmd == "config":
-            assert (
-                not distributed_args
-            ), "You can't use distributed args with the config util"
-            cmd = pkg_path / "_cli" / "cli_utils" / "config_utils.py"
-        elif f"{cmd}.py" in list_recipes():
+        if f"{cmd}.py" in list_recipes():
             recipes_pkg_path = pkg_path.parent / "recipes"
             cmd = recipes_pkg_path / f"{cmd}.py"
             args.recipe = str(cmd)
@@ -115,7 +95,9 @@ def main():
             args.recipe = str(cmd)
             assert not distributed_args, "You can't use distributed args with scripts"
         else:
-            print("Unknown command, for a list of available commands, run with --help")
+            parser.error(
+                f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information."
+            )
 
     if distributed_args:
         args.training_script = str(cmd)  # arg names expected by torchrun
