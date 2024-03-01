@@ -106,7 +106,7 @@ def get_world_size_and_rank() -> Tuple[int, int]:
         return 1, 0
 
 
-def validate_no_meta_params(model: nn.Module) -> None:
+def validate_no_params_on_meta_device(model: nn.Module) -> None:
     """
     Utility to validate that model has no params or buffers on meta device.
     If a meta param or buffer is found, an error indicating the param name will
@@ -251,7 +251,7 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
 
 def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     """
-    A default policy for wrapping models trained with LoRA in FSDP. Specifically,
+    A default policy for wrapping models trained with LoRA using FSDP. Specifically,
     this will wrap individual LoRA A & B submodules in their own FSDP units to
     maximize memory savings. After this is done, model will also be hierarchically wrapped
     based on nn.Module types specified in ``modules_to_wrap``. This function assumes that
@@ -265,7 +265,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
     """
 
-    def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
+    def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
         if recurse:
             return True
 
@@ -278,4 +278,4 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
         return isinstance(module, tuple(modules_to_wrap))
 
-    return lora_wrap
+    return lora_wrap_fsdp

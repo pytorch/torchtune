@@ -35,7 +35,7 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import validate_no_meta_params
+from torchtune.utils.distributed import validate_no_params_on_meta_device
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -239,7 +239,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
 
         # Ensure no params and buffers are on meta device
-        validate_no_meta_params(model)
+        validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
