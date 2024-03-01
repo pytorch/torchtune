@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 
-def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
+def scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
     """Scale hidden dimension for MLP to keep number of parameters and computation constant.
 
     Args:

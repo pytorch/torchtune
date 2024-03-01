@@ -18,7 +18,7 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 
 def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
@@ -96,7 +96,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
     mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
     layer = TransformerDecoderLayer(
         attn=self_attn,
