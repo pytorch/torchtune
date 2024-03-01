@@ -65,23 +65,14 @@ pip install -e .
 To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune recipe --help
+tune
 ```
 
 And should see the following output:
 
 ```
-usage: tune recipe
-
-Utility for information relating to recipes
-
-positional arguments:
-
-    list      List recipes
-    cp        Copy recipe to local path
-
-options:
-  -h, --help  show this help message and exit
+usage: tune [options] <recipe> [recipe_args]
+tune: error: the following arguments are required: recipe, recipe_args
 ```
 
 &nbsp;
@@ -141,8 +132,8 @@ Again, the argument to `--nproc_per_node` can be varied subject to memory constr
 
 To copy a recipe to customize it yourself and then run
 ```
-tune recipe cp full_finetune my_recipe/full_finetune.py
-tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune cp full_finetune.py my_recipe/full_finetune.py
+tune cp alpaca_llama2_full_finetune.yaml my_recipe/alpaca_llama2_full_finetune.yaml
 tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 ```
 
@@ -159,7 +150,7 @@ does with the following additional functionalities:
 
 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
+3. ``tune ls`` and ``tune cp`` commands provide utilities for listing and copying packaged recipes and configs
 
 &nbsp;
 
