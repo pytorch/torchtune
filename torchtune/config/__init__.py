@@ -4,10 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._alpaca import AlpacaDataset
-from ._slimorca import SlimOrcaDataset
+from ._instantiate import instantiate
+from ._parse import parse
 
 __all__ = [
-    "AlpacaDataset",
-    "SlimOrcaDataset",
+    "parse",
+    "instantiate",
 ]

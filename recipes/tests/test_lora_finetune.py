@@ -11,8 +11,8 @@ from functools import partial
 from typing import Dict
 
 import pytest
+from omegaconf import OmegaConf
 from recipes.lora_finetune import LoRAFinetuneRecipe
-from recipes.params.lora_finetune import LoRAFinetuneParams
 from recipes.tests.utils import (
     default_recipe_kwargs,
     fetch_loss_values,
@@ -24,7 +24,7 @@ from tests.test_utils import single_box_init
 from torchtune import models
 
 test_lora_attn_modules = ["q_proj", "k_proj", "v_proj", "output_proj"]
-models.ALL_MODELS["lora_small_test_ckpt"] = partial(
+models.lora_small_test_ckpt = partial(
     lora_llama2_small_test_ckpt, lora_attn_modules=test_lora_attn_modules
 )
 logging.basicConfig(level=logging.INFO)
@@ -53,11 +53,17 @@ class TestLoRAFinetuneRecipe:
             expected_loss_values = self._fetch_expected_loss_values(ckpt)
             kwargs_values = default_recipe_kwargs(ckpt)
             kwargs_values.update(enable_fsdp=enable_fsdp)
-            kwargs_values["lora_attn_modules"] = test_lora_attn_modules
-            recipe_params = LoRAFinetuneParams(**kwargs_values)
+            kwargs_values["model"].update(
+                {
+                    "lora_attn_modules": test_lora_attn_modules,
+                    "lora_rank": 8,
+                    "lora_alpha": 16,
+                }
+            )
+            recipe_cfg = OmegaConf.create(kwargs_values)
 
-            recipe = LoRAFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
+            recipe = LoRAFinetuneRecipe(recipe_cfg)
+            recipe.setup(cfg=recipe_cfg)
             recipe.train()
 
             loss_values = fetch_loss_values(capsys.readouterr().err)

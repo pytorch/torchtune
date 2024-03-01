@@ -9,8 +9,7 @@ import pytest
 
 from tests.test_utils import get_assets_path
 
-from torchtune import datasets
-from torchtune.datasets.slimorca import _Llama2ChatFormatConstants
+from torchtune.datasets._slimorca import _Llama2ChatFormatConstants, SlimOrcaDataset
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -21,10 +20,10 @@ class TestSlimOrcaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_prompt_label_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset("slimorca", tokenizer=tokenizer)
+        dataset = SlimOrcaDataset(tokenizer=tokenizer)
         sample = [
             {
                 "from": "system",
@@ -63,22 +62,18 @@ class TestSlimOrcaDataset:
         )
         assert label == " lo "
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=4096
-        )
+        dataset = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=4096)
         input, label = dataset._generate_tokens("Hello ", "world!")
         assert input == [tokenizer.bos_id, 12, 1803, 1024, 103, tokenizer.eos_id]
         assert label == ([-100] * 3 + [1024, 103, tokenizer.eos_id])
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_truncated_token_generation(self, load_dataset, tokenizer):
         load_dataset.return_value = []
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=5
-        )
+        dataset = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=5)
         # 5 is enough for full prompt, but not for label
         input, label = dataset._generate_tokens("Hello ", "world!")
         assert input == [tokenizer.bos_id, 12, 1803, 1024, tokenizer.eos_id]
@@ -86,20 +81,18 @@ class TestSlimOrcaDataset:
 
         # 4 is not enough for full prompt nor response but truncation
         # is still feasible
-        dataset = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=4
-        )
+        dataset = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=4)
         input, label = dataset._generate_tokens("Hello ", "world!")
         assert input == [tokenizer.bos_id, 12, 1024, tokenizer.eos_id]
         assert label == ([-100] * 2 + [1024, tokenizer.eos_id])
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     def test_value_error(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         with pytest.raises(ValueError):
-            datasets.get_dataset("slimorca", tokenizer=tokenizer, max_token_length=3)
+            SlimOrcaDataset(tokenizer=tokenizer, max_token_length=3)
 
-    @patch("torchtune.datasets.slimorca.load_dataset")
+    @patch("torchtune.datasets._slimorca.load_dataset")
     @pytest.mark.parametrize("max_token_length", [128, 512, 1024, 4096])
     def test_dataset_get_item(self, load_dataset, tokenizer, max_token_length):
         # Sample data from slimorca dataset
@@ -121,9 +114,7 @@ class TestSlimOrcaDataset:
                 ]
             }
         ]
-        ds = datasets.get_dataset(
-            "slimorca", tokenizer=tokenizer, max_token_length=max_token_length
-        )
+        ds = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=max_token_length)
         input, label = ds[0]
         assert len(input) <= max_token_length
         assert len(label) <= max_token_length

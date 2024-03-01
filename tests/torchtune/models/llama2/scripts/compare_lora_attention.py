@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 
 from torch import nn
 
-from torchtune.models.lora_llama2 import _lora_llama_self_attention
+from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 
 try:

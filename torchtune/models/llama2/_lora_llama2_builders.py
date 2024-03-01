@@ -8,8 +8,6 @@ from typing import List, Literal, Optional
 
 from torch import nn
 
-from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
-
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
@@ -21,6 +19,8 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LoRALinear
+
+from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -48,7 +48,7 @@ def lora_llama2_7b(
         max_seq_len=4096,
         max_batch_size=max_batch_size,
         attn_dropout=0.0,
-        norm_eps=1e-6,
+        norm_eps=1e-5,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,

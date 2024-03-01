@@ -188,3 +188,28 @@ Running Recipes with Configs
 
 To run a recipe with a set of user-defined parameters, you will need to write a config file.
 You can learn all about configs in our :ref:`config tutorial<config_tutorial_label>`.
+
+Config and CLI parsing using :code:`parse`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
+your recipe to enable running from the command-line with :code:`tune` with config
+and CLI override parsing.
+
+.. code-block:: python
+
+    @config.parse
+    def recipe_main(cfg: DictConfig) -> None:
+        recipe = FullFinetuneRecipe(cfg=cfg)
+        recipe.setup(cfg=cfg)
+        recipe.train()
+        recipe.cleanup()
+
+
+Running your recipe
+^^^^^^^^^^^^^^^^^^^
+You should be able to run your recipe by providing the direct paths to your custom
+recipe and custom config using the :code:`tune` command:
+
+.. code-block:: bash
+
+    tune <path/to/recipe> --config <path/to/config> --override ...
