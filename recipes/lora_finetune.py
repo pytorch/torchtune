@@ -442,7 +442,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Overwritten by arguments from the command-line using ``--override``
     """
     # Env variables set by torch run; only need to initialize process group
-    init_process_group(backend="nccl")
+    if cfg.device in {"cuda", "meta"}:
+        init_process_group(backend="nccl")
 
     recipe = LoRAFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
