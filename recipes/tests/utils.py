@@ -89,7 +89,7 @@ def default_recipe_kwargs(ckpt):
         "model": {"_component_": f"torchtune.models.{ckpt}"},
         "model_checkpoint": fetch_ckpt_model_path(ckpt),
         "tokenizer": {
-            "_component_": "torchtune.models.llama2_tokenizer",
+            "_component_": "torchtune.models.llama2.llama2_tokenizer",
             "path": "/tmp/test-artifacts/tokenizer.model",
         },
         "batch_size": 8,

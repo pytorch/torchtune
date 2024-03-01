@@ -102,7 +102,7 @@ keyword arguments not specified in the config if we'd like:
 
     # Tokenizer is needed for the dataset, configure it first
     tokenizer:
-      _component_: torchtune.models.llama2_tokenizer
+      _component_: torchtune.models.llama2.llama2_tokenizer
       path: /tmp/tokenizer.model
 
     dataset:

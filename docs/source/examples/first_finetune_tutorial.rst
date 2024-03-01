@@ -97,7 +97,7 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
   # Tokenizer
   tokenizer:
-    _component_: torchtune.models.llama2_tokenizer
+    _component_: torchtune.models.llama2.llama2_tokenizer
     path: /tmp/tokenizer.model
 
   # Dataset
@@ -108,7 +108,7 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
   # Model Arguments
   model:
-    _component_: torchtune.models.llama2_7b
+    _component_: torchtune.models.llama2.llama2_7b
   model_checkpoint: /tmp/llama2/native_pytorch_model.pt
 
   # Fine-tuning arguments

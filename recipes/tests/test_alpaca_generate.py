@@ -36,19 +36,19 @@ class TestAlpacaGenerateRecipe:
     def _fetch_ckpt_model_path(self, ckpt) -> str:
         if ckpt == "small_test_ckpt":
             return "/tmp/test-artifacts/small-ckpt-01242024"
-        if ckpt == "llama2_7b":
+        if ckpt == "llama2.llama2_7b":
             return "/tmp/test-artifacts/llama2-7b-01242024"
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_alpaca_generate(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt"
 
         kwargs_values = {
             "model": {"_component_": f"torchtune.models.{ckpt}"},
             "model_checkpoint": self._fetch_ckpt_model_path(ckpt),
             "tokenizer": {
-                "_component_": "torchtune.models.llama2_tokenizer",
+                "_component_": "torchtune.models.llama2.llama2_tokenizer",
                 "path": "/tmp/test-artifacts/tokenizer.model",
             },
             "instruction": "Answer the question.",

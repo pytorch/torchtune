@@ -13,7 +13,7 @@ class TestUtils:
         good_paths = [
             "torchtune",  # Test single module without dot
             "torchtune.models",  # Test dotpath for a module
-            "torchtune.models.llama2_7b",  # Test dotpath for an object
+            "torchtune.models.llama2.llama2_7b",  # Test dotpath for an object
         ]
         for path in good_paths:
             _ = _get_component_from_path(path)

@@ -51,13 +51,13 @@ class TestFullFinetuneRecipe:
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
-        if ckpt == "llama2_7b":
+        if ckpt == "llama2.llama2_7b":
             return llama2_7b_ckpt_loss_values
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_loss(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
         kwargs_values = default_recipe_kwargs(ckpt)
@@ -93,7 +93,7 @@ class TestFullFinetuneRecipe:
                     "model": {"_component_": f"torchtune.models.{model_ckpt}"},
                     "model_checkpoint": fetch_ckpt_model_path(model_ckpt),
                     "tokenizer": {
-                        "_component_": "torchtune.models.llama2_tokenizer",
+                        "_component_": "torchtune.models.llama2.llama2_tokenizer",
                         "path": "/tmp/test-artifacts/tokenizer.model",
                     },
                     "epochs": 4,
@@ -127,7 +127,7 @@ class TestFullFinetuneRecipe:
                     "model": {"_component_": f"torchtune.models.{model_ckpt}"},
                     "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
                     "tokenizer": {
-                        "_component_": "torchtune.models.llama2_tokenizer",
+                        "_component_": "torchtune.models.llama2.llama2_tokenizer",
                         "path": "/tmp/test-artifacts/tokenizer.model",
                     },
                     "epochs": 4,
@@ -228,7 +228,7 @@ class TestRecipeGradientAccumulation:
             "model": {"_component_": f"torchtune.models.{model_ckpt}"},
             "model_checkpoint": None,
             "tokenizer": {
-                "_component_": "torchtune.models.llama2_tokenizer",
+                "_component_": "torchtune.models.llama2.llama2_tokenizer",
                 "path": "/tmp/test-artifacts/tokenizer.model",
             },
             "batch_size": full_batch_size,
