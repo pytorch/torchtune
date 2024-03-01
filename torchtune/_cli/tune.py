@@ -101,7 +101,6 @@ def main():
             )
 
     if distributed_args:
-        init_process_group(backend="nccl")
         args.training_script = str(cmd)  # arg names expected by torchrun
         args.training_script_args = args.recipe_args
         run(args)

@@ -35,7 +35,7 @@ def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     return getattr(ShardingStrategy, strategy)
 
 
-def _is_distributed() -> bool:
+def is_distributed() -> bool:
     """Check if all environment variables required to initialize torch.distributed are set
     and distributed is properly installed. This indicates a distributed run.
     https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization

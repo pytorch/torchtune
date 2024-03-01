@@ -19,6 +19,7 @@ from recipes.interfaces import FTRecipeInterface
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.optim import Optimizer
+from torch.distributed import init_process_group
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.lora import reset_lora_params
@@ -440,6 +441,9 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
+    if utils.is_distributed():
+        init_process_group(backend="nccl")
+
     recipe = LoRAFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
