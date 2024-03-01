@@ -272,10 +272,11 @@ Let's take a closer look at some of the :code:`alpaca_llama2_lora_finetune` conf
 .. code-block:: yaml
 
   # Model Arguments
-  model: lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  lora_rank: 8
-  lora_alpha: 16
+  model:
+    _component_: lora_llama2_7b
+    lora_attn_modules: ['q_proj', 'v_proj']
+    lora_rank: 8
+    lora_alpha: 16
   ...
 
 We see that the default is to apply LoRA to Q and V projections with a rank of 8.

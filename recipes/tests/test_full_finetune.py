@@ -13,8 +13,8 @@ from typing import Dict
 import pytest
 
 import torch
+from omegaconf import OmegaConf
 from recipes.full_finetune import FullFinetuneRecipe
-from recipes.params.full_finetune import FullFinetuneParams
 from recipes.tests.utils import (
     default_recipe_kwargs,
     fetch_ckpt_model_path,
@@ -28,7 +28,7 @@ from torchtune import models
 from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils.collate import padded_collate
 
-models.ALL_MODELS["small_test_ckpt"] = llama2_small_test_ckpt
+models.small_test_ckpt = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -51,21 +51,21 @@ class TestFullFinetuneRecipe:
         }
         if ckpt == "small_test_ckpt":
             return small_test_ckpt_loss_values
-        if ckpt == "llama2_7b":
+        if ckpt == "llama2.llama2_7b":
             return llama2_7b_ckpt_loss_values
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_loss(self, capsys, pytestconfig):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2_7b" if large_scale else "small_test_ckpt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
         kwargs_values = default_recipe_kwargs(ckpt)
 
-        recipe_params = FullFinetuneParams(**kwargs_values)
+        recipe_cfg = OmegaConf.create(kwargs_values)
 
-        recipe = FullFinetuneRecipe(recipe_params)
-        recipe.setup(params=recipe_params)
+        recipe = FullFinetuneRecipe(recipe_cfg)
+        recipe.setup(cfg=recipe_cfg)
         recipe.train()
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
@@ -84,26 +84,32 @@ class TestFullFinetuneRecipe:
         expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
 
         with tempfile.TemporaryDirectory() as tmpdirname:
-            kwargs_values = {
-                "dataset": "alpaca",
-                "seed": 9,
-                "shuffle": True,
-                "model": model_ckpt,
-                "model_checkpoint": fetch_ckpt_model_path(model_ckpt),
-                "tokenizer": "llama2_tokenizer",
-                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-                "epochs": 4,
-                "max_steps_per_epoch": 2,
-                "output_dir": tmpdirname,
-                "device": "cpu",
-                "resume_from_checkpoint": False,
-                "enable_fsdp": False,
-            }
+            kwargs_values = default_recipe_kwargs(model_ckpt)
+            kwargs_values.update(
+                {
+                    "dataset": {"_component_": "torchtune.datasets.AlpacaDataset"},
+                    "seed": 9,
+                    "shuffle": True,
+                    "model": {"_component_": f"torchtune.models.{model_ckpt}"},
+                    "model_checkpoint": fetch_ckpt_model_path(model_ckpt),
+                    "tokenizer": {
+                        "_component_": "torchtune.models.llama2.llama2_tokenizer",
+                        "path": "/tmp/test-artifacts/tokenizer.model",
+                    },
+                    "epochs": 4,
+                    "max_steps_per_epoch": 2,
+                    "output_dir": tmpdirname,
+                    "device": "cpu",
+                    "resume_from_checkpoint": False,
+                    "enable_fsdp": False,
+                    "dtype": "fp32",
+                }
+            )
 
-            recipe_params = FullFinetuneParams(**kwargs_values)
+            recipe_cfg = OmegaConf.create(kwargs_values)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
+            recipe = FullFinetuneRecipe(recipe_cfg)
+            recipe.setup(cfg=recipe_cfg)
             recipe.train()
             recipe.cleanup()
 
@@ -111,24 +117,31 @@ class TestFullFinetuneRecipe:
             # check if these are correctly inferred from the checkpoint
             # Note this will raise some warnings in the logs, but is a
             # stronger test
-            kwargs_values_resume = {
-                "dataset": "alpaca",
-                "shuffle": True,
-                "model": model_ckpt,
-                "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
-                "tokenizer": "llama2_tokenizer",
-                "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
-                "epochs": 4,
-                "output_dir": tmpdirname,
-                "device": "cpu",
-                "resume_from_checkpoint": True,  # set to True to resume
-                "enable_fsdp": False,
-            }
+            kwargs_values_resume = deepcopy(kwargs_values)
+            kwargs_values_resume.update(
+                {
+                    "dataset": {"_component_": "torchtune.datasets.AlpacaDataset"},
+                    "seed": None,
+                    "max_steps_per_epoch": None,
+                    "shuffle": True,
+                    "model": {"_component_": f"torchtune.models.{model_ckpt}"},
+                    "model_checkpoint": os.path.join(tmpdirname, "model_2.ckpt"),
+                    "tokenizer": {
+                        "_component_": "torchtune.models.llama2.llama2_tokenizer",
+                        "path": "/tmp/test-artifacts/tokenizer.model",
+                    },
+                    "epochs": 4,
+                    "output_dir": tmpdirname,
+                    "device": "cpu",
+                    "resume_from_checkpoint": True,  # set to True to resume
+                    "enable_fsdp": False,
+                }
+            )
 
-            recipe_params = FullFinetuneParams(**kwargs_values_resume)
+            recipe_cfg = OmegaConf.create(kwargs_values_resume)
 
-            recipe = FullFinetuneRecipe(recipe_params)
-            recipe.setup(params=recipe_params)
+            recipe = FullFinetuneRecipe(recipe_cfg)
+            recipe.setup(cfg=recipe_cfg)
 
             assert recipe.epochs_run == 3
             assert recipe.seed == kwargs_values["seed"]
@@ -169,12 +182,13 @@ class DummyModel(nn.Module):
 
 
 def dummy_grad_accum_ckpt():
-    model = DummyModel()
-    fixed_init_model(model)
+    with torch.device("cpu"):
+        model = DummyModel()
+        fixed_init_model(model)
     return model
 
 
-models.ALL_MODELS["dummy_grad_accum_ckpt"] = dummy_grad_accum_ckpt
+models.dummy_grad_accum_ckpt = dummy_grad_accum_ckpt
 
 
 @pytest.fixture
@@ -205,42 +219,49 @@ class TestRecipeGradientAccumulation:
         model_ckpt = "dummy_grad_accum_ckpt"
         gradient_accumulation_steps = full_batch_size // micro_batch_size
         kwargs_values = {
-            "dataset": "alpaca",
-            "train_on_input": False,
+            "dataset": {
+                "_component_": "torchtune.datasets.AlpacaDataset",
+                "train_on_input": False,
+            },
             "seed": 9,
             "shuffle": True,
-            "model": model_ckpt,
+            "model": {"_component_": f"torchtune.models.{model_ckpt}"},
             "model_checkpoint": None,
-            "tokenizer": "llama2_tokenizer",
-            "tokenizer_checkpoint": "/tmp/test-artifacts/tokenizer.model",
+            "tokenizer": {
+                "_component_": "torchtune.models.llama2.llama2_tokenizer",
+                "path": "/tmp/test-artifacts/tokenizer.model",
+            },
             "batch_size": full_batch_size,
-            "lr": 2e-5,
             "epochs": 1,  # make sure to run for 1 epoch
             "max_steps_per_epoch": 1,
-            "optimizer": "AdamW",
-            "loss": "CrossEntropyLoss",
+            "optimizer": {"_component_": "torch.optim.AdamW", "lr": 2e-5},
+            "loss": {"_component_": "torch.nn.CrossEntropyLoss"},
             "output_dir": "/tmp",
             "device": "cpu",
             "dtype": "fp32",
             "resume_from_checkpoint": False,
             "enable_fsdp": False,
             "enable_activation_checkpointing": False,
-            "metric_logger_type": "disk",
+            "metric_logger": {
+                "_component_": "torchtune.utils.metric_logging.DiskLogger",
+                "log_dir": "${output_dir}",
+            },
             "gradient_accumulation_steps": 1,
+            "log_every_n_steps": None,
         }
 
         # First run without gradient accumulation
         baseline_params = kwargs_values.copy()
-        baseline_recipe_params = FullFinetuneParams(**baseline_params)
-        baseline_recipe = FullFinetuneRecipe(baseline_recipe_params)
+        baseline_recipe_cfg = OmegaConf.create(baseline_params)
+        baseline_recipe = FullFinetuneRecipe(baseline_recipe_cfg)
 
         # Patch the recipe to use DummyModel class
         # Note that this cannot be done via a decorator because we use patch two separate times
         with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+            return_value=dummy_grad_accum_ckpt(),
         ):
-            baseline_recipe.setup(params=baseline_recipe_params)
+            baseline_recipe.setup(cfg=baseline_recipe_cfg)
         baseline_recipe.train()
 
         # the first run assumes the complete batch and so we have a single loss value
@@ -255,16 +276,16 @@ class TestRecipeGradientAccumulation:
         grad_accum_params = kwargs_values.copy()
         grad_accum_params["batch_size"] = micro_batch_size
         grad_accum_params["gradient_accumulation_steps"] = gradient_accumulation_steps
-        grad_accum_recipe_params = FullFinetuneParams(**grad_accum_params)
-        grad_accum_recipe = FullFinetuneRecipe(grad_accum_recipe_params)
+        grad_accum_recipe_cfg = OmegaConf.create(grad_accum_params)
+        grad_accum_recipe = FullFinetuneRecipe(grad_accum_recipe_cfg)
 
         # Patch the recipe to use DummyModel class. We use a separate patch
         # because otherwise the model params would remain the same from the baseline
         with mocker.patch(
             "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=models.get_model("dummy_grad_accum_ckpt", device="cpu"),
+            return_value=dummy_grad_accum_ckpt(),
         ):
-            grad_accum_recipe.setup(params=grad_accum_recipe_params)
+            grad_accum_recipe.setup(cfg=grad_accum_recipe_cfg)
 
         # Copy the dataloader and run a few iterations. CrossEntropyLoss is normalized
         # by the number of unmasked tokens, so we need to derive these values per sample

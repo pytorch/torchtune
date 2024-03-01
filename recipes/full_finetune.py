@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import argparse
 import os
 import sys
 
@@ -13,9 +12,9 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
+from omegaconf import DictConfig
 
 from recipes.interfaces import FTRecipeInterface
-from recipes.params.full_finetune import FullFinetuneParams
 
 from torch import nn
 from torch.cuda.amp import GradScaler
@@ -23,7 +22,7 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-from torchtune import datasets, models, modules, utils
+from torchtune import config, modules, utils
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -57,40 +56,41 @@ class FullFinetuneRecipe(FTRecipeInterface):
         - Training happens on CUDA (CPU training is not supported)
         - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
         - Datasets are Map-style and data fits in memory (not streamed).
+
+    The following configs can be used to run this recipe:
+        >>> tune ls
+        RECIPE               CONFIG
+        full_finetune        alpaca_llama2_full_finetune
+
+    Args:
+        cfg (DictConfig): OmegaConf object parsed from yaml file
     """
 
-    def __init__(self, params: FullFinetuneParams) -> None:
+    def __init__(self, cfg: DictConfig) -> None:
 
-        self._device = utils.get_device(device=params.device)
-        self._dtype = utils.get_dtype(dtype=params.dtype)
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         # logging attributes
-        self._output_dir = params.output_dir
-        self._metric_logger = utils.get_metric_logger(
-            metric_logger_type=params.metric_logger_type,
-            project=params.project,
-            log_dir=params.output_dir,
-        )
-        self._log_every_n_steps = (
-            params.log_every_n_steps if params.log_every_n_steps else 1
-        )
+        self._output_dir = cfg.output_dir
+        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
         _, rank = utils.get_world_size_and_rank()
         self._is_rank_zero = rank == 0
 
-        # Training params
-        self._resume_from_checkpoint = params.resume_from_checkpoint
-        self._enable_fsdp = params.enable_fsdp
-        self._gradient_accumulation_steps = params.gradient_accumulation_steps
+        # Training cfg
+        self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._enable_fsdp = cfg.enable_fsdp
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
-        self.seed = utils.set_seed(seed=params.seed)
+        self.seed = utils.set_seed(seed=cfg.seed)
         self.epochs_run = 0
-        self.total_epochs = params.epochs
-        self.max_steps_per_epoch = params.max_steps_per_epoch
+        self.total_epochs = cfg.epochs
+        self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.total_training_steps = 0
 
     def load_checkpoint(self, ckpt_path: str):
@@ -101,13 +101,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
         utils.validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
         return ckpt_dict
 
-    def setup(self, params: FullFinetuneParams) -> None:
+    def setup(self, cfg: DictConfig) -> None:
         """
         Sets up the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
+        self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        ckpt_dict = self.load_checkpoint(ckpt_path=params.model_checkpoint)
+        ckpt_dict = self.load_checkpoint(ckpt_path=cfg.model_checkpoint)
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
@@ -119,40 +120,40 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
         self._model = self._setup_model(
-            model=params.model,
-            enable_fsdp=params.enable_fsdp,
-            enable_activation_checkpointing=params.enable_activation_checkpointing,
+            cfg_model=cfg.model,
+            enable_fsdp=cfg.enable_fsdp,
+            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[MODEL_KEY],
         )
 
-        self._tokenizer = self._setup_tokenizer(
-            tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
-        )
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        if self._is_rank_zero:
+            log.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
-            optimizer=params.optimizer,
-            lr=params.lr,
+            cfg_optimizer=cfg.optimizer,
             opt_state_dict=ckpt_dict[OPT_KEY] if self._resume_from_checkpoint else None,
         )
 
-        self._loss_fn = self._setup_loss(loss=params.loss)
+        self._loss_fn = config.instantiate(cfg.loss)
+        if self._is_rank_zero:
+            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
         self._sampler, self._dataloader = self._setup_data(
-            dataset=params.dataset,
-            train_on_input=params.train_on_input,
-            shuffle=params.shuffle,
-            batch_size=params.batch_size,
+            cfg_dataset=cfg.dataset,
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
         )
 
         # training setup
         self._autocast = utils.get_autocast(self._dtype, self._device)
         self._grad_scaler = None
         if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=params.enable_fsdp)
+            self._grad_scaler = utils.get_gradient_scaler(fsdp=cfg.enable_fsdp)
         else:
             self._grad_scaler = GradScaler(enabled=False)
 
@@ -195,7 +196,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def _setup_model(
         self,
-        model: str,
+        cfg_model: DictConfig,
         enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
@@ -205,7 +206,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        model = models.get_model(model, device=self._device)
+        with self._device:
+            model = config.instantiate(cfg_model)
+
         model = (
             utils.wrap_fsdp(
                 model=model,
@@ -228,28 +231,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
             log.info("Model is initialized.")
         return model
 
-    def _setup_tokenizer(
-        self, tokenizer: str, tokenizer_checkpoint: str
-    ) -> modules.Tokenizer:
-        """
-        Unlike ```setup_model```, this takes in the checkpoint and loads the sentencepiece
-        tokenizer model. This is related to how the tokenizer is implemented and should
-        change in a future iteration.
-        """
-        tokenizer = models.get_tokenizer(tokenizer, path=tokenizer_checkpoint)
-
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
-        return tokenizer
-
     def _setup_optimizer(
-        self, optimizer: str, lr: float, opt_state_dict: Optional[Dict[str, Any]] = None
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
     ) -> Optimizer:
         """
         Set up the optimizer. This method also handles transforing the state dict
         for FSDP.
         """
-        optimizer = modules.get_optimizer(optimizer, self._model, lr)
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
             opt_state_dict = utils.transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
@@ -260,16 +249,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
             log.info("Optimizer is initialized.")
         return optimizer
 
-    def _setup_loss(self, loss: str) -> nn.Module:
-        loss_fn = modules.get_loss(loss)
-
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
-
-        return loss_fn
-
     def _setup_data(
-        self, dataset: str, shuffle: bool, batch_size: int, train_on_input: bool
+        self,
+        cfg_dataset: DictConfig,
+        shuffle: bool,
+        batch_size: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports the
@@ -277,11 +261,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = datasets.get_dataset(
-            dataset,
-            split="train",
+        ds = config.instantiate(
+            cfg_dataset,
             tokenizer=self._tokenizer,
-            train_on_input=train_on_input,
         )
         sampler = DistributedSampler(
             ds,
@@ -422,28 +404,20 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._metric_logger.close()
 
 
-def recipe_main() -> None:
+@config.parse
+def recipe_main(cfg: DictConfig) -> None:
     """
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``FullFinetuneParams``
-        - Overwritten by Parameters specified in ``alpaca_llama2_full_finetune.yaml``
-        - Overwritten by arguments from the command-line using ``TuneArgumentParser``
+        - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
+        - Overwritten by arguments from the command-line using ``--override``
     """
-    parser = utils.TuneArgumentParser(
-        description=FullFinetuneParams.__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    args, _ = parser.parse_known_args()
-    args = vars(args)
-    recipe_params = FullFinetuneParams(**args)
-
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
 
-    recipe = FullFinetuneRecipe(params=recipe_params)
-    recipe.setup(params=recipe_params)
+    recipe = FullFinetuneRecipe(cfg=cfg)
+    recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
 

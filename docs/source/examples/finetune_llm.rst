@@ -28,23 +28,29 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
 
 .. code-block:: yaml
 
-    # Dataset and Dataloader
-    dataset: alpaca
-    seed: null
+    # Tokenizer
+    tokenizer:
+      _component_: torchtune.models.llama2.llama2_tokenizer
+      path: /tmp/tokenizer.model
+
+    # Dataset
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
     shuffle: True
 
     # Model Arguments
-    model: llama2_7b
+    model:
+      _component_: torchtune.models.llama2.llama2_7b
     model_checkpoint: /tmp/llama2-7b
-    tokenizer: llama2_tokenizer
-    tokenizer_checkpoint: /tmp/tokenizer.model
 
     # Fine-tuning arguments
     batch_size: 2
-    lr: 2e-5
     epochs: 3
-    optimizer: SGD
-    loss: CrossEntropyLoss
+    optimizer:
+      _component_: torch.optim.SGD
+      lr: 2e-5
+    loss:
+      _component_: torch.nn.CrossEntropyLoss
     output_dir: /tmp/alpaca-llama2-finetune
     device: cuda
     dtype: fp32
@@ -68,7 +74,7 @@ from Stanford. The following parameters are related to the data:
 
     # Point the dataset to the Alpaca Dataset implementation in TorchTune
     # This is set in the config
-    dataset: alpaca
+    dataset: AlpacaDataset
 
     # Don't mask the prompt during training
     # This is the default value
