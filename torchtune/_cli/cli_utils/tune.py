@@ -97,7 +97,7 @@ def main():
                 not distributed_args
             ), "You can't use distributed args with the config util"
             cmd = pkg_path / "_cli" / "cli_utils" / "config_utils.py"
-        elif cmd in list_recipes():
+        elif f"{cmd}.py" in list_recipes():
             recipes_pkg_path = pkg_path.parent / "recipes"
             cmd = recipes_pkg_path / f"{cmd}.py"
             args.recipe = str(cmd)
