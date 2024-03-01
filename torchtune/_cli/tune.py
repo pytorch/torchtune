@@ -37,7 +37,6 @@ does with the following additional functionalities:
 import argparse
 import runpy
 import sys
-import textwrap
 from pathlib import Path
 
 import torchtune
@@ -96,7 +95,9 @@ def main():
             args.recipe = str(cmd)
             assert not distributed_args, "You can't use distributed args with scripts"
         else:
-            parser.error(f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information.")
+            parser.error(
+                f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information."
+            )
 
     if distributed_args:
         args.training_script = str(cmd)  # arg names expected by torchrun
