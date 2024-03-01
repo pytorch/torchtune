@@ -9,7 +9,7 @@ _RECIPE_LIST = ["full_finetune.py", "lora_finetune.py", "alpaca_generate.py"]
 _CONFIG_LISTS = {
     "full_finetune.py": ["alpaca_llama2_full_finetune.yaml"],
     "lora_finetune.py": ["alpaca_llama2_lora_finetune.yaml"],
-    "alpaca_generate.py": [],
+    "alpaca_generate.py": ["alpaca_llama2_generate.yaml"],
 }
 
 
