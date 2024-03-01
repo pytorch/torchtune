@@ -5,16 +5,18 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
+import runpy
+
+import sys
 
 from functools import partial
 from typing import Dict
 
-from omegaconf import OmegaConf
+import pytest
+from tests.common import TUNE_PATH
+from tests.recipes.common import RECIPE_DIR, RECIPE_TESTS_DIR
 
-from recipes.lora_finetune import LoRAFinetuneRecipe
-
-from recipes.tests.utils import (
-    default_recipe_kwargs,
+from tests.recipes.utils import (
     fetch_loss_values,
     lora_llama2_small_test_ckpt,
     validate_loss_values,
@@ -45,24 +47,16 @@ class TestLoRAFinetuneRecipe:
         # TODO: no support for large scale test yet for LoRA
         raise ValueError(f"Unknown ckpt {ckpt}")
 
-    def test_loss(self, capsys, pytestconfig):
+    def test_loss(self, capsys, tmpdir):
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
-        kwargs_values = default_recipe_kwargs(ckpt)
-        kwargs_values["model"].update(
-            {
-                "lora_attn_modules": test_lora_attn_modules,
-                "apply_lora_to_mlp": False,
-                "lora_rank": 8,
-                "lora_alpha": 16,
-            }
-        )
-        recipe_cfg = OmegaConf.create(kwargs_values)
 
-        recipe = LoRAFinetuneRecipe(recipe_cfg)
-        recipe.setup(cfg=recipe_cfg)
-        recipe.train()
+        config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+        cmd = f"tune lora_finetune --config {config_path} --override model-checkpoint={ckpt} output-dir=".split()
+
+        with patch.object(sys, "argv", cmd):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)

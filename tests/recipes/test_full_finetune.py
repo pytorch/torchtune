@@ -14,9 +14,7 @@ import pytest
 
 import torch
 from omegaconf import OmegaConf
-from recipes.full_finetune import FullFinetuneRecipe
-from recipes.tests.utils import (
-    default_recipe_kwargs,
+from tests.recipes.utils import (
     fetch_ckpt_model_path,
     fetch_loss_values,
     llama2_small_test_ckpt,
