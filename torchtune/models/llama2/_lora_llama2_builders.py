@@ -20,7 +20,7 @@ from torchtune.modules import (
 
 from torchtune.modules.peft import LoRALinear
 
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -218,7 +218,7 @@ def lora_llama2(
     )
 
     # TODO: MLP class is not LoRA-ready yet
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
     mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
 
     layer = TransformerDecoderLayer(

@@ -16,7 +16,7 @@ from torch import nn, Tensor
 
 from torchtune.models.llama2 import llama2
 
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
@@ -82,7 +82,7 @@ class TestTransformerDecoderLayer:
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
-        hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+        hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
         mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
         transformer_layer = TransformerDecoderLayer(
             attn=self_attn,

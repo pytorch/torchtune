@@ -11,7 +11,7 @@ import torch
 from tests.test_utils import fixed_init_model
 
 from torch import nn
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import FeedForward
 
