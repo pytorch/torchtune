@@ -87,17 +87,7 @@ def main():
     cmd = args.recipe
     if not cmd.endswith(".py"):
         pkg_path = Path(torchtune.__file__).parent.absolute()
-        if cmd == "recipe":
-            assert (
-                not distributed_args
-            ), "You can't use distributed args with the recipe util"
-            cmd = pkg_path / "_cli" / "cli_utils" / "recipe_utils.py"
-        elif cmd == "config":
-            assert (
-                not distributed_args
-            ), "You can't use distributed args with the config util"
-            cmd = pkg_path / "_cli" / "cli_utils" / "config_utils.py"
-        elif f"{cmd}.py" in list_recipes():
+        if f"{cmd}.py" in list_recipes():
             recipes_pkg_path = pkg_path.parent / "recipes"
             cmd = recipes_pkg_path / f"{cmd}.py"
             args.recipe = str(cmd)
