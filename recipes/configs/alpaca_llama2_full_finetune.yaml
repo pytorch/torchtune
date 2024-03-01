@@ -6,7 +6,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /home/kartikayk/cpts/tokenizer.model
+  path: /tmp/llama2/tokenizer.model
 
 # Dataset
 dataset:
