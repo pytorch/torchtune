@@ -80,7 +80,7 @@ def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
     Raises:
         RuntimeError: If torch.distributed is already initialized.
     """
-    if _is_distributed():
+    if is_distributed():
         if dist.is_initialized():
             raise RuntimeError("torch.distributed already initialized.")
         dist.init_process_group(**kwargs)
