@@ -42,6 +42,15 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
+def memory_stats_log(msg: str) -> str:
+    return f"""
+    Memory Stats {msg}:
+    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
+    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
+    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
+    """
+
+
 class LoRAFinetuneRecipe(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
@@ -107,6 +116,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             ckpt_path=params.model_checkpoint, resume_from_checkpoint=False
         )
 
+        log.info(memory_stats_log("after checkpoint load"))
+
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
         # propagated to the relevant components
@@ -131,6 +142,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             if self._resume_from_checkpoint
             else None,
         )
+
+        log.info(memory_stats_log("after model setup"))
 
         self._tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
@@ -238,7 +251,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
-
         if enable_fsdp:
             model = utils.wrap_fsdp(
                 model=model,
@@ -251,8 +263,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 use_meta_device=True,
             )
 
-            # Ensure no params and buffers are on meta device
-            validate_no_meta_params(model)
+        # Ensure no params and buffers are on meta device
+        validate_no_meta_params(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(

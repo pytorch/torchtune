@@ -208,38 +208,67 @@ def wrap_fsdp(
         )
 
 
-# TODO: all stuff below here can go somewhere else (just not in peft_utils)
-def dummy_reset_params(self):
+def _dummy_reset_params(self):
+    """
+    Dummy method for patching no-op reset_parameters() when using
+    FSDP with meta device.
+    """
     return
 
 
-def lora_a_reset_params(self):
+def _lora_a_reset_params(self):
+    """
+    Define a reset_parameters method directly on LoRALinear's lora_a weight
+    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
+    """
     nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
 
 
-def lora_b_reset_params(self):
+def _lora_b_reset_params(self):
+    """
+    Define a reset_parameters method directly on LoRALinear's lora_b weight
+    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
+    """
     nn.init.zeros_(self.weight)
 
 
 def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
+    """
+    Dynamically define reset_parameters on every submodule of the model. For LoRA models,
+    ensure that the FSDP contract of reset_parameters only modifying a module's directly-owned
+    parameters is satisfied. More details here: https://github.com/pytorch/pytorch/issues/104187.
+
+    Args:
+        model (nn.Module): model class to prepare for usage with FSDP and meta device.
+
+    Returns:
+        nn.Module: Model with reset_parameters defined on every submodule.
+        In the case of a LoRA model, we override the default reset_parameters of nn.Linear.
+    """
     for k, v in model.named_modules():
+        # If the module does not have reset_parameters defined, we define
+        # a no-op reset_parameters method to satisfy FSDP's contract.
+        reset_params = getattr(v, "reset_parameters", None)
+        if not callable(reset_params):
+            v.reset_parameters = _dummy_reset_params.__get__(v)
+
+        # This will define reset_parameters for LoRA weight initialization
+        # directly on any LoRALinear submodules lora_a and lora_b.
         if isinstance(v, LoRALinear):
-            v.reset_parameters = dummy_reset_params.__get__(v)
-            v.lora_a.reset_parameters = lora_a_reset_params.__get__(v.lora_a)
-            v.lora_b.reset_parameters = lora_b_reset_params.__get__(v.lora_b)
-        else:
-            reset_params = getattr(v, "reset_parameters", None)
-            if not callable(reset_params):
-                v.reset_parameters = dummy_reset_params.__get__(v)
+            v.lora_a.reset_parameters = _lora_a_reset_params.__get__(v.lora_a)
+            v.lora_b.reset_parameters = _lora_b_reset_params.__get__(v.lora_b)
+
     return model
 
 
 def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     """
     A default policy for wrapping models trained with LoRA in FSDP. Specifically,
-    this will wrap individual LoRA a & b submodules in their own FSDP units to
+    this will wrap individual LoRA A & B submodules in their own FSDP units to
     maximize memory savings. After this is done, model will also be hierarchically wrapped
-    based on nn.Module types specified in ``modules_to_wrap``.
+    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that
+    (a) LoRA's A and B matrices are the only trainable weights in the entire model, and
+    (b) we have already set requires_grad = True on LoRA params.
 
     Args:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap

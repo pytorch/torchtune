@@ -68,12 +68,20 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_b = nn.Linear(
             in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
-        self._lora_params_initialized = False
-        # Skip init if we are under a meta device context
-        if not self.weight.is_meta:
-            self.reset_parameters()
 
-    def reset_parameters(self):
+        # Skip init if we are under a meta device context.
+        # In this case params will be initialized by FSDP.
+        # Note: FSDP's meta device initialization contract assumes that a module's
+        # reset_parameters method only initializes its own parameters (i.e. no child
+        # params are initialized, as is done in initialize_parameters below).
+        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
+        # when using meta device. This is done in
+        # torchtune.utils.distributed.prepare_model_for_fsdp_with_meta_device.
+        # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
+        if not self.weight.is_meta:
+            self.initialize_parameters()
+
+    def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         nn.init.zeros_(self.lora_b.weight)

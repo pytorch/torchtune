@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
-
 import torch
 
 from torch import nn, Tensor
@@ -42,10 +40,12 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self.reset_parameters()
+        self._rope_init()
 
-    # TODO: does this actually work?
-    def reset_parameters(self, device: Optional[torch.device] = None):
+    def reset_parameters(self):
+        self._rope_init()
+
+    def _rope_init(self):
         theta = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
