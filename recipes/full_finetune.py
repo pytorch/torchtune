@@ -413,8 +413,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    # Env variables set by torch run; only need to initialize process group
-    init_process_group(backend="nccl")
+    if utils.is_distributed():
+        init_process_group(backend="nccl")
 
     recipe = FullFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)

@@ -41,10 +41,11 @@ class TestTuneCLI:
         testargs = f"\
             tune {recipe} --config alpaca_llama2_full_finetune --override tokenizer=fake \
             device=cpu enable_fsdp=False enable_activation_checkpointing=False \
+            model_checkpoint=/tmp/fake.pt \
         ".split()
         with patch.object(sys, "argv", testargs):
             # TODO: mock recipe so we don't actually run it,
             # we purposely error out prematurely so we can just test that we
             # enter the script successfully
-            with pytest.raises(ValueError):
+            with pytest.raises(FileNotFoundError, match="No such file or directory"):
                 runpy.run_path(TUNE_PATH, run_name="__main__")
