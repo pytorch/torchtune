@@ -25,6 +25,7 @@ from torchtune.modules.peft.lora import (
     _lora_b_init_params,
     LoRALinear,
 )
+
 from torchtune.utils.device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
 
@@ -232,12 +233,21 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
     Returns:
         nn.Module: Model with reset_parameters defined on every submodule.
         In the case of a LoRA model, we override the default reset_parameters of nn.Linear.
+
+    Raises:
+        RuntimeError: if model contains submodule with non-callable attribute reset_parameters
     """
     for k, v in model.named_modules():
         # If the module does not have reset_parameters defined, we define
         # a no-op reset_parameters method to satisfy FSDP's contract.
         reset_params = getattr(v, "reset_parameters", None)
-        if not callable(reset_params):
+
+        if reset_params is not None and not callable(reset_params):
+            raise RuntimeError(
+                f"Cannot override existing reset_parameters variable for FSDP init in {k}"
+            )
+
+        if reset_params is None:
             v.reset_parameters = _dummy_reset_params.__get__(v)
 
         # This will define reset_parameters for LoRA weight initialization

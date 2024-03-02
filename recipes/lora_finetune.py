@@ -232,7 +232,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 device=self._device,
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
-                auto_wrap_policy=utils.distributed.lora_fsdp_wrap_policy(
+                auto_wrap_policy=utils.lora_fsdp_wrap_policy(
                     modules_to_wrap={modules.TransformerDecoderLayer}
                 ),
                 use_meta_device=True,

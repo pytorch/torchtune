@@ -42,6 +42,8 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.max_seq_len = max_seq_len
         self._rope_init()
 
+    # We need to explicitly define reset_parameters for FSDP initialization, see
+    # https://github.com/pytorch/pytorch/blob/797d4fbdf423dd9320ebe383fb57ffb1135c4a99/torch/distributed/fsdp/_init_utils.py#L885
     def reset_parameters(self):
         self._rope_init()
 
