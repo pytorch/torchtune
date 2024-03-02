@@ -156,7 +156,7 @@ def compare_decoder_layer(
     # value: torch.tensor(18261.0156)
     print(layer_out.mean())
 
-    assert torch.allclose(block_out, layer_out, atol=1e-2, rtol=1e-2)
+    torch.testing.assert_close(block_out, layer_out, atol=1e-2, rtol=1e-2)
 
 
 if __name__ == "__main__":

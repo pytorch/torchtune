@@ -100,7 +100,7 @@ def compare_lora_llama2(
     print(lora_modules, out.mean(), out_ref.mean(), out.shape, out_ref.shape)
 
     # output tensors should be similar
-    assert torch.allclose(out, out_ref, atol=1e-5, rtol=1e-3)
+    torch.testing.assert_close(out, out_ref, atol=1e-5, rtol=1e-3)
 
 
 if __name__ == "__main__":

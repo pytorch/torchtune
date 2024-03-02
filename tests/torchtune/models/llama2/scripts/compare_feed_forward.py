@@ -71,7 +71,7 @@ def compare_feed_forward(embed_dim: int, hidden_dim: int) -> None:
     with torch.no_grad():
         ff_out = ff(input_t)
 
-    assert torch.allclose(ff_out, ff_out_ref, atol=1e-5, rtol=1e-5)
+    torch.testing.assert_close(ff_out, ff_out_ref, atol=1e-5, rtol=1e-5)
     print(ff_out.mean())
     print(ff_out.max())
 

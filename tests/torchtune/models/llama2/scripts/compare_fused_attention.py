@@ -317,7 +317,7 @@ def compare_attn(
     print(
         "These values should match the original unit test", out_ref.mean(), out.mean()
     )
-    assert torch.allclose(out_ref, out, atol=1e-8, rtol=1e-3)
+    torch.testing.assert_close(out_ref, out, atol=1e-8, rtol=1e-3)
 
     # Determine the new value with fixed initialization
     fixed_init_model(attn)
