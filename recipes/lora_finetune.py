@@ -94,6 +94,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         self.total_epochs = params.epochs
         self.max_steps_per_epoch = params.max_steps_per_epoch
         self.total_training_steps = 0
+        self.checkpoint_future = None
 
         self._resume_from_checkpoint = params.resume_from_checkpoint
 
@@ -106,6 +107,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # Note that we set resume_from_checkpoint=False when loading the base model.
         # This is because we only save LoRA weights during training, so only lora_checkpoint
         # will contain training state, while model_checkpoint contains model weights only.
+        print("yooooo")
         base_model_ckpt = self.load_checkpoint(
             ckpt_path=params.model_checkpoint, resume_from_checkpoint=False
         )
@@ -117,6 +119,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             assert (
                 params.lora_checkpoint is not None
             ), "Must pass lora_checkpoint when resuming training"
+
+            # TODO: this is a hacky way to load lora weights, optimally we could call
+            # get_state_dict with frozen params only set to True on the existing model
+            # otherwise we will make _EmptyStateDictLoadPlanner True
+
+            from torch.distributed.checkpoint import load
+            from torch.distributed.checkpoint.format_utils import _EmptyStateDictLoadPlanner
+            lora_ckpt = {}
+            load(lora_ckpt, params.lora_checkpoint, load_planner=_EmptyStateDictLoadPlanner)
+
             lora_ckpt = self.load_checkpoint(
                 ckpt_path=params.lora_checkpoint, resume_from_checkpoint=True
             )
@@ -192,6 +204,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         """
         Extract the checkpoint state from file and validate.
         """
+
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
         utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
@@ -391,7 +404,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
-        # if training is in-progress, checkpoint the optimizer state as well
+        # if training is inrogress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
@@ -402,6 +415,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
+        from torch.distributed.checkpoint.state_dict import get_state_dict, StateDictOptions
+        import torch.distributed.checkpoint as dcp
+        import torch.distributed.checkpoint.state_dict_saver as saver
+
+        if self.checkpoint_future is not None:
+            self.checkpoint_future.result()
+
+        sd = get_state_dict(ckpt_dict, StateDictOptions(ignore_frozen_params=True))
+        self.checkpoint_future = saver._async_save(sd, output_loc)
+
+        get_state_dict
         utils.save_checkpoint(
             ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         )

@@ -43,6 +43,7 @@ class TestLoRAFinetuneRecipe:
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_loss(self, capsys, pytestconfig):
+        print("testing loss")
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
