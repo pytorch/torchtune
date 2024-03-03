@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.models import llama2
-
-__all__ = [
-    "llama2",
-]
+from . import llama2  # noqa
+from ._checkpoint_utils import (  # noqa
+    convert_from_torchtune_format,
+    convert_to_torchtune_format,
+)

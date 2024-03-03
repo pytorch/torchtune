@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 import torch
@@ -12,6 +13,7 @@ import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils.constants import (
+    CheckpointFormat,
     EPOCHS_KEY,
     MAX_STEPS_KEY,
     MODEL_KEY,
@@ -20,6 +22,8 @@ from torchtune.utils.constants import (
     TOTAL_EPOCHS_KEY,
 )
 from torchtune.utils.distributed import get_world_size_and_rank
+
+# logger = torchtune.utils.get_logger("DEBUG")
 
 
 def _contains_fsdp(model: nn.Module) -> bool:
@@ -36,6 +40,107 @@ def _contains_fsdp(model: nn.Module) -> bool:
         isinstance(m, torch.distributed.fsdp.FullyShardedDataParallel)
         for m in model.modules()
     )
+
+
+def load_checkpoint(
+    ckpt_path: Path,
+    ckpt_format: CheckpointFormat,
+    resume_from_checkpoint: bool,
+) -> Dict[str, Any]:
+    """ """
+    if not ckpt_path.exists():
+        raise ValueError(
+            f"Checkpoint path {ckpt_path} does not exist. "
+            "Please provide a valid checkpoint path."
+        )
+    if resume_from_checkpoint:
+        ckpt_dict = _load_torchtune_checkpoint(ckpt_path, ckpt_format)
+    else:
+        ckpt_dict = _load_external_checkpoint(ckpt_path, ckpt_format)
+    return ckpt_dict
+
+
+def _load_torchtune_checkpoint(
+    ckpt_path: Path,
+    ckpt_format: CheckpointFormat,
+) -> Dict[str, Any]:
+    if ckpt_format != CheckpointFormat.TORCHTUNE_FORMAT:
+        raise ValueError(
+            "When resuming a TorchTune training run, the checkpoint format is expected to "
+            f'be "torchtune". Got {ckpt_format} instead.'
+        )
+    if not ckpt_path.is_file():
+        raise ValueError(
+            "When resuming a TorchTune training run, the checkpoint path should "
+            f"should point to a file. Got {ckpt_path} which is not a file."
+        )
+    if ckpt_path.suffix != ".pt":
+        raise ValueError(
+            'When resuming a TorchTune training run, the ckpt should be ".pt" file. '
+            f'Got a "{ckpt_path.suffix}" file instead. Make sure you\'re loading a valid '
+            "TorchTune checkpoint."
+        )
+    ckpt_dict = torch.load(ckpt_path, map_location="cpu", mmap=True, weights_only=True)
+    return ckpt_dict
+
+
+def _load_external_checkpoint(ckpt_path, ckpt_format):
+    if ckpt_format == CheckpointFormat.META_FORMAT:
+        state_dict = _fetch_meta_format_state_dict(ckpt_path)
+    elif ckpt_format == CheckpointFormat.HF_FORMAT:
+        state_dict = _fetch_hf_format_state_dict(ckpt_path)
+    else:
+        raise NotImplementedError(f"Checkpoint format {ckpt_format} not supported")
+    return state_dict
+
+
+def _fetch_meta_format_state_dict(ckpt_path):
+    ckpt_files = []
+    if ckpt_path.is_dir():
+        ckpt_files = list(ckpt_path.glob("*.pth"))
+        if len(ckpt_files) == 0:
+            raise ValueError(
+                "For meta format checkpoint, the directory should contain at least one .pth file. "
+                "None found."
+            )
+    elif ckpt_path.is_file():
+        if ckpt_path.suffix != ".pth":
+            raise ValueError(
+                'For meta format checkpoint, the file should be a ".pth" file. '
+                f'Got a "{ckpt_path.suffix}" file instead.'
+            )
+        ckpt_files = [ckpt_path]
+    else:
+        raise ValueError("Unsupported value for checkpoint path")
+
+    merged_state_dict = {}
+    for ckpt_file in ckpt_files:
+        state_dict = torch.load(
+            ckpt_file, map_location="cpu", mmap=True, weights_only=True
+        )
+        merged_state_dict.update(state_dict)
+    return merged_state_dict
+
+
+def _fetch_hf_format_state_dict(ckpt_path):
+    ckpt_files = []
+    if ckpt_path.is_dir():
+        ckpt_files = list(ckpt_path.glob("*.bin"))
+        if len(ckpt_files) == 0:
+            raise ValueError(
+                "For meta format checkpoint, the directory should contain at least one .bin file. "
+                "None found."
+            )
+    else:
+        raise ValueError("Unsupported value for checkpoint path")
+
+    merged_state_dict = {}
+    for ckpt_file in ckpt_files:
+        state_dict = torch.load(
+            ckpt_file, map_location="cpu", mmap=True, weights_only=True
+        )
+        merged_state_dict.update(state_dict)
+    return merged_state_dict
 
 
 def save_checkpoint(
@@ -89,65 +194,6 @@ def save_checkpoint(
     _, rank = get_world_size_and_rank()
     if rank == 0:
         torch.save(ckpt_dict, output_loc)
-
-
-def load_checkpoint(
-    ckpt_path: str,
-    model: nn.Module,
-    optimizer: Optional[optim.Optimizer] = None,
-) -> Dict[str, Any]:
-    """
-    Loads a checkpoint from `ckpt_path` into `model` and optionally `optimizer`. This function is meant to be used in tandem with
-    `save_checkpoint` and assumes the checkpoint was saved as such. At minimum, the checkpoint needs to contain a `model` key that
-    maps to the model's states.
-
-    NOTE: `load_checkpoint` does NOT load model and optimizer states into the model and optimizer respectively.
-    `load_checkpoint` handles the appropriate transformations (i.e. related to FSDP), but user is expected to
-    call `load_state_dict` on the returned results.
-
-    Args:
-        ckpt_path (str): String indicating local path to saved checkpoint file.
-        model (nn.Module): Model that checkpoint will be loaded into.
-        optimizer (Optional[optim.Optimizer]): Optimizer that optimizer state checkpoints will be loaded into. If not specified,
-            "optimizer" key in `ckpt_dict` will be ignored, if present. Default: `None`.
-
-    Returns:
-        ckpt_dict (Dict[str, Any]): Dictionary containing loaded objects. Objects in this dictionary can be used
-            to restore model, optimizer, and any other checkpointed states.
-
-    Raises:
-        RuntimeError: If `ckpt_dict` does not contain a `model` key.
-        RuntimeError: If `ckpt_dict` does not contain an `optimizer` key and an optimizer was passed in.
-
-    Example:
-        >>> ckpt_dict = torchtune.utils.checkpoint.load_checkpoint(ckpt_path, model, optimizer)
-        >>> model.load_state_dict(ckpt_dict["model"])
-        >>> optimizer.load_state_dict(ckpt_dict["optimizer"])
-    """
-
-    ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    if MODEL_KEY not in ckpt_dict:
-        raise RuntimeError(
-            """Expected loaded checkpoint to contain a `model` key, but it does not. Ensure checkpoint was saved
-            with `save_checkpoint`."""
-        )
-    if optimizer is not None and OPT_KEY not in ckpt_dict:
-        raise RuntimeError(
-            """Expected loaded checkpoint to contain an `optimizer` key since an optimizer was passed in, but it does not.
-            Ensure checkpoint was saved with `save_checkpoint`."""
-        )
-
-    # Transform optimizer states if using FSDP and overwrite ckpt_dict["optimizer"] with the transformed optimizer state.
-    if optimizer is not None:
-        optim_state_dict_to_load = (
-            FSDP.optim_state_dict_to_load(model, optimizer, ckpt_dict[OPT_KEY])
-            if _contains_fsdp(model)
-            else ckpt_dict[OPT_KEY]
-        )
-
-        ckpt_dict[OPT_KEY] = optim_state_dict_to_load
-
-    return ckpt_dict
 
 
 def transform_opt_state_dict(

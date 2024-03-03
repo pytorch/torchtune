@@ -55,7 +55,7 @@ if __name__ == "__main__":
         "--repo-id",
         type=str,
         required=True,
-        choices=_SUPPORTED_MODEL_REPO_IDS,
+        # choices=_SUPPORTED_MODEL_REPO_IDS,
         help="Name of the repository on Hugging Face Hub.",
     )
     parser.add_argument(

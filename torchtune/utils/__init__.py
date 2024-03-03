@@ -4,9 +4,15 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from .argparse import TuneArgumentParser
-from .checkpoint import save_checkpoint, transform_opt_state_dict, validate_checkpoint
+from .checkpoint import (  # noqa
+    load_checkpoint,
+    save_checkpoint,
+    transform_opt_state_dict,
+    validate_checkpoint,
+)
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
+from .constants import CheckpointFormat, ModelType  # noqa
 from .device import get_device
 from .distributed import (
     get_world_size_and_rank,

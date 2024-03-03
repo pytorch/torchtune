@@ -4,6 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from enum import Enum
+
+
+class CheckpointFormat(Enum):
+    META_FORMAT = "meta_format"
+    HF_FORMAT = "hf_format"
+    TORCHTUNE_FORMAT = "torchtune_format"
+
+
+class ModelType(Enum):
+    LLAMA2 = "llama2"
+
 
 """
 Keys used during checkpoint load and checkpoint save.
