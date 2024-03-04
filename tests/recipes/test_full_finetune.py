@@ -61,10 +61,10 @@ _ASSETS = get_assets_path()
 # >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
 # >>> torch.save(super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
 
+_CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
+
 
 class TestFullFinetuneRecipe:
-    config_path = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
-
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
             "1|1|": 10.5074,
