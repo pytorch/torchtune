@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import sys
+
 import torch
 from omegaconf import DictConfig
 
@@ -79,3 +81,7 @@ def recipe(
 @config.parse
 def main(cfg: DictConfig) -> None:
     recipe(cfg)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
