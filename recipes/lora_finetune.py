@@ -22,7 +22,7 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torch.distributed.checkpoint.state_dict import get_state_dict, StateDictOptions
+from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict, StateDictOptions
 import torch.distributed.checkpoint as dcp
 from torch.distributed.checkpoint.state_dict_saver import _async_save
 from torchtune import datasets, models, modules, utils
@@ -126,17 +126,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             lora_weights_state_dict=None,
         )
 
-        # If we're resuming from checkpoint, the recipe's state should be updated before
-        # initializing the training components. This ensures that the seed is correctly
-        # propagated to the relevant components
-        if self._resume_from_checkpoint:
-            #TODO: confirm validation steps here?
-            lora_ckpt = get_state_dict(self._model, StateDictOptions(ignore_frozen_params=True))
-            dcp.load(lora_ckpt, params.lora_checkpoint)
-            self._model.load_state_dict(
-                lora_ckpt, strict=False
-            )
-
         self._tokenizer = self._setup_tokenizer(
             tokenizer=params.tokenizer, tokenizer_checkpoint=params.tokenizer_checkpoint
         )
@@ -147,6 +136,32 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             weight_decay=params.weight_decay,
             opt_state_dict=lora_ckpt[OPT_KEY] if self._resume_from_checkpoint else None,
         )
+
+        # TODO: verify this assertion & verify validation steps
+        # If we're resuming from checkpoint, the recipe's state should be updated before
+        # initializing the training components. This ensures that the seed is correctly
+        # propagated to the relevant components
+        if self._resume_from_checkpoint:
+            model_state_dict, optim_state_dict = get_state_dict(
+                self._model,
+                self._optimizer,
+                options=StateDictOptions(ignore_frozen_params=True)
+            )
+            dcp.load(
+                {
+                    MODEL_KEY: model_state_dict
+                    OPT_KEY: optim_state_dict
+                },
+                params.lora_checkpoint
+            )
+            set_state_dict(
+                self._model,
+                self._optimizer,
+                model_state_dict=model_state_dict,
+                optim_state_dict=optim_state_dict
+                options=StateDictOptions(strict=False)
+            )
+
 
         self._loss_fn = self._setup_loss(loss=params.loss)
 
@@ -394,7 +409,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         os.makedirs(self._output_dir, exist_ok=True)
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
-        # if training is inrogress, checkpoint the optimizer state as well
+        # if training is in-progress, checkpoint the optimizer state as well
+        # TODO: consider converting to torch.save format for final checkpoint.
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
@@ -407,8 +423,27 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
 
         if self.checkpoint_future is not None:
+            # we have to wait for the previous checkpoint to finish before saving
             self.checkpoint_future.result()
-        self.checkpoint_future = _async_save(sd, get_state_dict(ckpt_dict, StateDictOptions(ignore_frozen_params=True)))
+
+        #TODO: check if we need to save the optimizer here or if we should skip
+        # according to the above logic
+        model_state_dict, optim_state_dict = get_state_dict(
+            self._model,
+            self._optimizer,
+            options=StateDictOptions(ignore_frozen_params=True)
+        )
+        ckpt_dict.update(
+            {
+                MODEL_KEY: model_state_dict.
+                OPT_KEY: optim_state_dict
+            }
+        )
+
+        self.checkpoint_future = _async_save(
+            ckpt_dict,
+            params.lora_checkpoint
+        )
 
         # TODO: move DCP logic into utils.save_checkpoint
         # utils.save_checkpoint(
