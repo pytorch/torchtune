@@ -37,10 +37,10 @@ from tests.common import TUNE_PATH
 from tests.recipes.common import RECIPE_TESTS_DIR
 from tests.test_utils import fixed_init_model
 
+_CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
+
 
 class TestFullFinetuneRecipe:
-    config_path = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
-
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
             "1|1|": 10.5074,
@@ -67,7 +67,7 @@ class TestFullFinetuneRecipe:
 
         cmd = f"""
         tune full_finetune
-            --config {self.config_path} \
+            --config {_CONFIG_PATH} \
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{ckpt} \
@@ -96,7 +96,7 @@ class TestFullFinetuneRecipe:
         # Train
         cmd_1 = f"""
         tune full_finetune
-            --config {self.config_path} \
+            --config {_CONFIG_PATH} \
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
@@ -114,7 +114,7 @@ class TestFullFinetuneRecipe:
         # Resume training
         cmd_2 = f"""
         tune full_finetune
-            --config {self.config_path} \
+            --config {_CONFIG_PATH} \
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
@@ -175,9 +175,9 @@ def dummy_grad_accum_ckpt():
 
 
 def dummy_setup_data_fn(
-    cfg_dataset: DictConfig,
-    shuffle: bool,
-    batch_size: int,
+    cfg_dataset,
+    shuffle,
+    batch_size,
 ):
     world_size, rank = utils.get_world_size_and_rank()
     ds = config.instantiate(
@@ -245,7 +245,7 @@ class TestRecipeGradientAccumulation:
 
         cmd = f"""
         tune full_finetune \
-            --config {self.config_path} \
+            --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
             model_checkpoint=None \
@@ -263,7 +263,7 @@ class TestRecipeGradientAccumulation:
         ):
             monkeypatch.setattr(sys, "argv", cmd)
             with pytest.raises(SystemExit):
-                runpy.run(TUNE_PATH, run_name="__main__")
+                runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # the first run assumes the complete batch and so we have a single loss value
         loss_value = float(
@@ -276,7 +276,7 @@ class TestRecipeGradientAccumulation:
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
         tune full_finetune \
-            --config {self.config_path} \
+            --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
             model_checkpoint=None \
@@ -307,7 +307,7 @@ class TestRecipeGradientAccumulation:
         ):
             monkeypatch.setattr(sys, "argv", cmd_2)
             with pytest.raises(SystemExit):
-                runpy.run(TUNE_PATH, run_name="__main__")
+                runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # the second run accumulates losses and so sum these up to compare
         acc_loss_value = sum(
