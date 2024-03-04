@@ -21,6 +21,7 @@ from torchtune.modules import (
 from torchtune.modules.peft import LoRALinear
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
+from torchtune.models.llama2._llama2_builders import _llama_mlp
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -165,21 +166,21 @@ def _lora_llama_mlp(
     lora_alpha: float,
     lora_dropout: float = 0.0,
 ) -> FeedForward:
-    linear1 = LoRALinear(
+    gate_proj = LoRALinear(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
     )
-    linear2 = LoRALinear(
+    down_proj = LoRALinear(
         in_dim=hidden_dim,
         out_dim=dim,
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
     )
-    linear3 = LoRALinear(
+    up_proj = LoRALinear(
         in_dim=dim,
         out_dim=hidden_dim,
         rank=lora_rank,
@@ -187,9 +188,9 @@ def _lora_llama_mlp(
         dropout=lora_dropout,
     )
     return FeedForward(
-        linear1=linear1,
-        linear2=linear2,
-        linear3=linear3,
+        gate_proj=gate_proj,
+        down_proj=down_proj,
+        up_proj=up_proj,
     )
 
 

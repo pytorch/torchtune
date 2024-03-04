@@ -15,8 +15,9 @@ from tests.test_utils import assert_expected, init_weights_with_constant
 from torch import nn, Tensor
 
 from torchtune.models.llama2 import llama2
+from torchtune.models.llama2._llama2_builders import _llama_mlp
 
-from torchtune.models.llama2._model_utils import _llama_mlp, scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
     CausalSelfAttention,
     RMSNorm,

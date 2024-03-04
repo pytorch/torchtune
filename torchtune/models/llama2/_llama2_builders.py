@@ -58,10 +58,10 @@ def llama2_tokenizer(path: str) -> Tokenizer:
     return tokenizer
 
 def _llama_mlp(dim: int, hidden_dim: int) -> FeedForward:
-    linear1 = nn.Linear(dim, hidden_dim, bias=False)
-    linear2 = nn.Linear(hidden_dim, dim, bias=False)
-    linear3 = nn.Linear(dim, hidden_dim, bias=False)
-    return FeedForward(linear1=linear1, linear2=linear2, linear3=linear3)
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
 def llama2(

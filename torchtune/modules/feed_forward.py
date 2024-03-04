@@ -12,21 +12,24 @@ class FeedForward(nn.Module):
     """This class implements the feed-forward network derived from Llama2.
 
     Args:
-        linear1 (nn.Module): TO ADD
-        linear2 (nn.Module): TO ADD
-        linear3 (nn.Module): TO ADD
+        gate_proj (nn.Module): Projection from input dim to hidden dim, fed through activation
+            and multiplied by up_proj.
+        down_proj (nn.Module): Final projection to output dim.
+        up_proj (nn.Module): Projection from input dim to hidden dim, multiplied by
+            activation(gate_proj).
     """
 
     def __init__(
         self,
-        linear1: nn.Module,
-        linear2: nn.Module,
-        linear3: nn.Module,
+        *,
+        gate_proj: nn.Module,
+        down_proj: nn.Module,
+        up_proj: nn.Module,
     ):
         super().__init__()
-        self.w1 = linear1
-        self.w2 = linear2
-        self.w3 = linear3
+        self.w1 = gate_proj
+        self.w2 = down_proj
+        self.w3 = up_proj
         self.activation = F.silu
 
     def forward(self, x: Tensor) -> Tensor:

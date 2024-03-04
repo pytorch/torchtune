@@ -251,11 +251,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        lora_modules = lora_attn_modules + (
-            ["w1", "w2", "w3"] if apply_lora_to_mlp else []
+        lora_modules = cfg_model.lora_attn_modules + (
+            ["w1", "w2", "w3"] if cfg_model.apply_lora_to_mlp else []
         )
         validate_state_dict_for_lora(
-            lora_modules=cfg_model.lora_attn_modules,
+            lora_modules=lora_modules,
             full_model_state_dict_keys=model.state_dict().keys(),
             lora_state_dict_keys=lora_weights_state_dict.keys()
             if lora_weights_state_dict is not None

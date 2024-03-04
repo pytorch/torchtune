@@ -39,10 +39,12 @@ class TestFeedForward:
     @pytest.fixture
     def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
-        linear1 = nn.Linear(dim, hidden_dim, bias=False)
-        linear2 = nn.Linear(hidden_dim, dim, bias=False)
-        linear3 = nn.Linear(dim, hidden_dim, bias=False)
-        ff = FeedForward(linear1, linear2, linear3).eval()
+        gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+        down_proj = nn.Linear(hidden_dim, dim, bias=False)
+        up_proj = nn.Linear(dim, hidden_dim, bias=False)
+        ff = FeedForward(
+            gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj
+        ).eval()
         fixed_init_model(ff)
         ff.eval()
         return ff
