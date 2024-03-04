@@ -59,6 +59,8 @@ _ASSETS = get_assets_path()
 
 
 class TestFullFinetuneRecipe:
+    config_path = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
+
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
             "1|1|": 10.5074,
@@ -154,6 +156,14 @@ class TestFullFinetuneRecipe:
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)
+
+
+@pytest.fixture
+def create_mock_setup_data_fn(mocker):
+    mocker.patch(
+        "recipes.full_finetune.FullFinetuneRecipe._setup_data",
+        wraps=dummy_setup_data_fn,
+    )
 
 
 class TestRecipeGradientAccumulation:
