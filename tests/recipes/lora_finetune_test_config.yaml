@@ -1,9 +1,6 @@
 # Model Arguments
 model:
-  _component_: torchtune.models.llama2.lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj', 'output_proj']
-  lora_rank: 8
-  lora_alpha: 16
+  _component_: null
 
 model_checkpoint: null
 lora_checkpoint: null
@@ -16,17 +13,15 @@ tokenizer:
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.AlpacaDataset
-  train_on_input: True
-  use_clean: True
-seed: null
+  train_on_input: False
+seed: 9
 shuffle: True
-batch_size: 2
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-5
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -37,6 +32,8 @@ loss:
 # Training
 epochs: 2
 resume_from_checkpoint: False
+max_steps_per_epoch: 2
+gradient_accumulation_steps: 1
 
 # Logging
 output_dir: /tmp

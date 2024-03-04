@@ -4,19 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import runpy
 
 import sys
-
 from functools import partial
 from typing import Dict
 
 import pytest
+
 from tests.common import TUNE_PATH
-from tests.recipes.common import RECIPE_DIR, RECIPE_TESTS_DIR
+from tests.recipes.common import RECIPE_TESTS_DIR
 
 from tests.recipes.utils import (
+    fetch_ckpt_model_path,
     fetch_loss_values,
     lora_llama2_small_test_ckpt,
     validate_loss_values,
@@ -30,8 +30,6 @@ models.lora_small_test_ckpt = partial(
     lora_attn_modules=test_lora_attn_modules,
     apply_lora_to_mlp=False,
 )
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class TestLoRAFinetuneRecipe:
@@ -47,15 +45,25 @@ class TestLoRAFinetuneRecipe:
         # TODO: no support for large scale test yet for LoRA
         raise ValueError(f"Unknown ckpt {ckpt}")
 
-    def test_loss(self, capsys, tmpdir):
-        # No support for large scale test yet for LoRA
+    def test_loss(self, capsys, tmpdir, monkeypatch):
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
-        cmd = f"tune lora_finetune --config {config_path} --override model-checkpoint={ckpt} output-dir=".split()
+        cmd = f"""
+        tune lora_finetune
+            --config {config_path} \
+            --override \
+            output_dir={tmpdir} \
+            model._component_=torchtune.models.{ckpt} \
+            model.lora_attn_modules=\{test_lora_attn_modules} \
+            model.lora_rank=8 \
+            model.lora_alpha=16 \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+        """.split()
 
-        with patch.object(sys, "argv", cmd):
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
