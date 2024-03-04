@@ -215,7 +215,10 @@ def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
     # Custom init for RoPE, which has buffers only
     if hasattr(module, "_rope_init"):
         module._rope_init(device=device)
-    # Skip init of modules that already have params on non-meta device
+    # Skip init of modules that already have params on non-meta device. This is
+    # to avoid re-initialization of parameters that have already been explicitly
+    # initialized by the user before wrapping with FSDP. In particular, for LoRA,
+    # LoRA a & b matrices are pre-initialized before wrapping with FSDP.
     if all([not p.is_meta for p in module.parameters()]):
         return
     else:

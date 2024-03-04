@@ -87,7 +87,7 @@ It looks like there's already a config called :code:`alpaca_llama_full_finetune`
 
 .. code-block:: bash
 
-  tune config cp alpaca_llama2_full_finetune custom_config.yaml
+  tune cp alpaca_llama2_full_finetune.yaml custom_config.yaml
 
 Now you can update the custom YAML config to point to your model and tokenizer. While you're at it,
 you can make some other changes, like setting the random seed in order to make replication easier,
@@ -95,23 +95,30 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
 .. code-block:: yaml
 
-  # Dataset and Dataloader
-  dataset: alpaca
+  # Tokenizer
+  tokenizer:
+    _component_: torchtune.models.llama2.llama2_tokenizer
+    path: /tmp/tokenizer.model
+
+  # Dataset
+  dataset:
+    _component_: torchtune.datasets.AlpacaDataset
   seed: 42
   shuffle: True
 
   # Model Arguments
-  model: llama2_7b
+  model:
+    _component_: torchtune.models.llama2.llama2_7b
   model_checkpoint: /tmp/llama2/native_pytorch_model.pt
-  tokenizer: llama2_tokenizer
-  tokenizer_checkpoint: /tmp/llama2/tokenizer.model
 
   # Fine-tuning arguments
   batch_size: 2
-  lr: 1e-5
   epochs: 1
-  optimizer: SGD
-  loss: CrossEntropyLoss
+  optimizer:
+    _component_: torch.optim.SGD
+    lr: 1e-5
+  loss:
+    _component_: torch.nn.CrossEntropyLoss
   output_dir: /tmp/alpaca-llama2-finetune
   device: cuda
   dtype: fp32

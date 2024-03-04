@@ -18,6 +18,8 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
+
 
 def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
     """Builder for creating a Llama2 model initialized w/ the default 7b parameter values.
@@ -54,25 +56,6 @@ def llama2_tokenizer(path: str) -> Tokenizer:
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
     tokenizer.pad_id = 0
     return tokenizer
-
-
-def _scale_hidden_dim_for_mlp(dim: int, multiple_of: int = 256) -> int:
-    """Scale hidden dimension for MLP to keep number of parameters and computation constant.
-
-    Args:
-        dim (int): Input dimension.
-        multiple_of (int): Round scaled dimension to nearest multiple of `multiple_of` for clean computation.
-
-    Returns:
-        Scaled hidden dimension.
-    """
-    # Scale hidden dimension by (2/3)4d for SwiGLU to keep number of
-    # parameters and computation constant
-    hidden_dim = 4 * int(2 * dim / 3)
-    # Round hidden dimension to nearest multiple of `multiple_of`
-    hidden_dim = multiple_of * ((hidden_dim + multiple_of - 1) // multiple_of)
-    return hidden_dim
-
 
 def _llama_mlp(dim: int, hidden_dim: int) -> FeedForward:
     linear1 = nn.Linear(dim, hidden_dim, bias=False)
@@ -119,7 +102,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
     mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,

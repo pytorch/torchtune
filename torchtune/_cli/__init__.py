@@ -4,4 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-TUNE_PATH = "_scripts/cli_utils/tune"
+_SCRIPTS = ["download", "convert_checkpoint", "ls", "cp", "eval"]
+
+
+def list_scripts():
+    """List of available scripts."""
+    return _SCRIPTS

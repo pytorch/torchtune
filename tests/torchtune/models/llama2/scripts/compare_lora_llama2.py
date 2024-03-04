@@ -13,8 +13,7 @@ from tests.test_utils import fixed_init_model
 
 from torch import nn
 
-from torchtune.models.llama2 import llama2
-from torchtune.models.lora_llama2 import lora_llama2
+from torchtune.models.llama2 import llama2, lora_llama2
 
 try:
     from peft import inject_adapter_in_model, LoraConfig

@@ -19,7 +19,6 @@ class KVCache(nn.Module):
         max_seq_len (int): maximum sequence length model will be run with
         n_kv_heads (int): number of kv heads
         head_dim (int): per-attention head embedding dimension
-        dtype (torch.dtype): datatype of kv-cache entries (default is torch.float32)
     """
 
     def __init__(
@@ -28,16 +27,11 @@ class KVCache(nn.Module):
         max_seq_len: int,
         n_kv_heads: int,
         head_dim: int,
-        dtype: torch.dtype = torch.float32,
     ):
         super().__init__()
         cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
-        self.register_buffer(
-            "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
-        )
-        self.register_buffer(
-            "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
-        )
+        self.register_buffer("k_cache", torch.zeros(cache_shape), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape), persistent=False)
         self.max_batch_size = max_batch_size
 
     def update(

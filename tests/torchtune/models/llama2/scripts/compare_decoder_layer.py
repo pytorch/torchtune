@@ -17,7 +17,7 @@ from tests.torchtune.models.llama2.scripts.compare_attention import (
 from tests.torchtune.models.llama2.scripts.compare_feed_forward import FeedForwardRef
 
 from torch import nn
-from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
     CausalSelfAttention,

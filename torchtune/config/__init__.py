@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-_SCRIPTS = ["download", "convert_checkpoint", "ls"]
+from ._instantiate import instantiate
+from ._parse import parse
 
-
-def list_scripts():
-    """List of available scripts."""
-    return _SCRIPTS
+__all__ = [
+    "parse",
+    "instantiate",
+]

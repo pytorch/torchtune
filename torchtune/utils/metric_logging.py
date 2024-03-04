@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
@@ -239,41 +239,3 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
-
-
-ALL_METRIC_LOGGERS: Dict[str, "MetricLoggerInterface"] = {
-    "wandb": WandBLogger,
-    "tensorboard": TensorBoardLogger,
-    "stdout": StdoutLogger,
-    "disk": DiskLogger,
-}
-
-
-def list_metric_loggers() -> List[str]:
-    """List available metric loggers.
-
-    Returns:
-        List[str]: list of available metric loggers
-    """
-    return list(ALL_METRIC_LOGGERS.keys())
-
-
-def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLoggerInterface":
-    """Get a metric logger based on provided arguments.
-
-    Args:
-        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
-        **kwargs: additional arguments to pass to the metric logger
-
-    Raises:
-        ValueError: If ``metric_logger`` str is unknown.
-
-    Returns:
-        MetricLoggerInterface: metric logger
-    """
-    if metric_logger_type not in ALL_METRIC_LOGGERS:
-        raise ValueError(
-            f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
-        )
-
-    return ALL_METRIC_LOGGERS[metric_logger_type](**kwargs)

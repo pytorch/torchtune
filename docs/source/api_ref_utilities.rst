@@ -51,7 +51,6 @@ Metric Logging
     :toctree: generated/
     :nosignatures:
 
-    metric_logging.get_metric_logger
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger

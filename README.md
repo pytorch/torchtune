@@ -4,7 +4,7 @@
 
 # TorchTune (alpha release)
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) |
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
 &nbsp;
 
@@ -38,12 +38,13 @@ experience different peak memory utilization based on changes made in configurat
 | HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
 | 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
+| 1 x A6000    |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    29.5 GB *           |
 | 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
 | 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
 | 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
 
 
-NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
+NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Peak memory per GPU is as reported by `nvidia-smi` monitored over a couple hundred training iterations. Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
 
 &nbsp;
 
@@ -64,23 +65,14 @@ pip install -e .
 To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune recipe --help
+tune
 ```
 
 And should see the following output:
 
 ```
-usage: tune recipe
-
-Utility for information relating to recipes
-
-positional arguments:
-
-    list      List recipes
-    cp        Copy recipe to local path
-
-options:
-  -h, --help  show this help message and exit
+usage: tune [options] <recipe> [recipe_args]
+tune: error: the following arguments are required: recipe, recipe_args
 ```
 
 &nbsp;
@@ -140,8 +132,8 @@ Again, the argument to `--nproc_per_node` can be varied subject to memory constr
 
 To copy a recipe to customize it yourself and then run
 ```
-tune recipe cp full_finetune my_recipe/full_finetune.py
-tune config cp alpaca_llama2_full_finetune my_recipe/alpaca_llama2_full_finetune.yaml
+tune cp full_finetune.py my_recipe/full_finetune.py
+tune cp alpaca_llama2_full_finetune.yaml my_recipe/alpaca_llama2_full_finetune.yaml
 tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
 ```
 
@@ -158,7 +150,7 @@ does with the following additional functionalities:
 
 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune recipe`` and ``tune config`` commands provide utilities for listing and copying packaged recipes and configs
+3. ``tune ls`` and ``tune cp`` commands provide utilities for listing and copying packaged recipes and configs
 
 &nbsp;
 
@@ -194,3 +186,9 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 ## Contributing
 
 We welcome any feature requests, bug reports, or pull requests from the community. See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
+
+&nbsp;
+
+## License
+
+TorchTune is released under the [BSD 3 license](./LICENSE).
