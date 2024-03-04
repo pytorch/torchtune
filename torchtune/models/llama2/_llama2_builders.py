@@ -57,6 +57,12 @@ def llama2_tokenizer(path: str) -> Tokenizer:
     tokenizer.pad_id = 0
     return tokenizer
 
+def _llama_mlp(dim: int, hidden_dim: int) -> FeedForward:
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
+
 
 def llama2(
     vocab_size: int,
@@ -97,7 +103,7 @@ def llama2(
         attn_dropout=attn_dropout,
     )
     hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+    mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
