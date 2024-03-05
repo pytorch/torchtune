@@ -153,8 +153,8 @@ def compare_lora(
     )
 
     sd_mapping = {
-        "linear.weight": "weight",
-        "linear.bias": "bias",
+        "weight": "weight",
+        "bias": "bias",
         "lora_a.weight": "lora_A",
         "lora_b.weight": "lora_B",
     }
@@ -164,7 +164,7 @@ def compare_lora(
         output_ref = lora_ref(x_input)
 
     print(output_ref.mean())
-    assert torch.allclose(output_ref, output, atol=1e-6, rtol=1e-6)
+    torch.testing.assert_close(output_ref, output, atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":

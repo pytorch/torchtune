@@ -116,7 +116,7 @@ class TestLlama2InferenceParity:
         )
         del decoder_kv
 
-        assert torch.allclose(generations_kv_cache, generations_no_kv_cache)
+        torch.testing.assert_close(generations_kv_cache, generations_no_kv_cache)
 
         with torch.device("cpu"):
             hf_decoder = LlamaForCausalLM.from_pretrained(  # pyre-ignore[16]

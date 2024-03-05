@@ -36,5 +36,9 @@ class TestBatchPadSequence:
         )
         padded_input = inputs[1]
         padded_label = labels[1]
-        assert torch.allclose(padded_input, torch.tensor([7, padding_idx, padding_idx]))
-        assert torch.allclose(padded_label, torch.tensor([10, ignore_idx, ignore_idx]))
+        torch.testing.assert_close(
+            padded_input, torch.tensor([7, padding_idx, padding_idx])
+        )
+        torch.testing.assert_close(
+            padded_label, torch.tensor([10, ignore_idx, ignore_idx])
+        )
