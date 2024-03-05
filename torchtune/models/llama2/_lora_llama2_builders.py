@@ -20,7 +20,8 @@ from torchtune.modules import (
 
 from torchtune.modules.peft import LoRALinear
 
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
+from torchtune.models.llama2._llama2_builders import _llama_mlp
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -28,6 +29,7 @@ LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 def lora_llama2_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
@@ -40,6 +42,7 @@ def lora_llama2_7b(
     """
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
+        apply_lora_to_mlp=apply_lora_to_mlp,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
@@ -155,8 +158,45 @@ def _lora_llama_self_attention(
     return self_attn
 
 
+def _lora_llama_mlp(
+    *,
+    dim: int,
+    hidden_dim: int,
+    lora_rank: int,
+    lora_alpha: float,
+    lora_dropout: float = 0.0,
+) -> FeedForward:
+    gate_proj = LoRALinear(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    down_proj = LoRALinear(
+        in_dim=hidden_dim,
+        out_dim=dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    up_proj = LoRALinear(
+        in_dim=dim,
+        out_dim=hidden_dim,
+        rank=lora_rank,
+        alpha=lora_alpha,
+        dropout=lora_dropout,
+    )
+    return FeedForward(
+        gate_proj=gate_proj,
+        down_proj=down_proj,
+        up_proj=up_proj,
+    )
+
+
 def lora_llama2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool = False,
     *,
     # llama2 args
     vocab_size: int,
@@ -181,6 +221,8 @@ def lora_llama2(
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
             LoRA should be applied to in each self-attention block. Options are
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
@@ -217,9 +259,16 @@ def lora_llama2(
         lora_dropout=lora_dropout,
     )
 
-    # TODO: MLP class is not LoRA-ready yet
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
+    if apply_lora_to_mlp:
+        mlp = _lora_llama_mlp(
+            dim=embed_dim,
+            hidden_dim=hidden_dim,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+        )
+    else:
+        mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
 
     layer = TransformerDecoderLayer(
         attn=self_attn,

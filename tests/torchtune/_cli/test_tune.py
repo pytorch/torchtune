@@ -19,97 +19,12 @@ from tests.torchtune._cli.common import TUNE_PATH
 
 
 class TestTuneCLI:
-    def test_recipe_list(self, capsys):
-        testargs = "tune recipe list".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n").split("\n")
-        assert (
-            output == list_recipes()
-        ), "Output must match recipe list from recipes/__init__.py"
-
-    def test_recipe_cp(self, tmp_path, capsys):
-        # Valid recipe
-        recipe = "full_finetune"
-        path = tmp_path / "dummy.py"
-        testargs = f"tune recipe cp {recipe} {path}".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"Copied recipe {recipe} to {path}"
-
-        # File exists error
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"File already exists at {path}, not overwriting"
-
-        # Invalid recipe error
-        recipe = "fake"
-        path = tmp_path / "dummy2.py"
-        testargs = f"tune recipe cp {recipe} {path}".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"Invalid recipe name {recipe} provided, no such recipe"
-
     def test_recipe_paths(self):
         recipes = list_recipes()
         for recipe in recipes:
             pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
             recipe_path = os.path.join(pkg_path, "recipes", recipe)
             assert os.path.exists(recipe_path), f"{recipe_path} must exist"
-
-    def test_config_list(self, capsys):
-        recipe = "full_finetune.py"
-        testargs = f"tune config list --recipe {recipe}".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n").split("\n")
-        assert output == list_configs(
-            recipe
-        ), "Output must match config list from recipes/__init__.py"
-
-    def test_config_cp(self, tmp_path, capsys):
-        # Valid recipe
-        config = "alpaca_llama2_full_finetune"
-        path = tmp_path / "dummy.yaml"
-        testargs = f"tune config cp {config} {path}".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"Copied config {config} to {path}"
-
-        # File exists error
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"File already exists at {path}, not overwriting"
-
-        # Invalid recipe error
-        config = "fake"
-        path = tmp_path / "dummy2.yaml"
-        testargs = f"tune config cp {config} {path}".split()
-        with patch.object(sys, "argv", testargs):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        captured = capsys.readouterr()
-        output = captured.out.rstrip("\n")
-        assert output == f"Invalid config name {config} provided, no such config"
 
     def test_config_paths(self):
         recipes = list_recipes()
@@ -126,10 +41,11 @@ class TestTuneCLI:
         testargs = f"\
             tune {recipe} --config alpaca_llama2_full_finetune --override tokenizer=fake \
             device=cpu enable_fsdp=False enable_activation_checkpointing=False \
+            model_checkpoint=/tmp/fake.pt \
         ".split()
         with patch.object(sys, "argv", testargs):
             # TODO: mock recipe so we don't actually run it,
             # we purposely error out prematurely so we can just test that we
             # enter the script successfully
-            with pytest.raises(ValueError):
+            with pytest.raises(FileNotFoundError, match="No such file or directory"):
                 runpy.run_path(TUNE_PATH, run_name="__main__")

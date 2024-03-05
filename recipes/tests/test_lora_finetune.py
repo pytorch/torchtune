@@ -25,7 +25,9 @@ from torchtune import models
 
 test_lora_attn_modules = ["q_proj", "k_proj", "v_proj", "output_proj"]
 models.lora_small_test_ckpt = partial(
-    lora_llama2_small_test_ckpt, lora_attn_modules=test_lora_attn_modules
+    lora_llama2_small_test_ckpt,
+    lora_attn_modules=test_lora_attn_modules,
+    apply_lora_to_mlp=False,
 )
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -56,6 +58,7 @@ class TestLoRAFinetuneRecipe:
             kwargs_values["model"].update(
                 {
                     "lora_attn_modules": test_lora_attn_modules,
+                    "apply_lora_to_mlp": False,
                     "lora_rank": 8,
                     "lora_alpha": 16,
                 }

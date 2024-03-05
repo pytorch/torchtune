@@ -125,7 +125,7 @@ def compare_decoder(
     # value: tensor(20.4800)
     print(output.mean())
 
-    assert torch.allclose(output_ref, output, atol=1e-6, rtol=1e-6)
+    torch.testing.assert_close(output_ref, output, atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":

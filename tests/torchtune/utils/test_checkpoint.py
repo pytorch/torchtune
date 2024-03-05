@@ -10,7 +10,7 @@ import pytest
 import torch
 import torch.distributed as dist
 
-from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
+from tests.test_utils import skip_if_cuda_not_available
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
@@ -57,7 +57,7 @@ class TestCheckpoint:
                 self._validate_dicts(v, d2[k])
             else:
                 if isinstance(v, torch.Tensor):
-                    assert torch.allclose(v, d2[k])
+                    torch.testing.assert_close(v, d2[k])
                 else:
                     assert v == d2[k]
 
@@ -73,7 +73,7 @@ class TestCheckpoint:
         self._save_and_load(checkpoint, model_new, optim_new)
         # model_new and model params should match
         for p1, p2 in zip(model.parameters(), model_new.parameters()):
-            assert torch.allclose(p1, p2)
+            torch.testing.assert_close(p1, p2)
         # optim state_dicts should match
         self._validate_dicts(optim.state_dict(), optim_new.state_dict())
 
@@ -124,7 +124,7 @@ class TestCheckpoint:
         with FSDP.summon_full_params(model_new):
             with FSDP.summon_full_params(model):
                 for p1, p2 in zip(model.parameters(), model_new.parameters()):
-                    assert torch.allclose(p1, p2)
+                    torch.testing.assert_close(p1, p2)
         # Verify optim state_dicts
         self._validate_dicts(
             FSDP.optim_state_dict(model_new, optim_new),
@@ -133,6 +133,6 @@ class TestCheckpoint:
         torch.distributed.barrier()
 
     @skip_if_cuda_not_available
-    def test_distributed_save_load(self) -> None:
+    def test_distributed_save_load(self, get_pet_launch_config) -> None:
         lc = get_pet_launch_config(nproc=min(4, torch.cuda.device_count()))
         launcher.elastic_launch(lc, entrypoint=self._test_distributed_save_load)()

@@ -105,7 +105,7 @@ def compare_lora_attention(
     for key in all_keys:
         if key in lora_modules:
             mapped_sd[f"{key}.base_layer.weight"] = lora_llama_attn.state_dict()[
-                f"{key}.linear.weight"
+                f"{key}.weight"
             ]
             mapped_sd[f"{key}.lora_A.default.weight"] = lora_llama_attn.state_dict()[
                 f"{key}.lora_a.weight"
@@ -124,7 +124,7 @@ def compare_lora_attention(
     print(lora_modules, out.mean(), out_ref.mean(), out.shape, out_ref.shape)
 
     # output tensors should be similar
-    assert torch.allclose(out, out_ref, atol=1e-5, rtol=1e-3)
+    torch.testing.assert_close(out, out_ref, atol=1e-5, rtol=1e-3)
 
 
 if __name__ == "__main__":
