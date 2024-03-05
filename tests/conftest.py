@@ -10,7 +10,6 @@ import uuid
 import pytest
 import torch.distributed.launcher as pet
 
-import argparse
 
 @pytest.fixture(scope="session")
 def get_pet_launch_config():
