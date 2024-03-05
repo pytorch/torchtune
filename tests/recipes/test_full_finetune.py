@@ -41,7 +41,7 @@ _CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
 
 _ASSETS = get_assets_path()
 
-# Generating `better_tiny_checkpoint.pt`
+# Generating `tiny_llama2_checkpoint.pt`
 # >>> import torch
 # >>> from torchtune.models.llama2 import llama2
 # >>> from tests.test_utils import fixed_init_model
