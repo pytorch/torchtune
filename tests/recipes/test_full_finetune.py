@@ -59,6 +59,24 @@ _ASSETS = get_assets_path()
 
 _CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
 
+_ASSETS = get_assets_path()
+
+# Generating `tiny_llama2_checkpoint.pt`
+# >>> import torch
+# >>> from torchtune.models.llama2 import llama2
+# >>> from tests.test_utils import init_weights_with_constant
+# >>> super_small_llama2 = llama2(
+# ... vocab_size=100,
+# ... num_layers=2,
+# ... num_heads=4,
+# ... embed_dim=64,
+# ... max_seq_len=64,
+# ... norm_eps=1e-5,
+# ... num_kv_heads=2,
+# ... )
+# >>> init_weights_with_constant(super_small_llama2, 0.1)
+# >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
+
 
 class TestFullFinetuneRecipe:
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
