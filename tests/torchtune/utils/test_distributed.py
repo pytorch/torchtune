@@ -10,7 +10,7 @@ import pytest
 import torch
 import torch.nn as nn
 
-from tests.test_utils import get_pet_launch_config, single_box_init
+from tests.test_utils import single_box_init
 from torch.distributed import launcher
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -58,23 +58,24 @@ class TestDistributed:
 
     def _test_launch_worker(
         self,
+        get_pet_launch_config,
         num_processes: int,
         init_pg_explicit: bool,
     ) -> None:
         lc = get_pet_launch_config(num_processes)
         launcher.elastic_launch(lc, entrypoint=self._test_worker_fn)(init_pg_explicit)
 
-    def test_init_from_env_no_dup(self) -> None:
-        self._test_launch_worker(2, init_pg_explicit=False)
+    def test_init_from_env_no_dup(self, get_pet_launch_config) -> None:
+        self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=False)
         # trivial test case to ensure test passes with no exceptions
         assert True
 
-    def test_init_from_env_dup(self) -> None:
-        self._test_launch_worker(2, init_pg_explicit=True)
+    def test_init_from_env_dup(self, get_pet_launch_config) -> None:
+        self._test_launch_worker(get_pet_launch_config, 2, init_pg_explicit=True)
         # trivial test case to ensure test passes with no exceptions
         assert True
 
-    def test_world_size_with_cpu(self) -> None:
+    def test_world_size_with_cpu(self, get_pet_launch_config) -> None:
         desired_world_size = 4
         lc = get_pet_launch_config(desired_world_size)
         launcher.elastic_launch(lc, entrypoint=self._test_world_size_with_cpu_device)(

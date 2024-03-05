@@ -10,7 +10,7 @@ import pytest
 import torch
 import torch.distributed as dist
 
-from tests.test_utils import get_pet_launch_config, skip_if_cuda_not_available
+from tests.test_utils import skip_if_cuda_not_available
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.utils.checkpoint import load_checkpoint, save_checkpoint
@@ -133,6 +133,6 @@ class TestCheckpoint:
         torch.distributed.barrier()
 
     @skip_if_cuda_not_available
-    def test_distributed_save_load(self) -> None:
+    def test_distributed_save_load(self, get_pet_launch_config) -> None:
         lc = get_pet_launch_config(nproc=min(4, torch.cuda.device_count()))
         launcher.elastic_launch(lc, entrypoint=self._test_distributed_save_load)()
