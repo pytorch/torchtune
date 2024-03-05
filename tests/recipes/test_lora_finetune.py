@@ -61,10 +61,11 @@ class TestLoRAFinetuneRecipe:
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{ckpt} \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
             model.lora_attn_modules=\{test_lora_attn_modules} \
             model.lora_rank=8 \
             model.lora_alpha=16 \
-            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            model.apply_lora_to_mlp=False \
         """.split()
 
         if enable_fsdp:
