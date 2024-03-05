@@ -41,7 +41,7 @@ _CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
 
 _ASSETS = get_assets_path()
 
-# Generating `better_tiny_checkpoint.pt`
+# Generating `tiny_llama2_checkpoint.pt`
 # >>> import torch
 # >>> from torchtune.models.llama2 import llama2
 # >>> from tests.test_utils import fixed_init_model
@@ -55,7 +55,7 @@ _ASSETS = get_assets_path()
 # ... num_kv_heads=2,
 # ... )
 # >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
-# >>> torch.save({"model": super_small_llama2.state_dict()}, "better_tiny_checkpoint.pt")
+# >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
 
 
 class TestFullFinetuneRecipe:
