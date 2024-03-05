@@ -112,7 +112,7 @@ def fetch_ckpt_model_path(ckpt) -> str:
     # checkpoint.
     if "small_test_ckpt" in ckpt:
         return "/tmp/test-artifacts/small-ckpt-01242024"
-    if ckpt == "llama2_7b":
+    if "llama2_7b" in ckpt:
         return "/tmp/test-artifacts/llama2-7b-01242024"
     if "tiny_test_ckpt" in ckpt:
         return _ASSETS / "tiny_llama2_checkpoint.pt"
