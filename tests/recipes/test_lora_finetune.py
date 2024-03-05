@@ -64,7 +64,10 @@ class TestLoRAFinetuneRecipe:
             model.lora_rank=8 \
             model.lora_alpha=16 \
             model.apply_lora_to_mlp=False \
-        """.split()  # noqa: W605
+        """.split()
+
+        # Have to attach this after so it parses correctly
+        cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
 
         # Have to attach this after so it parses correctly
         cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
