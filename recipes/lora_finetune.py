@@ -341,7 +341,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+                epoch=curr_epoch,
+                save_full_weights=save_full_weights,
+                merge_lora_weights=merge_lora_weights,
+
+    def save_checkpoint(self, epoch: int, save_full_weights: bool = False, merge_lora_weights: bool = False) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
@@ -360,8 +364,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
+        model_key_filter = lambda x: x in self.adapter_params if not save_full_weights else None
+        if merge_lora_weights:
+            prepare_for_lora_merge(self._model)
         utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
+            ckpt_dict, output_loc, model_key_filter=model_key_filter
         )
 
         if self._is_rank_zero:
@@ -427,7 +434,18 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+
+            save_full_weights = self._save_full_final_checkpoint and (
+                curr_epoch == self.total_epochs - 1
+            )
+            merge_lora_weights = self._save_llama2_native_format and (
+                curr_epoch == self.total_epochs - 1
+            )
+            self.save_checkpoint(
+                epoch=curr_epoch,
+                save_full_weights=save_full_weights,
+                merge_lora_weights=merge_lora_weights,
+            )
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
