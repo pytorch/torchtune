@@ -153,8 +153,8 @@ def compare_lora(
     )
 
     sd_mapping = {
-        "linear.weight": "weight",
-        "linear.bias": "bias",
+        "weight": "weight",
+        "bias": "bias",
         "lora_a.weight": "lora_A",
         "lora_b.weight": "lora_B",
     }

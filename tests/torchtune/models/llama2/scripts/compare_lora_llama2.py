@@ -86,11 +86,14 @@ def compare_lora_llama2(
     lora_mapping = {}
     mapped_sd = {}
     for k, v in lora_llama.state_dict().items():
-        mapped_sd[
-            k.replace("lora_a", "lora_A.default")
-            .replace("lora_b", "lora_B.default")
-            .replace("linear", "base_layer")
-        ] = v
+        new_k = k.replace("lora_a", "lora_A.default").replace(
+            "lora_b", "lora_B.default"
+        )
+        for lora_module in lora_modules:
+            new_k = new_k.replace(
+                f"{lora_module}.weight", f"{lora_module}.base_layer.weight"
+            )
+        mapped_sd[new_k] = v
 
     lora_llama_ref.load_state_dict(mapped_sd)
 

@@ -10,7 +10,6 @@ import torch
 from tests.test_utils import fixed_init_model
 from torch import nn, Tensor
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
-from torchtune.utils.env import seed
 
 # Copy-paste of fused attention for comparison
 class FusedCausalSelfAttention(nn.Module):
@@ -257,7 +256,7 @@ def compare_attn(
     use_kv_cache: bool,
 ):
 
-    seed(16)
+    torch.manual_seed(16)
     inputs = torch.randn(4, 2048, 4096)
 
     head_dim = embed_dim // num_heads

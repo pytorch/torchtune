@@ -105,7 +105,7 @@ def compare_lora_attention(
     for key in all_keys:
         if key in lora_modules:
             mapped_sd[f"{key}.base_layer.weight"] = lora_llama_attn.state_dict()[
-                f"{key}.linear.weight"
+                f"{key}.weight"
             ]
             mapped_sd[f"{key}.lora_A.default.weight"] = lora_llama_attn.state_dict()[
                 f"{key}.lora_a.weight"
