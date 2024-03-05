@@ -20,8 +20,22 @@ _ASSETS = get_assets_path()
 
 class DummyDataset(Dataset):
     def __init__(self, **kwargs):
-        self._data = torch.randint(1, 10, (4, 20))
-        self._labels = torch.randint(1, 10, (4, 10))
+        self._data = torch.LongTensor(
+            [
+                [0, 2, 4, 2, 5, 6, 7, 8, 9, 1, 2, 4, 3, 3, 5, 6, 8, 2, 1, 1],
+                [1, 2, 5, 6, 7, 8, 2, 3, 1, 9, 9, 9, 5, 6, 7, 0, 0, 0, 1, 2],
+                [5, 6, 8, 2, 1, 0, 3, 4, 0, 0, 0, 2, 4, 7, 8, 8, 2, 2, 1, 0],
+                [4, 6, 7, 1, 0, 2, 0, 2, 0, 2, 3, 9, 9, 9, 7, 5, 1, 8, 4, 1],
+            ]
+        )
+        self._labels = torch.LongTensor(
+            [
+                [2, 6, 7, 8, 2, 2, 1, 0, 0, 1],
+                [1, 2, 5, 6, 7, 8, 2, 3, 1, 9],
+                [6, 1, 1, 2, 5, 0, 9, 0, 2, 1],
+                [5, 8, 6, 0, 2, 0, 0, 3, 2, 1],
+            ]
+        )
 
     def __getitem__(self, index):
         return (self._data[index], self._labels[index])
@@ -101,7 +115,7 @@ def fetch_ckpt_model_path(ckpt) -> str:
     if ckpt == "llama2_7b":
         return "/tmp/test-artifacts/llama2-7b-01242024"
     if "tiny_test_ckpt" in ckpt:
-        return _ASSETS / "tiny_llama2_checkpoint.pt"
+        return _ASSETS / "better_tiny_checkpoint.pt"
     raise ValueError(f"Unknown ckpt {ckpt}")
 
 

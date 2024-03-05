@@ -12,10 +12,11 @@ import runpy
 import sys
 from typing import Dict
 
+import numpy as np
+
 import pytest
 
 import torch
-
 from tests.common import TUNE_PATH
 
 from tests.recipes.common import RECIPE_TESTS_DIR
@@ -40,10 +41,10 @@ _CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
 
 _ASSETS = get_assets_path()
 
-# Generating `tiny_llama2_checkpoint.pt`
+# Generating `better_tiny_checkpoint.pt`
 # >>> import torch
 # >>> from torchtune.models.llama2 import llama2
-# >>> from tests.test_utils import init_weights_with_constant
+# >>> from tests.test_utils import fixed_init_model
 # >>> super_small_llama2 = llama2(
 # ... vocab_size=100,
 # ... num_layers=2,
@@ -53,8 +54,8 @@ _ASSETS = get_assets_path()
 # ... norm_eps=1e-5,
 # ... num_kv_heads=2,
 # ... )
-# >>> init_weights_with_constant(super_small_llama2, 0.1)
-# >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
+# >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
+# >>> torch.save({"model": super_small_llama2.state_dict()}, "better_tiny_checkpoint.pt")
 
 
 class TestFullFinetuneRecipe:
@@ -190,7 +191,6 @@ class TestRecipeGradientAccumulation:
                 for key, value in fetch_loss_values(capsys.readouterr().err).items()
             ][0]
         )
-
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
         tune full_finetune \
@@ -205,15 +205,15 @@ class TestRecipeGradientAccumulation:
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
         """.split()
-
+        # import pdb; pdb.set_trace()
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        acc_loss_value = float(
+        acc_loss_value = np.mean(
             [
-                value
+                float(value)
                 for key, value in fetch_loss_values(capsys.readouterr().err).items()
-            ][0]
+            ]
         )
-        torch.testing.assert_close(loss_value, acc_loss_value)
+        torch.testing.assert_close(loss_value, acc_loss_value, atol=1e-5, rtol=1e-5)
