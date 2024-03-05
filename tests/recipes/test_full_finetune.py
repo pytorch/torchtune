@@ -6,38 +6,55 @@
 
 import logging
 import os
-from copy import deepcopy
+
+import runpy
+
+import sys
 from typing import Dict
 
 import pytest
 
 import torch
-from tests.recipes.utils import (
-    fetch_ckpt_model_path,
-    fetch_loss_values,
-    llama2_small_test_ckpt,
-    validate_loss_values,
-)
-
-from torch import nn
-
-from torchtune import config, models, utils
-from torchtune.datasets._alpaca import CROSS_ENTROPY_IGNORE_IDX
-
-models.small_test_ckpt = llama2_small_test_ckpt
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-import runpy
-
-import sys
 
 from tests.common import TUNE_PATH
 
 from tests.recipes.common import RECIPE_TESTS_DIR
-from tests.test_utils import fixed_init_model
+from tests.recipes.utils import (
+    fetch_ckpt_model_path,
+    fetch_loss_values,
+    llama2_small_test_ckpt,
+    llama2_tiny_test_ckpt,
+    validate_loss_values,
+)
+from tests.test_utils import get_assets_path
+
+from torchtune import models
+
+models.small_test_ckpt = llama2_small_test_ckpt
+models.llama2_tiny_test_ckpt = llama2_tiny_test_ckpt
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
+
+_ASSETS = get_assets_path()
+
+# Generating `tiny_llama2_checkpoint.pt`
+# >>> import torch
+# >>> from torchtune.models.llama2 import llama2
+# >>> from tests.test_utils import init_weights_with_constant
+# >>> super_small_llama2 = llama2(
+# ... vocab_size=100,
+# ... num_layers=2,
+# ... num_heads=4,
+# ... embed_dim=64,
+# ... max_seq_len=64,
+# ... norm_eps=1e-5,
+# ... num_kv_heads=2,
+# ... )
+# >>> init_weights_with_constant(super_small_llama2, 0.1)
+# >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
 
 
 class TestFullFinetuneRecipe:
@@ -138,109 +155,15 @@ class TestFullFinetuneRecipe:
         validate_loss_values(loss_values, expected_loss_values)
 
 
-# Custom collate function reducing vocab size to build a smaller model
-def custom_collate(
-    batch,
-    padding_idx: int = 0,
-    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-    reduced_vocab_dim: int = 10,
-):
-    input_ids, labels = padded_collate(batch, padding_idx, ignore_idx)
-    input_ids = torch.remainder(input_ids, reduced_vocab_dim)
-    labels = torch.where(
-        labels == ignore_idx, labels, torch.remainder(labels, reduced_vocab_dim)
-    )
-    return input_ids, labels
-
-
-# Dummy model class containing just an nn.Embedding and nn.Linear
-class DummyModel(nn.Module):
-    def __init__(self, reduced_vocab_size=10, embed_dim=16):
-        super().__init__()
-        self.reduced_vocab_size = reduced_vocab_size
-        self.embed = nn.Embedding(reduced_vocab_size, embed_dim)
-        self.out = nn.Linear(embed_dim, reduced_vocab_size, bias=False)
-
-    def forward(self, x):
-        embeddings = self.embed(x)
-        out = self.out(embeddings)
-        return out
-
-
-def dummy_grad_accum_ckpt():
-    with torch.device("cpu"):
-        model = DummyModel()
-        fixed_init_model(model)
-    return model
-
-
-def dummy_setup_data_fn(
-    cfg_dataset,
-    shuffle,
-    batch_size,
-):
-    world_size, rank = utils.get_world_size_and_rank()
-    ds = config.instantiate(
-        cfg_dataset,
-        tokenizer=self._tokenizer,
-    )
-    sampler = DistributedSampler(
-        ds,
-        num_replicas=world_size,
-        rank=rank,
-        shuffle=shuffle,
-        seed=0,
-    )
-    dataloader = DataLoader(
-        dataset=ds,
-        batch_size=batch_size,
-        sampler=sampler,
-        collate_fn=partial(
-            utils.padded_collate,
-            padding_idx=0,  # Same padding_idx as custom collate function
-            ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
-        ),
-    )
-
-
-models.dummy_grad_accum_ckpt = dummy_grad_accum_ckpt
-
-
-@pytest.fixture
-def create_mock_load_checkpoint(mocker):
-    mocker.patch(
-        "recipes.full_finetune.FullFinetuneRecipe.load_checkpoint",
-        return_value={"model": None},
-    )
-
-
-@pytest.fixture
-def create_mock_collate_fn(mocker):
-    mocker.patch("torchtune.utils.padded_collate", wraps=custom_collate)
-
-
-@pytest.fixture
-def create_mock_setup_data_fn(mocker):
-    mocker.patch(
-        "recipes.full_finetune.FullFinetuneRecipe._setup_data",
-        wraps=dummy_setup_data_fn,
-    )
-
-
 class TestRecipeGradientAccumulation:
     @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
-    @pytest.mark.usefixtures("create_mock_load_checkpoint")
-    @pytest.mark.usefixtures("create_mock_collate_fn")
-    @pytest.mark.usefixtures("create_mock_setup_data_fn")
     def test_gradient_accumulation(
         self, full_batch_size, micro_batch_size, capsys, mocker, tmpdir, monkeypatch
     ):
-        """
-        Test gradient accumulation. Since this is model agnostic, we can just
-        run this on a small dummy model.
-        """
-
-        model_ckpt = "dummy_grad_accum_ckpt"
+        # We use a tiny model to reduce the error accumulation in the test
+        # It's impossible to make a large model produce the same loss values
+        # in the same way as the full batch size.
+        model_ckpt = "llama2_tiny_test_ckpt"
         gradient_accumulation_steps = full_batch_size // micro_batch_size
 
         cmd = f"""
@@ -248,22 +171,17 @@ class TestRecipeGradientAccumulation:
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint=None \
+            model_checkpoint={fetch_ckpt_model_path(model_ckpt)} \
+            dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
             epochs=1 \
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
         """.split()
 
-        # Patch the recipe to use DummyModel class
-        # Note that this cannot be done via a decorator because we use patch two separate times
-        with mocker.patch(
-            "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=dummy_grad_accum_ckpt(),
-        ):
-            monkeypatch.setattr(sys, "argv", cmd)
-            with pytest.raises(SystemExit):
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # the first run assumes the complete batch and so we have a single loss value
         loss_value = float(
@@ -279,7 +197,8 @@ class TestRecipeGradientAccumulation:
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint=None \
+            model_checkpoint={fetch_ckpt_model_path(model_ckpt)} \
+            dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             epochs=1 \
@@ -287,36 +206,14 @@ class TestRecipeGradientAccumulation:
             output_dir={tmpdir} \
         """.split()
 
-        # Copy the dataloader and run a few iterations. CrossEntropyLoss is normalized
-        # by the number of unmasked tokens, so we need to derive these values per sample
-        # to appropriately compare losses with and without gradient accumulation.
-        dummy_dataloader = deepcopy()
-        normalization_factors = []
-        for i, batch in enumerate(dummy_dataloader):
-            labels = batch[1]
-            num_unmasked_pos = (labels != CROSS_ENTROPY_IGNORE_IDX).sum().item()
-            normalization_factors.append(num_unmasked_pos)
-            if (i + 1) == full_batch_size:
-                break
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Patch the recipe to use DummyModel class. We use a separate patch
-        # because otherwise the model params would remain the same from the baseline
-        with mocker.patch(
-            "recipes.full_finetune.FullFinetuneRecipe._setup_model",
-            return_value=dummy_grad_accum_ckpt(),
-        ):
-            monkeypatch.setattr(sys, "argv", cmd_2)
-            with pytest.raises(SystemExit):
-                runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        # the second run accumulates losses and so sum these up to compare
-        acc_loss_value = sum(
+        acc_loss_value = float(
             [
-                normalization_factors[i] * float(value)
-                for i, value in enumerate(
-                    fetch_loss_values(capsys.readouterr().err).values()
-                )
-            ]
-        ) / sum(normalization_factors)
-
+                value
+                for key, value in fetch_loss_values(capsys.readouterr().err).items()
+            ][0]
+        )
         torch.testing.assert_close(loss_value, acc_loss_value)
