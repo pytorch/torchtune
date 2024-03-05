@@ -15,7 +15,7 @@ import pytest
 import torch
 from tests.test_utils import assert_expected
 
-from tests.torchtune._cli.common import TUNE_PATH
+from tests.common import TUNE_PATH
 from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 from torchtune.models.llama2 import llama2
 

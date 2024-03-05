@@ -9,6 +9,7 @@ import uuid
 import pytest
 import torch.distributed.launcher as pet
 
+import argparse
 
 @pytest.fixture(scope="session")
 def get_pet_launch_config():
@@ -39,3 +40,13 @@ def get_pet_launch_config():
         )
 
     return get_pet_launch_config_fn
+
+
+
+def pytest_addoption(parser: argparse.ArgumentParser) -> None:
+    parser.addoption(
+        "--large-scale",
+        type=bool,
+        default=False,
+        help="Run a larger scale integration test",
+    )

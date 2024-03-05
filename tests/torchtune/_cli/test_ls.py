@@ -8,7 +8,7 @@
 import runpy
 import sys
 
-from tests.torchtune._cli.common import TUNE_PATH
+from tests.common import TUNE_PATH
 
 from torchtune import list_configs, list_recipes
 
