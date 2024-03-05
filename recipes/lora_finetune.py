@@ -251,9 +251,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-
+        lora_modules = cfg_model.lora_attn_modules + (
+            ["w1", "w2", "w3"] if cfg_model.apply_lora_to_mlp else []
+        )
         validate_state_dict_for_lora(
-            lora_modules=cfg_model.lora_attn_modules,
+            lora_modules=lora_modules,
             full_model_state_dict_keys=model.state_dict().keys(),
             lora_state_dict_keys=lora_weights_state_dict.keys()
             if lora_weights_state_dict is not None
@@ -441,8 +443,8 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    # Env variables set by torch run; only need to initialize process group
-    init_process_group(backend="nccl")
+    if utils.is_distributed():
+        init_process_group(backend="nccl")
 
     recipe = LoRAFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)

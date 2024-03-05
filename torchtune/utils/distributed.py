@@ -35,7 +35,7 @@ def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     return getattr(ShardingStrategy, strategy)
 
 
-def _is_distributed() -> bool:
+def is_distributed() -> bool:
     """Check if all environment variables required to initialize torch.distributed are set
     and distributed is properly installed. This indicates a distributed run.
     https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization
@@ -80,7 +80,7 @@ def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
     Raises:
         RuntimeError: If torch.distributed is already initialized.
     """
-    if _is_distributed():
+    if is_distributed():
         if dist.is_initialized():
             raise RuntimeError("torch.distributed already initialized.")
         dist.init_process_group(**kwargs)

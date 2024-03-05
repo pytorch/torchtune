@@ -8,7 +8,12 @@ from .checkpoint import save_checkpoint, transform_opt_state_dict, validate_chec
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .device import get_device
-from .distributed import get_world_size_and_rank, init_distributed, wrap_fsdp
+from .distributed import (
+    get_world_size_and_rank,
+    init_distributed,
+    is_distributed,
+    wrap_fsdp,
+)
 from .logging import get_logger
 from .memory import set_activation_checkpointing
 from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
@@ -26,6 +31,7 @@ __all__ = [
     "get_logger",
     "get_world_size_and_rank",
     "init_distributed",
+    "is_distributed",
     "list_dtypes",
     "padded_collate",
     "set_activation_checkpointing",

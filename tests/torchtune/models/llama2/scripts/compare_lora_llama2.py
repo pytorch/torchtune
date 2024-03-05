@@ -31,6 +31,7 @@ def compare_lora_llama2(
     embed_dim: int,
     max_seq_len: int,
     lora_modules: List[str],
+    lora_in_mlp: bool,
     lora_rank: int,
     lora_alpha: float,
 ) -> None:
@@ -46,6 +47,7 @@ def compare_lora_llama2(
     # Our implementation
     lora_llama = lora_llama2(
         lora_attn_modules=lora_modules,
+        apply_lora_to_mlp=lora_in_mlp,
         vocab_size=vocab_size,
         num_layers=num_layers,
         num_heads=num_heads,
@@ -77,22 +79,25 @@ def compare_lora_llama2(
         lora_dropout=0.0,
         r=lora_rank,
         bias="none",
-        target_modules=lora_modules,
+        target_modules=lora_modules + (["w1", "w2", "w3"] if lora_in_mlp else []),
     )
 
     lora_llama_ref = inject_adapter_in_model(lora_config_ref, llama_ref)
     lora_llama_ref.norm = nn.Identity()
 
-    lora_mapping = {}
     mapped_sd = {}
     for k, v in lora_llama.state_dict().items():
         new_k = k.replace("lora_a", "lora_A.default").replace(
             "lora_b", "lora_B.default"
         )
-        for lora_module in lora_modules:
-            new_k = new_k.replace(
-                f"{lora_module}.weight", f"{lora_module}.base_layer.weight"
-            )
+        for attn_module in lora_modules:
+            if attn_module in new_k:
+                new_k = new_k.replace(
+                    attn_module + ".weight", attn_module + ".base_layer.weight"
+                )
+            if lora_in_mlp and any([f"mlp.w{i}.weight" in new_k for i in range(1, 4)]):
+                new_k = new_k.replace(".weight", ".base_layer.weight")
+
         mapped_sd[new_k] = v
 
     lora_llama_ref.load_state_dict(mapped_sd)
@@ -100,7 +105,9 @@ def compare_lora_llama2(
     with torch.no_grad():
         out_ref = lora_llama_ref(x)
 
-    print(lora_modules, out.mean(), out_ref.mean(), out.shape, out_ref.shape)
+    print(
+        lora_modules, lora_in_mlp, out.mean(), out_ref.mean(), out.shape, out_ref.shape
+    )
 
     # output tensors should be similar
     torch.testing.assert_close(out, out_ref, atol=1e-5, rtol=1e-3)
@@ -108,11 +115,11 @@ def compare_lora_llama2(
 
 if __name__ == "__main__":
     test_cases = [
-        ["q_proj", "v_proj"],
-        ["q_proj", "k_proj", "v_proj", "output_proj"],
-        ["k_proj"],
+        (["q_proj", "v_proj"], False),
+        (["q_proj", "k_proj", "v_proj", "output_proj"], True),
+        (["k_proj"], True),
     ]
-    for lora_modules in test_cases:
+    for lora_modules, lora_in_mlp in test_cases:
         compare_lora_llama2(
             bsz=2,
             seq_len=32,
@@ -123,6 +130,7 @@ if __name__ == "__main__":
             embed_dim=64,
             max_seq_len=64,
             lora_modules=lora_modules,
+            lora_in_mlp=lora_in_mlp,
             lora_rank=4,
             lora_alpha=1.0,
         )

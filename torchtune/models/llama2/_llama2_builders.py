@@ -18,7 +18,7 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.models.llama2._model_utils import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 
 def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
@@ -56,6 +56,12 @@ def llama2_tokenizer(path: str) -> Tokenizer:
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
     tokenizer.pad_id = 0
     return tokenizer
+
+def _llama_mlp(dim: int, hidden_dim: int) -> FeedForward:
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
 
 def llama2(
@@ -96,8 +102,8 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
-    mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
+    mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,

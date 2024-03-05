@@ -7,6 +7,7 @@
 model:
   _component_: torchtune.models.llama2.lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
   lora_rank: 8
   lora_alpha: 16
 

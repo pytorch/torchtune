@@ -22,7 +22,7 @@ setup(
     install_requires=read_requirements("requirements.txt"),
     entry_points={
         "console_scripts": [
-            "tune = torchtune._cli.cli_utils.tune:main",
+            "tune = torchtune._cli.tune:main",
         ]
     },
     description="Package for finetuning LLMs using native PyTorch",
