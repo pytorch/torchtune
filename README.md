@@ -101,7 +101,7 @@ tune download --repo-id meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir
 Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
 
 ```
-tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native
+tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth --output-path /tmp/llama2_native --model llama2
 ```
 
 &nbsp;
