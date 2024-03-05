@@ -61,7 +61,7 @@ class TestLoRAFinetuneRecipe:
             model.lora_rank=8 \
             model.lora_alpha=16 \
             model.apply_lora_to_mlp=False \
-        """.split()
+        """.split()  # noqa: W605
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
