@@ -63,6 +63,20 @@ class TestLoRAFinetuneRecipe:
             if not enable_fsdp
             else "lora_finetune_distributed"
         )
+        cmd = f"""
+        tune {recipe_name}
+            --config {config_path} \
+            --override \
+            output_dir={tmpdir} \
+            model._component_=torchtune.models.{ckpt} \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            model.lora_rank=8 \
+            model.lora_alpha=16 \
+            model.apply_lora_to_mlp=False \
+        """.split()
+
+        # Have to attach this after so it parses correctly
+        cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
 
         for ckpt in [
             "small_test_ckpt_hf",
