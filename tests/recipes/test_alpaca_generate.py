@@ -5,16 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Optional
 
-import recipes.alpaca_generate as alpaca_generate
-from omegaconf import OmegaConf
-from torchtune import models
-from torchtune.modules import TransformerDecoder
+import runpy
+import sys
+
+import pytest
+
+from tests.common import TUNE_PATH
+from tests.recipes.common import RECIPE_TESTS_DIR
+
 from tests.recipes.utils import llama2_small_test_ckpt
+from torchtune import models
 
+_CONFIG_PATH = RECIPE_TESTS_DIR / "alpaca_generate_test_config.yaml"
 
-models.small_test_ckpt = small_test_ckpt
+models.small_test_ckpt = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 

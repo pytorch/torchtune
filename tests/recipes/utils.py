@@ -7,9 +7,40 @@
 from typing import Dict, Optional
 
 import pytest
+
+import torch
+from tests.test_utils import get_assets_path
+from torch.utils.data import Dataset
 from torchtune.models.llama2 import llama2, lora_llama2
 
 from torchtune.modules import TransformerDecoder
+
+_ASSETS = get_assets_path()
+
+
+class DummyDataset(Dataset):
+    def __init__(self, **kwargs):
+        self._data = torch.randint(1, 10, (4, 20))
+        self._labels = torch.randint(1, 10, (4, 10))
+
+    def __getitem__(self, index):
+        return (self._data[index], self._labels[index])
+
+    def __len__(self):
+        return len(self._data)
+
+
+def llama2_tiny_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+    return llama2(
+        vocab_size=100,
+        num_layers=2,
+        num_heads=4,
+        embed_dim=64,
+        max_seq_len=64,
+        norm_eps=1e-5,
+        num_kv_heads=2,
+        max_batch_size=max_batch_size,
+    )
 
 
 def llama2_small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
@@ -69,6 +100,8 @@ def fetch_ckpt_model_path(ckpt) -> str:
         return "/tmp/test-artifacts/small-ckpt-01242024"
     if ckpt == "llama2_7b":
         return "/tmp/test-artifacts/llama2-7b-01242024"
+    if "tiny_test_ckpt" in ckpt:
+        return _ASSETS / "tiny_llama2_checkpoint.pt"
     raise ValueError(f"Unknown ckpt {ckpt}")
 
 
