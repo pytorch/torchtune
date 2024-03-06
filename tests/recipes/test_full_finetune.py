@@ -205,7 +205,7 @@ class TestRecipeGradientAccumulation:
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
         """.split()
-        # import pdb; pdb.set_trace()
+
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
