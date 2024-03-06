@@ -56,3 +56,6 @@ device: cuda
 dtype: fp32
 enable_fsdp: True
 enable_activation_checkpointing: True
+
+save_full_final_checkpoint: False
+save_llama2_native_format: False

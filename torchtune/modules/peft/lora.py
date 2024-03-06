@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import functools
 import math
 from typing import List, Optional
 
@@ -115,6 +116,34 @@ class LoRALinear(nn.Module, AdapterModule):
         if self.use_bias_in_lora_matrices:
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
+
+    # @functools.cached_property
+    def _lora_delta(self):
+        return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
+
+    @torch.no_grad
+    def merge_lora_weights(self, *args, **kwargs):
+        self.weight += self._lora_delta
+        self.cached_lora_a_weight = self.lora_a.weight
+        self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
+        # same for bias
+        # is there a better way to unregister module?
+        del self.lora_a
+        del self.lora_b
+
+    @torch.no_grad
+    # This has to run after calling state_dict on self and children
+    def unmerge_lora_weights(self, *args, **kwargs):
+        self.lora_a = nn.Linear()
+        # self.cached_lora_a
+        self.lora_b = self.cached_lora_b
+        del self.cached_lora_a
+        del self.cached_lora_b
+        self.weight -= self._lora_delta
+
+    # def register_merging_state_dict_hooks(self):
+    #     self._register_pre_state_dict_hook(self.pre_state_dict_hook)
+    #     self._register_state_dict_hook(self.post_state_dict_hook)
 
     def forward(self, x: Tensor) -> Tensor:
         """

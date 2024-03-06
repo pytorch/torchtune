@@ -27,7 +27,9 @@ from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     lora_fsdp_init,
     lora_fsdp_wrap_policy,
+    register_lora_weight_merge_hooks,
     set_trainable_params,
+    unregister_lora_weight_merge_hooks,
     validate_state_dict_for_lora,
 )
 from torchtune.utils.constants import (
@@ -183,6 +185,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             num_training_steps=self.total_epochs * steps_per_epoch,
             last_epoch=self.total_training_steps - 1,
         )
+
+        self._save_full_final_checkpoint = cfg.save_full_final_checkpoint
+        # TODO: this should only be true when save_full_final_checkpoint is True
+        self._save_llama2_native_format = cfg.save_llama2_native_format
 
     def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
         """
@@ -341,11 +347,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         return sampler, dataloader
 
-                epoch=curr_epoch,
-                save_full_weights=save_full_weights,
-                merge_lora_weights=merge_lora_weights,
-
-    def save_checkpoint(self, epoch: int, save_full_weights: bool = False, merge_lora_weights: bool = False) -> None:
+    def save_checkpoint(
+        self,
+        epoch: int,
+        save_full_weights: bool = False,
+        merge_lora_weights: bool = False,
+    ) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
@@ -364,13 +371,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        model_key_filter = lambda x: x in self.adapter_params if not save_full_weights else None
-        if merge_lora_weights:
-            prepare_for_lora_merge(self._model)
-        utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=model_key_filter
+        model_key_filter = (
+            lambda x: x in self.adapter_params if not save_full_weights else None
         )
-
+        # Can try context manager
+        # Need to run inside FSDP hooks
+        if merge_lora_weights:
+            register_lora_weight_merge_hooks(self._model)
+        utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=model_key_filter)
+        if merge_lora_weights:
+            unregister_lora_weight_merge_hooks(self._model)
         if self._is_rank_zero:
             log.info(
                 msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"

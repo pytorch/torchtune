@@ -225,3 +225,90 @@ def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
         # Brings params to device with empty data. data will be
         # overwriten when loading in checkpoint.
         module.to_empty(device=device, recurse=False)
+
+
+def register_lora_weight_merge_hooks(model: nn.Module):
+    for n, m in model.named_modules():
+        # TODO: less verbose check
+        if (
+            hasattr(m, "merge_lora_weights")
+            and callable(m.merge_lora_weights)
+            and hasattr(m, "unmerge_lora_weights")
+            and callable(m.unmerge_lora_weights)
+        ):
+            # Add check these don't already exist
+            m.pre_handle = m.register_state_dict_pre_hook(m.merge_lora_weights)
+            m.post_handle = m._register_state_dict_hook(m.unmerge_lora_weights)
+
+
+def unregister_lora_weight_merge_hooks(model: nn.Module):
+    for n, m in model.named_modules():
+        if (
+            hasattr(m, "merge_lora_weights")
+            and callable(m.merge_lora_weights)
+            and hasattr(m, "unmerge_lora_weights")
+            and callable(m.unmerge_lora_weights)
+        ):
+            # TODO: add some assertion here
+            m.pre_handle.remove()
+            m.post_handle.remove()
+
+
+# def lora_save_checkpoint_weight_merge_decorator(dec, condition):
+#     def decorator(func):
+#         if not condition:
+#             # Return the function unchanged, not decorated.
+#             return func
+#         return dec(func)
+#     return decorator
+
+# def register_and_unregister_lora_merge_hooks(model: nn.Module, merge_lora_weights: bool = False):
+# # def decorator(func: Callable):
+#     def wrapper(*args, **kwargs):
+#         if merge_lora_weights:
+#             register_lora_weight_merge_hooks(model)
+#             result = func(*args, **kwargs)
+#             unregister_lora_weight_merge_hooks(model)
+#         else:
+#             result = func(*args, **kwargs)
+#         return result
+#     return wrapper
+
+
+# def lora_weight_merge_pre_hook(model: nn.Module):
+#     for n, m in model.named_modules():
+#         if isinstance(m, LoRALinear):
+#             m.post_handle = m._register_state_dict_hook(m.merge_lora_weights)
+
+# def lora_weight_merge_post_hook(model: nn.Module):
+#     for n, m in model.named_modules():
+#         if isinstance(m, LoRALinear):
+#             m.unmerge_lora_weights()
+
+# def register_and_unregister_lora_merge_hooks(model: nn.Module, fn: Callable, *args, **kwargs):
+#     pre_handle = model._register_pre_state_dict_hook(lora_weight_merge_pre_hook)
+#     post_handle = model._register_state_dict_hook(lora_weight_merge_post_hook)
+#     fn(model, *args, **kwargs)
+#     pre_handle.remove()
+#     post_handle.remove()
+
+# def register_and_unregister_lora_merge_hooks(model: nn.Module, merge_lora_weights: bool = False):
+# def decorator(func: Callable):
+#     def wrapper(*args, **kwargs):
+#         if do_decorate:
+#             pre_handle = model._register_pre_state_dict_hook(lora_weight_merge_pre_hook)
+#             post_handle = model._register_state_dict_hook(lora_weight_merge_post_hook)
+#             result = func(*args, **kwargs)
+#             pre_handle.remove()
+#             post_handle.remove()
+#         else:
+#             result = func(*args, **kwargs)
+#         return result
+#     return wrapper
+
+
+# def wrap_for_lora_weight_merging(fn: Callable, model: nn.Module):
+#     for n, m in model.named_modules():
+#         if isinstance(m, LoRALinear):
+#             pre_handle = m._register_pre_state_dict_hook(m.pre_state_dict_hook)
+#             post_handle = m._register_state_dict_hook(m.post_state_dict_hook)
