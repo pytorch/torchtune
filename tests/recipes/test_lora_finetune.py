@@ -48,7 +48,7 @@ class TestLoRAFinetuneRecipe:
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     @pytest.mark.parametrize("enable_fsdp", [False, True])
-    def test_loss(self, capsys, tmpdir):
+    def test_loss(self, capsys, tmpdir, enable_fsdp, monkeypatch):
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
