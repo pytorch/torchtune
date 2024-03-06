@@ -8,9 +8,9 @@
 import runpy
 import sys
 
-from recipes import list_configs, list_recipes
+from tests.common import TUNE_PATH
 
-from tests.torchtune._cli.common import TUNE_PATH
+from torchtune import list_configs, list_recipes
 
 from torchtune._cli.ls import _NULL_VALUE
 
