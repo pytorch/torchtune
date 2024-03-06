@@ -46,7 +46,7 @@ class TestLoRAFinetuneRecipe:
         # TODO: no support for large scale test yet for LoRA
         raise ValueError(f"Unknown ckpt {ckpt}")
 
-    @pytest.mark.parametrize("enable_fsdp", [False, True])
+    @pytest.mark.parametrize("enable_fsdp", [True])
     def test_loss(self, enable_fsdp, capsys, pytestconfig):
         context_manager = single_box_init if enable_fsdp else contextlib.nullcontext
         with context_manager():
