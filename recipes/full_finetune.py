@@ -14,8 +14,6 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig
 
-from recipes.interfaces import FTRecipeInterface
-
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
@@ -23,6 +21,8 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
+
+from torchtune.recipes_interfaces import FTRecipeInterface
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
