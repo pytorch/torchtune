@@ -15,8 +15,10 @@ from omegaconf import DictConfig, OmegaConf
 class InstantiationError(Exception):
     pass
 
+
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
     return (OmegaConf.is_dict(node) or isinstance(node, dict)) and "_component_" in node
+
 
 def _get_component_from_path(path: str) -> Any:
     """
@@ -130,10 +132,7 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
         k, v = arg.split("=")
         # If a cli arg overrides a yaml arg with a _component_ field, update the
         # key string to reflect this
-        if (
-            k in yaml_kwargs
-            and _has_component(yaml_kwargs[k])
-        ):
+        if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
             k += "._component_"
         cli_dotlist.append(f"{k}={v}")
 
