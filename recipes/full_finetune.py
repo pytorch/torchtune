@@ -409,7 +409,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     Configurable parameters are read in the following order:
         - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
-        - Overwritten by arguments from the command-line using ``--override``
+        - Overwritten by arguments from the command-line
     """
     if utils.is_distributed():
         init_process_group(backend="nccl")
@@ -421,4 +421,4 @@ def recipe_main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(recipe_main())
+    recipe_main()

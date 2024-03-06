@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
-import sys
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -460,7 +459,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     Configurable parameters are read in the following order:
         - Parameters specified in ``alpaca_llama2_lora_finetune_distributed.yaml``
-        - Overwritten by arguments from the command-line using ``--override``
+        - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():
         raise RuntimeError(
@@ -477,4 +476,4 @@ def recipe_main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    sys.exit(recipe_main())
+    recipe_main()

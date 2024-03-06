@@ -4,8 +4,24 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from unittest import mock
+
 import pytest
-from torchtune.config._utils import _get_component_from_path, InstantiationError
+from torchtune.config._utils import (
+    _get_component_from_path,
+    _merge_yaml_and_cli_args,
+    InstantiationError,
+)
+from torchtune.utils.argparse import TuneArgumentParser
+
+_CONFIG = {
+    "a": 1,
+    "b": {
+        "_component_": 2,
+        "c": 3,
+    },
+    "d": 4,
+}
 
 
 class TestUtils:
@@ -26,3 +42,28 @@ class TestUtils:
             InstantiationError, match="Error loading 'torchtune.models.dummy'"
         ):
             _ = _get_component_from_path("torchtune.models.dummy")
+
+    @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
+    def test_merge_yaml_and_cli_args(self, mock_load):
+        parser = TuneArgumentParser("test parser")
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "b.c=4",  # Test overriding a flat param in a component
+                "b=5",  # Test overriding component path
+                "b.b.c=6",  # Test nested dotpath
+                "d=6",  # Test overriding a flat param
+                "e=7",  # Test adding a new param
+            ]
+        )
+        conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+        assert conf.a == 1, f"a == {conf.a}, not 1 as set in the config."
+        assert (
+            conf.b._component_ == 5
+        ), f"b == {conf.b._component_}, not 5 as set in overrides."
+        assert conf.b.c == 4, f"b.c == {conf.b.c}, not 4 as set in overrides."
+        assert conf.b.b.c == 6, f"b.b.c == {conf.b.b.c}, not 6 as set in overrides."
+        assert conf.d == 6, f"d == {conf.d}, not 6 as set in overrides."
+        assert conf.e == 7, f"e == {conf.e}, not 7 as set in overrides."
+        mock_load.assert_called_once()
