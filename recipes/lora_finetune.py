@@ -22,11 +22,8 @@ from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    lora_fsdp_init,
-    lora_fsdp_wrap_policy,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -38,7 +35,7 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import validate_no_meta_params
+from torchtune.utils.distributed import validate_no_params_on_meta_device
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -133,7 +130,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             if self._resume_from_checkpoint
             else None,
         )
-
         self._tokenizer = config.instantiate(cfg.tokenizer)
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
@@ -226,26 +222,23 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         with init_device:
             model = config.instantiate(cfg_model)
 
-        reset_lora_params(model, device=self._device)
-
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
-
         if enable_fsdp:
             model = utils.wrap_fsdp(
                 model=model,
                 device=self._device,
                 dtype=self._dtype,
                 strategy="FULL_SHARD",
-                auto_wrap_policy=lora_fsdp_wrap_policy(
+                auto_wrap_policy=utils.lora_fsdp_wrap_policy(
                     modules_to_wrap={modules.TransformerDecoderLayer}
                 ),
-                param_init_fn=partial(lora_fsdp_init, device=self._device),
+                use_meta_device=True,
             )
 
-            # Ensure no params and buffers are on meta device
-            validate_no_meta_params(model)
+        # Ensure no params and buffers are on meta device
+        validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(

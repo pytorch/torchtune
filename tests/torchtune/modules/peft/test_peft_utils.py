@@ -4,27 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from functools import partial
-from itertools import chain
-
 import pytest
-import torch
 
-from tests.test_utils import single_box_init
 from torch import nn
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torchtune.models.llama2 import llama2, lora_llama2
-from torchtune.modules.peft.lora import LoRALinear, reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
     AdapterModule,
     get_adapter_params,
-    lora_fsdp_init,
-    lora_fsdp_wrap_policy,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
-from torchtune.modules.transformer import TransformerDecoderLayer
 
 N_LAYERS = 3
 IN_DIM = 5
@@ -34,21 +24,6 @@ NUM_HEADS = 4
 NUM_KV_HEADS = 2
 EMBED_DIM = 64
 MAX_SEQ_LEN = 64
-
-
-def _get_n_lora_and_tformer_layers(model):
-    num_lora_ab = 0
-    num_transformer_layers = 0
-    for module in model.modules():
-        if isinstance(module, LoRALinear):
-            num_nested_linears = len(
-                [m for m in module.modules() if isinstance(m, nn.Linear)]
-            )
-            num_lora_ab += num_nested_linears
-        if isinstance(module, TransformerDecoderLayer):
-            num_transformer_layers += 1
-
-    return num_lora_ab, num_transformer_layers
 
 
 class DummyAdapterModule(nn.Module, AdapterModule):
@@ -319,79 +294,3 @@ class TestPeftUtils:
                 lora_state_dict_keys=lora_state_dict_keys,
                 base_model_state_dict_keys=base_model_state_dict_keys,
             )
-
-    def test_lora_fsdp_wrap(self):
-        with torch.device("meta"):
-            model = lora_llama2(
-                lora_attn_modules=["q_proj", "v_proj"],
-                vocab_size=VOCAB_SIZE,
-                num_layers=N_LAYERS,
-                num_heads=NUM_HEADS,
-                num_kv_heads=NUM_KV_HEADS,
-                embed_dim=EMBED_DIM,
-                max_seq_len=MAX_SEQ_LEN,
-                lora_rank=4,
-                lora_alpha=1.0,
-            )
-
-        reset_lora_params(model, device=torch.device("cpu"))
-        adapter_params = get_adapter_params(model)
-        set_trainable_params(model, adapter_params)
-        num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
-        with single_box_init():
-            lora_wrap_policy = lora_fsdp_wrap_policy(
-                modules_to_wrap={TransformerDecoderLayer}
-            )
-
-            lora_init = partial(lora_fsdp_init, device=torch.device("cpu"))
-            wrapped_lora = FSDP(
-                model,
-                auto_wrap_policy=lora_wrap_policy,
-                device_id=torch.device("cpu"),
-                param_init_fn=lora_init,
-            )
-
-            # After FSDP wrap, nothing should be left on meta device, and LoRA params
-            # should be initialized.
-            for p in chain(wrapped_lora.parameters(), wrapped_lora.buffers()):
-                assert not p.is_meta
-
-            for m in wrapped_lora.modules():
-                if isinstance(m, LoRALinear):
-                    assert m._lora_params_initialized
-
-            # Total # FSDP modules should be num_transformer + num_lora_ab + 1
-            total_fsdp_submodules = len([m for m in FSDP.fsdp_modules(wrapped_lora)])
-            assert total_fsdp_submodules == (num_lora_ab + num_transformer_layers + 1)
-            # LoRA a & b linears should be individually wrapped.
-            # And TransformerDecoderLayers should be individually wrapped.
-            for fsdp_submodule in FSDP.fsdp_modules(wrapped_lora):
-                if isinstance(fsdp_submodule.module, nn.Linear):
-                    num_lora_ab -= 1
-                elif isinstance(fsdp_submodule.module, TransformerDecoderLayer):
-                    num_transformer_layers -= 1
-            assert num_lora_ab == 0
-            assert num_transformer_layers == 0
-
-    def test_lora_meta_device_init_fsdp(self):
-        with torch.device("meta"):
-            lora = lora_llama2(
-                lora_attn_modules=["q_proj", "v_proj"],
-                vocab_size=VOCAB_SIZE,
-                num_layers=N_LAYERS,
-                num_heads=NUM_HEADS,
-                num_kv_heads=NUM_KV_HEADS,
-                embed_dim=EMBED_DIM,
-                max_seq_len=MAX_SEQ_LEN,
-                lora_rank=4,
-                lora_alpha=1.0,
-            )
-
-        for m in lora.modules():
-            lora_fsdp_init(m, device=torch.device("cpu"))
-        # No params should be left on meta device
-        for n, p in lora.named_parameters():
-            assert not p.is_meta, f"parameter {n} is still on meta device!"
-        # Neither should buffers
-        for n, b in lora.named_buffers():
-            assert not b.is_meta, f"buffer {n} is still on meta device!"

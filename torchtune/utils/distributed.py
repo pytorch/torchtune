@@ -20,6 +20,11 @@ from torch.distributed.fsdp import (
     ShardingStrategy,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torchtune.modules.peft.lora import (
+    _lora_a_init_params,
+    _lora_b_init_params,
+    LoRALinear,
+)
 
 from torchtune.utils.device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
@@ -102,7 +107,7 @@ def get_world_size_and_rank() -> Tuple[int, int]:
         return 1, 0
 
 
-def validate_no_meta_params(model: nn.Module) -> None:
+def validate_no_params_on_meta_device(model: nn.Module) -> None:
     """
     Utility to validate that model has no params or buffers on meta device.
     If a meta param or buffer is found, an error indicating the param name will
@@ -126,6 +131,7 @@ def wrap_fsdp(
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
     cpu_offload: bool = False,
+    use_meta_device: bool = False,
     **kwargs,
 ) -> nn.Module:
     """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
@@ -162,6 +168,9 @@ def wrap_fsdp(
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
         cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
+        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.
+            If so, we will define the `reset_parameters()` method on all submodules
+            to ensure FSDP properly initializes all modules on device given by `device`. Default: False
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:
@@ -175,6 +184,8 @@ def wrap_fsdp(
         significant training performance issues at the moment.
     """
     if dist.is_available() and dist.is_initialized():
+        if use_meta_device:
+            model = prepare_model_for_fsdp_with_meta_device(model)
         if strategy is None:
             strategy = "FULL_SHARD"
         _validate_device_from_env(device)
@@ -201,3 +212,81 @@ def wrap_fsdp(
         raise RuntimeError(
             "Distributed environment is not setup. Please run init_distributed() first."
         )
+
+
+def _dummy_reset_params(x: nn.Module) -> None:
+    """
+    Dummy method for patching no-op reset_parameters() when using
+    FSDP with meta device.
+    """
+    return
+
+
+def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
+    """
+    Dynamically define reset_parameters on every submodule of the model. For LoRA models,
+    ensure that the FSDP contract of reset_parameters only modifying a module's directly-owned
+    parameters is satisfied. More details here: https://github.com/pytorch/pytorch/issues/104187.
+
+    Args:
+        model (nn.Module): model class to prepare for usage with FSDP and meta device.
+
+    Returns:
+        nn.Module: Model with reset_parameters defined on every submodule.
+        In the case of a LoRA model, we override the default reset_parameters of nn.Linear.
+
+    Raises:
+        RuntimeError: if model contains submodule with non-callable attribute reset_parameters
+    """
+    for k, v in model.named_modules():
+        # If the module does not have reset_parameters defined, we define
+        # a no-op reset_parameters method to satisfy FSDP's contract.
+        reset_params = getattr(v, "reset_parameters", None)
+
+        if reset_params is not None and not callable(reset_params):
+            raise RuntimeError(
+                f"Cannot override existing reset_parameters variable for FSDP init in {k}"
+            )
+
+        if reset_params is None:
+            v.reset_parameters = _dummy_reset_params.__get__(v)
+
+        # This will define reset_parameters for LoRA weight initialization
+        # directly on any LoRALinear submodules lora_a and lora_b.
+        if isinstance(v, LoRALinear):
+            v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
+            v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
+
+    return model
+
+
+def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for wrapping models trained with LoRA using FSDP. Specifically,
+    this will wrap individual LoRA A & B submodules in their own FSDP units to
+    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that
+    (a) LoRA's A and B matrices are the only trainable weights in the entire model, and
+    (b) we have already set requires_grad = True on LoRA params.
+
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+
+    def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
+        if recurse:
+            return True
+
+        # Assumes lora_a and lora_b are nn.Linears that are the
+        # only trainable modules in the entire network. Wraps
+        # these in separate FSDP unit to work around FSDP allocating
+        # extra gradient memory when wrapped with other modules.
+        if hasattr(module, "weight") and module.weight.requires_grad:
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return lora_wrap_fsdp

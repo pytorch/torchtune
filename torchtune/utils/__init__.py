@@ -12,6 +12,7 @@ from .distributed import (
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
+    lora_fsdp_wrap_policy,
     wrap_fsdp,
 )
 from .logging import get_logger
@@ -33,6 +34,7 @@ __all__ = [
     "init_distributed",
     "is_distributed",
     "list_dtypes",
+    "lora_fsdp_wrap_policy",
     "padded_collate",
     "set_activation_checkpointing",
     "set_seed",
