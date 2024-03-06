@@ -168,8 +168,9 @@ def wrap_fsdp(
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
         cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
-        use_meta_device (bool): Whether model is initialized on meta device. If so, we will
-            ensure the `reset_parameters()` method is defined on all submodules. Default: False
+        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.
+            If so, we will define the `reset_parameters()` method on all submodules
+            to ensure FSDP properly initializes all modules on device given by `device`. Default: False
         **kwargs: additional arguments to pass to FSDP for distributed training.
 
     Returns:

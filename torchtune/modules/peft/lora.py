@@ -69,8 +69,6 @@ class LoRALinear(nn.Module, AdapterModule):
             in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
 
-        # Skip init if we are under a meta device context.
-        # In this case params will be initialized by FSDP.
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
@@ -78,6 +76,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # when using meta device. This is done in
         # torchtune.utils.distributed.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
+        # Without meta device, we only need the following:
         self.initialize_parameters()
 
     def initialize_parameters(self):
@@ -113,15 +112,13 @@ class LoRALinear(nn.Module, AdapterModule):
 
 def _lora_a_init_params(x: nn.Linear) -> None:
     """
-    Define a reset_parameters method directly on LoRALinear's lora_a weight
-    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
+    Initialize LoRA A weight to Kaiming uniform.
     """
     nn.init.kaiming_uniform_(x.weight, a=math.sqrt(5))
 
 
 def _lora_b_init_params(x: nn.Linear) -> None:
     """
-    Define a reset_parameters method directly on LoRALinear's lora_b weight
-    to satisfy FSDP's contract: https://github.com/pytorch/pytorch/issues/104187.
+    Initialize LoRA B weight to zeros.
     """
     nn.init.zeros_(x.weight)
