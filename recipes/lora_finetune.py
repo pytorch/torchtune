@@ -14,8 +14,6 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig
 
-from recipes.interfaces import FTRecipeInterface
-
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
@@ -27,6 +25,8 @@ from torchtune.modules.peft.peft_utils import (
     set_trainable_params,
     validate_state_dict_for_lora,
 )
+
+from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
