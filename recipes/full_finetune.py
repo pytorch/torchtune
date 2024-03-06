@@ -22,7 +22,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
 
-from torchtune.recipes_interfaces import FTRecipeInterface
+from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
