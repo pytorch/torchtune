@@ -225,14 +225,6 @@ class TestFullFinetuneRecipe:
         validate_loss_values(loss_values, expected_loss_values)
 
 
-@pytest.fixture
-def create_mock_setup_data_fn(mocker):
-    mocker.patch(
-        "recipes.full_finetune.FullFinetuneRecipe._setup_data",
-        wraps=dummy_setup_data_fn,
-    )
-
-
 class TestRecipeGradientAccumulation:
     @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
     def test_gradient_accumulation(
