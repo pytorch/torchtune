@@ -218,7 +218,7 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
     tune full_finetune --config alpaca_llama2_full_finetune model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
 
 Overriding components
-"""""""""""""""""""""
+^^^^^^^^^^^^^^^^^^^^^
 If you would like to override a parameter in the config that has a :code:`_component_`
 field, you can do so by assigning to the parameter name directly. Any nested fields
 in the components can be overridden with dot notation.
