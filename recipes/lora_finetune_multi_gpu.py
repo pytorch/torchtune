@@ -44,9 +44,9 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipe(FTRecipeInterface):
+class LoRAFinetuneMultiGPURecipe(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Multi-GPU LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
         - FSDP and activation checkpointing. This is enabled by default but is
@@ -440,13 +440,13 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_multi_gpu.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
     if utils.is_distributed():
         init_process_group(backend="nccl")
 
-    recipe = LoRAFinetuneRecipe(cfg=cfg)
+    recipe = LoRAFinetuneMultiGPURecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

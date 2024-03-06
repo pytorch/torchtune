@@ -135,9 +135,9 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
         self._loss_fn = config.instantiate(cfg.loss)
         log.info("Loss is initialized.")
 
-        # sampler and dataloader depend on the tokenizer and loss_fn and should be
+        # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self._sampler, self._dataloader = self._setup_data(
+        self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -275,23 +275,16 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> Tuple[DistributedSampler, DataLoader]:
+    ) -> DataLoader:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. Currently this recipe only supports
+        Map-style Datasets which fit into memory and an option for random shuffling.
+        Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        sampler = DistributedSampler(
-            ds,
-            num_replicas=1,
-            rank=0,
-            shuffle=shuffle,
-            seed=0,
-        )
         dataloader = DataLoader(
             dataset=ds,
+            shuffle=shuffle,
             batch_size=batch_size,
-            sampler=sampler,
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
@@ -301,7 +294,7 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
         log.info("Dataset and Sampler are initialized.")
 
-        return sampler, dataloader
+        return dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -337,11 +330,6 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
-
             for idx, batch in enumerate(
                 pbar := tqdm(self._dataloader)
             ):
@@ -398,7 +386,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_single_gpu.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
     recipe = LoRAFinetuneRecipeSingleGPU(cfg=cfg)
