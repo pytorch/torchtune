@@ -63,13 +63,11 @@ def _get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
 
     return new_key
 
+#### =========== Convertors for Llama2 7B ===========
 
-def convert_llama2_from_meta_format(
+def meta_to_tune_llama2_7b(
     original_state_dict: Dict[str, torch.Tensor]
 ) -> Dict[str, torch.Tensor]:
-    """
-    TODO: Add doc string
-    """
     converted_state_dict = {}
     for key, value in original_state_dict.items():
         if key not in ["rope.freqs"]:  # Skip loading the position embeddings
@@ -79,12 +77,9 @@ def convert_llama2_from_meta_format(
     return converted_state_dict
 
 
-def convert_llama2_to_meta_format(
+def tune_to_meta_llama2_7b(
     original_state_dict: Dict[str, torch.Tensor]
 ) -> Dict[str, torch.Tensor]:
-    """
-    TODO: Add doc string
-    """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
 
@@ -95,7 +90,7 @@ def convert_llama2_to_meta_format(
     return converted_state_dict
 
 
-def convert_llama2_from_hf_format(original_state_dict):
+def hf_to_tune_llama2_7b(original_state_dict):
     converted_state_dict = {}
     for key, value in original_state_dict.items():
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
@@ -110,7 +105,7 @@ def convert_llama2_from_hf_format(original_state_dict):
     return converted_state_dict
 
 
-def convert_llama2_to_hf_format(original_state_dict):
+def tune_to_hf_llama2_7b(original_state_dict):
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 

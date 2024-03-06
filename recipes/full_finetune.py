@@ -25,15 +25,14 @@ from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.constants import (
-    CheckpointFormat,
     EPOCHS_KEY,
     MAX_STEPS_KEY,
     MODEL_KEY,
-    ModelType,
     OPT_KEY,
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
+from torchtune.utils import CheckpointFormat, FullModelCheckpointer, ModelType
 
 from tqdm import tqdm
 
@@ -96,24 +95,28 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.total_training_steps = 0
 
-    def load_checkpoint(self, ckpt_path: Path) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate.
         """
-        ckpt_dict = utils.load_checkpoint(
-            ckpt_path, self._checkpoint_format, self._resume_from_checkpoint
+        self._checkpoint_format = getattr(CheckpointFormat, cfg.checkpoint_format)
+        self._model_type = getattr(ModelType, cfg.model_type,)
+        self._checkpointer = FullModelCheckpointer(
+            checkpoint_dir = Path(cfg.checkpoint_dir),
+            checkpoint_files = [Path(ckpt_file) for ckpt_file in cfg.checkpoint_files],
+            checkpoint_format = self._checkpoint_format,
+            model_type = self._model_type,
+            output_dir=Path(self._output_dir),
+            resume_from_checkpoint = self._resume_from_checkpoint,
         )
+
+        ckpt_dict = self._checkpointer.load_checkpoint()
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
         # propagated to the relevant components
         if self._resume_from_checkpoint:
             self._update_recipe_state(ckpt_dict)
-            utils.validate_checkpoint(ckpt_dict, self._resume_from_checkpoint)
-        else:
-            ckpt_dict = convert_to_torchtune_format(
-                ckpt_dict, self._checkpoint_format, self._model_type
-            )
         return ckpt_dict
 
     def setup(self, cfg: DictConfig) -> None:
@@ -123,10 +126,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        self._checkpoint_format = getattr(CheckpointFormat, cfg.model_checkpoint_format)
-        self._model_type = getattr(ModelType, cfg.model_type)
-
-        ckpt_dict = self.load_checkpoint(Path(cfg.model_checkpoint_path))
+        ckpt_dict = self.load_checkpoint(cfg.model_checkpoint)
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -305,42 +305,38 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def save_checkpoint(self, epoch: int) -> None:
         """
-        Checkpoint the relevant state of a recipe.
-
-        This makes use of the `save_checkpoint` utility which is responsible for
-        writing the checkpoint dictionary to file. The contents of the dict are dictated
-        by whether training is complete or not.
+        Checkpoint the relevant state of a recipe. This function is responsible for ensuring
+        the state_dict for mid-training checkpointing is constructed correctly.
 
         If training is ongoing, optimizer state, seed and epochs_run are saved along with the
-        model weights.
+        model weights
         """
-        os.makedirs(self._output_dir, exist_ok=True)
-        output_loc = f"{self._output_dir}/model_{epoch}.pt"
-
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict = {MODEL_KEY: self._model}
+            ckpt_dict = {MODEL_KEY: self._model.state_dict()}
+            optimizer_state_dict = (
+                FSDP.optim_state_dict(self._model, self._optimizer)
+                if utils.contains_fsdp(self._model)
+                else self._optimizer.state_dict()
+            )
             ckpt_dict.update(
                 {
-                    OPT_KEY: self._optimizer,
+                    OPT_KEY: optimizer_state_dict,
                     SEED_KEY: self.seed,
                     EPOCHS_KEY: self.epochs_run,
                     TOTAL_EPOCHS_KEY: self.total_epochs,
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-            utils.save_checkpoint(ckpt_dict, output_loc)
-        else:
-            ckpt_dict = convert_from_torchtune_format(
-                self._model.state_dict(), self._checkpoint_format, self._model_type
-            )
             if self._is_rank_zero:
-                torch.save(ckpt_dict, output_loc)
-
-        if self._is_rank_zero:
-            log.info(
-                f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
-            )
+                self._checkpointer.save_checkpoint(
+                    ckpt_dict,
+                    intermediate_checkpoint=True,
+                    intermediate_checkpoint_name=f"model_{epoch}.pt"
+                )
+        else:
+            if self._is_rank_zero:
+                self._checkpointer.save_checkpoint(self._model.state_dict())
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """

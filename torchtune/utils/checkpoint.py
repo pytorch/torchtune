@@ -13,7 +13,6 @@ import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils.constants import (
-    CheckpointFormat,
     EPOCHS_KEY,
     MAX_STEPS_KEY,
     MODEL_KEY,
@@ -40,108 +39,6 @@ def _contains_fsdp(model: nn.Module) -> bool:
         isinstance(m, torch.distributed.fsdp.FullyShardedDataParallel)
         for m in model.modules()
     )
-
-
-def load_checkpoint(
-    ckpt_path: Path,
-    ckpt_format: CheckpointFormat,
-    resume_from_checkpoint: bool,
-) -> Dict[str, Any]:
-    """ """
-    if not ckpt_path.exists():
-        raise ValueError(
-            f"Checkpoint path {ckpt_path} does not exist. "
-            "Please provide a valid checkpoint path."
-        )
-    if resume_from_checkpoint:
-        ckpt_dict = _load_torchtune_checkpoint(ckpt_path, ckpt_format)
-    else:
-        ckpt_dict = _load_external_checkpoint(ckpt_path, ckpt_format)
-    return ckpt_dict
-
-
-def _load_torchtune_checkpoint(
-    ckpt_path: Path,
-    ckpt_format: CheckpointFormat,
-) -> Dict[str, Any]:
-    if ckpt_format != CheckpointFormat.TORCHTUNE_FORMAT:
-        raise ValueError(
-            "When resuming a TorchTune training run, the checkpoint format is expected to "
-            f'be "torchtune". Got {ckpt_format} instead.'
-        )
-    if not ckpt_path.is_file():
-        raise ValueError(
-            "When resuming a TorchTune training run, the checkpoint path should "
-            f"should point to a file. Got {ckpt_path} which is not a file."
-        )
-    if ckpt_path.suffix != ".pt":
-        raise ValueError(
-            'When resuming a TorchTune training run, the ckpt should be ".pt" file. '
-            f'Got a "{ckpt_path.suffix}" file instead. Make sure you\'re loading a valid '
-            "TorchTune checkpoint."
-        )
-    ckpt_dict = torch.load(ckpt_path, map_location="cpu", mmap=True, weights_only=True)
-    return ckpt_dict
-
-
-def _load_external_checkpoint(ckpt_path, ckpt_format):
-    if ckpt_format == CheckpointFormat.META_FORMAT:
-        state_dict = _fetch_meta_format_state_dict(ckpt_path)
-    elif ckpt_format == CheckpointFormat.HF_FORMAT:
-        state_dict = _fetch_hf_format_state_dict(ckpt_path)
-    else:
-        raise NotImplementedError(f"Checkpoint format {ckpt_format} not supported")
-    return state_dict
-
-
-def _fetch_meta_format_state_dict(ckpt_path):
-    ckpt_files = []
-    if ckpt_path.is_dir():
-        ckpt_files = list(ckpt_path.glob("*.pth"))
-        if len(ckpt_files) == 0:
-            raise ValueError(
-                "For meta format checkpoint, the directory should contain at least one .pth file. "
-                "None found."
-            )
-    elif ckpt_path.is_file():
-        if ckpt_path.suffix != ".pth":
-            raise ValueError(
-                'For meta format checkpoint, the file should be a ".pth" file. '
-                f'Got a "{ckpt_path.suffix}" file instead.'
-            )
-        ckpt_files = [ckpt_path]
-    else:
-        raise ValueError("Unsupported value for checkpoint path")
-
-    merged_state_dict = {}
-    for ckpt_file in ckpt_files:
-        state_dict = torch.load(
-            ckpt_file, map_location="cpu", mmap=True, weights_only=True
-        )
-        merged_state_dict.update(state_dict)
-    return merged_state_dict
-
-
-def _fetch_hf_format_state_dict(ckpt_path):
-    ckpt_files = []
-    if ckpt_path.is_dir():
-        ckpt_files = list(ckpt_path.glob("*.bin"))
-        if len(ckpt_files) == 0:
-            raise ValueError(
-                "For meta format checkpoint, the directory should contain at least one .bin file. "
-                "None found."
-            )
-    else:
-        raise ValueError("Unsupported value for checkpoint path")
-
-    merged_state_dict = {}
-    for ckpt_file in ckpt_files:
-        state_dict = torch.load(
-            ckpt_file, map_location="cpu", mmap=True, weights_only=True
-        )
-        merged_state_dict.update(state_dict)
-    return merged_state_dict
-
 
 def save_checkpoint(
     ckpt_dict: Dict[str, Any],

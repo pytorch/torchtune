@@ -6,10 +6,10 @@
 
 from ._checkpoint_utils import convert_llama2_fair_format
 from ._convert_weights import (  # noqa
-    convert_llama2_from_hf_format,
-    convert_llama2_from_meta_format,
-    convert_llama2_to_hf_format,
-    convert_llama2_to_meta_format,
+    tune_to_hf_llama2_7b,
+    tune_to_meta_llama2_7b,
+    meta_to_tune_llama2_7b,
+    hf_to_tune_llama2_7b,
 )
 from ._llama2_builders import llama2, llama2_7b, llama2_tokenizer
 from ._lora_llama2_builders import lora_llama2, lora_llama2_7b

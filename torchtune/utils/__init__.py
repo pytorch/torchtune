@@ -5,16 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 from .argparse import TuneArgumentParser
 from .checkpoint import (  # noqa
-    load_checkpoint,
+    # load_checkpoint,
     save_checkpoint,
     transform_opt_state_dict,
     validate_checkpoint,
 )
 from .checkpointable_dataloader import CheckpointableDataLoader
+from ._checkpointing import (
+    CheckpointFormat,
+    FullModelCheckpointer,
+    ModelType,
+)
 from .collate import padded_collate
-from .constants import CheckpointFormat, ModelType  # noqa
 from .device import get_device
 from .distributed import (
+    contains_fsdp,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
