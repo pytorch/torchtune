@@ -29,7 +29,9 @@ def _create_component(
     )
 
 
-def _instantiate_node(node: DictConfig, partial_instantiate: bool = False, *args: Tuple[Any, ...]):
+def _instantiate_node(
+    node: DictConfig, partial_instantiate: bool = False, *args: Tuple[Any, ...]
+):
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
