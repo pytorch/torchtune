@@ -110,6 +110,13 @@ class TestLoRAFinetuneRecipe:
             cmd += [
                 'model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]'
             ]
+        if enable_fsdp:
+            cmd.append("--enable-fsdp")
+            context_manager = contextlib.nullcontext
+        else:
+            context_manager = single_box_init
+
+        with context_manager():
             monkeypatch.setattr(sys, "argv", cmd)
             with pytest.raises(SystemExit):
                 with (
