@@ -61,8 +61,8 @@ class LoRAFinetuneMultiGPURecipe(FTRecipeInterface):
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        lora_finetune        alpaca_llama2_lora_finetune
+        RECIPE                         CONFIG
+        lora_finetune_multi_gpu        alpaca_llama2_lora_finetune_multi_gpu
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -436,8 +436,13 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune_multi_gpu.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    if utils.is_distributed():
-        init_process_group(backend="nccl")
+    if not utils.is_distributed():
+        raise RuntimeError(
+            "Multi-GPU finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
+
+    init_process_group(backend="nccl")
 
     recipe = LoRAFinetuneMultiGPURecipe(cfg=cfg)
     recipe.setup(cfg=cfg)

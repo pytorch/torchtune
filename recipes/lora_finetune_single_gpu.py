@@ -21,7 +21,6 @@ from torch.cuda.amp import GradScaler
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     set_trainable_params,
@@ -61,8 +60,8 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        lora_finetune        alpaca_llama2_lora_finetune
+        RECIPE                          CONFIG
+        lora_finetune_single_gpu        alpaca_llama2_lora_finetune_single_gpu
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -137,7 +136,7 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
         # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
-        self._dataloader = self._setup_data(
+        self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
@@ -203,15 +202,12 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         with self._device:
             model = config.instantiate(cfg_model)
-
-        reset_lora_params(model, device=self._device)
 
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
@@ -281,9 +277,21 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
+        ds = config.instantiate(
+            cfg_dataset,
+            tokenizer=self._tokenizer,
+        )
+        sampler = DistributedSampler(
+            ds,
+            num_replicas=1,
+            rank=0,
+            shuffle=shuffle,
+            seed=0,
+        )
         dataloader = DataLoader(
             dataset=ds,
-            shuffle=shuffle,
+            # shuffle=shuffle,
+            sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
                 utils.padded_collate,
@@ -294,7 +302,7 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
         log.info("Dataset and Sampler are initialized.")
 
-        return dataloader
+        return sampler, dataloader
 
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -330,6 +338,9 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
+            # Update the sampler to ensure data is correctly shuffled across epochs
+            # in case shuffle is True
+            self._sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(
                 pbar := tqdm(self._dataloader)
             ):

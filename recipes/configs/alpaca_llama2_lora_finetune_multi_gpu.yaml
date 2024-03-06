@@ -1,7 +1,7 @@
-# Config for LoRAFinetuneRecipe in lora_finetune.py
+# Config for LoRAFinetuneMultiGPURecipe in lora_finetune_multi_gpu.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 lora_finetune --config alpaca_llama2_lora_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+#    tune --nnodes 1 --nproc_per_node 1 lora_finetune_multi_gpu --config alpaca_llama2_lora_finetune_multi_gpu --override model_checkpoint=<your_checkpoint_dir> ...
 
 # Model Arguments
 model:
