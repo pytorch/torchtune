@@ -12,8 +12,6 @@ from tests.common import TUNE_PATH
 
 from torchtune import list_configs, list_recipes
 
-from torchtune import list_configs, list_recipes
-
 from torchtune._cli.ls import _NULL_VALUE
 
 

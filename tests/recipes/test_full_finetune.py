@@ -57,26 +57,6 @@ _ASSETS = get_assets_path()
 # >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
 # >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
 
-_CONFIG_PATH = RECIPE_TESTS_DIR / "full_finetune_test_config.yaml"
-
-_ASSETS = get_assets_path()
-
-# Generating `tiny_llama2_checkpoint.pt`
-# >>> import torch
-# >>> from torchtune.models.llama2 import llama2
-# >>> from tests.test_utils import init_weights_with_constant
-# >>> super_small_llama2 = llama2(
-# ... vocab_size=100,
-# ... num_layers=2,
-# ... num_heads=4,
-# ... embed_dim=64,
-# ... max_seq_len=64,
-# ... norm_eps=1e-5,
-# ... num_kv_heads=2,
-# ... )
-# >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
-# >>> torch.save({"model": super_small_llama2.state_dict()}, "better_tiny_checkpoint.pt")
-
 
 class TestFullFinetuneRecipe:
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
@@ -233,7 +213,7 @@ class TestRecipeGradientAccumulation:
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
         """.split()
-        # import pdb; pdb.set_trace()
+
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
