@@ -130,8 +130,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             if self._resume_from_checkpoint
             else None,
         )
-        print(f"DEBUG {type(self._model)}, {cfg.enable_fsdp}")
-        raise ValueError("DEBUG")
         self._tokenizer = config.instantiate(cfg.tokenizer)
         if self._is_rank_zero:
             log.info("Tokenizer is initialized from file.")
