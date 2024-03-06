@@ -39,10 +39,10 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
+class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
-    single GPU training.
+    single device training.
 
     This recipe supports:
         - Activation checkpointing. This is enabled by default but is configurable.
@@ -53,7 +53,6 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
         - Logging to terminal, WandB, or TensorBoard.
 
     Assumptions:
-        - Training happens on CUDA (CPU training is not supported)
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
         - Datasets are Map-style and data fits in memory (not streamed).
@@ -61,7 +60,7 @@ class LoRAFinetuneRecipeSingleGPU(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_gpu        alpaca_llama2_lora_finetune_single_gpu
+        lora_finetune_single_device        alpaca_llama2_lora_finetune_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -397,10 +396,10 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_single_gpu.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    recipe = LoRAFinetuneRecipeSingleGPU(cfg=cfg)
+    recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

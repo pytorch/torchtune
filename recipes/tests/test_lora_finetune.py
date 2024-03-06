@@ -14,7 +14,7 @@ import pytest
 
 from omegaconf import OmegaConf
 from recipes.lora_finetune_multi_gpu import LoRAFinetuneMultiGPURecipe
-from recipes.lora_finetune_single_gpu import LoRAFinetuneSingleGPURecipe
+from recipes.lora_finetune_single_gpu import LoRAFinetuneSingleDeviceRecipe
 
 from recipes.tests.utils import (
     default_recipe_kwargs,
@@ -76,7 +76,7 @@ class TestLoRAFinetuneRecipe:
             if multi_gpu:
                 recipe = LoRAFinetuneMultiGPURecipe(recipe_cfg)
             else:
-                recipe = LoRAFinetuneSingleGPURecipe(recipe_cfg)
+                recipe = LoRAFinetuneSingleDeviceRecipe(recipe_cfg)
 
             recipe.setup(cfg=recipe_cfg)
             recipe.train()

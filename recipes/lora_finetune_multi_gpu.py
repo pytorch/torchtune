@@ -71,7 +71,7 @@ class LoRAFinetuneMultiGPURecipe(FTRecipeInterface):
 
     def __init__(self, cfg: DictConfig) -> None:
 
-        self._device = utils.get_device(device=cfg.device)
+        self._device = utils.get_device(device="cuda")
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
