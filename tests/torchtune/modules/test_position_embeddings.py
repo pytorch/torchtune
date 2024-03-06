@@ -85,7 +85,6 @@ class TestRotaryPositionEmbedding:
                 dim=head_dim, max_seq_len=max_seq_len
             )
 
-        meta_rope._rope_init(device=torch.device("cpu"))
-
+        meta_rope._rope_init()
         for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
             torch.testing.assert_close(p1, p2)

@@ -63,6 +63,12 @@ class TestLoRAFinetuneRecipe:
                     "apply_lora_to_mlp": False,
                     "lora_rank": 8,
                     "lora_alpha": 16,
+                    # Note: multi-gpu just signifies to run the
+                    # recipe that supports multi-gpu training w/
+                    # distributed + FSDP. In CI, this test
+                    # initializes distributed but runs on a single
+                    # CPU: distributed CI still needs to be enabled:
+                    # https://github.com/pytorch-labs/torchtune/issues/219
                     "enable_fsdp": multi_gpu,
                 }
             )
