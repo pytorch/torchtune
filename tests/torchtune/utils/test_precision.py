@@ -20,6 +20,8 @@ from torchtune.utils.precision import (
     get_dtype,
     get_gradient_scaler,
     list_dtypes,
+    set_default_dtype,
+    validate_expected_param_dtype,
 )
 
 
@@ -82,3 +84,19 @@ class TestPrecisionUtils:
         assert torch.get_float32_matmul_precision() == "high"
         assert torch.backends.cudnn.allow_tf32
         assert torch.backends.cuda.matmul.allow_tf32
+
+    def test_set_default_dtype(self):
+        dtype = bf16
+        prev_dtype = torch.get_default_dtype()
+        with set_default_dtype(dtype):
+            assert torch.get_default_dtype() == dtype
+
+        assert torch.get_default_dtype() == prev_dtype
+
+    def test_validate_expected_param_dtype(self):
+        """
+        Tests that we raise if any model param has a different dtype than the expected dtype.
+        """
+        m = torch.nn.Linear(10, 10)
+        with pytest.raises(ValueError, match=f"has dtype {next(m.parameters()).dtype}"):
+            validate_expected_param_dtype(m, dtype=torch.float16)

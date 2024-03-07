@@ -17,7 +17,7 @@ from .distributed import (
 )
 from .logging import get_logger
 from .memory import set_activation_checkpointing
-from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes
+from .precision import get_autocast, get_dtype, get_gradient_scaler, list_dtypes, validate_expected_param_dtype, set_default_dtype
 from .seed import set_seed
 
 __all__ = [
