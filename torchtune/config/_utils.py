@@ -7,7 +7,7 @@
 from argparse import Namespace
 from importlib import import_module
 from types import ModuleType
-from typing import Any, List
+from typing import Any, Dict, List, Union
 
 from omegaconf import DictConfig, OmegaConf
 

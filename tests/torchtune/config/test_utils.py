@@ -67,3 +67,31 @@ class TestUtils:
         assert conf.d == 6, f"d == {conf.d}, not 6 as set in overrides."
         assert conf.e == 7, f"e == {conf.e}, not 7 as set in overrides."
         mock_load.assert_called_once()
+
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "b=5",  # Test overriding component path but keeping other kwargs
+            ]
+        )
+        conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+        assert (
+            conf.b._component_ == 5
+        ), f"b == {conf.b._component_}, not 5 as set in overrides."
+        assert conf.b.c == 3, f"b.c == {conf.b.c}, not 3 as set in the config."
+        assert mock_load.call_count == 2
+
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "b.c=5",  # Test overriding kwarg but keeping component path
+            ]
+        )
+        conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+        assert (
+            conf.b._component_ == 2
+        ), f"b == {conf.b._component_}, not 2 as set in the config."
+        assert conf.b.c == 5, f"b.c == {conf.b.c}, not 5 as set in overrides."
+        assert mock_load.call_count == 3

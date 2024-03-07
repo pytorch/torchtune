@@ -219,9 +219,9 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^
-If you would like to override a parameter in the config that has a :code:`_component_`
-field, you can do so by assigning to the parameter name directly. Any nested fields
-in the components can be overridden with dot notation.
+If you would like to override a class or function in the config that is instantiated
+via the :code:`_component_` field, you can do so by assigning to the parameter
+name directly. Any nested fields in the components can be overridden with dot notation.
 
 .. code-block:: yaml
 
