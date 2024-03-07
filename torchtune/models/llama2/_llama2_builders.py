@@ -74,7 +74,6 @@ def llama2(
     attn_dropout: float = 0.0,
     max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
-    mlp_hidden_dim_multiplier: Optional[float] = None,
 ):
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -103,7 +102,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = scale_hidden_dim_for_mlp(embed_dim, dim_multiplier=mlp_hidden_dim_multiplier)
+    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
     mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
