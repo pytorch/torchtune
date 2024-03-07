@@ -7,7 +7,6 @@
 
 _RECIPE_LIST = [
     "full_finetune.py",
-    "lora_finetune.py",
     "alpaca_generate.py",
     "lora_finetune_single_device.py",
     "lora_finetune_multi_gpu.py",
