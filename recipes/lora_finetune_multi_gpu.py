@@ -62,7 +62,7 @@ class LoRAFinetuneMultiGPURecipe(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                         CONFIG
-        lora_finetune_multi_gpu        alpaca_llama2_lora_finetune_multi_gpu
+        lora_finetune_distributed        alpaca_llama2_lora_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -433,7 +433,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_multi_gpu.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
     if not utils.is_distributed():
