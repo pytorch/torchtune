@@ -1,9 +1,16 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from typing import Any, Dict, Optional
+
 import torch
 
 import torch.nn as nn
 from torch import Tensor
 from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor
-from typing import Optional, Dict, Any
 
 
 class FrozenNF4Linear(nn.Linear):
@@ -36,7 +43,9 @@ class FrozenNF4Linear(nn.Linear):
                 raise RuntimeError(
                     "FrozenNF4Linear is only supported with bf16 parameter currently."
                 )
-        super().__init__(in_dim, out_dim, device=device, dtype=torch.bfloat16, bias=False, **kwargs)
+        super().__init__(
+            in_dim, out_dim, device=device, dtype=torch.bfloat16, bias=False, **kwargs
+        )
         self.weight.requires_grad_(False)
 
         self.nf4_weight = NF4Tensor.from_tensor(self.weight.data)
