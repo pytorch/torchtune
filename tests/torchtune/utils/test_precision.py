@@ -86,7 +86,7 @@ class TestPrecisionUtils:
         assert torch.backends.cuda.matmul.allow_tf32
 
     def test_set_default_dtype(self):
-        dtype = bf16
+        dtype = torch.bfloat16
         prev_dtype = torch.get_default_dtype()
         with set_default_dtype(dtype):
             assert torch.get_default_dtype() == dtype
