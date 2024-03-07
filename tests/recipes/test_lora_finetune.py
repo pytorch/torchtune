@@ -13,7 +13,7 @@ from typing import Dict
 import pytest
 
 from omegaconf import OmegaConf
-from recipes.lora_finetune_multi_gpu import LoRAFinetuneMultiGPURecipe
+from recipes.lora_finetune_multi_gpu import LoRAFinetuneDistributedRecipe
 from recipes.lora_finetune_single_gpu import LoRAFinetuneSingleDeviceRecipe
 
 from recipes.tests.utils import (
@@ -74,7 +74,7 @@ class TestLoRAFinetuneRecipe:
             )
             recipe_cfg = OmegaConf.create(kwargs_values)
             if multi_gpu:
-                recipe = LoRAFinetuneMultiGPURecipe(recipe_cfg)
+                recipe = LoRAFinetuneDistributedRecipe(recipe_cfg)
             else:
                 recipe = LoRAFinetuneSingleDeviceRecipe(recipe_cfg)
 

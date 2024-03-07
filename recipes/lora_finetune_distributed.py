@@ -41,7 +41,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneMultiGPURecipe(FTRecipeInterface):
+class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     """
     Multi-GPU LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -444,7 +444,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="nccl")
 
-    recipe = LoRAFinetuneMultiGPURecipe(cfg=cfg)
+    recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
