@@ -10,7 +10,6 @@ check-return-types = 'False'
 exclude = 'tests/torchtune/models/llama2/scripts/'
 
 [tool.pytest.ini_options]
-addopts = ["--showlocals"]
 addopts = ["--showlocals", "--import-mode=importlib"]
 # --showlocals will show local variables in tracebacks
 # --import-model=importlib ensures pytest doesn't append the repo root to sys.path,
