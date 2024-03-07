@@ -56,7 +56,7 @@ tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_lla
 ```
 
 For both recipes, activation checkpointing is enabled by default, and LoRA weights are added to the Q and V projections in self-attention. FSDP is enabled by default for
-multi-gpu recipe. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
+distributed recipe. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
 
 ```
 tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed --override lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4

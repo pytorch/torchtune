@@ -43,7 +43,7 @@ log = utils.get_logger("DEBUG")
 
 class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     """
-    Multi-GPU LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
         - FSDP and activation checkpointing. This is enabled by default but is
@@ -438,7 +438,7 @@ def recipe_main(cfg: DictConfig) -> None:
     """
     if not utils.is_distributed():
         raise RuntimeError(
-            "Multi-GPU finetune recipe should be run via a distributed launcher."
+            "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
 
