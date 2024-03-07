@@ -4,21 +4,25 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
+import contextlib
+import runpy
 
+import sys
 from functools import partial
 from typing import Dict
 
-from omegaconf import OmegaConf
+import pytest
 
-from recipes.lora_finetune import LoRAFinetuneRecipe
+from tests.common import TUNE_PATH
+from tests.recipes.common import RECIPE_TESTS_DIR
 
-from recipes.tests.utils import (
-    default_recipe_kwargs,
+from tests.recipes.utils import (
+    fetch_ckpt_model_path,
     fetch_loss_values,
     lora_llama2_small_test_ckpt,
     validate_loss_values,
 )
+from tests.test_utils import single_box_init
 
 from torchtune import models
 
@@ -28,8 +32,6 @@ models.lora_small_test_ckpt = partial(
     lora_attn_modules=test_lora_attn_modules,
     apply_lora_to_mlp=False,
 )
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class TestLoRAFinetuneRecipe:
@@ -45,24 +47,38 @@ class TestLoRAFinetuneRecipe:
         # TODO: no support for large scale test yet for LoRA
         raise ValueError(f"Unknown ckpt {ckpt}")
 
-    def test_loss(self, capsys, pytestconfig):
+    @pytest.mark.parametrize("enable_fsdp", [False, True])
+    def test_loss(self, capsys, tmpdir, enable_fsdp, monkeypatch):
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
-        kwargs_values = default_recipe_kwargs(ckpt)
-        kwargs_values["model"].update(
-            {
-                "lora_attn_modules": test_lora_attn_modules,
-                "apply_lora_to_mlp": False,
-                "lora_rank": 8,
-                "lora_alpha": 16,
-            }
-        )
-        recipe_cfg = OmegaConf.create(kwargs_values)
 
-        recipe = LoRAFinetuneRecipe(recipe_cfg)
-        recipe.setup(cfg=recipe_cfg)
-        recipe.train()
+        config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+        cmd = f"""
+        tune lora_finetune
+            --config {config_path} \
+            --override \
+            output_dir={tmpdir} \
+            model._component_=torchtune.models.{ckpt} \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            model.lora_rank=8 \
+            model.lora_alpha=16 \
+            model.apply_lora_to_mlp=False \
+        """.split()
+
+        # Have to attach this after so it parses correctly
+        cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
+
+        if enable_fsdp:
+            cmd.append("--enable-fsdp")
+            context_manager = contextlib.nullcontext
+        else:
+            context_manager = single_box_init
+
+        with context_manager():
+            monkeypatch.setattr(sys, "argv", cmd)
+            with pytest.raises(SystemExit):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)

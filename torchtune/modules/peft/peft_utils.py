@@ -5,13 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Optional, Protocol, Set, Type
-
-import torch
+from typing import Any, Dict, List, Optional, Protocol
 
 from torch import nn
-
-from torchtune.utils.distributed import FSDPPolicyType
 
 
 class AdapterModule(Protocol):
@@ -168,63 +164,6 @@ def validate_state_dict_for_lora(
         assert combined_state_dict_keys == set(
             full_model_state_dict_keys
         ), "Extra keys not present in full model"
-
-
-def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
-    """
-    A default policy for wrapping models trained with LoRA in FSDP. Specifically,
-    this will wrap individual LoRA a & b submodules in their own FSDP units to
-    maximize memory savings. After this is done, model will also be hierarchically wrapped
-    based on nn.Module types specified in ``modules_to_wrap``.
-
-    Args:
-        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
-
-    Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
-    """
-
-    def lora_wrap(module: nn.Module, recurse: bool, **kwargs):
-        if recurse:
-            return True
-
-        # Assumes lora_a and lora_b are nn.Linears that are the
-        # only trainable modules in the entire network. Wraps
-        # these in separate FSDP unit to work around FSDP allocating
-        # extra gradient memory when wrapped with other modules.
-        if hasattr(module, "weight") and module.weight.requires_grad:
-            return True
-
-        return isinstance(module, tuple(modules_to_wrap))
-
-    return lora_wrap
-
-
-def lora_fsdp_init(module: nn.Module, device: torch.device) -> None:
-    """
-    A function to specific modules within a LoRA model wrapped in FSDP that was
-    initially created on the meta device. This function is meant to be
-    passed as the ``param_init_fn`` arg into ``FullyShardedDataParallel``.
-    This function specially handles details such as manually initializing
-    ``RotaryPositionalEmbeddings`` that have custom initialization schemes.
-
-    Args:
-        module (nn.Module): module to run initialization for
-        device (torch.device): device parameters should be initialized on.
-    """
-    # Custom init for RoPE, which has buffers only
-    if hasattr(module, "_rope_init"):
-        module._rope_init(device=device)
-    # Skip init of modules that already have params on non-meta device. This is
-    # to avoid re-initialization of parameters that have already been explicitly
-    # initialized by the user before wrapping with FSDP. In particular, for LoRA,
-    # LoRA a & b matrices are pre-initialized before wrapping with FSDP.
-    if all([not p.is_meta for p in module.parameters()]):
-        return
-    else:
-        # Brings params to device with empty data. data will be
-        # overwriten when loading in checkpoint.
-        module.to_empty(device=device, recurse=False)
 
 
 def register_lora_weight_merge_hooks(model: nn.Module):
