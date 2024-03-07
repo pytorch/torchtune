@@ -1,8 +1,10 @@
+import sys
+
+import pytest
 import torch
 from torch import nn
 from torchtune.modules.low_precision import FrozenNF4Linear
-import pytest
-import sys
+from torchtune.utils.seed import set_seed
 
 try:
     from torchao.dtypes.nf4tensor import NF4Tensor
@@ -15,9 +17,16 @@ bnb_available = False
 
 try:
     import bitsandbytes as bnb
+
     bnb_available = True
 except ImportError:
     pass
+
+
+@pytest.fixture(autouse=True)
+def random():
+    set_seed(31)
+
 
 def _build_bnb_linear(input_weight):
     """
@@ -25,7 +34,9 @@ def _build_bnb_linear(input_weight):
     """
     assert bnb_available, "Needs bitsandbytes support"
     param = bnb.nn.Params4bit(input_weight, requires_grad=False, quant_type="nf4")
-    bnb_linear = bnb.nn.LinearNF4(input_weight.size(0), input_weight.size(1), bias=False)
+    bnb_linear = bnb.nn.LinearNF4(
+        input_weight.size(0), input_weight.size(1), bias=False
+    )
     bnb_linear.weight = param
     bnb_linear.cuda()
     return bnb_linear
@@ -35,6 +46,7 @@ class TestNF4Linear:
     """
     Class for testing our NF4Linear implementation.
     """
+
     def test_bias_unsupported(self):
         with pytest.raises(RuntimeError, match="does not currently support biases"):
             _ = FrozenNF4Linear(1, 1, bias=True)
@@ -43,14 +55,26 @@ class TestNF4Linear:
         with pytest.raises(RuntimeError, match="only supported with bf16"):
             _ = FrozenNF4Linear(1, 1, dtype=torch.float32)
 
+    def test_parameters(self):
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
+        params = list(nf4_linear.parameters())
+        assert len(params) == 1
+        assert isinstance(params[0], NF4Tensor)
+
+    def test_state_dict(self):
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
+        state_dict = nf4_linear.state_dict()
+        assert len(state_dict) == 1
+        assert isinstance(state_dict["weight"], NF4Tensor)
+
     def test_frozen_nf4_linear(self):
-        nf4_linear = FrozenNF4Linear(512, 512, device='cpu', dtype=torch.bfloat16)
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
         assert isinstance(nf4_linear.weight, NF4Tensor)
         assert torch.bfloat16 == nf4_linear.weight.get_original_weight().dtype
 
     def test_output_bf16(self):
         # Test to ensure W4 A16 produces A16
-        nf4_linear = FrozenNF4Linear(512, 512, device='cpu', dtype=torch.bfloat16)
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
         inp = torch.randn(2, 512, dtype=torch.bfloat16, requires_grad=True)
         out = nf4_linear(inp)
         assert out.dtype == torch.bfloat16
@@ -58,7 +82,7 @@ class TestNF4Linear:
     def test_backward_bf16(self):
         # Test to ensure backward pass gives activation a bf16 gradient and no gradient
         # to the linear's weight, as it is frozen.
-        nf4_linear = FrozenNF4Linear(512, 512, device='cpu', dtype=torch.bfloat16)
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
         inp = torch.randn(2, 512, dtype=torch.bfloat16, requires_grad=True)
         nf4_linear(inp).sum().backward()
         assert inp.grad is not None and inp.grad.dtype == torch.bfloat16
@@ -72,16 +96,18 @@ class TestNF4Linear:
         reconstructing the respective original weights.
         """
         dim = 512
-        nf4_linear = FrozenNF4Linear(dim, dim, device='cuda', dtype=torch.bfloat16)
+        nf4_linear = FrozenNF4Linear(dim, dim, device="cuda", dtype=torch.bfloat16)
         orig_weight = nf4_linear.weight.get_original_weight().clone().detach()
         bnb_nf4_linear = _build_bnb_linear(input_weight=orig_weight)
 
         # From https://github.com/drisspg/transformer_nuggets/blob/f05afad68ad9086d342268f46a7f344617a02314/test/test_qlora.py#L65
         bnb_reconstruction = bnb_nf4_linear(
-            torch.eye(dim, dim, dtype=torch.bfloat16, device='cuda')
+            torch.eye(dim, dim, dtype=torch.bfloat16, device="cuda")
         )
         # Ensure nf4_linear and bnb reconstructions are close to each other.
-        diff = (bnb_reconstruction.T - nf4_linear.weight.get_original_weight()).abs().max()
+        diff = (
+            (bnb_reconstruction.T - nf4_linear.weight.get_original_weight()).abs().max()
+        )
         assert diff.item() < 1e-2
 
     @pytest.mark.skipif(not bnb_available, reason="Need bnb availble")
@@ -92,12 +118,12 @@ class TestNF4Linear:
         error compared to a bf16 linear is not more than BNB's implementation.
         """
         dim = 512
-        nf4_linear = FrozenNF4Linear(dim, dim, device='cuda', dtype=torch.bfloat16)
+        nf4_linear = FrozenNF4Linear(dim, dim, device="cuda", dtype=torch.bfloat16)
         orig_weight = nf4_linear.weight.get_original_weight().clone().detach()
         bnb_nf4_linear = _build_bnb_linear(input_weight=orig_weight)
-        bf16_linear = torch.nn.Linear(dim, dim, device='cuda', dtype=torch.bfloat16)
+        bf16_linear = torch.nn.Linear(dim, dim, device="cuda", dtype=torch.bfloat16)
 
-        inp = torch.randn(2, 512, dtype=torch.bfloat16, device='cuda')
+        inp = torch.randn(2, 512, dtype=torch.bfloat16, device="cuda")
 
         out_nf4 = nf4_linear(inp).sum()
         out_bnb = bnb_nf4_linear(inp).sum()

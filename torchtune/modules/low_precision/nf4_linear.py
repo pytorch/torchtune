@@ -36,7 +36,7 @@ class FrozenNF4Linear(nn.Linear):
                 raise RuntimeError(
                     "FrozenNF4Linear is only supported with bf16 parameter currently."
                 )
-        super().__init__(in_dim, out_dim, device=device, dtype=torch.bfloat16, **kwargs)
+        super().__init__(in_dim, out_dim, device=device, dtype=torch.bfloat16, bias=False, **kwargs)
         self.weight.requires_grad_(False)
 
         self.nf4_weight = NF4Tensor.from_tensor(self.weight.data)
