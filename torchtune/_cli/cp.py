@@ -11,7 +11,7 @@ import textwrap
 from pathlib import Path
 
 import torchtune
-from recipes import list_configs, list_recipes
+from torchtune import list_configs, list_recipes
 
 
 def _get_absolute_path(file_name: str) -> Path:
