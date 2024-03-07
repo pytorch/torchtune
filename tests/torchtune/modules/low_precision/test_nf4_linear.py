@@ -8,14 +8,15 @@ import sys
 
 import pytest
 import torch
-from torch import nn
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.utils.seed import set_seed
 
 try:
     from torchao.dtypes.nf4tensor import NF4Tensor
-except ImportError:
-    raise RuntimeError("torchao not available - please install torchao to run tests.")
+except ImportError as e:
+    raise RuntimeError(
+        "torchao not available - please install torchao to run tests."
+    ) from e
     print("torchao not available - please install torchao to run tests.")
     sys.exit(0)
 
