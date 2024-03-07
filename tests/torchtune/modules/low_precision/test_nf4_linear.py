@@ -15,19 +15,11 @@ try:
     from torchao.dtypes.nf4tensor import NF4Tensor
 except ImportError as e:
     raise RuntimeError(
-        "torchao not available - please install torchao to run tests."
+        "Please install torchao to run this test."
+        "Example: pip install git+https://github.com/pytorch-labs/ao.git"
     ) from e
-    print("torchao not available - please install torchao to run tests.")
-    sys.exit(0)
 
-bnb_available = False
-
-try:
-    import bitsandbytes as bnb
-
-    bnb_available = True
-except ImportError:
-    pass
+import bitsandbytes as bnb
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +31,6 @@ def _build_bnb_linear(input_weight):
     """
     Builds a bnb.nn.LinearNF4 from a given input weight
     """
-    assert bnb_available, "Needs bitsandbytes support"
     param = bnb.nn.Params4bit(input_weight, requires_grad=False, quant_type="nf4")
     bnb_linear = bnb.nn.LinearNF4(
         input_weight.size(0), input_weight.size(1), bias=False
@@ -95,7 +86,6 @@ class TestNF4Linear:
         assert inp.grad is not None and inp.grad.dtype == torch.bfloat16
         assert nf4_linear.weight.grad is None
 
-    @pytest.mark.skipif(not bnb_available, reason="Need bnb availble")
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA available")
     def test_nf4_reconstruction_vs_bnb(self):
         """
@@ -117,7 +107,6 @@ class TestNF4Linear:
         )
         assert diff.item() < 1e-2
 
-    @pytest.mark.skipif(not bnb_available, reason="Need bnb availble")
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA available")
     def test_nf4_bnb_linear(self):
         """
@@ -132,10 +121,10 @@ class TestNF4Linear:
 
         inp = torch.randn(2, 512, dtype=torch.bfloat16, device="cuda")
 
-        out_nf4 = nf4_linear(inp).sum()
-        out_bnb = bnb_nf4_linear(inp).sum()
-        out_ref = bf16_linear(inp).sum()
+        out_nf4 = nf4_linear(inp)
+        out_bnb = bnb_nf4_linear(inp)
+        out_ref = bf16_linear(inp)
 
-        err_bnb = (out_bnb - out_ref).abs().max()
-        err_native = (out_nf4 - out_ref).abs().max()
+        err_bnb = (out_bnb - out_ref).sum().abs().max()
+        err_native = (out_nf4 - out_ref).sum().abs().max()
         assert err_native.item() <= err_bnb
