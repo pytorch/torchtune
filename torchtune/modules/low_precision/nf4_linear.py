@@ -29,6 +29,10 @@ class FrozenNF4Linear(nn.Linear):
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
         **kwargs: any additional arguments to pass to the underlying Linear layer.
+
+    Raises:
+        RuntimeError: if ``bias`` is set to ``True``
+        RuntimeError: if ``dtype`` is not set to ``torch.bfloat16``
     """
 
     def __init__(
