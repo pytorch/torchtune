@@ -13,7 +13,7 @@ from typing import Dict
 import pytest
 
 from omegaconf import OmegaConf
-from recipes.lora_finetune_multi_gpu import LoRAFinetuneDistributedRecipe
+from recipes.lora_finetune_distributed import LoRAFinetuneDistributedRecipe
 from recipes.lora_finetune_single_gpu import LoRAFinetuneSingleDeviceRecipe
 
 from recipes.tests.utils import (
