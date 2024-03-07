@@ -8,15 +8,18 @@ import os
 import pytest
 from omegaconf import OmegaConf
 from recipes.full_finetune import FullFinetuneRecipe
-from recipes.lora_finetune import LoRAFinetuneRecipe
+from recipes.lora_finetune_distributed import LoRAFinetuneDistributedRecipe
+from recipes.lora_finetune_single_device import LoRAFinetuneRecipeSingleDevice
 
 from torchtune.utils.argparse import TuneArgumentParser
 
 ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
 
+# TODO: this probably does not scale
 config_to_recipe = {
     os.path.join(ROOT_DIR, "alpaca_llama2_full_finetune.yaml"): FullFinetuneRecipe,
-    os.path.join(ROOT_DIR, "alpaca_llama2_lora_finetune.yaml"): LoRAFinetuneRecipe,
+    os.path.join(ROOT_DIR, "alpaca_llama2_lora_finetune_distributed.yaml"): LoRAFinetuneDistributedRecipe,
+    os.path.join(ROOT_DIR, "alpaca_llama2_lora_finetune_single_device.yaml"): LoRAFinetuneRecipeSingleDevice,
 }
 
 
