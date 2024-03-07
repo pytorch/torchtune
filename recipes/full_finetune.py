@@ -421,4 +421,4 @@ def recipe_main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    recipe_main()
+    sys.exit(recipe_main())

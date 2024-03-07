@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+import sys
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -476,4 +477,4 @@ def recipe_main(cfg: DictConfig) -> None:
 
 
 if __name__ == "__main__":
-    recipe_main()
+    sys.exit(recipe_main())
