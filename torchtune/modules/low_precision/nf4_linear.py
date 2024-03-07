@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional
+from typing import Optional
 
 import torch
 
@@ -28,7 +28,7 @@ class FrozenNF4Linear(nn.Linear):
         out_dim (int): output dimension
         device (Optional[torch.device]): device to use for the underlying weight. If ``None``, uses the default
             device given by `torch.get_default_device()`.
-        kwargs: Dict[str, Any]: any additional arguments to pass to the underlying Linear layer.
+        **kwargs: any additional arguments to pass to the underlying Linear layer.
     """
 
     def __init__(
