@@ -22,6 +22,16 @@ Modeling Components and Building Blocks
     TransformerDecoder
 
 
+Low Precision Components
+------------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    low_precision.FrozenNF4Linear
+
+
 PEFT Components
 ---------------
 
@@ -35,11 +45,3 @@ PEFT Components
     peft.set_trainable_params
 
 
-Low Precision Components
-------------------------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    low_precision.FrozenNF4Linear
