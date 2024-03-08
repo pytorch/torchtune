@@ -58,5 +58,6 @@ dtype: fp32
 enable_fsdp: True
 enable_activation_checkpointing: True
 
+# Final checkpoint
 save_full_final_checkpoint: False
 save_llama2_native_format: False

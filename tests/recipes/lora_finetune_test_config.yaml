@@ -47,3 +47,7 @@ device: cpu
 dtype: fp32
 enable_fsdp: False
 enable_activation_checkpointing: False
+
+# Final checkpoint
+save_full_final_checkpoint: False
+save_llama2_native_format: False
