@@ -61,8 +61,9 @@ class TestLoRAFinetuneRecipe:
         # TODO (rohan-varma): setting CUDA_VISIBLE_DEVICES to ignore all GPUs
         # on machine to simulate current CI environment that does not have GPUs.
         # Will consolidate as part of addressing https://github.com/pytorch-labs/torchtune/issues/473
+        monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
         cmd = f"""
-        CUDA_VISIBLE_DEVICES='' tune {recipe_name}
+        tune {recipe_name}
             --config {config_path} \
             --override \
             output_dir={tmpdir} \
