@@ -61,4 +61,14 @@ class FrozenNF4Linear(nn.Linear):
         # types.
 
     def forward(self, input: Tensor) -> Tensor:
+        """
+        Runs linear operation with input tensor as given by `input`. Computation happens in bf16
+        precision, though only the nf4 weight is saved for backward for gradient computation to ensure
+        additional memory is not used.
+        Args:
+            input (torch.Tensor): input tensor
+
+        Returns:
+            torch.Tensor: output tensor
+        """
         return linear_nf4(input=input, weight=self.weight)
