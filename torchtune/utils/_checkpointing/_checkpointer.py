@@ -188,42 +188,70 @@ class FullModelCheckpointer(_CheckpointerInterface):
         """
         self._output_dir.mkdir(exist_ok=True)
 
+        if intermediate_checkpoint:
+            self._save_intermediate_checkpoint(checkpoint_dict, intermediate_checkpoint_name)
+        else:
+            self._save_final_checkpoint(checkpoint_dict, num_heads, dim)
+
+
+    def _save_intermediate_checkpoint(
+        self,
+        checkpoint_dict: Dict[str, Any],
+        intermediate_checkpoint_name: str
+    ) -> None:
+        """
+        Saves the intermediate checkpoint to a single file.
+
+        Args:
+            intermediate_checkpoint_name (str): Name of the intermediate checkpoint.
+        """
         # if this is an intermediate checkpoint, just add the original
         # checkpoint information and write to file.
         # Currently we only support writing to single file
-        if intermediate_checkpoint:
-            # Add the relevant checkpoint format information to the state dict
-            checkpoint_dict["checkpoint_dtype"] = self._checkpoint_dtype
-            checkpoint_dict["weight_map"] = self._weight_map
-            checkpoint_dict["checkpoint_format"] = self._checkpoint_format.name
+        #
+        # Add the relevant checkpoint format information to the state dict
+        checkpoint_dict["checkpoint_dtype"] = self._checkpoint_dtype
+        checkpoint_dict["weight_map"] = self._weight_map
+        checkpoint_dict["checkpoint_format"] = self._checkpoint_format.name
 
-            # We write to a single ".pt" file irrespective of the extension provided by the recipe
-            output_path = Path.joinpath(self._output_dir, intermediate_checkpoint_name).with_suffix(".pt")
-            torch.save(checkpoint_dict, output_path)
+        # We write to a single ".pt" file irrespective of the extension provided by the recipe
+        output_path = Path.joinpath(self._output_dir, intermediate_checkpoint_name).with_suffix(".pt")
+        torch.save(checkpoint_dict, output_path)
+        logger.info(
+            "Model checkpoint of size "
+            f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+            f"saved to {output_path}"
+        )
+
+    def _save_final_checkpoint(
+        self,
+        checkpoint_dict: Dict[str, Any],
+        num_heads: int = 32, dim: int = 4096
+    ) -> None:
+        """
+        Saves the final checkpoint to a single file.
+
+        Args:
+            intermediate_checkpoint_name (str): Name of the intermediate checkpoint.
+        """
+        # while writing the final checkpoint, first conver the state_dict
+        checkpoint_dict = self.convert_from_torchtune_format(checkpoint_dict, num_heads, dim)
+
+        # optionally split the state-dict across files. This is also where the
+        # dtype conversion happens if necessary
+        split_state_dicts = self._split_state_dict(checkpoint_dict)
+
+        for filename, state_dict in split_state_dicts.items():
+            # Update the filename so we don't overwrite the original checkpoints
+            # in case output_dir is the same as checkpoint_dir
+            filename = Path(filename)
+            output_path = Path.joinpath(self._output_dir, filename.parent, ('torchtune_' + filename.name))
+            torch.save(state_dict, output_path)
             logger.info(
                 "Model checkpoint of size "
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
-        else:
-            # while writing the final checkpoint, first conver the state_dict
-            checkpoint_dict = self.convert_from_torchtune_format(checkpoint_dict, num_heads, dim)
-
-            # optionally split the state-dict across files. This is also where the
-            # dtype conversion happens if necessary
-            split_state_dicts = self._split_state_dict(checkpoint_dict)
-
-            for filename, state_dict in split_state_dicts.items():
-                # Update the filename so we don't overwrite the original checkpoints
-                # in case output_dir is the same as checkpoint_dir
-                filename = Path(filename)
-                output_path = Path.joinpath(self._output_dir, filename.parent, ('torchtune_' + filename.name))
-                torch.save(state_dict, output_path)
-                logger.info(
-                    "Model checkpoint of size "
-                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                    f"saved to {output_path}"
-                )
 
     def convert_to_torchtune_format(
         self,
