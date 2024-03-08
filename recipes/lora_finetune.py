@@ -435,7 +435,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
         ckpt_dict.update(
             {
-                MODEL_KEY: model_state_dict.
+                MODEL_KEY: model_state_dict,
                 OPT_KEY: optim_state_dict
             }
         )
