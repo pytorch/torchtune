@@ -443,7 +443,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
 
-    init_process_group(backend="nccl")
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)

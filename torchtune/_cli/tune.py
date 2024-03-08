@@ -39,8 +39,6 @@ import runpy
 import sys
 from pathlib import Path
 
-import torch
-
 import torchtune
 from torch.distributed.run import get_args_parser, run
 from torchtune import list_recipes
@@ -89,10 +87,9 @@ def _validate_distributed_args(args):
             "Expect --nproc_per_node to be specified for distributed runs"
         )
 
-    if int(args.nproc_per_node) > torch.cuda.device_count():
-        raise RuntimeError(
-            f"Expect --nproc_per_node to be less than or equal to # of CUDA devices: {torch.cuda.device_count()}"
-        )
+    # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+    # we don't do this since we test on CPUs for distributed. Will update once multi GPU
+    # CI is supported.
 
 
 def main():

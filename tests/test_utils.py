@@ -94,17 +94,25 @@ def assert_expected(
 
 
 @contextmanager
-def single_box_init():
+def single_box_init(init_pg: bool = True):
     os.environ["MASTER_ADDR"] = "localhost"
     # TODO: Don't hardcode ports as this could cause flakiness if tests execute
     # in parallel.
     os.environ["MASTER_PORT"] = str(12345)
     os.environ["LOCAL_RANK"] = str(0)
-    torch.distributed.init_process_group(backend="gloo", world_size=1, rank=0)
+    os.environ["RANK"] = str(0)
+    os.environ["WORLD_SIZE"] = str(1)
+    if init_pg:
+        torch.distributed.init_process_group(
+            backend="gloo",
+            world_size=int(os.environ["WORLD_SIZE"]),
+            rank=int(os.environ["RANK"]),
+        )
     try:
         yield
     finally:
-        torch.distributed.destroy_process_group()
+        if init_pg:
+            torch.distributed.destroy_process_group()
 
 
 @contextmanager
