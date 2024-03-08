@@ -66,9 +66,9 @@ class FrozenNF4Linear(nn.Linear):
         precision, though only the nf4 weight is saved for backward for gradient computation to ensure
         additional memory is not used.
         Args:
-            input (torch.Tensor): input tensor
+            input (Tensor): input tensor
 
         Returns:
-            torch.Tensor: output tensor
+            Tensor: output tensor
         """
         return linear_nf4(input=input, weight=self.weight)
