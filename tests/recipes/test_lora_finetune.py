@@ -81,7 +81,6 @@ class TestLoRAFinetuneRecipe:
                 if multi_gpu
                 else contextlib.nullcontext()
             ):
-                # monkeypatch.setattr(torchtune.utils, "is_distributed", lambda: True)
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
