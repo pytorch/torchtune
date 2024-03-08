@@ -90,22 +90,30 @@ def tune_to_meta_llama2_7b(
     return converted_state_dict
 
 
-def hf_to_tune_llama2_7b(original_state_dict):
+def hf_to_tune_llama2_7b(
+    original_state_dict,
+    num_heads=32,
+    dim=4096,
+):
     converted_state_dict = {}
     for key, value in original_state_dict.items():
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
             new_key = _get_mapped_key(key, _FROM_HF)
             if "q_proj" in key or "k_proj" in key:
                 value = (
-                    value.view(32, 2, 4096 // 32 // 2, 4096)
+                    value.view(num_heads, 2, dim // num_heads // 2, dim)
                     .transpose(1, 2)
-                    .reshape(4096, 4096)
+                    .reshape(dim, dim)
                 )
             converted_state_dict[new_key] = value
     return converted_state_dict
 
 
-def tune_to_hf_llama2_7b(original_state_dict):
+def tune_to_hf_llama2_7b(
+    original_state_dict,
+    num_heads=32,
+    dim=4096,
+):
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
 
@@ -113,9 +121,9 @@ def tune_to_hf_llama2_7b(original_state_dict):
         new_key = _get_mapped_key(key, inverted_mapping_dict)
         if "q_proj" in key or "k_proj" in key:
             value = (
-                value.view(32, 4096 // 32 // 2, 2, 4096)
+                value.view(num_heads, dim // num_heads // 2, 2, dim)
                 .transpose(1, 2)
-                .reshape(4096, 4096)
+                .reshape(dim, dim)
             )
         converted_state_dict[new_key] = value
     return converted_state_dict
