@@ -62,6 +62,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run unit tests with coverage
-        run: pytest recipes/tests --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
+        run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
