@@ -23,7 +23,7 @@ For running unit tests locally:
 ```pytest tests```
 
 For running recipe tests locally (requires access to private S3 bucket):
-```./recipes/tests/run_test.sh```
+```./tests/recipes/run_test.sh```
 
 &nbsp;
 
