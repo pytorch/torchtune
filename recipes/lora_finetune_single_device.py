@@ -15,10 +15,7 @@ from warnings import warn
 import torch
 from omegaconf import DictConfig
 
-from torchtune.recipe_interfaces import FTRecipeInterface
-
 from torch import nn
-from torch.cuda.amp import GradScaler
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
@@ -27,6 +24,8 @@ from torchtune.modules.peft.peft_utils import (
     set_trainable_params,
     validate_state_dict_for_lora,
 )
+
+from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -239,9 +238,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # Validate model was loaded in with the expected dtype.
         expected_dtype = torch.bfloat16 if full_bf16 else torch.float32
-        utils.validate_expected_param_dtype(
-            model, dtype=expected_dtype
-        )
+        utils.validate_expected_param_dtype(model, dtype=expected_dtype)
 
         log.info(f"Model is initialized with precision {expected_dtype}.")
         return model

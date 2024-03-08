@@ -79,7 +79,7 @@ def _validate_distributed_args(args):
     if not hasattr(args, "nnodes"):
         raise RuntimeError("Expect --nnodes to be specified for distributed runs")
 
-    if not args.nnodes in _valid_distributed_single_node_nnodes:
+    if args.nnodes not in _valid_distributed_single_node_nnodes:
         raise RuntimeError(
             f"Expect --nnodes to be one of {_valid_distributed_single_node_nnodes}"
         )
