@@ -155,7 +155,7 @@ def transform_opt_state_dict(
 ) -> Dict[str, Any]:
     """
     Transforms the optimizer state dict for FSDP using the ``optim_state_dict_to_load``
-    from distributed library within PyTorch.
+    from distributed library within PyTorch. If FSDP is not used, the optimizer state dict is returned as is.
 
     Args:
         opt_state_dict (Dict[str, Any]): Optimizer state dict extracted from the checkpoint

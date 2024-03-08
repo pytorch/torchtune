@@ -213,7 +213,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             with self._device:
                 model = config.instantiate(cfg_model)
 
-        # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -252,11 +251,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            # Note: technically we should check _contains_fsdp for
-            # just the state dict of the adapter cfg, but should be equivalent
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
-            )
             optimizer.load_state_dict(opt_state_dict)
 
         log.info("Optimizer and loss are initialized.")
@@ -283,7 +277,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_dataset: DictConfig,
         shuffle: bool,
         batch_size: int,
-    ) -> DataLoader:
+    ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here. Currently this recipe only supports
         Map-style Datasets which fit into memory and an option for random shuffling.
@@ -302,13 +296,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
         dataloader = DataLoader(
             dataset=ds,
-            # shuffle=shuffle,
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 

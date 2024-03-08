@@ -326,7 +326,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 

@@ -49,7 +49,7 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune
 
 ### LoRA finetune
 
-You can finetune LoRA on a single GPU using the `lora_finetune_single_device` recipe with the `alpaca_llama2_lora_finetune_single_device.yaml` config. To do so on multiple GPUs, use `lora_finetune_distributed ` with `alpaca_llama2_lora_finetune_distributed.yaml`. E.g. on two devices, you can run the following:
+We provide separate recipes for finetuning LoRA on a single device and multiple GPUs. You can finetune LoRA on a single device using the `lora_finetune_single_device` recipe with the `alpaca_llama2_lora_finetune_single_device.yaml` config. To do so on multiple GPUs, use `lora_finetune_distributed ` with `alpaca_llama2_lora_finetune_distributed.yaml`. E.g. on two devices, you can run the following:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed
