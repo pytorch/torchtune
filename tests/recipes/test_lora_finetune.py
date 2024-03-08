@@ -6,12 +6,12 @@
 
 import contextlib
 import runpy
-import torch
 import sys
 from functools import partial
 from typing import Dict
 
 import pytest
+import torch
 
 from tests.common import TUNE_PATH
 from tests.recipes.common import RECIPE_TESTS_DIR
@@ -34,6 +34,7 @@ models.lora_small_test_ckpt = partial(
     apply_lora_to_mlp=False,
 )
 
+
 class TestLoRAFinetuneRecipe:
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
         small_test_ckpt_loss_values = {
@@ -52,7 +53,6 @@ class TestLoRAFinetuneRecipe:
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
-        import pdb; pdb.set_trace()
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
         cmd = f"""
         tune lora_finetune
@@ -83,41 +83,85 @@ class TestLoRAFinetuneRecipe:
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)
 
+
 class TestLoRAFinalCheckpoints:
-    # @pytest.mark.parametrize("enable_fsdp", [False, True])
-    def test_save_merged_weights(self, tmpdir, enable_fsdp, monkeypatch):
+    @pytest.mark.parametrize("enable_fsdp", [True])
+    def test_save_and_load_merged_weights(self, tmpdir, enable_fsdp, monkeypatch):
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
 
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+
+        # Have to attach this after so it parses correctly
+        lora_cfg = [
+            'model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]'
+        ]
+
+        # Case 1: save partial checkpoint only, no weight merging
         cmd = f"""
         tune lora_finetune
             --config {config_path} \
             --override \
-            output_dir={tmpdir} \
             model._component_=torchtune.models.{ckpt} \
             model_checkpoint={fetch_ckpt_model_path(ckpt)} \
             model.lora_rank=8 \
             model.lora_alpha=16 \
             model.apply_lora_to_mlp=True \
-            save_full_final_checkpoint=True
-            merge_lora_weights=True
+            epochs=1
         """.split()
+        cmd += lora_cfg
+        if enable_fsdp:
+            cmd.append("enable_fsdp=True")
+            context_manager = single_box_init
+        else:
+            context_manager = contextlib.nullcontext
+        baseline_cmd = cmd + [f"output_dir={tmpdir}{enable_fsdp}baseline"]
+        full_ckpt_cmd = cmd + [
+            f"output_dir={tmpdir}{enable_fsdp}full_ckpt",
+            "save_full_final_checkpoint=True",
+        ]
+        merged_cmd = cmd + [
+            f"output_dir={tmpdir}{enable_fsdp}merged_ckpt",
+            "save_full_final_checkpoint=True",
+            "save_llama2_native_format=True",
+        ]
+        cmds = [baseline_cmd, full_ckpt_cmd, merged_cmd]
+        for current_cmd in cmds:
+            with context_manager():
+                monkeypatch.setattr(sys, "argv", current_cmd)
+                with pytest.raises(SystemExit):
+                    runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # Have to attach this after so it parses correctly
-        cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
+        inputs = torch.randint(low=0, high=32_000, size=(2, 100))
 
-        # if enable_fsdp:
-        #     cmd.append("--enable-fsdp")
-        #     context_manager = contextlib.nullcontext
-        # else:
-        #     context_manager = single_box_init
-        # with context_manager():
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        lora_model = lora_llama2_small_test_ckpt(
+            lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+            apply_lora_to_mlp=True,
+            lora_rank=8,
+            lora_alpha=16,
+        )
 
-        base_model = llama2_small_test_ckpt()
-        with open(f'{tmpdir}/model_0.ckpt', 'rb') as f:
-            sd = torch.load(f)
-            base_model.load_state_dict(f)
+        # Load partial final ckpt + original weights and call fwd
+        with open(f"{tmpdir}{enable_fsdp}baseline/model_0.ckpt", "rb") as f:
+            lora_sd = torch.load(f, weights_only=True)
+        with open(fetch_ckpt_model_path(ckpt), "rb") as f:
+            base_model_sd = torch.load(f, weights_only=True)
+        lora_model.load_state_dict(lora_sd["model"], strict=False)
+        lora_model.load_state_dict(base_model_sd["model"], strict=False)
+        baseline_out = lora_model(inputs)
+
+        # Load full final checkpoint and call fwd
+        with open(f"{tmpdir}{enable_fsdp}full_ckpt/model_0.ckpt", "rb") as f:
+            sd = torch.load(f, weights_only=True)
+        lora_model.load_state_dict(sd["model"])
+        full_ckpt_out = lora_model(inputs)
+
+        # Load merged final ckpt directly into llama2 and call fwd
+        llama2_model = llama2_small_test_ckpt()
+        with open(f"{tmpdir}{enable_fsdp}merged_ckpt/model_0.ckpt", "rb") as f:
+            sd = torch.load(f, weights_only=True)
+        llama2_model.load_state_dict(sd["model"])
+        merged_ckpt_out = llama2_model(inputs)
+
+        torch.testing.assert_close(baseline_out, full_ckpt_out, rtol=1e-5, atol=1e-5)
+        torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)

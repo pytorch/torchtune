@@ -166,88 +166,70 @@ def validate_state_dict_for_lora(
         ), "Extra keys not present in full model"
 
 
-def register_lora_weight_merge_hooks(model: nn.Module):
+def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
+    """
+    Check if a module is eligible for adding/removing merge and unmerge state dict hooks.
+    Currently this only supports LoRALinear weight merging.
+
+    Args:
+        m (nn.Module): Instance of model class containing some LoRA modules.
+
+    Returns:
+        bool: True if the module has the required methods for state dict hooks.
+    """
+    return (
+        hasattr(m, "merge_lora_weights")
+        and callable(m.merge_lora_weights)
+        and hasattr(m, "unmerge_lora_weights")
+        and callable(m.unmerge_lora_weights)
+    )
+
+
+def register_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Register state dict hooks for merging and unmerging LoRA weights.
+
+    Args:
+        model (nn.Module): Instance of model class containing some adapter params.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If the model already has state dict pre-hooks or post-hooks.
+    """
     for n, m in model.named_modules():
-        # TODO: less verbose check
-        if (
-            hasattr(m, "merge_lora_weights")
-            and callable(m.merge_lora_weights)
-            and hasattr(m, "unmerge_lora_weights")
-            and callable(m.unmerge_lora_weights)
-        ):
-            # Add check these don't already exist
+        if _is_eligible_for_state_dict_hook(m):
+            if m._state_dict_pre_hooks:
+                raise RuntimeError(
+                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict pre-hook(s)"
+                )
+            if m._state_dict_hooks:
+                raise RuntimeError(
+                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict post-hook(s)"
+                )
             m.pre_handle = m.register_state_dict_pre_hook(m.merge_lora_weights)
             m.post_handle = m._register_state_dict_hook(m.unmerge_lora_weights)
 
 
-def unregister_lora_weight_merge_hooks(model: nn.Module):
+def unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Unregister state dict hooks for merging and unmerging LoRA weights.
+
+    Args:
+        model (nn.Module): Instance of model class containing some adapter params.
+
+    Returns:
+        None
+
+    Raises:
+        RuntimeError: If the model does not have state dict pre-hooks or post-hooks.
+    """
     for n, m in model.named_modules():
-        if (
-            hasattr(m, "merge_lora_weights")
-            and callable(m.merge_lora_weights)
-            and hasattr(m, "unmerge_lora_weights")
-            and callable(m.unmerge_lora_weights)
-        ):
-            # TODO: add some assertion here
+        if _is_eligible_for_state_dict_hook(m):
+            if not hasattr(m, "pre_handle"):
+                raise RuntimeError(f"Cannot unregister state dict pre-hook from {m}")
+            if not hasattr(m, "post_handle"):
+                raise RuntimeError(f"Cannot unregister state dict post-hook from {m}")
             m.pre_handle.remove()
             m.post_handle.remove()
-
-
-# def lora_save_checkpoint_weight_merge_decorator(dec, condition):
-#     def decorator(func):
-#         if not condition:
-#             # Return the function unchanged, not decorated.
-#             return func
-#         return dec(func)
-#     return decorator
-
-# def register_and_unregister_lora_merge_hooks(model: nn.Module, merge_lora_weights: bool = False):
-# # def decorator(func: Callable):
-#     def wrapper(*args, **kwargs):
-#         if merge_lora_weights:
-#             register_lora_weight_merge_hooks(model)
-#             result = func(*args, **kwargs)
-#             unregister_lora_weight_merge_hooks(model)
-#         else:
-#             result = func(*args, **kwargs)
-#         return result
-#     return wrapper
-
-
-# def lora_weight_merge_pre_hook(model: nn.Module):
-#     for n, m in model.named_modules():
-#         if isinstance(m, LoRALinear):
-#             m.post_handle = m._register_state_dict_hook(m.merge_lora_weights)
-
-# def lora_weight_merge_post_hook(model: nn.Module):
-#     for n, m in model.named_modules():
-#         if isinstance(m, LoRALinear):
-#             m.unmerge_lora_weights()
-
-# def register_and_unregister_lora_merge_hooks(model: nn.Module, fn: Callable, *args, **kwargs):
-#     pre_handle = model._register_pre_state_dict_hook(lora_weight_merge_pre_hook)
-#     post_handle = model._register_state_dict_hook(lora_weight_merge_post_hook)
-#     fn(model, *args, **kwargs)
-#     pre_handle.remove()
-#     post_handle.remove()
-
-# def register_and_unregister_lora_merge_hooks(model: nn.Module, merge_lora_weights: bool = False):
-# def decorator(func: Callable):
-#     def wrapper(*args, **kwargs):
-#         if do_decorate:
-#             pre_handle = model._register_pre_state_dict_hook(lora_weight_merge_pre_hook)
-#             post_handle = model._register_state_dict_hook(lora_weight_merge_post_hook)
-#             result = func(*args, **kwargs)
-#             pre_handle.remove()
-#             post_handle.remove()
-#         else:
-#             result = func(*args, **kwargs)
-#         return result
-#     return wrapper
-
-
-# def wrap_for_lora_weight_merging(fn: Callable, model: nn.Module):
-#     for n, m in model.named_modules():
-#         if isinstance(m, LoRALinear):
-#             pre_handle = m._register_pre_state_dict_hook(m.pre_state_dict_hook)
-#             post_handle = m._register_state_dict_hook(m.post_state_dict_hook)

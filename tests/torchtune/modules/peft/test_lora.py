@@ -7,10 +7,10 @@
 import pytest
 
 import torch
-from torch import nn
 import torch.nn.functional as F
 
 from tests.test_utils import fixed_init_model
+from torch import nn
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
@@ -19,6 +19,7 @@ ALPHA = 1.0
 BSZ = 2
 SEQ_LEN = 32
 EXPECTED_VAL = 1.1252
+
 
 @pytest.fixture(autouse=True)
 def random():
@@ -58,8 +59,12 @@ class TestLoRALinear:
 
     @torch.no_grad()
     def set_dummy_weights_for_merge(self, lora_module):
-        lora_module.lora_a.weight = nn.Parameter(torch.zeros_like(lora_module.lora_a.weight))
-        lora_module.lora_b.weight = nn.Parameter(torch.zeros_like(lora_module.lora_b.weight))
+        lora_module.lora_a.weight = nn.Parameter(
+            torch.zeros_like(lora_module.lora_a.weight)
+        )
+        lora_module.lora_b.weight = nn.Parameter(
+            torch.zeros_like(lora_module.lora_b.weight)
+        )
         lora_module.weight = nn.Parameter(torch.zeros_like(lora_module.weight))
         lora_module.bias = nn.Parameter(torch.zeros_like(lora_module.bias))
 
@@ -72,7 +77,7 @@ class TestLoRALinear:
     def test_forward(self, inputs, lora_linear, out_dim) -> None:
         expected = torch.tensor(EXPECTED_VAL)
         actual = lora_linear(inputs)
-        assert actual.shape ==  (BSZ, SEQ_LEN, out_dim)
+        assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
     def test_invalid_merge_lora_weights_with_bias(self):
@@ -116,7 +121,6 @@ class TestLoRALinear:
     def test_merge_and_unmerge_lora_weights(self, lora_linear):
         sd_pre = lora_linear.state_dict()
         lora_linear.merge_lora_weights()
-        import pdb; pdb.set_trace()
         lora_linear.unmerge_lora_weights()
         assert sd_pre.keys() == lora_linear.state_dict().keys()
         for k in sd_pre.keys():

@@ -81,7 +81,6 @@ def save_checkpoint(
         ckpt_dict[OPT_KEY] = optimizer_state_dict
 
     model_state_dict = ckpt_dict[MODEL_KEY].state_dict()
-    import pdb; pdb.set_trace
     if model_key_filter:
         model_state_dict = {
             k: v for k, v in model_state_dict.items() if model_key_filter(k)

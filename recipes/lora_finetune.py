@@ -72,7 +72,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        import pdb; pdb.set_trace()
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
@@ -366,13 +365,12 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
         model_key_filter = None
         if not save_full_weights:
-           model_key_filter = lambda x: x in self.adapter_params
+            model_key_filter = lambda x: x in self.adapter_params
 
         # Can try context manager
         # Need to run inside FSDP hooks
         if merge_lora_weights:
             register_lora_weight_merge_hooks(self._model)
-        import pdb; pdb.set_trace()
         utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=model_key_filter)
         if merge_lora_weights:
             unregister_lora_weight_merge_hooks(self._model)
@@ -446,7 +444,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             merge_lora_weights = self._save_llama2_native_format and (
                 curr_epoch == self.total_epochs - 1
             )
-            import pdb; pdb.set_trace()
             self.save_checkpoint(
                 epoch=curr_epoch,
                 save_full_weights=save_full_weights,
