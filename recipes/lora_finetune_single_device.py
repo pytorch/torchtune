@@ -115,7 +115,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
             self._update_recipe_state(lora_ckpt)
 
-        torch.cuda.is_bf16_supported = lambda: False
         if cfg.full_bf16 and not torch.cuda.is_bf16_supported():
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
