@@ -200,7 +200,6 @@ class TestFullFinetuneRecipe:
         cmd_2 = f"""
         tune full_finetune
             --config {_CONFIG_PATH} \
-            --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \

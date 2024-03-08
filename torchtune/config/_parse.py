@@ -28,7 +28,7 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
         >>>     ...
 
     With the decorator, the parameters will be parsed into cfg when run as:
-        >>> tune my_recipe --config config.yaml --override foo=bar
+        >>> tune my_recipe --config config.yaml foo=bar
 
     Args:
         recipe_main (Recipe): The main method that initializes
