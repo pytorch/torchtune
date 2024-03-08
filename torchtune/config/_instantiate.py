@@ -30,7 +30,7 @@ def _create_component(
 
 
 def _instantiate_node(
-    node: DictConfig, partial_instantiate: bool = False, *args: Tuple[Any, ...]
+    node: DictConfig, *args: Tuple[Any, ...], partial_instantiate: bool = False
 ):
     """
     Creates the object specified in _component_ field with provided positional args

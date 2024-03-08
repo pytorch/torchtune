@@ -4,18 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import os
+from pathlib import Path
 
 from omegaconf import OmegaConf
 from torchtune import config
 
-ROOT_DIR: str = os.path.join(os.path.abspath(__file__), "../../../configs")
+CONFIG_DIR = Path(__file__).resolve().parent.parent.parent / "recipes" / "configs"
 
 
 class TestConfigs:
     def test_instantiate(self) -> None:
         all_configs = [
-            os.path.join(ROOT_DIR, f)
-            for f in os.listdir(ROOT_DIR)
+            os.path.join(CONFIG_DIR, f)
+            for f in os.listdir(CONFIG_DIR)
             if f.endswith(".yaml")
         ]
         for config_path in all_configs:
