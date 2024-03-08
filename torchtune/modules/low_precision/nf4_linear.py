@@ -21,7 +21,7 @@ class FrozenNF4Linear(nn.Linear):
     use cases such as QLoRA where base model parameters are frozen.
     NOTE: biases are currently not supported.
     NOTE: This class always creates the underlying full precision weight as bf16 dtypte. Note that
-        this will override the default PyTorch dtype that is set via `torch.set_default_dtype`.
+    this will override the default PyTorch dtype that is set via `torch.set_default_dtype`.
 
     Args:
         in_dim (int): input dimension
