@@ -149,7 +149,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             )
             dcp.load(
                 {
-                    MODEL_KEY: model_state_dict
+                    MODEL_KEY: model_state_dict,
                     OPT_KEY: optim_state_dict
                 },
                 params.lora_checkpoint
