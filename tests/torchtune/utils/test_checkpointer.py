@@ -4,6 +4,7 @@ import torch
 
 from pathlib import Path
 from torch import randn
+from typing import Tuple
 
 from torchtune.models import llama2
 from torchtune.utils._checkpointing import (
@@ -40,10 +41,14 @@ class TestHFLlama2FullModelCheckpointer:
 
     @pytest.fixture
     def weight_dtype(self):
-        return torch.bfloat16
+        return torch.float16
 
     @pytest.fixture
     def state_dict_1(self, vocab_size, dim, hidden_dim, weight_dtype):
+        """
+        State dict for a HF_FORMAT checkpoint. This state dict is "complete" and
+        can be loaded into a TorchTune model once correctly converted.
+        """
         state_dict = {
             'model.embed_tokens.weight': randn(vocab_size, dim, dtype=weight_dtype),
             'model.layers.0.input_layernorm.weight': randn(dim, dtype=weight_dtype),
@@ -63,6 +68,11 @@ class TestHFLlama2FullModelCheckpointer:
 
     @pytest.fixture
     def state_dict_2(self, vocab_size, dim, hidden_dim, weight_dtype):
+        """
+        State dict for a HF_FORMAT checkpoint. This state dict is "incomplete" and
+        should be used along with ``state_dict_1`` to test multi-file checkpointing. Specifically
+        it's missing the embedding, norm and lm_head keys.
+        """
         state_dict = {
             'model.layers.1.input_layernorm.weight': randn(dim, dtype=weight_dtype),
             'model.layers.1.self_attn.q_proj.weight': randn(dim, dim, dtype=weight_dtype),
@@ -87,7 +97,7 @@ class TestHFLlama2FullModelCheckpointer:
             weight_map[key] = "llama2_hf_checkpoint_01.pt"
 
         state_dict = {
-            'model': state_dict_1,
+            'model': llama2.hf_to_tune_llama2_7b(state_dict_1, num_heads=4, dim=64),
             'optimizer': {},
             'seed': 0,
             'epochs_run': 0,
@@ -167,25 +177,27 @@ class TestHFLlama2FullModelCheckpointer:
             resume_from_checkpoint=True,
         )
 
-    def test_load_checkpoint_single_file(
+    def test_load_save_checkpoint_single_file(
         self,
-        single_file_checkpointer,
-        llama2_hf_checkpoints,
-        vocab_size,
-        dim,
-        hidden_dim,
-        num_heads
+        vocab_size: int,
+        dim: int,
+        num_heads: int,
+        single_file_checkpointer: FullModelCheckpointer,
+        llama2_hf_checkpoints: Tuple[Path, Path],
     ):
         """
-        Test ``load_checkpoint`` method within the FullModelCheckpointer for a single
-        checkpoint file.
+        Test ``load_checkpoint`` and ``save_checkpoint`` method within the
+        FullModelCheckpointer for a single checkpoint file.
 
         We test:
         * ``load_checkpoint`` loads the right sets of keys
         * Internal state of the checkpointer is correctly updated
         * Converted checkpoint can be loaded into the llama2 TorchTune implementation
+        * Saved checkpoint keys match the original checkpoint
+        * Saved checkpoint dtype matches the original checkpoint
         """
-        # Read the state dict directly from file
+        # Read the state dict directly from file using torch.load. This will be the state
+        # dict we test against
         checkpoint_file, _ = llama2_hf_checkpoints
         orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
 
@@ -194,7 +206,8 @@ class TestHFLlama2FullModelCheckpointer:
         converted_state_dict = single_file_checkpointer.convert_to_torchtune_format(
             state_dict, num_heads=num_heads, dim=dim
         )
-        # We ignore inv_freq as is standard practice
+
+        # Check that we've loaded all the keys; We ignore inv_freq as is standard practice
         assert len(converted_state_dict.keys()) + 1 == len(orig_state_dict.keys())
 
         # The dtype for a random weight should match up with the checkpoint state
@@ -207,6 +220,10 @@ class TestHFLlama2FullModelCheckpointer:
                 continue
             assert key in single_file_checkpointer._weight_map
 
+        # The filename of the original checkpoint should be the value in the weight_map
+        random_key = next(iter(single_file_checkpointer._weight_map.keys()))
+        assert single_file_checkpointer._weight_map[random_key] == checkpoint_file.name
+
         # loading the state dict into the model implementation should work correctly
         model = llama2.llama2(
             vocab_size=vocab_size,
@@ -218,24 +235,9 @@ class TestHFLlama2FullModelCheckpointer:
         )
         model.load_state_dict(converted_state_dict)
 
-
-    def test_save_checkpoint_single_file(self, single_file_checkpointer, llama2_hf_checkpoints):
-        """
-        Test ``save_checkpoint`` method within the FullModelCheckpointer for a single
-        checkpoint file.
-
-        We test:
-        * The output checkpoint keys match the original checkpoint
-        * The output checkpoint dtype matches the original checkpoint
-        """
-        # Read the state dict directly from file
-        checkpoint_file, _ = llama2_hf_checkpoints
-        orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
-
-        state_dict = single_file_checkpointer.load_checkpoint()
-        converted_state_dict = single_file_checkpointer.convert_to_torchtune_format(state_dict, num_heads=4, dim=64)
+        # convert the state dict back to the original format and save to file
         converted_state_dict = single_file_checkpointer.convert_from_torchtune_format(
-            converted_state_dict, num_heads=4, dim=64
+            converted_state_dict, num_heads=num_heads, dim=dim
         )
         single_file_checkpointer.save_checkpoint(converted_state_dict)
 
@@ -255,7 +257,7 @@ class TestHFLlama2FullModelCheckpointer:
         assert orig_weight.dtype == output_weight.dtype
 
 
-    def test_load_checkpoint_multiple_file(self, multi_file_checkpointer, llama2_hf_checkpoints):
+    def test_save_load_checkpoint_multiple_file(self, multi_file_checkpointer, llama2_hf_checkpoints):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
         checkpoint file.
@@ -308,27 +310,8 @@ class TestHFLlama2FullModelCheckpointer:
         )
         model.load_state_dict(merged_state_dict)
 
-    def test_save_checkpoint_single_file(self, multi_file_checkpointer, llama2_hf_checkpoints):
-        """
-        Test ``save_checkpoint`` method within the FullModelCheckpointer for multiple
-        checkpoint file.
-
-        This test ensures:
-        * The output checkpoint keys match the original checkpoints
-        * The output checkpoint dtype matches the original checkpoint
-        """
-        # Read the state dict directly from files
-        checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
-        orig_state_dict_1 = torch.load(checkpoint_file_1, mmap=True, map_location='cpu')
-        orig_state_dict_2 = torch.load(checkpoint_file_2, mmap=True, map_location='cpu')
-
-        # merged state dict from checkpointer
-        merged_state_dict = multi_file_checkpointer.load_checkpoint()
-        merged_state_dict = multi_file_checkpointer.convert_to_torchtune_format(
-            merged_state_dict, num_heads=4, dim=64
-        )
         merged_state_dict = multi_file_checkpointer.convert_from_torchtune_format(
-            merged_state_dict, num_heads=4, dim=64
+            model.state_dict(), num_heads=4, dim=64
         )
         multi_file_checkpointer.save_checkpoint(merged_state_dict)
 
@@ -357,7 +340,8 @@ class TestHFLlama2FullModelCheckpointer:
         mid_training_checkpointer,
         llama2_hf_checkpoints,
         dim,
-        num_heads
+        num_heads,
+        vocab_size
     ):
         """
         Test checkpointing for a mid-training checkpoint. In this test, we load a
@@ -368,11 +352,22 @@ class TestHFLlama2FullModelCheckpointer:
         checkpoint_file, _ = llama2_hf_checkpoints
         orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
 
-        # load a mid-training checkpoint. Since this is already in TORCHTUNE_FORMAT
-        # we don't need to convert it. Before saving checkpoint, extract the model
-        # state dict. In the recipe we direcly extract the state dict from the model
+        # load a mid-training checkpoint and ensure we can load it into the model.
+        # Since this is already in TORCHTUNE_FORMAT we don't need to convert it.
         state_dict = mid_training_checkpointer.load_checkpoint()
-        mid_training_checkpointer.save_checkpoint(state_dict['model'])
+        model = llama2.llama2(
+            vocab_size=vocab_size,
+            num_layers=1,
+            num_heads=num_heads,
+            num_kv_heads=num_heads,
+            embed_dim=dim,
+            max_seq_len=128
+        )
+        model.load_state_dict(state_dict['model'])
+        converted_state_dict = mid_training_checkpointer.convert_from_torchtune_format(
+            model.state_dict(), num_heads=4, dim=64
+        )
+        mid_training_checkpointer.save_checkpoint(converted_state_dict)
 
         output_file = Path.joinpath(
             checkpoint_file.parent, ('torchtune_' + checkpoint_file.name)
@@ -380,4 +375,4 @@ class TestHFLlama2FullModelCheckpointer:
         output_state_dict = torch.load(output_file, mmap=True, map_location='cpu')
 
         # We ignore inv_freq as is standard practice and so output dict will have one less key
-        assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
+        assert len(output_state_dict.keys()) + 1 == len(orig_state_dict.keys())

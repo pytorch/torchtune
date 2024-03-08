@@ -18,8 +18,10 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+
 
 from torchtune import config, modules, utils
 
@@ -74,7 +76,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         # logging attributes
-        self._output_dir = cfg.output_dir
+        self._output_dir = Path(cfg.output_dir)
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -97,7 +99,18 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
-        Extract, load an convert checkpoint.
+        Extract and load state dict from checkpoint file.
+
+        This recipe supports two scenarios:
+            * New Training Run. Load a checkpoint from an external source such as Llama2
+                from Meta or HuggingFace. In this scenario we need to conver the checkpoint
+                into a format used by TorchTune. This can be easily done using the
+                FullModelCheckpointer's ``convert_to_torchtune_format`` method.
+
+            * Resuming Training. Load a checkpoint from a partially completed TorchTune
+                training. In this scenario, the checkpoint is already in the TorchTune
+                format. We simply extract the relevant recipe state and continue with recipe
+                setup.
         """
         self._checkpoint_format = getattr(CheckpointFormat, cfg.checkpoint_format)
         self._model_type = getattr(ModelType, cfg.model_type,)
@@ -106,15 +119,15 @@ class FullFinetuneRecipe(FTRecipeInterface):
             checkpoint_files = [Path(ckpt_file) for ckpt_file in cfg.checkpoint_files],
             checkpoint_format = self._checkpoint_format,
             model_type = self._model_type,
-            output_dir=Path(self._output_dir),
+            output_dir = self._output_dir,
             resume_from_checkpoint = self._resume_from_checkpoint,
         )
 
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
-        # If we're resuming from checkpoint, the recipe's state should be updated before
-        # initializing the training components. This ensures that the seed is correctly
-        # propagated to the relevant components
+        # If we're resuming training, the checkpoint is already in TorchTune format. We simply
+        # update the recipe state. Otherwise we need to convert the checkpoint to a format
+        # understood by TorchTune
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
         else:
@@ -307,11 +320,18 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def save_checkpoint(self, epoch: int) -> None:
         """
-        Checkpoint the relevant state of a recipe. This function is responsible for ensuring
-        the state_dict for mid-training checkpointing is constructed correctly.
+        Extract and load state dict from checkpoint file.
 
-        If training is ongoing, optimizer state, seed and epochs_run are saved along with the
-        model weights
+        This recipe supports two scenarios:
+            * Mid-training checkpointing. In this scenario, the checkpoint contains more
+                information than just model state. This includes the optimizer and recipe
+                states. The recipe is responsible for correctly creating the state dict and
+                passing this onto the checkpointers ``save_checkpoint`` method.
+
+            * End-of-training checkpointing. In this scenario, the checkpoint contains only
+                the model state. We first convert the state dict back to the original checkpoint
+                format using the ``convert_from_torchtune_format`` method and then write this out
+                to file using the ``save_checkpoint`` method.
         """
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
@@ -337,11 +357,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     intermediate_checkpoint_name=f"model_{epoch}.pt"
                 )
         else:
+            # while writing the final checkpoint, first conver the state_dict
+            converted_state_dict = self._checkpointer.convert_from_torchtune_format(
+                self._model.state_dict()
+            )
             if self._is_rank_zero:
-                # while writing the final checkpoint, first conver the state_dict
-                converted_state_dict = self._checkpointer.convert_from_torchtune_format(
-                    self._model.state_dict()
-                )
                 self._checkpointer.save_checkpoint(converted_state_dict)
 
     def _should_update_weights(self, current_iteration: int) -> bool:
