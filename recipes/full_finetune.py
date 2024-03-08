@@ -97,7 +97,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
-        Extract the checkpoint state from file and validate.
+        Extract, load an convert checkpoint.
         """
         self._checkpoint_format = getattr(CheckpointFormat, cfg.checkpoint_format)
         self._model_type = getattr(ModelType, cfg.model_type,)
@@ -110,14 +110,16 @@ class FullFinetuneRecipe(FTRecipeInterface):
             resume_from_checkpoint = self._resume_from_checkpoint,
         )
 
-        ckpt_dict = self._checkpointer.load_checkpoint()
+        checkpoint_dict = self._checkpointer.load_checkpoint()
 
         # If we're resuming from checkpoint, the recipe's state should be updated before
         # initializing the training components. This ensures that the seed is correctly
         # propagated to the relevant components
         if self._resume_from_checkpoint:
-            self._update_recipe_state(ckpt_dict)
-        return ckpt_dict
+            self._update_recipe_state(checkpoint_dict)
+        else:
+            checkpoint_dict = self._checkpointer.convert_to_torchtune_format(checkpoint_dict)
+        return checkpoint_dict
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -336,7 +338,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 )
         else:
             if self._is_rank_zero:
-                self._checkpointer.save_checkpoint(self._model.state_dict())
+                # while writing the final checkpoint, first conver the state_dict
+                converted_state_dict = self._checkpointer.convert_from_torchtune_format(
+                    self._model.state_dict()
+                )
+                self._checkpointer.save_checkpoint(converted_state_dict)
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """

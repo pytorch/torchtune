@@ -140,7 +140,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         # checkpoint is written in the same way as the original checkpoint
         self._weight_map: Dict[str, str] = None
 
-    def load_checkpoint(self, num_heads: int = 32, dim: int = 4096) -> Dict[str, Any]:
+    def load_checkpoint(self) -> Dict[str, Any]:
         """
         Loads the checkpoint from the checkpoint files.
 
@@ -155,7 +155,6 @@ class FullModelCheckpointer(_CheckpointerInterface):
             state_dict = self._load_torchtune_checkpoint()
         else:
             state_dict = self._load_external_checkpoint()
-            state_dict = self.convert_to_torchtune_format(state_dict, num_heads, dim)
         return state_dict
 
     def save_checkpoint(
@@ -163,7 +162,6 @@ class FullModelCheckpointer(_CheckpointerInterface):
         checkpoint_dict: Dict[str, Any],
         intermediate_checkpoint: bool = False,
         intermediate_checkpoint_name: Optional[str] = None,
-        num_heads: int = 32, dim: int = 4096
     ) -> None:
         """
         Saves the checkpoint to the output directory.
@@ -191,7 +189,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             self._save_intermediate_checkpoint(checkpoint_dict, intermediate_checkpoint_name)
         else:
-            self._save_final_checkpoint(checkpoint_dict, num_heads, dim)
+            self._save_final_checkpoint(checkpoint_dict)
 
 
     def _save_intermediate_checkpoint(
@@ -223,20 +221,13 @@ class FullModelCheckpointer(_CheckpointerInterface):
             f"saved to {output_path}"
         )
 
-    def _save_final_checkpoint(
-        self,
-        checkpoint_dict: Dict[str, Any],
-        num_heads: int = 32, dim: int = 4096
-    ) -> None:
+    def _save_final_checkpoint(self, checkpoint_dict: Dict[str, Any]) -> None:
         """
         Saves the final checkpoint to a single file.
 
         Args:
             intermediate_checkpoint_name (str): Name of the intermediate checkpoint.
         """
-        # while writing the final checkpoint, first conver the state_dict
-        checkpoint_dict = self.convert_from_torchtune_format(checkpoint_dict, num_heads, dim)
-
         # optionally split the state-dict across files. This is also where the
         # dtype conversion happens if necessary
         split_state_dicts = self._split_state_dict(checkpoint_dict)
@@ -334,7 +325,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         if self._checkpoint_format != CheckpointFormat.TORCHTUNE_FORMAT:
             raise ValueError(
                 "When resuming a TorchTune training run, the checkpoint format is expected to "
-                f'be "torchtune". Got {ckpt_format} instead.'
+                f'be "torchtune". Got {self._checkpoint_format} instead.'
             )
 
         # Currently we output a single checkpoint file. This will change as we support
@@ -342,7 +333,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         if self._checkpoint_files.__len__() != 1:
             raise ValueError(
                 "When resuming a TorchTune training run, the checkpoint path should "
-                f"should point to a file. Got {ckpt_path} which is not a file."
+                f"should point to a file. Got {self._checkpoint_files} which is not a file."
             )
 
         # TorchTune checkpoints are expected to be ".pt" files
@@ -350,7 +341,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         if checkpoint_file.suffix != ".pt":
             raise ValueError(
                 'When resuming a TorchTune training run, the checkpoint should be ".pt" file. '
-                f'Got a "{ckpt_path.suffix}" file instead. Make sure you are loading a valid '
+                f'Got a "{checkpoint_file.suffix}" file instead. Make sure you are loading a valid '
                 "TorchTune checkpoint."
             )
 

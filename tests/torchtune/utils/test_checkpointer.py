@@ -11,6 +11,7 @@ from torchtune.utils._checkpointing import (
     FullModelCheckpointer,
     ModelType
 )
+from torchtune.utils import constants
 from torchtune.utils.seed import set_seed
 
 
@@ -38,7 +39,68 @@ class TestHFLlama2FullModelCheckpointer:
         return 4
 
     @pytest.fixture
-    def llama2_hf_checkpoints(self, tmp_path, vocab_size, dim, hidden_dim):
+    def weight_dtype(self):
+        return torch.bfloat16
+
+    @pytest.fixture
+    def state_dict_1(self, vocab_size, dim, hidden_dim, weight_dtype):
+        state_dict = {
+            'model.embed_tokens.weight': randn(vocab_size, dim, dtype=weight_dtype),
+            'model.layers.0.input_layernorm.weight': randn(dim, dtype=weight_dtype),
+            'model.layers.0.self_attn.q_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.0.self_attn.k_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.0.self_attn.v_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.0.self_attn.o_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.0.post_attention_layernorm.weight': randn(dim, dtype=weight_dtype),
+            'model.layers.0.self_attn.rotary_emb.inv_freq': randn(dim, dtype=weight_dtype),
+            'model.layers.0.mlp.gate_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
+            'model.layers.0.mlp.down_proj.weight': randn(dim, hidden_dim, dtype=weight_dtype),
+            'model.layers.0.mlp.up_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
+            'model.norm.weight': torch.randn(dim, dtype=weight_dtype),
+            'lm_head.weight': torch.randn(vocab_size, dim, dtype=weight_dtype),
+        }
+        return state_dict
+
+    @pytest.fixture
+    def state_dict_2(self, vocab_size, dim, hidden_dim, weight_dtype):
+        state_dict = {
+            'model.layers.1.input_layernorm.weight': randn(dim, dtype=weight_dtype),
+            'model.layers.1.self_attn.q_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.1.self_attn.k_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.1.self_attn.v_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.1.self_attn.o_proj.weight': randn(dim, dim, dtype=weight_dtype),
+            'model.layers.1.post_attention_layernorm.weight': randn(dim, dtype=weight_dtype),
+            'model.layers.1.self_attn.rotary_emb.inv_freq': randn(dim, dtype=weight_dtype),
+            'model.layers.1.mlp.gate_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
+            'model.layers.1.mlp.down_proj.weight': randn(dim, hidden_dim, dtype=weight_dtype),
+            'model.layers.1.mlp.up_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
+        }
+        return state_dict
+
+    @pytest.fixture
+    def mid_training_state_dict(self, state_dict_1, weight_dtype, tmp_path):
+        """
+        Fixture to create a mid-training checkpoint.
+        """
+        weight_map = {}
+        for key, _ in state_dict_1.items():
+            weight_map[key] = "llama2_hf_checkpoint_01.pt"
+
+        state_dict = {
+            'model': state_dict_1,
+            'optimizer': {},
+            'seed': 0,
+            'epochs_run': 0,
+            'total_epochs': 1,
+            'max_steps_per_epoch': 4,
+            'checkpoint_dtype': torch.float16,
+            'weight_map': weight_map,
+            'checkpoint_format': CheckpointFormat.HF_FORMAT.name,
+        }
+        return state_dict
+
+    @pytest.fixture
+    def llama2_hf_checkpoints(self, tmp_path, state_dict_1, state_dict_2):
         """
         Fixture which creates two checkpoint files for the Llama2 model. The
         state dict follows the HF_FORMAT for the checkpoint format.
@@ -61,40 +123,16 @@ class TestHFLlama2FullModelCheckpointer:
         checkpoint_file_1 = tmp_path / "llama2_hf_checkpoint_01.pt"
         checkpoint_file_2 = tmp_path / "llama2_hf_checkpoint_02.pt"
 
-        weight_dtype=torch.bfloat16
-
-        state_dict_1 = {
-            'model.embed_tokens.weight': randn(vocab_size, dim, dtype=weight_dtype),
-            'model.layers.0.input_layernorm.weight': randn(dim, dtype=weight_dtype),
-            'model.layers.0.self_attn.q_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.0.self_attn.k_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.0.self_attn.v_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.0.self_attn.o_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.0.post_attention_layernorm.weight': randn(dim, dtype=weight_dtype),
-            'model.layers.0.self_attn.rotary_emb.inv_freq': randn(dim, dtype=weight_dtype),
-            'model.layers.0.mlp.gate_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
-            'model.layers.0.mlp.down_proj.weight': randn(dim, hidden_dim, dtype=weight_dtype),
-            'model.layers.0.mlp.up_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
-            'model.norm.weight': torch.randn(dim, dtype=weight_dtype),
-            'lm_head.weight': torch.randn(vocab_size, dim, dtype=weight_dtype),
-        }
-
-        state_dict_2 = {
-            'model.layers.1.input_layernorm.weight': randn(dim, dtype=weight_dtype),
-            'model.layers.1.self_attn.q_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.1.self_attn.k_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.1.self_attn.v_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.1.self_attn.o_proj.weight': randn(dim, dim, dtype=weight_dtype),
-            'model.layers.1.post_attention_layernorm.weight': randn(dim, dtype=weight_dtype),
-            'model.layers.1.self_attn.rotary_emb.inv_freq': randn(dim, dtype=weight_dtype),
-            'model.layers.1.mlp.gate_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
-            'model.layers.1.mlp.down_proj.weight': randn(dim, hidden_dim, dtype=weight_dtype),
-            'model.layers.1.mlp.up_proj.weight': randn(hidden_dim, dim, dtype=weight_dtype),
-        }
-
         torch.save(state_dict_1, checkpoint_file_1)
         torch.save(state_dict_2, checkpoint_file_2)
         return (checkpoint_file_1, checkpoint_file_2)
+
+    @pytest.fixture
+    def mid_training_checkpoints(self, tmp_path, mid_training_state_dict):
+        checkpoint_file = tmp_path / "model_0.pt"
+
+        torch.save(mid_training_state_dict, checkpoint_file)
+        return checkpoint_file
 
     @pytest.fixture
     def single_file_checkpointer(self, llama2_hf_checkpoints, tmp_path) -> FullModelCheckpointer:
@@ -116,6 +154,17 @@ class TestHFLlama2FullModelCheckpointer:
             checkpoint_format=CheckpointFormat.HF_FORMAT,
             model_type=ModelType.LLAMA2_7B,
             output_dir=tmp_path,
+        )
+
+    @pytest.fixture
+    def mid_training_checkpointer(self, mid_training_checkpoints, tmp_path) -> FullModelCheckpointer:
+        return FullModelCheckpointer(
+            checkpoint_dir=tmp_path,
+            checkpoint_files=[mid_training_checkpoints],
+            checkpoint_format=CheckpointFormat.TORCHTUNE_FORMAT,
+            model_type=ModelType.LLAMA2_7B,
+            output_dir=tmp_path,
+            resume_from_checkpoint=True,
         )
 
     def test_load_checkpoint_single_file(
@@ -141,8 +190,10 @@ class TestHFLlama2FullModelCheckpointer:
         orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
 
         # Converted state dict from the checkpointer
-        converted_state_dict = single_file_checkpointer.load_checkpoint(num_heads=4, dim=64)
-
+        state_dict = single_file_checkpointer.load_checkpoint()
+        converted_state_dict = single_file_checkpointer.convert_to_torchtune_format(
+            state_dict, num_heads=num_heads, dim=dim
+        )
         # We ignore inv_freq as is standard practice
         assert len(converted_state_dict.keys()) + 1 == len(orig_state_dict.keys())
 
@@ -181,14 +232,17 @@ class TestHFLlama2FullModelCheckpointer:
         checkpoint_file, _ = llama2_hf_checkpoints
         orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
 
-        converted_state_dict = single_file_checkpointer.load_checkpoint(num_heads=4, dim=64)
-        single_file_checkpointer.save_checkpoint(converted_state_dict, num_heads=4, dim=64)
+        state_dict = single_file_checkpointer.load_checkpoint()
+        converted_state_dict = single_file_checkpointer.convert_to_torchtune_format(state_dict, num_heads=4, dim=64)
+        converted_state_dict = single_file_checkpointer.convert_from_torchtune_format(
+            converted_state_dict, num_heads=4, dim=64
+        )
+        single_file_checkpointer.save_checkpoint(converted_state_dict)
 
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
         # should be something we capture through this test
         output_file = Path.joinpath(
-
             checkpoint_file.parent, ('torchtune_' + checkpoint_file.name)
         )
         output_state_dict = torch.load(output_file, mmap=True, map_location='cpu')
@@ -217,7 +271,10 @@ class TestHFLlama2FullModelCheckpointer:
         orig_state_dict_2 = torch.load(checkpoint_file_2, mmap=True, map_location='cpu')
 
         # merged state dict from checkpointer
-        merged_state_dict = multi_file_checkpointer.load_checkpoint(num_heads=4, dim=64)
+        merged_state_dict = multi_file_checkpointer.load_checkpoint()
+        merged_state_dict = multi_file_checkpointer.convert_to_torchtune_format(
+            merged_state_dict, num_heads=4, dim=64
+        )
 
         # We ignore inv_freq as is standard practice
         assert (
@@ -266,8 +323,14 @@ class TestHFLlama2FullModelCheckpointer:
         orig_state_dict_2 = torch.load(checkpoint_file_2, mmap=True, map_location='cpu')
 
         # merged state dict from checkpointer
-        merged_state_dict = multi_file_checkpointer.load_checkpoint(num_heads=4, dim=64)
-        multi_file_checkpointer.save_checkpoint(merged_state_dict, num_heads=4, dim=64)
+        merged_state_dict = multi_file_checkpointer.load_checkpoint()
+        merged_state_dict = multi_file_checkpointer.convert_to_torchtune_format(
+            merged_state_dict, num_heads=4, dim=64
+        )
+        merged_state_dict = multi_file_checkpointer.convert_from_torchtune_format(
+            merged_state_dict, num_heads=4, dim=64
+        )
+        multi_file_checkpointer.save_checkpoint(merged_state_dict)
 
         # Reload the output checkpoint file and compare to the original checkpoint. This
         # assumes we know what the name of the file is. This is fine, breaking this logic
@@ -288,3 +351,33 @@ class TestHFLlama2FullModelCheckpointer:
         _, output_weight = next(iter(output_state_dict_1.items()))
 
         assert orig_weight.dtype == output_weight.dtype
+
+    def test_mid_training_input_final_output_checkpoint(
+        self,
+        mid_training_checkpointer,
+        llama2_hf_checkpoints,
+        dim,
+        num_heads
+    ):
+        """
+        Test checkpointing for a mid-training checkpoint. In this test, we load a
+        checkpoint created in the middle of training, save it to file and compare
+        its keys with the original checkpoint.
+        """
+        # Read the state dict directly from file
+        checkpoint_file, _ = llama2_hf_checkpoints
+        orig_state_dict = torch.load(checkpoint_file, mmap=True, map_location='cpu')
+
+        # load a mid-training checkpoint. Since this is already in TORCHTUNE_FORMAT
+        # we don't need to convert it. Before saving checkpoint, extract the model
+        # state dict. In the recipe we direcly extract the state dict from the model
+        state_dict = mid_training_checkpointer.load_checkpoint()
+        mid_training_checkpointer.save_checkpoint(state_dict['model'])
+
+        output_file = Path.joinpath(
+            checkpoint_file.parent, ('torchtune_' + checkpoint_file.name)
+        )
+        output_state_dict = torch.load(output_file, mmap=True, map_location='cpu')
+
+        # We ignore inv_freq as is standard practice and so output dict will have one less key
+        assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
