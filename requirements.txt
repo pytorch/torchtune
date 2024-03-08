@@ -12,3 +12,6 @@ omegaconf>=2.3.0
 
 # Evaluation
 lm_eval==0.4.1
+
+# Quantization
+torchao-nightly

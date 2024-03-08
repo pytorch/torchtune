@@ -387,7 +387,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     )
 
                 loss.backward()
-                import pdb ; pdb.set_trace()
                 self._optimizer.step()
                 self._lr_scheduler.step()
 
