@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import os
 import sys
 
@@ -15,8 +16,6 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.cuda.amp import GradScaler
-from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
@@ -35,34 +34,36 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import validate_no_params_on_meta_device
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipe(FTRecipeInterface):
+class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
+    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
+    single device training.
 
     This recipe supports:
-        - FSDP and activation checkpointing. This is enabled by default but is
-            configurable.
-        - Mixed precision training - fp32, fp16 and bf16 are supported.
-        - Checkpointing of full model weights and optionally of optimizer state (for
-            checkpoints created during training).
+        - Activation checkpointing. This is enabled by default but is configurable.
+        - Mixed precision training via `torch.autocast` - fp32, fp16 and bf16 are supported.
+        - Full bf16 training for supported HW architectures. We currently check bf16 support via
+        the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
+        the "full_bf16" configuration flag.
+        - Checkpointing: of LoRA adapter parameters and their optimizer states. When resuming
+            from a checkpoint, the adapter parameters are loaded from the checkpoint along
+            with the base model weights. Note that intra-epoch resumption is not supported.
         - Logging to terminal, WandB, or TensorBoard.
 
     Assumptions:
-        - Training happens on CUDA (CPU training is not supported)
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
         - Datasets are Map-style and data fits in memory (not streamed).
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        lora_finetune        alpaca_llama2_lora_finetune
+        RECIPE                          CONFIG
+        lora_finetune_single_device        alpaca_llama2_lora_finetune_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -72,12 +73,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype)
-
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -98,8 +93,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
-        if self._is_rank_zero:
-            self._metric_logger = config.instantiate(cfg.metric_logger)
+        self._metric_logger = config.instantiate(cfg.metric_logger)
 
         # Load in base model weights
         # Note that we set resume_from_checkpoint=False when loading the base model.
@@ -123,16 +117,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_fsdp=cfg.enable_fsdp,
+            full_bf16=cfg.full_bf16,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=base_model_ckpt[MODEL_KEY],
-            lora_weights_state_dict=lora_ckpt[MODEL_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            lora_weights_state_dict=(
+                lora_ckpt[MODEL_KEY] if self._resume_from_checkpoint else None
+            ),
         )
+
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
+        log.info("Tokenizer is initialized from file.")
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
@@ -140,23 +134,15 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        log.info("Loss is initialized.")
 
-        # sampler and dataloader depend on the tokenizer and loss_fn and should be
+        # Dataloader depends on the tokenizer and loss_fn and should be
         # setup after all of these are setup
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
         )
-
-        # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
-        if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=cfg.enable_fsdp)
-        else:
-            self._grad_scaler = GradScaler(enabled=False)
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -211,34 +197,23 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_fsdp: bool,
+        full_bf16: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-        # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
-        # during model init
-        init_device = torch.device("meta") if enable_fsdp else self._device
-        with init_device:
-            model = config.instantiate(cfg_model)
 
-        # Note: this needs to be set before wrapping with FSDP
+        dtype_context = (
+            utils.set_default_dtype(torch.bfloat16)
+            if full_bf16
+            else contextlib.nullcontext()
+        )
+        with dtype_context:
+            with self._device:
+                model = config.instantiate(cfg_model)
+
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
-        if enable_fsdp:
-            model = utils.wrap_fsdp(
-                model=model,
-                device=self._device,
-                dtype=self._dtype,
-                strategy="FULL_SHARD",
-                auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                    modules_to_wrap={modules.TransformerDecoderLayer}
-                ),
-                use_meta_device=True,
-            )
-
-        # Ensure no params and buffers are on meta device
-        validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -250,17 +225,22 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         validate_state_dict_for_lora(
             lora_modules=lora_modules,
             full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=lora_weights_state_dict.keys()
-            if lora_weights_state_dict is not None
-            else None,
+            lora_state_dict_keys=(
+                lora_weights_state_dict.keys()
+                if lora_weights_state_dict is not None
+                else None
+            ),
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
         model.load_state_dict(base_model_state_dict, strict=False)
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
-        if self._is_rank_zero:
-            log.info("Model is initialized.")
+        # Validate model was loaded in with the expected dtype.
+        expected_dtype = torch.bfloat16 if full_bf16 else torch.float32
+        utils.validate_expected_param_dtype(model, dtype=expected_dtype)
+
+        log.info(f"Model is initialized with precision {expected_dtype}.")
         return model
 
     def _setup_optimizer(
@@ -268,15 +248,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            # Note: technically we should check _contains_fsdp for
-            # just the state dict of the adapter cfg, but should be equivalent
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
-            )
             optimizer.load_state_dict(opt_state_dict)
 
-        if self._is_rank_zero:
-            log.info("Optimizer and loss are initialized.")
+        log.info("Optimizer and loss are initialized.")
         return optimizer
 
     def _setup_lr_scheduler(
@@ -291,8 +265,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             num_training_steps=num_training_steps,
             last_epoch=last_epoch,
         )
-        if self._is_rank_zero:
-            log.info("Learning rate scheduler is initialized.")
+
+        log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
     def _setup_data(
@@ -302,35 +276,33 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         batch_size: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
-        All data related setup happens here. Currently this recipe only supports the
-        DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
-        iterable datasets and streaming datasets are not supported.
+        All data related setup happens here. Currently this recipe only supports
+        Map-style Datasets which fit into memory and an option for random shuffling.
+        Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
         ds = config.instantiate(
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
         sampler = DistributedSampler(
             ds,
-            num_replicas=world_size,
-            rank=rank,
+            num_replicas=1,
+            rank=0,
             shuffle=shuffle,
             seed=0,
         )
         dataloader = DataLoader(
             dataset=ds,
-            batch_size=batch_size,
             sampler=sampler,
+            batch_size=batch_size,
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        log.info("Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -357,27 +329,21 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         )
 
-        if self._is_rank_zero:
-            log.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
-            )
+        log.info(
+            msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+        )
 
     def train(self) -> None:
         """
         The core training loop.
         """
-        _, rank = utils.get_world_size_and_rank()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
-
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
+            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
                 if (
                     self.max_steps_per_epoch is not None
                     and idx == self.max_steps_per_epoch
@@ -390,21 +356,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
 
-                with self._autocast:
-                    logits = self._model(input_ids)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
+                logits = self._model(input_ids)
+                # Shift so that tokens < n predict n
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
+                logits = logits.transpose(1, 2)
+                # Compute loss
+                loss = self._loss_fn(logits, labels)
 
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                if (
-                    self.total_training_steps % self._log_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
+                if self.total_training_steps % self._log_every_n_steps == 0:
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
@@ -414,17 +376,15 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                         step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                     )
 
-                self._grad_scaler.scale(loss).backward()
-                self._grad_scaler.step(self._optimizer)
-                self._grad_scaler.update()
+                loss.backward()
+                self._optimizer.step()
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
-        if self._is_rank_zero:
-            self._metric_logger.close()
+        self._metric_logger.close()
 
 
 @config.parse
@@ -433,13 +393,10 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    if utils.is_distributed():
-        init_process_group(backend="nccl")
-
-    recipe = LoRAFinetuneRecipe(cfg=cfg)
+    recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

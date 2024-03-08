@@ -43,6 +43,7 @@ import torchtune
 from torch.distributed.run import get_args_parser, run
 from torchtune import list_recipes
 from torchtune._cli import list_scripts
+from torchtune.utils.distributed import _valid_distributed_single_node_nnodes
 
 
 def _update_parser_help(parser):
@@ -66,6 +67,29 @@ def _is_distributed_args(args):
     total = len(sys.argv) - 1  # total args minus "tune"
     script_args = len(args.recipe_args) + 1  # script args + 1 for script name
     return total > script_args
+
+
+def _validate_distributed_args(args):
+    """
+    Validates nnodes and nproc_per_node are appropriately set for distributed training
+    runs.
+    """
+    if not hasattr(args, "nnodes"):
+        raise RuntimeError("Expect --nnodes to be specified for distributed runs")
+
+    if args.nnodes not in _valid_distributed_single_node_nnodes:
+        raise RuntimeError(
+            f"Expect --nnodes to be one of {_valid_distributed_single_node_nnodes}"
+        )
+
+    if not hasattr(args, "nproc_per_node"):
+        raise RuntimeError(
+            "Expect --nproc_per_node to be specified for distributed runs"
+        )
+
+    # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+    # we don't do this since we test on CPUs for distributed. Will update once multi GPU
+    # CI is supported.
 
 
 def main():
@@ -100,6 +124,7 @@ def main():
             )
 
     if distributed_args:
+        _validate_distributed_args(args)
         args.training_script = str(cmd)  # arg names expected by torchrun
         args.training_script_args = args.recipe_args
         run(args)
