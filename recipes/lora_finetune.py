@@ -22,7 +22,6 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    lora_fsdp_wrap_policy,
     register_lora_weight_merge_hooks,
     set_trainable_params,
     unregister_lora_weight_merge_hooks,
@@ -365,13 +364,15 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        model_key_filter = (
-            lambda x: x in self.adapter_params if not save_full_weights else None
-        )
+        model_key_filter = None
+        if not save_full_weights:
+           model_key_filter = lambda x: x in self.adapter_params
+
         # Can try context manager
         # Need to run inside FSDP hooks
         if merge_lora_weights:
             register_lora_weight_merge_hooks(self._model)
+        import pdb; pdb.set_trace()
         utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=model_key_filter)
         if merge_lora_weights:
             unregister_lora_weight_merge_hooks(self._model)
@@ -445,6 +446,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             merge_lora_weights = self._save_llama2_native_format and (
                 curr_epoch == self.total_epochs - 1
             )
+            import pdb; pdb.set_trace()
             self.save_checkpoint(
                 epoch=curr_epoch,
                 save_full_weights=save_full_weights,

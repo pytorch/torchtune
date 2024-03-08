@@ -19,6 +19,7 @@ from tests.recipes.common import RECIPE_TESTS_DIR
 from tests.recipes.utils import (
     fetch_ckpt_model_path,
     fetch_loss_values,
+    llama2_small_test_ckpt,
     lora_llama2_small_test_ckpt,
     validate_loss_values,
 )
@@ -32,7 +33,6 @@ models.lora_small_test_ckpt = partial(
     lora_attn_modules=test_lora_attn_modules,
     apply_lora_to_mlp=False,
 )
-
 
 class TestLoRAFinetuneRecipe:
     def _fetch_expected_loss_values(self, ckpt) -> Dict[str, float]:
@@ -82,3 +82,34 @@ class TestLoRAFinetuneRecipe:
 
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)
+
+class TestLoRAFinalCheckpoints:
+    @pytest.mark.parametrize("enable_fsdp", [False, True])
+    def test_loss(self, capsys, tmpdir, enable_fsdp, monkeypatch):
+        # No support for large scale test yet for LoRA
+        ckpt = "lora_small_test_ckpt"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+        cmd = f"""
+        tune lora_finetune
+            --config {config_path} \
+            --override \
+            output_dir={tmpdir} \
+            model._component_=torchtune.models.{ckpt} \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            model.lora_rank=8 \
+            model.lora_alpha=16 \
+            model.apply_lora_to_mlp=True \
+            model.save_full_final_checkpoint=True
+            model.merge_lora_weights
+        """.split()
+
+        monkeypatch.setattr(sys, "argv", cmd_2)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        base_model = llama2_small_test_ckpt()
+        with open(f'{tmpdir}/model_0.ckpt', 'rb') as f:
+            sd = torch.load(f)
+            base_model.load_state_dict(f)
