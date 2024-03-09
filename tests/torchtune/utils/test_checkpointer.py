@@ -252,7 +252,7 @@ class TestHFLlama2FullModelCheckpointer:
         # dict we test against
         checkpoint_file, _ = llama2_hf_checkpoints
         orig_state_dict = torch.load(
-            checkpoint_file, mmap=True, map_location="cpu", weights_only=False
+            checkpoint_file, map_location="cpu", weights_only=True
         )
 
         # Converted state dict from the checkpointer
@@ -305,7 +305,7 @@ class TestHFLlama2FullModelCheckpointer:
             checkpoint_file.parent, ("torchtune_" + checkpoint_file.name)
         )
         output_state_dict = torch.load(
-            output_file, map_location="cpu", weights_only=False
+            output_file, map_location="cpu", weights_only=True
         )
 
         # We ignore inv_freq as is standard practice and so output dict will have one less key
@@ -335,10 +335,10 @@ class TestHFLlama2FullModelCheckpointer:
         # Read the state dict directly from files
         checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
         orig_state_dict_1 = torch.load(
-            str(checkpoint_file_1), map_location="cpu", weights_only=False
+            str(checkpoint_file_1), map_location="cpu", weights_only=True
         )
         orig_state_dict_2 = torch.load(
-            str(checkpoint_file_2), map_location="cpu", weights_only=False
+            str(checkpoint_file_2), map_location="cpu", weights_only=True
         )
 
         # merged state dict from checkpointer
@@ -393,10 +393,10 @@ class TestHFLlama2FullModelCheckpointer:
             checkpoint_file_2.parent, ("torchtune_" + checkpoint_file_2.name)
         )
         output_state_dict_1 = torch.load(
-            output_file_1, map_location="cpu", weights_only=False
+            output_file_1, map_location="cpu", weights_only=True
         )
         output_state_dict_2 = torch.load(
-            output_file_2, map_location="cpu", weights_only=False
+            output_file_2, map_location="cpu", weights_only=True
         )
 
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
@@ -424,7 +424,7 @@ class TestHFLlama2FullModelCheckpointer:
         # Read the state dict directly from file
         checkpoint_file, _ = llama2_hf_checkpoints
         orig_state_dict = torch.load(
-            checkpoint_file, map_location="cpu", weights_only=False
+            checkpoint_file, map_location="cpu", weights_only=True
         )
 
         # load a mid-training checkpoint and ensure we can load it into the model.
@@ -448,7 +448,7 @@ class TestHFLlama2FullModelCheckpointer:
             checkpoint_file.parent, ("torchtune_" + checkpoint_file.name)
         )
         output_state_dict = torch.load(
-            output_file, map_location="cpu", weights_only=False
+            output_file, map_location="cpu", weights_only=True
         )
 
         # We ignore inv_freq as is standard practice and so output dict will have one less key
