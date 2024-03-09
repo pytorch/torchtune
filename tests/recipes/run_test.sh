@@ -13,7 +13,9 @@ LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=(
     "s3://pytorch-multimodal/llama2-7b/tokenizer.model"
     "s3://pytorch-multimodal/small-ckpt-01242024"
-    "s3://pytorch-multimodal/small-ckpt-01242024.pt"
+    "s3://pytorch-multimodal/small-ckpt-tune-03082024.pt"
+    "s3://pytorch-multimodal/small-ckpt-meta-03082024.pt"
+    "s3://pytorch-multimodal/small-ckpt-hf-03082024.pt"
 )
 PYTEST_COMMAND="pytest tests/recipes -s"
 

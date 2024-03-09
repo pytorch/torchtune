@@ -32,8 +32,9 @@ from tests.test_utils import get_assets_path
 
 from torchtune import models
 
-models.small_test_ckpt = llama2_small_test_ckpt
-models.small_test_ckpt_pt = llama2_small_test_ckpt
+models.small_test_ckpt_tune = llama2_small_test_ckpt
+models.small_test_ckpt_meta = llama2_small_test_ckpt
+models.small_test_ckpt_hf = llama2_small_test_ckpt
 models.llama2_tiny_test_ckpt = llama2_tiny_test_ckpt
 
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +58,7 @@ _ASSETS = get_assets_path()
 # ... num_kv_heads=2,
 # ... )
 # >>> fixed_init_model(super_small_llama2, max_val=10.0, nonlinear=True)
-# >>> torch.save({"model": super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
+# >>> torch.save(super_small_llama2.state_dict()}, "tiny_llama2_checkpoint.pt")
 
 
 class TestFullFinetuneRecipe:
@@ -74,7 +75,11 @@ class TestFullFinetuneRecipe:
             "2|1|": 1.2614,
             "2|2|": 0.9486,
         }
-        if ckpt == "small_test_ckpt" or "small_test_ckpt_pt":
+        if (
+            ckpt == "small_test_ckpt_tune" or
+            ckpt == "small_test_ckpt_meta" or
+            ckpt == "small_test_ckpt_hf"
+        ):
             return small_test_ckpt_loss_values
         if ckpt == "llama2.llama2_7b":
             return llama2_7b_ckpt_loss_values
@@ -82,7 +87,34 @@ class TestFullFinetuneRecipe:
 
     def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_pt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_tune"
+        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
+        ckpt_dir = ckpt_path.parent
+
+        cmd = f"""
+        tune full_finetune
+            --config {_CONFIG_PATH} \
+            --override \
+            output_dir={tmpdir} \
+            model._component_=torchtune.models.{ckpt} \
+            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
+            model_checkpoint.checkpoint_files=[{ckpt_path}]\
+            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
+            model_checkpoint.model_type=LLAMA2
+        """.split()
+
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        loss_values = fetch_loss_values(capsys.readouterr().err)
+        validate_loss_values(loss_values, expected_loss_values)
+
+    def test_loss_meta(self, capsys, pytestconfig, tmpdir, monkeypatch):
+        large_scale = pytestconfig.getoption("--large-scale")
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_meta"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
 
         ckpt_path = Path(fetch_ckpt_model_path(ckpt))
@@ -116,7 +148,7 @@ class TestFullFinetuneRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        model_ckpt = "small_test_ckpt_pt"
+        model_ckpt = "small_test_ckpt_tune"
         expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
 
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
@@ -131,7 +163,7 @@ class TestFullFinetuneRecipe:
             model._component_=torchtune.models.{model_ckpt} \
             model_checkpoint.checkpoint_dir='{ckpt_dir}' \
             model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=META \
+            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
             model_checkpoint.model_type=LLAMA2 \
             epochs=4 \
         """.split()
@@ -181,7 +213,7 @@ class TestRecipeGradientAccumulation:
         # We use a tiny model to reduce the error accumulation in the test
         # It's impossible to make a large model produce the same loss values
         # in the same way as the full batch size.
-        model_ckpt = "llama2_tiny_test_ckpt"
+        model_ckpt = "small_test_ckpt_tune"
         gradient_accumulation_steps = full_batch_size // micro_batch_size
 
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))

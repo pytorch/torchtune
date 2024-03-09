@@ -41,6 +41,10 @@ class TestHFLlama2FullModelCheckpointer:
         return 4
 
     @pytest.fixture
+    def num_kv_heads(self):
+        return 4
+
+    @pytest.fixture
     def weight_dtype(self):
         return torch.float16
 
@@ -98,7 +102,7 @@ class TestHFLlama2FullModelCheckpointer:
             weight_map[key] = "llama2_hf_checkpoint_01.pt"
 
         state_dict = {
-            'model': llama2.hf_to_tune_llama2_7b(state_dict_1, num_heads=4, dim=64),
+            'model': llama2.hf_to_tune_llama2_7b(state_dict_1, num_heads=4, dim=64, num_kv_heads=4),
             'optimizer': {},
             'seed': 0,
             'epochs_run': 0,
@@ -183,6 +187,7 @@ class TestHFLlama2FullModelCheckpointer:
         vocab_size: int,
         dim: int,
         num_heads: int,
+        num_kv_heads: int,
         single_file_checkpointer: FullModelCheckpointer,
         llama2_hf_checkpoints: Tuple[Path, Path],
     ):
@@ -205,7 +210,7 @@ class TestHFLlama2FullModelCheckpointer:
         # Converted state dict from the checkpointer
         state_dict = single_file_checkpointer.load_checkpoint()
         converted_state_dict = single_file_checkpointer.convert_to_torchtune_format(
-            state_dict, num_heads=num_heads, dim=dim
+            state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
         )
 
         # Check that we've loaded all the keys; We ignore inv_freq as is standard practice
@@ -230,7 +235,7 @@ class TestHFLlama2FullModelCheckpointer:
             vocab_size=vocab_size,
             num_layers=1,
             num_heads=num_heads,
-            num_kv_heads=num_heads,
+            num_kv_heads=num_kv_heads,
             embed_dim=dim,
             max_seq_len=128
         )
@@ -238,7 +243,7 @@ class TestHFLlama2FullModelCheckpointer:
 
         # convert the state dict back to the original format and save to file
         converted_state_dict = single_file_checkpointer.convert_from_torchtune_format(
-            converted_state_dict, num_heads=num_heads, dim=dim
+            converted_state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
         )
         single_file_checkpointer.save_checkpoint(converted_state_dict)
 
@@ -258,7 +263,14 @@ class TestHFLlama2FullModelCheckpointer:
         assert orig_weight.dtype == output_weight.dtype
 
 
-    def test_save_load_checkpoint_multiple_file(self, multi_file_checkpointer, llama2_hf_checkpoints):
+    def test_save_load_checkpoint_multiple_file(
+        self,
+        num_heads,
+        dim,
+        num_kv_heads,
+        multi_file_checkpointer,
+        llama2_hf_checkpoints
+    ):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
         checkpoint file.
@@ -276,7 +288,7 @@ class TestHFLlama2FullModelCheckpointer:
         # merged state dict from checkpointer
         merged_state_dict = multi_file_checkpointer.load_checkpoint()
         merged_state_dict = multi_file_checkpointer.convert_to_torchtune_format(
-            merged_state_dict, num_heads=4, dim=64
+            merged_state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
         )
 
         # We ignore inv_freq as is standard practice
@@ -312,7 +324,7 @@ class TestHFLlama2FullModelCheckpointer:
         model.load_state_dict(merged_state_dict)
 
         merged_state_dict = multi_file_checkpointer.convert_from_torchtune_format(
-            model.state_dict(), num_heads=4, dim=64
+            model.state_dict(), num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
         )
         multi_file_checkpointer.save_checkpoint(merged_state_dict)
 
@@ -342,6 +354,7 @@ class TestHFLlama2FullModelCheckpointer:
         llama2_hf_checkpoints,
         dim,
         num_heads,
+        num_kv_heads,
         vocab_size
     ):
         """
@@ -366,7 +379,7 @@ class TestHFLlama2FullModelCheckpointer:
         )
         model.load_state_dict(state_dict['model'])
         converted_state_dict = mid_training_checkpointer.convert_from_torchtune_format(
-            model.state_dict(), num_heads=4, dim=64
+            model.state_dict(), num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
         )
         mid_training_checkpointer.save_checkpoint(converted_state_dict)
 

@@ -158,7 +158,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[MODEL_KEY]
-            if self._is_torchtune_checkpoint
+            if self._resume_from_checkpoint
             else ckpt_dict,
         )
 
@@ -368,8 +368,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
             # state dict conversion is not needed if we expect Torchtune compatible
             # checkpoints at the output
-            if self._checkpoint_format != CheckpointFormat.TORCHTUNE_NEW:
-                ckpt_dict = self._checkpointer.convert_from_torchtune_format(ckpt_dict)
+            ckpt_dict = self._checkpointer.convert_from_torchtune_format(ckpt_dict)
             if self._is_rank_zero:
                 self._checkpointer.save_checkpoint(ckpt_dict)
 

@@ -307,6 +307,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         self,
         state_dict: Dict[str, torch.Tensor],
         num_heads: int = 32,
+        num_kv_heads: int = 32,
         dim: int = 4096,
     ) -> Dict[str, torch.Tensor]:
         """
@@ -326,7 +327,9 @@ class FullModelCheckpointer(_CheckpointerInterface):
             if self._checkpoint_format == CheckpointFormat.META:
                 converted_state_dict = llama2.meta_to_tune_llama2_7b(state_dict)
             elif self._checkpoint_format== CheckpointFormat.HF:
-                converted_state_dict = llama2.hf_to_tune_llama2_7b(state_dict, num_heads, dim)
+                converted_state_dict = llama2.hf_to_tune_llama2_7b(
+                    state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
+                )
             else:
                 raise NotImplementedError(
                     f"Checkpoint Format {self._checkpoint_format} is not currently supported by "
@@ -342,6 +345,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         self,
         state_dict: Dict[str, torch.Tensor],
         num_heads: int = 32,
+        num_kv_heads: int = 32,
         dim: int = 4096,
     ) -> Dict[str, torch.Tensor]:
         """
@@ -361,7 +365,12 @@ class FullModelCheckpointer(_CheckpointerInterface):
             if self._checkpoint_format == CheckpointFormat.META:
                 converted_state_dict = llama2.tune_to_meta_llama2_7b(state_dict)
             elif self._checkpoint_format== CheckpointFormat.HF:
-                converted_state_dict = llama2.tune_to_hf_llama2_7b(state_dict, num_heads, dim)
+                converted_state_dict = llama2.tune_to_hf_llama2_7b(
+                    state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
+                )
+            # No op if the original checkpoint format is compatible with TorchTune
+            elif self._checkpoint_format== CheckpointFormat.TORCHTUNE_NEW:
+                pass
             else:
                 raise NotImplementedError(
                     f"Checkpoint Format {self._checkpoint_format} is not currently supported by "
@@ -450,7 +459,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
             checkpoint_dict[key] = checkpoint_dict[key].to(self._checkpoint_dtype)
 
         ckpt_file = self._checkpoint_files[0]
-        output_path = Path.joinpath(self._output_dir, ('torchtune_' + filename.name))
+        output_path = Path.joinpath(self._output_dir, ('torchtune_' + ckpt_file.name))
         torch.save(checkpoint_dict, output_path)
         logger.info(
             "Model checkpoint of size "
