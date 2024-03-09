@@ -181,8 +181,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             last_epoch=self.total_training_steps - 1,
         )
 
+        if cfg.save_llama2_native_format and not cfg.save_full_final_checkpoint:
+            raise ValueError("Cannot save into native Llama2 format without full model")
         self._save_full_final_checkpoint = cfg.save_full_final_checkpoint
-        # TODO: this should only be true when save_full_final_checkpoint is True
         self._save_llama2_native_format = cfg.save_llama2_native_format
 
     def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
@@ -367,8 +368,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         if not save_full_weights:
             model_key_filter = lambda x: x in self.adapter_params
 
-        # Can try context manager
-        # Need to run inside FSDP hooks
         if merge_lora_weights:
             register_lora_weight_merge_hooks(self._model)
         utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=model_key_filter)
