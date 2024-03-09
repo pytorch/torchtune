@@ -76,9 +76,9 @@ class TestFullFinetuneRecipe:
             "2|2|": 0.9486,
         }
         if (
-            ckpt == "small_test_ckpt_tune" or
-            ckpt == "small_test_ckpt_meta" or
-            ckpt == "small_test_ckpt_hf"
+            ckpt == "small_test_ckpt_tune"
+            or ckpt == "small_test_ckpt_meta"
+            or ckpt == "small_test_ckpt_hf"
         ):
             return small_test_ckpt_loss_values
         if ckpt == "llama2.llama2_7b":

@@ -1,3 +1,8 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
 from enum import Enum
 
@@ -15,6 +20,6 @@ class ModelType(Enum):
 
 def is_torchtune_checkpoint(checkpoint_format: CheckpointFormat) -> bool:
     return (
-        checkpoint_format == CheckpointFormat.TORCHTUNE_NEW or
-        checkpoint_format == CheckpointFormat.TORCHTUNE_RESTART
+        checkpoint_format == CheckpointFormat.TORCHTUNE_NEW
+        or checkpoint_format == CheckpointFormat.TORCHTUNE_RESTART
     )

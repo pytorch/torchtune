@@ -63,7 +63,9 @@ def _get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
 
     return new_key
 
-#### =========== Convertors for Llama2 7B ===========
+
+# =========== Convertors for Llama2 7B ===========
+
 
 def meta_to_tune_llama2_7b(
     original_state_dict: Dict[str, torch.Tensor]

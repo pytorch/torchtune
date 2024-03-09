@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import sys
 
 from functools import partial
@@ -22,10 +21,15 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
-
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import (
+    CheckpointFormat,
+    FullModelCheckpointer,
+    is_torchtune_checkpoint,
+    ModelType,
+)
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -33,12 +37,6 @@ from torchtune.utils.constants import (
     OPT_KEY,
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
-)
-from torchtune.utils import (
-    CheckpointFormat,
-    FullModelCheckpointer,
-    ModelType,
-    is_torchtune_checkpoint
 )
 
 from tqdm import tqdm
@@ -118,14 +116,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 setup.
         """
         self._checkpoint_format = getattr(CheckpointFormat, cfg.checkpoint_format)
-        self._model_type = getattr(ModelType, cfg.model_type,)
+        self._model_type = getattr(
+            ModelType,
+            cfg.model_type,
+        )
         self._checkpointer = FullModelCheckpointer(
-            checkpoint_dir = Path(cfg.checkpoint_dir),
-            checkpoint_files = [Path(ckpt_file) for ckpt_file in cfg.checkpoint_files],
-            checkpoint_format = self._checkpoint_format,
-            model_type = self._model_type,
-            output_dir = self._output_dir,
-            resume_from_checkpoint = self._resume_from_checkpoint,
+            checkpoint_dir=Path(cfg.checkpoint_dir),
+            checkpoint_files=[Path(ckpt_file) for ckpt_file in cfg.checkpoint_files],
+            checkpoint_format=self._checkpoint_format,
+            model_type=self._model_type,
+            output_dir=self._output_dir,
+            resume_from_checkpoint=self._resume_from_checkpoint,
         )
         self._is_torchtune_checkpoint = is_torchtune_checkpoint(self._checkpoint_format)
 
@@ -138,7 +139,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # If the checkpoint is not in a format compatible with TorchTune, then first
         # convert this
         if not self._is_torchtune_checkpoint:
-            checkpoint_dict = self._checkpointer.convert_to_torchtune_format(checkpoint_dict)
+            checkpoint_dict = self._checkpointer.convert_to_torchtune_format(
+                checkpoint_dict
+            )
         return checkpoint_dict
 
     def setup(self, cfg: DictConfig) -> None:
@@ -361,7 +364,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 self._checkpointer.save_checkpoint(
                     ckpt_dict,
                     intermediate_checkpoint=True,
-                    intermediate_checkpoint_name=f"model_{epoch}.pt"
+                    intermediate_checkpoint_name=f"model_{epoch}.pt",
                 )
         else:
             ckpt_dict = self._model.state_dict()
