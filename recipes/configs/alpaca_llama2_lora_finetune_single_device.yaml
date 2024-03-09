@@ -6,10 +6,11 @@
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
+  apply_lora_to_mlp: True
   lora_rank: 8
   lora_alpha: 16
+  quantize_base: True
 
 model_checkpoint: /tmp/llama2_native
 lora_checkpoint: null
@@ -17,7 +18,7 @@ lora_checkpoint: null
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /tmp/llama2/tokenizer.model
+  path: /home/rvarm1/local/dev/assets/tokenizer.model
 
 # Dataset and Sampler
 dataset:

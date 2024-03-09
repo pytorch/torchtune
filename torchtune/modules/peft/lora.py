@@ -5,14 +5,39 @@
 # LICENSE file in the root directory of this source tree.
 
 import math
+from functools import partial
 from typing import List
 
 import torch.nn.functional as F
+import torch
 
 from torch import nn, Tensor
-
+from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor
+from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
+
+# TODO: move this somewhere better
+
+from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl
+
+@nf4_tensor_impl([torch.ops.aten.clone.default])
+def clone(func, *args, **kwargs):
+    return NF4Tensor.from_tensor(args[0][0].get_original_weight())
+
+@nf4_tensor_impl([torch.ops.aten.copy_.default])
+def inplace_copy(func, *args, **kwargs):
+    ref_tensor = NF4Tensor.from_tensor(args[0][1].to(args[0][0].device))  # TODO check if nf4 tensor takes in device arg
+    args[0][0].block_size = ref_tensor.block_size
+    args[0][0].n_blocks = ref_tensor.n_blocks
+    args[0][0].scaler_block_size = ref_tensor.scaler_block_size
+    args[0][0].quantized_scalers = ref_tensor.quantized_scalers
+    args[0][0].quantization_factor = ref_tensor.quantization_factor
+    args[0][0].scaler_mean = ref_tensor.scaler_mean
+    args[0][0].quantized_data = ref_tensor.quantized_data
+    args[0][0].nf4 = ref_tensor.nf4
+    # args[0][0].set_original_weight(args[1])
+    # return args[1]
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -47,17 +72,37 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout: float = 0.0,
         use_bias: bool = False,
         use_bias_in_lora_matrices: bool = False,
+        quantize_base: bool = False,
     ):
         super().__init__()
         self.rank = rank
         self.alpha = alpha
         self.out_dim = out_dim
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        self._quantize_base = quantize_base
+        linear = (
+            nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+            if not self._quantize_base
+            else FrozenNF4Linear(in_dim, out_dim, bias=False)
+        )
         # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
         # vanilla Transformers.
-        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
+        # TODO (rohan-varma): NF4Tensor dispatch currently doesn't support empty_like, so we have this workaround
+        # for now.
+        weight_tensor = (
+            _copy_tensor(linear.weight)
+            if not self._quantize_base
+            else NF4Tensor.from_tensor(
+                _copy_tensor(linear.weight.get_original_weight())
+            )
+        )
+        self.register_parameter("weight", nn.Parameter(weight_tensor))
+        del linear  # TODO: prob don't need this, can rely on GC?
         if use_bias:
-            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
+            if quantize_base:
+                raise NotImplementedError(
+                    "Quantized LoRALinear does not support bias at the moment."
+                )
+            self.register_parameter("bias", nn.Parameter(weight_tensor))
         else:
             self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
@@ -90,6 +135,8 @@ class LoRALinear(nn.Module, AdapterModule):
         Return lora_a.weight and lora_b.weight as adapter params.
         If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
+        # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
+        # in this module change.
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         if self.use_bias_in_lora_matrices:
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
@@ -104,7 +151,11 @@ class LoRALinear(nn.Module, AdapterModule):
             Tensor: output tensor with shape ``(..., out_dim)``
 
         """
-        out = F.linear(x, self.weight, self.bias)
+        if self._quantize_base:
+            # import pdb ; pdb.set_trace()
+            out = linear_nf4(input=x, weight=self.weight)
+        else:
+            out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

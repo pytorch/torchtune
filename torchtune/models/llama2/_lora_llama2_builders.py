@@ -33,6 +33,7 @@ def lora_llama2_7b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """Builder for creating a Llama2 model with LoRA enabled.
 
@@ -43,6 +44,7 @@ def lora_llama2_7b(
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
+        quantize_base=quantize_base,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
@@ -72,6 +74,7 @@ def _lora_llama_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    quantize_base: bool = False,
 ) -> CausalSelfAttention:
     """
     Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
@@ -121,22 +124,22 @@ def _lora_llama_self_attention(
         else None
     )
     q_proj = (
-        LoRALinear(embed_dim, num_heads * head_dim, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, num_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
         if "q_proj" in lora_modules
         else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
     )
     k_proj = (
-        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
         if "k_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
     )
     v_proj = (
-        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
         if "v_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
     )
     output_proj = (
-        LoRALinear(embed_dim, embed_dim, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, embed_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
         if "output_proj" in lora_modules
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
@@ -165,6 +168,7 @@ def _lora_llama_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    quantize_base: bool = False,
 ) -> FeedForward:
     gate_proj = LoRALinear(
         in_dim=dim,
@@ -172,6 +176,7 @@ def _lora_llama_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     down_proj = LoRALinear(
         in_dim=hidden_dim,
@@ -179,6 +184,7 @@ def _lora_llama_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     up_proj = LoRALinear(
         in_dim=dim,
@@ -186,6 +192,7 @@ def _lora_llama_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     return FeedForward(
         gate_proj=gate_proj,
@@ -197,6 +204,7 @@ def _lora_llama_mlp(
 def lora_llama2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    quantize_base: bool = False,
     *,
     # llama2 args
     vocab_size: int,
@@ -257,6 +265,7 @@ def lora_llama2(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
 
     hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
@@ -266,6 +275,7 @@ def lora_llama2(
             hidden_dim=hidden_dim,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
     else:
         mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)

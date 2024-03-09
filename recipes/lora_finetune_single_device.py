@@ -94,11 +94,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-
+        if cfg.full_bf16:
+            torch.set_default_dtype(torch.bfloat16)
         # Load in base model weights
         # Note that we set resume_from_checkpoint=False when loading the base model.
         # This is because we only save LoRA weights during training, so only lora_checkpoint
         # will contain training state, while model_checkpoint contains model weights only.
+        self._default_dtype = torch.get_default_dtype()
         base_model_ckpt = self.load_checkpoint(
             ckpt_path=cfg.model_checkpoint, resume_from_checkpoint=False
         )
@@ -171,6 +173,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Extract the checkpoint state from file and validate.
         """
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
+        # import pdb ; pdb.set_trace()
         utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
 
@@ -396,6 +399,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
+    torch.cuda.set_per_process_memory_fraction(0.2)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
