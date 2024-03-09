@@ -18,6 +18,7 @@ from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
+from torch.profiler import profile, ProfilerActivity
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
@@ -33,6 +34,7 @@ from torchtune.utils.constants import (
 )
 
 from tqdm import tqdm
+import wandb
 
 
 log = utils.get_logger("DEBUG")
@@ -150,7 +152,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         )
 
         # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
+        # self._autocast = utils.get_autocast(self._dtype, self._device)
         self._grad_scaler = None
         if self._dtype == torch.float16:
             self._grad_scaler = utils.get_gradient_scaler(fsdp=cfg.enable_fsdp)
@@ -206,8 +208,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        with self._device:
-            model = config.instantiate(cfg_model)
+        dtype_context = utils.set_default_dtype(torch.bfloat16)
+        with dtype_context:
+            with self._device:
+                model = config.instantiate(cfg_model)
 
         model = (
             utils.wrap_fsdp(
@@ -227,6 +231,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         model.load_state_dict(model_state_dict)
 
+        utils.validate_expected_param_dtype(
+            model, dtype=torch.bfloat16
+        )
         if self._is_rank_zero:
             log.info("Model is initialized.")
         return model
@@ -349,21 +356,35 @@ class FullFinetuneRecipe(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
+            def trace_handler(prof):
+                prof.export_chrome_trace("./log/torchtune_fft/torchtune_fft_pro_trace.json")
+
+            with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(wait=5, warmup=5, active=10, repeat=1),
+                on_trace_ready=trace_handler,
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True,
+            ) as p:
+                for idx, batch in enumerate(
+                    pbar := tqdm(self._dataloader, disable=not (rank == 0))
                 ):
-                    break
+                    p.step()
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
 
-                with self._autocast:
                     logits = self._model(input_ids)
                     # Shift so that tokens < n predict n
                     logits = logits[..., :-1, :].contiguous()
@@ -372,30 +393,35 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
 
-                # Note: We're always logging the loss before normalizing it
-                # Check if this is the norm or not
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                    # Note: We're always logging the loss before normalizing it
+                    # Check if this is the norm or not
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,
-                    )
+                    if self.total_training_steps % self._log_every_n_steps == 0:
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,
+                        )
 
-                # Does loss normalization need to happen within autocast context?
-                loss = loss / self._gradient_accumulation_steps
-                self._grad_scaler.scale(loss).backward()
-                if self._should_update_weights(idx):
-                    self._grad_scaler.step(self._optimizer)
-                    self._grad_scaler.update()
-                    self._optimizer.zero_grad(set_to_none=True)
+                    # Does loss normalization need to happen within autocast context?
+                    loss = loss / self._gradient_accumulation_steps
+                    self._grad_scaler.scale(loss).backward()
+                    if self._should_update_weights(idx):
+                        self._grad_scaler.step(self._optimizer)
+                        self._grad_scaler.update()
+                        self._optimizer.zero_grad(set_to_none=True)
 
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
+                        # Update the number of steps when the weights are updated
+                        self.total_training_steps += 1
+
+            # with wandb.init(project="torchtune_perf_benchmarks") as run:
+            #     profile_art = wandb.Artifact("trace", type="profile")
+            #     profile_art.add_file("./log/torchtune_fft/test_trace.json")
+            #     run.log_artifact(profile_art)
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

@@ -18,6 +18,7 @@ from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
+from torch.profiler import profile, ProfilerActivity
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.peft_utils import (
@@ -152,7 +153,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         )
 
         # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
+        # self._autocast = utils.get_autocast(self._dtype, self._device)
         if self._dtype == torch.float16:
             self._grad_scaler = utils.get_gradient_scaler(fsdp=cfg.enable_fsdp)
         else:
@@ -218,9 +219,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     ) -> nn.Module:
         # LoRA recipe uses meta device for FSDP init to avoid peak memory reserved
         # during model init
+        type_context = utils.set_default_dtype(torch.bfloat16)
         init_device = torch.device("meta") if enable_fsdp else self._device
-        with init_device:
-            model = config.instantiate(cfg_model)
+        with type_context:
+            with init_device:
+                model = config.instantiate(cfg_model)
 
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
@@ -258,6 +261,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         model.load_state_dict(base_model_state_dict, strict=False)
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
+
+        utils.validate_expected_param_dtype(
+            model, dtype=torch.bfloat16
+        )
 
         if self._is_rank_zero:
             log.info("Model is initialized.")
@@ -375,22 +382,36 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+            def trace_handler(prof):
+                prof.export_chrome_trace("./log/torchtune_lora/torchtune_lora_pro_trace.json")
+
+            with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(wait=5, warmup=5, active=10, repeat=1),
+                on_trace_ready=trace_handler,
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True,
+            ) as p:
+                for idx, batch in enumerate(
+                    pbar := tqdm(self._dataloader, disable=not (rank == 0))
                 ):
-                    break
-                self.total_training_steps += 1
-                self._optimizer.zero_grad()
+                    p.step()
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and idx == self.max_steps_per_epoch
+                    ):
+                        break
+                    self.total_training_steps += 1
+                    self._optimizer.zero_grad()
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
 
-                with self._autocast:
                     logits = self._model(input_ids)
                     # Shift so that tokens < n predict n
                     logits = logits[..., :-1, :].contiguous()
@@ -399,25 +420,25 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
 
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                if (
-                    self.total_training_steps % self._log_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                    )
+                    if (
+                        self.total_training_steps % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
+                        )
 
-                self._grad_scaler.scale(loss).backward()
-                self._grad_scaler.step(self._optimizer)
-                self._grad_scaler.update()
-                self._lr_scheduler.step()
+                    self._grad_scaler.scale(loss).backward()
+                    self._grad_scaler.step(self._optimizer)
+                    self._grad_scaler.update()
+                    self._lr_scheduler.step()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
