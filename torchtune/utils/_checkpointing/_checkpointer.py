@@ -202,7 +202,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
             )
 
         state_dict = torch.load(
-            self._checkpoint_files[0], map_location="cpu", mmap=True, weights_only=True
+            self._checkpoint_files[0], map_location="cpu", weights_only=True
         )
 
         # Extract the checkpoint metadata and remove it from the dict. All of these keys are
@@ -242,7 +242,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
                 f"Found {self._checkpoint_files[0].suffix}. instead."
             )
         state_dict = torch.load(
-            self._checkpoint_files[0], map_location="cpu", mmap=True, weights_only=True
+            self._checkpoint_files[0], map_location="cpu", weights_only=True
         )
 
         # Update the metadata
@@ -272,9 +272,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         merged_state_dict: Dict[str, torch.Tensor] = {}
 
         for cpt_file in self._checkpoint_files:
-            state_dict = torch.load(
-                cpt_file, map_location="cpu", mmap=True, weights_only=True
-            )
+            state_dict = torch.load(cpt_file, map_location="cpu", weights_only=True)
             for key, value in state_dict.items():
                 # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
                 # will break recipe code
@@ -302,9 +300,7 @@ class FullModelCheckpointer(_CheckpointerInterface):
         merged_state_dict: Dict[str, torch.Tensor] = {}
 
         for cpt_file in self._checkpoint_files:
-            state_dict = torch.load(
-                cpt_file, map_location="cpu", mmap=True, weights_only=True
-            )
+            state_dict = torch.load(cpt_file, map_location="cpu", weights_only=True)
             for key, value in state_dict.items():
                 # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
                 # will break recipe code

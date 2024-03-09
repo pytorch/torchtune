@@ -335,10 +335,10 @@ class TestHFLlama2FullModelCheckpointer:
         # Read the state dict directly from files
         checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
         orig_state_dict_1 = torch.load(
-            checkpoint_file_1, map_location="cpu", weights_only=False
+            str(checkpoint_file_1), map_location="cpu", weights_only=False
         )
         orig_state_dict_2 = torch.load(
-            checkpoint_file_2, map_location="cpu", weights_only=False
+            str(checkpoint_file_2), map_location="cpu", weights_only=False
         )
 
         # merged state dict from checkpointer
