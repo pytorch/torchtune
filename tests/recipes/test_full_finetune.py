@@ -76,6 +76,7 @@ class TestFullFinetuneRecipe:
             return small_test_ckpt_loss_values
         if ckpt == "llama2.llama2_7b":
             return llama2_7b_ckpt_loss_values
+        print("just for a dummy commit")
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
