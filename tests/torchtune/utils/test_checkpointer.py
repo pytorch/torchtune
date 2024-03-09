@@ -13,6 +13,7 @@ from torchtune.utils._checkpointing import (
     ModelType
 )
 from torchtune.utils import constants
+from torchtune.utils.precision import PRECISION_DTYPE_TO_STR, PRECISION_STR_TO_DTYPE
 from torchtune.utils.seed import set_seed
 
 
@@ -46,7 +47,7 @@ class TestHFLlama2FullModelCheckpointer:
     @pytest.fixture
     def state_dict_1(self, vocab_size, dim, hidden_dim, weight_dtype):
         """
-        State dict for a HF_FORMAT checkpoint. This state dict is "complete" and
+        State dict for a HF format checkpoint. This state dict is "complete" and
         can be loaded into a TorchTune model once correctly converted.
         """
         state_dict = {
@@ -69,7 +70,7 @@ class TestHFLlama2FullModelCheckpointer:
     @pytest.fixture
     def state_dict_2(self, vocab_size, dim, hidden_dim, weight_dtype):
         """
-        State dict for a HF_FORMAT checkpoint. This state dict is "incomplete" and
+        State dict for a HF format checkpoint. This state dict is "incomplete" and
         should be used along with ``state_dict_1`` to test multi-file checkpointing. Specifically
         it's missing the embedding, norm and lm_head keys.
         """
@@ -103,9 +104,9 @@ class TestHFLlama2FullModelCheckpointer:
             'epochs_run': 0,
             'total_epochs': 1,
             'max_steps_per_epoch': 4,
-            'checkpoint_dtype': torch.float16,
+            'checkpoint_dtype': 'fp16',
             'weight_map': weight_map,
-            'checkpoint_format': CheckpointFormat.HF_FORMAT.name,
+            'checkpoint_format': CheckpointFormat.HF.name,
         }
         return state_dict
 
@@ -150,8 +151,8 @@ class TestHFLlama2FullModelCheckpointer:
         return FullModelCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file],
-            checkpoint_format=CheckpointFormat.HF_FORMAT,
-            model_type=ModelType.LLAMA2_7B,
+            checkpoint_format=CheckpointFormat.HF,
+            model_type=ModelType.LLAMA2,
             output_dir=tmp_path,
         )
 
@@ -161,8 +162,8 @@ class TestHFLlama2FullModelCheckpointer:
         return FullModelCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file_1, checkpoint_file_2],
-            checkpoint_format=CheckpointFormat.HF_FORMAT,
-            model_type=ModelType.LLAMA2_7B,
+            checkpoint_format=CheckpointFormat.HF,
+            model_type=ModelType.LLAMA2,
             output_dir=tmp_path,
         )
 
@@ -171,8 +172,8 @@ class TestHFLlama2FullModelCheckpointer:
         return FullModelCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[mid_training_checkpoints],
-            checkpoint_format=CheckpointFormat.TORCHTUNE_FORMAT,
-            model_type=ModelType.LLAMA2_7B,
+            checkpoint_format=CheckpointFormat.TORCHTUNE_RESTART,
+            model_type=ModelType.LLAMA2,
             output_dir=tmp_path,
             resume_from_checkpoint=True,
         )

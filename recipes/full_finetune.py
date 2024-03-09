@@ -34,7 +34,12 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils import CheckpointFormat, FullModelCheckpointer, ModelType
+from torchtune.utils import (
+    CheckpointFormat,
+    FullModelCheckpointer,
+    ModelType,
+    is_torchtune_checkpoint
+)
 
 from tqdm import tqdm
 
@@ -122,15 +127,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
             output_dir = self._output_dir,
             resume_from_checkpoint = self._resume_from_checkpoint,
         )
+        self._is_torchtune_checkpoint = is_torchtune_checkpoint(self._checkpoint_format)
 
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
-        # If we're resuming training, the checkpoint is already in TorchTune format. We simply
-        # update the recipe state. Otherwise we need to convert the checkpoint to a format
-        # understood by TorchTune
+        # If we're resuming training, update the recipe state
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
-        else:
+
+        # If the checkpoint is not in a format compatible with TorchTune, then first
+        # convert this
+        if not self._is_torchtune_checkpoint:
             checkpoint_dict = self._checkpointer.convert_to_torchtune_format(checkpoint_dict)
         return checkpoint_dict
 
@@ -151,7 +158,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[MODEL_KEY]
-            if self._resume_from_checkpoint
+            if self._is_torchtune_checkpoint
             else ckpt_dict,
         )
 
@@ -357,12 +364,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     intermediate_checkpoint_name=f"model_{epoch}.pt"
                 )
         else:
-            # while writing the final checkpoint, first conver the state_dict
-            converted_state_dict = self._checkpointer.convert_from_torchtune_format(
-                self._model.state_dict()
-            )
+            ckpt_dict = self._model.state_dict()
+
+            # state dict conversion is not needed if we expect Torchtune compatible
+            # checkpoints at the output
+            if self._checkpoint_format != CheckpointFormat.TORCHTUNE_NEW:
+                ckpt_dict = self._checkpointer.convert_from_torchtune_format(ckpt_dict)
             if self._is_rank_zero:
-                self._checkpointer.save_checkpoint(converted_state_dict)
+                self._checkpointer.save_checkpoint(ckpt_dict)
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """

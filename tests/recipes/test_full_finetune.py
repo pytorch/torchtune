@@ -10,6 +10,7 @@ import os
 import runpy
 
 import sys
+from pathlib import Path
 from typing import Dict
 
 import numpy as np
@@ -32,6 +33,7 @@ from tests.test_utils import get_assets_path
 from torchtune import models
 
 models.small_test_ckpt = llama2_small_test_ckpt
+models.small_test_ckpt_pt = llama2_small_test_ckpt
 models.llama2_tiny_test_ckpt = llama2_tiny_test_ckpt
 
 logging.basicConfig(level=logging.INFO)
@@ -72,7 +74,7 @@ class TestFullFinetuneRecipe:
             "2|1|": 1.2614,
             "2|2|": 0.9486,
         }
-        if ckpt == "small_test_ckpt":
+        if ckpt == "small_test_ckpt" or "small_test_ckpt_pt":
             return small_test_ckpt_loss_values
         if ckpt == "llama2.llama2_7b":
             return llama2_7b_ckpt_loss_values
@@ -80,8 +82,11 @@ class TestFullFinetuneRecipe:
 
     def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_pt"
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
+
+        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
+        ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune full_finetune
@@ -89,7 +94,10 @@ class TestFullFinetuneRecipe:
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{ckpt} \
-            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
+            model_checkpoint.checkpoint_files=[{ckpt_path}]\
+            model_checkpoint.checkpoint_format=META \
+            model_checkpoint.model_type=LLAMA2
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -108,8 +116,11 @@ class TestFullFinetuneRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        model_ckpt = "small_test_ckpt"
+        model_ckpt = "small_test_ckpt_pt"
         expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
+
+        ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
+        ckpt_dir = ckpt_path.parent
 
         # Train
         cmd_1 = f"""
@@ -118,7 +129,10 @@ class TestFullFinetuneRecipe:
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint={fetch_ckpt_model_path(model_ckpt)} \
+            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
+            model_checkpoint.checkpoint_files=[{ckpt_path}]\
+            model_checkpoint.checkpoint_format=META \
+            model_checkpoint.model_type=LLAMA2 \
             epochs=4 \
         """.split()
 
@@ -136,7 +150,10 @@ class TestFullFinetuneRecipe:
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint={os.path.join(tmpdir, "model_2.ckpt")} \
+            model_checkpoint.checkpoint_dir={tmpdir} \
+            model_checkpoint.checkpoint_files=[{os.path.join(tmpdir, "model_2.pt")}]\
+            model_checkpoint.checkpoint_format=TORCHTUNE_RESTART \
+            model_checkpoint.model_type=LLAMA2 \
             epochs=4 \
             resume_from_checkpoint=True \
             max_steps_per_epoch=None \
@@ -167,12 +184,18 @@ class TestRecipeGradientAccumulation:
         model_ckpt = "llama2_tiny_test_ckpt"
         gradient_accumulation_steps = full_batch_size // micro_batch_size
 
+        ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
+        ckpt_dir = ckpt_path.parent
+
         cmd = f"""
         tune full_finetune \
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint={fetch_ckpt_model_path(model_ckpt)} \
+            model_checkpoint.checkpoint_dir={ckpt_dir} \
+            model_checkpoint.checkpoint_files=[{ckpt_path}]\
+            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
+            model_checkpoint.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
             epochs=1 \
@@ -197,7 +220,10 @@ class TestRecipeGradientAccumulation:
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint={fetch_ckpt_model_path(model_ckpt)} \
+            model_checkpoint.checkpoint_dir={ckpt_dir} \
+            model_checkpoint.checkpoint_files=[{ckpt_path}]\
+            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
+            model_checkpoint.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \

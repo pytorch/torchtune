@@ -10,7 +10,11 @@
 # Longer Test using llama 7b checkpoint: ./run_test.sh --large-scale
 
 LOCAL_DIR="/tmp/test-artifacts"
-S3_URLS=("s3://pytorch-multimodal/llama2-7b/tokenizer.model" "s3://pytorch-multimodal/small-ckpt-01242024")
+S3_URLS=(
+    "s3://pytorch-multimodal/llama2-7b/tokenizer.model"
+    "s3://pytorch-multimodal/small-ckpt-01242024"
+    "s3://pytorch-multimodal/small-ckpt-01242024.pt"
+)
 PYTEST_COMMAND="pytest tests/recipes -s"
 
 if [[ $# -gt 0 ]]; then

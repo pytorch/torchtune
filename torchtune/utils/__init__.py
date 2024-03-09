@@ -15,6 +15,7 @@ from ._checkpointing import (
     CheckpointFormat,
     FullModelCheckpointer,
     ModelType,
+    is_torchtune_checkpoint,
 )
 from .collate import padded_collate
 from .device import get_device

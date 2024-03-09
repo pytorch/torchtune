@@ -39,7 +39,7 @@ class TestTuneCLI:
         recipe = "full_finetune"
         # Make sure we're not running on GPU which can lead to issues on GH CI
         testargs = f"\
-            tune {recipe} --config alpaca_llama2_full_finetune --override tokenizer=fake \
+            tune {recipe} --config alpaca_llama2_full_finetune.py --override tokenizer=fake \
             device=cpu enable_fsdp=False enable_activation_checkpointing=False \
             model_checkpoint=/tmp/fake.pt \
         ".split()
