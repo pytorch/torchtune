@@ -76,12 +76,18 @@ class TestLoRALlama2:
         return torch.randint(low=0, high=vocab_size, size=(BSZ, SEQ_LEN))
 
     def get_lora_llama2(
-        self, lora_modules, apply_lora_to_mlp, vocab_size, reset_norm=True
+        self,
+        lora_modules,
+        apply_lora_to_mlp,
+        apply_lora_to_output,
+        vocab_size,
+        reset_norm=True,
     ):
         num_layers = 3
         model = lora_llama2(
             lora_attn_modules=lora_modules,
             apply_lora_to_mlp=apply_lora_to_mlp,
+            apply_lora_to_output=apply_lora_to_output,
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=NUM_HEADS,
@@ -110,37 +116,51 @@ class TestLoRALlama2:
         return model
 
     @pytest.mark.parametrize(
-        "lora_modules, apply_lora_to_mlp, expected",
+        "lora_modules, apply_lora_to_mlp, apply_lora_to_output, expected",
         [
-            (["q_proj", "v_proj"], False, torch.tensor(5638859.0)),
+            (["q_proj", "v_proj"], False, False, torch.tensor(5638859.0)),
             (
                 ["q_proj", "k_proj", "v_proj", "output_proj"],
                 True,
+                False,
                 torch.tensor(21187608.0),
             ),
-            (["k_proj"], True, torch.tensor(21111718.0)),
+            (["k_proj"], True, True, torch.tensor(32438764.0)),
         ],
     )
     def test_forward(
-        self, vocab_size, inputs, lora_modules, apply_lora_to_mlp, expected
+        self,
+        vocab_size,
+        inputs,
+        lora_modules,
+        apply_lora_to_mlp,
+        apply_lora_to_output,
+        expected,
     ):
-        model = self.get_lora_llama2(lora_modules, apply_lora_to_mlp, vocab_size)
+        model = self.get_lora_llama2(
+            lora_modules, apply_lora_to_mlp, apply_lora_to_output, vocab_size
+        )
         actual = model(inputs)
         assert_expected(actual.shape, (BSZ, SEQ_LEN, vocab_size))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
     @pytest.mark.parametrize(
-        "lora_modules, apply_lora_to_mlp",
+        "lora_modules, apply_lora_to_mlp, apply_lora_to_output",
         [
-            (["q_proj", "v_proj"], True),
-            (["q_proj", "k_proj", "v_proj", "output_proj"], False),
+            (["q_proj", "v_proj"], True, False),
+            (["q_proj", "k_proj", "v_proj", "output_proj"], False, False),
+            (["k_proj"], True, True),
         ],
     )
     def test_lora_llama2_state_dict_parity(
-        self, lora_modules, apply_lora_to_mlp, vocab_size
+        self, lora_modules, apply_lora_to_mlp, apply_lora_to_output, vocab_size
     ):
         lora_llama = self.get_lora_llama2(
-            lora_modules, apply_lora_to_mlp, vocab_size, reset_norm=False
+            lora_modules,
+            apply_lora_to_mlp,
+            apply_lora_to_output,
+            vocab_size,
+            reset_norm=False,
         )
         ref_llama = self.get_ref_llama2(vocab_size)
         # Ensure ref_llama state_dict can be loaded into lora_llama with only "lora"
