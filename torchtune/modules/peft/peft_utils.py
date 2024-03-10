@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import functools
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, Generator, List, Optional, Protocol
 
 from torch import nn
 
@@ -178,58 +179,60 @@ def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
         bool: True if the module has the required methods for state dict hooks.
     """
     return (
-        hasattr(m, "merge_lora_weights")
-        and callable(m.merge_lora_weights)
-        and hasattr(m, "unmerge_lora_weights")
-        and callable(m.unmerge_lora_weights)
+        hasattr(m, "_merge_lora_weights")
+        and callable(m._merge_lora_weights)
+        and hasattr(m, "_unmerge_lora_weights")
+        and callable(m._unmerge_lora_weights)
     )
 
 
-def register_lora_weight_merge_hooks(model: nn.Module) -> None:
-    """
-    Register state dict hooks for merging and unmerging LoRA weights.
-
-    Args:
-        model (nn.Module): Instance of model class containing some adapter params.
-
-    Returns:
-        None
-
-    Raises:
-        RuntimeError: If the model already has state dict pre-hooks or post-hooks.
-    """
+def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
     for n, m in model.named_modules():
         if _is_eligible_for_state_dict_hook(m):
-            if m._state_dict_pre_hooks:
+            if hasattr(m, "_merge_weight_pre_handle"):
                 raise RuntimeError(
-                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict pre-hook(s)"
+                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict weight merge pre-hook"
                 )
-            if m._state_dict_hooks:
+            if hasattr(m, "_merge_weight_post_handle"):
                 raise RuntimeError(
-                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict post-hook(s)"
+                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict weight merge post-hook"
                 )
-            m.pre_handle = m.register_state_dict_pre_hook(m.merge_lora_weights)
-            m.post_handle = m._register_state_dict_hook(m.unmerge_lora_weights)
+            m._merge_weight_pre_handle = m.register_state_dict_pre_hook(
+                m._merge_lora_weights
+            )
+            m._merge_weight_post_handle = m._register_state_dict_hook(
+                m._unmerge_lora_weights
+            )
 
 
-def unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
-    """
-    Unregister state dict hooks for merging and unmerging LoRA weights.
-
-    Args:
-        model (nn.Module): Instance of model class containing some adapter params.
-
-    Returns:
-        None
-
-    Raises:
-        RuntimeError: If the model does not have state dict pre-hooks or post-hooks.
-    """
+def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
     for n, m in model.named_modules():
         if _is_eligible_for_state_dict_hook(m):
-            if not hasattr(m, "pre_handle"):
-                raise RuntimeError(f"Cannot unregister state dict pre-hook from {m}")
-            if not hasattr(m, "post_handle"):
-                raise RuntimeError(f"Cannot unregister state dict post-hook from {m}")
-            m.pre_handle.remove()
-            m.post_handle.remove()
+            if not hasattr(m, "_merge_weight_pre_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge pre-hook from {m}"
+                )
+            if not hasattr(m, "_merge_weight_post_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge post-hook from {m}"
+                )
+            m._merge_weight_pre_handle.remove()
+            m._merge_weight_post_handle.remove()
+
+
+@contextlib.contextmanager
+def merge_lora_weights_in_state_dict(model: nn.Module) -> Generator[None, None, None]:
+    """
+    Context manager for merging and unmerging LoRA weights in the model's state dict.
+
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA modules.
+
+    Returns:
+        Context manager for merging and unmerging LoRA weights in the model's state dict.
+    """
+    _register_lora_weight_merge_hooks(model)
+    try:
+        yield
+    finally:
+        _unregister_lora_weight_merge_hooks(model)

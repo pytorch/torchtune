@@ -97,7 +97,6 @@ class TestLoRAFinalCheckpoints:
             'model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]'
         ]
 
-        # Case 1: save partial checkpoint only, no weight merging
         cmd = f"""
         tune lora_finetune
             --config {config_path} \
@@ -116,16 +115,12 @@ class TestLoRAFinalCheckpoints:
         else:
             context_manager = contextlib.nullcontext
         baseline_cmd = cmd + [f"output_dir={tmpdir}{enable_fsdp}baseline"]
-        full_ckpt_cmd = cmd + [
-            f"output_dir={tmpdir}{enable_fsdp}full_ckpt",
-            "save_full_final_checkpoint=True",
-        ]
         merged_cmd = cmd + [
             f"output_dir={tmpdir}{enable_fsdp}merged_ckpt",
             "save_full_final_checkpoint=True",
             "save_llama2_native_format=True",
         ]
-        cmds = [baseline_cmd, full_ckpt_cmd, merged_cmd]
+        cmds = [baseline_cmd, merged_cmd]
         for current_cmd in cmds:
             with context_manager():
                 monkeypatch.setattr(sys, "argv", current_cmd)
@@ -149,12 +144,6 @@ class TestLoRAFinalCheckpoints:
         lora_model.load_state_dict(lora_sd["model"], strict=False)
         lora_model.load_state_dict(base_model_sd["model"], strict=False)
         baseline_out = lora_model(inputs)
-
-        # Load full final checkpoint and call fwd
-        with open(f"{tmpdir}{enable_fsdp}full_ckpt/model_0.ckpt", "rb") as f:
-            sd = torch.load(f, weights_only=True)
-        lora_model.load_state_dict(sd["model"])
-        full_ckpt_out = lora_model(inputs)
 
         # Load merged final ckpt directly into llama2 and call fwd
         llama2_model = llama2_small_test_ckpt()

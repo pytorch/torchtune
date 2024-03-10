@@ -3,10 +3,10 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import torch
-
 import math
 from typing import List
+
+import torch
 
 import torch.nn.functional as F
 
@@ -102,9 +102,11 @@ class LoRALinear(nn.Module, AdapterModule):
         return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
 
     @torch.no_grad
-    def merge_lora_weights(self, *args, **kwargs):
+    def _merge_lora_weights(self, *args, **kwargs):
         if self.use_bias_in_lora_matrices:
-            raise RuntimeError("Cannot merge LoRA weights when LoRA matrices have biases")
+            raise RuntimeError(
+                "Cannot merge LoRA weights when LoRA matrices have biases"
+            )
         self.weight += self._lora_delta
         self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
         self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
@@ -112,22 +114,20 @@ class LoRALinear(nn.Module, AdapterModule):
         del self.lora_b
         self.merged = True
 
-
     @torch.no_grad
-    # This has to run after calling state_dict on self and children
-    def unmerge_lora_weights(self, *args, **kwargs):
+    def _unmerge_lora_weights(self, *args, **kwargs):
         if not self.merged:
-            raise RuntimeError("Cannot call unmerge_lora_weights, weights are not merged")
+            raise RuntimeError(
+                "Cannot call unmerge_lora_weights, weights are not merged"
+            )
         self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
         self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
         self.lora_a.weight = nn.Parameter(self.cached_lora_a_weight)
         self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
-
         del self.cached_lora_a_weight
         del self.cached_lora_b_weight
         self.weight -= self._lora_delta
         self.merged = False
-
 
     def forward(self, x: Tensor) -> Tensor:
         """

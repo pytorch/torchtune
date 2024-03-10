@@ -7,17 +7,18 @@
 from copy import deepcopy
 
 import pytest
+from tests.test_utils import fixed_init_model
 
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
+    _register_lora_weight_merge_hooks,
+    _unregister_lora_weight_merge_hooks,
     AdapterModule,
     get_adapter_params,
-    register_lora_weight_merge_hooks,
     set_trainable_params,
-    unregister_lora_weight_merge_hooks,
     validate_state_dict_for_lora,
 )
 
@@ -314,28 +315,30 @@ class DummyNestedLoRA(nn.Module):
 class TestLoRAWeightMergeHooks:
     @pytest.fixture
     def model(self):
-        return nn.Sequential(
-            nn.Embedding(num_embeddings=2, embedding_dim=3),
+        model = nn.Sequential(
+            nn.Embedding(num_embeddings=12, embedding_dim=3),
             LoRALinear(in_dim=3, out_dim=4, rank=4, alpha=1.0),
             nn.Linear(in_features=4, out_features=5),
             DummyNestedLoRA(in_dim=5, out_dim=6, rank=4, alpha=1.0),
         )
+        fixed_init_model(model)
+        return model
 
     def test_invalid_register_existing_sd_hooks(self, model):
-        model[1]._state_dict_hooks[0] = "test"
+        model[1]._merge_weight_post_handle = "test"
         with pytest.raises(RuntimeError, match="Cannot register state dict post-hook"):
-            register_lora_weight_merge_hooks(model)
-        del model[1]._state_dict_hooks[0]
-        model[3].lora._state_dict_pre_hooks[0] = "test"
+            _register_lora_weight_merge_hooks(model)
+        del model[1]._merge_weight_post_handle
+        model[3].lora._merge_weight_pre_handle = "test"
         with pytest.raises(RuntimeError, match="Cannot register state dict pre-hook"):
-            register_lora_weight_merge_hooks(model)
+            _register_lora_weight_merge_hooks(model)
 
     def test_register_weight_merge_hooks(self, model):
-        register_lora_weight_merge_hooks(model)
+        _register_lora_weight_merge_hooks(model)
         keys_with_hooks = model.state_dict().keys()
         for k in keys_with_hooks:
             assert "lora_a" not in k and "lora_b" not in k
-        unregister_lora_weight_merge_hooks(model)
+        _unregister_lora_weight_merge_hooks(model)
         keys_without_hooks = model.state_dict().keys()
         expected_lora_keys = [
             "1.lora_a.weight",
@@ -346,14 +349,20 @@ class TestLoRAWeightMergeHooks:
         assert all([k in keys_without_hooks for k in expected_lora_keys])
 
     def test_invalid_unregister_sd_hooks(self, model):
-        register_lora_weight_merge_hooks(model)
-        first_pre_handle = deepcopy(model[1].pre_handle)
-        del model[1].pre_handle
-        with pytest.raises(RuntimeError, match="Cannot unregister state dict pre-hook"):
-            unregister_lora_weight_merge_hooks(model)
-        model[1].pre_handle = first_pre_handle
-        del model[3].lora.post_handle
+        _register_lora_weight_merge_hooks(model)
+        first_pre_handle = deepcopy(model[1]._merge_weight_pre_handle)
+        del model[1]._merge_weight_pre_handle
         with pytest.raises(
-            RuntimeError, match="Cannot unregister state dict post-hook"
+            RuntimeError, match="Cannot unregister state dict weight merge pre-hook"
         ):
-            unregister_lora_weight_merge_hooks(model)
+            _unregister_lora_weight_merge_hooks(model)
+        model[1]._merge_weight_pre_handle = first_pre_handle
+        del model[3].lora._merge_weight_post_handle
+        with pytest.raises(
+            RuntimeError, match="Cannot unregister state dict weight merge post-hook"
+        ):
+            _unregister_lora_weight_merge_hooks(model)
+
+    def test_lora_weight_merge_context_manager(self, model):
+        inputs = torch.randint
+        out1 = model()

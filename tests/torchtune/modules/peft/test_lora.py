@@ -89,11 +89,11 @@ class TestLoRALinear:
             use_bias_in_lora_matrices=True,
         )
         with pytest.raises(RuntimeError, match="LoRA matrices have biases"):
-            lora_linear.merge_lora_weights()
+            lora_linear._merge_lora_weights()
 
     def test_merge_lora_weights(self, lora_linear):
         self.set_dummy_weights_for_merge(lora_linear)
-        lora_linear.merge_lora_weights()
+        lora_linear._merge_lora_weights()
 
         expected_weight = torch.clone(lora_linear.weight)
         expected_weight[4, 5] = 1
@@ -110,18 +110,18 @@ class TestLoRALinear:
     @torch.no_grad()
     def test_merge_lora_weights_forward(self, inputs, lora_linear):
         expected = torch.tensor(EXPECTED_VAL)
-        lora_linear.merge_lora_weights()
+        lora_linear._merge_lora_weights()
         actual = F.linear(inputs, lora_linear.weight, lora_linear.bias)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
     def test_invalid_unmerge_lora_weights_before_merge(self, lora_linear):
         with pytest.raises(RuntimeError, match="weights are not merged"):
-            lora_linear.unmerge_lora_weights()
+            lora_linear._unmerge_lora_weights()
 
     def test_merge_and_unmerge_lora_weights(self, lora_linear):
         sd_pre = lora_linear.state_dict()
-        lora_linear.merge_lora_weights()
-        lora_linear.unmerge_lora_weights()
+        lora_linear._merge_lora_weights()
+        lora_linear._unmerge_lora_weights()
         assert sd_pre.keys() == lora_linear.state_dict().keys()
         for k in sd_pre.keys():
             torch.testing.assert_close(sd_pre[k], lora_linear.state_dict()[k])

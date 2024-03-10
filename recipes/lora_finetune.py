@@ -22,9 +22,8 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    register_lora_weight_merge_hooks,
+    merge_lora_weights_in_state_dict,
     set_trainable_params,
-    unregister_lora_weight_merge_hooks,
     validate_state_dict_for_lora,
 )
 
@@ -183,8 +182,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         if cfg.save_llama2_native_format and not cfg.save_full_final_checkpoint:
             raise ValueError("Cannot save into native Llama2 format without full model")
-        self._save_full_final_checkpoint = cfg.save_full_final_checkpoint
-        self._save_llama2_native_format = cfg.save_llama2_native_format
+
+        self._save_final_merged_weights = cfg.save_final_merged_weights
 
     def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
         """
@@ -343,7 +342,6 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
     def save_checkpoint(
         self,
         epoch: int,
-        save_full_weights: bool = False,
         merge_lora_weights: bool = False,
     ) -> None:
         """
@@ -364,15 +362,17 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        model_key_filter = None
-        if not save_full_weights:
-            model_key_filter = lambda x: x in self.adapter_params
 
-        if merge_lora_weights:
-            register_lora_weight_merge_hooks(self._model)
-        utils.save_checkpoint(ckpt_dict, output_loc, model_key_filter=model_key_filter)
-        if merge_lora_weights:
-            unregister_lora_weight_merge_hooks(self._model)
+        if not merge_lora_weights:
+            utils.save_checkpoint(
+                ckpt_dict,
+                output_loc,
+                model_key_filter=lambda x: x in self.adapter_params,
+            )
+        else:
+            with merge_lora_weights_in_state_dict():
+                utils.save_checkpoint(ckpt_dict, output_loc)
+
         if self._is_rank_zero:
             log.info(
                 msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
@@ -437,15 +437,11 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
             self.epochs_run += 1
 
-            save_full_weights = self._save_full_final_checkpoint and (
-                curr_epoch == self.total_epochs - 1
-            )
-            merge_lora_weights = self._save_llama2_native_format and (
+            merge_lora_weights = self._save_final_merged_weights and (
                 curr_epoch == self.total_epochs - 1
             )
             self.save_checkpoint(
                 epoch=curr_epoch,
-                save_full_weights=save_full_weights,
                 merge_lora_weights=merge_lora_weights,
             )
 
