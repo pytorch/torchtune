@@ -19,6 +19,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.models.llama2 import get_lora_module_keys
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     set_trainable_params,

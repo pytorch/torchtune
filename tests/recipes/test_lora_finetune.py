@@ -30,6 +30,7 @@ torchtune.models.lora_small_test_ckpt = partial(
     lora_llama2_small_test_ckpt,
     lora_attn_modules=test_lora_attn_modules,
     apply_lora_to_mlp=False,
+    apply_lora_to_output=False,
 )
 
 
@@ -73,6 +74,7 @@ class TestLoRAFinetuneRecipe:
             model.lora_rank=8 \
             model.lora_alpha=16 \
             model.apply_lora_to_mlp=False \
+            model.apply_lora_to_output=False \
         """.split()
 
         # Have to attach this after so it parses correctly
