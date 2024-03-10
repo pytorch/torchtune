@@ -49,16 +49,17 @@ tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune
 
 ### LoRA finetune
 
-To finetune with LoRA, you can use the `finetune_lora` recipe with the `alpaca_llama2_lora_finetune.yaml` config. E.g. on two devices
+We provide separate recipes for finetuning LoRA on a single device and multiple GPUs. You can finetune LoRA on a single device using the `lora_finetune_single_device` recipe with the `alpaca_llama2_lora_finetune_single_device.yaml` config. To do so on multiple GPUs, use `lora_finetune_distributed ` with `alpaca_llama2_lora_finetune_distributed.yaml`. E.g. on two devices, you can run the following:
 
 ```
-tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune
+tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed
 ```
 
-FSDP and activation checkpointing are enabled by default, and LoRA weights are added to the Q and V projections in self-attention. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
+For both recipes, activation checkpointing is enabled by default, and LoRA weights are added to the Q and V projections in self-attention. FSDP is enabled by default for
+distributed recipe. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
 
 ```
-tune --nnodes 1 --nproc_per_node 2 finetune_lora --config alpaca_llama2_lora_finetune --override lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
+tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed --override lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
 ```
 
 ### Generation

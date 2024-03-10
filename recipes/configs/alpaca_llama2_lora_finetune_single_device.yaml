@@ -1,7 +1,7 @@
-# Config for LoRAFinetuneRecipe in lora_finetune.py
+# Config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 lora_finetune --config alpaca_llama2_lora_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+#    tune lora_finetune_single_device --config alpaca_llama2_lora_finetune_single_device model_checkpoint=<your_checkpoint_dir> ...
 
 # Model Arguments
 model:
@@ -54,9 +54,5 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-dtype: fp32
-enable_fsdp: True
+full_bf16: False
 enable_activation_checkpointing: True
-
-# Final checkpoint
-save_final_merged_weights: False

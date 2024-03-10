@@ -28,6 +28,7 @@ from torchtune.modules.peft.peft_utils import (
 )
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -42,9 +43,9 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipe(FTRecipeInterface):
+class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
         - FSDP and activation checkpointing. This is enabled by default but is
@@ -62,8 +63,8 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        lora_finetune        alpaca_llama2_lora_finetune
+        RECIPE                         CONFIG
+        lora_finetune_distributed        alpaca_llama2_lora_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -330,7 +331,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 
@@ -456,13 +457,18 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_lora_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    if utils.is_distributed():
-        init_process_group(backend="nccl")
+    if not utils.is_distributed():
+        raise RuntimeError(
+            "Distributed finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
 
-    recipe = LoRAFinetuneRecipe(cfg=cfg)
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+
+    recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

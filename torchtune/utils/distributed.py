@@ -34,6 +34,8 @@ _log: logging.Logger = get_logger()
 
 FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
 
+_valid_distributed_single_node_nnodes = ["1:1", "1"]
+
 
 def _get_sharding_strategy(strategy: str) -> ShardingStrategy:
     """Helper function to convert sharding strategy strings to ShardingStrategy enum."""

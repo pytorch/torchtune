@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import ContextManager, Dict, List, Optional, Union
+from typing import ContextManager, Dict, Generator, List, Optional, Union
 
 import torch
 
@@ -113,3 +113,29 @@ def get_autocast(dtype: torch.dtype, device: torch.device) -> ContextManager:
         )
     else:
         return contextlib.nullcontext()
+
+
+@contextlib.contextmanager
+def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
+    old_dtype = torch.get_default_dtype()
+    torch.set_default_dtype(dtype)
+    try:
+        yield
+    finally:
+        torch.set_default_dtype(old_dtype)
+
+
+def validate_expected_param_dtype(model: torch.nn.Module, dtype: torch.dtype) -> None:
+    """
+    Validates that all parameters in the model have the expected dtype.
+
+    Args:
+        model (torch.nn.Module): Model to validate.
+        dtype (torch.dtype): Expected dtype.
+
+    Raises:
+        ValueError: If any parameter in the model has a different dtype than `dtype`.
+    """
+    for name, param in model.named_parameters():
+        if param.dtype != dtype:
+            raise ValueError(f"Parameter {name} has dtype {param.dtype}")
