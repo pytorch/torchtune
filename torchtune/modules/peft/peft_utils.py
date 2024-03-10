@@ -187,6 +187,15 @@ def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
 
 
 def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Register state dict hooks for merging and unmerging LoRA weights.
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA params.
+    Returns:
+        None
+    Raises:
+        RuntimeError: If the model already has LoRA merge state dict pre- or post-hooks.
+    """
     for n, m in model.named_modules():
         if _is_eligible_for_state_dict_hook(m):
             if hasattr(m, "_merge_weight_pre_handle"):
@@ -206,6 +215,15 @@ def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
 
 
 def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Unregister state dict hooks for merging and unmerging LoRA weights.
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA params.
+    Returns:
+        None
+    Raises:
+        RuntimeError: If the model does not have the expected state dict pre- or post-hooks.
+    """
     for n, m in model.named_modules():
         if _is_eligible_for_state_dict_hook(m):
             if not hasattr(m, "_merge_weight_pre_handle"):
@@ -224,6 +242,9 @@ def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
 def merge_lora_weights_in_state_dict(model: nn.Module) -> Generator[None, None, None]:
     """
     Context manager for merging and unmerging LoRA weights in the model's state dict.
+    By wrapping your `.state_dict()` call on a model containing LoRA modules in this
+    context manager, you can get a state dict with the LoRA weights merged into
+    the base model weights.
 
     Args:
         model (nn.Module): Instance of model class containing some LoRA modules.

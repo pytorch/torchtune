@@ -103,6 +103,8 @@ class LoRALinear(nn.Module, AdapterModule):
 
     @torch.no_grad
     def _merge_lora_weights(self, *args, **kwargs):
+        if self.merged:
+            raise RuntimeError("Cannot call _merge_lora_weights, weights are merged")
         if self.use_bias_in_lora_matrices:
             raise RuntimeError(
                 "Cannot merge LoRA weights when LoRA matrices have biases"
@@ -118,7 +120,7 @@ class LoRALinear(nn.Module, AdapterModule):
     def _unmerge_lora_weights(self, *args, **kwargs):
         if not self.merged:
             raise RuntimeError(
-                "Cannot call unmerge_lora_weights, weights are not merged"
+                "Cannot call _unmerge_lora_weights, weights are not merged"
             )
         self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
         self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
