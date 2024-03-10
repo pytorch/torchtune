@@ -21,6 +21,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    merge_lora_weights_in_state_dict,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -87,6 +88,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_merged_final_checkpoint = cfg.save_merged_final_checkpoint
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -314,7 +316,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, merge_lora_weights: bool = False) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
@@ -333,9 +335,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
-        )
+
+        # Save full checkpoint with LoRA weights merged into base Llama2 format
+        if merge_lora_weights:
+            with merge_lora_weights_in_state_dict(self._model):
+                utils.save_checkpoint(ckpt_dict, output_loc)
+
+        # Otherwise, save only LoRA params
+        else:
+            utils.save_checkpoint(
+                ckpt_dict,
+                output_loc,
+                model_key_filter=lambda x: x in self.adapter_params,
+            )
 
         log.info(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
@@ -389,7 +401,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            merge_lora_weights = self._save_merged_final_checkpoint and (
+                curr_epoch == self.total_epochs - 1
+            )
+            self.save_checkpoint(
+                epoch=curr_epoch, merge_lora_weights=merge_lora_weights
+            )
 
     def cleanup(self) -> None:
         self._metric_logger.close()

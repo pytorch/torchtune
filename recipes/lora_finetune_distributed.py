@@ -16,7 +16,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.cuda.amp import GradScaler
-from torch.distributed import init_process_group
+from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
@@ -93,6 +93,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_merged_final_checkpoint = cfg.save_merged_final_checkpoint
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -180,11 +181,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             num_training_steps=self.total_epochs * steps_per_epoch,
             last_epoch=self.total_training_steps - 1,
         )
-
-        if cfg.save_llama2_native_format and not cfg.save_full_final_checkpoint:
-            raise ValueError("Cannot save into native Llama2 format without full model")
-
-        self._save_final_merged_weights = cfg.save_final_merged_weights
 
     def load_checkpoint(self, ckpt_path: str, resume_from_checkpoint: bool):
         """
@@ -364,15 +360,18 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 }
             )
 
-        if not merge_lora_weights:
+        # Save full checkpoint with LoRA weights merged into base Llama2 format
+        if merge_lora_weights:
+            with merge_lora_weights_in_state_dict(self._model):
+                utils.save_checkpoint(ckpt_dict, output_loc)
+
+        # Otherwise, save only LoRA params
+        else:
             utils.save_checkpoint(
                 ckpt_dict,
                 output_loc,
                 model_key_filter=lambda x: x in self.adapter_params,
             )
-        else:
-            with merge_lora_weights_in_state_dict():
-                utils.save_checkpoint(ckpt_dict, output_loc)
 
         if self._is_rank_zero:
             log.info(
@@ -438,7 +437,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
             self.epochs_run += 1
 
-            merge_lora_weights = self._save_final_merged_weights and (
+            merge_lora_weights = self._save_merged_final_checkpoint and (
                 curr_epoch == self.total_epochs - 1
             )
             self.save_checkpoint(
@@ -449,6 +448,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
+        destroy_process_group()
 
 
 @config.parse

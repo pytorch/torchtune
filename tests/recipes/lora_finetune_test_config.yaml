@@ -52,4 +52,4 @@ enable_fsdp: False
 enable_activation_checkpointing: False
 
 # Final checkpoint
-save_final_merged_weights: False
+save_merged_final_checkpoint: False

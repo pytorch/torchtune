@@ -77,7 +77,6 @@ class TestLoRAFinetuneRecipe:
 
         # Have to attach this after so it parses correctly
         cmd += ['model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]']
-
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             with (
@@ -92,22 +91,30 @@ class TestLoRAFinetuneRecipe:
 
 
 class TestLoRAFinalCheckpoints:
-    @pytest.mark.parametrize("enable_fsdp", [True])
+    @pytest.mark.parametrize("enable_fsdp", [False, True])
     def test_save_and_load_merged_weights(self, tmpdir, enable_fsdp, monkeypatch):
         # No support for large scale test yet for LoRA
         ckpt = "lora_small_test_ckpt"
 
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
+        recipe_name = (
+            "lora_finetune_single_device"
+            if not enable_fsdp
+            else "lora_finetune_distributed"
+        )
 
         # Have to attach this after so it parses correctly
         lora_cfg = [
             'model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]'
         ]
 
+        # TODO: see analogous comment in TestLoRAFinetuneRecipe
+        monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
         cmd = f"""
-        tune lora_finetune
+        tune {recipe_name}
             --config {config_path} \
             --override \
+            enable_fsdp={enable_fsdp} \
             model._component_=torchtune.models.{ckpt} \
             model_checkpoint={fetch_ckpt_model_path(ckpt)} \
             model.lora_rank=8 \
@@ -116,22 +123,21 @@ class TestLoRAFinalCheckpoints:
             epochs=1
         """.split()
         cmd += lora_cfg
-        if enable_fsdp:
-            cmd.append("enable_fsdp=True")
-            context_manager = single_box_init
-        else:
-            context_manager = contextlib.nullcontext
+        cmd += ["full_bf16=False"]  # TODO: figure out why we need this
         baseline_cmd = cmd + [f"output_dir={tmpdir}{enable_fsdp}baseline"]
         merged_cmd = cmd + [
             f"output_dir={tmpdir}{enable_fsdp}merged_ckpt",
-            "save_full_final_checkpoint=True",
-            "save_llama2_native_format=True",
+            "save_merged_final_checkpoint=True",
         ]
         cmds = [baseline_cmd, merged_cmd]
         for current_cmd in cmds:
-            with context_manager():
-                monkeypatch.setattr(sys, "argv", current_cmd)
-                with pytest.raises(SystemExit):
+            monkeypatch.setattr(sys, "argv", current_cmd)
+            with pytest.raises(SystemExit):
+                with (
+                    single_box_init(init_pg=False)
+                    if enable_fsdp
+                    else contextlib.nullcontext()
+                ):
                     runpy.run_path(TUNE_PATH, run_name="__main__")
 
         inputs = torch.randint(low=0, high=32_000, size=(2, 100))
@@ -158,6 +164,4 @@ class TestLoRAFinalCheckpoints:
             sd = torch.load(f, weights_only=True)
         llama2_model.load_state_dict(sd["model"])
         merged_ckpt_out = llama2_model(inputs)
-
-        torch.testing.assert_close(baseline_out, full_ckpt_out, rtol=1e-5, atol=1e-5)
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)

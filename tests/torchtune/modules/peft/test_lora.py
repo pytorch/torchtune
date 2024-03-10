@@ -8,7 +8,6 @@ import pytest
 
 import torch
 import torch.nn.functional as F
-
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchtune.modules.peft import LoRALinear
@@ -119,9 +118,15 @@ class TestLoRALinear:
             lora_linear._unmerge_lora_weights()
 
     def test_merge_and_unmerge_lora_weights(self, lora_linear):
+        inputs = torch.randn(BSZ, SEQ_LEN, lora_linear.in_dim)
+
+        out_pre = lora_linear(inputs)
         sd_pre = lora_linear.state_dict()
+
         lora_linear._merge_lora_weights()
         lora_linear._unmerge_lora_weights()
-        assert sd_pre.keys() == lora_linear.state_dict().keys()
-        for k in sd_pre.keys():
-            torch.testing.assert_close(sd_pre[k], lora_linear.state_dict()[k])
+
+        out_post = lora_linear(inputs)
+
+        torch.testing.assert_close(out_pre, out_post)
+        torch.testing.assert_close(sd_pre, lora_linear.state_dict())

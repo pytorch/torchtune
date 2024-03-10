@@ -7,8 +7,9 @@
 from copy import deepcopy
 
 import pytest
-from tests.test_utils import fixed_init_model
 
+import torch
+from tests.test_utils import fixed_init_model
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
@@ -18,6 +19,7 @@ from torchtune.modules.peft.peft_utils import (
     _unregister_lora_weight_merge_hooks,
     AdapterModule,
     get_adapter_params,
+    merge_lora_weights_in_state_dict,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -173,8 +175,6 @@ class TestPeftUtils:
         model = request.getfixturevalue(model_name)
         base_model_params = _get_base_model_params(model)
         expected = request.getfixturevalue(expected_keys)
-        print(set(expected).difference(set(base_model_params.keys())))
-        print(set(base_model_params.keys()).difference(set(expected)))
         assert set(expected) == set(base_model_params.keys())
 
     @pytest.mark.parametrize(
@@ -313,10 +313,15 @@ class DummyNestedLoRA(nn.Module):
 
 
 class TestLoRAWeightMergeHooks:
+    """
+    This class tests the pre- and post- state dict hooks for LoRA weight merging,
+    as well as the corresponding context manager.
+    """
+
     @pytest.fixture
     def model(self):
         model = nn.Sequential(
-            nn.Embedding(num_embeddings=12, embedding_dim=3),
+            nn.Embedding(num_embeddings=VOCAB_SIZE, embedding_dim=3),
             LoRALinear(in_dim=3, out_dim=4, rank=4, alpha=1.0),
             nn.Linear(in_features=4, out_features=5),
             DummyNestedLoRA(in_dim=5, out_dim=6, rank=4, alpha=1.0),
@@ -364,5 +369,32 @@ class TestLoRAWeightMergeHooks:
             _unregister_lora_weight_merge_hooks(model)
 
     def test_lora_weight_merge_context_manager(self, model):
-        inputs = torch.randint
-        out1 = model()
+        inputs = torch.randint(0, VOCAB_SIZE, (2, 8))
+
+        # Set trainable params so we can check grads
+        adapter_params = get_adapter_params(model)
+        set_trainable_params(model, adapter_params)
+
+        # Run forward before state dict merge
+        out_pre = model(inputs)
+        loss_pre = out_pre.sum()
+        loss_pre.backward()
+        grads_before_merge = {
+            k: torch.clone(v.grad)
+            for k, v in model.named_parameters()
+            if v.grad is not None
+        }
+
+        with merge_lora_weights_in_state_dict(model):
+            _ = model.state_dict()
+
+        # Running forward again should give the same results
+        out_post = model(inputs)
+        loss_post = out_post.sum()
+        loss_post.backward()
+        grads_after_merge = {
+            k: v.grad for k, v in model.named_parameters() if v.grad is not None
+        }
+
+        torch.testing.assert_close(out_pre, out_post)
+        torch.testing.assert_close(grads_before_merge, grads_after_merge)
