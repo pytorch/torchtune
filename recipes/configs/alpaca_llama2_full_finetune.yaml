@@ -6,7 +6,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /home/kartikayk/cpts/tokenizer.model
+  path: /tmp/llama2/tokenizer.model
 
 # Dataset
 dataset:
@@ -20,12 +20,12 @@ model:
   _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/alpaca-llama2-finetune/
-  checkpoint_files: [meta_model_0.pt]
+  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  checkpoint_dir: /tmp/llama2/
+  checkpoint_files: [llama2_native.pt]
   model_type: LLAMA2
 
-resume_from_checkpoint: True
+resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2

@@ -96,17 +96,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
         Extract and load state dict from checkpoint file.
-
-        This recipe supports two scenarios:
-            * New Training Run. Load a checkpoint from an external source such as Llama2
-                from Meta or HuggingFace. In this scenario we need to conver the checkpoint
-                into a format used by TorchTune. This can be easily done using the
-                FullModelCheckpointer's ``convert_to_torchtune_format`` method.
-
-            * Resuming Training. Load a checkpoint from a partially completed TorchTune
-                training. In this scenario, the checkpoint is already in the TorchTune
-                format. We simply extract the relevant recipe state and continue with recipe
-                setup.
         """
         self._checkpointer = config.instantiate(
             cfg,
@@ -303,18 +292,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def save_checkpoint(self, epoch: int) -> None:
         """
-        Extract and load state dict from checkpoint file.
-
-        This recipe supports two scenarios:
-            * Mid-training checkpointing. In this scenario, the checkpoint contains more
-                information than just model state. This includes the optimizer and recipe
-                states. The recipe is responsible for correctly creating the state dict and
-                passing this onto the checkpointers ``save_checkpoint`` method.
-
-            * End-of-training checkpointing. In this scenario, the checkpoint contains only
-                the model state. We first convert the state dict back to the original checkpoint
-                format using the ``convert_from_torchtune_format`` method and then write this out
-                to file using the ``save_checkpoint`` method.
+        Save state dict to file.
         """
         ckpt_dict = {MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well

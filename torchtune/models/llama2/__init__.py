@@ -17,9 +17,6 @@ from ._model_utils import scale_hidden_dim_for_mlp
 
 __all__ = [
     "convert_llama2_fair_format",
-    "convert_llama2_hf_format",
-    "convert_from_meta_format",
-    "convert_to_meta_format",
     "llama2",
     "llama2_7b",
     "llama2_tokenizer",
