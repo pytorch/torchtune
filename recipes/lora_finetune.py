@@ -410,7 +410,9 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
         """
+        t0 = time.monotonic()
         os.makedirs(self._output_dir, exist_ok=True)
+        self.log(msg=f"os.makedirs {time.monotonic() - t0} seconds.")
         output_loc = f"{self._output_dir}/model_{epoch}.ckpt"
         ckpt_dict = {MODEL_KEY: self._model}
         # if training is in-progress, checkpoint the optimizer state as well
@@ -433,6 +435,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             self.checkpoint_future.result()
             self.log(msg=f"Waited for {time.monotonic() - t0} seconds.")
 
+        t0 = time.monotonic()
         with FSDP.state_dict_type(
             self._model,
             StateDictType.SHARDED_STATE_DICT,
@@ -449,11 +452,16 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 }
             )
 
-        print(ckpt_dict)
+        self.log(msg=f"creating sharded state_dict {time.monotonic() - t0} seconds.")
         t0 = time.monotonic()
         self.checkpoint_future = async_save(
             ckpt_dict,
-            storage_writer=FileSystemWriter(output_loc, thread_count=8, single_file_per_rank=False) # make FS go brr
+            storage_writer=FileSystemWriter(
+                output_loc,
+                thread_count=8,
+                single_file_per_rank=False,
+                sync_files=False
+            ) # make FS go brr
         )
         self.log(msg=f"Checkpointing staging {time.monotonic() - t0} seconds.")
 
@@ -468,11 +476,10 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
         # utils.save_checkpoint(
         #     ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         # )
-        dist.barrier()
-        if self._is_rank_zero:
-            log.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc)} B saved to {output_loc}"
-            )
+        # if self._is_rank_zero:
+        #     log.info(
+        #         msg=f"Model checkpoint of size {os.path.getsize(output_loc)} B saved to {output_loc}"
+        #     )
 
     def train(self) -> None:
         """
@@ -534,7 +541,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
             self.epochs_run += 1
             t0 = time.monotonic()
             self.save_checkpoint(epoch=curr_epoch)
-            self.log(msg=f"Calling `self.save_checkpoint` took {time.monotonic() - t0} seconds.")
+            self.log(msg=f"Calling save_checkpoint took {time.monotonic() - t0} seconds.")
 
     def log(self, level=log.info, *args, **kwargs):
         if self._is_rank_zero:
