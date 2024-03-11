@@ -44,7 +44,7 @@ def lora_llama2_7b(
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output_proj=apply_lora_to_output_proj,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
