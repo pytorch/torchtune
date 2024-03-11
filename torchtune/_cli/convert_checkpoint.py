@@ -34,6 +34,7 @@ def convert_checkpoint(
         checkpoint_path (Path): Path to the checkpoint path.
         model (str): Model name
         output_path (Optional[Path]): Path to the output checkpoint.
+        train_type (str): Type of finetuning
         output_numerical_validation (bool): Whether to run numerical validation on the converted checkpoint.
 
     Raises:
