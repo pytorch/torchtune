@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import time
 import argparse
 import os
 import sys
@@ -22,9 +23,12 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
-from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict, StateDictOptions
+from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict, StateDictOptions, get_model_state_dict
 import torch.distributed.checkpoint as dcp
-from torch.distributed.checkpoint.state_dict_saver import _async_save
+import torch.distributed as dist
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, StateDictType
+from torch.distributed.checkpoint.state_dict_saver import async_save
+from torch.distributed.checkpoint import async_save, FileSystemWriter
 from torchtune import datasets, models, modules, utils
 from torchtune.modules.peft.lora import reset_lora_params
 from torchtune.modules.peft.peft_utils import (
@@ -158,7 +162,7 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 self._model,
                 self._optimizer,
                 model_state_dict=model_state_dict,
-                optim_state_dict=optim_state_dict
+                optim_state_dict=optim_state_dict,
                 options=StateDictOptions(strict=False)
             )
 
@@ -424,35 +428,50 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
 
         if self.checkpoint_future is not None:
             # we have to wait for the previous checkpoint to finish before saving
+            t0 = time.monotonic()
+            self.log(msg=f"Waiting for previous checkpoint to finish...")
             self.checkpoint_future.result()
+            self.log(msg=f"Waited for {time.monotonic() - t0} seconds.")
 
-        #TODO: check if we need to save the optimizer here or if we should skip
-        # according to the above logic
-        model_state_dict, optim_state_dict = get_state_dict(
+        with FSDP.state_dict_type(
             self._model,
-            self._optimizer,
-            options=StateDictOptions(ignore_frozen_params=True)
-        )
-        ckpt_dict.update(
-            {
-                MODEL_KEY: model_state_dict,
-                OPT_KEY: optim_state_dict
-            }
-        )
+            StateDictType.SHARDED_STATE_DICT,
+        ):
+            model_state_dict = self._model.state_dict()
+            model_state_dict = {k: v for k, v in model_state_dict.items() if k in self.adapter_params}
 
-        self.checkpoint_future = _async_save(
+            optim_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+
+            ckpt_dict.update(
+                {
+                    MODEL_KEY: model_state_dict,
+                    OPT_KEY: optim_state_dict
+                }
+            )
+
+        print(ckpt_dict)
+        t0 = time.monotonic()
+        self.checkpoint_future = async_save(
             ckpt_dict,
-            params.lora_checkpoint
+            storage_writer=FileSystemWriter(output_loc, thread_count=8, single_file_per_rank=False) # make FS go brr
         )
+        self.log(msg=f"Checkpointing staging {time.monotonic() - t0} seconds.")
+
+        if epoch + 1 >= self.total_epochs:
+            # we have to wait for the previous checkpoint to finish before saving
+            t0 = time.monotonic()
+            self.log(msg=f"Waiting on save for final checkpoint")
+            self.checkpoint_future.result()
+            self.log(msg=f"Waited for {time.monotonic() - t0} seconds.")
 
         # TODO: move DCP logic into utils.save_checkpoint
         # utils.save_checkpoint(
         #     ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
         # )
-
+        dist.barrier()
         if self._is_rank_zero:
             log.info(
-                msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+                msg=f"Model checkpoint of size {os.path.getsize(output_loc)} B saved to {output_loc}"
             )
 
     def train(self) -> None:
@@ -513,7 +532,13 @@ class LoRAFinetuneRecipe(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
+            t0 = time.monotonic()
             self.save_checkpoint(epoch=curr_epoch)
+            self.log(msg=f"Calling `self.save_checkpoint` took {time.monotonic() - t0} seconds.")
+
+    def log(self, level=log.info, *args, **kwargs):
+        if self._is_rank_zero:
+            level(*args, **kwargs)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
@@ -538,7 +563,7 @@ def recipe_main() -> None:
     recipe_params = LoRAFinetuneParams(**args)
 
     # Env variables set by torch run; only need to initialize process group
-    init_process_group(backend="nccl")
+    init_process_group(backend="cpu:gloo,cuda:nccl")
 
     recipe = LoRAFinetuneRecipe(params=recipe_params)
     recipe.setup(params=recipe_params)

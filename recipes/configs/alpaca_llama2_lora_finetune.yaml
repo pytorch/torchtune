@@ -1,6 +1,6 @@
 # Model Arguments
 model: lora_llama2_7b
-model_checkpoint: /tmp/llama2_native
+model_checkpoint: /home/lpasqualin/tmp/models/llama2_native
 lora_attn_modules: ['q_proj', 'v_proj']
 lora_rank: 8
 lora_alpha: 16
@@ -8,7 +8,7 @@ lora_checkpoint: null
 
 # Tokenizer
 tokenizer: llama2_tokenizer
-tokenizer_checkpoint: /tmp/llama2/tokenizer.model
+tokenizer_checkpoint: /home/lpasqualin/tmp/models/llama2/tokenizer.model
 
 # Dataset and Sampler
 dataset: alpaca
@@ -25,12 +25,14 @@ num_warmup_steps: 100
 loss: CrossEntropyLoss
 
 # Training
-epochs: 1
+epochs: 2
 resume_from_checkpoint: False
 
 # Environment
 device: cuda
 dtype: fp32
 
+max_steps_per_epoch: 1
+
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /home/lpasqualin/tmp/models/lora_finetune_output
