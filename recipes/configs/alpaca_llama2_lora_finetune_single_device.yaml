@@ -57,3 +57,6 @@ log_every_n_steps: 1
 device: cuda
 full_bf16: False
 enable_activation_checkpointing: True
+
+# Final checkpoint
+save_merged_final_checkpoint: False

@@ -58,3 +58,6 @@ device: cuda
 dtype: fp32
 enable_fsdp: True
 enable_activation_checkpointing: True
+
+# Final checkpoint
+save_merged_final_checkpoint: False
