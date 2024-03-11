@@ -413,8 +413,13 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    if utils.is_distributed():
-        init_process_group(backend="nccl")
+    if not utils.is_distributed():
+        raise RuntimeError(
+            "Distributed finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
+
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     recipe = FullFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
