@@ -8,7 +8,7 @@ from typing import Dict, Tuple
 
 import torch
 
-from torchtune.utils import get_logger
+from torchtune.utils.logging import get_logger
 
 from tqdm import tqdm
 
