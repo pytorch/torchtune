@@ -60,3 +60,20 @@ class TestTuneCLIWithValidateScript:
             TypeError, match="got an unexpected keyword argument 'dummy'"
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
+
+    def test_validate_bad_override(self, monkeypatch, tmpdir):
+        tmpdir_path = Path(tmpdir)
+        dest = tmpdir_path / "my_custom_finetune.yaml"
+        conf = OmegaConf.create(self.valid_config_string())
+        OmegaConf.save(conf, dest)
+
+        args = f"\
+            tune validate --config {dest} --override \
+            test._component_=torchtune.utils.get_dtype \
+            test.dtype=fp32 test.dummy=3".split()
+
+        monkeypatch.setattr(sys, "argv", args)
+        with pytest.raises(
+            TypeError, match="got an unexpected keyword argument 'dummy'"
+        ):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
