@@ -112,7 +112,7 @@ def validate_state_dict_for_lora(
 
     Args:
         lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
-            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj"]
+            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj", "output"]
         full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
         lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
             If none, LoRA state dict keys will not be validated.
@@ -131,7 +131,7 @@ def validate_state_dict_for_lora(
         AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
 
     """
-    is_lora_param = lambda x: "lora" in x and any([k in x for k in lora_modules])
+    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
             if base_model_state_dict_keys is not None:

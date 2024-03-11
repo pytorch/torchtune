@@ -30,6 +30,7 @@ LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 def lora_llama2_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
@@ -43,6 +44,7 @@ def lora_llama2_7b(
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output_proj=apply_lora_to_output_proj,
         vocab_size=32_000,
         num_layers=32,
         num_heads=32,
@@ -197,6 +199,7 @@ def _lora_llama_mlp(
 def lora_llama2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
     *,
     # llama2 args
     vocab_size: int,
@@ -279,8 +282,11 @@ def lora_llama2(
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
-    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-
+    output_proj = (
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        if apply_lora_to_output
+        else nn.Linear(embed_dim, vocab_size, bias=False)
+    )
     return TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layer=layer,
@@ -288,3 +294,25 @@ def lora_llama2(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
+
+def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
+    """
+    Return a list of the names of modules in the model that have LoRA applied. Note that
+    the names here are local to their modules and not the fully qualified names from the
+    model state dict.
+
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+
+    """
+    lora_module_keys = lora_attn_modules
+    if  apply_lora_to_mlp:
+        lora_module_keys = lora_module_keys + ["w1", "w2", "w3"]
+    if apply_lora_to_output:
+        lora_module_keys.append("output")
+    return lora_module_keys

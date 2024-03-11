@@ -73,6 +73,7 @@ def llama2_small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerD
 def lora_llama2_small_test_ckpt(
     lora_attn_modules,
     apply_lora_to_mlp,
+    apply_lora_to_output,
     lora_rank,
     lora_alpha,
     max_batch_size: Optional[int] = None,
@@ -80,6 +81,7 @@ def lora_llama2_small_test_ckpt(
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=32_000,
         num_layers=4,
         num_heads=16,

@@ -252,6 +252,18 @@ class TestPeftUtils:
                 "Missing non-LoRA key",
             ),
             (
+                ["q_proj", "output"],
+                [
+                    "q_proj.lora_a",
+                    "output.weight",
+                    "output.lora_a",
+                    "output_proj.lora_b",
+                ],
+                ["q_proj.lora_a", "output.lora_a", "output_proj.lora_b"],
+                ["output.weight"],
+                "Missing non-LoRA key",
+            ),
+            (
                 ["q_proj", "v_proj"],
                 "lora_llama2_model_all_keys",
                 "lora_llama2_expected_adapter_keys",
