@@ -125,10 +125,9 @@ class TestFullFinetuneRecipe:
             cmd = f"""
             tune full_finetune
                 --config {_CONFIG_PATH} \
-                --override \
                 output_dir={tmpdir} \
-                model._component_=torchtune.models.{ckpt} \
-                checkpointer._component_=torchtune.utils.{checkpointer}
+                model=torchtune.models.{ckpt} \
+                checkpointer=torchtune.utils.{checkpointer}
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
                 checkpointer.output_dir={tmpdir} \
@@ -244,14 +243,13 @@ class TestRecipeGradientAccumulation:
         cmd = f"""
         tune full_finetune \
             --config {_CONFIG_PATH} \
-            --override \
-            model._component_=torchtune.models.{model_ckpt} \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            model=torchtune.models.{model_ckpt} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
-            dataset._component_=tests.recipes.utils.DummyDataset \
+            dataset=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
             epochs=1 \
             max_steps_per_epoch=1 \
@@ -273,14 +271,13 @@ class TestRecipeGradientAccumulation:
         cmd_2 = f"""
         tune full_finetune \
             --config {_CONFIG_PATH} \
-            --override \
-            model._component_=torchtune.models.{model_ckpt} \
-            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            model=torchtune.models.{model_ckpt} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
-            dataset._component_=tests.recipes.utils.DummyDataset \
+            dataset=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             epochs=1 \
