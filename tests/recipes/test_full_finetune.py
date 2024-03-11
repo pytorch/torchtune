@@ -87,7 +87,7 @@ class TestFullFinetuneRecipe:
         raise ValueError(f"Unknown ckpt {ckpt}")
 
     def fetch_checkpointer(self, ckpt):
-        if ckpt == "small_test_ckpt_tune":
+        if ckpt == "small_test_ckpt_tune" or ckpt == "llama2.llama2_7b":
             return "FullModelTorchTuneCheckpointer"
         if ckpt == "small_test_ckpt_hf":
             return "FullModelHFCheckpointer"

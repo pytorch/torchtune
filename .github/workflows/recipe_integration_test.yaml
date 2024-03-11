@@ -55,7 +55,7 @@ jobs:
             python3 -m pip install awscli==1.32.6
             mkdir -p /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b-01242024 /tmp/test-artifacts
+            aws s3 cp s3://pytorch-multimodal/llama2-7b-torchtune.pt /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/small-ckpt-hf-03082024.pt /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/small-ckpt-tune-03082024.pt /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/small-ckpt-meta-03082024.pt /tmp/test-artifacts

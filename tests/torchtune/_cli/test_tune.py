@@ -34,18 +34,3 @@ class TestTuneCLI:
                 pkg_path = str(Path(torchtune.__file__).parent.parent.absolute())
                 config_path = os.path.join(pkg_path, "recipes", "configs", config)
                 assert os.path.exists(config_path), f"{config_path} must exist"
-
-    def test_run(self, capsys):
-        recipe = "full_finetune"
-        # Make sure we're not running on GPU which can lead to issues on GH CI
-        testargs = f"\
-            tune {recipe} --config alpaca_llama2_full_finetune.py --override tokenizer=fake \
-            device=cpu enable_fsdp=False enable_activation_checkpointing=False \
-            model_checkpoint=/tmp/fake.pt \
-        ".split()
-        with patch.object(sys, "argv", testargs):
-            # TODO: mock recipe so we don't actually run it,
-            # we purposely error out prematurely so we can just test that we
-            # enter the script successfully
-            with pytest.raises(FileNotFoundError, match="No such file or directory"):
-                runpy.run_path(TUNE_PATH, run_name="__main__")

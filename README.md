@@ -98,9 +98,11 @@ tune download --repo-id meta-llama/Llama-2-7b \
 
 &nbsp;
 
-#### Converting the checkpoint into PyTorch-native
+#### Converting the checkpoint into PyTorch-native for LoRA
 
-Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune.
+Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune. This is only
+needed if you're running LoRA. For full fine-tuning, you should be able to use the downloaded checkpoints without any
+converstion. See the [Running Recipes](#running-recipes) section for more details.
 
 ```
 tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth \
@@ -115,7 +117,7 @@ tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth \
 
 TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
 
-To run a full finetune on two devices on the Alpaca dataset using FSDP:
+Full-finetuning runs without the need for any model conversion. To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \
@@ -126,7 +128,7 @@ full_finetune \
 The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
 
 Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via the following. Remember to convert your
-model with ```train_type``` set to ```lora'```
+model with `train_type` set to `lora`
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \

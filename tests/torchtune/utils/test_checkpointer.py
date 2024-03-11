@@ -18,6 +18,12 @@ from torchtune.utils._checkpointing import FullModelHFCheckpointer, ModelType
 from torchtune.utils._checkpointing._checkpointer_utils import safe_torch_load
 from torchtune.utils.seed import set_seed
 
+_VOCAB_SIZE = 100
+_DIM = 64
+_HIDDEN_DIM = 256
+_NUM_HEADS = 4
+_NUM_KV_HEADS = 4
+
 
 @pytest.fixture(autouse=True)
 def random():
@@ -26,105 +32,85 @@ def random():
 
 class TestHFLlama2FullModelCheckpointer:
     @pytest.fixture
-    def vocab_size(self):
-        return 100
-
-    @pytest.fixture
-    def dim(self):
-        return 64
-
-    @pytest.fixture
-    def hidden_dim(self):
-        return 256
-
-    @pytest.fixture
-    def num_heads(self):
-        return 4
-
-    @pytest.fixture
-    def num_kv_heads(self):
-        return 4
-
-    @pytest.fixture
     def weight_dtype(self):
         return torch.float16
 
     @pytest.fixture
-    def state_dict_1(self, vocab_size, dim, hidden_dim, weight_dtype):
+    def state_dict_1(self, weight_dtype):
         """
         State dict for a HF format checkpoint. This state dict is "complete" and
         can be loaded into a TorchTune model once correctly converted.
         """
         state_dict = {
-            "model.embed_tokens.weight": randn(vocab_size, dim, dtype=weight_dtype),
-            "model.layers.0.input_layernorm.weight": randn(dim, dtype=weight_dtype),
+            "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+            "model.layers.0.input_layernorm.weight": randn(_DIM, dtype=weight_dtype),
             "model.layers.0.self_attn.q_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.0.self_attn.k_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.0.self_attn.v_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.0.self_attn.o_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.0.post_attention_layernorm.weight": randn(
-                dim, dtype=weight_dtype
+                _DIM, dtype=weight_dtype
             ),
             "model.layers.0.self_attn.rotary_emb.inv_freq": randn(
-                dim, dtype=weight_dtype
+                _DIM, dtype=weight_dtype
             ),
             "model.layers.0.mlp.gate_proj.weight": randn(
-                hidden_dim, dim, dtype=weight_dtype
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.0.mlp.down_proj.weight": randn(
-                dim, hidden_dim, dtype=weight_dtype
+                _DIM, _HIDDEN_DIM, dtype=weight_dtype
             ),
             "model.layers.0.mlp.up_proj.weight": randn(
-                hidden_dim, dim, dtype=weight_dtype
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
             ),
-            "model.norm.weight": torch.randn(dim, dtype=weight_dtype),
-            "lm_head.weight": torch.randn(vocab_size, dim, dtype=weight_dtype),
+            "model.norm.weight": torch.randn(_DIM, dtype=weight_dtype),
+            "lm_head.weight": torch.randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
         }
         return state_dict
 
     @pytest.fixture
-    def state_dict_2(self, vocab_size, dim, hidden_dim, weight_dtype):
+    def state_dict_2(self, weight_dtype):
         """
         State dict for a HF format checkpoint. This state dict is "incomplete" and
         should be used along with ``state_dict_1`` to test multi-file checkpointing. Specifically
         it's missing the embedding, norm and lm_head keys.
         """
         state_dict = {
-            "model.layers.1.input_layernorm.weight": randn(dim, dtype=weight_dtype),
+            "model.layers.1.input_layernorm.weight": randn(_DIM, dtype=weight_dtype),
             "model.layers.1.self_attn.q_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.1.self_attn.k_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.1.self_attn.v_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.1.self_attn.o_proj.weight": randn(
-                dim, dim, dtype=weight_dtype
+                _DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.1.post_attention_layernorm.weight": randn(
-                dim, dtype=weight_dtype
+                _DIM, dtype=weight_dtype
             ),
             "model.layers.1.self_attn.rotary_emb.inv_freq": randn(
-                dim, dtype=weight_dtype
+                _DIM, dtype=weight_dtype
             ),
             "model.layers.1.mlp.gate_proj.weight": randn(
-                hidden_dim, dim, dtype=weight_dtype
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
             ),
             "model.layers.1.mlp.down_proj.weight": randn(
-                dim, hidden_dim, dtype=weight_dtype
+                _DIM, _HIDDEN_DIM, dtype=weight_dtype
             ),
             "model.layers.1.mlp.up_proj.weight": randn(
-                hidden_dim, dim, dtype=weight_dtype
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
             ),
         }
         return state_dict
@@ -193,10 +179,6 @@ class TestHFLlama2FullModelCheckpointer:
 
     def test_load_save_checkpoint_single_file(
         self,
-        vocab_size: int,
-        dim: int,
-        num_heads: int,
-        num_kv_heads: int,
         single_file_checkpointer: FullModelHFCheckpointer,
         llama2_hf_checkpoints: Tuple[Path, Path],
     ):
@@ -229,11 +211,11 @@ class TestHFLlama2FullModelCheckpointer:
 
         # loading the state dict into the model implementation should work correctly
         model = llama2.llama2(
-            vocab_size=vocab_size,
+            vocab_size=_VOCAB_SIZE,
             num_layers=1,
-            num_heads=num_heads,
-            num_kv_heads=num_kv_heads,
-            embed_dim=dim,
+            num_heads=_NUM_HEADS,
+            num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
             max_seq_len=128,
         )
         model.load_state_dict(state_dict["model"])
@@ -251,11 +233,8 @@ class TestHFLlama2FullModelCheckpointer:
 
     def test_save_load_checkpoint_multiple_file(
         self,
-        num_heads,
-        dim,
-        num_kv_heads,
-        multi_file_checkpointer,
-        llama2_hf_checkpoints,
+        multi_file_checkpointer: FullModelHFCheckpointer,
+        llama2_hf_checkpoints: Tuple[Path, Path],
     ):
         """
         Test ``load_checkpoint`` method within the FullModelCheckpointer for multiple
@@ -292,11 +271,11 @@ class TestHFLlama2FullModelCheckpointer:
 
         # finally loading into the model should work
         model = llama2.llama2(
-            vocab_size=100,
+            vocab_size=_VOCAB_SIZE,
             num_layers=2,
-            num_heads=4,
-            num_kv_heads=4,
-            embed_dim=64,
+            num_heads=_NUM_HEADS,
+            num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
             max_seq_len=128,
         )
         model.load_state_dict(state_dict["model"])
