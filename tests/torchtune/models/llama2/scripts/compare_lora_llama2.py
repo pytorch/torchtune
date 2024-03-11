@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 
 from torch import nn
 
-from torchtune.models.llama2 import get_lora_module_keys, llama2, lora_llama2
+from torchtune.models.llama2 import get_lora_module_names, llama2, lora_llama2
 
 try:
     from peft import inject_adapter_in_model, LoraConfig
@@ -76,7 +76,7 @@ def compare_lora_llama2(
         max_seq_len=max_seq_len,
     )
 
-    peft_lora_modules = get_lora_module_keys(lora_modules, lora_in_mlp, lora_in_output)
+    peft_lora_modules = get_lora_module_names(lora_modules, lora_in_mlp, lora_in_output)
 
     lora_config_ref = LoraConfig(
         lora_alpha=lora_alpha,

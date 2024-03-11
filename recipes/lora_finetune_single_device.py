@@ -19,7 +19,7 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.models.llama2 import get_lora_module_keys
+from torchtune.models.llama2 import get_lora_module_names
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     set_trainable_params,
@@ -228,7 +228,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        lora_module_keys = get_lora_module_keys(
+        lora_module_keys = get_lora_module_names(
             cfg_model.lora_attn_modules,
             cfg_model.apply_lora_to_mlp,
             cfg_model.apply_lora_to_output,

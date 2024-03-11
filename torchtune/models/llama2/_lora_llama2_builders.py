@@ -295,9 +295,12 @@ def lora_llama2(
         output=output_proj,
     )
 
-def get_lora_module_keys(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
+def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
     """
-    Return a list of the keys in the model that have LoRA applied.
+    Return a list of the names of modules in the model that have LoRA applied. Note that
+    the names here are local to their modules and not the fully qualified names from the
+    model state dict.
+
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
