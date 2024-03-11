@@ -11,9 +11,7 @@ from typing import Any, Dict, List, Union
 
 from omegaconf import DictConfig, OmegaConf
 
-
-class InstantiationError(Exception):
-    pass
+from torchtune.config._errors import InstantiationError
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:

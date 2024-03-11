@@ -7,6 +7,7 @@
 import pytest
 from omegaconf import OmegaConf
 from torchtune import config
+from torchtune.config._errors import ConfigError
 
 
 class TestValidate:
@@ -19,7 +20,11 @@ class TestValidate:
 
     def invalid_config_string(self):
         return """
-        test:
+        test1:
+          _component_: torchtune.utils.get_dtype
+          dtype: fp32
+          dummy: 3
+        test2:
           _component_: torchtune.utils.get_dtype
           dtype: fp32
           dummy: 3
@@ -31,7 +36,9 @@ class TestValidate:
         config.validate(conf)
         # Test an invalid component
         conf = OmegaConf.create(self.invalid_config_string())
-        with pytest.raises(
-            TypeError, match="got an unexpected keyword argument 'dummy'"
-        ):
+        with pytest.raises(ConfigError) as excinfo:
             config.validate(conf)
+        exc_config = excinfo.value
+        for e in exc_config.errors:
+            assert isinstance(e, TypeError)
+            assert str(e) == "get_dtype() got an unexpected keyword argument 'dummy'"

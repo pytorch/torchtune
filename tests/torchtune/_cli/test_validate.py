@@ -13,6 +13,7 @@ import pytest
 from omegaconf import OmegaConf
 
 from tests.common import TUNE_PATH
+from torchtune.config._errors import ConfigError
 
 
 class TestTuneCLIWithValidateScript:
@@ -25,7 +26,11 @@ class TestTuneCLIWithValidateScript:
 
     def invalid_config_string(self):
         return """
-        test:
+        test1:
+          _component_: torchtune.utils.get_dtype
+          dtype: fp32
+          dummy: 3
+        test2:
           _component_: torchtune.utils.get_dtype
           dtype: fp32
           dummy: 3
@@ -57,7 +62,7 @@ class TestTuneCLIWithValidateScript:
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(
-            TypeError, match="got an unexpected keyword argument 'dummy'"
+            ConfigError, match="got an unexpected keyword argument 'dummy'"
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -74,6 +79,6 @@ class TestTuneCLIWithValidateScript:
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(
-            TypeError, match="got an unexpected keyword argument 'dummy'"
+            ConfigError, match="got an unexpected keyword argument 'dummy'"
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")

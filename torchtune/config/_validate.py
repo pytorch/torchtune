@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from omegaconf import DictConfig
+from torchtune.config._errors import ConfigError
 from torchtune.config._instantiate import _has_component, _instantiate_node
 
 
@@ -19,6 +20,7 @@ def validate(cfg: DictConfig) -> None:
         Exception: If any component cannot be instantiated
     """
 
+    errors = []
     for k, v in cfg.items():
         if _has_component(v):
             try:
@@ -29,6 +31,7 @@ def validate(cfg: DictConfig) -> None:
                 if "required positional argument" in str(e):
                     obj = _instantiate_node(v, partial_instantiate=True)
                 else:
-                    raise e
+                    errors.append(e)
 
-    # If we got to this point that means all components were able to be instantiated
+    if errors:
+        raise ConfigError(errors)
