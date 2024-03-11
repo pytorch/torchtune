@@ -7,7 +7,6 @@
 import sys
 
 from functools import partial
-from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
@@ -24,12 +23,6 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import (
-    CheckpointFormat,
-    FullModelCheckpointer,
-    is_torchtune_checkpoint,
-    ModelType,
-)
 from torchtune.utils.constants import (
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -79,7 +72,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         # logging attributes
-        self._output_dir = Path(cfg.output_dir)
+        self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
@@ -115,33 +108,15 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 format. We simply extract the relevant recipe state and continue with recipe
                 setup.
         """
-        self._checkpoint_format = getattr(CheckpointFormat, cfg.checkpoint_format)
-        self._model_type = getattr(
-            ModelType,
-            cfg.model_type,
-        )
-        self._checkpointer = FullModelCheckpointer(
-            checkpoint_dir=Path(cfg.checkpoint_dir),
-            checkpoint_files=[Path(ckpt_file) for ckpt_file in cfg.checkpoint_files],
-            checkpoint_format=self._checkpoint_format,
-            model_type=self._model_type,
+        self._checkpointer = config.instantiate(
+            cfg,
             output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
-        self._is_torchtune_checkpoint = is_torchtune_checkpoint(self._checkpoint_format)
-
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
-        # If we're resuming training, update the recipe state
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
-
-        # If the checkpoint is not in a format compatible with TorchTune, then first
-        # convert this
-        if not self._is_torchtune_checkpoint:
-            checkpoint_dict = self._checkpointer.convert_to_torchtune_format(
-                checkpoint_dict
-            )
         return checkpoint_dict
 
     def setup(self, cfg: DictConfig) -> None:
@@ -151,7 +126,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        ckpt_dict = self.load_checkpoint(cfg.model_checkpoint)
+        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -160,9 +135,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            model_state_dict=ckpt_dict[MODEL_KEY]
-            if self._resume_from_checkpoint
-            else ckpt_dict,
+            model_state_dict=ckpt_dict[MODEL_KEY],
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -343,9 +316,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 format using the ``convert_from_torchtune_format`` method and then write this out
                 to file using the ``save_checkpoint`` method.
         """
+        ckpt_dict = {MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
-            ckpt_dict = {MODEL_KEY: self._model.state_dict()}
             optimizer_state_dict = (
                 FSDP.optim_state_dict(self._model, self._optimizer)
                 if utils.contains_fsdp(self._model)
@@ -360,20 +333,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-            if self._is_rank_zero:
-                self._checkpointer.save_checkpoint(
-                    ckpt_dict,
-                    intermediate_checkpoint=True,
-                    intermediate_checkpoint_name=f"model_{epoch}.pt",
-                )
-        else:
-            ckpt_dict = self._model.state_dict()
-
-            # state dict conversion is not needed if we expect Torchtune compatible
-            # checkpoints at the output
-            ckpt_dict = self._checkpointer.convert_from_torchtune_format(ckpt_dict)
-            if self._is_rank_zero:
-                self._checkpointer.save_checkpoint(ckpt_dict)
+        if self._is_rank_zero:
+            self._checkpointer.save_checkpoint(
+                ckpt_dict,
+                epoch=epoch,
+                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            )
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """

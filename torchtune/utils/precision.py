@@ -21,13 +21,6 @@ PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp64": torch.float64,
 }
 
-PRECISION_DTYPE_TO_STR: Dict[str, torch.dtype] = {
-    torch.float16: "fp16",
-    torch.bfloat16: "bf16",
-    torch.float32: "fp32",
-    torch.float64: "fp64",
-}
-
 
 def _set_float32_precision(precision: str = "high") -> None:
     """Sets the precision of float32 matrix multiplications and convolution operations.

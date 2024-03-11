@@ -5,20 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import gc
+import json
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Protocol
 
 import torch
 
 from torchtune.models import llama2
 from torchtune.utils._checkpointing._checkpointer_utils import (
-    CheckpointFormat,
+    get_recipe_checkpoint_path,
     ModelType,
+    safe_torch_load,
 )
 from torchtune.utils.logging import get_logger
-from torchtune.utils.precision import PRECISION_DTYPE_TO_STR, PRECISION_STR_TO_DTYPE
 
 logger = get_logger("DEBUG")
 
@@ -30,55 +31,58 @@ class _CheckpointerInterface(Protocol):
     TorchTune checkpointers are designed to be composable components which can be plugged
     into any training recipe. Each checkpointer supports a specific set of models and training
     scenarios making these easy to understand, debug and extend. For example, the
-    ``FullModelCheckpointer`` does not provide support for adapter-based or parameter
-    efficient training methods. In case the current suite of checkpointers are inadequate,
-    users can easily implement their own and contribute back to TorchTune.
+    ``FullModelCheckpointer``s are used for loading and saving all of the model weights.
+    This checkpointer can be used for Full-Finetuning scenarios or PEFT where the output is a
+    merged checkpoint. In case the current suite of checkpointers are inadequate,
+    users are encouraged to implement their own and contribute back to TorchTune.
 
     TorchTune is also designed to be "state-dict invariant". This means the checkpointer
     ensures that the output checkpoint has the same format as the original checkpoint i.e.
-    the output checkpoint has the same keys, same dtype and is split across the same number
-    of files as the original checkpoint. Being "state-dict invariant" allows users to
-    seamlessly use TorchTune checkpoints with their favorite post-training tools from the
-    open-source ecosystem without writing TorchTune-specific convertors. As a result, each
-    checkpointer also provides methods for converting state dicts to and from an external
-    format (eg: HuggingFace) to a TorchTune-compatible format (keys can be loaded into the
-    torchtune model class).
+    the output checkpoint has the same keys split across the same number of files as the original
+    checkpoint. Being "state-dict invariant" allows users to seamlessly use TorchTune checkpoints
+    with their favorite post-training tools from the open-source ecosystem without writing
+    TorchTune-specific convertors. To be "state-dict invariant", the ``load_checkpoint`` and
+    ``save_checkpoint`` methods make use of the weight convertors available in
+    ``torchtune/models/<model_folder>``.
 
     TorchTune Checkpointers support two checkpointing scenarios:
-        * Mid-training Chekpointing. In this case the state-dict contains more information
-        than just the model weights. It also contains the optimizer state dict and the training
-        state of the recipe needed to correctly restart training. The construction of the
-        state-dict, including figuring out what information is needed to correctly resume
-        training, is handled by the recipe. The checkpointer doesn't know or care about how the
-        state-dict is constructed. In this scenario, the checkpointer simply adds additional
-        information about the original checkpoint (eg: format, weight map etc) to ensure the
-        final checkpoint is constructured correctly in case the current training run fails and
-        needs to be resumed. Intermediate checkpoints don't require any conversion since these
-        are directly saved in the ``TORCHTUNE_FORMAT``. An intermediate checkpoint can have
-        arbitrary keys:
-            ```
+        * End-of-training Checkpointing. The model weights at the end of a completed training
+            run are written out to file. The checkpointer ensures that the output checkpoint
+            files have the same keys as the input checkpoint file used to begin training. The
+            checkpointer also ensures that the keys are paritioned across the same number of
+            files as the original checkpoint. This ensures that the original metadata files can
+            be used as is, and the output checkpoint can be used with any tool that understands
+            the original checkpoint format. This includes popular inference engines such as
+            ``llama.cpp`` and ``gpt-fast``. The output state dict has the following format:
             {
-                "model": model_state_dict
-                "optimizer: opt_state_dict
-                "seed": seed_value
+                "key_1": weight
                 ...
             }
-            ```
 
-        * End-of-Training Checkpointing. In this scenario, the state-dict only contains the
-        model weights. The checkpointer is responsible for converting the state-dict into the
-        same format as the original checkpoint. In case the original checkpoint is read from
-        multiple files, the checkpointer will split the final state-dict and ensure the keys
-        are written to the correct files based on the ``weight_map``. To prevent the original
-        files from being overwritten, the checkpointer will prefix the checkpoint filename
-        with ``torchtune``. We assume the state_dict has the following format:
-            ```
-            {
-                "key_1": weight_tensor_1
-                "key_2": weight_tensor_2
-                ...
-            }
-            ```
+
+        Mid-training Chekpointing. In addition to the model checkpoint files, we output an
+            additional "recipe_state.pt" file for intermediate checkpoints. These are currently
+            output at the end of each epoch, and contain information such as optimizer state,
+            number of epochs completed etc which is needed to correctly resume a previously
+            interrupted training run. The recipe is responsible for constructing the state dict
+            with the information it needs. The checkpointer extracts the model state dict
+            (key = "model") and writes everything else out to "recipe_state.pt". To prevent us
+            from flooding ``output_dir`` with checkpoint files, the recipe state is overwritten
+            at the end of each epoch. The output state dicts have the following formats:
+
+            Model:
+                {
+                    "key_1": weight
+                    ...
+                }
+
+            Recipe State:
+                {
+                    "optimizer": ...,
+                    "epoch": ...,
+                    ...
+                }
+
     """
 
     def load_checkpoint(self, **kwargs) -> Dict[str, Any]:
@@ -87,192 +91,238 @@ class _CheckpointerInterface(Protocol):
     def save_checkpoint(self, state_dict: Dict[str, Any], **kwargs) -> None:
         ...
 
-    def convert_to_torchtune_format(
-        self,
-        state_dict: Dict[str, Any],
-        original_checkpoint_format: CheckpointFormat,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        ...
 
-    def convert_from_torchtune_format(
-        self,
-        state_dict: Dict[str, Any],
-        final_ckpt_format: CheckpointFormat,
-        **kwargs,
-    ) -> Dict[str, Any]:
-        ...
+class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
+    """
+    Checkpointer which reads and writes "full-model" checkpoints in a format compatible with
+    TorchTune. No conversion of weights is required.
 
+    Currently this supports reading a single checkpoint file only. This will likely change as
+    we add support for larger models.
+    """
 
-class FullModelCheckpointer(_CheckpointerInterface):
     def __init__(
         self,
-        checkpoint_dir: Path,
-        checkpoint_files: List[Path],
-        checkpoint_format: CheckpointFormat,
+        checkpoint_dir: str,
+        checkpoint_files: List[str],
         model_type: ModelType,
-        output_dir: Path,
+        output_dir: str,
         resume_from_checkpoint: bool = False,
     ) -> None:
-        # Fail fast if checkpoint files are invalid
-        self._checkpoint_files: List[Path] = []
-        for cpt_file in checkpoint_files:
-            # Path ensures that ``joinpath`` does the right thing even if
-            # cpt_file is actually a full path. No need to explicitly check this
-            checkpoint_path = Path.joinpath(checkpoint_dir, cpt_file)
-            if not checkpoint_path.exists() or not checkpoint_path.is_file():
-                raise ValueError(
-                    f"Checkpoint file {checkpoint_path} is not a valid checkpoint file."
-                )
-            self._checkpoint_files.append(checkpoint_path)
+        # Fail fast if ``checkpoint_files`` is invalid
+        if len(checkpoint_files) != 1:
+            raise ValueError(
+                "Currently we only support reading from a single TorchTune checkpoint file. "
+                f"Got {len(checkpoint_files)} files instead."
+            )
 
-        self._checkpoint_format = checkpoint_format
-        self._model_type = model_type
-        self._output_dir = output_dir
+        self._checkpoint_dir = Path(checkpoint_dir)
+        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, checkpoint_files[0])
+        if (
+            not self._checkpoint_path.is_file()
+            or not self._checkpoint_path.suffix == ".pt"
+        ):
+            raise ValueError(
+                f"Checkpoint file {self._checkpoint_path} is not a valid checkpoint file. "
+                "Checkpointer expects a valid .pt file."
+            )
+
         self._resume_from_checkpoint = resume_from_checkpoint
+        self._model_type = model_type
+        self._output_dir = Path(output_dir)
+        self._recipe_state_file = None
 
-        # these attributes will be updated when we load the checkpoints
-        # ------------
-
-        # different formats for the same model have different dtypes. Track this
-        # to convert weights to the right format before writing to file
-        self._checkpoint_dtype = None
-
-        # dict which maps keys in the model state_dict to checkpoint file names,
-        # similar to the index.json file for checkpoints from HF.
-        # This is used to ensure the final checkpoint is written in the same
-        # way as the original checkpoint
-        self._weight_map: Dict[str, str] = None
+        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
+        if self._resume_from_checkpoint:
+            self._recipe_state_file = get_recipe_checkpoint_path(
+                self._checkpoint_dir, filename="recipe_state.pt"
+            )
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
-        Loads the checkpoint from the checkpoint files.
+        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
 
-        The state-dict structure depends on the checkpoint format. Knowledge of this
-        structure is needed to ensure the internal state of the checkpointer is correctly
-        updated and output checkpoints are correctly writen.
-
-        Intermediate checkpoints from previous TorchTune runs contain more information than
-        just the model weights. These checkpoints need to be handled differently.
-
-        Returns:
-            Dict[str, Any]: State dict of the model
-
-        Raises:
-            ValueError: If the checkpoint format is not supported.
+        The output state_dict has the following format, with keys other than "model" only present if
+        ``resume_from_checkpoint`` is True:
+            {
+                "model": {
+                    "key_1": weight
+                    ...
+                },
+                "optimizer": ...,
+                ...
+            }
         """
-        state_dict: Dict[str, Any] = None
+        state_dict: Dict[str:Any] = {}
+        state_dict["model"] = safe_torch_load(self._checkpoint_path)
 
         if self._resume_from_checkpoint:
-            state_dict = self._load_intermediate_checkpoint()
-        else:
-            # Explicitly branching based on format makes the code easier to read
-            # and extend. Eg: New format becomes a new branch and changes to a given
-            # format are contained to a single method
-            if self._checkpoint_format == CheckpointFormat.TORCHTUNE_NEW:
-                state_dict = self._load_initial_torchtune_checkpoint()
-            elif self._checkpoint_format == CheckpointFormat.META:
-                state_dict = self._load_initial_meta_checkpoint()
-            elif self._checkpoint_format == CheckpointFormat.HF:
-                state_dict = self._load_initial_hf_checkpoint()
-            else:
-                raise ValueError(
-                    f"Checkpoint format {self._checkpoint_format} is not supported."
-                )
+            recipe_state = safe_torch_load(self._recipe_state_file)
+            state_dict.update(recipe_state)
         return state_dict
 
-    def _load_intermediate_checkpoint(self) -> Dict[str, Any]:
+    def save_checkpoint(
+        self,
+        state_dict: Dict[str, Any],
+        epoch: int,
+        intermediate_checkpoint: bool = False,
+    ) -> None:
         """
-        Loads the intermediate checkpoint from the checkpoint files.
-        """
-        if self._checkpoint_format != CheckpointFormat.TORCHTUNE_RESTART:
-            raise ValueError(
-                f"Expected a checkpoint with format {CheckpointFormat.TORCHTUNE_RESTART}. "
-                f"Got {self._checkpoint_format} instead."
-            )
-        if len(self._checkpoint_files) != 1:
-            raise ValueError(
-                "Expected a single checkpoint file. "
-                f"Found {len(self._checkpoint_files)} files instead."
-            )
-        if self._checkpoint_files[0].suffix != ".pt":
-            raise ValueError(
-                f"Expected a single checkpoint .pt file. "
-                f"Found {self._checkpoint_files[0].suffix}. instead."
-            )
+        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
+        state. The output state dicts have the following formats:
 
-        state_dict = torch.load(
-            self._checkpoint_files[0], map_location="cpu", weights_only=True
+            Model:
+                {
+                    "key_1": weight
+                    ...
+                }
+
+            Recipe State:
+                {
+                    "optimizer": ...,
+                    "epoch": ...,
+                    ...
+                }
+
+        Args:
+            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state
+            epoch (int): Current epoch number. This is added to the checkpoint file name to ensure
+                we're not overwriting intermediate checkpoint files
+            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
+                recipe state
+        """
+        self._output_dir.mkdir(exist_ok=True)
+
+        # Output file is always a .pt file with the epoch number in the name
+        checkpoint_file = Path.joinpath(
+            self._output_dir, f"torchtune_model_{epoch}"
+        ).with_suffix(".pt")
+        torch.save(state_dict["model"], checkpoint_file)
+
+        # If the recipe state needs to be output, first remove the model state dict
+        if intermediate_checkpoint:
+            _ = state_dict.pop("model")
+            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
+
+        logger.info(
+            "Model checkpoint of size "
+            f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
+            f"saved to {checkpoint_file}"
         )
 
-        # Extract the checkpoint metadata and remove it from the dict. All of these keys are
-        # expected to be in the checkpoint and so any errors should lead to a failure
-        try:
-            self._checkpoint_dtype = PRECISION_STR_TO_DTYPE[
-                state_dict.pop("checkpoint_dtype")
-            ]
-            self._weight_map = state_dict.pop("weight_map")
-            self._checkpoint_format = getattr(
-                CheckpointFormat, state_dict.pop("checkpoint_format")
-            )
-        except KeyError as e:
-            raise ValueError(
-                f"Checkpoint file {self._checkpoint_files[0]} is missing required metadata. "
-                "Are you sure this is a valid TorchTune intermediate checkpoint?\n"
-                "Metadata values: \n"
-                f"checkpoint_dtype: {self._checkpoint_dtype}\n"
-                f"weight_map: {self._weight_map}\n"
-                f"checkpoint_format: {self._checkpoint_format}\n"
-            ) from e
 
-        return state_dict
+class FullModelHFCheckpointer(_CheckpointerInterface):
+    """
+    Checkpointer which reads and writes "full-model" checkpoints in HF's format. Example includes
+    the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
-    def _load_initial_torchtune_checkpoint(self) -> Dict[str, torch.Tensor]:
-        """
-        Loads the initial TorchTune checkpoint when kicking off a new training run.
-        """
-        if len(self._checkpoint_files) != 1:
-            raise ValueError(
-                "Expected a single checkpoint file for TorchTune checkpoints. "
-                f"Found {len(self._checkpoint_files)} files instead."
-            )
-        if self._checkpoint_files[0].suffix != ".pt":
-            raise ValueError(
-                f"Expected a single checkpoint .pt file. "
-                f"Found {self._checkpoint_files[0].suffix}. instead."
-            )
-        state_dict = torch.load(
-            self._checkpoint_files[0], map_location="cpu", weights_only=True
+    For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary
+    checkpoint and json files. The easiest way to make sure everything works correctly is to use
+    the following flow:
+
+        1. Download the model from the HF repo using tune download
+        tune download --repo-id meta-llama/Llama-2-7b-hf \
+        --output-dir <checkpoint_dir> \
+        --hf-token <hf-token>
+
+        2. Use the directory created in 1. as the checkpoint_dir
+
+    A few notes about the checkpoint reading logic:
+        - HF checkpoint names usually oredered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure
+            we read the files in the right order, we sort the checkpoint file names before reading
+        - Checkpoint conversion to and from HF's format requires access to model params which are
+            read directly from the "config.json" file. This helps ensure we either load the weights
+            correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
+            model implementations.
+    """
+
+    def __init__(
+        self,
+        checkpoint_dir: str,
+        checkpoint_files: List[str],
+        model_type: ModelType,
+        output_dir: str,
+        resume_from_checkpoint: bool = False,
+    ) -> None:
+        self._checkpoint_dir = Path(checkpoint_dir)
+        self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
+
+        self._model_type = model_type
+        self._output_dir = Path(output_dir)
+        self._resume_from_checkpoint = resume_from_checkpoint
+
+        # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
+        # parition the state dict into output checkpoint files. This is updated during checkpoint
+        # load
+        self._weight_map: Dict[str, str] = None
+
+        # the config.json file contains model params needed for state dict conversion
+        self._config = json.loads(
+            Path.joinpath(self._checkpoint_dir, "config.json").read_text()
         )
 
-        # Update the metadata
-        self._weight_map: Dict[str, str] = {}
-        for key, value in state_dict.items():
-            # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
-            # will break recipe code
-            if not isinstance(value, torch.Tensor):
+        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
+        self._recipe_state_file = None
+        if self._resume_from_checkpoint:
+            self._recipe_state_file = get_recipe_checkpoint_path(
+                self._checkpoint_dir, filename="recipe_state.pt"
+            )
+
+    def _validate_hf_checkpoint_files(self, checkpoint_files: List[str]) -> List[Path]:
+        """
+        Validates that the checkpoint files exist and sorts based on ID.
+        """
+        checkpoint_paths: List[Path] = []
+        for f in checkpoint_files:
+            checkpoint_path = Path.joinpath(self._checkpoint_dir, f)
+            if not checkpoint_path.is_file():
                 raise ValueError(
-                    f"Expected all values in the state dict to be torch.Tensor. "
-                    f"Found {type(value)} instead."
+                    f"Checkpoint file {f} is not a valid checkpoint file in dir {self._checkpoint_dir}."
                 )
-            if self._checkpoint_dtype is None:
-                self._checkpoint_dtype = value.dtype
-            self._weight_map[key] = self._checkpoint_files[0].name
+            checkpoint_paths.append(checkpoint_path)
+        return sorted(checkpoint_paths)
 
-        return state_dict
-
-    def _load_initial_meta_checkpoint(self) -> Dict[str, torch.Tensor]:
+    def load_checkpoint(self) -> Dict[str, Any]:
         """
-        Loads the initial Meta-formatted checkpoint when kicking off a new training run.
+        Load TorchTune checkpoint from file.
 
-        Currently, this function is identical to the HF counterpart. As we include support
-        for other Meta'formatted checkpoints, this function will need to be updated.
+        The keys and weights from across all checkpoint files are merged into a single state_dict.
+        We preserve the "state_dict key" <-> "checkpoint file mapping" in weight_map so we can
+        weite the state dict correctly in ``save_checkpoint``.
+
+        Before returning, the model state dict is converted to a TorchTune compatible format using.
+
+        The output state_dict has the following format, with keys other than "model" only present if
+        ``resume_from_checkpoint`` is True:
+            {
+                "model": {
+                    "key_1": weight
+                    ...
+                },
+                "optimizer": ...,
+                ...
+            }
+
+        Returns:
+            state_dict (Dict[str, Any]): TorchTune checkpoint state dict
+
+        Raises:
+            ValueError: If the values in the input state_dict are not Tensors
         """
-        self._weight_map: Dict[str, str] = {}
+        self._weight_map = {}
+
+        # merged state_dict contains keys and weights from all the checkpoint files
         merged_state_dict: Dict[str, torch.Tensor] = {}
 
-        for cpt_file in self._checkpoint_files:
-            state_dict = torch.load(cpt_file, map_location="cpu", weights_only=True)
+        # converted_state_dict is the final state_dict passed to the recipe after the
+        # keys are converted into the TorchTune format. This optionally also contains
+        # the recipe state
+        converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
+
+        # _checkpoint_paths are already sorted so simply enumerate to generate the right id
+        for cpt_idx, cpt_path in enumerate(self._checkpoint_paths):
+            state_dict = safe_torch_load(cpt_path)
             for key, value in state_dict.items():
                 # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
                 # will break recipe code
@@ -281,275 +331,212 @@ class FullModelCheckpointer(_CheckpointerInterface):
                         f"Expected all values in the state dict to be torch.Tensor. "
                         f"Found {type(value)} instead."
                     )
-                if self._checkpoint_dtype is None:
-                    self._checkpoint_dtype = value.dtype
-                self._weight_map[key] = cpt_file.name
+                # idx is written in the 4 digit format (eg: 0001, 0002, etc.)
+                self._weight_map[key] = f"{cpt_idx+1:04}"
             merged_state_dict.update(state_dict)
 
-            # delete the state_dict to free up memory
+            # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
 
-        return merged_state_dict
+        converted_state_dict["model"] = llama2.hf_to_tune_llama2_7b(
+            merged_state_dict,
+            num_heads=self._config["num_attention_heads"],
+            num_kv_heads=self._config["num_key_value_heads"],
+            dim=self._config["hidden_size"],
+        )
 
-    def _load_initial_hf_checkpoint(self) -> Dict[str, torch.Tensor]:
-        """
-        Loads the initial HF-formatted checkpoint when kicking off a new training run.
-        """
-        self._weight_map: Dict[str, str] = {}
-        merged_state_dict: Dict[str, torch.Tensor] = {}
-
-        for cpt_file in self._checkpoint_files:
-            state_dict = torch.load(cpt_file, map_location="cpu", weights_only=True)
-            for key, value in state_dict.items():
-                # Ensure that the state dict is a flat dict of keys and tensors. Breaking this assumption
-                # will break recipe code
-                if not isinstance(value, torch.Tensor):
-                    raise ValueError(
-                        f"Expected all values in the state dict to be torch.Tensor. "
-                        f"Found {type(value)} instead."
-                    )
-                if self._checkpoint_dtype is None:
-                    self._checkpoint_dtype = value.dtype
-                self._weight_map[key] = cpt_file.name
-            merged_state_dict.update(state_dict)
-
-            # delete the state_dict to free up memory
-            del state_dict
-            gc.collect()
-
-        return merged_state_dict
-
-    def convert_to_torchtune_format(
-        self,
-        state_dict: Dict[str, torch.Tensor],
-        num_heads: int = 32,
-        num_kv_heads: int = 32,
-        dim: int = 4096,
-    ) -> Dict[str, torch.Tensor]:
-        """
-        Convert an external checkpoint to a format that can be used by TorchTune.
-
-        Args:
-            state_dict (Dict[str, torch.Tensor]): State dict from an external checkpoint
-            num_heads (int): Number of heads in the model
-            num_kv_heads (int): Number of key/value heads in the model
-            dim (int): Dimension of the model
-
-        Returns:
-            Dict[str, torch.Tensor]: State dict in TorchTune format
-
-        Raises:
-            NotImplementedError: If the model type or checkpoint format is not supported
-        """
-        converted_state_dict = {}
-        if self._model_type == ModelType.LLAMA2:
-            if self._checkpoint_format == CheckpointFormat.META:
-                converted_state_dict = llama2.meta_to_tune_llama2_7b(state_dict)
-            elif self._checkpoint_format == CheckpointFormat.HF:
-                converted_state_dict = llama2.hf_to_tune_llama2_7b(
-                    state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
-                )
-            else:
-                raise NotImplementedError(
-                    f"Checkpoint Format {self._checkpoint_format} is not currently supported by "
-                    "this checkpointer."
-                )
-        else:
-            raise NotImplementedError(
-                f"Model {model_type} is not currently supported by this checkpointer."
-            )
-        return converted_state_dict
-
-    def convert_from_torchtune_format(
-        self,
-        state_dict: Dict[str, torch.Tensor],
-        num_heads: int = 32,
-        num_kv_heads: int = 32,
-        dim: int = 4096,
-    ) -> Dict[str, torch.Tensor]:
-        """
-        Convert a TorchTune checkpoint to match the original checkpoint used for fine-tuning.
-
-        Args:
-            state_dict (Dict[str, torch.Tensor]): State dict from a TorchTune checkpoint
-            num_heads (int): Number of heads in the model
-            num_kv_heads (int): Number of key/value heads in the model
-            dim (int): Dimension of the model
-
-        Returns:
-            Dict[str, torch.Tensor]: State dict in the original format
-
-        Raises:
-            NotImplementedError: If the model type or checkpoint format is not supported
-        """
-        converted_state_dict = {}
-        if self._model_type == ModelType.LLAMA2:
-            if self._checkpoint_format == CheckpointFormat.META:
-                converted_state_dict = llama2.tune_to_meta_llama2_7b(state_dict)
-            elif self._checkpoint_format == CheckpointFormat.HF:
-                converted_state_dict = llama2.tune_to_hf_llama2_7b(
-                    state_dict, num_heads=num_heads, dim=dim, num_kv_heads=num_kv_heads
-                )
-            # No op if the original checkpoint format is compatible with TorchTune
-            elif self._checkpoint_format == CheckpointFormat.TORCHTUNE_NEW:
-                pass
-            else:
-                raise NotImplementedError(
-                    f"Checkpoint Format {self._checkpoint_format} is not currently supported by "
-                    "this checkpointer."
-                )
-        else:
-            raise NotImplementedError(
-                f"Model {model_type} is not currently supported by this checkpointer."
-            )
+        if self._resume_from_checkpoint:
+            recipe_state = safe_torch_load(self._recipe_state_file)
+            converted_state_dict.update(recipe_state)
         return converted_state_dict
 
     def save_checkpoint(
         self,
-        checkpoint_dict: Dict[str, Any],
+        state_dict: Dict[str, Any],
+        epoch: int,
         intermediate_checkpoint: bool = False,
-        intermediate_checkpoint_name: Optional[str] = None,
     ) -> None:
         """
-        Saves the checkpoint to the output directory.
+        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
+        state.
 
-        The format of the output checkpoint depends on the ``intermediate_checkpoint`` flag.
+        The state_dict is first converted back to the HF format and then paritioned based on the
+        ``_weight_map`` into separate checkpoint files.
 
-            * When ``intermediate_checkpoint`` is True, the checkpoint is being written mid-training
-            and contains more information that just the model weights, including information about the
-            recipe state needed to correctly resume training in case of a failure. Currently we write
-            to a single ".pt" file.
+        The output state dicts have the following formats:
 
-            * When ``intermediate_checkpoint`` is False, the checkpoint is being written at the end of
-            training. The state-dict is optionally split across files based on the key-to-file mapping
-            in ``_weight_map`` and is written out to ``len(checkpoint_files)`` files.
+            Model:
+                {
+                    "key_1": weight
+                    ...
+                }
 
-        Args:
-            checkpoint_dict (Dict[str, Any]): State dict of the model
-            intermediate_checkpoint (bool): Whether this is an intermediate checkpoint
-            intermediate_checkpoint_name (Optional[str]): Name for the intermediate checkpoint file
-
-        Raises:
-            NotImplementedError: If the checkpoint format is not supported
+            Recipe State:
+                {
+                    "optimizer": ...,
+                    "epoch": ...,
+                    ...
+                }
         """
         self._output_dir.mkdir(exist_ok=True)
 
-        if intermediate_checkpoint:
-            self._save_intermediate_checkpoint(
-                checkpoint_dict, intermediate_checkpoint_name
-            )
-        else:
-            # Explicitly branching based on format makes the code easier to read
-            # and extend. Eg: New format becomes a new branch and changes to a given
-            # format are contained to a single method
-            if self._checkpoint_format == CheckpointFormat.TORCHTUNE_NEW:
-                self._save_final_torchtune_checkpoint(checkpoint_dict)
-            elif self._checkpoint_format == CheckpointFormat.META:
-                self._save_final_meta_checkpoint(checkpoint_dict)
-            elif self._checkpoint_format == CheckpointFormat.HF:
-                self._save_final_hf_checkpoint(checkpoint_dict)
-            else:
-                raise NotImplementedError(
-                    f"Checkpoint format {self._checkpoint_format} is not supported."
-                )
+        # convert the state_dict back to hf format; do this inplace
+        state_dict["model"] = llama2.tune_to_hf_llama2_7b(
+            state_dict["model"],
+            num_heads=self._config["num_attention_heads"],
+            num_kv_heads=self._config["num_key_value_heads"],
+            dim=self._config["hidden_size"],
+        )
 
-    def _save_intermediate_checkpoint(
-        self, checkpoint_dict: Dict[str, Any], intermediate_checkpoint_name: str
+        # split the state_dict into separate dicts, one for each output checkpoint file
+        split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
+        for key, weight in state_dict["model"].items():
+            cpt_idx = self._weight_map[key]
+            if cpt_idx not in split_state_dicts:
+                split_state_dicts[cpt_idx] = {}
+            split_state_dicts[cpt_idx].update({key: weight})
+
+        # write the partitioned state dicts to the right checkpoint file
+        for cpt_idx, model_state_dict in split_state_dicts.items():
+            output_path = Path.joinpath(
+                self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(model_state_dict, output_path)
+            logger.info(
+                "Model checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
+        # If the recipe state needs to be output, first remove the model state dict
+        if intermediate_checkpoint:
+            _ = state_dict.pop("model")
+            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
+
+
+class FullModelMetaCheckpointer(_CheckpointerInterface):
+    """
+    Checkpointer which reads and writes "full-model" checkpoints in Meta's format. Example includes
+    the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)
+
+    For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary
+    checkpoint and json files. The easiest way to make sure everything works correctly is to use
+    the following flow:
+
+        1. Download the model from the HF repo using tune download
+        tune download --repo-id meta-llama/Llama-2-7b \
+        --output-dir <checkpoint_dir> \
+        --hf-token <hf-token>
+
+        2. Use the directory created in 1. as the checkpoint_dir
+
+    Currently we support reading from a single checkpoint file only. Support for reading from
+    sharded checkpoints is WIP.
+    """
+
+    def __init__(
+        self,
+        checkpoint_dir: str,
+        checkpoint_files: List[str],
+        model_type: ModelType,
+        output_dir: str,
+        resume_from_checkpoint: bool = False,
+    ) -> None:
+        # Fail fast if ``checkpoint_files`` is invalid
+        if len(checkpoint_files) != 1:
+            raise ValueError(
+                "Currently we only support reading from a single TorchTune checkpoint file. "
+                f"Got {len(checkpoint_files)} files instead."
+            )
+
+        self._checkpoint_dir = Path(checkpoint_dir)
+        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, checkpoint_files[0])
+
+        self._resume_from_checkpoint = resume_from_checkpoint
+        self._model_type = model_type
+        self._output_dir = Path(output_dir)
+        self._recipe_state_file = None
+
+        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
+        if self._resume_from_checkpoint:
+            self._recipe_state_file = get_recipe_checkpoint_path(
+                self._checkpoint_dir, filename="recipe_state.pt"
+            )
+
+    def load_checkpoint(self) -> Dict[str, Any]:
+        """
+        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
+
+        The output state_dict has the following format, with keys other than "model" only present if
+        ``resume_from_checkpoint`` is True:
+            {
+                "model": {
+                    "key_1": weight
+                    ...
+                },
+                "optimizer": ...,
+                ...
+            }
+        """
+        state_dict: Dict[str:Any] = {}
+        model_state_dict = safe_torch_load(self._checkpoint_path)
+        state_dict["model"] = llama2.meta_to_tune_llama2_7b(model_state_dict)
+
+        if self._resume_from_checkpoint:
+            recipe_state = safe_torch_load(self._recipe_state_file)
+            state_dict.update(recipe_state)
+        return state_dict
+
+    def save_checkpoint(
+        self,
+        state_dict: Dict[str, Any],
+        epoch: int,
+        intermediate_checkpoint: bool = False,
     ) -> None:
         """
-        Saves the intermediate checkpoint to a single file.
-        """
-        # if this is an intermediate checkpoint, just add the original
-        # checkpoint information and write to file.
-        # Currently we only support writing to single file
-        checkpoint_dict["checkpoint_dtype"] = PRECISION_DTYPE_TO_STR[
-            self._checkpoint_dtype
-        ]
-        checkpoint_dict["weight_map"] = self._weight_map
-        checkpoint_dict["checkpoint_format"] = self._checkpoint_format.name
+        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
+        state. The output state dicts have the following formats:
 
-        # We write to a single ".pt" file irrespective of the extension provided by the recipe
-        output_path = Path.joinpath(
-            self._output_dir, intermediate_checkpoint_name
+            Model:
+                {
+                    "key_1": weight
+                    ...
+                }
+
+            Recipe State:
+                {
+                    "optimizer": ...,
+                    "epoch": ...,
+                    ...
+                }
+
+        Args:
+            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state
+            epoch (int): Current epoch number. This is added to the checkpoint file name to ensure
+                we're not overwriting intermediate checkpoint files
+            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
+                recipe state
+        """
+        self._output_dir.mkdir(exist_ok=True)
+        model_state_dict = state_dict["model"]
+        state_dict["model"] = llama2.tune_to_meta_llama2_7b(model_state_dict)
+
+        # Output file is always a .pt file with the epoch number in the name
+        checkpoint_file = Path.joinpath(
+            self._output_dir, f"meta_model_{epoch}"
         ).with_suffix(".pt")
-        torch.save(checkpoint_dict, output_path)
+        torch.save(state_dict["model"], checkpoint_file)
+
+        # If the recipe state needs to be output, first remove the model state dict
+        if intermediate_checkpoint:
+            _ = state_dict.pop("model")
+            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
+
         logger.info(
             "Model checkpoint of size "
-            f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-            f"saved to {output_path}"
+            f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
+            f"saved to {checkpoint_file}"
         )
-
-    def _save_final_torchtune_checkpoint(
-        self, checkpoint_dict: Dict[str, torch.Tensor]
-    ):
-        """
-        Saves a TorchTune-format checkpoint to the output directory. Currently only
-        supports writing to a single file.
-        """
-        for key, _ in checkpoint_dict.items():
-            checkpoint_dict[key] = checkpoint_dict[key].to(self._checkpoint_dtype)
-
-        ckpt_file = self._checkpoint_files[0]
-        output_path = Path.joinpath(self._output_dir, ("torchtune_" + ckpt_file.name))
-        torch.save(checkpoint_dict, output_path)
-        logger.info(
-            "Model checkpoint of size "
-            f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-            f"saved to {output_path}"
-        )
-
-    def _save_final_meta_checkpoint(self, checkpoint_dict: Dict[str, torch.Tensor]):
-        """
-        Saves a Meta-format checkpoint to the output directory.
-
-        Currently, this function is identical to the HF counterpart. As we include support
-        for other Meta'formatted checkpoints, this function will need to be updated.
-        """
-        split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
-
-        for key, weight in checkpoint_dict.items():
-            filename = self._weight_map[key]
-            if filename not in split_state_dicts:
-                split_state_dicts[filename] = {}
-            split_state_dicts[filename].update({key: weight.to(self._checkpoint_dtype)})
-
-        for filename, state_dict in split_state_dicts.items():
-            # Update the filename so we don't overwrite the original checkpoints
-            # in case output_dir is the same as checkpoint_dir
-            filename = Path(filename)
-            output_path = Path.joinpath(
-                self._output_dir, ("torchtune_" + filename.name)
-            )
-            torch.save(state_dict, output_path)
-            logger.info(
-                "Model checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                f"saved to {output_path}"
-            )
-
-    def _save_final_hf_checkpoint(self, checkpoint_dict: Dict[str, torch.Tensor]):
-        """
-        Saves a Meta-format checkpoint to the output directory.
-        """
-        split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
-
-        for key, weight in checkpoint_dict.items():
-            filename = self._weight_map[key]
-            if filename not in split_state_dicts:
-                split_state_dicts[filename] = {}
-            split_state_dicts[filename].update({key: weight.to(self._checkpoint_dtype)})
-
-        for filename, state_dict in split_state_dicts.items():
-            # Update the filename so we don't overwrite the original checkpoints
-            # in case output_dir is the same as checkpoint_dir
-            filename = Path(filename)
-            output_path = Path.joinpath(
-                self._output_dir, ("torchtune_" + filename.name)
-            )
-            torch.save(state_dict, output_path)
-            logger.info(
-                "Model checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                f"saved to {output_path}"
-            )

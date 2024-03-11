@@ -19,11 +19,12 @@ shuffle: True
 model:
   _component_: torchtune.models.llama2.llama2_7b
 
-model_checkpoint:
-  checkpoint_dir: /tmp/alpaca-llama2-finetune
-  checkpoint_files: [model_0.pt]
+checkpointer:
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/alpaca-llama2-finetune/
+  checkpoint_files: [meta_model_0.pt]
   model_type: LLAMA2
-  checkpoint_format: TORCHTUNE_RESTART
+
 resume_from_checkpoint: True
 
 # Fine-tuning arguments

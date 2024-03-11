@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 import logging
 import os
 
@@ -85,59 +86,61 @@ class TestFullFinetuneRecipe:
             return llama2_7b_ckpt_loss_values
         raise ValueError(f"Unknown ckpt {ckpt}")
 
+    def fetch_checkpointer(self, ckpt):
+        if ckpt == "small_test_ckpt_tune":
+            return "FullModelTorchTuneCheckpointer"
+        if ckpt == "small_test_ckpt_hf":
+            return "FullModelHFCheckpointer"
+        if ckpt == "small_test_ckpt_meta":
+            return "FullModelMetaCheckpointer"
+
     def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_tune"
-        expected_loss_values = self._fetch_expected_loss_values(ckpt)
+        ckpts = (
+            ["llama2.llama2_7b"]
+            if large_scale
+            else [
+                "small_test_ckpt_tune",
+                "small_test_ckpt_hf",
+                "small_test_ckpt_meta",
+            ]
+        )
 
-        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
-        ckpt_dir = ckpt_path.parent
+        for ckpt in ckpts:
+            expected_loss_values = self._fetch_expected_loss_values(ckpt)
+            ckpt_path = Path(fetch_ckpt_model_path(ckpt))
+            ckpt_dir = ckpt_path.parent
+            checkpointer = self.fetch_checkpointer(ckpt)
 
-        cmd = f"""
-        tune full_finetune
-            --config {_CONFIG_PATH} \
-            --override \
-            output_dir={tmpdir} \
-            model._component_=torchtune.models.{ckpt} \
-            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
-            model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
-            model_checkpoint.model_type=LLAMA2
-        """.split()
+            if ckpt == "small_test_ckpt_hf":
+                config = {
+                    "hidden_size": 256,
+                    "num_attention_heads": 16,
+                    "num_key_value_heads": 8,
+                }
+                config_file = Path.joinpath(Path(ckpt_dir), "config.json")
+                with config_file.open("w") as f:
+                    json.dump(config, f)
 
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+            cmd = f"""
+            tune full_finetune
+                --config {_CONFIG_PATH} \
+                --override \
+                output_dir={tmpdir} \
+                model._component_=torchtune.models.{ckpt} \
+                checkpointer._component_=torchtune.utils.{checkpointer}
+                checkpointer.checkpoint_dir='{ckpt_dir}' \
+                checkpointer.checkpoint_files=[{ckpt_path}]\
+                checkpointer.model_type=LLAMA2
+            """.split()
 
-        loss_values = fetch_loss_values(capsys.readouterr().err)
-        validate_loss_values(loss_values, expected_loss_values)
+            monkeypatch.setattr(sys, "argv", cmd)
+            with pytest.raises(SystemExit):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
 
-    def test_loss_meta(self, capsys, pytestconfig, tmpdir, monkeypatch):
-        large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_meta"
-        expected_loss_values = self._fetch_expected_loss_values(ckpt)
-
-        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
-        ckpt_dir = ckpt_path.parent
-
-        cmd = f"""
-        tune full_finetune
-            --config {_CONFIG_PATH} \
-            --override \
-            output_dir={tmpdir} \
-            model._component_=torchtune.models.{ckpt} \
-            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
-            model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=META \
-            model_checkpoint.model_type=LLAMA2
-        """.split()
-
-        monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        loss_values = fetch_loss_values(capsys.readouterr().err)
-        validate_loss_values(loss_values, expected_loss_values)
+            loss_values = fetch_loss_values(capsys.readouterr().err)
+            validate_loss_values(loss_values, expected_loss_values)
+            capsys.readouterr()
 
     def test_training_state_on_resume(self, capsys, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
@@ -148,23 +151,35 @@ class TestFullFinetuneRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        model_ckpt = "small_test_ckpt_tune"
+        model_ckpt = "small_test_ckpt_hf"
         expected_loss_values = self._fetch_expected_loss_values(model_ckpt)
 
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
         ckpt_dir = ckpt_path.parent
+
+        # config file needed for model conversion. Since this is a really small json
+        # this can be written within the test instead of downloading from s3.
+        # We need two copies one for initial read and one for resume
+        config = {
+            "hidden_size": 256,
+            "num_attention_heads": 16,
+            "num_key_value_heads": 8,
+        }
+        config_file = Path.joinpath(Path(ckpt_dir), "config.json")
+        with config_file.open("w") as f:
+            json.dump(config, f)
 
         # Train
         cmd_1 = f"""
         tune full_finetune
             --config {_CONFIG_PATH} \
             --override \
-            output_dir={tmpdir} \
+            output_dir={ckpt_dir} \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint.checkpoint_dir='{ckpt_dir}' \
-            model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
-            model_checkpoint.model_type=LLAMA2 \
+            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.model_type=LLAMA2 \
             epochs=4 \
         """.split()
 
@@ -182,10 +197,10 @@ class TestFullFinetuneRecipe:
             --override \
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint.checkpoint_dir={tmpdir} \
-            model_checkpoint.checkpoint_files=[{os.path.join(tmpdir, "model_2.pt")}]\
-            model_checkpoint.checkpoint_format=TORCHTUNE_RESTART \
-            model_checkpoint.model_type=LLAMA2 \
+            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{os.path.join(ckpt_dir, "hf_model_0001_2.pt")}]\
+            checkpointer.model_type=LLAMA2 \
             epochs=4 \
             resume_from_checkpoint=True \
             max_steps_per_epoch=None \
@@ -224,10 +239,10 @@ class TestRecipeGradientAccumulation:
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint.checkpoint_dir={ckpt_dir} \
-            model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
-            model_checkpoint.model_type=LLAMA2 \
+            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
             epochs=1 \
@@ -252,10 +267,10 @@ class TestRecipeGradientAccumulation:
             --config {_CONFIG_PATH} \
             --override \
             model._component_=torchtune.models.{model_ckpt} \
-            model_checkpoint.checkpoint_dir={ckpt_dir} \
-            model_checkpoint.checkpoint_files=[{ckpt_path}]\
-            model_checkpoint.checkpoint_format=TORCHTUNE_NEW \
-            model_checkpoint.model_type=LLAMA2 \
+            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir={ckpt_dir} \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
