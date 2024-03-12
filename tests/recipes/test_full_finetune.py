@@ -127,7 +127,7 @@ class TestFullFinetuneRecipe:
                 --config {_CONFIG_PATH} \
                 output_dir={tmpdir} \
                 model=torchtune.models.{ckpt} \
-                checkpointer=torchtune.utils.{checkpointer}
+                checkpointer._component_=torchtune.utils.{checkpointer}
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
                 checkpointer.output_dir={tmpdir} \
@@ -244,7 +244,7 @@ class TestRecipeGradientAccumulation:
         tune full_finetune \
             --config {_CONFIG_PATH} \
             model=torchtune.models.{model_ckpt} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -272,7 +272,7 @@ class TestRecipeGradientAccumulation:
         tune full_finetune \
             --config {_CONFIG_PATH} \
             model=torchtune.models.{model_ckpt} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

@@ -142,9 +142,8 @@ class TestLoRAFinalCheckpoints:
         cmd = f"""
         tune {recipe_name}
             --config {config_path} \
-            --override \
             enable_fsdp={enable_fsdp} \
-            model._component_=torchtune.models.{ckpt} \
+            model=torchtune.models.{ckpt} \
             model_checkpoint={fetch_ckpt_model_path(ckpt)} \
             model.lora_rank=8 \
             model.lora_alpha=16 \
