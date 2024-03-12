@@ -3,6 +3,8 @@ name: integration tests
 on:
   push:
     branches: [ main ]
+    workflow_dispatch:
+
 
 concurrency:
   group: integration-tests-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
