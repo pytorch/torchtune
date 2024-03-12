@@ -125,6 +125,7 @@ class TestLoRAFinalCheckpoints:
             model.lora_rank=8 \
             model.lora_alpha=16 \
             model.apply_lora_to_mlp=True \
+            model.apply_lora_to_output=False \
             epochs=1
         """.split()
         cmd += lora_cfg
@@ -156,6 +157,7 @@ class TestLoRAFinalCheckpoints:
             lora_model = lora_llama2_small_test_ckpt(
                 lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
                 apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
                 lora_rank=8,
                 lora_alpha=16,
             )
