@@ -7,6 +7,7 @@
 import argparse
 import os
 import sys
+import time
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -22,6 +23,8 @@ from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+from torch.distributed.checkpoint import async_save, FileSystemWriter
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, StateDictType
 
 from torchtune import datasets, models, modules, utils
 from torchtune.utils.constants import (
@@ -84,6 +87,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self._resume_from_checkpoint = params.resume_from_checkpoint
         self._enable_fsdp = params.enable_fsdp
         self._gradient_accumulation_steps = params.gradient_accumulation_steps
+        self._checkpoint_future = None
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -332,12 +336,51 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(ckpt_dict, output_loc)
 
-        if self._is_rank_zero:
-            log.info(
-                f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
-            )
+        if self._checkpoint_future is not None:
+            # we have to wait for the previous checkpoint to finish before saving
+            t0 = time.monotonic()
+            self.log(msg=f"Waiting for previous checkpoint to finish...")
+            self._checkpoint_future.result()
+            self.log(msg=f"Waited for {time.monotonic() - t0} seconds.")
+
+        t0 = time.monotonic()
+        with FSDP.state_dict_type(
+            self._model,
+            StateDictType.SHARDED_STATE_DICT,
+        ):
+            ckpt_dict[MODEL_KEY] = self._model.state_dict()
+
+            if OPT_KEY in ckpt_dict:
+                ckpt_dict[OPT_KEY] = FSDP.optim_state_dict(self._model, self._optimizer)
+
+        self.log(msg=f"creating sharded state_dict {time.monotonic() - t0} seconds.")
+
+        t0 = time.monotonic()
+        self._checkpoint_future = async_save(
+            ckpt_dict,
+            storage_writer=FileSystemWriter(
+                output_loc,
+                thread_count=8,
+                single_file_per_rank=False,
+                sync_files=False
+            ) # make FS go brr
+        )
+        self.log(msg=f"we blocked for {time.monotonic() - t0} seconds.")
+
+        if epoch + 1 >= self.total_epochs:
+            # we have to wait for the previous checkpoint to finish before saving
+            t0 = time.monotonic()
+            self.log(msg=f"Waiting on save for final checkpoint")
+            self._checkpoint_future.result()
+            self.log(msg=f"Waited for {time.monotonic() - t0} seconds.")
+
+        # utils.save_checkpoint(ckpt_dict, output_loc)
+
+        # if self._is_rank_zero:
+        #     log.info(
+        #         f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
+        #     )
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """
@@ -416,7 +459,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     self.total_training_steps += 1
 
             self.epochs_run += 1
+            t0 = time.monotonic()
             self.save_checkpoint(epoch=curr_epoch)
+            self.log(msg=f"Calling save_checkpoint took {time.monotonic() - t0} seconds.")
+
+    def log(self, level=log.info, *args, **kwargs):
+        if self._is_rank_zero:
+            level(*args, **kwargs)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
@@ -440,7 +489,7 @@ def recipe_main() -> None:
     recipe_params = FullFinetuneParams(**args)
 
     # Env variables set by torch run; only need to initialize process group
-    init_process_group(backend="nccl")
+    init_process_group(backend="cpu:gloo,cuda:nccl")
 
     recipe = FullFinetuneRecipe(params=recipe_params)
     recipe.setup(params=recipe_params)
