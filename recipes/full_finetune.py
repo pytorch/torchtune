@@ -99,7 +99,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         self._checkpointer = config.instantiate(
             cfg,
-            output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()

@@ -23,6 +23,7 @@ checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/llama2
   checkpoint_files: [consolidated.00.pth]
+  output_dir: ${output_dir}
   model_type: LLAMA2
 
 resume_from_checkpoint: False
