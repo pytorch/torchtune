@@ -44,6 +44,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
+gradient_accumulation_steps: 1
 resume_from_checkpoint: False
 
 # Logging
