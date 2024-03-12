@@ -26,7 +26,7 @@ FULL_EVAL_CONFIG_PATH = (
 )
 LORA_EVAL_CONFIG_PATH = (
     Path(__file__).parent.parent.parent
-    / "torchtune/_cli/eval_configs/loar_finetune_eval_config.yaml"
+    / "torchtune/_cli/eval_configs/lora_finetune_eval_config.yaml"
 )
 
 # TODO - should probably go into a general directory
@@ -85,7 +85,7 @@ class TestEval:
             cpu_device_str = "cpu"
             cmd = f"""
             tune eval \
-                --config {FULL_EVAL_CONFIG_PATH} \
+                --config {LORA_EVAL_CONFIG_PATH} \
                 --override \
                 model._component_=torchtune.models.{model_ckpt} \
                 model_checkpoint={ckpt_path} \
