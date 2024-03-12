@@ -11,7 +11,7 @@ concurrency:
 
 permissions:
   id-token: write
-  contents: write
+  contents: read
 
 defaults:
   run:
@@ -37,7 +37,7 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: configure aws credentials
         id: aws_creds
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v1.7.0
         with:
           role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
           aws-region: us-east-1
