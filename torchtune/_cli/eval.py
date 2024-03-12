@@ -98,7 +98,7 @@ class _EvalWrapper(HFLM):
 def eval(
     model: TransformerDecoder,
     tokenizer: Tokenizer,
-    tasks: Optional[List[str]] = None,
+    tasks: List[str],
     limit: Optional[int] = None,
     max_seq_length: Optional[int] = 4096,
     device: torch.device = torch.device("cuda"),
@@ -110,8 +110,7 @@ def eval(
     Args:
         model (TransformerDecoder): The pre-trained or finetuned language model to evaluate.
         tokenizer (Tokenizer): The tokenizer to use for encoding/decoding text.
-        tasks (Optional[List[str]]): The names of the evaluation tasks to perform. Defaults to ``None``,
-            in which case "hellaswag" task is evaluated on.
+        tasks (List[str]): DOC.
         limit (Optional[int]): The maximum number of samples to evaluate (None for all available).
         max_seq_length (Optional[int]): The maximum sequence length allowed for input text. Defaults to 4096.
         device (torch.device): torch.device indicating device to run eval on.
@@ -120,9 +119,6 @@ def eval(
         eval_results (Dict[str, Any]): A dictionary of evaluation results for the specified task(s).
     """
 
-    if tasks is None:
-        tasks = _default_tasks
-
     model_eval_wrapper = _EvalWrapper(
         model,
         tokenizer,
@@ -130,10 +126,9 @@ def eval(
         max_seq_length,
     )
 
-    lm_eval.tasks.initialize_tasks()
+    lm_eval.tasks.initialize_tasks("DEBUG")
 
     task_dict = get_task_dict(tasks)
-
     eval_results = evaluate(
         model_eval_wrapper,
         task_dict,
@@ -163,6 +158,8 @@ def _setup_model(
     base_model_state_dict = _load_checkpoint(model_checkpoint)
     if lora_checkpoint:
         adapter_state_dict = _load_checkpoint(lora_checkpoint)
+    else:
+        adapter_state_dict = None
 
     # Create model.
     with device:
@@ -170,8 +167,22 @@ def _setup_model(
 
     # Load state_dicts into model.
     # TODO: Improve validation such as in training recipes.
+
+    # TODO: recent refactor removed "model", but some old checkpoints to test parity still have
+    # this key. Remove once full testing / validation is complete.
+    base_model_state_dict = (
+        base_model_state_dict["model"]
+        if "model" in base_model_state_dict
+        else base_model_state_dict
+    )
+    if adapter_state_dict:
+        adapter_state_dict = (
+            adapter_state_dict["model"]
+            if "model" in adapter_state_dict
+            else adapter_state_dict
+        )
     missing, unexpected = model.load_state_dict(
-        base_model_state_dict["model"], strict=False
+        base_model_state_dict, strict=False
     )
     assert not unexpected, f"Unexpected keys {unexpected}"
     if missing:
@@ -182,10 +193,12 @@ def _setup_model(
 
     if lora_checkpoint:
         lora_missing, lora_unexpected = model.load_state_dict(
-            adapter_state_dict["model"], strict=False
+            adapter_state_dict, strict=False
         )
         assert not lora_unexpected, f"Unexpected keys {lora_unexpected}"
         # Intersection of missing sets should be empty.
+        lora_missing = set(lora_missing)
+        missing = set(missing)
         assert (
             lora_missing.intersection(missing) == set()
         ), f"Missing keys {lora_missing.intersection(missing)}"
@@ -223,11 +236,10 @@ def main(
     if not cfg.tasks:
         task_list = _default_tasks
     else:
-        task_list = cfg.tasks
+        # TODO: Is there a better way for Omega to instantiate list?
+        task_list = [task for task in cfg.tasks]
 
-    logger.info(
-        f"Initialized model and tokenizer. Running eval."
-    )
+    logger.info(f"Initialized model and tokenizer. Running eval on {task_list}.")
 
     # Run evaluation.
     t1 = time.time()
@@ -242,7 +254,7 @@ def main(
     logger.info(f"Time to run eval: {time.time() - t1:.02f} seconds.")
     logger.info(f"For model {cfg.model_checkpoint}")
     for task, res in result["results"].items():
-        logger.info(f"{task}: {res}")
+        print(f"{task}: {res}")
 
 
 if __name__ == "__main__":
