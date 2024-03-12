@@ -46,4 +46,3 @@ else
     echo "Pytest failed"
     exit 1  # Failure exit code
 fi
-

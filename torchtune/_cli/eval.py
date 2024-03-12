@@ -9,7 +9,6 @@
 
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-import argparse
 import sys
 import time
 from typing import Any, Dict, List, Optional
@@ -22,7 +21,7 @@ from lm_eval.evaluator import evaluate
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict
 from omegaconf import DictConfig
-from torchtune import config, models
+from torchtune import config
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.utils import get_logger
 
@@ -110,7 +109,7 @@ def eval(
     Args:
         model (TransformerDecoder): The pre-trained or finetuned language model to evaluate.
         tokenizer (Tokenizer): The tokenizer to use for encoding/decoding text.
-        tasks (List[str]): DOC.
+        tasks (List[str]): List of tasks to perform evaluation on.
         limit (Optional[int]): The maximum number of samples to evaluate (None for all available).
         max_seq_length (Optional[int]): The maximum sequence length allowed for input text. Defaults to 4096.
         device (torch.device): torch.device indicating device to run eval on.
@@ -181,9 +180,7 @@ def _setup_model(
             if "model" in adapter_state_dict
             else adapter_state_dict
         )
-    missing, unexpected = model.load_state_dict(
-        base_model_state_dict, strict=False
-    )
+    missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
     assert not unexpected, f"Unexpected keys {unexpected}"
     if missing:
         # only LoRA components can be missing. TODO: this is not robust, and can break if
@@ -211,7 +208,11 @@ def main(
     cfg: DictConfig,
 ) -> None:
     """
-    WRITE DOC
+    Main entry point for running evaluation on finetuned models. Sets up the environment,
+    loads in the model + checkpoint, and runs evaluation.
+
+    Example usage: python eval.py --config eval_configs/full_finetune_eval_config.yaml --override limit=100 tasks=["truthfulqa_mc2"]
+    Please see eval_configs/ for example configs.
     """
 
     # Set up environment incl. device and random seed.
