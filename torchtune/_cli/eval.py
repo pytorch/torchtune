@@ -10,6 +10,7 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 import argparse
+import sys
 import time
 from typing import Any, Dict, List, Optional
 
@@ -20,9 +21,11 @@ import torchtune.utils as utils
 from lm_eval.evaluator import evaluate
 from lm_eval.models.huggingface import HFLM
 from lm_eval.tasks import get_task_dict
-from torchtune import models
+from omegaconf import DictConfig
+from torchtune import config, models
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.utils import get_logger
+
 
 logger = get_logger("DEBUG")
 
@@ -39,13 +42,13 @@ class _EvalWrapper(HFLM):
         self,
         model,
         tokenizer,
-        device_str,
+        device,
         max_seq_length,
     ):
         super().__init__()
         self._model = model
         self._tokenizer = tokenizer
-        self._device = utils.get_device(device=device_str)
+        self._device = device
         self._max_seq_length = max_seq_length
 
     @property
@@ -98,7 +101,7 @@ def eval(
     tasks: Optional[List[str]] = None,
     limit: Optional[int] = None,
     max_seq_length: Optional[int] = 4096,
-    device_str: str = "cuda",
+    device: torch.device = torch.device("cuda"),
 ) -> Dict[str, Any]:
     """
     Evaluates a language model on a specified task using the lm-evaluation-harness library. Based
@@ -111,7 +114,7 @@ def eval(
             in which case "hellaswag" task is evaluated on.
         limit (Optional[int]): The maximum number of samples to evaluate (None for all available).
         max_seq_length (Optional[int]): The maximum sequence length allowed for input text. Defaults to 4096.
-        device_str (str): String indicating device to run eval on. Can be "cpu", "cuda", or "cuda:<device_id>".
+        device (torch.device): torch.device indicating device to run eval on.
 
     Returns:
         eval_results (Dict[str, Any]): A dictionary of evaluation results for the specified task(s).
@@ -123,7 +126,7 @@ def eval(
     model_eval_wrapper = _EvalWrapper(
         model,
         tokenizer,
-        device_str,
+        device,
         max_seq_length,
     )
 
@@ -139,170 +142,108 @@ def eval(
     return eval_results
 
 
-def main(
-    model_name: str,
+def _load_checkpoint(checkpoint_path: str):
+    """
+    Loads a checkpoint from a given path.
+    TODO: checkpoint validation.
+    """
+    return torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+
+
+def _setup_model(
+    cfg_model: DictConfig,
+    device: torch.device,
     model_checkpoint: str,
-    peft_checkpoint: Optional[str],
-    lora_attn_modules: Optional[List[str]],
-    tokenizer_name: str,
-    tokenizer_checkpoint: str,
-    device: str = "cuda",
-    task_list: List[str] = None,
-    limit: Optional[int] = None,
+    lora_checkpoint: Optional[str] = None,
+):
+    """
+    Sets up the model via passed in config, including loading checkpoint.
+    """
+    # Load state_dicts from file.
+    base_model_state_dict = _load_checkpoint(model_checkpoint)
+    if lora_checkpoint:
+        adapter_state_dict = _load_checkpoint(lora_checkpoint)
+
+    # Create model.
+    with device:
+        model = config.instantiate(cfg_model)
+
+    # Load state_dicts into model.
+    # TODO: Improve validation such as in training recipes.
+    missing, unexpected = model.load_state_dict(
+        base_model_state_dict["model"], strict=False
+    )
+    assert not unexpected, f"Unexpected keys {unexpected}"
+    if missing:
+        # only LoRA components can be missing. TODO: this is not robust, and can break if
+        # adapter parameter names change or different PEFT techniques are used.
+        for key in missing:
+            assert "lora_a" in key or "lora_b" in key, f"Unexpected missing key {key}"
+
+    if lora_checkpoint:
+        lora_missing, lora_unexpected = model.load_state_dict(
+            adapter_state_dict["model"], strict=False
+        )
+        assert not lora_unexpected, f"Unexpected keys {lora_unexpected}"
+        # Intersection of missing sets should be empty.
+        assert (
+            lora_missing.intersection(missing) == set()
+        ), f"Missing keys {lora_missing.intersection(missing)}"
+
+    return model
+
+
+@config.parse
+def main(
+    cfg: DictConfig,
 ) -> None:
     """
-    Instantiates a model and tokenizer from checkpoints and evaluates the model on the specified
-    ``task_list`` using the lm-evaluation-harness library (https://github.com/EleutherAI/lm-evaluation-harness).
-
-    Args:
-        model_name (str): The name of the model to evaluate.
-        model_checkpoint (str): The path to the model checkpoint.
-        peft_checkpoint(Optional[str]): The path to PEFT checkpoint containing trained adapter parameters.
-            This checkpoint will be loaded in after loading in `model_checkpoint`. If ``None``, no PEFT
-            checkpoint will be loaded in.
-        lora_attn_modules(Optional[List[str]]): The list of modules to use for LoRA. Must be specified if
-            LoRA trained model is being evaluated. Default: ``None``.
-        tokenizer_name (str): The name of the tokenizer to use.
-        tokenizer_checkpoint (str): The path to the tokenizer checkpoint.
-        device (str): The device to run evaluation on. Can be "cpu", "cuda", or "cuda:<device_id>"
-        task_list (List[str]): The names of the evaluation tasks to perform. Defaults to ``None``,
-            in which case "hellaswag" task will be used.
-        limit (Optional[int]): The maximum number of samples to evaluate (None for all available).
+    WRITE DOC
     """
 
-    torch.manual_seed(1234)
+    # Set up environment incl. device and random seed.
+    device = utils.get_device(device=cfg.device)
+    if cfg.seed is not None:
+        torch.manual_seed(cfg.seed)
 
-    if task_list is None:
+    # Set up model per configuration.
+    model = _setup_model(
+        cfg_model=cfg.model,
+        device=device,
+        model_checkpoint=cfg.model_checkpoint,
+        lora_checkpoint=(
+            cfg.lora_checkpoint if hasattr(cfg, "lora_checkpoint") else None
+        ),
+    )
+
+    # Set up tokenizer per configuration.
+    tokenizer = config.instantiate(cfg.tokenizer)
+
+    # Set up Eleuther tasks per configuration.
+    if not cfg.tasks:
         task_list = _default_tasks
-    # Create tokenizer and model.
-    tokenizer = models.get_tokenizer(tokenizer_name, path=tokenizer_checkpoint)
-    additional_model_kwargs = {}
-    if "lora" in model_name:
-        assert (
-            lora_attn_modules is not None
-        ), f"Must specify lora_attn_modules as arg for model {model_name}"
-        additional_model_kwargs["lora_attn_modules"] = lora_attn_modules
-    model = models.get_model(model_name, device=device, **additional_model_kwargs)
-    model_state_dict = torch.load(
-        f=model_checkpoint,
-        weights_only=True,
-        map_location="cpu",
-    )
-    base_missing, base_unexpected = model.load_state_dict(
-        model_state_dict["model"], strict=False
-    )
-    # Base model should not be loading in any unexpected keys
-    assert not base_unexpected, f"Unexpected keys {base_unexpected}"
-
-    if peft_checkpoint is not None:
-        peft_state_dict = torch.load(
-            f=peft_checkpoint,
-            weights_only=True,
-            map_location="cpu",
-        )
-        peft_missing, peft_unexpected = model.load_state_dict(
-            peft_state_dict["model"], strict=False
-        )
-        assert not peft_unexpected, f"Unexpected keys {peft_unexpected}"
-        # peft_missing + base_missing should cover entire state_dict.
-        peft_missing = set(peft_missing)
-        base_missing = set(base_missing)
-        assert not (
-            peft_missing & base_missing
-        ), f"Missing keys {peft_missing & base_missing}"
     else:
-        # Should be no missing base keys
-        assert not base_missing, f"Unexpected missing keys {base_missing}"
+        task_list = cfg.tasks
+
     logger.info(
-        f"Initialized model and tokenizer from {model_checkpoint} and {tokenizer_checkpoint}. Running eval."
+        f"Initialized model and tokenizer. Running eval."
     )
+
+    # Run evaluation.
     t1 = time.time()
     result = eval(
         model=model,
         tokenizer=tokenizer,
         tasks=task_list,
-        limit=limit,
-        device_str=device,
+        limit=cfg.limit,
+        device=device,
     )
+    # Report results.
     logger.info(f"Time to run eval: {time.time() - t1:.02f} seconds.")
-    logger.info(f"For model {model_checkpoint}")
+    logger.info(f"For model {cfg.model_checkpoint}")
     for task, res in result["results"].items():
         logger.info(f"{task}: {res}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="EleutherAI LLM Evaluation Harness.")
-    parser.add_argument(
-        "--model",
-        type=str,
-        default="llama2_7b",
-        choices=models.list_models(),
-        help="Name of the model to finetune.",
-    )
-    parser.add_argument(
-        "--model-checkpoint",
-        type=str,
-        default="/tmp/llama2-7b",
-        help="Path to native checkpoint file.",
-    )
-    parser.add_argument(
-        "--tokenizer",
-        type=str,
-        default="llama2_tokenizer",
-        choices=models.list_tokenizers(),
-        help="Name of the model tokenizer.",
-    )
-    parser.add_argument(
-        "--tokenizer-checkpoint",
-        type=str,
-        default="/tmp/tokenizer.model",
-        help="Path to tokenization file.",
-    )
-    parser.add_argument(
-        "--tasks",
-        nargs="+",
-        type=str,
-        default=["hellaswag"],
-        help="list of lm-eluther tasks to evaluate usage: --tasks task1 task2",
-    )
-    parser.add_argument(
-        "--limit", type=int, default=None, help="number of samples to evalulate"
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="cuda",
-        help="Device for eval. Can be cpu, cuda, or cuda:<device_id>",
-    )
-    # TODO: LoRA specific arguments follow. This is just to enable eval of LoRA finetuned models for
-    # the time being, and we expect this experience to significantly change once LoRA weight merging
-    # is completed and unified checkpoint format can be offered regardless of finetuning technique.
-    parser.add_argument(
-        "--peft-checkpoint",
-        type=str,
-        default=None,
-        help="Path to checkpoint for PEFT parameters. These parameters will be loaded in after loading in model-checkpoint.",
-    )
-
-    # TODO: having user specify this is a bit hacky and not generalizable, we should fix, possibly by storing / checkpointing the
-    # LoRA attention modules and additional data needed to fully reconstruct the model.
-    parser.add_argument(
-        "--lora_attn_modules",
-        type=str,
-        nargs="+",
-        default=None,
-        help="""LoRA attention modules to use to initialize LoRA. Must be specified if LoRA model is being used for eval,
-            and must be the same set of LoRA attention modules used to train with. Example: --lora_attn_modules q_proj v_proj""",
-    )
-    args = parser.parse_args()
-    main(
-        model_name=args.model,
-        model_checkpoint=args.model_checkpoint,
-        peft_checkpoint=args.peft_checkpoint,
-        lora_attn_modules=args.lora_attn_modules,
-        tokenizer_name=args.tokenizer,
-        tokenizer_checkpoint=args.tokenizer_checkpoint,
-        device=args.device,
-        task_list=args.tasks,
-        limit=args.limit,
-    )
+    sys.exit(main())
