@@ -3,7 +3,7 @@ name: integration tests
 on:
   push:
     branches: [ main ]
-    workflow_dispatch:
+  workflow_dispatch:
 
 
 concurrency:
