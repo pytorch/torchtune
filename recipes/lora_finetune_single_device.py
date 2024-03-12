@@ -392,7 +392,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
                 self.total_training_steps += 1
-                self._optimizer.zero_grad()
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
