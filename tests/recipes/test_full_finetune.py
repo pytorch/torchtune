@@ -131,6 +131,7 @@ class TestFullFinetuneRecipe:
                 checkpointer._component_=torchtune.utils.{checkpointer}
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
+                checkpointer.output_dir={tmpdir}\
                 checkpointer.model_type=LLAMA2
             """.split()
 
@@ -179,6 +180,7 @@ class TestFullFinetuneRecipe:
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={ckpt_dir}\
             checkpointer.model_type=LLAMA2 \
             epochs=4 \
         """.split()
@@ -200,6 +202,7 @@ class TestFullFinetuneRecipe:
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{os.path.join(ckpt_dir, "hf_model_0001_2.pt")}]\
+            checkpointer.output_dir={tmpdir}\
             checkpointer.model_type=LLAMA2 \
             epochs=4 \
             resume_from_checkpoint=True \
@@ -242,6 +245,7 @@ class TestRecipeGradientAccumulation:
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir}\
             checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
@@ -270,6 +274,7 @@ class TestRecipeGradientAccumulation:
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir}\
             checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \
