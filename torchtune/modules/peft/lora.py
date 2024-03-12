@@ -142,7 +142,7 @@ class LoRALinear(nn.Module, AdapterModule):
         """
         out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
-        lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
+        lora_out = (self.alpha / self.rank) * F.conv1d(lora_out.transpose(-1, -2), self.lora_b.weight.unsqueeze(-1)).transpose(-2, -1)
         return out + lora_out
 
 
