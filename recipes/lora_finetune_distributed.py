@@ -16,16 +16,17 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.cuda.amp import GradScaler
-from torch.distributed import init_process_group
+from torch.distributed import destroy_process_group, init_process_group
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.models.llama2 import get_lora_module_names
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    merge_lora_weights_in_state_dict,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
-
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from torchtune.utils.constants import (
@@ -71,7 +72,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
@@ -93,6 +93,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_merged_final_checkpoint = cfg.save_merged_final_checkpoint
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -245,11 +246,13 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        lora_modules = cfg_model.lora_attn_modules + (
-            ["w1", "w2", "w3"] if cfg_model.apply_lora_to_mlp else []
+        lora_module_keys = get_lora_module_names(
+            cfg_model.lora_attn_modules,
+            cfg_model.apply_lora_to_mlp,
+            cfg_model.apply_lora_to_output,
         )
         validate_state_dict_for_lora(
-            lora_modules=lora_modules,
+            lora_modules=lora_module_keys,
             full_model_state_dict_keys=model.state_dict().keys(),
             lora_state_dict_keys=lora_weights_state_dict.keys()
             if lora_weights_state_dict is not None
@@ -335,7 +338,11 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(
+        self,
+        epoch: int,
+        merge_lora_weights: bool = False,
+    ) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
@@ -354,9 +361,19 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
-        )
+
+        # Save full checkpoint with LoRA weights merged into base Llama2 format
+        if merge_lora_weights:
+            with merge_lora_weights_in_state_dict(self._model):
+                utils.save_checkpoint(ckpt_dict, output_loc)
+
+        # Otherwise, save only LoRA params
+        else:
+            utils.save_checkpoint(
+                ckpt_dict,
+                output_loc,
+                model_key_filter=lambda x: x in self.adapter_params,
+            )
 
         if self._is_rank_zero:
             log.info(
@@ -421,11 +438,19 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+
+            merge_lora_weights = self._save_merged_final_checkpoint and (
+                curr_epoch == self.total_epochs - 1
+            )
+            self.save_checkpoint(
+                epoch=curr_epoch,
+                merge_lora_weights=merge_lora_weights,
+            )
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
+        destroy_process_group()
 
 
 @config.parse

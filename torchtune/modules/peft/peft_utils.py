@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import functools
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, Generator, List, Optional, Protocol
 
 from torch import nn
 
@@ -112,7 +113,7 @@ def validate_state_dict_for_lora(
 
     Args:
         lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
-            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj"]
+            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj", "output"]
         full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
         lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
             If none, LoRA state dict keys will not be validated.
@@ -131,7 +132,7 @@ def validate_state_dict_for_lora(
         AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
 
     """
-    is_lora_param = lambda x: "lora" in x and any([k in x for k in lora_modules])
+    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
             if base_model_state_dict_keys is not None:
@@ -164,3 +165,97 @@ def validate_state_dict_for_lora(
         assert combined_state_dict_keys == set(
             full_model_state_dict_keys
         ), "Extra keys not present in full model"
+
+
+def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
+    """
+    Check if a module is eligible for adding/removing merge and unmerge state dict hooks.
+    Currently this only supports LoRALinear weight merging.
+
+    Args:
+        m (nn.Module): Instance of model class containing some LoRA modules.
+
+    Returns:
+        bool: True if the module has the required methods for state dict hooks.
+    """
+    return (
+        hasattr(m, "_merge_lora_weights")
+        and callable(m._merge_lora_weights)
+        and hasattr(m, "_unmerge_lora_weights")
+        and callable(m._unmerge_lora_weights)
+    )
+
+
+def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Register state dict hooks for merging and unmerging LoRA weights.
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA params.
+    Returns:
+        None
+    Raises:
+        RuntimeError: If the model already has LoRA merge state dict pre- or post-hooks.
+    """
+    for n, m in model.named_modules():
+        if _is_eligible_for_state_dict_hook(m):
+            if hasattr(m, "_merge_weight_pre_handle"):
+                raise RuntimeError(
+                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict weight merge pre-hook"
+                )
+            if hasattr(m, "_merge_weight_post_handle"):
+                raise RuntimeError(
+                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict weight merge post-hook"
+                )
+            m._merge_weight_pre_handle = m.register_state_dict_pre_hook(
+                m._merge_lora_weights
+            )
+            m._merge_weight_post_handle = m._register_state_dict_hook(
+                m._unmerge_lora_weights
+            )
+
+
+def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
+    """
+    Unregister state dict hooks for merging and unmerging LoRA weights.
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA params.
+    Returns:
+        None
+    Raises:
+        RuntimeError: If the model does not have the expected state dict pre- or post-hooks.
+    """
+    for n, m in model.named_modules():
+        if _is_eligible_for_state_dict_hook(m):
+            if not hasattr(m, "_merge_weight_pre_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge pre-hook from {m}"
+                )
+            if not hasattr(m, "_merge_weight_post_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge post-hook from {m}"
+                )
+            m._merge_weight_pre_handle.remove()
+            m._merge_weight_post_handle.remove()
+            del m._merge_weight_pre_handle
+            del m._merge_weight_post_handle
+
+
+@contextlib.contextmanager
+def merge_lora_weights_in_state_dict(model: nn.Module) -> Generator[None, None, None]:
+    """
+    Context manager for merging and unmerging LoRA weights in the model's state dict.
+    By wrapping your `.state_dict()` call on a model containing LoRA modules in this
+    context manager, you can get a state dict with the LoRA weights merged into
+    the base model weights.
+
+    Args:
+        model (nn.Module): Instance of model class containing some LoRA modules.
+
+    Returns:
+        Context manager for merging and unmerging LoRA weights in the model's state dict.
+    """
+    _register_lora_weight_merge_hooks(model)
+    try:
+        yield
+    finally:
+        _unregister_lora_weight_merge_hooks(model)

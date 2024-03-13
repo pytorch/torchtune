@@ -18,7 +18,14 @@ shuffle: True
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.llama2_7b
-model_checkpoint: /tmp/llama2_native
+
+checkpointer:
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/llama2
+  checkpoint_files: [consolidated.00.pth]
+  model_type: LLAMA2
+
+resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
@@ -32,7 +39,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 log_every_n_steps: null
 run_generation: null
-resume_from_checkpoint: False
+
 
 # Distributed
 device: cuda

@@ -8,6 +8,7 @@ model:
   _component_: torchtune.models.llama2.lora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
+  apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
 
@@ -57,3 +58,6 @@ device: cuda
 dtype: fp32
 enable_fsdp: True
 enable_activation_checkpointing: True
+
+# Final checkpoint
+save_merged_final_checkpoint: False

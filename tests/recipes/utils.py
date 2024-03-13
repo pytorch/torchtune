@@ -73,6 +73,7 @@ def llama2_small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerD
 def lora_llama2_small_test_ckpt(
     lora_attn_modules,
     apply_lora_to_mlp,
+    apply_lora_to_output,
     lora_rank,
     lora_alpha,
     max_batch_size: Optional[int] = None,
@@ -80,6 +81,7 @@ def lora_llama2_small_test_ckpt(
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
+        apply_lora_to_output=apply_lora_to_output,
         vocab_size=32_000,
         num_layers=4,
         num_heads=16,
@@ -110,10 +112,16 @@ def fetch_ckpt_model_path(ckpt) -> str:
     # and lora. This should be fine as the lora adapter params
     # are initialized, but we may want to load in a lora specific
     # checkpoint.
-    if "small_test_ckpt" in ckpt:
+    if ckpt == "lora_small_test_ckpt":
         return "/tmp/test-artifacts/small-ckpt-01242024"
+    if ckpt == "small_test_ckpt_tune":
+        return "/tmp/test-artifacts/small-ckpt-tune-03082024.pt"
+    if ckpt == "small_test_ckpt_meta":
+        return "/tmp/test-artifacts/small-ckpt-meta-03082024.pt"
+    if ckpt == "small_test_ckpt_hf":
+        return "/tmp/test-artifacts/small-ckpt-hf-03082024.pt"
     if "llama2_7b" in ckpt:
-        return "/tmp/test-artifacts/llama2-7b-01242024"
+        return "/tmp/test-artifacts/llama2-7b-torchtune.pt"
     if "tiny_test_ckpt" in ckpt:
         return _ASSETS / "tiny_llama2_checkpoint.pt"
     raise ValueError(f"Unknown ckpt {ckpt}")

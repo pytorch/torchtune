@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 import math
 from functools import partial
 from typing import List
@@ -71,7 +70,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_b = nn.Linear(
             in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
         )
-
+        self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
@@ -96,10 +95,10 @@ class LoRALinear(nn.Module, AdapterModule):
             else FrozenNF4Linear(in_dim, out_dim, bias=False)
         )
         weight_tensor = (
-            _copy_tensor(linear.weight)
+            linear.weight
             if not self._quantize_base
             else NF4Tensor.from_tensor(
-                _copy_tensor(linear.weight.get_original_weight())
+                linear.weight.get_original_weight()
             )
         )
         bias = None
@@ -122,6 +121,40 @@ class LoRALinear(nn.Module, AdapterModule):
         if self.use_bias_in_lora_matrices:
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
+
+    @property
+    def _lora_delta(self):
+        return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
+
+    @torch.no_grad
+    def _merge_lora_weights(self, *args, **kwargs):
+        if self.merged:
+            raise RuntimeError("Cannot call _merge_lora_weights, weights are merged")
+        if self.use_bias_in_lora_matrices:
+            raise RuntimeError(
+                "Cannot merge LoRA weights when LoRA matrices have biases"
+            )
+        self.weight += self._lora_delta
+        self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
+        self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
+        del self.lora_a
+        del self.lora_b
+        self.merged = True
+
+    @torch.no_grad
+    def _unmerge_lora_weights(self, *args, **kwargs):
+        if not self.merged:
+            raise RuntimeError(
+                "Cannot call _unmerge_lora_weights, weights are not merged"
+            )
+        self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
+        self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
+        self.lora_a.weight = nn.Parameter(self.cached_lora_a_weight)
+        self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
+        del self.cached_lora_a_weight
+        del self.cached_lora_b_weight
+        self.weight -= self._lora_delta
+        self.merged = False
 
     def forward(self, x: Tensor) -> Tensor:
         """

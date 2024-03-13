@@ -19,8 +19,10 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.models.llama2 import get_lora_module_names
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    merge_lora_weights_in_state_dict,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -87,6 +89,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._save_merged_final_checkpoint = cfg.save_merged_final_checkpoint
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -116,6 +119,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ckpt_path=cfg.lora_checkpoint, resume_from_checkpoint=True
             )
             self._update_recipe_state(lora_ckpt)
+
+        # For CUDA devices, check if the HW supports bf16.
+        if (
+            cfg.full_bf16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -222,11 +233,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        lora_modules = cfg_model.lora_attn_modules + (
-            ["w1", "w2", "w3"] if cfg_model.apply_lora_to_mlp else []
+        lora_module_keys = get_lora_module_names(
+            cfg_model.lora_attn_modules,
+            cfg_model.apply_lora_to_mlp,
+            cfg_model.apply_lora_to_output,
         )
         validate_state_dict_for_lora(
-            lora_modules=lora_modules,
+            lora_modules=lora_module_keys,
             full_model_state_dict_keys=model.state_dict().keys(),
             lora_state_dict_keys=(
                 lora_weights_state_dict.keys()
@@ -309,7 +322,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int, merge_lora_weights: bool = False) -> None:
         """
         Checkpoint the state of the recipe. Currently this only includes checkpointing
         model weights and optimizer state.
@@ -328,9 +341,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        utils.save_checkpoint(
-            ckpt_dict, output_loc, model_key_filter=lambda x: x in self.adapter_params
-        )
+
+        # Save full checkpoint with LoRA weights merged into base Llama2 format
+        if merge_lora_weights:
+            with merge_lora_weights_in_state_dict(self._model):
+                utils.save_checkpoint(ckpt_dict, output_loc)
+
+        # Otherwise, save only LoRA params
+        else:
+            utils.save_checkpoint(
+                ckpt_dict,
+                output_loc,
+                model_key_filter=lambda x: x in self.adapter_params,
+            )
 
         log.info(
             msg=f"Model checkpoint of size {os.path.getsize(output_loc) >> 20} MB saved to {output_loc}"
@@ -384,7 +407,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._lr_scheduler.step()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            merge_lora_weights = self._save_merged_final_checkpoint and (
+                curr_epoch == self.total_epochs - 1
+            )
+            self.save_checkpoint(
+                epoch=curr_epoch, merge_lora_weights=merge_lora_weights
+            )
 
     def cleanup(self) -> None:
         self._metric_logger.close()
