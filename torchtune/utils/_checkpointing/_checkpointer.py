@@ -171,7 +171,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             state_dict[utils.ADAPTER_KEY] = adapter_state_dict
 
         if self._resume_from_checkpoint:
-            recipe_state = safe_torch_load(self._recipe_state_file)
+            recipe_state = safe_torch_load(self._recipe_checkpoint)
             state_dict.update(recipe_state)
         return state_dict
 
@@ -557,10 +557,10 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
-            converted_state_dict[utils.ADAPTER_KEY] = adapter_state_dict
+            state_dict[utils.ADAPTER_KEY] = adapter_state_dict
 
         if self._resume_from_checkpoint:
-            recipe_state = safe_torch_load(self._recipe_state_file)
+            recipe_state = safe_torch_load(self._recipe_checkpoint)
             state_dict.update(recipe_state)
         return state_dict
 

@@ -12,30 +12,9 @@ model:
   lora_rank: 8
   lora_alpha: 16
 
-# checkpointer:
-#   _component_: torchtune.utils.FullModelHFCheckpointer
-#   checkpoint_dir: /tmp/lora_finetune_output/
-#   checkpoint_files: [hf_model_0001_0.pt, hf_model_0002_0.pt]
-#   adapter_checkpoint: adapter_0.pt
-#   recipe_checkpoint: recipe_state.pt
-#   output_dir: ${output_dir}
-#   model_type: LLAMA2
-
-# resume_from_checkpoint: True
-# checkpointer:
-#   _component_: torchtune.utils.FullModelHFCheckpointer
-#   checkpoint_dir: /home/kartikayk/cpts/llama-2-7b-hf
-#   checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
-#   adapter_checkpoint: null
-#   recipe_checkpoint: null
-#   output_dir: ${output_dir}
-#   model_type: LLAMA2
-
-# resume_from_checkpoint: False
-
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/llama2
+  checkpoint_dir: /tmp/llama2/
   checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
