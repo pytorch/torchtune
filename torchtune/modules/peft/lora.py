@@ -119,6 +119,17 @@ class LoRALinear(nn.Module, AdapterModule):
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
+    def _unquantize_base_weight(self, *args, **kwargs):
+        if not self._quantize_base:
+            raise RuntimeError("Cannot call _unquantize_base_weight, weights are not quantized")
+        # TODO (rohan-varma): only supports bf16 for the time being.
+        self.weight = self.weight.to(torch.bfloat16)
+
+    def _quantize_base_weight(self, *args, **kwargs):
+        if not self._quantize_base:
+            raise RuntimeError("Cannot call _quantize_base_weight, weights are not quantized")
+        self.weight = to_nf4(self.weight)
+
     @property
     def _lora_delta(self):
         return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
