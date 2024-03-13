@@ -408,9 +408,19 @@ class TestLoRAWeightMergeHooks:
             k: v.grad for k, v in model.named_parameters() if v.grad is not None
         }
 
+        torch.testing.assert_close(out_pre, out_post)
+        torch.testing.assert_close(grads_before_merge, grads_after_merge)
+
         # Do it again (to test unmerge -> merge)
         with merge_lora_weights_in_state_dict(model):
             _ = model.state_dict()
 
-        torch.testing.assert_close(out_pre, out_post)
-        torch.testing.assert_close(grads_before_merge, grads_after_merge)
+        out_second = model(inputs)
+        loss_second = out_second.sum()
+        loss_second.backward()
+        grads_after_second_merge = {
+            k: v.grad for k, v in model.named_parameters() if v.grad is not None
+        }
+
+        torch.testing.assert_close(out_post, out_second)
+        torch.testing.assert_close(grads_after_merge, grads_after_second_merge)
