@@ -1,0 +1,19 @@
+2024-03-12:03:00:58,350 INFO     [utils.py:145] Note: detected 192 virtual cores but NumExpr set to maximum of 64, check "NUMEXPR_MAX_THREADS" environment variable.
+2024-03-12:03:00:58,350 INFO     [utils.py:148] Note: NumExpr detected 192 cores but "NUMEXPR_MAX_THREADS" not set, so enforcing safe limit of 8.
+2024-03-12:03:00:58,351 INFO     [utils.py:160] NumExpr defaulting to 8 threads.
+2024-03-12:03:01:01,966 INFO     [_parse.py:51] Running main with parameters {'model': {'_component_': 'torchtune.models.llama2.llama2_7b'}, 'model_checkpoint': '/home/rvarm1/local/dev/assets/llama2-7b-01242024', 'tokenizer': {'_component_': 'torchtune.models.llama2.llama2_tokenizer', 'path': '/home/rvarm1/local/dev/assets/tokenizer.model'}, 'device': 'cuda', 'seed': 217, 'tasks': ['truthfulqa_mc2'], 'limit': 50}
+2024-03-12:03:01:29,092 INFO     [eval.py:243] Initialized model and tokenizer. Running eval on ['truthfulqa_mc2'].
+2024-03-12:03:01:29,095 INFO     [huggingface.py:148] Using device 'cuda'
+2024-03-12:03:01:32,332 DEBUG    [__init__.py:179] /home/rvarm1/.conda/envs/tune/lib/python3.10/site-packages/lm_eval/tasks/ifeval/ifeval.yaml: No module named 'langdetect'. Config will not be added to registry.
+2024-03-12:03:01:34,968 WARNING  [__init__.py:194] Some tasks could not be loaded due to missing dependencies. Run with `--verbosity DEBUG` for full details.
+2024-03-12:03:01:35,754 DEBUG    [__init__.py:179] /home/rvarm1/.conda/envs/tune/lib/python3.10/site-packages/lm_eval/tasks/benchmarks/t0_eval.yaml: No module named 'promptsource'. Config will not be added to registry.
+2024-03-12:03:01:35,795 DEBUG    [__init__.py:179] /home/rvarm1/.conda/envs/tune/lib/python3.10/site-packages/lm_eval/tasks/benchmarks/flan/flan_cot.yaml: No module named 'promptsource'. Config will not be added to registry.
+2024-03-12:03:01:37,084 DEBUG    [__init__.py:179] /home/rvarm1/.conda/envs/tune/lib/python3.10/site-packages/lm_eval/tasks/ifeval/ifeval.yaml: No module named 'langdetect'. Config will not be added to registry.
+2024-03-12:03:01:39,257 WARNING  [__init__.py:194] Some tasks could not be loaded due to missing dependencies. Run with `--verbosity DEBUG` for full details.
+2024-03-12:03:01:40,663 INFO     [task.py:363] Building contexts for task on rank 0...
+2024-03-12:03:01:40,746 DEBUG    [evaluator.py:292] Task: truthfulqa_mc2; number of requests on this rank: 385
+2024-03-12:03:01:40,746 INFO     [evaluator.py:324] Running loglikelihood requests
+  0%|          | 0/385 [00:00<?, ?it/s]  0%|          | 1/385 [00:06<39:38,  6.19s/it]  9%|▊         | 33/385 [00:11<01:43,  3.41it/s] 17%|█▋        | 65/385 [00:16<01:09,  4.60it/s] 25%|██▌       | 97/385 [00:21<00:54,  5.24it/s] 34%|███▎      | 129/385 [00:26<00:45,  5.60it/s] 42%|████▏     | 161/385 [00:31<00:38,  5.84it/s] 50%|█████     | 193/385 [00:37<00:32,  5.99it/s] 58%|█████▊    | 225/385 [00:42<00:26,  6.10it/s] 67%|██████▋   | 257/385 [00:47<00:20,  6.19it/s] 75%|███████▌  | 289/385 [00:52<00:15,  6.26it/s] 83%|████████▎ | 321/385 [00:56<00:10,  6.32it/s] 92%|█████████▏| 353/385 [01:01<00:04,  6.45it/s]100%|██████████| 385/385 [01:01<00:00,  9.10it/s]100%|██████████| 385/385 [01:01<00:00,  6.21it/s]
+2024-03-12:03:02:43,023 INFO     [eval.py:255] Time to run eval: 73.93 seconds.
+2024-03-12:03:02:43,023 INFO     [eval.py:256] For model /home/rvarm1/local/dev/assets/llama2-7b-01242024
+truthfulqa_mc2: {'acc,none': 0.4590192905049274, 'acc_stderr,none': 0.05521224088873306, 'alias': 'truthfulqa_mc2'}
