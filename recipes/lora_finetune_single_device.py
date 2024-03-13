@@ -101,7 +101,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Note that we set resume_from_checkpoint=False when loading the base model.
         # This is because we only save LoRA weights during training, so only lora_checkpoint
         # will contain training state, while model_checkpoint contains model weights only.
-        self._default_dtype = torch.get_default_dtype()
         base_model_ckpt = self.load_checkpoint(
             ckpt_path=cfg.model_checkpoint, resume_from_checkpoint=False
         )
@@ -182,7 +181,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Extract the checkpoint state from file and validate.
         """
         ckpt_dict = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-        # import pdb ; pdb.set_trace()
         utils.validate_checkpoint(ckpt_dict, resume_from_checkpoint)
         return ckpt_dict
 
