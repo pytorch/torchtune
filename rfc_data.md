@@ -123,12 +123,12 @@ dataset which requires splitting and processing the strings directly before temp
 This class should handle massaging the input data columns/fields into a predefined
 prompt template. We will support the most common ones: instruct, chat, sharegpt,
 etc. This is akin to Axolotl’s Prompters.
-
+```
 class PromptTemplate:
     system = "This is an example system prompt: {input} {output}"
     def format(self, sample: Dict[str, str], column_map: Dict[str, str]) -> str:
         return self.system.format(input=sample[column_map["input"]], output=sample[column_map["output"]])
-
+```
 
 One challenge is mapping the input data columns into the correct fields for the
 prompt template, given that the input dataset could have different columns, formats,
