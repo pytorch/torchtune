@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops, FrozenNF4Linear
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
@@ -96,9 +96,7 @@ class LoRALinear(nn.Module, AdapterModule):
         weight_tensor = (
             linear.weight
             if not self._quantize_base
-            else NF4Tensor.from_tensor(
-                linear.weight.get_original_weight()
-            )
+            else to_nf4(linear.weight.get_original_weight())
         )
         bias = None
         if self.use_bias:
