@@ -97,8 +97,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-        if cfg.full_bf16:
-            torch.set_default_dtype(torch.bfloat16)
         # Load in base model weights
         # Note that we set resume_from_checkpoint=False when loading the base model.
         # This is because we only save LoRA weights during training, so only lora_checkpoint

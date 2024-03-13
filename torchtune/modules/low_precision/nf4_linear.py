@@ -10,7 +10,7 @@ import torch
 
 import torch.nn as nn
 from torch import Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
 
 class FrozenNF4Linear(nn.Linear):
@@ -52,7 +52,7 @@ class FrozenNF4Linear(nn.Linear):
         )
         self.weight.requires_grad_(False)
 
-        self.nf4_weight = NF4Tensor.from_tensor(self.weight.data)
+        self.nf4_weight = to_nf4(self.weight.data)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
         self.weight = torch.nn.Parameter(self.nf4_weight, requires_grad=False)
