@@ -131,6 +131,7 @@ class TestFullFinetuneRecipe:
                 checkpointer._component_=torchtune.utils.{checkpointer}
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
+                checkpointer.output_dir={tmpdir} \
                 checkpointer.model_type=LLAMA2
             """.split()
 
@@ -174,11 +175,12 @@ class TestFullFinetuneRecipe:
         tune full_finetune
             --config {_CONFIG_PATH} \
             --override \
-            output_dir={ckpt_dir} \
+            output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             epochs=4 \
         """.split()
@@ -190,6 +192,10 @@ class TestFullFinetuneRecipe:
         # Clear stdout
         capsys.readouterr()
 
+        config_file = Path.joinpath(Path(tmpdir), "config.json")
+        with config_file.open("w") as f:
+            json.dump(config, f)
+
         # Resume training
         cmd_2 = f"""
         tune full_finetune
@@ -198,8 +204,10 @@ class TestFullFinetuneRecipe:
             output_dir={tmpdir} \
             model._component_=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
-            checkpointer.checkpoint_dir={ckpt_dir} \
-            checkpointer.checkpoint_files=[{os.path.join(ckpt_dir, "hf_model_0001_2.pt")}]\
+            checkpointer.checkpoint_dir={tmpdir} \
+            checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_2.pt")}]\
+            checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             epochs=4 \
             resume_from_checkpoint=True \
@@ -242,6 +250,7 @@ class TestRecipeGradientAccumulation:
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={full_batch_size} \
@@ -270,6 +279,7 @@ class TestRecipeGradientAccumulation:
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             dataset._component_=tests.recipes.utils.DummyDataset \
             batch_size={micro_batch_size} \

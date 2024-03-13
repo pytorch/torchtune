@@ -23,14 +23,6 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils.constants import (
-    EPOCHS_KEY,
-    MAX_STEPS_KEY,
-    MODEL_KEY,
-    OPT_KEY,
-    SEED_KEY,
-    TOTAL_EPOCHS_KEY,
-)
 
 from tqdm import tqdm
 
@@ -95,11 +87,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
-        Extract and load state dict from checkpoint file.
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
         """
         self._checkpointer = config.instantiate(
             cfg,
-            output_dir=self._output_dir,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
@@ -107,6 +99,32 @@ class FullFinetuneRecipe(FTRecipeInterface):
         if self._resume_from_checkpoint:
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
+
+    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+        """
+        Updates the recipe state from checkpoint.
+        """
+        # If seed, total_epoch or max_steps_per_epoch don't match,
+        # warn the user and overwrite
+        try:
+            if (
+                self.seed != ckpt_dict[utils.SEED_KEY]
+                or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+                or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
+            ):
+                warn(
+                    message="""Configured value for seed, epochs or max_steps_per_epoch
+                    does not match the value stored in checkpoint."""
+                )
+            self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
+            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+            self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+            self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+        except KeyError as e:
+            raise KeyError from e(
+                "Checkpoint does not contain the required keys needed for updating recipe state."
+                "Are you suare you passed in the right recipe checkpoint?"
+            )
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -124,7 +142,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            model_state_dict=ckpt_dict[MODEL_KEY],
+            model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -135,7 +153,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[OPT_KEY] if self._resume_from_checkpoint else None,
+            opt_state_dict=ckpt_dict[utils.OPT_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -174,26 +194,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
-
-    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
-        """
-        Updates the recipe state from checkpoint.
-        """
-        # If seed, total_epoch or max_steps_per_epoch don't match,
-        # warn the user and overwrite
-        if (
-            self.seed != ckpt_dict[SEED_KEY]
-            or self.total_epochs != ckpt_dict[TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[MAX_STEPS_KEY]
-        ):
-            warn(
-                message="""Configured value for seed, epochs or max_steps_per_epoch
-                does not match the value stored in checkpoint."""
-            )
-        self.seed = utils.set_seed(seed=ckpt_dict[SEED_KEY])
-        self.epochs_run = ckpt_dict[EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[MAX_STEPS_KEY]
 
     def _setup_model(
         self,
@@ -292,9 +292,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def save_checkpoint(self, epoch: int) -> None:
         """
-        Save state dict to file.
+        Save state dict to file. The recipe save_checkpoint method is responsible for
+        correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {MODEL_KEY: self._model.state_dict()}
+        ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             optimizer_state_dict = (
@@ -304,11 +305,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
             )
             ckpt_dict.update(
                 {
-                    OPT_KEY: optimizer_state_dict,
-                    SEED_KEY: self.seed,
-                    EPOCHS_KEY: self.epochs_run,
-                    TOTAL_EPOCHS_KEY: self.total_epochs,
-                    MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    utils.OPT_KEY: optimizer_state_dict,
+                    utils.SEED_KEY: self.seed,
+                    utils.EPOCHS_KEY: self.epochs_run,
+                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
         if self._is_rank_zero:

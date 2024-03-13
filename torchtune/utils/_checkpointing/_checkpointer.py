@@ -9,13 +9,14 @@ import json
 import os
 
 from pathlib import Path
-from typing import Any, Dict, List, Protocol
+from typing import Any, Dict, List, Optional, Protocol
 
 import torch
+from torchtune import utils
 
 from torchtune.models import llama2
 from torchtune.utils._checkpointing._checkpointer_utils import (
-    get_recipe_checkpoint_path,
+    get_path,
     ModelType,
     safe_torch_load,
 )
@@ -107,6 +108,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         checkpoint_files: List[str],
         model_type: ModelType,
         output_dir: str,
+        adapter_checkpoint: Optional[str] = None,
+        recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
     ) -> None:
         # Fail fast if ``checkpoint_files`` is invalid
@@ -117,26 +120,33 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             )
 
         self._checkpoint_dir = Path(checkpoint_dir)
-        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, checkpoint_files[0])
-        if (
-            not self._checkpoint_path.is_file()
-            or not self._checkpoint_path.suffix == ".pt"
-        ):
+        self._checkpoint_path = get_path(self._checkpoint_dir, checkpoint_files[0])
+
+        if not self._checkpoint_path.suffix == ".pt":
             raise ValueError(
                 f"Checkpoint file {self._checkpoint_path} is not a valid checkpoint file. "
                 "Checkpointer expects a valid .pt file."
             )
 
+        self._adapter_checkpoint = (
+            get_path(self._checkpoint_dir, adapter_checkpoint)
+            if adapter_checkpoint
+            else None
+        )
+
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = model_type
         self._output_dir = Path(output_dir)
-        self._recipe_state_file = None
 
-        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
+        # recipe_checkpoint contains the recipe state. This should be available if
+        # resume_from_checkpoint is True
+        self._recipe_checkpoint = None
         if self._resume_from_checkpoint:
-            self._recipe_state_file = get_recipe_checkpoint_path(
-                self._checkpoint_dir, filename="recipe_state.pt"
-            )
+            if recipe_checkpoint is None:
+                raise ValueError(
+                    "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
+                )
+            self._recipe_checkpoint = get_path(self._checkpoint_dir, recipe_checkpoint)
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -154,7 +164,11 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             }
         """
         state_dict: Dict[str:Any] = {}
-        state_dict["model"] = safe_torch_load(self._checkpoint_path)
+        state_dict[utils.MODEL_KEY] = safe_torch_load(self._checkpoint_path)
+
+        if self._adapter_checkpoint:
+            adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
+            state_dict[utils.ADAPTER_KEY] = adapter_state_dict
 
         if self._resume_from_checkpoint:
             recipe_state = safe_torch_load(self._recipe_state_file)
@@ -198,18 +212,35 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         checkpoint_file = Path.joinpath(
             self._output_dir, f"torchtune_model_{epoch}"
         ).with_suffix(".pt")
-        torch.save(state_dict["model"], checkpoint_file)
-
-        # If the recipe state needs to be output, first remove the model state dict
-        if intermediate_checkpoint:
-            _ = state_dict.pop("model")
-            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
-
+        torch.save(state_dict[utils.MODEL_KEY], checkpoint_file)
         logger.info(
             "Model checkpoint of size "
             f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
             f"saved to {checkpoint_file}"
         )
+
+        if utils.ADAPTER_KEY in state_dict:
+            output_path = Path.joinpath(
+                self._output_dir, f"adapter_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
+        # If the recipe state needs to be output, first remove the model state dict
+        if intermediate_checkpoint:
+            _ = state_dict.pop(utils.MODEL_KEY)
+            _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            torch.save(state_dict, output_path)
+            logger.info(
+                "Recipe checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
 
 
 class FullModelHFCheckpointer(_CheckpointerInterface):
@@ -243,10 +274,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint_files: List[str],
         model_type: ModelType,
         output_dir: str,
+        adapter_checkpoint: Optional[str] = None,
+        recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
+        self._adapter_checkpoint = (
+            get_path(self._checkpoint_dir, adapter_checkpoint)
+            if adapter_checkpoint
+            else None
+        )
 
         self._model_type = model_type
         self._output_dir = Path(output_dir)
@@ -262,12 +300,15 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Path.joinpath(self._checkpoint_dir, "config.json").read_text()
         )
 
-        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
-        self._recipe_state_file = None
+        # recipe_checkpoint contains the recipe state. This should be available if
+        # resume_from_checkpoint is True
+        self._recipe_checkpoint = None
         if self._resume_from_checkpoint:
-            self._recipe_state_file = get_recipe_checkpoint_path(
-                self._checkpoint_dir, filename="recipe_state.pt"
-            )
+            if recipe_checkpoint is None:
+                raise ValueError(
+                    "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
+                )
+            self._recipe_checkpoint = get_path(self._checkpoint_dir, recipe_checkpoint)
 
     def _validate_hf_checkpoint_files(self, checkpoint_files: List[str]) -> List[Path]:
         """
@@ -275,11 +316,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         """
         checkpoint_paths: List[Path] = []
         for f in checkpoint_files:
-            checkpoint_path = Path.joinpath(self._checkpoint_dir, f)
-            if not checkpoint_path.is_file():
-                raise ValueError(
-                    f"Checkpoint file {f} is not a valid checkpoint file in dir {self._checkpoint_dir}."
-                )
+            checkpoint_path = get_path(self._checkpoint_dir, f)
             checkpoint_paths.append(checkpoint_path)
         return sorted(checkpoint_paths)
 
@@ -317,7 +354,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # converted_state_dict is the final state_dict passed to the recipe after the
         # keys are converted into the TorchTune format. This optionally also contains
-        # the recipe state
+        # the recipe state and adapter weights
         converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
 
         # _checkpoint_paths are already sorted so simply enumerate to generate the right id
@@ -339,15 +376,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
 
-        converted_state_dict["model"] = llama2.hf_to_tune_llama2_7b(
+        converted_state_dict[utils.MODEL_KEY] = llama2.hf_to_tune_llama2_7b(
             merged_state_dict,
             num_heads=self._config["num_attention_heads"],
             num_kv_heads=self._config["num_key_value_heads"],
             dim=self._config["hidden_size"],
         )
 
+        if self._adapter_checkpoint:
+            adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
+            converted_state_dict[utils.ADAPTER_KEY] = adapter_state_dict
+
         if self._resume_from_checkpoint:
-            recipe_state = safe_torch_load(self._recipe_state_file)
+            recipe_state = safe_torch_load(self._recipe_checkpoint)
             converted_state_dict.update(recipe_state)
         return converted_state_dict
 
@@ -383,8 +424,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._output_dir.mkdir(exist_ok=True)
 
         # convert the state_dict back to hf format; do this inplace
-        state_dict["model"] = llama2.tune_to_hf_llama2_7b(
-            state_dict["model"],
+        state_dict[utils.MODEL_KEY] = llama2.tune_to_hf_llama2_7b(
+            state_dict[utils.MODEL_KEY],
             num_heads=self._config["num_attention_heads"],
             num_kv_heads=self._config["num_key_value_heads"],
             dim=self._config["hidden_size"],
@@ -392,7 +433,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
-        for key, weight in state_dict["model"].items():
+        for key, weight in state_dict[utils.MODEL_KEY].items():
             cpt_idx = self._weight_map[key]
             if cpt_idx not in split_state_dicts:
                 split_state_dicts[cpt_idx] = {}
@@ -410,10 +451,29 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
+        if utils.ADAPTER_KEY in state_dict:
+            output_path = Path.joinpath(
+                self._output_dir, f"adapter_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
         # If the recipe state needs to be output, first remove the model state dict
+        # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
-            _ = state_dict.pop("model")
-            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
+            _ = state_dict.pop(utils.MODEL_KEY)
+            _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            torch.save(state_dict, output_path)
+            logger.info(
+                "Recipe checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
 
 
 class FullModelMetaCheckpointer(_CheckpointerInterface):
@@ -442,6 +502,8 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         checkpoint_files: List[str],
         model_type: ModelType,
         output_dir: str,
+        adapter_checkpoint: Optional[str] = None,
+        recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
     ) -> None:
         # Fail fast if ``checkpoint_files`` is invalid
@@ -452,18 +514,27 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
             )
 
         self._checkpoint_dir = Path(checkpoint_dir)
-        self._checkpoint_path = Path.joinpath(self._checkpoint_dir, checkpoint_files[0])
+        self._checkpoint_path = get_path(self._checkpoint_dir, checkpoint_files[0])
+
+        self._adapter_checkpoint = (
+            get_path(self._checkpoint_dir, adapter_checkpoint)
+            if adapter_checkpoint
+            else None
+        )
 
         self._resume_from_checkpoint = resume_from_checkpoint
         self._model_type = model_type
         self._output_dir = Path(output_dir)
-        self._recipe_state_file = None
 
-        # if resume_from_checkpoint is True, recipe_state.pt should contain the recipe state
+        # recipe_checkpoint contains the recipe state. This should be available if
+        # resume_from_checkpoint is True
+        self._recipe_checkpoint = None
         if self._resume_from_checkpoint:
-            self._recipe_state_file = get_recipe_checkpoint_path(
-                self._checkpoint_dir, filename="recipe_state.pt"
-            )
+            if recipe_checkpoint is None:
+                raise ValueError(
+                    "If resume_from_checkpoint is True, recipe_checkpoint file must be provided."
+                )
+            self._recipe_checkpoint = get_path(self._checkpoint_dir, recipe_checkpoint)
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
@@ -482,7 +553,11 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
-        state_dict["model"] = llama2.meta_to_tune_llama2_7b(model_state_dict)
+        state_dict[utils.MODEL_KEY] = llama2.meta_to_tune_llama2_7b(model_state_dict)
+
+        if self._adapter_checkpoint:
+            adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
+            converted_state_dict[utils.ADAPTER_KEY] = adapter_state_dict
 
         if self._resume_from_checkpoint:
             recipe_state = safe_torch_load(self._recipe_state_file)
@@ -521,22 +596,40 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
                 recipe state
         """
         self._output_dir.mkdir(exist_ok=True)
-        model_state_dict = state_dict["model"]
-        state_dict["model"] = llama2.tune_to_meta_llama2_7b(model_state_dict)
+        model_state_dict = state_dict[utils.MODEL_KEY]
+        state_dict[utils.MODEL_KEY] = llama2.tune_to_meta_llama2_7b(model_state_dict)
 
         # Output file is always a .pt file with the epoch number in the name
         checkpoint_file = Path.joinpath(
             self._output_dir, f"meta_model_{epoch}"
         ).with_suffix(".pt")
-        torch.save(state_dict["model"], checkpoint_file)
-
-        # If the recipe state needs to be output, first remove the model state dict
-        if intermediate_checkpoint:
-            _ = state_dict.pop("model")
-            torch.save(state_dict, Path.joinpath(self._output_dir, "recipe_state.pt"))
-
+        torch.save(state_dict[utils.MODEL_KEY], checkpoint_file)
         logger.info(
             "Model checkpoint of size "
             f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
             f"saved to {checkpoint_file}"
         )
+
+        if utils.ADAPTER_KEY in state_dict:
+            output_path = Path.joinpath(
+                self._output_dir, f"adapter_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
+        # If the recipe state needs to be output, first remove the model state dict
+        # and if it exists, remove the adapter state dict as well
+        if intermediate_checkpoint:
+            _ = state_dict.pop(utils.MODEL_KEY)
+            _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
+            torch.save(state_dict, output_path)
+            logger.info(
+                "Recipe checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
