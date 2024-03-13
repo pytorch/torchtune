@@ -236,6 +236,8 @@ def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
                 )
             m._merge_weight_pre_handle.remove()
             m._merge_weight_post_handle.remove()
+            del m._merge_weight_pre_handle
+            del m._merge_weight_post_handle
 
 
 @contextlib.contextmanager
