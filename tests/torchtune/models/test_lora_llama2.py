@@ -190,3 +190,4 @@ class TestLoRALlama2:
 
     def test_qlora_llama2_state_dict(self):
         pass # placeholder to test _register_lora_quant_hooks
+        # test that we can load a bf16 state_dict

@@ -423,7 +423,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    torch.cuda.set_per_process_memory_fraction(0.2)
+    # torch.cuda.set_per_process_memory_fraction(0.2)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()

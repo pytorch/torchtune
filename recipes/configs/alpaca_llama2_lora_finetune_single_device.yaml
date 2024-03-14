@@ -60,4 +60,4 @@ full_bf16: False
 enable_activation_checkpointing: True
 
 # Final checkpoint
-save_merged_final_checkpoint: False
+save_merged_final_checkpoint: True

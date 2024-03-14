@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4, NF4Tensor
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops, FrozenNF4Linear
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
@@ -79,7 +79,6 @@ class LoRALinear(nn.Module, AdapterModule):
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
         self.initialize_parameters()
-        self.register_state_dict_pre_hook(self._dequant_state_dict_pre_hook)
 
     def initialize_parameters(self):
         # Initialize as in
@@ -88,6 +87,10 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_b_init_params(self.lora_b)
 
     def _create_weight_and_bias(self):
+        """
+        Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
+        (indicated via quantize_base=True).
+        """
         in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
         linear = (
             nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
@@ -108,14 +111,26 @@ class LoRALinear(nn.Module, AdapterModule):
             bias = _copy_tensor(linear.bias)
         return weight_tensor, bias
 
-    def _dequant_state_dict_pre_hook(self, *args, **kwargs):
-        """
-        Pre-hook that converts quantized LoRA weight to bf16 to support
-        checkpoints in bf16. TODO (rohan-varma): make this configurable and possibly
-        generalize to other dtypes.
-        """
-        if self._quantize_base:
-            self.weight = self.weight.to(torch.bfloat16)
+    # def _dequant_state_dict_pre_hook(self, *args, **kwargs):
+    #     """
+    #     Pre-hook that converts quantized LoRA weight to bf16 to support
+    #     checkpoints in bf16. TODO (rohan-varma): make this configurable and possibly
+    #     generalize to other dtypes.
+    #     """
+    #     # print(f"RV -- _dequant_state_dict_pre_hook")
+    #     if self._quantize_base:
+    #         print(f"RV -- _dequant_state_dict_pre_hook")
+    #         # self.weight = self.weight.to(torch.bfloat16)
+    #         self.weight = nn.Parameter(self.weight.get_original_weight())
+    #         assert not isinstance(self.weight, NF4Tensor)
+
+    # def _quant_state_dict_post_hook(self, *args, **kwargs):
+    #     """
+    #     Post hook that converts unquantized nf4 weight back to nf4.
+    #     """
+    #     if self._quantize_base:
+    #         assert not isinstance(self.weight, NF4Tensor)
+    #         self.weight = nn.Parameter(to_nf4(self.weight))
 
     def adapter_params(self) -> List[str]:
         """
@@ -129,16 +144,18 @@ class LoRALinear(nn.Module, AdapterModule):
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
-    def _unquantize_base_weight(self, *args, **kwargs):
-        if not self._quantize_base:
-            raise RuntimeError("Cannot call _unquantize_base_weight, weights are not quantized")
-        # TODO (rohan-varma): only supports bf16 for the time being.
-        self.weight = self.weight.to(torch.bfloat16)
+    # def _unquantize_base_weight(self, *args, **kwargs):
+    #     return
+    #     if not self._quantize_base:
+    #         raise RuntimeError("Cannot call _unquantize_base_weight, weights are not quantized")
+    #     # TODO (rohan-varma): only supports bf16 for the time being.
+    #     self.weight = self.weight.to(torch.bfloat16)
 
-    def _quantize_base_weight(self, *args, **kwargs):
-        if not self._quantize_base:
-            raise RuntimeError("Cannot call _quantize_base_weight, weights are not quantized")
-        self.weight = to_nf4(self.weight)
+    # def _quantize_base_weight(self, *args, **kwargs):
+    #     return
+    #     if not self._quantize_base:
+    #         raise RuntimeError("Cannot call _quantize_base_weight, weights are not quantized")
+    #     self.weight = to_nf4(self.weight)
 
     @property
     def _lora_delta(self):

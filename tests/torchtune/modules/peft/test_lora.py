@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 from tests.test_utils import fixed_init_model
 from torch import nn
+from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
@@ -130,3 +131,60 @@ class TestLoRALinear:
 
         torch.testing.assert_close(out_pre, out_post)
         torch.testing.assert_close(sd_pre, lora_linear.state_dict())
+
+    def test_lora_weight_nf4_when_quantized(self):
+        lora_linear = LoRALinear(
+            in_dim=in_dim,
+            out_dim=out_dim,
+            rank=RANK,
+            alpha=ALPHA,
+            use_bias=False,
+            quantize_base=True,
+        )
+        assert isinstance(lora_linear.weight, NF4Tensor)
+
+    def test_quantize_with_bias_raises(self):
+        with pytest.raises(NotImplementedError, match="does not support bias"):
+            LoRALinear(
+                in_dim=in_dim,
+                out_dim=out_dim,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=True,
+                quantize_base=True,
+            )
+
+    def test_quantized_state_dict_bf16(self):
+        lora_linear = LoRALinear(
+            in_dim=in_dim,
+            out_dim=out_dim,
+            rank=RANK,
+            alpha=ALPHA,
+            use_bias=False,
+            quantize_base=True,
+        )
+        sd = lora_linear.state_dict()
+        # No nf4 tensors, all bf16
+        for v in sd.values():
+            assert v.dtype == torch.bfloat16
+            assert not isinstance(v, NF4Tensor)
+
+        # Load back in results in re-quant and creates the same nf4 tensor.
+        # This also ensures that LoRALinear can load a bf16 state_dict.
+        lora_linear_reload = LoRALinear(
+            in_dim=in_dim,
+            out_dim=out_dim,
+            rank=RANK,
+            alpha=ALPHA,
+            use_bias=False,
+            quantize_base=True,
+        )
+        # nf4 tensors should be different
+        assert not torch.allclose(
+            lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
+        )
+        # but should be the same after loading
+        lora_linear_reload.load_state_dict(sd)
+        assert torch.allclose(
+            lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
+        )

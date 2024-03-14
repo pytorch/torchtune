@@ -7,6 +7,9 @@
 from typing import List, Literal, Optional
 
 from torch import nn
+from torchtune.models.llama2._llama2_builders import _llama_mlp
+
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -19,9 +22,6 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LoRALinear
-
-from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
-from torchtune.models.llama2._llama2_builders import _llama_mlp
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
@@ -126,22 +126,46 @@ def _lora_llama_self_attention(
         else None
     )
     q_proj = (
-        LoRALinear(embed_dim, num_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
+        LoRALinear(
+            embed_dim,
+            num_heads * head_dim,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            quantize_base=quantize_base,
+        )
         if "q_proj" in lora_modules
         else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
     )
     k_proj = (
-        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
+        LoRALinear(
+            embed_dim,
+            num_kv_heads * head_dim,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            quantize_base=quantize_base,
+        )
         if "k_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
     )
     v_proj = (
-        LoRALinear(embed_dim, num_kv_heads * head_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
+        LoRALinear(
+            embed_dim,
+            num_kv_heads * head_dim,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            quantize_base=quantize_base,
+        )
         if "v_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
     )
     output_proj = (
-        LoRALinear(embed_dim, embed_dim, rank=lora_rank, alpha=lora_alpha, quantize_base=quantize_base)
+        LoRALinear(
+            embed_dim,
+            embed_dim,
+            rank=lora_rank,
+            alpha=lora_alpha,
+            quantize_base=quantize_base,
+        )
         if "output_proj" in lora_modules
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
@@ -295,7 +319,9 @@ def lora_llama2(
     # TODO (rohan-varma): not quantizing output_proj as NF4Tensor quantization of large weight leads to large increase
     # in reserved memory.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, quantize_base=False)
+        LoRALinear(
+            embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, quantize_base=False
+        )
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -306,9 +332,26 @@ def lora_llama2(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
+
+    if quantize_base:
+        from functools import partial
+
+        from torchtune.modules.low_precision import (
+            reparametrize_as_bf16_state_dict_post_hook,
+        )
+        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+        # so as to not increase peak memory
+        ret_model._register_state_dict_hook(
+            partial(reparametrize_as_bf16_state_dict_post_hook, offload_to_cpu=True)
+        )
     return ret_model
 
-def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
+
+def get_lora_module_names(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
+) -> List[str]:
     """
     Return a list of the names of modules in the model that have LoRA applied. Note that
     the names here are local to their modules and not the fully qualified names from the
@@ -324,7 +367,7 @@ def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora
 
     """
     lora_module_keys = lora_attn_modules
-    if  apply_lora_to_mlp:
+    if apply_lora_to_mlp:
         lora_module_keys = lora_module_keys + ["w1", "w2", "w3"]
     if apply_lora_to_output:
         lora_module_keys.append("output")
