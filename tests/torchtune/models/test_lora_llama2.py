@@ -9,9 +9,11 @@ import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
+from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune import utils
 from torchtune.models.llama2 import llama2, lora_llama2
-from torchtune.modules.peft import LoRALinear
 from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
+from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
 RANK = 4
@@ -147,19 +149,6 @@ class TestLoRALlama2:
         assert_expected(actual.shape, (BSZ, SEQ_LEN, vocab_size))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
-    def test_lora_linear_quantize_base(self):
-        model = self.get_lora_llama2(
-            lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
-            apply_lora_to_mlp=True,
-            apply_lora_to_output=False,
-            vocab_size=50,
-            quantize_base=True,
-        )
-        for module in model.modules():
-            if isinstance(module, LoRALinear):
-                assert module._quantize_base
-
-
     @pytest.mark.parametrize(
         "lora_modules, apply_lora_to_mlp, apply_lora_to_output",
         [
@@ -188,6 +177,45 @@ class TestLoRALlama2:
         assert not unexpected
         assert all(["lora" in key for key in missing])
 
+    def test_lora_linear_quantize_base(self):
+        model = self.get_lora_llama2(
+            lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+            apply_lora_to_mlp=True,
+            apply_lora_to_output=False,
+            vocab_size=50,
+            quantize_base=True,
+        )
+        for module in model.modules():
+            if isinstance(module, LoRALinear):
+                assert module._quantize_base
+
     def test_qlora_llama2_state_dict(self):
-        pass # placeholder to test _register_lora_quant_hooks
-        # test that we can load a bf16 state_dict
+        with utils.set_default_dtype(torch.bfloat16):
+            model_ref = self.get_lora_llama2(
+                lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+                apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
+                vocab_size=50,
+                quantize_base=False,
+            )
+            bf16_sd = model_ref.state_dict()
+            for v in bf16_sd.values():
+                assert v.dtype == torch.bfloat16
+
+            # ensure quantized LoRA can load a bf16 state_dict
+            qlora = self.get_lora_llama2(
+                lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+                apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
+                vocab_size=50,
+                quantize_base=True,
+            )
+            qlora.load_state_dict(bf16_sd)
+            # LoRALinear weights should be nf4 still
+            for module in qlora.modules():
+                if isinstance(module, LoRALinear):
+                    assert isinstance(module.weight, NF4Tensor)
+            # saved state_dict should have bf16 weights.
+            qlora_sd = qlora.state_dict()
+            for v in qlora_sd.values():
+                assert v.dtype == torch.bfloat16

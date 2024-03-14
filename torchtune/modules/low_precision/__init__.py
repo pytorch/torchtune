@@ -4,16 +4,33 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Any, Dict
+
+import torch.nn as nn
 from torchao.dtypes.nf4tensor import NF4Tensor
 
 from .nf4_linear import FrozenNF4Linear
 
 
 def reparametrize_as_bf16_state_dict_post_hook(
-    model, state_dict, *args, offload_to_cpu: bool = True, **kwargs
+    model: nn.Module,
+    state_dict: Dict[str, Any],
+    *args,
+    offload_to_cpu: bool = True,
+    **kwargs,
 ):
     """
-    Replaces nf4 tensors with their restored bf16 weight.
+    A state_dict hook that replaces nf4 tensors with their restored
+    bf16 weight and optionally offloads the restored weight to CPU.
+
+    This function is meant to be used with PyTorch's ``nn.Module._register_state_dict_hook``, i.e.
+    >>> m = MyModule()
+    >>> m._register_state_dict_hook(reparametrize_as_bf16_state_dict_post_hook)
+
+    Args:
+        model (nn.Module): the model to take ``state_dict()`` on
+        state_dict (Dict[str, Any]): the state dict to modify
+        offload_to_cpu (bool): whether to offload the restored weight to CPU
     """
     print(f"RV: replace as bf16 and offload to CPU.")
     for k, v in state_dict.items():
@@ -22,16 +39,4 @@ def reparametrize_as_bf16_state_dict_post_hook(
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
 
-
-# def reparametrize_as_bf16(model, offload_to_cpu):
-#     """
-#     Replace
-#     """
-#     for name, module in model.named_modules():
-#         if isinstance(module, FrozenNF4Linear):
-#             module.reparametrize_as_bf16(offload_to_cpu)
-
-__all__ = [
-    "FrozenNF4Linear",
-    "reparametrize_as_bf16_state_dict_post_hook"
-]
+__all__ = ["FrozenNF4Linear", "reparametrize_as_bf16_state_dict_post_hook"]
