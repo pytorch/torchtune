@@ -6,7 +6,8 @@
 
 from omegaconf import DictConfig
 from torchtune.config._errors import ConfigError
-from torchtune.config._instantiate import _has_component, _instantiate_node
+from torchtune.config._instantiate import _instantiate_node
+from torchtune.config._utils import _has_component
 
 
 def validate(cfg: DictConfig) -> None:
