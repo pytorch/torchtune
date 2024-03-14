@@ -123,7 +123,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         except KeyError as e:
             raise KeyError from e(
                 "Checkpoint does not contain the required keys needed for updating recipe state."
-                "Are you suare you passed in the right recipe checkpoint?"
+                "Are you sure you passed in the right recipe checkpoint?"
             )
 
     def setup(self, cfg: DictConfig) -> None:

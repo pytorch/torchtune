@@ -27,15 +27,6 @@ from torchtune.modules.peft.peft_utils import (
 )
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils.constants import (
-    ADAPTER_KEY,
-    EPOCHS_KEY,
-    MAX_STEPS_KEY,
-    MODEL_KEY,
-    OPT_KEY,
-    SEED_KEY,
-    TOTAL_EPOCHS_KEY,
-)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -103,7 +94,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         checkpoint_dict = self._checkpointer.load_checkpoint()
 
         if self._resume_from_checkpoint:
-            if ADAPTER_KEY not in checkpoint_dict:
+            if utils.ADAPTER_KEY not in checkpoint_dict:
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
@@ -119,18 +110,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # If seed, total_epoch or max_steps_per_epoch don't match,
         # warn the user and overwrite
         if (
-            self.seed != ckpt_dict[SEED_KEY]
-            or self.total_epochs != ckpt_dict[TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[MAX_STEPS_KEY]
+            self.seed != ckpt_dict[utils.SEED_KEY]
+            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
         ):
             warn(
                 message="""Configured value for seed, epochs or max_steps_per_epoch
                 does not match the value stored in checkpoint."""
             )
-        self.seed = utils.set_seed(seed=ckpt_dict[SEED_KEY])
-        self.epochs_run = ckpt_dict[EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[MAX_STEPS_KEY]
+        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
+        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -153,9 +144,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_model=cfg.model,
             full_bf16=cfg.full_bf16,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            base_model_state_dict=checkpoint_dict[MODEL_KEY],
+            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
-                checkpoint_dict[ADAPTER_KEY] if self._resume_from_checkpoint else None
+                checkpoint_dict[utils.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
             ),
         )
 
@@ -164,7 +157,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[OPT_KEY]
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
             if self._resume_from_checkpoint
             else None,
         )
@@ -333,24 +326,24 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
-                    OPT_KEY: self._optimizer.state_dict(),
-                    SEED_KEY: self.seed,
-                    EPOCHS_KEY: self.epochs_run,
-                    TOTAL_EPOCHS_KEY: self.total_epochs,
-                    MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    utils.OPT_KEY: self._optimizer.state_dict(),
+                    utils.SEED_KEY: self.seed,
+                    utils.EPOCHS_KEY: self.epochs_run,
+                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
 
         # Construct the full state dict with LoRA weights merged into base LLM weights
         with merge_lora_weights_in_state_dict(self._model):
-            ckpt_dict.update({MODEL_KEY: self._model.state_dict()})
+            ckpt_dict.update({utils.MODEL_KEY: self._model.state_dict()})
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
         adapter_state_dict = {
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
-        ckpt_dict.update({ADAPTER_KEY: adapter_state_dict})
+        ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
 
         self._checkpointer.save_checkpoint(
             ckpt_dict,
