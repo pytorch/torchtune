@@ -12,7 +12,7 @@ model:
   lora_rank: 8
   lora_alpha: 16
 
-model_checkpoint: /tmp/llama2_native
+model_checkpoint: /tmp/llama2/llama2_native.pt
 lora_checkpoint: null
 
 # Tokenizer
