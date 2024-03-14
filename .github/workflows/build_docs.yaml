@@ -41,6 +41,12 @@ jobs:
         run: |
           cd docs
           make html
+
+          # On PRs we also want to upload the docs into our S3 bucket for preview.
+          # https://github.com/pytorch/test-infra/wiki/Using-Nova-Reusable-Build-Workflows#enable-document-preview-on-the-hud
+          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
+            cp -r build/html/* "${RUNNER_DOCS_DIR}"
+          fi
       - uses: actions/upload-artifact@v3
         with:
           name: Built-Docs
