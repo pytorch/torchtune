@@ -129,29 +129,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-<<<<<<< HEAD
-        # Load in base model weights
-        # Note that we set resume_from_checkpoint=False when loading the base model.
-        # This is because we only save LoRA weights during training, so only lora_checkpoint
-        # will contain training state, while model_checkpoint contains model weights only.
-        base_model_ckpt = self.load_checkpoint(
-            ckpt_path=cfg.model_checkpoint, resume_from_checkpoint=False
-        )
-
-        # If we're resuming from checkpoint, the recipe's state should be updated before
-        # initializing the training components. This ensures that the seed is correctly
-        # propagated to the relevant components
-        if self._resume_from_checkpoint:
-            assert (
-                cfg.lora_checkpoint is not None
-            ), "Must pass lora_checkpoint when resuming training"
-            lora_ckpt = self.load_checkpoint(
-                ckpt_path=cfg.lora_checkpoint, resume_from_checkpoint=True
-            )
-            self._update_recipe_state(lora_ckpt)
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
-
+        checkpoint_dict = checkpoint_dict["model"]
+        # import pdb; pdb.set_trace()
         # For CUDA devices, check if the HW supports bf16.
         if (
             cfg.full_bf16
@@ -434,7 +415,6 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line using ``--override``
     """
-    # torch.cuda.set_per_process_memory_fraction(0.2)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()

@@ -14,9 +14,9 @@ model:
   quantize_base: True
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/llama2/
-  checkpoint_files: [consolidated.00.pth]
+  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  checkpoint_dir: /home/rvarm1/local/dev/assets/
+  checkpoint_files: [llama2-bf16-latest.pt]
   adapter_checkpoint: null
   recipe_checkpoint: null
   output_dir: /tmp/llama2/
@@ -54,7 +54,7 @@ epochs: 1
 max_steps_per_epoch: null
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/lora_finetune_output_abcd/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
