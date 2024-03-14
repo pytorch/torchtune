@@ -58,6 +58,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
         # vanilla Transformers.
         self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
+        self.unsharded_weight_shape = linear.weight.shape
         if use_bias:
             self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
         else:
@@ -115,8 +116,25 @@ class LoRALinear(nn.Module, AdapterModule):
             raise RuntimeError(
                 "Cannot merge LoRA weights when LoRA matrices have biases"
             )
-        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self):
-            self.weight += self._lora_delta
+        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self, writeback=True):
+            print(f"RV: self weight shape {self.weight.shape}")
+            # Jeez
+            print(f"RV: unsharded weight shape {self.unsharded_weight_shape}")
+            for n, p in self.named_parameters(recurse=True):
+                if "weight" in n and "lora" not in n:
+                    print(f"RV: weight shape {p.shape}")
+                    cool_weight = torch.clone(p)
+                elif "lora_a" in n:
+                    print(f"RV: a shape {p.shape}")
+                    a = torch.clone(p)
+                elif "lora_b" in n:
+                    print(f"RV: b shape {p.shape}")
+                    b = torch.clone(p)
+
+            cool_weight = cool_weight.reshape(self.unsharded_weight_shape)
+            correct_tensor = (cool_weight) + (a @ b)
+            print(f"RV: correct weight shape {correct_tensor}")
+            # self.weight += self._lora_delta
         # self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
         # self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
         # del self.lora_a
@@ -135,7 +153,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
         # del self.cached_lora_a_weight
         # del self.cached_lora_b_weight
-        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self):
+        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self, writeback=True):
             self.weight -= self._lora_delta
         # self.weight -= self._lora_delta
         self.merged = False

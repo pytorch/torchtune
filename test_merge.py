@@ -14,7 +14,16 @@ def main():
 
     loras = {k for k in m.modules() if hasattr(k, "_merge_lora_weights")}
     for l in loras:
-        l._merge_lora_weights()
+        # Find the containing TransformerDecoderLayer for l
+        containing_transformer = None
+        all_transformers = {j for j in m.modules() if isinstance(j, modules.TransformerDecoderLayer)}
+        for t in all_transformers:
+            for submod in t.modules():
+                if l is submod:
+                    containing_transformer = t
+
+        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(containing_transformer, recurse=False):
+            l._merge_lora_weights()
 
     for l in loras:
         l._unmerge_lora_weights()
