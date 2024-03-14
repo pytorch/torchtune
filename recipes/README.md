@@ -31,6 +31,8 @@ Recipes in TorchTune are:
 
 TorchTune supports multiple checkpoint formats. For Llama2 specifically, this includes:
 
+&nbsp;
+
 **Meta Format**. This refers to the checkpoints uploaded by the original authors. You can download this checkpoint from the
 HF Hub, using the following command
 ```
@@ -51,6 +53,8 @@ resume_from_checkpoint: False
 ```
 The checkpointer will take care of converting the state_dict into a format compatible with TorchTune.
 
+&nbsp;
+
 **HF Format**. This refers to the HF-formatted llama2 checkpoints available in the HF repo. You can download this checkpoint from the HF Hub, using the following command
 ```
 tune download --repo-id meta-llama/Llama-2-7b-hf \
@@ -69,9 +73,13 @@ resume_from_checkpoint: False
 ```
 The checkpointer will take care of converting the state_dict into a format compatible with TorchTune.
 
+&nbsp;
+
 ### Checkpoints created during Training
 
 TorchTune recipes will output checkpoints in two scenarios:
+
+&nbsp;
 
 **Mid-training checkpoints**. Checkpoints are created at the end of each epoch. Mid-training, in addition to the model checkpoint, the checkpointer will output additional checkpoint files. These include:
 - Recipe Checkpoint. The `recipe_state.pt` file contains information about training needed to restart training from that point onwards. This includes training seed, number of epochs completed, optimizer state etc.
@@ -91,6 +99,8 @@ checkpointer:
 ```
 
 Note: In case of PEFT (eg: LoRA), the checkpoint files should continue to point towards the original base model since the output model checkpoint file contains the merged weights which should not be used for restarting training.
+
+&nbsp;
 
 **End-of-training checkpoints**. Torchtune outputs checkpoints in the same format as the input checkpoint. This means that you can use the output checkpoint with the same set of tools that you could use with the input checkpoints. This includes evaluation harnesses, inference engines etc.
 
