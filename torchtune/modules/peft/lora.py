@@ -97,6 +97,12 @@ class LoRALinear(nn.Module, AdapterModule):
             adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
+    from contextlib import contextmanager
+
+    def _maybe_summon_full_params(self, model):
+        assert isinstance(model, torch.distributed.fsdp.FullyShardedDataParallel)
+        return torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(model)
+
     @property
     def _lora_delta(self):
         return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
@@ -109,11 +115,12 @@ class LoRALinear(nn.Module, AdapterModule):
             raise RuntimeError(
                 "Cannot merge LoRA weights when LoRA matrices have biases"
             )
-        self.weight += self._lora_delta
-        self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
-        self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
-        del self.lora_a
-        del self.lora_b
+        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self):
+            self.weight += self._lora_delta
+        # self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
+        # self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
+        # del self.lora_a
+        # del self.lora_b
         self.merged = True
 
     @torch.no_grad
@@ -122,14 +129,18 @@ class LoRALinear(nn.Module, AdapterModule):
             raise RuntimeError(
                 "Cannot call _unmerge_lora_weights, weights are not merged"
             )
-        self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
-        self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
-        self.lora_a.weight = nn.Parameter(self.cached_lora_a_weight)
-        self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
-        del self.cached_lora_a_weight
-        del self.cached_lora_b_weight
-        self.weight -= self._lora_delta
+        # self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
+        # self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
+        # self.lora_a.weight = nn.Parameter(self.cached_lora_a_weight)
+        # self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
+        # del self.cached_lora_a_weight
+        # del self.cached_lora_b_weight
+        with torch.distributed.fsdp.FullyShardedDataParallel.summon_full_params(self):
+            self.weight -= self._lora_delta
+        # self.weight -= self._lora_delta
         self.merged = False
+
+
 
     def forward(self, x: Tensor) -> Tensor:
         """
