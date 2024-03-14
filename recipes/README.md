@@ -85,7 +85,7 @@ TorchTune recipes will output checkpoints in two scenarios:
 - Recipe Checkpoint. The `recipe_state.pt` file contains information about training needed to restart training from that point onwards. This includes training seed, number of epochs completed, optimizer state etc.
 - Adapter Checkpoint. If using PEFT like LoRA, the checkpointer additionally outputs the adapter weights needed to correctly intialize the LoRA parameters to restart training.
 
-A sample config component for this looks like this:
+To correctly restart training, the checkpointer needs access to the Recipe Checkpoint and optionally to the Adapter Checkpoint (in case training LoRA). A sample config component for LoRA looks something like this:
 
 ```
 checkpointer:
