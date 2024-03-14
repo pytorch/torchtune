@@ -16,38 +16,36 @@ defaults:
 jobs:
   build_docs:
     uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
-    strategy:
-      matrix:
-        python-version: ['3.11']
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v3
-      - name: Setup conda env
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          activate-environment: test
-          python-version: ${{ matrix.python-version }}
-      - name: Update pip
-        run: python -m pip install --upgrade pip
-      - name: Install dependencies
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -e .
-          cd docs
-          python -m pip install -r requirements.txt
-      - name: Build docs
-        run: |
-          cd docs
-          make html
+    with:
+      repository: pytorch/torchtune
+      upload-artifact: docs
+      test-infra-ref: main
+      script: |
+        set -euo pipefail
 
-          # On PRs we also want to upload the docs into our S3 bucket for preview.
-          # https://github.com/pytorch/test-infra/wiki/Using-Nova-Reusable-Build-Workflows#enable-document-preview-on-the-hud
-          if [[ ${{ github.event_name == 'pull_request' }} ]]; then
-            cp -r build/html/* "${RUNNER_DOCS_DIR}"
-          fi
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Built-Docs
-          path: docs/build/html/
+        export PYTHON_VERSION=3.8
+        export GPU_ARCH_TYPE=cpu
+        export GPU_ARCH_VERSION=''
+
+        # Prepare conda
+        CONDA_PATH=$(which conda)
+        eval "$(${CONDA_PATH} shell.bash hook)"
+        conda activate ci
+
+        python -m pip install -r requirements.txt
+        python -m pip install -e .
+
+        cd docs
+
+        echo '::group::Install doc requirements'
+        pip install --progress-bar=off -r requirements.txt
+        echo '::endgroup::'
+
+        make html
+
+        cp -r build/html "${RUNNER_ARTIFACT_DIR}"
+
+        # On PRs we also want to upload the docs into our S3 bucket for preview.
+        if [[ ${{ github.event_name == 'pull_request' }} ]]; then
+          cp -r build/html/* "${RUNNER_DOCS_DIR}"
+        fi
