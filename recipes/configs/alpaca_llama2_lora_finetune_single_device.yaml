@@ -14,9 +14,9 @@ model:
   quantize_base: True
 
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /home/rvarm1/local/dev/assets/
-  checkpoint_files: [llama2-bf16-latest.pt]
+  checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
   output_dir: /tmp/llama2/
