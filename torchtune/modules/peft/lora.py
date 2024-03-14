@@ -79,6 +79,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
         self.initialize_parameters()
+        self.register_state_dict_pre_hook(self._dequant_state_dict_pre_hook)
 
     def initialize_parameters(self):
         # Initialize as in
@@ -106,6 +107,15 @@ class LoRALinear(nn.Module, AdapterModule):
                 )
             bias = _copy_tensor(linear.bias)
         return weight_tensor, bias
+
+    def _dequant_state_dict_pre_hook(self, *args, **kwargs):
+        """
+        Pre-hook that converts quantized LoRA weight to bf16 to support
+        checkpoints in bf16. TODO (rohan-varma): make this configurable and possibly
+        generalize to other dtypes.
+        """
+        if self._quantize_base:
+            self.weight = self.weight.to(torch.bfloat16)
 
     def adapter_params(self) -> List[str]:
         """

@@ -10,6 +10,7 @@ import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
+from torchtune.modules.peft import LoRALinear
 from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
 from torchtune.utils.seed import set_seed
 
@@ -82,6 +83,7 @@ class TestLoRALlama2:
         apply_lora_to_output,
         vocab_size,
         reset_norm=True,
+        quantize_base=False,
     ):
         num_layers = 3
         model = lora_llama2(
@@ -96,6 +98,7 @@ class TestLoRALlama2:
             max_seq_len=MAX_SEQ_LEN,
             lora_rank=RANK,
             lora_alpha=ALPHA,
+            quantize_base=quantize_base,
         )
         # To make final outputs less trivial
         if reset_norm:
@@ -144,6 +147,19 @@ class TestLoRALlama2:
         assert_expected(actual.shape, (BSZ, SEQ_LEN, vocab_size))
         assert_expected(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
+    def test_lora_linear_quantize_base(self):
+        model = self.get_lora_llama2(
+            lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+            apply_lora_to_mlp=True,
+            apply_lora_to_output=False,
+            vocab_size=50,
+            quantize_base=True,
+        )
+        for module in model.modules():
+            if isinstance(module, LoRALinear):
+                assert module._quantize_base
+
+
     @pytest.mark.parametrize(
         "lora_modules, apply_lora_to_mlp, apply_lora_to_output",
         [
@@ -171,3 +187,6 @@ class TestLoRALlama2:
         )
         assert not unexpected
         assert all(["lora" in key for key in missing])
+
+    def test_qlora_llama2_state_dict(self):
+        pass # placeholder to test _register_lora_quant_hooks

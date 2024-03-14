@@ -6,8 +6,7 @@
 
 import contextlib
 import functools
-from dataclasses import dataclass
-from typing import Any, Callable, Dict, Generator, List, Optional, Protocol
+from typing import Any, Dict, Generator, List, Optional, Protocol
 
 from torch import nn
 
@@ -187,59 +186,6 @@ def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
     )
 
 
-@dataclass
-class _LoRAStateDictHook:
-    hook_fn: Callable
-    hook_name: str
-
-
-def _register_lora_hooks(
-    model: nn.Module,
-    pre_hook_data: _LoRAStateDictHook,
-    post_hook_data: _LoRAStateDictHook,
-) -> None:
-    """
-    TODO: doc
-    """
-    pre_hook_handle_name = pre_hook_data.hook_name
-    pre_hook = pre_hook_data.hook_fn
-    post_hook_handle_name = post_hook_data.hook_name
-    post_hook = post_hook_data.post_hook
-    for n, m in model.named_modules():
-        if _is_eligible_for_state_dict_hook(m):
-            if hasattr(m, pre_hook_handle_name):
-                raise RuntimeError(
-                    f"Cannot register state dict pre-hook, {m} already has hook {pre_hook_handle_name}"
-                )
-            if hasattr(m, post_hook_handle_name):
-                raise RuntimeError(
-                    f"Cannot register state dict post-hook, {m} already has hook {post_hook_handle_name}"
-                )
-            setattr(m, pre_hook_handle_name, m.register_state_dict_pre_hook(pre_hook))
-            setattr(m, post_hook_handle_name, m.register_state_dict_hook(post_hook))
-
-
-def _unregister_lora_hooks(
-    model: nn.Module,
-    pre_hook_name: str,
-    post_hook_name: str,
-) -> None:
-    for n, m in model.named_modules():
-        if _is_eligible_for_state_dict_hook(m):
-            if not hasattr(m, pre_hook_name):
-                raise RuntimeError(
-                    f"Cannot unregister state dict pre-hook {pre_hook_name} from {m}"
-                )
-            if not hasattr(m, post_hook_data.hook_name):
-                raise RuntimeError(
-                    f"Cannot unregister state dict post-hook {post_hook_name} from {m}"
-                )
-            getattr(m, pre_hook_name).remove()
-            getattr(m, post_hook_name).remove()
-            delattr(m, pre_hook_name)
-            delattr(m, post_hook_name)
-
-
 def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
     """
     Register state dict hooks for merging and unmerging LoRA weights.
@@ -250,15 +196,22 @@ def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
     Raises:
         RuntimeError: If the model already has LoRA merge state dict pre- or post-hooks.
     """
-    _register_lora_hooks(
-        model=model,
-        pre_hook_data=_LoRAStateDictHook(
-            m._merge_lora_weights, "_merge_weight_pre_handle"
-        ),
-        post_hook_data=_LoRAStateDictHook(
-            m._unmerge_lora_weights, "_merge_weight_post_handle"
-        ),
-    )
+    for n, m in model.named_modules():
+        if _is_eligible_for_state_dict_hook(m):
+            if hasattr(m, "_merge_weight_pre_handle"):
+                raise RuntimeError(
+                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict weight merge pre-hook"
+                )
+            if hasattr(m, "_merge_weight_post_handle"):
+                raise RuntimeError(
+                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict weight merge post-hook"
+                )
+            m._merge_weight_pre_handle = m.register_state_dict_pre_hook(
+                m._merge_lora_weights
+            )
+            m._merge_weight_post_handle = m._register_state_dict_hook(
+                m._unmerge_lora_weights
+            )
 
 
 def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
@@ -271,49 +224,20 @@ def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
     Raises:
         RuntimeError: If the model does not have the expected state dict pre- or post-hooks.
     """
-    _unregister_lora_hooks(
-        model=model,
-        pre_hook_name="_merge_weight_pre_handle",
-        post_hook_name="_merge_weight_post_handle",
-    )
-
-
-def _register_lora_quant_hooks(model: nn.Module) -> None:
-    """
-    Register state dict hooks for unquantizing and quantizing LoRA weights.
-    Args:
-        model (nn.Module): Instance of model class containing some LoRA params.
-    Returns:
-        None
-    Raises:
-        RuntimeError: If the model already has LoRA unquant state dict pre- or post-hooks.
-    """
-    _register_lora_hooks(
-        model=model,
-        pre_hook_data=_LoRAStateDictHook(
-            m._unquantize_base_weight, "_unquant_pre_handle"
-        ),
-        post_hook_data=_LoRAStateDictHook(
-            m._quantize_base_weight, "_unquant_post_handle"
-        ),
-    )
-
-# Might not need this
-def _unregister_lora_quant_hooks(model: nn.Module) -> None:
-    """
-    Unregister state dict hooks for unquantizing and quantizing LoRA weights.
-    Args:
-        model (nn.Module): Instance of model class containing some LoRA params.
-    Returns:
-        None
-    Raises:
-        RuntimeError: If the model does not have the expected state dict pre- or post-hooks.
-    """
-    _unregister_lora_hooks(
-        model=model,
-        pre_hook_name="_unquant_pre_handle",
-        post_hook_name="_unquant_post_handle",
-    )
+    for n, m in model.named_modules():
+        if _is_eligible_for_state_dict_hook(m):
+            if not hasattr(m, "_merge_weight_pre_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge pre-hook from {m}"
+                )
+            if not hasattr(m, "_merge_weight_post_handle"):
+                raise RuntimeError(
+                    f"Cannot unregister state dict weight merge post-hook from {m}"
+                )
+            m._merge_weight_pre_handle.remove()
+            m._merge_weight_post_handle.remove()
+            del m._merge_weight_pre_handle
+            del m._merge_weight_post_handle
 
 
 @contextlib.contextmanager

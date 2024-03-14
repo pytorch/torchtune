@@ -19,7 +19,6 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LoRALinear
-from torchtune.modules.peft_utils import _register_lora_quant_hooks
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama2._llama2_builders import _llama_mlp
@@ -307,7 +306,6 @@ def lora_llama2(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-    _register_lora_quant_hooks(ret_model)
     return ret_model
 
 def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
