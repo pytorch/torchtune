@@ -51,7 +51,6 @@ class FrozenNF4Linear(nn.Linear):
             in_dim, out_dim, device=device, dtype=torch.bfloat16, bias=False, **kwargs
         )
         self.weight.requires_grad_(False)
-
         self.nf4_weight = to_nf4(self.weight.data)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
