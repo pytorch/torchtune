@@ -7,8 +7,9 @@
 import argparse
 import textwrap
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 from torchtune import config
+from torchtune.config._utils import _merge_yaml_and_cli_args
 from torchtune.utils import TuneArgumentParser
 
 
@@ -31,7 +32,7 @@ if __name__ == "__main__":
         formatter_class=argparse.RawTextHelpFormatter,
     )
     # Get user-specified args from config and CLI and create params for recipe
-    params, _ = parser.parse_known_args()
-    params = OmegaConf.create(vars(params))
+    yaml_args, cli_args = parser.parse_known_args()
+    conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
-    main(params)
+    main(conf)

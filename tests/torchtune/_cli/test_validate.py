@@ -73,7 +73,7 @@ class TestTuneCLIWithValidateScript:
         OmegaConf.save(conf, dest)
 
         args = f"\
-            tune validate --config {dest} --override \
+            tune validate --config {dest} \
             test._component_=torchtune.utils.get_dtype \
             test.dtype=fp32 test.dummy=3".split()
 
