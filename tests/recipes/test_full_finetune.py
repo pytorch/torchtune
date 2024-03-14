@@ -173,9 +173,8 @@ class TestFullFinetuneRecipe:
         cmd_1 = f"""
         tune full_finetune
             --config {_CONFIG_PATH} \
-            --override \
             output_dir={tmpdir} \
-            model._component_=torchtune.models.{model_ckpt} \
+            model=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -200,7 +199,7 @@ class TestFullFinetuneRecipe:
         tune full_finetune
             --config {_CONFIG_PATH} \
             output_dir={tmpdir} \
-            model._component_=torchtune.models.{model_ckpt} \
+            model=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
             checkpointer.checkpoint_files=[{os.path.join(tmpdir, "hf_model_0001_2.pt")}]\
