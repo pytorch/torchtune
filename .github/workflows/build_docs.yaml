@@ -15,7 +15,7 @@ defaults:
 
 jobs:
   build_docs:
-    runs-on: ubuntu-latest
+    uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
     strategy:
       matrix:
         python-version: ['3.11']
