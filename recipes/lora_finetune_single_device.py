@@ -131,7 +131,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
-        checkpoint_dict = checkpoint_dict["model"]
         # import pdb; pdb.set_trace()
         # For CUDA devices, check if the HW supports bf16.
         if (
