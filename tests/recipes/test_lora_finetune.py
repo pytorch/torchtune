@@ -83,10 +83,9 @@ class TestLoRAFinetuneRecipe:
             cmd = f"""
             tune {recipe_name}
                 --config {config_path} \
-                --override \
                 output_dir={tmpdir} \
                 enable_fsdp={multi_gpu} \
-                model._component_=torchtune.models.{model_builder} \
+                model=torchtune.models.{model_builder} \
                 checkpointer._component_=torchtune.utils.{self.fetch_checkpointer(ckpt)}
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -142,9 +141,8 @@ class TestLoRAFinalCheckpoints:
         cmd = f"""
         tune {recipe_name}
             --config {config_path} \
-            --override \
             enable_fsdp={enable_fsdp} \
-            model._component_=torchtune.models.{ckpt} \
+            model=torchtune.models.{ckpt} \
             model_checkpoint={fetch_ckpt_model_path(ckpt)} \
             model.lora_rank=8 \
             model.lora_alpha=16 \
