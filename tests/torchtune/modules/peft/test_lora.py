@@ -11,6 +11,7 @@ import torch.nn.functional as F
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor
+from torchtune import utils
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
@@ -56,6 +57,20 @@ class TestLoRALinear:
         )
         fixed_init_model(lora_linear)
         return lora_linear
+
+    @pytest.fixture
+    def qlora_linear(self, in_dim, out_dim) -> LoRALinear:
+        with utils.set_default_dtype(torch.bfloat16):
+            qlora_linear = LoRALinear(
+                in_dim=512,
+                out_dim=512,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=False,
+                quantize_base=True,
+            )
+            fixed_init_model(qlora_linear)
+            return qlora_linear
 
     @torch.no_grad()
     def set_dummy_weights_for_merge(self, lora_module):
@@ -131,6 +146,19 @@ class TestLoRALinear:
 
         torch.testing.assert_close(out_pre, out_post)
         torch.testing.assert_close(sd_pre, lora_linear.state_dict())
+
+    def test_merge_and_unmerge_qlora_weights(self, qlora_linear):
+        inputs = torch.randn(2, 512, dtype=torch.bfloat16)
+        pre_merge_out = qlora_linear(inputs)
+        sd_pre_merge = qlora_linear.state_dict()
+        qlora_linear._merge_lora_weights()
+        qlora_linear._unmerge_lora_weights()
+        post_unmerge_out = qlora_linear(inputs)
+        assert torch.allclose(post_unmerge_out, pre_merge_out)
+        sd_post_unmerge = qlora_linear.state_dict()
+        w1 = sd_pre_merge["weight"]
+        w2 = sd_post_unmerge["weight"]
+        assert torch.allclose(w1.quantized_data, w2.quantized_data)
 
     def test_lora_weight_nf4_when_quantized(self):
         lora_linear = LoRALinear(
