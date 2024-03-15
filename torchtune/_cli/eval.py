@@ -44,10 +44,9 @@ class _EvalWrapper(HFLM):
         device,
         max_seq_length,
     ):
-        super().__init__()
+        super().__init__(device=str(device))
         self._model = model
         self._tokenizer = tokenizer
-        self._device = device
         self._max_seq_length = max_seq_length
 
     @property
