@@ -41,4 +41,4 @@ class TestValidate:
         exc_config = excinfo.value
         for e in exc_config.errors:
             assert isinstance(e, TypeError)
-            assert str(e) == "get_dtype() got an unexpected keyword argument 'dummy'"
+            assert str(e) == "get_dtype got an unexpected keyword argument 'dummy'"

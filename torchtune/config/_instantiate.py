@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
-from functools import partial
 from typing import Any, Callable, Dict, Tuple
 
 from omegaconf import DictConfig, OmegaConf
@@ -17,18 +16,11 @@ def _create_component(
     _component_: Callable[..., Any],
     args: Tuple[Any, ...],
     kwargs: Dict[str, Any],
-    partial_instantiate: bool = False,
 ):
-    return (
-        partial(_component_, *args, **kwargs)
-        if partial_instantiate
-        else _component_(*args, **kwargs)
-    )
+    return _component_(*args, **kwargs)
 
 
-def _instantiate_node(
-    node: DictConfig, *args: Tuple[Any, ...], partial_instantiate: bool = False
-):
+def _instantiate_node(node: DictConfig, *args: Tuple[Any, ...]):
     """
     Creates the object specified in _component_ field with provided positional args
     and kwargs already merged. Raises an InstantiationError if _component_ is not specified.
@@ -36,7 +28,7 @@ def _instantiate_node(
     if _has_component(node):
         _component_ = _get_component_from_path(node.get("_component_"))
         kwargs = {k: v for k, v in node.items() if k != "_component_"}
-        return _create_component(_component_, args, kwargs, partial_instantiate)
+        return _create_component(_component_, args, kwargs)
     else:
         raise InstantiationError(
             "Cannot instantiate specified object."

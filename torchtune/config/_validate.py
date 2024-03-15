@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import inspect
+
 from omegaconf import DictConfig
 from torchtune.config._errors import ConfigError
-from torchtune.config._instantiate import _instantiate_node
-from torchtune.config._utils import _has_component
+from torchtune.config._utils import _get_component_from_path, _has_component
 
 
 def validate(cfg: DictConfig) -> None:
@@ -18,20 +19,26 @@ def validate(cfg: DictConfig) -> None:
         cfg (DictConfig): The config to validate
 
     Raises:
-        Exception: If any component cannot be instantiated
+        ConfigError: If any component cannot be instantiated
     """
 
     errors = []
-    for k, v in cfg.items():
-        if _has_component(v):
+    for node, nodedict in cfg.items():
+        if _has_component(nodedict):
             try:
-                obj = _instantiate_node(v)
+                _component_ = _get_component_from_path(nodedict.get("_component_"))
+                kwargs = {k: v for k, v in nodedict.items() if k != "_component_"}
+                sig = inspect.signature(_component_)
+                sig.bind(**kwargs)
             # Some objects require other objects as arguments, like optimizers,
             # lr_schedulers, datasets, etc. Try doing partial instantiation
             except TypeError as e:
                 if "required positional argument" in str(e):
-                    obj = _instantiate_node(v, partial_instantiate=True)
+                    sig.bind_partial(**kwargs)
                 else:
+                    # inspect.signature does not retain the function name in the
+                    # exception, so we manually add it back in
+                    e = TypeError(f"{_component_.__name__} {str(e)}")
                     errors.append(e)
 
     if errors:
