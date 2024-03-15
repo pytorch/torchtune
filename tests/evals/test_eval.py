@@ -34,6 +34,8 @@ class TestEval:
         ckpt_dir = ckpt_path.parent
         cpu_device_str = "cpu"
         tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
+        import os
+        os.environ["CUDA_VISIBLE_DEVICES"] = ""
         cmd = f"""
         tune eval \
             --config {EVAL_CONFIG_PATH} \

@@ -188,7 +188,6 @@ def main(
     Example usage: tune eval --config eval_configs/full_finetune_eval_config.yaml --override limit=100 tasks=["truthfulqa_mc2"]
     Please see eval_configs/ for example configs.
     """
-
     # Set up environment incl. device and random seed.
     device = utils.get_device(device=cfg.device)
     if cfg.seed is not None:
