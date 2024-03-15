@@ -18,7 +18,7 @@ The library provides:
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
 - Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
-- Yaml configs for easily configuring training runs
+- YAML configs for easily configuring training runs
 
 &nbsp;
 
