@@ -15,10 +15,11 @@ import torchtune
 from tests.common import TUNE_PATH
 from torchtune import models
 
-# TODO: is there a better way to do this?
 
 pkg_path = Path(torchtune.__file__).parent.absolute()
-EVAL_CONFIG_PATH = pkg_path / "_cli/eval_configs/default_eval_config.yaml"
+EVAL_CONFIG_PATH = Path.joinpath(
+    pkg_path, "_cli", "eval_configs", "default_eval_config.yaml"
+)
 
 # TODO - should probably go into a general directory
 from tests.recipes.utils import fetch_ckpt_model_path, llama2_small_test_ckpt
