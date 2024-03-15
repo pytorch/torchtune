@@ -1,6 +1,7 @@
 
 [![Unit Test](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml)
 ![Recipe Integration Test](https://github.com/pytorch-labs/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+[![Discord](Discord)](https://discord.gg/F4aDDP8sqe)
 
 # TorchTune (alpha release)
 
