@@ -12,8 +12,15 @@ model:
   lora_rank: 8
   lora_alpha: 16
 
-model_checkpoint: /tmp/llama2_native
-lora_checkpoint: null
+checkpointer:
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/llama2/
+  checkpoint_files: [consolidated.00.pth]
+  adapter_checkpoint: null
+  recipe_checkpoint: null
+  output_dir: /tmp/llama2/
+  model_type: LLAMA2
+resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
@@ -44,7 +51,6 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-resume_from_checkpoint: False
 
 # Logging
 output_dir: /tmp/lora_finetune_output
@@ -57,6 +63,3 @@ log_every_n_steps: 1
 device: cuda
 full_bf16: False
 enable_activation_checkpointing: True
-
-# Final checkpoint
-save_merged_final_checkpoint: False

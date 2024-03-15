@@ -32,12 +32,6 @@ class TuneArgumentParser(argparse.ArgumentParser):
         super().add_argument(
             "--config", type=str, help="Path/name of a yaml file with recipe args"
         )
-        super().add_argument(
-            "--override",
-            type=str,
-            nargs="+",
-            help="Override config parameters with format KEY=VALUE",
-        )
 
     def parse_known_args(self, *args, **kwargs) -> Tuple[Namespace, List[str]]:
         """This acts the same as the base parse_known_args but will first load in defaults from
@@ -53,13 +47,8 @@ class TuneArgumentParser(argparse.ArgumentParser):
             config = OmegaConf.load(namespace.config)
             assert "config" not in config, "Cannot use 'config' within a config file"
             self.set_defaults(**config)
-        if namespace.override is not None:
-            cli_config = OmegaConf.from_dotlist(namespace.override)
-            assert "config" not in config, "Cannot use 'override' within CLI arguments"
-            self.set_defaults(**cli_config)
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
-        del namespace.override
         return namespace, unknown_args
 
     def add_argument(self, *args, **kwargs) -> Action:

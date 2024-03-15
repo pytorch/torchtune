@@ -29,9 +29,11 @@ Recipes in TorchTune are:
 
 ## How to specify parameters for recipes
 
-The arguments for a recipe are defined in a params object (such as `FullFinetuneParams`) that contains the full list of configurable parameters. These are either set to default values or sourced from the YAML file listed with `--config` and `--override` arguments in the `tune` CLI. The `TuneArgumentParser` class is responsible for parsing the provided config file and overrides and funneling it into the corresponding params object for the recipe the user wishes to run. The order of overrides from these parameter sources is as follows, with highest precedence first:
+You can set parameters for a recipe by modifying the yaml config file directly or by providing command-line overrides. Use the `tune` CLI to provide your updated config filepath with the `--config` flag and any overrides in the format `key=value`.
 
-CLI &rarr; Config &rarr; Params defaults
+```
+tune full_finetune --config path/to/my_config.yaml k1=v1 k2=v2 ...
+```
 
 The config is the primary entry point for users, with CLI overrides providing flexibility for quick experimentation.
 
@@ -59,7 +61,7 @@ For both recipes, activation checkpointing is enabled by default, and LoRA weigh
 distributed recipe. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
 
 ```
-tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed --override lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
+tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
 ```
 
 ### Generation

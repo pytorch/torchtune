@@ -8,7 +8,8 @@ import functools
 import sys
 from typing import Any, Callable
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
+from torchtune.config._utils import _merge_yaml_and_cli_args
 from torchtune.utils.argparse import TuneArgumentParser
 from torchtune.utils.logging import get_logger
 
@@ -27,7 +28,7 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
         >>>     ...
 
     With the decorator, the parameters will be parsed into cfg when run as:
-        >>> tune my_recipe --config config.yaml --override foo=bar
+        >>> tune my_recipe --config config.yaml foo=bar
 
     Args:
         recipe_main (Recipe): The main method that initializes
@@ -44,12 +45,12 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
         # Get user-specified args from config and CLI and create params for recipe
-        params, _ = parser.parse_known_args()
-        params = OmegaConf.create(vars(params))
+        yaml_args, cli_args = parser.parse_known_args()
+        conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
         logger = get_logger("DEBUG")
-        logger.info(msg=f"Running {recipe_main.__name__} with parameters {params}")
+        logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
 
-        sys.exit(recipe_main(params))
+        sys.exit(recipe_main(conf))
 
     return wrapper

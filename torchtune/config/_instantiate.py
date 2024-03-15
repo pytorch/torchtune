@@ -8,11 +8,11 @@ import copy
 from typing import Any, Callable, Dict, Tuple
 
 from omegaconf import DictConfig, OmegaConf
-from torchtune.config._utils import _get_component_from_path, InstantiationError
-
-
-def _has_component(node: DictConfig) -> bool:
-    return OmegaConf.is_dict(node) and "_component_" in node
+from torchtune.config._utils import (
+    _get_component_from_path,
+    _has_component,
+    InstantiationError,
+)
 
 
 def _create_component(

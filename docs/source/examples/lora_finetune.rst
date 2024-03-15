@@ -257,7 +257,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
-    either by adding :code:`--override model_checkpoint=my_model_checkpoint_path tokenizer_checkpoint=my_tokenizer_checkpoint_path`
+    either by adding :code:`model_checkpoint=my_model_checkpoint_path tokenizer_checkpoint=my_tokenizer_checkpoint_path`
     or by directly modifying the :code:`alpaca_llama2_lora_finetune.yaml` file. See our :ref:`config_tutorial_label`
     for more details on how you can easily clone and modify TorchTune configs.
 
@@ -289,7 +289,7 @@ Let's run this experiment. We can also increase alpha (in general it is good pra
 .. code-block:: bash
 
     tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune \
-    --override lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
+    lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
     lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
 
 A comparison of the (smoothed) loss curves between this run and our baseline over the first 500 steps can be seen below.

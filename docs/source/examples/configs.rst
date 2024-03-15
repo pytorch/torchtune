@@ -209,10 +209,27 @@ Configs are the primary location to collect all your parameters to run a recipe,
 but sometimes you may want to quickly try different values without having to update
 the config itself. To enable quick experimentation, you can specify override values
 to parameters in your config via the :code:`tune` command. These should be specified
-with the flag :code:`--override k1=v1 k2=v2 ...`
+as key-value pairs :code:`k1=v1 k2=v2 ...`
 
 For example, to run the :code:`full_finetune` recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:
 
 .. code-block:: bash
 
-    tune full_finetune --config alpaca_llama2_full_finetune --override model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+    tune full_finetune --config alpaca_llama2_full_finetune model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+
+Overriding components
+^^^^^^^^^^^^^^^^^^^^^
+If you would like to override a class or function in the config that is instantiated
+via the :code:`_component_` field, you can do so by assigning to the parameter
+name directly. Any nested fields in the components can be overridden with dot notation.
+
+.. code-block:: yaml
+
+    dataset:
+      _component_: torchtune.datasets.AlpacaDataset
+      train_on_input: True
+
+.. code-block:: bash
+
+    # Change to SlimOrcaDataset and set train_on_input to False
+    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.SlimOrcaDataset dataset.train_on_input=False

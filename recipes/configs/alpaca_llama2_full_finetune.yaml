@@ -1,7 +1,7 @@
 # Config for FullFinetuneRecipe in full_finetune.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+#    tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune model_checkpoint=<your_checkpoint_dir> ...
 
 # Tokenizer
 tokenizer:
@@ -23,8 +23,9 @@ checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/llama2
   checkpoint_files: [consolidated.00.pth]
+  recipe_checkpoint: null
+  output_dir: /tmp/llama2
   model_type: LLAMA2
-
 resume_from_checkpoint: False
 
 # Fine-tuning arguments

@@ -4,13 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from argparse import Namespace
 from importlib import import_module
 from types import ModuleType
-from typing import Any
+from typing import Any, Dict, List, Union
+
+from omegaconf import DictConfig, OmegaConf
 
 
 class InstantiationError(Exception):
     pass
+
+
+def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
+    return (OmegaConf.is_dict(node) or isinstance(node, dict)) and "_component_" in node
 
 
 def _get_component_from_path(path: str) -> Any:
@@ -26,7 +33,7 @@ def _get_component_from_path(path: str) -> Any:
         Any: The object
 
     Raises:
-        ImportError: If the path is empty or there is an exception loading the
+        InstantiationError: If there is an exception loading the
             object from the provided path
         ValueError: If a relative or invalid dotpath is passed in
     """
@@ -83,3 +90,55 @@ def _get_component_from_path(path: str) -> Any:
                 + f"\nAre you sure that '{part}' is an attribute of '{parent_dotpath}'?"
             ) from exc_attr
     return obj
+
+
+def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictConfig:
+    """
+    Takes the direct output of argparse's parse_known_args which returns known
+    args as a Namespace and unknown args as a dotlist (in our case, yaml args and
+    cli args, respectively) and merges them into a single OmegaConf DictConfig.
+
+    If a cli arg overrides a yaml arg with a _component_ field, the cli arg can
+    be specified with the parent field directly, i.e.,
+    model=torchtune.models.llama2_7b instead of model._component_=torchtune.models.llama2_7b.
+    Nested fields within the component should be specified with dot notation, i.e.,
+    model.max_batch_size=2.
+
+    Example:
+        >>> config.yaml:
+        >>>     a: 1
+        >>>     b:
+        >>>       _component_: torchtune.models.my_model
+        >>>       c: 3
+
+        >>> tune full_finetune --config config.yaml b=torchtune.models.other_model b.c=4
+        >>> yaml_args, cli_args = parser.parse_known_args()
+        >>> conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+        >>> print(conf)
+        >>> {"a": 1, "b": {"_component_": "torchtune.models.other_model", "c": 4}}
+
+    Args:
+        yaml_args (Namespace): Namespace containing args from yaml file, components
+            should have _component_ fields
+        cli_args (List[str]): List of key=value strings
+
+    Returns:
+        DictConfig: OmegaConf DictConfig containing merged args
+    """
+    # Convert Namespace to simple dict
+    yaml_kwargs = vars(yaml_args)
+    cli_dotlist = []
+    for arg in cli_args:
+        k, v = arg.split("=")
+        # If a cli arg overrides a yaml arg with a _component_ field, update the
+        # key string to reflect this
+        if k in yaml_kwargs and _has_component(yaml_kwargs[k]):
+            k += "._component_"
+        cli_dotlist.append(f"{k}={v}")
+
+    # Merge the args
+    cli_conf = OmegaConf.from_dotlist(cli_dotlist)
+    yaml_conf = OmegaConf.create(yaml_kwargs)
+
+    # CLI takes precedence over yaml args
+    return OmegaConf.merge(yaml_conf, cli_conf)
