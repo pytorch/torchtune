@@ -6,8 +6,10 @@
 
 from ._instantiate import instantiate
 from ._parse import parse
+from ._validate import validate
 
 __all__ = [
     "parse",
     "instantiate",
+    "validate",
 ]
