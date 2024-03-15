@@ -4,14 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
+from copy import deepcopy
 
+import pytest
+import torch
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
+from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
     AdapterModule,
     get_adapter_params,
+    get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -24,6 +28,8 @@ NUM_HEADS = 4
 NUM_KV_HEADS = 2
 EMBED_DIM = 64
 MAX_SEQ_LEN = 64
+RANK = 2
+ALPHA = 1
 
 
 class DummyAdapterModule(nn.Module, AdapterModule):
@@ -304,3 +310,43 @@ class TestPeftUtils:
                 lora_state_dict_keys=lora_state_dict_keys,
                 base_model_state_dict_keys=base_model_state_dict_keys,
             )
+
+
+class TestGetMergedLoRACkpt:
+    def dummy_model(self):
+        model = nn.Sequential(
+            LoRALinear(in_dim=4, out_dim=6, rank=RANK, alpha=ALPHA),
+            nn.Linear(6, 3),
+        )
+        model[0].lora_a.weight = nn.Parameter(
+            torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8]])
+        )
+        model[0].lora_b.weight = nn.Parameter(
+            torch.Tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]])
+        )
+        model[0].weight = nn.Parameter(3 * torch.ones((6, 4)))
+        return model
+
+    def test_get_merged_lora_ckpt(self):
+        dummy_model = self.dummy_model()
+        merged_sd = get_merged_lora_ckpt(
+            deepcopy(dummy_model.state_dict()), rank=RANK, alpha=ALPHA
+        )
+        expected_merged_weight = torch.Tensor(
+            [
+                [8.5, 10.0, 11.5, 13.0],
+                [14.5, 18.0, 21.5, 25.0],
+                [20.5, 26.0, 31.5, 37.0],
+                [26.5, 34.0, 41.5, 49.0],
+                [32.5, 42.0, 51.5, 61.0],
+                [38.5, 50.0, 61.5, 73.0],
+            ]
+        )
+        assert merged_sd.keys() == {"0.weight", "1.weight", "1.bias"}
+        torch.testing.assert_close(merged_sd["0.weight"], expected_merged_weight)
+
+        merged_model = nn.Sequential(nn.Linear(4, 6, bias=False), nn.Linear(6, 3))
+        merged_model.load_state_dict(merged_sd, strict=True)
+
+        inputs = torch.randn(2, 8, 4)
+        torch.testing.assert_close(dummy_model(inputs), merged_model(inputs))

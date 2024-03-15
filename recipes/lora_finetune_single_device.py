@@ -337,10 +337,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
+        # Move to CPU to avoid a copy on GPU
+        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
         # Construct the full state dict with LoRA weights merged into base LLM weights
-        sd = {k: v.cpu() for k, v in self._model.state_dict().items()}
         merged_state_dict = get_merged_lora_ckpt(
-            sd, alpha=self._lora_alpha, rank=self._lora_rank
+            state_dict,
+            rank=self._lora_rank,
+            alpha=self._lora_alpha,
         )
         ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
 
@@ -350,7 +354,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
         ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
-
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,

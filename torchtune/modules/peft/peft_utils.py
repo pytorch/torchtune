@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Dict, List, Optional, Protocol, Set
 
 from torch import nn
 
@@ -166,7 +166,20 @@ def validate_state_dict_for_lora(
         ), "Extra keys not present in full model"
 
 
-def get_lora_modules(state_dict: Dict[str, Any]):
+def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
+    """
+    Get the keys from a state dict that correspond to LoRALinear modules.
+
+    For example, if state_dict is the state dict of model and model.x.y.z is a
+    LoRALinear, this method will return "model.x.y.z", not
+    "model.x.y.z.lora_a.weight" or "model.x.y.z.lora_b.weight".
+
+    Args:
+        state_dict (Dict[str, Any]): State dict from a model.
+
+    Returns:
+        Set[str]: Set of keys in the state dict that correspond to LoRA modules.
+    """
     lora_keys = [k for k in state_dict.keys() if "lora" in k]
     return set(
         [
@@ -176,8 +189,27 @@ def get_lora_modules(state_dict: Dict[str, Any]):
     )
 
 
-def get_merged_lora_ckpt(state_dict: Dict[str, Any], alpha: float, rank: int):
-    lora_modules = get_lora_modules(state_dict)
+def get_merged_lora_ckpt(
+    state_dict: Dict[str, Any], rank: int, alpha: float
+) -> Dict[str, Any]:
+    """
+    Merge LoRA weights into the base model format for efficient inference.
+    NOTE: This function modifies state_dict inplace. If you do not want to do that,
+    make a copy prior to calling this function.
+
+    For every LoRA module in the state dict, this function will convert its
+    weight -> weight + (alpha / rank) * lora_b @ lora_a,
+    then delete the lora_a and lora_b weights.
+
+    Args:
+        state_dict (Dict[str, Any]): State dict from a model.
+        rank (int): The rank of LoRA matrices.
+        alpha (float): The alpha value used for scaling LoRA decompositions.
+
+    Returns:
+        Dict[str, Any]: The merged state dict.
+    """
+    lora_modules = _get_lora_modules(state_dict)
     for module in lora_modules:
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]

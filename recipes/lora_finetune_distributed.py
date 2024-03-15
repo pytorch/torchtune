@@ -16,6 +16,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import destroy_process_group, init_process_group
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
@@ -111,6 +112,15 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
+        if not (
+            utils.SEED_KEY in ckpt_dict
+            and utils.TOTAL_EPOCHS_KEY in ckpt_dict
+            and utils.MAX_STEPS_KEY in ckpt_dict
+        ):
+            raise KeyError(
+                "Checkpoint does not contain the required keys needed for updating recipe state."
+                "Are you sure you passed in the right recipe checkpoint?"
+            )
         # If seed, total_epoch or max_steps_per_epoch don't match,
         # warn the user and overwrite
         if (
@@ -348,9 +358,14 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         ckpt_dict = {}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
+            optimizer_state_dict = (
+                FSDP.optim_state_dict(self._model, self._optimizer)
+                if utils.contains_fsdp(self._model)
+                else self._optimizer.state_dict()
+            )
             ckpt_dict.update(
                 {
-                    utils.OPT_KEY: self._optimizer.state_dict(),
+                    utils.OPT_KEY: optimizer_state_dict,
                     utils.SEED_KEY: self.seed,
                     utils.EPOCHS_KEY: self.epochs_run,
                     utils.TOTAL_EPOCHS_KEY: self.total_epochs,
@@ -358,10 +373,14 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 }
             )
 
+        # Move to CPU to avoid a copy on GPU
+        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
         # Construct the full state dict with LoRA weights merged into base LLM weights
-        sd = {k: v.cpu() for k, v in self._model.state_dict().items()}
         merged_state_dict = get_merged_lora_ckpt(
-            sd, alpha=self._lora_alpha, rank=self._lora_rank
+            state_dict,
+            rank=self._lora_rank,
+            alpha=self._lora_alpha,
         )
         ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
 

@@ -33,8 +33,6 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout (float): dropout probability. Default: 0.0
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
-        use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
-            A and B. Default: False
     """
 
     def __init__(
@@ -45,7 +43,6 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
-        use_bias_in_lora_matrices: bool = False,
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -61,13 +58,8 @@ class LoRALinear(nn.Module, AdapterModule):
         else:
             self.register_parameter("bias", None)
         self.dropout = nn.Dropout(p=dropout)
-        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
-        self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
-        )
-        self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
-        )
+        self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
+        self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
@@ -91,8 +83,6 @@ class LoRALinear(nn.Module, AdapterModule):
         If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
         adapter_params = ["lora_a.weight", "lora_b.weight"]
-        if self.use_bias_in_lora_matrices:
-            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
