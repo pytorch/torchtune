@@ -35,6 +35,7 @@ class TestEval:
         cpu_device_str = "cpu"
         tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
         import os
+
         os.environ["CUDA_VISIBLE_DEVICES"] = ""
         cmd = f"""
         tune eval \
