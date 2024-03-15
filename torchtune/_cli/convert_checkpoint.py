@@ -25,7 +25,6 @@ def convert_checkpoint(
     checkpoint_path: Path,
     model: str,
     output_path: Optional[Path] = None,
-    train_type: str = "full",
     output_numerical_validation: bool = False,
 ):
     """Convert model checkpoint to a PyTorch-native format compatible with Torchtune.
@@ -34,7 +33,6 @@ def convert_checkpoint(
         checkpoint_path (Path): Path to the checkpoint path.
         model (str): Model name
         output_path (Optional[Path]): Path to the output checkpoint.
-        train_type (str): Type of finetuning
         output_numerical_validation (bool): Whether to run numerical validation on the converted checkpoint.
 
     Raises:
@@ -59,12 +57,7 @@ def convert_checkpoint(
         checkpoint_dir = checkpoint_path.parent
         output_path = checkpoint_dir / _PYTORCH_MODEL_FILENAME
 
-    output_state_dict = {}
-    if train_type == "lora":
-        output_state_dict[MODEL_KEY] = state_dict
-    else:
-        output_state_dict = state_dict
-    torch.save(output_state_dict, output_path)
+    torch.save(state_dict, output_path)
 
     log.info(msg=f"Succesfully wrote PyTorch-native model checkpoint to {output_path}")
 
@@ -91,14 +84,6 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument(
-        "--train-type",
-        type=str,
-        help="Type of finetuning. Currently Full-Finetuning and LoRA have slightly different formats. "
-        "This will be resolved soon.",
-        choices=["full", "lora"],
-        required=True,
-    )
-    parser.add_argument(
         "--output-numerical-validation",
         action="store_true",
         help="Whether to load the original checkpoint and the converted checkpoint and compare"
@@ -116,6 +101,5 @@ if __name__ == "__main__":
         args.checkpoint_path,
         args.model,
         args.output_path,
-        args.train_type,
         args.output_numerical_validation,
     )
