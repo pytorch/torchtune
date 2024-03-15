@@ -21,7 +21,7 @@ from torchtune import config, modules, utils
 from torchtune.models.llama2 import get_lora_module_names
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    merge_lora_weights_in_state_dict,
+    get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -213,6 +213,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             with self._device:
                 model = config.instantiate(cfg_model)
 
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -235,6 +237,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
+
         model.load_state_dict(base_model_state_dict, strict=False)
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
@@ -335,8 +338,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
 
         # Construct the full state dict with LoRA weights merged into base LLM weights
-        with merge_lora_weights_in_state_dict(self._model):
-            ckpt_dict.update({utils.MODEL_KEY: self._model.state_dict()})
+        sd = {k: v.cpu() for k, v in self._model.state_dict().items()}
+        merged_state_dict = get_merged_lora_ckpt(
+            sd, alpha=self._lora_alpha, rank=self._lora_rank
+        )
+        ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
