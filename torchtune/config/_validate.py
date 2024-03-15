@@ -33,7 +33,7 @@ def validate(cfg: DictConfig) -> None:
             # Some objects require other objects as arguments, like optimizers,
             # lr_schedulers, datasets, etc. Try doing partial instantiation
             except TypeError as e:
-                if "required positional argument" in str(e):
+                if "missing a required argument" in str(e):
                     sig.bind_partial(**kwargs)
                 else:
                     # inspect.signature does not retain the function name in the
