@@ -148,17 +148,12 @@ def _setup_model(
     cfg_model: DictConfig,
     device: torch.device,
     model_checkpoint: str,
-    lora_checkpoint: Optional[str] = None,
 ):
     """
     Sets up the model via passed in config, including loading checkpoint.
     """
     # Load state_dicts from file.
     base_model_state_dict = _load_checkpoint(model_checkpoint)
-    if lora_checkpoint:
-        adapter_state_dict = _load_checkpoint(lora_checkpoint)
-    else:
-        adapter_state_dict = None
 
     # Create model.
     with device:
@@ -168,42 +163,16 @@ def _setup_model(
     # TODO: Improve validation such as in training recipes.
 
     # TODO: recent refactor removed "model", but some old checkpoints to test parity still have
-    # this key. Remove once full testing / validation is complete.
+    # this key. Remove once full testing / validation is complete, or we re-write those checkpoints
+    # to remove "Model" key.
     base_model_state_dict = (
         base_model_state_dict["model"]
         if "model" in base_model_state_dict
         else base_model_state_dict
     )
-    if adapter_state_dict:
-        adapter_state_dict = (
-            adapter_state_dict["model"]
-            if "model" in adapter_state_dict
-            else adapter_state_dict
-        )
     missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
     assert not unexpected, f"Unexpected keys {unexpected}"
-    if missing:
-        # only LoRA components can be missing. TODO: this is not robust, and can break if
-        # adapter parameter names change or different PEFT techniques are used.
-        for key in missing:
-            assert "lora_a" in key or "lora_b" in key, f"Unexpected missing key {key}"
-
-    if lora_checkpoint:
-        lora_missing, lora_unexpected = model.load_state_dict(
-            adapter_state_dict, strict=False
-        )
-        assert not lora_unexpected, f"Unexpected keys {lora_unexpected}"
-        # Intersection of missing sets should be empty.
-        lora_missing = set(lora_missing)
-        missing = set(missing)
-        assert (
-            lora_missing.intersection(missing) == set()
-        ), f"Missing keys {lora_missing.intersection(missing)}"
-        # Union of missing keys should be all model keys.
-        all_model_keys = set(model.state_dict().keys())
-        assert (
-            lora_missing.union(missing) == all_model_keys
-        ), f"Missing keys {all_model_keys - lora_missing.union(missing)}"
+    assert not missing, f"Missing keys {missing}"
 
     return model
 
@@ -230,9 +199,6 @@ def main(
         cfg_model=cfg.model,
         device=device,
         model_checkpoint=cfg.model_checkpoint,
-        lora_checkpoint=(
-            cfg.lora_checkpoint if hasattr(cfg, "lora_checkpoint") else None
-        ),
     )
 
     # Set up tokenizer per configuration.
