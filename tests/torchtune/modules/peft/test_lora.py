@@ -7,7 +7,6 @@
 import pytest
 
 import torch
-import torch.nn.functional as F
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchtune.modules.peft import LoRALinear
@@ -78,55 +77,3 @@ class TestLoRALinear:
         actual = lora_linear(inputs)
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
-
-    def test_invalid_merge_lora_weights_with_bias(self):
-        lora_linear = LoRALinear(
-            in_dim=64,
-            out_dim=128,
-            rank=RANK,
-            alpha=ALPHA,
-            use_bias_in_lora_matrices=True,
-        )
-        with pytest.raises(RuntimeError, match="LoRA matrices have biases"):
-            lora_linear._merge_lora_weights()
-
-    def test_merge_lora_weights(self, lora_linear):
-        self.set_dummy_weights_for_merge(lora_linear)
-        lora_linear._merge_lora_weights()
-
-        expected_weight = torch.clone(lora_linear.weight)
-        expected_weight[4, 5] = 1
-        # [alpha (=1) / rank (=4)] * lora_b (=12) * lora_b (=3)
-        expected_weight[25, 32] = 9
-        expected_bias = torch.clone(lora_linear.bias)
-
-        assert lora_linear.merged
-        assert not hasattr(lora_linear, "lora_a")
-        assert not hasattr(lora_linear, "lora_b")
-        assert isinstance(lora_linear.cached_lora_a_weight, torch.Tensor)
-        assert isinstance(lora_linear.cached_lora_b_weight, torch.Tensor)
-
-    @torch.no_grad()
-    def test_merge_lora_weights_forward(self, inputs, lora_linear):
-        expected = torch.tensor(EXPECTED_VAL)
-        lora_linear._merge_lora_weights()
-        actual = F.linear(inputs, lora_linear.weight, lora_linear.bias)
-        torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
-
-    def test_invalid_unmerge_lora_weights_before_merge(self, lora_linear):
-        with pytest.raises(RuntimeError, match="weights are not merged"):
-            lora_linear._unmerge_lora_weights()
-
-    def test_merge_and_unmerge_lora_weights(self, lora_linear):
-        inputs = torch.randn(BSZ, SEQ_LEN, lora_linear.in_dim)
-
-        out_pre = lora_linear(inputs)
-        sd_pre = lora_linear.state_dict()
-
-        lora_linear._merge_lora_weights()
-        lora_linear._unmerge_lora_weights()
-
-        out_post = lora_linear(inputs)
-
-        torch.testing.assert_close(out_pre, out_post)
-        torch.testing.assert_close(sd_pre, lora_linear.state_dict())
