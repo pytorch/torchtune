@@ -27,46 +27,87 @@ Recipes in TorchTune are:
 
 &nbsp;
 
-## How to specify parameters for recipes
+## Checkpoints and using the TorchTune Checkpointer
 
-You can set parameters for a recipe by modifying the yaml config file directly or by providing command-line overrides. Use the `tune` CLI to provide your updated config filepath with the `--config` flag and any overrides in the format `key=value`.
+TorchTune supports multiple checkpoint formats. For Llama2 specifically, this includes:
+
+&nbsp;
+
+**Meta Format**. This refers to the checkpoints uploaded by the original authors. You can download this checkpoint from the
+HF Hub, using the following command
+```
+tune download --repo-id meta-llama/Llama-2-7b \
+--hf-token <HF_TOKEN> \
+--output-dir /tmp/llama2
+```
+This should load in a single `consolidated.00.pth` file. You can use this checkpoint directly with TorchTune using the
+`FullModelMetaCheckpointer`. When starting a fresh training run, the checkpointer component of the config looks like this:
+```
+checkpointer:
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/llama2
+  checkpoint_files: [consolidated.00.pth]
+  output_dir: /tmp/llama2
+  model_type: LLAMA2
+resume_from_checkpoint: False
+```
+The checkpointer will take care of converting the state_dict into a format compatible with TorchTune.
+
+&nbsp;
+
+**HF Format**. This refers to the HF-formatted llama2 checkpoints available in the HF repo. You can download this checkpoint from the HF Hub, using the following command
+```
+tune download --repo-id meta-llama/Llama-2-7b-hf \
+--hf-token <HF_TOKEN> \
+--output-dir /tmp/llama2
+```
+This should load in two checkpoint files: `pytorch_model-00001-of-00002.bin` and  `pytorch_model-00002-of-00002.bin`. You can use this checkpoint directly with TorchTune using the`FullModelHFCheckpointer`. When starting a fresh training run, the checkpointer component of the config looks like this:
+```
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/llama2-hf
+  checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
+  output_dir: /tmp/llama2-hf
+  model_type: LLAMA2
+resume_from_checkpoint: False
+```
+The checkpointer will take care of converting the state_dict into a format compatible with TorchTune.
+
+&nbsp;
+
+### Checkpoints created during Training
+
+TorchTune recipes will output checkpoints in two scenarios:
+
+&nbsp;
+
+**Mid-training checkpoints**. Checkpoints are created at the end of each epoch. Mid-training, in addition to the model checkpoint, the checkpointer will output additional checkpoint files. These include:
+- Recipe Checkpoint. The `recipe_state.pt` file contains information about training needed to restart training from that point onwards. This includes training seed, number of epochs completed, optimizer state etc.
+- Adapter Checkpoint. If using PEFT like LoRA, the checkpointer additionally outputs the adapter weights needed to correctly intialize the LoRA parameters to restart training.
+
+To correctly restart training, the checkpointer needs access to the Recipe Checkpoint and optionally to the Adapter Checkpoint (in case training LoRA). A sample config component for LoRA looks something like this:
 
 ```
-tune full_finetune --config path/to/my_config.yaml k1=v1 k2=v2 ...
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/llama2-hf
+  checkpoint_files: [pytorch_model-00001-of-00002.bin, pytorch_model-00002-of-00002.bin]
+  adapter_checkpoint: adapter_0.pt
+  recipe_checkpoint: recipe_state.pt
+  output_dir: /tmp/llama2-hf
+  model_type: LLAMA2
 ```
 
-The config is the primary entry point for users, with CLI overrides providing flexibility for quick experimentation.
+Note: In case of PEFT (eg: LoRA), the checkpoint files should continue to point towards the original base model since the output model checkpoint file contains the merged weights which should not be used for restarting training.
 
-## Examples
+&nbsp;
 
-If you have not already done so, follow the instructions [here](https://github.com/pytorch-labs/torchtune/blob/main/README.md#downloading-a-model) to download the Llama2 model and convert the weights.
+**End-of-training checkpoints**. Torchtune outputs checkpoints in the same format as the input checkpoint. This means that you can use the output checkpoint with the same set of tools that you could use with the input checkpoints. This includes evaluation harnesses, inference engines etc.
 
-### Full finetune
-
-To run the `full_finetune` recipe with the `alpaca_llama2_full_finetune.yaml` config on four GPUs with FSDP, run this command:
+For example, to use the Meta format checkpoints with llama.cpp, you can directly convert these to GGUF format using the convertor in the llama.cpp code base. After you've followed the setup instructions in the llama.cpp README, you can run the following:
 
 ```
-tune --nnodes 1 --nproc_per_node 4 finetune_llm --config alpaca_llama2_finetune
+python3 convert.py /tmp/llama2/meta_model_0.pt --ctx 4096
 ```
 
-### LoRA finetune
-
-We provide separate recipes for finetuning LoRA on a single device and multiple GPUs. You can finetune LoRA on a single device using the `lora_finetune_single_device` recipe with the `alpaca_llama2_lora_finetune_single_device.yaml` config. To do so on multiple GPUs, use `lora_finetune_distributed ` with `alpaca_llama2_lora_finetune_distributed.yaml`. E.g. on two devices, you can run the following:
-
-```
-tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed
-```
-
-For both recipes, activation checkpointing is enabled by default, and LoRA weights are added to the Q and V projections in self-attention. FSDP is enabled by default for
-distributed recipe. If you additionally want to apply LoRA to K and would like to reduce the LoRA rank from the default of eight, you can run
-
-```
-tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed lora_attn_modules=q_proj,k_proj,v_proj lora_rank=4
-```
-
-### Generation
-
-To run the generation recipe, run this command from inside the main `/torchtune` directory:
-```
-python -m recipes.alpaca_generate --native-checkpoint-path /tmp/finetune-llm/model_0.ckpt --tokenizer-path ~/llama/tokenizer.model --input "What is some cool music from the 1920s?"
-```
+This will output a gguf file in the same precision which can be used for running inference.
