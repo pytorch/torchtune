@@ -1,7 +1,7 @@
 # Config for torchtune/_cli/eval.py
 #
 # To launch, run the following command from root:
-#    python torchtune/_cli/eval.py --config torchtune/_cli/eval_configs/default_eval_config.yaml
+#    tune eval --config torchtune/_cli/eval_configs/default_eval_config.yaml
 
 # Model Arguments
 model:

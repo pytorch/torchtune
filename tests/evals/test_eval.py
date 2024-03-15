@@ -4,30 +4,33 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 import runpy
+
+import sys
 import tempfile
+from functools import partial
 from pathlib import Path
 
 import pytest
-from torchtune import models
-
-logging.basicConfig(level=logging.INFO)
-import sys
-from functools import partial
 
 import torch
 from tests.common import TUNE_PATH
+from torchtune import models
+import torchtune
 
 # TODO: is there a better way to do this?
-FULL_EVAL_CONFIG_PATH = (
-    Path(__file__).parent.parent.parent
-    / "torchtune/_cli/eval_configs/full_finetune_eval_config.yaml"
-)
-LORA_EVAL_CONFIG_PATH = (
-    Path(__file__).parent.parent.parent
-    / "torchtune/_cli/eval_configs/lora_finetune_eval_config.yaml"
-)
+
+pkg_path = Path(torchtune.__file__).parent.absolute()
+FULL_EVAL_CONFIG_PATH = pkg_path / "torchtune/_cli/eval_configs/full_finetune_eval_config.yaml"
+LORA_EVAL_CONFIG_PATH = pkg_path / "torchtune/_cli/eval_configs/lora_finetune_eval_config.yaml"
+# FULL_EVAL_CONFIG_PATH = (
+#     Path(__file__).parent.parent.parent
+#     / "torchtune/_cli/eval_configs/full_finetune_eval_config.yaml"
+# )
+# LORA_EVAL_CONFIG_PATH = (
+#     Path(__file__).parent.parent.parent
+#     / "torchtune/_cli/eval_configs/lora_finetune_eval_config.yaml"
+# )
 
 # TODO - should probably go into a general directory
 from tests.recipes.utils import (
@@ -49,7 +52,7 @@ models.lora_small_test_ckpt = partial(
 
 
 class TestEval:
-    def dsddddtest_full_model_eval_result(self, capsys, monkeypatch):
+    def test_full_model_eval_result(self, capsys, monkeypatch):
         model_ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
         ckpt_dir = ckpt_path.parent
@@ -60,7 +63,7 @@ class TestEval:
             --override \
             model._component_=torchtune.models.{model_ckpt} \
             model_checkpoint={ckpt_path} \
-            limit={10} \
+            limit=10 \
             device={cpu_device_str} \
         """.split()
         monkeypatch.setattr(sys, "argv", cmd)
@@ -71,8 +74,9 @@ class TestEval:
         assert "'acc,none': 0.3" in out_err.out
 
     def test_lora_eval_result(self, capsys, monkeypatch):
-        # TODO: this is a hacky way of getting the LoRA adapter checkpoint. We should
-        # generate the adapter checkpoints and store them instead.
+        # TODO: this is a hacky way of getting the LoRA adapter checkpoint. We should test this
+        # with a merged LoRA checkpoint once we've uploaded / checked in a merged checkpoint
+        # into our test artifacts.
         lora_model = models.lora_small_test_ckpt()
         lora_sd = lora_model.state_dict()
         lora_sd = {k: v for k, v in lora_sd.items() if "lora_a" in k or "lora_b" in k}
@@ -90,7 +94,7 @@ class TestEval:
                 model._component_=torchtune.models.{model_ckpt} \
                 model_checkpoint={ckpt_path} \
                 lora_checkpoint={lora_checkpoint_path} \
-                limit={10} \
+                limit=10 \
                 device={cpu_device_str} \
             """.split()
             monkeypatch.setattr(sys, "argv", cmd)

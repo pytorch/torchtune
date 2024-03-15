@@ -125,7 +125,7 @@ def eval(
         max_seq_length,
     )
 
-    lm_eval.tasks.initialize_tasks("DEBUG")
+    lm_eval.tasks.initialize_tasks()
 
     task_dict = get_task_dict(tasks)
     eval_results = evaluate(
@@ -199,6 +199,11 @@ def _setup_model(
         assert (
             lora_missing.intersection(missing) == set()
         ), f"Missing keys {lora_missing.intersection(missing)}"
+        # Union of missing keys should be all model keys.
+        all_model_keys = set(model.state_dict().keys())
+        assert (
+            lora_missing.union(missing) == all_model_keys
+        ), f"Missing keys {all_model_keys - lora_missing.union(missing)}"
 
     return model
 
@@ -211,7 +216,7 @@ def main(
     Main entry point for running evaluation on finetuned models. Sets up the environment,
     loads in the model + checkpoint, and runs evaluation.
 
-    Example usage: python eval.py --config eval_configs/full_finetune_eval_config.yaml --override limit=100 tasks=["truthfulqa_mc2"]
+    Example usage: tune eval --config eval_configs/full_finetune_eval_config.yaml --override limit=100 tasks=["truthfulqa_mc2"]
     Please see eval_configs/ for example configs.
     """
 

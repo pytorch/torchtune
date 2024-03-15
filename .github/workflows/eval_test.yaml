@@ -1,4 +1,4 @@
-name: E2E Recipe Tests
+name: E2E Eval Tests
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 concurrency:
-  group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: eval-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -18,7 +18,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_test:
+  eval_test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -52,9 +52,7 @@ jobs:
             mkdir -p /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/small-ckpt-01242024 /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-hf-03082024.pt /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/small-ckpt-tune-03082024.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-meta-03082024.pt /tmp/test-artifacts
       - name: Install dependencies
         run: |
           python -m pip install -r requirements.txt
