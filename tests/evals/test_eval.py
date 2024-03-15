@@ -32,11 +32,14 @@ class TestEval:
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
         ckpt_dir = ckpt_path.parent
         cpu_device_str = "cpu"
+        tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
         cmd = f"""
         tune eval \
             --config {EVAL_CONFIG_PATH} \
             model._component_=torchtune.models.{model_ckpt} \
             model_checkpoint={ckpt_path} \
+            tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
+            tokenizer.path={tokenizer_pth} \
             limit=10 \
             device={cpu_device_str} \
         """.split()

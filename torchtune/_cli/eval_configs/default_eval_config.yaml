@@ -8,12 +8,12 @@ model:
   _component_: torchtune.models.llama2.llama2_7b
 
 
-model_checkpoint: /home/rvarm1/local/dev/assets/llama2-7b-01242024
+model_checkpoint: /tmp/llama2/model.ckpt
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /home/rvarm1/local/dev/assets/tokenizer.model
+  path: /tmp/llama2/tokenizer.model
 
 
 # Environment
