@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -7,42 +6,19 @@
 
 import runpy
 import sys
-from pathlib import Path
 
 import pytest
-from omegaconf import OmegaConf
 
 from tests.common import TUNE_PATH
 from torchtune.config._errors import ConfigError
 
+VALID_CONFIG_PATH = "tests/assets/valid_dummy_config.yaml"
+INVALID_CONFIG_PATH = "tests/assets/invalid_dummy_config.yaml"
+
 
 class TestTuneCLIWithValidateScript:
-    def valid_config_string(self):
-        return """
-        test:
-          _component_: torchtune.utils.get_dtype
-          dtype: fp32
-        """
-
-    def invalid_config_string(self):
-        return """
-        test1:
-          _component_: torchtune.utils.get_dtype
-          dtype: fp32
-          dummy: 3
-        test2:
-          _component_: torchtune.utils.get_dtype
-          dtype: fp32
-          dummy: 3
-        """
-
-    def test_validate_good_config(self, capsys, monkeypatch, tmpdir):
-        tmpdir_path = Path(tmpdir)
-        dest = tmpdir_path / "my_custom_finetune.yaml"
-        conf = OmegaConf.create(self.valid_config_string())
-        OmegaConf.save(conf, dest)
-
-        args = f"tune validate --config {dest}".split()
+    def test_validate_good_config(self, capsys, monkeypatch):
+        args = f"tune validate --config {VALID_CONFIG_PATH}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -52,13 +28,8 @@ class TestTuneCLIWithValidateScript:
 
         assert out == "Config is well-formed!"
 
-    def test_validate_bad_config(self, monkeypatch, tmpdir):
-        tmpdir_path = Path(tmpdir)
-        dest = tmpdir_path / "my_custom_finetune.yaml"
-        conf = OmegaConf.create(self.invalid_config_string())
-        OmegaConf.save(conf, dest)
-
-        args = f"tune validate --config {dest}".split()
+    def test_validate_bad_config(self, monkeypatch):
+        args = f"tune validate --config {INVALID_CONFIG_PATH}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(
@@ -67,13 +38,8 @@ class TestTuneCLIWithValidateScript:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
     def test_validate_bad_override(self, monkeypatch, tmpdir):
-        tmpdir_path = Path(tmpdir)
-        dest = tmpdir_path / "my_custom_finetune.yaml"
-        conf = OmegaConf.create(self.valid_config_string())
-        OmegaConf.save(conf, dest)
-
         args = f"\
-            tune validate --config {dest} \
+            tune validate --config {VALID_CONFIG_PATH} \
             test._component_=torchtune.utils.get_dtype \
             test.dtype=fp32 test.dummy=3".split()
 
