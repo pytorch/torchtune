@@ -100,7 +100,7 @@ def eval(
     tasks: List[str],
     limit: Optional[int] = None,
     max_seq_length: Optional[int] = 4096,
-    device: torch.device = torch.device("cuda"),
+    device: torch.device = torch.device("cpu"),
 ) -> Dict[str, Any]:
     """
     Evaluates a language model on a specified task using the lm-evaluation-harness library. Based
