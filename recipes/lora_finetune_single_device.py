@@ -42,7 +42,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         - Mixed precision training via `torch.autocast` - fp32, fp16 and bf16 are supported.
         - Full bf16 training for supported HW architectures. We currently check bf16 support via
         the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
-        the "full_bf16" configuration flag.
+        setting `dtype=bf16` in configuration.
         - Checkpointing: of LoRA adapter parameters and their optimizer states. When resuming
             from a checkpoint, the adapter parameters are loaded from the checkpoint along
             with the base model weights. Note that intra-epoch resumption is not supported.
@@ -132,9 +132,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
 
-        # For CUDA devices, check if the HW supports bf16.
+        self._training_precision = utils.get_dtype(cfg.precision)
+        # fp16 precision is explicitly disabled as it is not supported in this
+        # recipe (for example, no gradient scaling).
+        if self._training_precision == torch.float16:
+            raise ValueError(
+                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
+            )
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
         if (
-            cfg.full_bf16
+            self._training_precision == torch.bfloat16
             and self._device != torch.device("cpu")
             and not torch.cuda.is_bf16_supported()
         ):
@@ -142,7 +149,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            full_bf16=cfg.full_bf16,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
@@ -157,9 +163,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -198,20 +204,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        full_bf16: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-
-        dtype_context = (
-            utils.set_default_dtype(torch.bfloat16)
-            if full_bf16
-            else contextlib.nullcontext()
-        )
-        with dtype_context:
-            with self._device:
-                model = config.instantiate(cfg_model)
+        with utils.set_default_dtype(training_precision), self._device:
+            model = config.instantiate(cfg_model)
 
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
@@ -243,10 +241,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
         # Validate model was loaded in with the expected dtype.
-        expected_dtype = torch.bfloat16 if full_bf16 else torch.float32
-        utils.validate_expected_param_dtype(model, dtype=expected_dtype)
+        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
 
-        log.info(f"Model is initialized with precision {expected_dtype}.")
+        log.info(f"Model is initialized with precision {self._training_precision}.")
         return model
 
     def _setup_optimizer(
