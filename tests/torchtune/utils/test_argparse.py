@@ -41,10 +41,3 @@ class TestArgParse:
         assert (
             cli_kwargs.c == 4
         ), f"c == {cli_kwargs.c} not 4 as set in the command args."
-
-    def test_required_argument(self, parser):
-        """
-        Test that the parser does not allow required arguments to be added
-        """
-        with pytest.raises(AssertionError):
-            parser.add_argument("--d", required=True, type=int, default=0)

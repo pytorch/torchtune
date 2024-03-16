@@ -1,6 +1,7 @@
 
 [![Unit Test](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml)
 ![Recipe Integration Test](https://github.com/pytorch-labs/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+[![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
 # TorchTune (alpha release)
 
@@ -18,7 +19,7 @@ The library provides:
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
 - Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
-- Yaml configs for easily configuring training runs
+- YAML configs for easily configuring training runs
 
 &nbsp;
 

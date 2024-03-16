@@ -8,15 +8,14 @@ import copy
 from typing import Any, Callable, Dict, Tuple
 
 from omegaconf import DictConfig, OmegaConf
-from torchtune.config._utils import (
-    _get_component_from_path,
-    _has_component,
-    InstantiationError,
-)
+from torchtune.config._errors import InstantiationError
+from torchtune.config._utils import _get_component_from_path, _has_component
 
 
 def _create_component(
-    _component_: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
+    _component_: Callable[..., Any],
+    args: Tuple[Any, ...],
+    kwargs: Dict[str, Any],
 ):
     return _component_(*args, **kwargs)
 
