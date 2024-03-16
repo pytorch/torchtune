@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
-from argparse import Action, Namespace
+from argparse import Namespace
 from typing import List, Tuple
 
 from omegaconf import OmegaConf
@@ -23,20 +23,16 @@ class TuneArgumentParser(argparse.ArgumentParser):
 
     https://docs.python.org/3/library/argparse.html
 
-    *Note: This class does not support setting "required" arguments.*
     *Note: This class uses "config" as a builtin argument so it is not available to use*
     """
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         super().add_argument(
-            "--config", type=str, help="Path/name of a yaml file with recipe args"
-        )
-        super().add_argument(
-            "--override",
+            "--config",
             type=str,
-            nargs="+",
-            help="Override config parameters with format KEY=VALUE",
+            help="Path/name of a yaml file with recipe args",
+            required=True,
         )
 
     def parse_known_args(self, *args, **kwargs) -> Tuple[Namespace, List[str]]:
@@ -53,20 +49,6 @@ class TuneArgumentParser(argparse.ArgumentParser):
             config = OmegaConf.load(namespace.config)
             assert "config" not in config, "Cannot use 'config' within a config file"
             self.set_defaults(**config)
-        if namespace.override is not None:
-            cli_config = OmegaConf.from_dotlist(namespace.override)
-            assert "config" not in config, "Cannot use 'override' within CLI arguments"
-            self.set_defaults(**cli_config)
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
-        del namespace.override
         return namespace, unknown_args
-
-    def add_argument(self, *args, **kwargs) -> Action:
-        """This calls the base method but throws an error if the required flag is set or the name used is config.
-        For more info on the method see the docs for the base method.
-
-        https://docs.python.org/3/library/argparse.html#the-add-argument-method
-        """
-        assert not kwargs.get("required", False), "Required not supported"
-        return super().add_argument(*args, **kwargs)

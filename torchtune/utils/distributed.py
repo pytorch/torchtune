@@ -126,6 +126,22 @@ def validate_no_params_on_meta_device(model: nn.Module) -> None:
             raise RuntimeError(f"Unexpected param or buffer {n} on meta device.")
 
 
+def contains_fsdp(model: nn.Module) -> bool:
+    """
+    Checks if the model contains FSDP.
+
+    Args:
+        model (nn.Module): Model to check.
+
+    Returns:
+        bool: True if the model contains FSDP, False otherwise.
+    """
+    return any(
+        isinstance(m, torch.distributed.fsdp.FullyShardedDataParallel)
+        for m in model.modules()
+    )
+
+
 def wrap_fsdp(
     model: nn.Module,
     device: torch.device,

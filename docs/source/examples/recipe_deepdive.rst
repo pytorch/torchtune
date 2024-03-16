@@ -208,8 +208,8 @@ and CLI override parsing.
 Running your recipe
 ^^^^^^^^^^^^^^^^^^^
 You should be able to run your recipe by providing the direct paths to your custom
-recipe and custom config using the :code:`tune` command:
+recipe and custom config using the :code:`tune` command with any CLI overrides:
 
 .. code-block:: bash
 
-    tune <path/to/recipe> --config <path/to/config> --override ...
+    tune <path/to/recipe> --config <path/to/config> k1=v1 k2=v2 ...

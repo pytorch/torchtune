@@ -6,13 +6,13 @@
 
 import pytest
 from omegaconf import OmegaConf
+from torchtune.config._errors import InstantiationError
 from torchtune.config._instantiate import (
     _create_component,
-    _has_component,
     _instantiate_node,
     instantiate,
 )
-from torchtune.config._utils import InstantiationError
+from torchtune.config._utils import _has_component
 from torchtune.modules import RMSNorm
 
 

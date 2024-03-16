@@ -95,6 +95,9 @@ def assert_expected(
 
 @contextmanager
 def single_box_init(init_pg: bool = True):
+    env_vars = ["MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK", "RANK", "WORLD_SIZE"]
+    initial_os = {k: os.environ.get(k, None) for k in env_vars}
+    os.environ.get("MASTER_ADDR", None)
     os.environ["MASTER_ADDR"] = "localhost"
     # TODO: Don't hardcode ports as this could cause flakiness if tests execute
     # in parallel.
@@ -113,6 +116,11 @@ def single_box_init(init_pg: bool = True):
     finally:
         if init_pg:
             torch.distributed.destroy_process_group()
+        for k in env_vars:
+            if initial_os.get(k) is None:
+                del os.environ[k]
+            else:
+                os.environ[k] = initial_os[k]
 
 
 @contextmanager
