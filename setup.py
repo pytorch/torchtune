@@ -28,6 +28,6 @@ setup(
     description="Package for finetuning LLMs using native PyTorch",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/pytorch-labs/torchtune",
+    url="https://github.com/pytorch/torchtune",
     extras_require={"dev": read_requirements("dev-requirements.txt")},
 )
