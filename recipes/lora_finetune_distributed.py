@@ -100,7 +100,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
-        # These attributes consitute the recipe state and are updated by ``load_checkpoint``
+        # These attributes constiute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
         self.seed = utils.set_seed(seed=cfg.seed)
         self.epochs_run = 0
@@ -236,7 +236,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # Model initialization has some important considerations:
         #    a. To minimize GPU peak memory, we load the model on CPU with the right
         #       dtype. To ensure that we don't instantiate ``world_size`` number of models,
-        #       we initialize on meta_device for all ranks other thank rank 0.
+        #       we initialize on meta_device for all ranks other than rank 0.
         #    b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
         #       model weights from checkpoint.
         #    c. While wrapping the model with FSDP, we set ``sync_module_states``
