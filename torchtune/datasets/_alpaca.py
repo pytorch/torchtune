@@ -9,7 +9,7 @@ from typing import List, Mapping, Tuple
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import AlpacaInstructTemplate
+from torchtune.data.templates import AlpacaInstructTemplate
 
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.modules import Tokenizer
