@@ -432,12 +432,12 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                     logits = logits.transpose(1, 2)
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
                 if (
                     self.total_training_steps % self._log_every_n_steps == 0
                     and self._is_rank_zero
                 ):
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
