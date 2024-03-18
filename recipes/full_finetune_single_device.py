@@ -18,9 +18,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-from torchtune.utils import get_memory_summary
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import get_memory_summary
 
 from tqdm import tqdm
 
@@ -54,6 +54,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
+
+    Raises:
+        ValueError - If ``dtype`` is set to fp16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:

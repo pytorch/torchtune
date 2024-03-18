@@ -37,7 +37,7 @@ from .distributed import (  # noqa
     wrap_fsdp,
 )
 from .logging import get_logger
-from .memory import set_activation_checkpointing, get_memory_summary
+from .memory import get_memory_summary, set_activation_checkpointing
 from .precision import (
     get_autocast,
     get_dtype,
