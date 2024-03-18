@@ -97,6 +97,8 @@ tune download --repo-id meta-llama/Llama-2-7b \
 --output-dir /tmp/llama2
 ```
 
+Note: While the ``tune download`` let's you download any model from the hub, there's no guarantee that the model can be finetuned with TorchTune. Current model's supported can be found [here](#introduction)
+
 &nbsp;
 
 #### Converting the checkpoint into PyTorch-native for LoRA
