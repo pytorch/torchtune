@@ -16,12 +16,7 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
-from torch.distributed.fsdp import (
-    FullOptimStateDictConfig,
-    FullStateDictConfig,
-    FullyShardedDataParallel as FSDP,
-    StateDictType,
-)
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -212,12 +207,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        with utils.set_default_dtype(torch.bfloat16):
-            #     with self._device:
-            # with self._device:
+        with self._device:
             model = config.instantiate(cfg_model)
-        # model.bfloat16()
-        model.load_state_dict(model_state_dict)
 
         model = (
             utils.wrap_fsdp(
@@ -234,6 +225,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
+
+        model.load_state_dict(model_state_dict)
 
         if self._is_rank_zero:
             log.info("Model is initialized.")
@@ -302,19 +295,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        # save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-        FSDP.set_state_dict_type(
-            self._model,
-            StateDictType.FULL_STATE_DICT,
-            FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
-            FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
-        )
-
-        # with FSDP.state_dict_type(self._model, StateDictType.FULL_STATE_DICT, save_policy):
-        cpu_state_dict = self._model.state_dict()
-
-        ckpt_dict = {utils.MODEL_KEY: cpu_state_dict}
-
+        ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:
             optimizer_state_dict = (
@@ -331,7 +312,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-
         if self._is_rank_zero:
             self._checkpointer.save_checkpoint(
                 ckpt_dict,
