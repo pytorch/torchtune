@@ -316,8 +316,8 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        if self._is_rank_zero:
-            log.info(utils.memory_stats_log("Memory Stats after model init:"))
+        # if self._is_rank_zero:
+        log.info(utils.memory_stats_log(f"Memory Stats after model init for rank {torch.distributed.get_rank()}:"))
         return model
 
     def _setup_optimizer(

@@ -32,7 +32,7 @@ def set_activation_checkpointing(
 def memory_stats_log(msg: str) -> str:
     return f"""
     Memory Stats {msg}:
-    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
-    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
-    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
+    Memory Allocated: {torch.cuda.memory_allocated(device=torch.cuda.current_device()) / 1000**3:.2f} GB
+    Memory Reserved: {torch.cuda.memory_reserved(device=torch.cuda.current_device()) / 1000**3:.2f} GB
+    Peak Memory: {torch.cuda.max_memory_allocated(device=torch.cuda.current_device()) / 1000**3:.2f} GB
     """
