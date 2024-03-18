@@ -103,7 +103,7 @@ Note: While the ``tune download`` let's you download any model from the hub, the
 
 #### Running recipes
 
-TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py) and [LoRA finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py).
+TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py) and LoRA finetuning both for [multiple devices](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py) and [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py).
 
 To run a full finetune on two devices on the Alpaca dataset using FSDP:
 

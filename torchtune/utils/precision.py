@@ -56,7 +56,8 @@ def list_dtypes() -> List[str]:
 
 def _verify_bf16_support():
     return (
-        torch.version.cuda
+        torch.cuda.is_available()
+        and torch.version.cuda
         and torch.cuda.is_bf16_supported()
         and packaging.version.parse(torch.version.cuda).release >= (11, 0)
         and torch.distributed.is_nccl_available()

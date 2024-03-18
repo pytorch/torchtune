@@ -44,7 +44,8 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
-        - FSDP and activation checkpointing. Activation Checkpointing is configurable.
+        - FSDP and activation checkpointing. Activation Checkpointing is configurable and is disabled
+            by default.
         - Full fp32 and full bf16 training. Mixed precision training or fp16 are currently not
             supported.
         - Checkpointing of full model weights and optionally of optimizer state (for
