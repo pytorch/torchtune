@@ -29,9 +29,7 @@ def set_activation_checkpointing(
     apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
 
-def get_memory_summary(
-    prefix: str, device: torch.device, reset_stats: bool = True
-) -> Dict[str, float]:
+def get_memory_summary(prefix: str, device: torch.device, reset_stats: bool = True):
     """
     Print a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
     also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
@@ -42,9 +40,6 @@ def get_memory_summary(
         prefix (str): Prefix to prepend to the printed summary.
         device (torch.device): Device to get memory summary for. Only CUDA devices are supported.
         reset_stats (bool): Whether to reset CUDA's peak memory tracking.
-
-    Returns:
-        Dict[str, float]: Dictionary of memory summary.
     """
     if device.type != "cuda":
         return
