@@ -207,26 +207,50 @@ class TestPeftUtils:
                 raise AssertionError(f"{k} not in expected keys")
 
     @pytest.mark.parametrize(
-        "lora_modules, full_model_state_dict_keys, lora_state_dict_keys, base_model_state_dict_keys, expected",
+        (
+            """
+            lora_attn_modules,
+            apply_lora_to_mlp,
+            apply_lora_to_output,
+            full_model_state_dict_keys,
+            lora_state_dict_keys,
+            base_model_state_dict_keys,
+            expected
+            """
+        ),
         [
             (
                 ["q_proj", "k_proj"],
+                False,
+                False,
                 ["q_proj.lora_a.weight", "dummy_param.weight"],
                 ["q_proj.lora_a.weight"],
                 ["dummy_param.weight"],
                 "",
             ),
-            (["v_proj"], ["param_a", "param_b"], None, ["param_a", "param_b"], ""),
+            (
+                ["v_proj"],
+                False,
+                False,
+                ["param_a", "param_b"],
+                None,
+                ["param_a", "param_b"],
+                "",
+            ),
             (
                 ["output_proj"],
+                False,
+                True,
                 ["output_proj.weight", "output_proj.lora_a.weight"],
                 ["output_proj.lora_a.weight"],
                 ["output_proj.weight"],
                 "",
             ),
-            (["q_proj"], ["param_a"], [], [], "Missing non-LoRA"),
+            (["q_proj"], False, False, ["param_a"], [], [], "Missing non-LoRA"),
             (
                 ["k_proj", "output_proj"],
+                False,
+                True,
                 ["k_proj.lora_a.weight", "param_a"],
                 ["k_proj.lora_a.weight", "param_a"],
                 ["param_a"],
@@ -234,15 +258,27 @@ class TestPeftUtils:
             ),
             (
                 ["k_proj"],
+                False,
+                False,
                 ["k_proj.lora_a.weight"],
                 [],
                 ["k_proj.lora_a.weight"],
                 "found in base model",
             ),
-            (["k_proj"], ["k_proj.lora_a.weight"], [], None, "Missing LoRA"),
-            (["q_proj"], [], ["a"], ["a"], "overlapping"),
+            (
+                ["k_proj"],
+                False,
+                False,
+                ["k_proj.lora_a.weight"],
+                [],
+                None,
+                "Missing LoRA",
+            ),
+            (["q_proj"], False, False, [], ["a"], ["a"], "overlapping"),
             (
                 ["v_proj"],
+                False,
+                False,
                 ["dummy_param.weight"],
                 ["v_proj.lora_a.weight"],
                 ["dummy_param.weight"],
@@ -250,6 +286,8 @@ class TestPeftUtils:
             ),
             (
                 ["w1", "w2", "w3"],
+                True,
+                False,
                 ["w1.lora_a.weight", "w2.weight", "q_proj.weight"],
                 ["w1.lora_a.weight"],
                 ["q_proj.weight"],
@@ -257,6 +295,8 @@ class TestPeftUtils:
             ),
             (
                 ["q_proj", "output"],
+                False,
+                True,
                 [
                     "q_proj.lora_a",
                     "output.weight",
@@ -269,6 +309,8 @@ class TestPeftUtils:
             ),
             (
                 ["q_proj", "v_proj"],
+                False,
+                False,
                 "lora_llama2_model_all_keys",
                 "lora_llama2_expected_adapter_keys",
                 "lora_llama2_expected_base_model_keys",
@@ -279,7 +321,9 @@ class TestPeftUtils:
     def test_validate_lora_state_dict(
         self,
         request,
-        lora_modules,
+        lora_attn_modules,
+        apply_lora_to_mlp,
+        apply_lora_to_output,
         full_model_state_dict_keys,
         lora_state_dict_keys,
         base_model_state_dict_keys,
@@ -298,14 +342,18 @@ class TestPeftUtils:
         if expected:
             with pytest.raises(AssertionError, match=expected):
                 validate_state_dict_for_lora(
-                    lora_modules=lora_modules,
+                    lora_attn_modules,
+                    apply_lora_to_mlp,
+                    apply_lora_to_output,
                     full_model_state_dict_keys=full_model_state_dict_keys,
                     lora_state_dict_keys=lora_state_dict_keys,
                     base_model_state_dict_keys=base_model_state_dict_keys,
                 )
         else:
             validate_state_dict_for_lora(
-                lora_modules=lora_modules,
+                lora_attn_modules,
+                apply_lora_to_mlp,
+                apply_lora_to_output,
                 full_model_state_dict_keys=full_model_state_dict_keys,
                 lora_state_dict_keys=lora_state_dict_keys,
                 base_model_state_dict_keys=base_model_state_dict_keys,

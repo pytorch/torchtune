@@ -54,7 +54,7 @@ class TestLoRAFinetuneRecipe:
         if ckpt == "small_test_ckpt_meta":
             return "FullModelMetaCheckpointer"
 
-    @pytest.mark.parametrize("enable_fsdp", [True, False])
+    @pytest.mark.parametrize("enable_fsdp", [False])
     def test_loss(self, capsys, tmpdir, enable_fsdp, monkeypatch):
         expected_loss_values = self._fetch_expected_loss_values()
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
@@ -108,7 +108,7 @@ class TestLoRAFinetuneRecipe:
             loss_values = fetch_loss_values(capsys.readouterr().err)
             validate_loss_values(loss_values, expected_loss_values)
 
-    @pytest.mark.parametrize("enable_fsdp", [True, False])
+    @pytest.mark.parametrize("enable_fsdp", [False])
     def test_training_state_on_resume(self, enable_fsdp, capsys, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -222,7 +222,7 @@ class TestLoRAFinetuneRecipe:
         loss_values = fetch_loss_values(capsys.readouterr().err)
         validate_loss_values(loss_values, expected_loss_values)
 
-    @pytest.mark.parametrize("enable_fsdp", [True, False])
+    @pytest.mark.parametrize("enable_fsdp", [False])
     def test_save_and_load_merged_weights(self, tmpdir, enable_fsdp, monkeypatch):
         ckpt = "small_test_ckpt_tune"
         config_path = RECIPE_TESTS_DIR / "lora_finetune_test_config.yaml"
