@@ -22,6 +22,8 @@ import torch
 from tests.common import TUNE_PATH
 
 from tests.recipes.common import RECIPE_TESTS_DIR
+from tests.test_utils import single_box_init
+import contextlib
 from tests.recipes.utils import (
     fetch_ckpt_model_path,
     fetch_loss_values,
@@ -94,7 +96,8 @@ class TestFullFinetuneRecipe:
         if ckpt == "small_test_ckpt_meta":
             return "FullModelMetaCheckpointer"
 
-    def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("single_device", [False])
+    def test_loss(self, single_device, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpts = (
             ["llama2.llama2_7b"]
@@ -122,8 +125,12 @@ class TestFullFinetuneRecipe:
                 with config_file.open("w") as f:
                     json.dump(config, f)
 
+            if single_device:
+                recipe_cmd = "full_finetune_single_device"
+            else:
+                recipe_cmd = "full_finetune_distributed"
             cmd = f"""
-            tune full_finetune_single_device
+            tune {recipe_cmd}
                 --config {_CONFIG_PATH} \
                 output_dir={tmpdir} \
                 model=torchtune.models.{ckpt} \
@@ -137,7 +144,12 @@ class TestFullFinetuneRecipe:
 
             monkeypatch.setattr(sys, "argv", cmd)
             with pytest.raises(SystemExit):
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+                with (
+                    single_box_init(init_pg=False)
+                    if not single_device
+                    else contextlib.nullcontext()
+                ):
+                    runpy.run_path(TUNE_PATH, run_name="__main__")
 
             loss_values = fetch_loss_values(capsys.readouterr().err)
             validate_loss_values(loss_values, expected_loss_values)

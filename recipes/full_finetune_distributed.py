@@ -393,6 +393,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     def cleanup(self) -> None:
         self._metric_logger.close()
+        torch.distributed.destroy_process_group()
 
 
 @config.parse
