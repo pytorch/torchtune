@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import json
 import logging
 import os
@@ -22,8 +23,6 @@ import torch
 from tests.common import TUNE_PATH
 
 from tests.recipes.common import RECIPE_TESTS_DIR
-from tests.test_utils import single_box_init
-import contextlib
 from tests.recipes.utils import (
     fetch_ckpt_model_path,
     fetch_loss_values,
@@ -31,7 +30,7 @@ from tests.recipes.utils import (
     llama2_tiny_test_ckpt,
     validate_loss_values,
 )
-from tests.test_utils import get_assets_path
+from tests.test_utils import get_assets_path, single_box_init
 
 from torchtune import models
 

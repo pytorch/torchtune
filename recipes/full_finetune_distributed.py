@@ -57,7 +57,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
-        ValueError - If ``dtype`` is set to fp16.
+        ValueError: If ``dtype`` is set to fp16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
