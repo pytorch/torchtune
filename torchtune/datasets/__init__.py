@@ -5,8 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.datasets._alpaca import AlpacaDataset
-from torchtune.datasets._slimorca import SlimOrcaDataset
 from torchtune.datasets._instruct import InstructDataset
+from torchtune.datasets._slimorca import SlimOrcaDataset
 
 __all__ = [
     "AlpacaDataset",
