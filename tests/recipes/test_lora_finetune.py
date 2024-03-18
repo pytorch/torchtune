@@ -73,7 +73,7 @@ class TestLoRAFinetuneRecipe:
             ckpt_dir = ckpt_path.parent
             # TODO (rohan-varma): setting CUDA_VISIBLE_DEVICES to ignore all GPUs
             # on machine to simulate current CI environment that does not have GPUs.
-            # Will consolidate as part of addressing https://github.com/pytorch-labs/torchtune/issues/473
+            # Will consolidate as part of addressing https://github.com/pytorch/torchtune/issues/473
             monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
             cmd = f"""
             tune {recipe_name}
@@ -236,7 +236,7 @@ class TestLoRAFinetuneRecipe:
         ckpt_dir = ckpt_path.parent
         # TODO (rohan-varma): setting CUDA_VISIBLE_DEVICES to ignore all GPUs
         # on machine to simulate current CI environment that does not have GPUs.
-        # Will consolidate as part of addressing https://github.com/pytorch-labs/torchtune/issues/473
+        # Will consolidate as part of addressing https://github.com/pytorch/torchtune/issues/473
         monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
         cmd = f"""
         tune {recipe_name}
