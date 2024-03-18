@@ -69,7 +69,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
+        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 10
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
