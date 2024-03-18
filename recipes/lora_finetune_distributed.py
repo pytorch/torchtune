@@ -225,16 +225,16 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         """
-        # Model initialization has some important considerations:
-        #    a. To minimize GPU peak memory, we load the model on CPU with the right
-        #       dtype. To ensure that we don't instantiate ``world_size`` number of models,
-        #       we initialize on meta_device for all ranks other than rank 0.
-        #    b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
-        #       model weights from checkpoint.
-        #    c. While wrapping the model with FSDP, we set ``sync_module_states``
-        #       to TRUE and broadcast module params and buffers from rank 0.
-        #    d. The ``device_id`` param ensures that the FSDP initialization happens on
-        #       the correct device.
+        Model initialization has some important considerations:
+           a. To minimize GPU peak memory, we load the model on CPU with the right
+              dtype. To ensure that we don't instantiate ``world_size`` number of models,
+              we initialize on meta_device for all ranks other than rank 0.
+           b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
+              model weights from checkpoint.
+           c. While wrapping the model with FSDP, we set ``sync_module_states``
+              to TRUE and broadcast module params and buffers from rank 0.
+           d. The ``device_id`` param ensures that the FSDP initialization happens on
+              the correct device.
         """
 
         if self._is_rank_zero:
