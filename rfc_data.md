@@ -54,36 +54,32 @@ from the YAML config. This covers everything from instruction to conversations t
 raw text corpus. The awesome part is that you can combine multiple datasets all
 from the config (I think) and specify their template.
 
-## TuneDataset
-The general flow of loading a dataset from data file to tokenized prompt and label consists of:
+## InstructDataset
+The general flow of loading a dataset from data file to tokenized prompt and label for instruction datasets consists of:
 - (optional) Packing the dataset offline and caching it / saving it for use in current and future runs
 - Get a single sample
 - Apply user transform to any of the columns - this could also be converting from one template to another, as is the case for SlimOrca: sharegpt -> llama2 chat
 - Format into provided template using PromptTemplate’s methods
 - Tokenize with provided tokenizer
 - Collate tokenized output - padding, modify masks for packing, etc
-Since each step uses a user-provided component, every step is fully customizable
-using standard components in the library or custom components from the user, provided
-that it follows a particular interface.
+Since each step uses a user-provided component, every step is fully customizable using standard components in the library or custom components from the user, provided that it follows a particular interface.
+
+The core piece for InstructDatasets is the PromptTemplate, which would dictate how the prompts are formed and define the fine-tuning task.
 ```
 from torch.utils.data import Dataset
 
-class TuneDataset(Dataset):
+class InstructDataset(Dataset):
     def __init__(
         self,
+        tokenizer: Tokenizer
         source: str,
-        column_map: Optional[Dict[str, str]],
-        transform: Optional[Callable],
         template: Union[PromptTemplate, str],
-        tokenizer: Tokenizer,
-        collator: Callable,
-        packing: bool = False,
+        transform: Optional[Callable] = None,
+        column_map: Optional[Dict[str, str]] = None,  # by default, assume column names == what template expects
     ) -> None:
         # Set all attributes
         ...
-        self._data = get_data(source)
-        if packing:
-            self._data = sample_packing(self._data)
+        self._data = load_dataset(source)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         # Get a row
@@ -95,10 +91,8 @@ class TuneDataset(Dataset):
         # Tokenize
         encoded_prompt = self._tokenizer.encode(prompt)
         labels = self._tokenizer.encode(sample["output"])
-        # Collate
-        collated_prompt, collated_labels = self._collator(encoded_prompt, labels)
 
-        return collated_prompt, collated_labels
+        return encoded_prompt, labels
 ```
 
 ### Source
@@ -138,14 +132,124 @@ We could also just make the prompt templates plain strings and use the native st
 format method. However, for cases like Alpaca where we want to handle with / without
 input, we need a bit more functionality. Using a class is also more extensible.
 
-### Collator
-While transforms process the sample BEFORE templating and tokenization, collators
-include any data utils that process the sample AFTER tokenization. The primary util
-is padding to a max length, which we can repurpose utils.padded_collate for. We
-can also make the train_on_input functionality a collator.
+### Supported Datasets
+Here, we use our flagship supported datasets as examples to exhibit the versatility
+and extensibility of the TuneDataset API design.
 
-Open question: should we ditch using the collate_fn kwarg in DataLoader in favor
-of coupling the collator with TuneDataset? What’s the tradeoff here?
+#### Alpaca
+Instruct tasks. Good example of straightforward dataset that doesn’t require transforms,
+column mapping, template conversion.
+- Source: tatsu-lab/alpaca
+- Source Template: instruction, input, output columns
+- Target Template: https://github.com/tatsu-lab/stanford_alpaca#data-release - is this the standard instruct template?
+- Collator: pad, train_on_input
+```
+def alpaca_dataset(tokenizer: Tokenizer, use_clean: bool = False) -> InstructDataset:
+    return InstructDataset(
+        source="yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca",
+        template=AlpacaTemplate(),
+        tokenizer=tokenizer,
+    )
+```
+
+#### Samsum
+Summarization tasks.
+- Source: samsum
+- Source Template: dialogue and summary columns
+- Target Template: Summary - similar to SummarizeTLDRPrompter in Axolotl. Also see the version in llama recipes
+- Collator: pad
+```
+def samsum_dataset(tokenizer: Tokenizer) -> InstructDataset:
+    return InstructDataset(
+        source="samsum",
+        template=SummarizeTemplate(),
+        tokenizer=tokenizer,
+    )
+```
+
+#### Grammar
+Primarily for grammatical error correction tasks. In llama recipes, two datasets
+are used. For now, we will use one dataset until the multi-dataset UX is more thought
+out.
+- Source: jhu-clsp/jfleg + liweili/c4_200m
+- Source Template: jfleg requires preprocessing, c4 just needs to map the columns
+- Target Template: A grammar correction template? Doesn’t seem to be a standard. https://github.com/facebookresearch/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50
+- Collator: pad
+```
+def grammar_dataset(tokenizer: Tokenizer) -> InstructDataset:
+    return InstructDataset(
+        source="liweili/c4_200m",
+        column_map={"sentence": "input", "correction": "output"},
+        # Example of passing in a string directly
+        template="Correct this to standard English: {sentence}\n---\nCorrected: {correction}",
+        tokenizer=tokenizer,
+    )
+```
+## (TBD) ChatDataset
+This general dataset class contains common utilities for chat/conversation-based datasets, for example handling multi-turn conversations, handling roles and system prompts. Although, with only one flagship dataset that is chat type it is hard to anticipate how to generalize this. On the other hand, chat/conversation type datasets are one of the most common, and we should have good support for this out of the gate.
+
+Open question:  Can QA datasets fall under this category?
+```
+from torch.utils.data import Dataset
+
+class ChatDataset(Dataset):
+    def __init__(
+        self,
+        tokenizer: Tokenizer
+        source: str,
+        roles: List[str],
+        template: PromptTemplate,
+        transform: Optional[Callable] = None,
+        multiturn: bool = False,
+    ) -> None:
+        # Set all attributes
+        ...
+        self._data = load_dataset(source)
+
+    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+        ...
+```
+### Supported datasets
+
+#### SlimOrca
+Conversational/chat tasks. Good example of utilizing the transform for template
+conversion.
+- Source: Open-Orca/SlimOrca-Dedup
+- Source Template: sharegpt conversation
+- Target Template: In TorchTune, we convert to llama2 chat using _generate_prompt_label
+- Collator: pad
+```
+def slim_orca_dataset(tokenizer: Tokenizer) -> TuneDataset:
+    return ChatDataset(
+        source="Open-Orca/SlimOrca-Dedup",
+        roles=["system", "human", "gpt"],
+        template=Llama2ChatTemplate(),
+        tokenizer=tokenizer,
+        multiturn=False,
+    )
+```
+## Other datasets
+Common types of datasets that we won’t support for MVP but should absolutely consider for a fast follow up:
+- Question-answer
+- Multiple choice
+
+## Utilities
+These should go in either torchtune/data/ or torchtune/datasets/utils
+
+### Templates
+- TemplateInterface
+- CustomTemplate
+- AlpacaTemplate
+- GrammarErrorCorrectionTemplate
+- SummarizeTemplate
+- LLaMA2ChatTemplate
+
+### Transforms
+- ShareGPT -> LLaMA2Chat converter (generate_from_prompt_label from SlimOrcaDataset)
+
+### Batch-wise Collators
+- Train on input masking (exists in AlpacaDataset; does this need to be done sample-wise?)
+- Padding (utils.padded_collate)
 
 ### Sample packing
 Packing involves stuffing multiple data samples in the input upto the max sequence
@@ -167,7 +271,7 @@ instead greedily pack the context window as we iterate. This is done by llama re
     - Tradeoff: Faster TTFB, no caching of entire dataset. Slower fine-tuning.
 
 The approach we take could dictate the design of sample packing API. Options are:
-a separate offline script, a boolean flag in the TuneDataset class, an entirely
+a separate offline script, a boolean flag in the Dataset class, an entirely
 different dataset class.
 
 On masking for packed samples: Because we have multiple samples in the same input,
@@ -196,28 +300,27 @@ an associated getter function. While this is not ideal and something that the cu
 config.instantiate API was originally trying to bypass, we can keep it fairly contained
 to just prompt templates and basic collators/transforms, for example.
 ```
-def build_dataset(
+def instruct_dataset(
     source: str,
     column_map: Dict[str, str],
     tokenizer: Tokenizer,  # do we need a mapping for all tokenizers or rely on partial instantiation?
     template: str,  # Choose from common templates in library
     pad: bool = True,
     packing: bool = False,
-) -> TuneDataset
+) -> InstructDataset
 
 # In the yaml config - we cannot do nested components
 dataset:
-  _component_: torchtune.datasets.TuneDataset
+  _component_: torchtune.datasets.InstructDataset
   template:
-    _component_: torchtune.datasets.prompt_templates.AlpacaInstructTemplate
+    _component_: torchtune.datasets.prompt_templates.AlpacaTemplate
     ...
 
 # Instead, specify a builder
 dataset:
-  _component_: torchtune.datasets.build_dataset
+  _component_: torchtune.datasets.instruct_dataset
   source: tatsu-lab/alpaca
-  tokenizer: # TBD how to handle tokenizers
-  template: instruct
+  template: alpaca
   pad: True
   packing: True
 ```
@@ -231,7 +334,7 @@ to prevent intrusive configs.
 ```
 def my_custom_dataset(
     my_param: str,
-) -> TuneDataset:
+) -> CustomDataset:
     # Logic to create custom dataset here with exact components
     ...
 
@@ -240,79 +343,6 @@ dataset:
   my_param: hello
 ```
 
-## Supported Datasets
-Here, we use our flagship supported datasets as examples to exhibit the versatility
-and extensibility of the TuneDataset API design.
-
-### Alpaca
-Instruct tasks. Good example of straightforward dataset that doesn’t require transforms,
-column mapping, template conversion.
-- Source: tatsu-lab/alpaca
-- Source Template: instruction, input, output columns
-- Target Template: https://github.com/tatsu-lab/stanford_alpaca#data-release - is this the standard instruct template?
-- Collator: pad, train_on_input
-```
-def alpaca_dataset(tokenizer: Tokenizer, use_clean: bool = False) -> TuneDataset:
-    return TuneDataset(
-        source="yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca",
-        template=AlpacaInstructTemplate(),
-        tokenizer=tokenizer,
-        collator=pad_and_train_on_input,
-    )
-```
-
-### SlimOrca
-Conversational/chat tasks. Good example of utilizing the transform for template
-conversion.
-- Source: Open-Orca/SlimOrca-Dedup
-- Source Template: sharegpt conversation
-- Target Template: In TorchTune, we convert to llama2 chat using _generate_prompt_label
-- Collator: pad
-```
-def slim_orca_dataset(tokenizer: Tokenizer) -> TuneDataset:
-    return TuneDataset(
-        source="Open-Orca/SlimOrca-Dedup",
-        transform=convert_sharegpt_to_llama2_chat,
-        template=Llama2ChatTemplate(),
-        tokenizer=tokenizer,
-        collator=pad,
-    )
-```
-
-### Samsum
-Summarization tasks.
-- Source: samsum
-- Source Template: dialogue and summary columns
-- Target Template: Summary - similar to SummarizeTLDRPrompter in Axolotl. Also see the version in llama recipes
-- Collator: pad
-```
-def samsum_dataset(tokenizer: Tokenizer) -> TuneDataset:
-    return TuneDataset(
-        source="samsum",
-        template=SummarizeTemplate(),
-        tokenizer=tokenizer,
-        collator=pad,
-    )
-```
-
-### Grammar
-Primarily for grammatical error correction tasks. In llama recipes, two datasets
-are used. For now, we will use one dataset until the multi-dataset UX is more thought
-out.
-- Source: jhu-clsp/jfleg + liweili/c4_200m
-- Source Template: jfleg requires preprocessing, c4 just needs to map the columns
-- Target Template: A grammar correction template? Doesn’t seem to be a standard. https://github.com/facebookresearch/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50
-- Collator: pad
-```
-def grammar_dataset(tokenizer: Tokenizer) -> TuneDataset:
-    return TuneDataset(
-        source="liweili/c4_200m",
-        column_map={"sentence": "input", "correction": "output"},
-        template="Correct this to standard English: {sentence}\n---\nCorrected: {correction}",
-        tokenizer=tokenizer,
-        collator=pad,
-    )
-```
 
 ### Open questions
 - TuneDataset has high level components as parameters. How can users specify this
