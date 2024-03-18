@@ -538,6 +538,7 @@ def recipe_main(cfg: DictConfig) -> None:
         )
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    torch.cuda.set_per_process_memory_fraction(0.2)
 
     recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
