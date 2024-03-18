@@ -53,9 +53,9 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
-        - FSDP and activation checkpointing. This is enabled by default but is
-            configurable.
-        - Mixed precision training - fp32, fp16 and bf16 are supported.
+        - FSDP and activation checkpointing. Activation Checkpointing is configurable.
+        - Full fp32 and full bf16 training. Mixed precision training or fp16 are currently not
+            supported.
         - Checkpointing of full model weights and optionally of optimizer state (for
             checkpoints created during training).
         - Logging to terminal, WandB, or TensorBoard.
@@ -75,7 +75,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
-        ValueError: If world_size is 1 and enable_fsdp is True
+        ValueError: If world_size is 1
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -83,8 +83,11 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         world_size, rank = utils.get_world_size_and_rank()
-        if world_size == 1 and cfg.enable_fsdp:
-            raise ValueError("enable_fsdp should be False when world_size is 1")
+        if world_size == 1:
+            raise ValueError(
+                "This recipe doesn't support training with world_size = 1."
+                "Please use the single device version of the recipe instead."
+            )
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -95,7 +98,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
 
         # training attributes
-        self._enable_fsdp = cfg.enable_fsdp
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
         # These attributes consitute the recipe state and are updated by ``load_checkpoint``
@@ -174,7 +176,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
@@ -227,14 +228,12 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-        # Model initialization has two scenarios:
-        #
-        # 1. FSDP is enabled:
+        """
+        # Model initialization has some important considerations:
         #    a. To minimize GPU peak memory, we load the model on CPU with the right
         #       dtype. To ensure that we don't instantiate ``world_size`` number of models,
         #       we initialize on meta_device for all ranks other thank rank 0.
@@ -244,48 +243,32 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         #       to TRUE and broadcast module params and buffers from rank 0.
         #    d. The ``device_id`` param ensures that the FSDP initialization happens on
         #       the correct device.
-        #
-        # 2. FSDP is disabled:
-        #    a. We instantiate the model on the correct device with the right dtype.
+        """
 
-        if enable_fsdp:
-            if self._is_rank_zero:
-                log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
-                init_start = time.perf_counter()
+        if self._is_rank_zero:
+            log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
+            init_start = time.perf_counter()
 
-                with utils.set_default_dtype(self._dtype):
-                    model = config.instantiate(cfg_model)
-
-                log.info(
-                    f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
-                )
-
-                # Load both the base model weights and (if available) the adapter weights. Both
-                # of this should happen only on Rank 0
-                model.load_state_dict(base_model_state_dict, strict=False)
-                if lora_weights_state_dict:
-                    model.load_state_dict(lora_weights_state_dict, strict=False)
-
-            else:
-                # For non-zero ranks, load the model on meta device
-                with utils.set_default_dtype(self._dtype), torch.device("meta"):
-                    model = config.instantiate(cfg_model)
-
-        else:
-            if self._is_rank_zero:
-                log.info("FSDP is Disabled. Instantiating Model ...")
-                init_start = time.perf_counter()
-
-            # FSDP is disabled, directly instantiate model on correct device with the right dtype
-            with utils.set_default_dtype(self._dtype), torch.device(self._device):
+            with utils.set_default_dtype(self._dtype):
                 model = config.instantiate(cfg_model)
 
+            log.info(
+                f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
+            )
+
+            # Load both the base model weights and (if available) the adapter weights. Both
+            # of this should happen only on Rank 0
             model.load_state_dict(base_model_state_dict, strict=False)
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
 
-            if self._is_rank_zero:
-                log.info(f"Model init took {time.perf_counter() - init_start:.2f} secs")
+        else:
+            # For non-zero ranks, load the model on meta device
+            with utils.set_default_dtype(self._dtype), torch.device("meta"):
+                model = config.instantiate(cfg_model)
+
+        if self._dtype == torch.bfloat16:
+            model = model.to(torch.bfloat16)
 
         # The model contains LoRA params which won't have any matching keys in
         # the state dict. As a result, we need to load with strict=False.
@@ -313,27 +296,26 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
-        if enable_fsdp:
-            model = FSDP(
-                module=model,
-                auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                    modules_to_wrap={modules.TransformerDecoderLayer}
-                ),
-                sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
-                device_id=self._device,
-                # this recipe does not currently support mixed precision training
-                mixed_precision=None,
-                # Ensure we broadcast params and buffers from rank 0
-                sync_module_states=True,
-                # Initialize empty modules on all non-zero ranks
-                param_init_fn=(
-                    lambda module: module.to_empty(
-                        device=torch.device("cuda"), recurse=False
-                    )
-                    if not self._is_rank_zero
-                    else None
-                ),
-            )
+        model = FSDP(
+            module=model,
+            auto_wrap_policy=utils.lora_fsdp_wrap_policy(
+                modules_to_wrap={modules.TransformerDecoderLayer}
+            ),
+            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            device_id=self._device,
+            # this recipe does not currently support mixed precision training
+            mixed_precision=None,
+            # Ensure we broadcast params and buffers from rank 0
+            sync_module_states=True,
+            # Initialize empty modules on all non-zero ranks
+            param_init_fn=(
+                lambda module: module.to_empty(
+                    device=torch.device("cuda"), recurse=False
+                )
+                if not self._is_rank_zero
+                else None
+            ),
+        )
 
         # Ensure no params and buffers are on meta device
         validate_no_params_on_meta_device(model)
@@ -432,28 +414,17 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         cpu_state_dict = None
         opt_state_dict = None
 
-        # in case of FSDP, to prevent GPU memory from spiking during checkpoint save,
+        # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        if self._enable_fsdp:
+        FSDP.set_state_dict_type(
+            self._model,
+            StateDictType.FULL_STATE_DICT,
+            FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
+            FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
+        )
 
-            FSDP.set_state_dict_type(
-                self._model,
-                StateDictType.FULL_STATE_DICT,
-                FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
-                FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
-            )
-
-            cpu_state_dict = self._model.state_dict()
-            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
-
-        # if FSDP is disabled, copy over the state dict from rank 0 to CPU
-        else:
-            if self._is_rank_zero:
-                cpu_state_dict = {
-                    k: v.cpu() for k, v in self._model.state_dict().items()
-                }
-
-            opt_state_dict = self._optimizer.state_dict()
+        cpu_state_dict = self._model.state_dict()
+        opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file

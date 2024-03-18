@@ -61,6 +61,6 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-dtype: fp32
-enable_fsdp: True
-enable_activation_checkpointing: True
+dtype: bf16
+# enable_fsdp: True
+enable_activation_checkpointing: False
