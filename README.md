@@ -101,7 +101,7 @@ tune download --repo-id meta-llama/Llama-2-7b \
 
 #### Running recipes
 
-TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
+TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py) and [LoRA finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py).
 
 To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
@@ -117,8 +117,8 @@ Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via t
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \
-lora_finetune \
---config alpaca_llama2_lora_finetune
+lora_finetune_distributed \
+--config alpaca_llama2_lora_finetune_distributed
 ```
 
 Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).

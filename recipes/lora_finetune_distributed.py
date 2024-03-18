@@ -39,15 +39,6 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-def memory_stats_log(msg: str) -> str:
-    return f"""
-    Memory Stats {msg}:
-    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
-    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
-    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
-    """
-
-
 class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     """
     Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
@@ -325,7 +316,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(memory_stats_log("Memory Stats after model init:"))
+            log.info(utils.memory_stats_log("Memory Stats after model init:"))
         return model
 
     def _setup_optimizer(
@@ -519,7 +510,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 self._optimizer.step()
                 self._lr_scheduler.step()
                 if self.total_training_steps % 100 == 0 and self._is_rank_zero:
-                    log.info(memory_stats_log("Memory Stats:"))
+                    log.info(utils.memory_stats_log("Memory Stats:"))
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
@@ -528,6 +519,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         if self._is_rank_zero:
             self._metric_logger.close()
         destroy_process_group()
+
 
 
 @config.parse
