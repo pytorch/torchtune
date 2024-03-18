@@ -4,29 +4,18 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Tuple
+from typing import List, Mapping, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+
+from torchtune.data.templates import AlpacaInstructTemplate
 
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.modules import Tokenizer
 
 
 CROSS_ENTROPY_IGNORE_IDX = -100
-
-_PROMPT_TEMPLATE = {
-    "prompt_input": (
-        "Below is an instruction that describes a task, paired with an input that provides further context. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
-    ),
-    "prompt_no_input": (
-        "Below is an instruction that describes a task. "
-        "Write a response that appropriately completes the request.\n\n"
-        "### Instruction:\n{instruction}\n\n### Response:\n"
-    ),
-}
 
 
 class AlpacaDataset(Dataset):
@@ -76,6 +65,7 @@ class AlpacaDataset(Dataset):
         self._data = load_dataset(dataset_path, split="train")
         self._tokenizer = tokenizer
         self.train_on_input = train_on_input
+        self.template = AlpacaInstructTemplate()
 
     def __len__(self):
         return len(self._data)
@@ -84,28 +74,25 @@ class AlpacaDataset(Dataset):
         sample = self._data[index]
 
         return self._transform(
-            instruction=sample["instruction"],
-            input=sample["input"],
-            output=sample["output"],
+            sample=sample,
         )
 
     def _transform(
-        self, instruction: str, input: str, output: str
+        self,
+        sample: Mapping,
     ) -> Tuple[List[int], List[int]]:
         """
         Split a sample on ``response`` tag to create input and labels.
 
         Args:
-            instruction (str): Instruction text.
-            input (str): Input text. Can be an empty string. Determines the prompt generation template
-                used.
-            output (str): Response text.
+            sample (Mapping): a single data sample containing instruction, input,
+                and output keys
 
         Returns:
             Tuple of encoded inputs and labels.
         """
-        prompt = self._generate_prompt(instruction, input)
-        prompt_with_response = prompt + output
+        prompt = self.template.format(sample)
+        prompt_with_response = prompt + sample["output"]
 
         # add bos always; LlamaTokenizer sets this to True by default and neither
         # alpaca-lora or the original authors change this
@@ -125,22 +112,3 @@ class AlpacaDataset(Dataset):
         assert len(encoded_prompt_with_response) == len(labels)
 
         return encoded_prompt_with_response, labels
-
-    def _generate_prompt(self, instruction: str, input: str) -> str:
-        """
-        Generate prompt from instruction and input.
-
-        Args:
-            instruction (str): Instruction text.
-            input (str): Input text.
-
-        Returns:
-            Prompt text.
-        """
-        if input:
-            prompt = _PROMPT_TEMPLATE["prompt_input"].format(
-                instruction=instruction, input=input
-            )
-        else:
-            prompt = _PROMPT_TEMPLATE["prompt_no_input"].format(instruction=instruction)
-        return prompt
