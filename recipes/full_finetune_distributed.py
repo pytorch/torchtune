@@ -22,6 +22,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import get_memory_summary
 
 from tqdm import tqdm
 
@@ -161,9 +162,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -230,7 +231,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model, dtype=self._training_precision)
         if self._is_rank_zero:
-            log.info("Model is initialized.")
+            log.info(f"Model is initialized with precision {self._training_precision}.")
+            get_memory_summary(
+                prefix="Memory usage after model init:", device=self._device
+            )
         return model
 
     def _setup_optimizer(
@@ -340,7 +344,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
-
+        if self._is_rank_zero:
+            get_memory_summary(
+                prefix="Memory usage before first forward:", device=self._device
+            )
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -358,10 +365,18 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 ):
                     break
 
+                log_this_iteration = (
+                    self.total_training_steps % self._log_every_n_steps == 0
+                )
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-
+                if log_this_iteration:
+                    get_memory_summary(
+                        prefix="After data load",
+                        device=self._device,
+                        reset_stats=True,
+                    )
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -369,6 +384,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                if log_this_iteration:
+                    get_memory_summary(
+                        prefix="After forwawrd",
+                        device=self._device,
+                        reset_stats=True,
+                    )
 
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
@@ -386,7 +407,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+                if log_this_iteration:
+                    get_memory_summary(
+                        prefix="After bwd", device=self._device, reset_stats=True
+                    )
                 self._optimizer.step()
+                if log_this_iteration:
+                    get_memory_summary(
+                        prefix="After optim step",
+                        device=self._device,
+                        reset_stats=True,
+                    )
                 self._optimizer.zero_grad(set_to_none=True)
                 # Update the number of steps when the weights are updated
                 self.total_training_steps += 1

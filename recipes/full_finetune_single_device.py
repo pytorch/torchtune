@@ -144,11 +144,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
-        prefix = "Peak memory after model init"
-        log.info(
-            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
-        )
-
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
 
@@ -211,7 +206,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model, dtype=self._training_precision)
         log.info(f"Model is initialized with precision {self._training_precision}.")
-
+        get_memory_summary(prefix="Memory usage after model init:", device=self._device)
         return model
 
     def _setup_optimizer(
@@ -309,11 +304,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
-        prefix = "Before first forward"
-        log.info(
-            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+        get_memory_summary(
+            prefix="Before first forward:", device=self._device, reset_stats=True
         )
-
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -338,9 +331,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
                 if log_this_iteration:
-                    prefix = "After data load"
-                    log.info(
-                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    get_memory_summary(
+                        prefix="After data load", device=self._device, reset_stats=True
                     )
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
@@ -350,9 +342,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
                 if log_this_iteration:
-                    prefix = "After forward"
-                    log.info(
-                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    get_memory_summary(
+                        prefix="After forwawrd", device=self._device, reset_stats=True
                     )
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
@@ -371,16 +362,16 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
                 if log_this_iteration:
-                    prefix = "After backward"
-                    log.info(
-                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    get_memory_summary(
+                        prefix="After bwd", device=self._device, reset_stats=True
                     )
                 if self._should_update_weights(idx):
                     self._optimizer.step()
                     if log_this_iteration:
-                        prefix = "After optim step"
-                        log.info(
-                            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                        get_memory_summary(
+                            prefix="After optim step",
+                            device=self._device,
+                            reset_stats=True,
                         )
                     self._optimizer.zero_grad(set_to_none=True)
 
