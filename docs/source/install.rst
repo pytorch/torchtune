@@ -8,7 +8,7 @@ There is currently only one way to download TorchTune, which is locally.
 
 .. code-block:: bash
 
-    git clone https://github.com/pytorch-labs/torchtune.git
+    git clone https://github.com/pytorch/torchtune.git
     cd torchtune
     pip install -e .
 

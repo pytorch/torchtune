@@ -21,7 +21,7 @@ This recipe supports:
 
 * :ref:`Activation Checkpointing<ac_label>`
 
-This guide will walk you through the different aspects of the `recipe <https://github.com/pytorch-labs/torchtune/blob/main/recipes/full_finetune.py>`_.
+This guide will walk you through the different aspects of the `recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py>`_.
 
 
 An example config for training the Llama 7B model using the Alpaca dataset looks something like this:
@@ -101,7 +101,7 @@ from Stanford. The following parameters are related to the data:
 Model
 -----
 
-In this example, we use the `Llama 7B model <https://github.com/pytorch-labs/torchtune/blob/main/torchtune/models/llama2.py>`_.
+In this example, we use the `Llama 7B model <https://github.com/pytorch/torchtune/blob/main/torchtune/models/llama2.py>`_.
 The following parameters are related to the model:
 
 .. code-block:: python
