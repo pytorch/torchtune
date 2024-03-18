@@ -46,6 +46,8 @@ def get_memory_summary(
     Returns:
         Dict[str, float]: Dictionary of memory summary.
     """
+    if device.type != "cuda":
+        return
     peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
     print(
         f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) / 1e9}GB, "
