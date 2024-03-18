@@ -37,7 +37,7 @@ from .distributed import (  # noqa
     wrap_fsdp,
 )
 from .logging import get_logger
-from .memory import set_activation_checkpointing
+from .memory import set_activation_checkpointing, get_memory_summary
 from .precision import (
     get_autocast,
     get_dtype,
@@ -53,6 +53,7 @@ __all__ = [
     "transform_opt_state_dict",
     "validate_checkpoint",
     "get_autocast",
+    "get_memory_summary",
     "get_device",
     "get_dtype",
     "wrap_fsdp",

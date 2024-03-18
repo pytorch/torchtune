@@ -18,6 +18,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
+from torchtune.utils import get_memory_summary
 
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -69,11 +70,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-
-        # _is_rank_zero is used primarily for logging. In the future, the logger
-        # should directly take care of this
-        _, rank = utils.get_world_size_and_rank()
-        self._is_rank_zero = rank == 0
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -145,10 +141,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
+        prefix = "Peak memory after model init"
+        log.info(
+            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+        )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
+        log.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
@@ -160,8 +159,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
+        log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -207,8 +205,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         model.load_state_dict(model_state_dict)
 
-        if self._is_rank_zero:
-            log.info("Model is initialized.")
+        # Validate model was loaded in with the expected dtype.
+        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
+        log.info(f"Model is initialized with precision {self._training_precision}.")
+
         return model
 
     def _setup_optimizer(
@@ -222,8 +222,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         if opt_state_dict:
             optimizer.load_state_dict(opt_state_dict)
 
-        if self._is_rank_zero:
-            log.info("Optimizer is initialized.")
+        log.info("Optimizer is initialized.")
         return optimizer
 
     def _setup_data(
@@ -260,8 +259,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             ),
         )
 
-        if self._is_rank_zero:
-            log.info("Dataset and Sampler are initialized.")
+        log.info("Dataset and Sampler are initialized.")
 
         return sampler, dataloader
 
@@ -282,12 +280,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-        if self._is_rank_zero:
-            self._checkpointer.save_checkpoint(
-                ckpt_dict,
-                epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
-            )
+        self._checkpointer.save_checkpoint(
+            ckpt_dict,
+            epoch=epoch,
+            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+        )
 
     def _should_update_weights(self, current_iteration: int) -> bool:
         """
@@ -309,6 +306,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
+        prefix = "Before first forward"
+        log.info(
+            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+        )
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -327,10 +328,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 ):
                     break
 
+                log_this_iteration = (
+                    self.total_training_steps % self._log_every_n_steps == 0
+                )
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-
+                if log_this_iteration:
+                    prefix = "After data load"
+                    log.info(
+                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    )
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -338,12 +346,16 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-
+                if log_this_iteration:
+                    prefix = "After forward"
+                    log.info(
+                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    )
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
 
-                if self.total_training_steps % self._log_every_n_steps == 0:
+                if log_this_iteration:
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
@@ -355,8 +367,18 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+                if log_this_iteration:
+                    prefix = "After backward"
+                    log.info(
+                        f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                    )
                 if self._should_update_weights(idx):
                     self._optimizer.step()
+                    if log_this_iteration:
+                        prefix = "After optim step"
+                        log.info(
+                            f"{get_memory_summary(prefix=prefix, device=torch.cuda.current_device(), reset_stats=True)}"
+                        )
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
