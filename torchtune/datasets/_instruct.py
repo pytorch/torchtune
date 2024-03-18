@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Mapping, Tuple
+import copy
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -12,6 +13,8 @@ from torch.utils.data import Dataset
 from torchtune.data import PromptTemplate
 
 from torchtune.modules import Tokenizer
+
+CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class InstructDataset(Dataset):
@@ -36,7 +39,7 @@ class InstructDataset(Dataset):
         source (str): path string of dataset, anything supported by HuggingFace's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (Union[PromptTemplate, str]): template used to format the prompt. It should be either a `PromptTemplate` or
-            an f-string with placeholders for the appropriate data fields. If the placeholder
+            an string with placeholders for the appropriate data fields. If the placeholder
             names do not match the column/key names in the dataset, use `column_map` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.
@@ -70,13 +73,18 @@ class InstructDataset(Dataset):
 
     def _process(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
-        prompt = self._template.format(transformed_sample, self._column_map)
+
+        prompt = self.template.format(transformed_sample, self._column_map)
+
         encoded_prompt = self._tokenizer.encode(prompt)
-        response = self._tokenizer.encode(sample[self._column_map["output"]])
+
+        key_output = self._column_map["output"] if self._column_map else "output"
+        response = self._tokenizer.encode(sample[key_output])
+
         encoded_prompt_with_response = encoded_prompt + response
 
         if self.train_on_input:
-            labels = encoded_prompt_with_response.copy()
+            labels = copy.deepcopy(encoded_prompt_with_response)
         else:
             labels = [CROSS_ENTROPY_IGNORE_IDX] * len(encoded_prompt) + response
 
