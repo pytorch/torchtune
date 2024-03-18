@@ -523,7 +523,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         destroy_process_group()
 
 
-
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """
