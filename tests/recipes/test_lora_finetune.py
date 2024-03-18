@@ -96,7 +96,6 @@ class TestLoRAFinetuneRecipe:
             cmd += [
                 'model.lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"]'
             ]
-
             monkeypatch.setattr(sys, "argv", cmd)
             with pytest.raises(SystemExit):
                 with (
