@@ -285,9 +285,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 model.load_state_dict(lora_weights_state_dict, strict=False)
 
             if self._is_rank_zero:
-                log.info(
-                    f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
-                )
+                log.info(f"Model init took {time.perf_counter() - init_start:.2f} secs")
 
         # The model contains LoRA params which won't have any matching keys in
         # the state dict. As a result, we need to load with strict=False.
@@ -344,6 +342,8 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
+        if self._is_rank_zero:
+            log.info(memory_stats_log("Memory Stats after model init:"))
         return model
 
     def _setup_optimizer(
