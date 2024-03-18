@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
-from typing import Dict, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 
 class PromptTemplate(ABC):
@@ -18,13 +18,13 @@ class PromptTemplate(ABC):
 
     @abstractmethod
     def format(
-        self, sample: Mapping, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Format the prompt template with the given arguments.
 
         Args:
-            sample (Mapping): a single data sample with various fields
+            sample (Mapping[str, Any]): a single data sample with various fields
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -55,13 +55,13 @@ class AlpacaInstructTemplate(PromptTemplate):
     }
 
     def format(
-        self, sample: Mapping, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from instruction and input.
 
         Args:
-            sample (Mapping): a single data sample with instruction
+            sample (Mapping[str, Any]): a single data sample with instruction
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
