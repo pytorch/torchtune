@@ -63,7 +63,21 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-
+        # Reduced precision logic
+        self._dtype = utils.get_dtype(cfg.dtype)
+        # fp16 precision is explicitly disabled as it is not supported in this
+        # recipe (for example, no gradient scaling).
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
+            )
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
@@ -129,21 +143,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
-
-        self._dtype = utils.get_dtype(cfg.dtype)
-        # fp16 precision is explicitly disabled as it is not supported in this
-        # recipe (for example, no gradient scaling).
-        if self._dtype == torch.float16:
-            raise ValueError(
-                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
-            )
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         self._model = self._setup_model(
             cfg_model=cfg.model,

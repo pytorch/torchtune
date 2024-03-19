@@ -74,6 +74,19 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+
         world_size, rank = utils.get_world_size_and_rank()
         if world_size == 1:
             raise ValueError(
