@@ -29,10 +29,31 @@ def set_activation_checkpointing(
     apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
 
-def memory_stats_log(msg: str) -> str:
-    return f"""
-    Memory Stats {msg}:
-    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
-    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
-    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
+def memory_stats_log(
+    prefix: str, device: torch.device, reset_stats: bool = True
+) -> None:
     """
+    Print a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
+    also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
+    memory (i.e. peak memory during model init, during forward, etc) and optimize memory for
+    individual sections of training.
+
+    Args:
+        prefix (str): Prefix to prepend to the printed summary.
+        device (torch.device): Device to get memory summary for. Only CUDA devices are supported.
+        reset_stats (bool): Whether to reset CUDA's peak memory tracking.
+
+    Returns:
+        None
+    """
+    if device.type != "cuda":
+        return
+    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
+    print(
+        f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) / 1e9}GB, "
+        f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) / 1e9}GB, "
+        f"GPU peak memory active: {peak_memory_active / 1e9}GB",
+        flush=True,
+    )
+    if reset_stats:
+        torch.cuda.reset_peak_memory_stats(device)
