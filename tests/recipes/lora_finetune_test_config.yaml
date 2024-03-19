@@ -12,7 +12,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: False
 seed: 9
 shuffle: True

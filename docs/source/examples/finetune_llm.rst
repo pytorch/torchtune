@@ -35,7 +35,7 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
 
     # Dataset
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
     shuffle: True
 
     # Model Arguments
@@ -67,14 +67,14 @@ To run the recipe without any changes on 4 GPUs, launch a training run using Tun
 Dataset
 -------
 
-In this example, we use :class:`~torchtune.datasets.AlpacaDataset`
+In this example, we use :class:`~torchtune.datasets.alpaca_dataset`
 from Stanford. The following parameters are related to the data:
 
 .. code-block:: python
 
     # Point the dataset to the Alpaca Dataset implementation in TorchTune
     # This is set in the config
-    dataset: AlpacaDataset
+    dataset: alpaca_dataset
 
     # Don't mask the prompt during training
     # This is the default value

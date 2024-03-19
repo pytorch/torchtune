@@ -7,7 +7,7 @@
 from unittest import mock
 
 from torchtune.datasets import InstructDataset
-from torchtune.datasets._instruct import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
 
 
 class DummyTokenizer:
