@@ -22,6 +22,7 @@ from torchtune.utils.precision import (
     list_dtypes,
     set_default_dtype,
     validate_expected_param_dtype,
+    verify_bf16_support,
 )
 
 
@@ -38,7 +39,7 @@ class TestPrecisionUtils:
             torch.float32,
             torch.float16,
             torch.float16,
-            torch.bfloat16,
+            torch.bfloat16 if verify_bf16_support() else torch.float32,
             torch.float32,
             torch.float64,
         ]

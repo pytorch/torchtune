@@ -61,7 +61,7 @@ def compare_lora_attention(
     attn_dropout = 0.0
     # Reference implementation: wrap our native causal self-attention with PEFT LoRAConfig
     # Copy-pasted from llama2.py
-    # https://github.com/pytorch-labs/torchtune/blob/e983194629d7f093257225dafb7cbc4e46505cc8/torchtune/models/llama2.py#L88-L114
+    # https://github.com/pytorch/torchtune/blob/e983194629d7f093257225dafb7cbc4e46505cc8/torchtune/models/llama2.py#L88-L114
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     kv_cache = (

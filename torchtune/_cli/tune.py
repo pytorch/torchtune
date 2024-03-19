@@ -29,9 +29,9 @@ does with the following additional functionalities:
 .. note:: ``tune`` is a python
           `console script <https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts>`_
           to the main module
-          `scripts.cli_utils.tune <https://github.com/pytorch-labs/torchtune/blob/main/scripts/cli_utils/tune>`_
+          `scripts.cli_utils.tune <https://github.com/pytorch/torchtune/blob/main/scripts/cli_utils/tune>`_
           declared in the ``scripts`` configuration in
-          `setup.py <https://github.com/pytorch-labs/torchtune/blob/main/setup.py>`_.
+          `setup.py <https://github.com/pytorch/torchtune/blob/main/setup.py>`_.
           It is equivalent to invoking ``python -m scripts.cli_utils.tune``.
 """
 import argparse

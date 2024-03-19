@@ -15,23 +15,30 @@ class ModelType(Enum):
     LLAMA2 = "llama2"
 
 
-def get_recipe_checkpoint_path(checkpoint_dir: Path, filename: str) -> Path:
+def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     """
-    Utility to recover and validate the path for the recipe_state checkpoint file.
+    Utility to recover and validate the path for a given file within a given directory.
+
+    Args:
+        input_dir (Path): Directory containing the file
+        filename (str): Name of the file
+        missing_ok (bool): Whether to raise an error if the file is missing.
+
+    Returns:
+        Path: Path to the file
+
+    Raises:
+        ValueError: If the file is missing and missing_ok is False.
     """
-    if not checkpoint_dir.is_dir():
-        raise ValueError(
-            f"Checkpoint directory {checkpoint_dir} is not a valid directory."
-        )
+    if not input_dir.is_dir():
+        raise ValueError(f"{input_dir} is not a valid directory.")
 
-    recipe_state_checkpoint_path = Path.joinpath(checkpoint_dir, filename)
+    file_path = Path.joinpath(input_dir, filename)
 
-    if not recipe_state_checkpoint_path.is_file():
-        raise ValueError(
-            "To resume training from checkpoint a valid recipe state file is needed. "
-            f"No file with name: {filename} found in {checkpoint_dir}."
-        )
-    return recipe_state_checkpoint_path
+    # If missing_ok is False, raise an error if the path is invalid
+    if not missing_ok and not file_path.is_file():
+        raise ValueError(f"No file with name: {filename} found in {input_dir}.")
+    return file_path
 
 
 def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:

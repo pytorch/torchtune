@@ -25,7 +25,7 @@ class TestParse:
 
         with patch(
             "torchtune.config._parse.TuneArgumentParser.parse_known_args",
-            return_value=(_CONFIG, None),
+            return_value=(_CONFIG, []),
         ) as mock_parse_args:
             with pytest.raises(SystemExit):
                 func()

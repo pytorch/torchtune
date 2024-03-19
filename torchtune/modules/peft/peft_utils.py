@@ -4,11 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import functools
-from typing import Any, Dict, Generator, List, Optional, Protocol
+from typing import Any, Dict, List, Literal, Optional, Protocol, Set
 
 from torch import nn
+
+# Modules from CausalSelfAttention that LoRA can be applied to
+LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
 class AdapterModule(Protocol):
@@ -94,9 +96,39 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
         v.requires_grad_(k in adapter_params)
 
 
+def get_lora_module_names(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
+) -> List[str]:
+    """
+    Return a list of the names of modules in the model that have LoRA applied. Note that
+    the names here are local to their modules and not the fully qualified names from the
+    model state dict.
+
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+
+    Returns:
+        List[str]: list of module names in the model that have LoRA applied.
+    """
+    lora_module_keys = lora_attn_modules
+    if apply_lora_to_mlp:
+        lora_module_keys = lora_module_keys + ["w1", "w2", "w3"]
+    if apply_lora_to_output:
+        lora_module_keys.append("output")
+    return lora_module_keys
+
+
 def validate_state_dict_for_lora(
-    *,
-    lora_modules: List[str],
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
     full_model_state_dict_keys: List[str],
     lora_state_dict_keys: Optional[List[str]] = None,
     base_model_state_dict_keys: Optional[List[str]] = None,
@@ -112,8 +144,11 @@ def validate_state_dict_for_lora(
         confirm that the full model's params are exactly their disjoint union.
 
     Args:
-        lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
-            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj", "output"]
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
         full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
         lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
             If none, LoRA state dict keys will not be validated.
@@ -132,6 +167,9 @@ def validate_state_dict_for_lora(
         AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
 
     """
+    lora_modules = get_lora_module_names(
+        lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
+    )
     is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):
@@ -167,93 +205,54 @@ def validate_state_dict_for_lora(
         ), "Extra keys not present in full model"
 
 
-def _is_eligible_for_state_dict_hook(m: nn.Module) -> bool:
+def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     """
-    Check if a module is eligible for adding/removing merge and unmerge state dict hooks.
-    Currently this only supports LoRALinear weight merging.
+    Get the keys from a state dict that correspond to LoRALinear modules.
+
+    For example, if state_dict is the state dict of model and model.x.y.z is a
+    LoRALinear, this method will return "model.x.y.z", not
+    "model.x.y.z.lora_a.weight" or "model.x.y.z.lora_b.weight".
 
     Args:
-        m (nn.Module): Instance of model class containing some LoRA modules.
+        state_dict (Dict[str, Any]): State dict from a model.
 
     Returns:
-        bool: True if the module has the required methods for state dict hooks.
+        Set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
-    return (
-        hasattr(m, "_merge_lora_weights")
-        and callable(m._merge_lora_weights)
-        and hasattr(m, "_unmerge_lora_weights")
-        and callable(m._unmerge_lora_weights)
+    lora_keys = [k for k in state_dict.keys() if "lora" in k]
+    return set(
+        [
+            k.replace(".lora_a.weight", "").replace(".lora_b.weight", "")
+            for k in lora_keys
+        ]
     )
 
 
-def _register_lora_weight_merge_hooks(model: nn.Module) -> None:
+def get_merged_lora_ckpt(
+    state_dict: Dict[str, Any], rank: int, alpha: float
+) -> Dict[str, Any]:
     """
-    Register state dict hooks for merging and unmerging LoRA weights.
-    Args:
-        model (nn.Module): Instance of model class containing some LoRA params.
-    Returns:
-        None
-    Raises:
-        RuntimeError: If the model already has LoRA merge state dict pre- or post-hooks.
-    """
-    for n, m in model.named_modules():
-        if _is_eligible_for_state_dict_hook(m):
-            if hasattr(m, "_merge_weight_pre_handle"):
-                raise RuntimeError(
-                    f"Cannot register state dict pre-hook for weight merge, {m} already has state dict weight merge pre-hook"
-                )
-            if hasattr(m, "_merge_weight_post_handle"):
-                raise RuntimeError(
-                    f"Cannot register state dict post-hook for weight merge, {m} already has state dict weight merge post-hook"
-                )
-            m._merge_weight_pre_handle = m.register_state_dict_pre_hook(
-                m._merge_lora_weights
-            )
-            m._merge_weight_post_handle = m._register_state_dict_hook(
-                m._unmerge_lora_weights
-            )
+    Merge LoRA weights into the base model format for efficient inference.
+    NOTE: This function modifies state_dict inplace. If you do not want to do that,
+    make a copy prior to calling this function.
 
-
-def _unregister_lora_weight_merge_hooks(model: nn.Module) -> None:
-    """
-    Unregister state dict hooks for merging and unmerging LoRA weights.
-    Args:
-        model (nn.Module): Instance of model class containing some LoRA params.
-    Returns:
-        None
-    Raises:
-        RuntimeError: If the model does not have the expected state dict pre- or post-hooks.
-    """
-    for n, m in model.named_modules():
-        if _is_eligible_for_state_dict_hook(m):
-            if not hasattr(m, "_merge_weight_pre_handle"):
-                raise RuntimeError(
-                    f"Cannot unregister state dict weight merge pre-hook from {m}"
-                )
-            if not hasattr(m, "_merge_weight_post_handle"):
-                raise RuntimeError(
-                    f"Cannot unregister state dict weight merge post-hook from {m}"
-                )
-            m._merge_weight_pre_handle.remove()
-            m._merge_weight_post_handle.remove()
-
-
-@contextlib.contextmanager
-def merge_lora_weights_in_state_dict(model: nn.Module) -> Generator[None, None, None]:
-    """
-    Context manager for merging and unmerging LoRA weights in the model's state dict.
-    By wrapping your `.state_dict()` call on a model containing LoRA modules in this
-    context manager, you can get a state dict with the LoRA weights merged into
-    the base model weights.
+    For every LoRA module in the state dict, this function will convert its
+    weight -> weight + (alpha / rank) * lora_b @ lora_a,
+    then delete the lora_a and lora_b weights.
 
     Args:
-        model (nn.Module): Instance of model class containing some LoRA modules.
+        state_dict (Dict[str, Any]): State dict from a model.
+        rank (int): The rank of LoRA matrices.
+        alpha (float): The alpha value used for scaling LoRA decompositions.
 
     Returns:
-        Context manager for merging and unmerging LoRA weights in the model's state dict.
+        Dict[str, Any]: The merged state dict.
     """
-    _register_lora_weight_merge_hooks(model)
-    try:
-        yield
-    finally:
-        _unregister_lora_weight_merge_hooks(model)
+    lora_modules = _get_lora_modules(state_dict)
+    for module in lora_modules:
+        lora_a_weight = state_dict[f"{module}.lora_a.weight"]
+        lora_b_weight = state_dict[f"{module}.lora_b.weight"]
+        state_dict[f"{module}.weight"] += (alpha / rank) * lora_b_weight @ lora_a_weight
+        del state_dict[f"{module}.lora_a.weight"]
+        del state_dict[f"{module}.lora_b.weight"]
+    return state_dict

@@ -18,6 +18,15 @@ from .checkpoint import (  # noqa
 )
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
+from .constants import (  # noqa
+    ADAPTER_KEY,
+    EPOCHS_KEY,
+    MAX_STEPS_KEY,
+    MODEL_KEY,
+    OPT_KEY,
+    SEED_KEY,
+    TOTAL_EPOCHS_KEY,
+)
 from .device import get_device
 from .distributed import (  # noqa
     contains_fsdp,
@@ -28,7 +37,7 @@ from .distributed import (  # noqa
     wrap_fsdp,
 )
 from .logging import get_logger
-from .memory import set_activation_checkpointing
+from .memory import memory_stats_log, set_activation_checkpointing  # noqa
 from .precision import (
     get_autocast,
     get_dtype,
