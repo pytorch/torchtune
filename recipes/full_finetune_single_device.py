@@ -205,11 +205,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model, dtype=self._training_precision)
         log.info(f"Model is initialized with precision {self._training_precision}.")
-        log.info(
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
-            )
-        )
+        utils.memory_stats_log("Memory Stats after model init:", device=self._device)
         return model
 
     def _setup_optimizer(
@@ -353,9 +349,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
-                    )
+                    utils.memory_stats_log("Memory Stats:", device=self._device)
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
