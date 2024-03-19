@@ -58,6 +58,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
+    Raises:
+        ValueError: If ``dtype`` is set to fp16.
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+
     """
 
     def __init__(self, cfg: DictConfig) -> None:
