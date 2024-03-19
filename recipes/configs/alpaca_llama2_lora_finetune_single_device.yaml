@@ -61,5 +61,5 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-precision: fp32
+full_bf16: False
 enable_activation_checkpointing: True
