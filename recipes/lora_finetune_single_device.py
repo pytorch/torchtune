@@ -38,7 +38,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     This recipe supports:
         - Activation checkpointing. This is enabled by default but is configurable.
-        - Mixed precision training via `torch.autocast` - fp32, fp16 and bf16 are supported.
         - Full bf16 training for supported HW architectures. We currently check bf16 support via
         the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
         the "full_bf16" configuration flag.

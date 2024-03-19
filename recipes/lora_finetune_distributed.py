@@ -317,7 +317,11 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(utils.memory_stats_log("Memory Stats after model init:"))
+            log.info(
+                utils.memory_stats_log(
+                    "Memory Stats after model init:", device=self._device
+                )
+            )
         return model
 
     def _setup_optimizer(
@@ -508,7 +512,9 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 self._optimizer.step()
                 self._lr_scheduler.step()
                 if self.total_training_steps % 100 == 0 and self._is_rank_zero:
-                    log.info(utils.memory_stats_log("Memory Stats:"))
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

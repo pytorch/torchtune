@@ -23,7 +23,7 @@ class TestTuneCLIWithCopyScript:
         if already_exists:
             dest.touch()
 
-        args = f"tune cp alpaca_llama2_full_finetune.yaml {dest}".split()
+        args = f"tune cp alpaca_llama2_full_finetune_single_device.yaml {dest}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -41,7 +41,7 @@ class TestTuneCLIWithCopyScript:
         existing_file = tmpdir_path / "existing_file.yaml"
         existing_file.touch()
 
-        args = f"tune cp alpaca_llama2_full_finetune.yaml {existing_file} -n".split()
+        args = f"tune cp alpaca_llama2_full_finetune_single_device.yaml {existing_file} -n".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -67,8 +67,8 @@ class TestTuneCLIWithCopyScript:
                 "error: Invalid file name: non_existent_config.yaml. Try `tune ls` to see all available files to copy.",
             ),
             (
-                "tune cp full_finetune.py /home/mr_bean/full_finetune.py",
-                "error: Cannot create regular file: '/home/mr_bean/full_finetune.py'. No such file or directory.",
+                "tune cp full_finetune_single_device.py /home/mr_bean/full_finetune_single_device.py",
+                "error: Cannot create regular file: '/home/mr_bean/full_finetune_single_device.py'. No such file or directory.",
             ),
             (
                 "tune cp",
