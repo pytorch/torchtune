@@ -67,7 +67,9 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
+        ValueError: If ``dtype`` is set to fp16.
         ValueError: If world_size is 1
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -101,7 +103,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-
+        self._log_peak_memory_every_n_steps = 100
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
@@ -522,7 +524,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 loss.backward()
                 self._optimizer.step()
                 self._lr_scheduler.step()
-                if self.total_training_steps % 100 == 0 and self._is_rank_zero:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0 and self._is_rank_zero:
                     log.info(
                         utils.memory_stats_log("Memory Stats:", device=self._device)
                     )
