@@ -7,10 +7,8 @@
 from torchtune.data import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
-    LLaMA2ChatTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._templates import _Llama2ChatFormatConstants
 
 
 class TestAlpacaInstructTemplate:
@@ -137,69 +135,11 @@ class TestSummarizeTemplate:
             assert actual == expected_prompt
 
     def test_format_with_column_map(self):
-        column_map = {"dialogue": "not_an_dialogue"}
+        column_map = {"dialogue": "not_a_dialogue"}
         for sample, expected_prompt in zip(self.samples, self.expected_prompts):
             modified_sample = sample.copy()
-            modified_sample["not_an_dialogue"] = modified_sample["dialogue"]
+            modified_sample["not_a_dialogue"] = modified_sample["dialogue"]
             del modified_sample["dialogue"]
-
-            actual = self.template.format(modified_sample, column_map=column_map)
-
-            assert actual == expected_prompt
-
-
-class TestLLaMA2ChatTemplate:
-    samples = [
-        {
-            "conversations": [
-                {
-                    "from": "system",
-                    "value": "hi",
-                },
-                {
-                    "from": "human",
-                    "value": "mid",
-                },
-                {
-                    "from": "gpt",
-                    "value": "lo",
-                },
-            ]
-        },
-        {
-            "conversations": [
-                {
-                    "from": "system",
-                    "value": "one",
-                },
-                {
-                    "from": "human",
-                    "value": "two",
-                },
-                {
-                    "from": "gpt",
-                    "value": "three",
-                },
-            ]
-        },
-    ]
-    expected_prompts = [
-        f"{_Llama2ChatFormatConstants.B_INST} {_Llama2ChatFormatConstants.B_SYS}hi{_Llama2ChatFormatConstants.E_SYS}mid {_Llama2ChatFormatConstants.E_INST}",  # noqa: B950
-        f"{_Llama2ChatFormatConstants.B_INST} {_Llama2ChatFormatConstants.B_SYS}one{_Llama2ChatFormatConstants.E_SYS}two {_Llama2ChatFormatConstants.E_INST}",  # noqa: B950
-    ]
-    template = LLaMA2ChatTemplate()
-
-    def test_format(self):
-        for sample, expected_prompt in zip(self.samples, self.expected_prompts):
-            actual = self.template.format(sample)
-            assert actual == expected_prompt
-
-    def test_format_with_column_map(self):
-        column_map = {"conversations": "not_an_conversations"}
-        for sample, expected_prompt in zip(self.samples, self.expected_prompts):
-            modified_sample = sample.copy()
-            modified_sample["not_an_conversations"] = modified_sample["conversations"]
-            del modified_sample["conversations"]
 
             actual = self.template.format(modified_sample, column_map=column_map)
 

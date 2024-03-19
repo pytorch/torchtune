@@ -7,7 +7,6 @@
 from torchtune.data._templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
-    LLaMA2ChatTemplate,
     PromptTemplate,
     SummarizeTemplate,
 )
@@ -16,6 +15,5 @@ __all__ = [
     "AlpacaInstructTemplate",
     "GrammarErrorCorrectionTemplate",
     "PromptTemplate",
-    "LLaMA2ChatTemplate",
     "SummarizeTemplate",
 ]
