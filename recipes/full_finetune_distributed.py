@@ -75,6 +75,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 10
+        self._log_peak_memory_every_n_steps = 100
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -365,13 +366,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 ):
                     break
 
-                log_this_iteration = (
-                    self.total_training_steps % self._log_every_n_steps == 0
-                )
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After data load",
                         device=self._device,
@@ -384,7 +382,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After forwawrd",
                         device=self._device,
@@ -407,12 +405,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After bwd", device=self._device, reset_stats=True
                     )
                 self._optimizer.step()
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After optim step",
                         device=self._device,

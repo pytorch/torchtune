@@ -38,7 +38,6 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-log_every_n_steps: null
 run_generation: null
 
 
@@ -56,3 +55,4 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
+log_every_n_steps: null

@@ -73,7 +73,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 10
-
+        self._log_peak_memory_every_n_steps = 100
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -234,15 +234,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        world_size, rank = utils.get_world_size_and_rank()
         ds = config.instantiate(
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
         sampler = DistributedSampler(
             ds,
-            num_replicas=world_size,
-            rank=rank,
+            num_replicas=1,
+            rank=0,
             shuffle=shuffle,
             seed=0,
         )
@@ -300,8 +299,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        _, rank = utils.get_world_size_and_rank()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
         get_memory_summary(
@@ -315,7 +312,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
+                pbar := tqdm(self._dataloader)
             ):
                 if (
                     self.max_steps_per_epoch is not None
@@ -330,7 +327,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After data load", device=self._device, reset_stats=True
                     )
@@ -341,9 +338,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
-                        prefix="After forwawrd", device=self._device, reset_stats=True
+                        prefix="After forward", device=self._device, reset_stats=True
                     )
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
@@ -361,13 +358,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                if log_this_iteration:
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
                         prefix="After bwd", device=self._device, reset_stats=True
                     )
                 if self._should_update_weights(idx):
                     self._optimizer.step()
-                    if log_this_iteration:
+                    if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                         get_memory_summary(
                             prefix="After optim step",
                             device=self._device,
