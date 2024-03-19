@@ -73,7 +73,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             )
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 10
+        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
         self._log_peak_memory_every_n_steps = 100
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
