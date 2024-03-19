@@ -444,7 +444,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
             # if training is in-progress, checkpoint the optimizer state and recipe state
             # as well.
-            if epoch + 1 < self.total_epochs:
+            if is_non_final_checkpoint:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -458,7 +458,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=is_non_final_checkpoint,
             )
 
     def train(self) -> None:
