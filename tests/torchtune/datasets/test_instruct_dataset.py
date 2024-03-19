@@ -11,7 +11,7 @@ from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
 
 
 class DummyTokenizer:
-    def encode(self, text):
+    def encode(self, text, **kwargs):
         words = text.split()
         return [len(word) for word in words]
 
@@ -32,7 +32,7 @@ class DummyTemplate:
 
 class TestInstructDataset:
     template = DummyTemplate(
-        "Instruction:\n{instruction}\n\nInput:\n{input}\n\nResponse:"
+        "Instruction:\n{instruction}\n\nInput:\n{input}\n\nResponse: "
     )
     expected_tokenized_prompts = [
         [12, 4, 2, 3, 2, 12, 10, 6, 4, 2, 3, 2, 6, 10, 9, 1, 5, 4, 4, 3, 6, 2, 4],
@@ -74,6 +74,7 @@ class TestInstructDataset:
 
         for i in range(len(dataset)):
             prompt, label = dataset[i]
+            print(prompt, label)
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
 
