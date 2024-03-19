@@ -7,7 +7,7 @@
 import sys
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -72,11 +72,18 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_every_n_steps = 1
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        # TODO: find a better place / way to perform validation of args that don't yet
+        # compose with each other.
+        if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
+            raise ValueError(
+                "Gradient accumulation is not supported with optimizer in bwd."
+                "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
+            )
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=cfg.seed)
@@ -150,6 +157,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
+            optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
                 ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
@@ -209,18 +217,47 @@ class FullFinetuneRecipe(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
-    ) -> Optimizer:
+        self,
+        cfg_optimizer: DictConfig,
+        optimizer_in_bwd: bool = False,
+        opt_state_dict: Optional[Dict[str, Any]] = None,
+    ) -> Union[Optimizer, None]:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
-        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+        if optimizer_in_bwd:
+            self._optimizer_in_bwd = True
+            # Maintain a dict of optims for every parameter.
+            # TODO (rohan-varma): check foreach arg
+            optim_dict = {
+                p: config.instantiate(cfg_optimizer, [p])
+                for p in self._model.parameters()
+            }
+            # NOTE: self._optim_dict only maintained for now to log LR during training.
+            self._optim_dict = optim_dict
+            def optim_step(param) -> None:
+                optim_dict[param].step()
+                optim_dict[param].zero_grad()
 
-        if opt_state_dict:
-            optimizer.load_state_dict(opt_state_dict)
+            for p in self._model.parameters():
+                p.register_post_accumulate_grad_hook(optim_step)
 
-        log.info("Optimizer is initialized.")
-        return optimizer
+            # Warn that loading optimizer states when resuming training is not supported.
+            if opt_state_dict is not None:
+                log.warning(
+                    "Loading optimizer state dict when resuming training with optimizer in backward is not supported. "
+                    "Optimizer state dict will be ignored."
+                )
+            log.info("In-backward optimizers are set up.")
+            return None
+        else:
+            self._optimizer_in_bwd = False
+            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+
+            if opt_state_dict:
+                optimizer.load_state_dict(opt_state_dict)
+            log.info("Optimizer is initialized.")
+            return optimizer
 
     def _setup_data(
         self,
@@ -269,13 +306,14 @@ class FullFinetuneRecipe(FTRecipeInterface):
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
-                    utils.OPT_KEY: self._optimizer.state_dict(),
                     utils.SEED_KEY: self.seed,
                     utils.EPOCHS_KEY: self.epochs_run,
                     utils.TOTAL_EPOCHS_KEY: self.total_epochs,
                     utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
+            if not self._optimizer_in_bwd:
+                ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -299,7 +337,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``max_steps_per_epoch``.
         """
         # zero out the gradients before starting training
-        self._optimizer.zero_grad()
+        if not self._optimizer_in_bwd:
+            self._optimizer.zero_grad()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
@@ -332,7 +371,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
+                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                            # true since we don't expose the ability to configure this yet.
+                            "lr": list(self._optim_dict.values())[0].param_groups[0]["lr"] if self._optimizer_in_bwd else self._optimizer.param_groups[0]["lr"],
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,
@@ -340,11 +381,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                if self._should_update_weights(idx):
+                if not self._optimizer_in_bwd and self._should_update_weights(idx):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+                elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
                 # Log peak memory for iteration
