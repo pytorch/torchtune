@@ -53,7 +53,7 @@ __all__ = [
     "transform_opt_state_dict",
     "validate_checkpoint",
     "get_autocast",
-    "get_memory_summary",
+    "memory_stats_log",
     "get_device",
     "get_dtype",
     "wrap_fsdp",
