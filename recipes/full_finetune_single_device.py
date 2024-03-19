@@ -311,9 +311,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader)
-            ):
+            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -364,7 +362,10 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     )
                 if self._should_update_weights(idx):
                     self._optimizer.step()
-                    if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    if (
+                        self.total_training_steps % self._log_peak_memory_every_n_steps
+                        == 0
+                    ):
                         get_memory_summary(
                             prefix="After optim step",
                             device=self._device,

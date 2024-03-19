@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional, Set
+from typing import Optional, Set
 
 import torch
 
@@ -29,7 +29,9 @@ def set_activation_checkpointing(
     apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
 
-def get_memory_summary(prefix: str, device: torch.device, reset_stats: bool = True) -> None:
+def get_memory_summary(
+    prefix: str, device: torch.device, reset_stats: bool = True
+) -> None:
     """
     Print a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
     also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
