@@ -129,16 +129,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
 
-        self._training_precision = utils.get_dtype(cfg.dtype)
+        self._dtype = utils.get_dtype(cfg.dtype)
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
-        if self._training_precision == torch.float16:
+        if self._dtype == torch.float16:
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
         # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
         if (
-            self._training_precision == torch.bfloat16
+            self._dtype == torch.bfloat16
             and self._device != torch.device("cpu")
             and not torch.cuda.is_bf16_supported()
         ):
@@ -205,7 +205,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-        with utils.set_default_dtype(self._training_precision), self._device:
+        with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         self._lora_rank = cfg_model.lora_rank
@@ -236,9 +236,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
+        utils.validate_expected_param_dtype(model, dtype=self._dtype)
 
-        log.info(f"Model is initialized with precision {self._training_precision}.")
+        log.info(f"Model is initialized with precision {self._dtype}.")
         return model
 
     def _setup_optimizer(
