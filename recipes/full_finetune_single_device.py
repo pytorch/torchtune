@@ -369,7 +369,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_full_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line
     """
     recipe = FullFinetuneRecipe(cfg=cfg)
