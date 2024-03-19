@@ -66,7 +66,7 @@ if __name__ == "__main__":
         epilog=textwrap.dedent(
             """\
         examples:
-            $ tune cp alpaca_llama2_lora_finetune.yaml ./my_custom_llama2_lora.yaml
+            $ tune cp alpaca_llama2_lora_finetune_distributed.yaml ./my_custom_llama2_lora.yaml
             $ tune cp full_finetune.py ./my_custom_full_finetune.py
             $ tune cp full_finetune.py ./new_dir/my_custom_full_finetune.py --make-parents
 
