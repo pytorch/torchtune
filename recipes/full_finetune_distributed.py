@@ -81,7 +81,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
+<<<<<<< HEAD:recipes/full_finetune_distributed.py
         self._log_peak_memory_every_n_steps = 100
+=======
+
+        world_size, rank = utils.get_world_size_and_rank()
+        # if world_size == 1:
+        #     raise ValueError(
+        #         "This recipe doesn't support training with world_size = 1."
+        #         "Please use the single device version of the recipe instead."
+        #     )
+>>>>>>> bfc4551 (Update):recipes/full_finetune.py
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
