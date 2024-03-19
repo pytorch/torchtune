@@ -123,7 +123,7 @@ class SummarizeTemplate(PromptTemplate):
     Prompt template to format datasets for summarization tasks.
     """
 
-    template = "Summarize this dialog:\n{dialogue}\n---\nSummary:\n"
+    template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
     def format(
         self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
