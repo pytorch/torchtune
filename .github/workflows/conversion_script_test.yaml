@@ -6,6 +6,8 @@ name: large scale conversion script test
 on:
   schedule:
     - cron: "0 0 * * *" # Run at the end of every day
+  workflow_dispatch:
+
 
 concurrency:
   group: conversion-script-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
