@@ -403,20 +403,16 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
-        cpu_state_dict = None
-        opt_state_dict = None
-
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        FSDP.set_state_dict_type(
+        with FSDP.state_dict_type(
             self._model,
             StateDictType.FULL_STATE_DICT,
             FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
             FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
-        )
-
-        cpu_state_dict = self._model.state_dict()
-        opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+        ):
+            cpu_state_dict = self._model.state_dict()
+            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
