@@ -524,7 +524,10 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 loss.backward()
                 self._optimizer.step()
                 self._lr_scheduler.step()
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0 and self._is_rank_zero:
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
                     log.info(
                         utils.memory_stats_log("Memory Stats:", device=self._device)
                     )
