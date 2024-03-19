@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from torch import nn
 
@@ -18,13 +18,10 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.modules.peft import LoRALinear
+from torchtune.modules.peft import LoRALinear, LORA_ATTN_MODULES
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.models.llama2._llama2_builders import _llama_mlp
-
-# Modules from CausalSelfAttention that LoRA can be applied to
-LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
 def lora_llama2_7b(
@@ -296,25 +293,3 @@ def lora_llama2(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-
-def get_lora_module_names(lora_attn_modules: List[LORA_ATTN_MODULES], apply_lora_to_mlp: bool, apply_lora_to_output: bool) -> List[str]:
-    """
-    Return a list of the names of modules in the model that have LoRA applied. Note that
-    the names here are local to their modules and not the fully qualified names from the
-    model state dict.
-
-
-    Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
-            LoRA should be applied to in each self-attention block. Options are
-            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
-        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
-
-    """
-    lora_module_keys = lora_attn_modules
-    if  apply_lora_to_mlp:
-        lora_module_keys = lora_module_keys + ["w1", "w2", "w3"]
-    if apply_lora_to_output:
-        lora_module_keys.append("output")
-    return lora_module_keys

@@ -20,7 +20,6 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import get_memory_summary
 
 from tqdm import tqdm
 
@@ -206,7 +205,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model, dtype=self._training_precision)
         log.info(f"Model is initialized with precision {self._training_precision}.")
-        get_memory_summary(prefix="Memory usage after model init:", device=self._device)
+        log.info(utils.memory_stats_log("Memory Stats after model init:", device=self._device))
         return model
 
     def _setup_optimizer(
@@ -301,9 +300,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
-        get_memory_summary(
-            prefix="Before first forward:", device=self._device, reset_stats=True
-        )
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -352,13 +348,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
 
+                # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    get_memory_summary(
-                        prefix=f"At end of iteration {self.total_training_steps}:",
-                        device=self._device,
-                        reset_stats=True,
-                    )
-
+                    log.info(utils.memory_stats_log("Memory Stats:", device=self._device))
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 

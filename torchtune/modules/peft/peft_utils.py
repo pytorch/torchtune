@@ -5,9 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import functools
-from typing import Any, Dict, List, Optional, Protocol, Set
+from typing import Any, Dict, List, Literal, Optional, Protocol, Set
 
 from torch import nn
+
+# Modules from CausalSelfAttention that LoRA can be applied to
+LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 
 
 class AdapterModule(Protocol):
@@ -93,9 +96,39 @@ def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> No
         v.requires_grad_(k in adapter_params)
 
 
+def get_lora_module_names(
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
+) -> List[str]:
+    """
+    Return a list of the names of modules in the model that have LoRA applied. Note that
+    the names here are local to their modules and not the fully qualified names from the
+    model state dict.
+
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+
+    Returns:
+        List[str]: list of module names in the model that have LoRA applied.
+    """
+    lora_module_keys = lora_attn_modules
+    if apply_lora_to_mlp:
+        lora_module_keys = lora_module_keys + ["w1", "w2", "w3"]
+    if apply_lora_to_output:
+        lora_module_keys.append("output")
+    return lora_module_keys
+
+
 def validate_state_dict_for_lora(
-    *,
-    lora_modules: List[str],
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
     full_model_state_dict_keys: List[str],
     lora_state_dict_keys: Optional[List[str]] = None,
     base_model_state_dict_keys: Optional[List[str]] = None,
@@ -111,8 +144,11 @@ def validate_state_dict_for_lora(
         confirm that the full model's params are exactly their disjoint union.
 
     Args:
-        lora_modules (List[str]): List of LoRA modules in the model. Should be a subset of
-            ["w1", "w2", "w3", "q_proj", "k_proj", "v_proj", "output_proj", "output"]
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
         full_model_state_dict_keys (List[str]): List of keys in the full model state dict.
         lora_state_dict_keys (Optional[List[str]]): List of keys in the LoRA state dict.
             If none, LoRA state dict keys will not be validated.
@@ -131,6 +167,9 @@ def validate_state_dict_for_lora(
         AssertionError: If full model state dict is missing keys from either base model or LoRA state dict.
 
     """
+    lora_modules = get_lora_module_names(
+        lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
+    )
     is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
     for k in full_model_state_dict_keys:
         if not is_lora_param(k):

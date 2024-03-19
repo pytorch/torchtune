@@ -23,20 +23,6 @@ class TestTuneCLIWithDownloadScript:
             with pytest.raises(ValueError) as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
-    def test_download_errors_on_incorrect_repo_id(self, capsys):
-        model = "meta-llama/Llama-2-7b-hf"
-        testargs = f"tune download --repo-id {model}".split()
-        with patch.object(sys, "argv", testargs):
-            with pytest.raises(SystemExit) as e:
-                runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        output = capsys.readouterr()
-        assert (
-            output.err.rstrip("\n").split("\n")[-1]
-            == "download.py: error: argument --repo-id: invalid choice: "
-            "'meta-llama/Llama-2-7b-hf' (choose from 'meta-llama/Llama-2-7b')"
-        )
-
     def test_download_calls_snapshot(self, capsys):
         model = "meta-llama/Llama-2-7b"
         with tempfile.TemporaryDirectory() as tmpdir:

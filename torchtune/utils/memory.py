@@ -29,7 +29,7 @@ def set_activation_checkpointing(
     apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
 
-def get_memory_summary(
+def memory_stats_log(
     prefix: str, device: torch.device, reset_stats: bool = True
 ) -> None:
     """
