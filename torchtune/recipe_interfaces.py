@@ -58,3 +58,36 @@ class FTRecipeInterface(Protocol):
         Any cleaning up needed for the recipe.
         """
         ...
+
+
+class EvalRecipeInterface(Protocol):
+    """
+    This class provides a loose structure which every LLM evaluation recipe
+    should follow. Please note that the interface itself should not be a vehicle for
+    code reuse. TorchTune strictly prohibits implementation inheritance in the codebase.
+    """
+
+    def load_checkpoint(self, **kwargs) -> None:
+        """
+        Responsible for loading ALL of the state for the recipe from the
+        checkpoint file.
+        """
+        ...
+
+    def setup(self, **kwargs) -> None:
+        """
+        Responsible for setting up all of the components necessary for evaluation.
+        """
+        ...
+
+    def evaluate(self, **kwargs) -> None:
+        """
+        All of the evaluation logic, including reporting.
+        """
+        ...
+
+    def cleanup(self, **kwargs) -> None:
+        """
+        Any cleaning up needed for the recipe.
+        """
+        ...
