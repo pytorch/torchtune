@@ -10,7 +10,7 @@ This tutorial will guide you through writing configs for running recipes.
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
-      * How to write a YAML config and run a recipe with it
+      * How to write a valid YAML config and run a recipe with it
       * How to use :code:`instantiate` and :code:`parse` APIs
       * How to effectively use configs and CLI overrides for running recipes
 
@@ -153,6 +153,18 @@ will automatically resolve it for you.
     metric_logger:
       _component_: torchtune.utils.metric_logging.DiskLogger
       log_dir: ${output_dir}
+
+Validating your config
+^^^^^^^^^^^^^^^^^^^^^^
+We provide a convenient CLI utility, :code:`tune validate`, to quickly verify that
+your config is well-formed and all components can be instantiated properly. You
+can also pass in overrides if you want to test out the exact commands you will run
+your experiments with. If any parameters are not well-formed, :code:`tune validate`
+will list out all the locations where an error was found.
+
+.. code-block:: bash
+
+  tune validate --config recipes/configs/alpaca_llama2_full_finetune_distributed.yaml batch_size=4
 
 
 Best practices for writing configs
