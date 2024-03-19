@@ -7,13 +7,17 @@
 from torchtune import datasets, models, modules, utils
 
 _RECIPE_LIST = [
-    "full_finetune.py",
+    "full_finetune_single_device.py",
+    "full_finetune_distributed.py",
     "alpaca_generate.py",
     "lora_finetune_single_device.py",
     "lora_finetune_distributed.py",
 ]
 _CONFIG_LISTS = {
-    "full_finetune.py": ["alpaca_llama2_full_finetune.yaml"],
+    "full_finetune_single_device.py": [
+        "alpaca_llama2_full_finetune_single_device.yaml"
+    ],
+    "full_finetune_distributed.py": ["alpaca_llama2_full_finetune_distributed.yaml"],
     "lora_finetune_single_device.py": [
         "alpaca_llama2_lora_finetune_single_device.yaml"
     ],

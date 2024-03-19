@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import json
 import logging
 import os
@@ -29,7 +30,7 @@ from tests.recipes.utils import (
     llama2_tiny_test_ckpt,
     validate_loss_values,
 )
-from tests.test_utils import get_assets_path
+from tests.test_utils import get_assets_path, single_box_init
 
 from torchtune import models
 
@@ -94,7 +95,8 @@ class TestFullFinetuneRecipe:
         if ckpt == "small_test_ckpt_meta":
             return "FullModelMetaCheckpointer"
 
-    def test_loss(self, capsys, pytestconfig, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("single_device", [True, False])
+    def test_loss(self, single_device, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpts = (
             ["llama2.llama2_7b"]
@@ -122,8 +124,12 @@ class TestFullFinetuneRecipe:
                 with config_file.open("w") as f:
                     json.dump(config, f)
 
+            if single_device:
+                recipe_cmd = "full_finetune_single_device"
+            else:
+                recipe_cmd = "full_finetune_distributed"
             cmd = f"""
-            tune full_finetune
+            tune {recipe_cmd}
                 --config {_CONFIG_PATH} \
                 output_dir={tmpdir} \
                 model=torchtune.models.{ckpt} \
@@ -131,12 +137,18 @@ class TestFullFinetuneRecipe:
                 checkpointer.checkpoint_dir='{ckpt_dir}' \
                 checkpointer.checkpoint_files=[{ckpt_path}]\
                 checkpointer.output_dir={tmpdir} \
-                checkpointer.model_type=LLAMA2
+                checkpointer.model_type=LLAMA2 \
+                log_every_n_steps=1
             """.split()
 
             monkeypatch.setattr(sys, "argv", cmd)
             with pytest.raises(SystemExit):
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+                with (
+                    single_box_init(init_pg=False)
+                    if not single_device
+                    else contextlib.nullcontext()
+                ):
+                    runpy.run_path(TUNE_PATH, run_name="__main__")
 
             loss_values = fetch_loss_values(capsys.readouterr().err)
             validate_loss_values(loss_values, expected_loss_values)
@@ -171,7 +183,7 @@ class TestFullFinetuneRecipe:
 
         # Train
         cmd_1 = f"""
-        tune full_finetune
+        tune full_finetune_single_device
             --config {_CONFIG_PATH} \
             output_dir={tmpdir} \
             model=torchtune.models.{model_ckpt} \
@@ -181,6 +193,7 @@ class TestFullFinetuneRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             epochs=4 \
+            log_every_n_steps=1 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -196,7 +209,7 @@ class TestFullFinetuneRecipe:
 
         # Resume training
         cmd_2 = f"""
-        tune full_finetune
+        tune full_finetune_single_device
             --config {_CONFIG_PATH} \
             output_dir={tmpdir} \
             model=torchtune.models.{model_ckpt} \
@@ -210,6 +223,7 @@ class TestFullFinetuneRecipe:
             resume_from_checkpoint=True \
             max_steps_per_epoch=None \
             seed=0 \
+            log_every_n_steps=1 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -240,7 +254,7 @@ class TestRecipeGradientAccumulation:
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
-        tune full_finetune \
+        tune full_finetune_single_device \
             --config {_CONFIG_PATH} \
             model=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
@@ -253,6 +267,7 @@ class TestRecipeGradientAccumulation:
             epochs=1 \
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
+            log_every_n_steps=1 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd)
@@ -268,7 +283,7 @@ class TestRecipeGradientAccumulation:
         )
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
-        tune full_finetune \
+        tune full_finetune_single_device \
             --config {_CONFIG_PATH} \
             model=torchtune.models.{model_ckpt} \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
@@ -282,6 +297,7 @@ class TestRecipeGradientAccumulation:
             epochs=1 \
             max_steps_per_epoch=1 \
             output_dir={tmpdir} \
+            log_every_n_steps=1 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", cmd_2)

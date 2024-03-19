@@ -14,7 +14,6 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.cuda.amp import GradScaler
 from torch.distributed import init_process_group
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.optim import Optimizer
@@ -37,7 +36,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
     This recipe supports:
         - FSDP and activation checkpointing. This is enabled by default but can be
             configured using the ``enable_fsdp`` and ``enable_activation_checkpointing`` flags.
-        - Mixed precision training - fp32, fp16 and bf16 are supported.
+        - Full bf16 training via setting the ``dtype`` flag to bf16.
         - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
         - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
         - Logging to terminal. WandB and TensorBoard are currently not supported.
@@ -51,21 +50,31 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        full_finetune        alpaca_llama2_full_finetune
+        RECIPE                          CONFIG
+        full_finetune_distributed       alpaca_llama2_full_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
+
+    Raises:
+        ValueError: If ``dtype`` is set to fp16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
-
+        self._training_precision = utils.get_dtype(dtype=cfg.dtype)
+        # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
+        # enabled necessary features such as gradient scaling.
+        if self._training_precision == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
+        self._log_peak_memory_every_n_steps = 100
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -153,9 +162,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -169,14 +178,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
         )
-
-        # training setup
-        self._autocast = utils.get_autocast(self._dtype, self._device)
-        self._grad_scaler = None
-        if self._dtype == torch.float16:
-            self._grad_scaler = utils.get_gradient_scaler(fsdp=cfg.enable_fsdp)
-        else:
-            self._grad_scaler = GradScaler(enabled=False)
 
         # Finally update the recipe state which can only be correctly set after all of the
         # other components have been initialized and updated.
@@ -207,7 +208,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        with self._device:
+        with utils.set_default_dtype(self._training_precision), self._device:
             model = config.instantiate(cfg_model)
 
         model = (
@@ -227,9 +228,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
             )
 
         model.load_state_dict(model_state_dict)
-
+        # Validate model was loaded in with the expected dtype.
+        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
         if self._is_rank_zero:
-            log.info("Model is initialized.")
+            log.info(f"Model is initialized with precision {self._training_precision}.")
+            utils.memory_stats_log(
+                "Memory Stats after model init:", device=self._device
+            )
         return model
 
     def _setup_optimizer(
@@ -339,7 +344,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
-
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -360,21 +364,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-
-                with self._autocast:
-                    logits = self._model(input_ids)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
-
+                logits = self._model(input_ids)
+                # Shift so that tokens < n predict n
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
+                logits = logits.transpose(1, 2)
+                # Compute loss
+                loss = self._loss_fn(logits, labels)
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-
                 if self.total_training_steps % self._log_every_n_steps == 0:
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
@@ -384,22 +384,24 @@ class FullFinetuneRecipe(FTRecipeInterface):
                         step=self.total_training_steps,
                     )
 
-                # Does loss normalization need to happen within autocast context?
                 loss = loss / self._gradient_accumulation_steps
-                self._grad_scaler.scale(loss).backward()
+                loss.backward()
                 if self._should_update_weights(idx):
-                    self._grad_scaler.step(self._optimizer)
-                    self._grad_scaler.update()
+                    self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
+
+                # Log peak memory for iteration
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    utils.memory_stats_log("Memory Stats:", device=self._device)
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
+        torch.distributed.destroy_process_group()
 
 
 @config.parse
@@ -408,11 +410,16 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_full_finetune.yaml``
+        - Parameters specified in ``alpaca_llama2_full_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line
     """
-    if utils.is_distributed():
-        init_process_group(backend="nccl")
+    if not utils.is_distributed():
+        raise RuntimeError(
+            "Distributed finetune recipe should be run via a distributed launcher."
+            "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
+        )
+
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     recipe = FullFinetuneRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)

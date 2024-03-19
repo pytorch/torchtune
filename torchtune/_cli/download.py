@@ -12,8 +12,6 @@ from pathlib import Path
 
 from huggingface_hub import snapshot_download
 
-_SUPPORTED_MODEL_REPO_IDS = ["meta-llama/Llama-2-7b"]
-
 
 def download(repo_id: str, output_dir: Path, hf_token: str) -> None:
     """Downloads a model from the Hugging Face Hub.
@@ -55,7 +53,6 @@ if __name__ == "__main__":
         "--repo-id",
         type=str,
         required=True,
-        choices=_SUPPORTED_MODEL_REPO_IDS,
         help="Name of the repository on Hugging Face Hub.",
     )
     parser.add_argument(
