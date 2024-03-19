@@ -239,7 +239,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         utils.validate_expected_param_dtype(model, dtype=self._dtype)
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        log.info(utils.memory_stats_log("Memory Stats after model init:", device=self._device))
+        log.info(
+            utils.memory_stats_log(
+                "Memory Stats after model init:", device=self._device
+            )
+        )
         return model
 
     def _setup_optimizer(
@@ -400,7 +404,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._lr_scheduler.step()
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(utils.memory_stats_log("Memory Stats:", device=self._device))
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
