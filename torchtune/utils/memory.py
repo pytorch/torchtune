@@ -52,7 +52,8 @@ def memory_stats_log(
     print(
         f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) / 1e9}GB, "
         f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) / 1e9}GB, "
-        f"GPU peak memory active: {peak_memory_active / 1e9}GB", flush=True
+        f"GPU peak memory active: {peak_memory_active / 1e9}GB",
+        flush=True,
     )
     if reset_stats:
         torch.cuda.reset_peak_memory_stats(device)
