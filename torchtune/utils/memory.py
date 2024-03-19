@@ -6,6 +6,8 @@
 
 from typing import Optional, Set
 
+import torch
+
 from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
@@ -25,3 +27,12 @@ def set_activation_checkpointing(
     """
     wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
     apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
+
+
+def memory_stats_log(msg: str) -> str:
+    return f"""
+    Memory Stats {msg}:
+    Memory Allocated: {torch.cuda.memory_allocated() / 1000**3:.2f} GB
+    Memory Reserved: {torch.cuda.memory_reserved() / 1000**3:.2f} GB
+    Peak Memory: {torch.cuda.max_memory_allocated() / 1000**3:.2f} GB
+    """
