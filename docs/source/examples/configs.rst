@@ -164,7 +164,7 @@ will list out all the locations where an error was found.
 
 .. code-block:: bash
 
-  tune validate --config recipes/configs/alpaca_llama2_full_finetune_distributed.yaml batch_size=4
+  tune validate --config recipes/configs/alpaca_llama2_full_finetune_single_device.yaml batch_size=4
 
 
 Best practices for writing configs
@@ -227,7 +227,7 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 
 .. code-block:: bash
 
-    tune full_finetune --config alpaca_llama2_full_finetune model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+    tune full_finetune --config alpaca_llama2_full_finetune_single_device model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^

@@ -43,7 +43,7 @@ Each recipe consists of three components:
 
 In the following sections, we'll take a closer look at each of these components. For a complete working example, refer to the
 `full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py>`_ in TorchTune and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml>`_.
+`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune_distributed.yaml>`_.
 
 
 What Recipes are not?
@@ -84,17 +84,19 @@ An example script looks something like this:
     # Launch using TuneCLI which uses TorchRun under the hood
     parser = utils.TuneArgumentParser(...)
 
-    # Parse and validate the params
-    args, _ = parser.parse_known_args()
-    args = vars(args)
-    recipe_params = FullFinetuneParams(**args)
+    # Parse and log the params
+    yaml_args, cli_args = parser.parse_known_args()
+    conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+
+    logger = get_logger("DEBUG")
+    logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
 
     # Env variables set by torch run; only need to initialize process group
     init_process_group(backend="nccl")
 
     # Setup the recipe and train the model
-    recipe = FullFinetuneRecipe(params=recipe_params)
-    recipe.setup(params=recipe_params)
+    recipe = FullFinetuneRecipe(cfg=conf)
+    recipe.setup(cfg=conf)
     recipe.train()
     recipe.cleanup()
 
@@ -193,7 +195,8 @@ Config and CLI parsing using :code:`parse`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
 your recipe to enable running from the command-line with :code:`tune` with config
-and CLI override parsing.
+and CLI override parsing. It handles creating the :class:`~torchtune.utils.argparse.TuneArgumentParser`,
+parsing the args, and logging them for you.
 
 .. code-block:: python
 

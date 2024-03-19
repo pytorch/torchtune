@@ -62,7 +62,7 @@ To run the recipe without any changes on 4 GPUs, launch a training run using Tun
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
+    tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune_distributed
 
 Dataset
 -------

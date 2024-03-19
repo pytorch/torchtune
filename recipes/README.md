@@ -6,7 +6,7 @@
 
 Recipes are the primary entry points for TorchTune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. Each recipe consists of three components:
 
-- **Configurable parameters**, specified through yaml configs [example](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml), command-line overrides and dataclasses
+- **Configurable parameters**, specified through yaml configs [example](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune_distributed.yaml), command-line overrides and dataclasses
 - **Recipe class**, core logic needed for training, exposed to users through a set of APIs [interface](https://github.com/pytorch/torchtune/blob/main/recipes/interfaces.py)
 - **Recipe script**, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
 
