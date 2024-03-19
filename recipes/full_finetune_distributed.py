@@ -369,12 +369,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    get_memory_summary(
-                        prefix="After data load",
-                        device=self._device,
-                        reset_stats=True,
-                    )
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -382,13 +376,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    get_memory_summary(
-                        prefix="After forwawrd",
-                        device=self._device,
-                        reset_stats=True,
-                    )
-
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
@@ -405,20 +392,19 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+                if self._should_update_weights(idx):
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+
+                # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     get_memory_summary(
-                        prefix="After bwd", device=self._device, reset_stats=True
-                    )
-                self._optimizer.step()
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    get_memory_summary(
-                        prefix="After optim step",
+                        prefix=f"At end of iteration {self.total_training_steps}:",
                         device=self._device,
                         reset_stats=True,
                     )
-                self._optimizer.zero_grad(set_to_none=True)
-                # Update the number of steps when the weights are updated
-                self.total_training_steps += 1
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

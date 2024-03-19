@@ -1,7 +1,7 @@
-# Config for FullFinetuneRecipe in full_finetune.py
+# Config for FullFinetuneRecipe in full_finetune_distributed.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune model_checkpoint=<your_checkpoint_dir> ...
+#    tune --nnodes 1 --nproc_per_node 1 full_finetune_distributed --config alpaca_llama2_full_finetune_distributed model_checkpoint=<your_checkpoint_dir> ...
 
 # Tokenizer
 tokenizer:
@@ -38,14 +38,17 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-run_generation: null
 
+
+# Training env
+device: cuda
 
 # Distributed
-device: cuda
 enable_fsdp: True
-enable_activation_checkpointing: True
 cpu_offload: False
+
+# Memory management
+enable_activation_checkpointing: True
 
 # Reduced precision
 dtype: bf16

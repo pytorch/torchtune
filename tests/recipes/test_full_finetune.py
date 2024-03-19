@@ -95,7 +95,7 @@ class TestFullFinetuneRecipe:
         if ckpt == "small_test_ckpt_meta":
             return "FullModelMetaCheckpointer"
 
-    @pytest.mark.parametrize("single_device", [False])
+    @pytest.mark.parametrize("single_device", [True, False])
     def test_loss(self, single_device, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
         ckpts = (
