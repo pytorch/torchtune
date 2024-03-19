@@ -47,5 +47,6 @@ device: cpu
 # TODO (rohan-varma): dedupe once dtype and full_bf16 story is consistent
 # across single and multi-GPU finetune.
 dtype: fp32
+full_bf16: False
 enable_fsdp: False
 enable_activation_checkpointing: False
