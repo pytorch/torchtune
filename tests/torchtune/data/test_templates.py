@@ -114,13 +114,13 @@ class TestSummarizeTemplate:
     ]
     expected_prompts = [
         (
-            "Summarize this dialog:\n"
+            "Summarize this dialogue:\n"
             "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)\n"
             "---\n"
             "Summary:\n"
         ),
         (
-            "Summarize this dialog:\n"
+            "Summarize this dialogue:\n"
             "Olivia: Who are you voting for in this election? Oliver: Liberals as always. Olivia: Me too!! Oliver: Great\n"
             "---\n"
             "Summary:\n"
