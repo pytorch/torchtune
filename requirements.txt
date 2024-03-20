@@ -1,6 +1,6 @@
 # HuggingFace Integration Reqs
 datasets
-huggingface_hub>=0.19.4
+huggingface_hub
 
 # Misc
 sentencepiece
