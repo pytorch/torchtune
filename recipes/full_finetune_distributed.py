@@ -7,7 +7,6 @@
 import sys
 import time
 
-
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -17,7 +16,6 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.distributed import init_process_group
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp import (
     FullOptimStateDictConfig,
     FullStateDictConfig,
@@ -29,9 +27,9 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-from torchtune.utils.distributed import validate_no_params_on_meta_device
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.distributed import validate_no_params_on_meta_device
 
 from tqdm import tqdm
 
@@ -61,8 +59,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE               CONFIG
-        full_finetune        alpaca_llama2_full_finetune
+        RECIPE                           CONFIG
+        full_finetune_distributed        alpaca_llama2_full_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -75,6 +73,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -97,7 +100,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.total_training_steps = 0
-
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
@@ -265,7 +267,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(utils.memory_stats_log("Memory Stats after model init", device=self._device))
+            log.info(
+                utils.memory_stats_log(
+                    "Memory Stats after model init", device=self._device
+                )
+            )
 
         return model
 
@@ -305,7 +311,11 @@ class FullFinetuneRecipe(FTRecipeInterface):
             tokenizer=self._tokenizer,
         )
         sampler = DistributedSampler(
-            ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0,
+            ds,
+            num_replicas=world_size,
+            rank=rank,
+            shuffle=shuffle,
+            seed=0,
         )
         dataloader = DataLoader(
             dataset=ds,
@@ -440,8 +450,8 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 # Log peak memory for iteration
                 if (
-                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0 and
-                    self._is_rank_zero
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._is_rank_zero
                 ):
                     log.info(
                         utils.memory_stats_log("Memory Stats", device=self._device)

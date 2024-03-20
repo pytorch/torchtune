@@ -14,26 +14,12 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-<<<<<<< HEAD:recipes/full_finetune_single_device.py
-=======
-from torch.distributed import init_process_group
-from torch.distributed.fsdp import (
-    FullOptimStateDictConfig,
-    FullStateDictConfig,
-    FullyShardedDataParallel as FSDP,
-    StateDictType,
-)
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
->>>>>>> 90d6933 (lint):recipes/full_finetune.py
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-
-from torchtune.utils.distributed import validate_no_params_on_meta_device
-from torchtune.utils.memory import memory_stats_log
 
 from tqdm import tqdm
 
@@ -213,20 +199,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
-<<<<<<< HEAD:recipes/full_finetune_single_device.py
         Set up the model including enabling activation checkpointing.
-=======
-        Model initialization has some important considerations:
-            a. To minimize GPU peak memory, we load the model on CPU with the right
-               dtype. To ensure that we don't instantiate ``world_size`` number of models,
-               we initialize on meta_device for all ranks other than rank 0.
-            b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
-               model weights from checkpoint.
-            c. While wrapping the model with FSDP, we set ``sync_module_states``
-               to TRUE and broadcast module params and buffers from rank 0.
-            d. The ``device_id`` param ensures that the FSDP initialization happens on
-               the correct device.
->>>>>>> 90d6933 (lint):recipes/full_finetune.py
         """
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
