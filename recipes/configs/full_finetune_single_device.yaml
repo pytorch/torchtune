@@ -1,7 +1,9 @@
-# Config for FullFinetuneRecipe in full_finetune_distributed.py
+# Config for FullFinetuneRecipe in full_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 full_finetune_distributed --config alpaca_llama2_full_finetune_distributed model_checkpoint=<your_checkpoint_dir> ...
+#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device \
+#   --config full_finetune_single_device \
+#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>=<your_checkpoint_dir> ...
 
 # Tokenizer
 tokenizer:
@@ -40,11 +42,8 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 
-# Training env
+# Training environment
 device: cuda
-
-# Distributed
-cpu_offload: False
 
 # Memory management
 enable_activation_checkpointing: True

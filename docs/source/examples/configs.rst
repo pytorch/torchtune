@@ -151,6 +151,17 @@ will automatically resolve it for you.
       _component_: torchtune.utils.metric_logging.DiskLogger
       log_dir: ${output_dir}
 
+Validating your config
+^^^^^^^^^^^^^^^^^^^^^^
+We provide a convenient CLI utility, :code:`tune validate`, to quickly verify that
+your config is well-formed and all components can be instantiated properly. You
+can also pass in overrides if you want to test out the exact commands you will run
+your experiments with. If any parameters are not well-formed, :code:`tune validate`
+will list out all the locations where an error was found.
+
+.. code-block:: bash
+
+  tune validate --config recipes/configs/full_finetune_single_device.yaml batch_size=4
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -212,7 +223,11 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 
 .. code-block:: bash
 
-    tune full_finetune --config alpaca_llama2_full_finetune model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+    tune full_finetune_distributed \
+    --config full_finetune_distributed \
+    checkpointer.checkpoint_dir=/home/my_model_checkpoint \
+    checkpointer.checkpoint_files=[file_1, file_2] \
+    device=cuda
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^
