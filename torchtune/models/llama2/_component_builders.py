@@ -46,6 +46,7 @@ def llama2(
     embed_dim: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
+    intermediate_dim: Optional[int] = None,
     max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
@@ -83,7 +84,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
