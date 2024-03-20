@@ -56,6 +56,25 @@ def llama2(
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
+
+    Args:
+        vocab_size (int): number of tokens in vocabulary.
+        num_layers (int): number of layers in the transformer decoder.
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        num_kv_heads (int): number of key and value heads. If specified,
+            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            `None`, in which case this is the same as MHA
+        embed_dim (int): embedding dimension for self-attention
+        max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`
+        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
+            Default: 0.0
+        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
+        norm_eps (float): epsilon in RMS norms.
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama2 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
