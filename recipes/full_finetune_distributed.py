@@ -29,7 +29,6 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils.distributed import validate_no_params_on_meta_device
 
 from tqdm import tqdm
 
@@ -260,7 +259,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Ensure no params and buffers are on meta device
-        validate_no_params_on_meta_device(model)
+        utils.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(

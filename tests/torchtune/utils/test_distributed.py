@@ -19,7 +19,7 @@ from torchtune.models.llama2._component_builders import lora_llama2
 from torchtune.modules import TransformerDecoderLayer
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
-from torchtune.utils.distributed import (
+from torchtune.utils._distributed import (
     get_world_size_and_rank,
     init_distributed,
     lora_fsdp_wrap_policy,

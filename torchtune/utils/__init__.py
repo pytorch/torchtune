@@ -27,13 +27,15 @@ from .constants import (  # noqa
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from .device import get_device
-from .distributed import (  # noqa
+from ._device import get_device
+from ._distributed import (  # noqa
     contains_fsdp,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
     lora_fsdp_wrap_policy,
+    prepare_model_for_fsdp_with_meta_device,
+    validate_no_params_on_meta_device,
     wrap_fsdp,
 )
 from .logging import get_logger
