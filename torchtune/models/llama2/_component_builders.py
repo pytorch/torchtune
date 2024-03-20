@@ -69,6 +69,8 @@ def llama2(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
+            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
 
