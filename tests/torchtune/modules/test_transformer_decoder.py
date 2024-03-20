@@ -15,7 +15,7 @@ from tests.test_utils import assert_expected, init_weights_with_constant
 from torch import nn, Tensor
 
 from torchtune.models.llama2 import llama2
-from torchtune.models.llama2._llama2_builders import _llama_mlp
+from torchtune.models.llama2._component_builders import llama2_mlp
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
@@ -83,7 +83,7 @@ class TestTransformerDecoderLayer:
             max_seq_len=max_seq_len,
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
-        mlp = _llama_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+        mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
         transformer_layer = TransformerDecoderLayer(
             attn=self_attn,
             mlp=mlp,
