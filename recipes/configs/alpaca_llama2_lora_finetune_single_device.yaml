@@ -62,5 +62,5 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-full_bf16: True
+dtype: bf16
 enable_activation_checkpointing: True

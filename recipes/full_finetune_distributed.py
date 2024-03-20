@@ -64,13 +64,20 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
-        self._training_precision = utils.get_dtype(dtype=cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
-        if self._training_precision == torch.float16:
+        if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
@@ -208,7 +215,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
         running tests on CPUs.
         """
-        with utils.set_default_dtype(self._training_precision), self._device:
+        with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         model = (
@@ -229,11 +236,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         model.load_state_dict(model_state_dict)
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
+        utils.validate_expected_param_dtype(model, dtype=self._dtype)
         if self._is_rank_zero:
-            log.info(f"Model is initialized with precision {self._training_precision}.")
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
+            log.info(f"Model is initialized with precision {self._dtype}.")
+            log.info(
+                utils.memory_stats_log(
+                    "Memory Stats after model init:", device=self._device
+                )
             )
         return model
 
@@ -394,7 +403,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    utils.memory_stats_log("Memory Stats:", device=self._device)
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
