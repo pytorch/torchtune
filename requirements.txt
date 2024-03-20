@@ -7,8 +7,5 @@ sentencepiece
 tqdm
 omegaconf
 
-# Evaluation
-lm_eval==0.4.1
-
 # Quantization
 torchao-nightly
