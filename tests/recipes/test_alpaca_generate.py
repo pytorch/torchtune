@@ -39,8 +39,7 @@ class TestAlpacaGenerateRecipe:
         cmd = f"""
         tune alpaca_generate
             --config {_CONFIG_PATH} \
-            --override \
-            model._component_=torchtune.models.{ckpt} \
+            model=torchtune.models.{ckpt} \
             model_checkpoint={self._fetch_ckpt_model_path(ckpt)} \
             output_dir={tmpdir} \
         """.split()

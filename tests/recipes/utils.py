@@ -116,7 +116,7 @@ def fetch_ckpt_model_path(ckpt) -> str:
         return "/tmp/test-artifacts/small-ckpt-tune-03082024.pt"
     if ckpt == "small_test_ckpt_meta":
         return "/tmp/test-artifacts/small-ckpt-meta-03082024.pt"
-    if ckpt == "small_test_ckpt_hf" or "lora_small_test_ckpt":
+    if ckpt == "small_test_ckpt_hf":
         return "/tmp/test-artifacts/small-ckpt-hf-03082024.pt"
     if "llama2_7b" in ckpt:
         return "/tmp/test-artifacts/llama2-7b-torchtune.pt"

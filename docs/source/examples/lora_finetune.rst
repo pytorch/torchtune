@@ -247,7 +247,7 @@ Once we've loaded the base model weights, we also want to set only LoRA paramete
 LoRA finetuning recipe in TorchTune
 -----------------------------------
 
-Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch-labs/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
+Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
 You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
 
@@ -257,13 +257,13 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
-    either by adding :code:`--override model_checkpoint=my_model_checkpoint_path tokenizer_checkpoint=my_tokenizer_checkpoint_path`
+    either by adding :code:`model_checkpoint=my_model_checkpoint_path tokenizer_checkpoint=my_tokenizer_checkpoint_path`
     or by directly modifying the :code:`alpaca_llama2_lora_finetune.yaml` file. See our :ref:`config_tutorial_label`
     for more details on how you can easily clone and modify TorchTune configs.
 
 .. note::
     You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
-    and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch-labs/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
+    and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
     for peak memory of LoRA finetuning in a couple of common hardware setups.
 
 The preceding command will run a LoRA finetune with TorchTune's factory settings, but we may want to experiment a bit.
@@ -289,7 +289,7 @@ Let's run this experiment. We can also increase alpha (in general it is good pra
 .. code-block:: bash
 
     tune --nnodes 1 --nproc_per_node 2 lora_finetune --config alpaca_llama2_lora_finetune \
-    --override lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
+    lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
     lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
 
 A comparison of the (smoothed) loss curves between this run and our baseline over the first 500 steps can be seen below.

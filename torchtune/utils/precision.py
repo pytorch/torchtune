@@ -8,11 +8,15 @@ import contextlib
 from typing import ContextManager, Dict, Generator, List, Optional, Union
 
 import torch
+from pkg_resources import packaging
 
 from torch.cuda.amp import GradScaler
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
 from torchtune.utils.device import _validate_device_from_env
+from torchtune.utils.logging import get_logger
+
+log = get_logger()
 
 PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp16": torch.float16,
@@ -50,6 +54,17 @@ def list_dtypes() -> List[str]:
     return list(PRECISION_STR_TO_DTYPE.keys())
 
 
+def verify_bf16_support():
+    return (
+        torch.cuda.is_available()
+        and torch.version.cuda
+        and torch.cuda.is_bf16_supported()
+        and packaging.version.parse(torch.version.cuda).release >= (11, 0)
+        and torch.distributed.is_nccl_available()
+        and torch.cuda.nccl.version() >= (2, 10)
+    )
+
+
 def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
@@ -67,14 +82,19 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
         return torch.float32
 
     # Convert to torch.dtype
-    dtype = PRECISION_STR_TO_DTYPE.get(dtype, dtype)
+    torch_dtype = PRECISION_STR_TO_DTYPE.get(dtype, dtype)
 
     # dtype must be one of the supported precisions
-    if dtype not in PRECISION_STR_TO_DTYPE.values():
+    if torch_dtype not in PRECISION_STR_TO_DTYPE.values():
         raise ValueError(
-            f"Dtype {dtype} must be one of {', '.join(list_dtypes())} for finetuning."
+            f"Dtype {torch_dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )
-    return dtype
+
+    if torch_dtype == torch.bfloat16 and not verify_bf16_support():
+        log.info("BF16 not supported on this hardware. Setting dtype to float32")
+        torch_dtype = torch.float32
+
+    return torch_dtype
 
 
 def get_gradient_scaler(fsdp: bool = False) -> Union[GradScaler, ShardedGradScaler]:

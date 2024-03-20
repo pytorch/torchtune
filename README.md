@@ -1,6 +1,7 @@
 
-[![Unit Test](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch-labs/torchtune/actions/workflows/unit_test.yaml)
-![Recipe Integration Test](https://github.com/pytorch-labs/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+[![Unit Test](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml/badge.svg?branch=main)](https://github.com/pytorch/torchtune/actions/workflows/unit_test.yaml)
+![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
+[![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
 # TorchTune (alpha release)
 
@@ -18,7 +19,7 @@ The library provides:
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
 - Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
-- Yaml configs for easily configuring training runs
+- YAML configs for easily configuring training runs
 
 &nbsp;
 
@@ -37,11 +38,11 @@ experience different peak memory utilization based on changes made in configurat
 
 | HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
-| 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
-| 1 x A6000    |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    29.5 GB *           |
-| 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
-| 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
-| 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch-labs/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
+| 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
+| 1 x A6000    |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    29.5 GB *           |
+| 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
+| 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
+| 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
 
 
 NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Peak memory per GPU is as reported by `nvidia-smi` monitored over a couple hundred training iterations. Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
@@ -57,7 +58,7 @@ Currently, `torchtune` must be built via cloning the repository and installing a
 NOTE: TorchTune is currently only tested with the latest stable PyTorch release, which is currently [2.2](https://pytorch.org/get-started/locally/).
 
 ```
-git clone https://github.com/pytorch-labs/torchtune.git
+git clone https://github.com/pytorch/torchtune.git
 cd torchtune
 pip install -e .
 ```
@@ -96,28 +97,15 @@ tune download --repo-id meta-llama/Llama-2-7b \
 --output-dir /tmp/llama2
 ```
 
-&nbsp;
-
-#### Converting the checkpoint into PyTorch-native for LoRA
-
-Now that you have the Llama2 model weights, convert them into a PyTorch-native format supported by TorchTune. This is only
-needed if you're running LoRA. For full fine-tuning, you should be able to use the downloaded checkpoints without any
-converstion. See the [Running Recipes](#running-recipes) section for more details.
-
-```
-tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth \
---output-path /tmp/llama2/llama2_native.pt \
---model llama2 \
---train-type full
-```
+Note: While the ``tune download`` command allows you to download *any* model from the hub, there's no guarantee that the model can be finetuned with TorchTune. Currently supported models can be found [here](#introduction)
 
 &nbsp;
 
 #### Running recipes
 
-TorchTune contains recipes for [full finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/full_finetune.py), [LoRA finetuning](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/lora_finetune.py), and [generation](https://github.com/pytorch-labs/torchtune/blob/e802c057d17773f65cf80721807086724e4fa7db/recipes/alpaca_generate.py).
+TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py) and LoRA finetuning both for [multiple devices](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py) and [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py).
 
-Full-finetuning runs without the need for any model conversion. To run a full finetune on two devices on the Alpaca dataset using FSDP:
+To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \
@@ -125,15 +113,14 @@ full_finetune \
 --config alpaca_llama2_full_finetune
 ```
 
-The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch-labs/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
+The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
 
-Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via the following. Remember to convert your
-model with `train_type` set to `lora`
+Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via the following.
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \
-lora_finetune \
---config alpaca_llama2_lora_finetune
+lora_finetune_distributed \
+--config alpaca_llama2_lora_finetune_distributed
 ```
 
 Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).

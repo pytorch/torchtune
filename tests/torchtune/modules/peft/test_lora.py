@@ -7,7 +7,6 @@
 import pytest
 
 import torch
-import torch.nn.functional as F
 from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4

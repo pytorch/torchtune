@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Literal, Optional
+from typing import List, Optional
 
 from torch import nn
 from torchtune.models.llama2._llama2_builders import _llama_mlp
@@ -21,10 +21,18 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.modules.peft import LoRALinear
+from functools import partial
+
+from torchtune.modules.low_precision import (
+    reparametrize_as_bf16_state_dict_post_hook,
+)
+
+from torchtune.modules.peft import LoRALinear, LORA_ATTN_MODULES
 
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
+from torchtune.models.llama2._llama2_builders import _llama_mlp
 
 
 def lora_llama2_7b(
@@ -230,7 +238,6 @@ def _lora_llama_mlp(
 def lora_llama2(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    quantize_base: bool = False,
     apply_lora_to_output: bool = False,
     *,
     # llama2 args
@@ -247,6 +254,8 @@ def lora_llama2(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    # QLoRA args
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Return a version of Llama2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -277,6 +286,9 @@ def lora_llama2(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        quantize_base (bool): Whether to quantize base parameters in linear layers LoRA is applied to.
+            Note that this only results in quantization of the linear layer's weight matrix, and not other
+            base model parameters (such as the embeddings) in the model.
 
     Returns:
         TransformerDecoder: Instantiation of Llama2 model with LoRA applied to
@@ -336,11 +348,6 @@ def lora_llama2(
     )
 
     if quantize_base:
-        from functools import partial
-
-        from torchtune.modules.low_precision import (
-            reparametrize_as_bf16_state_dict_post_hook,
-        )
         # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
         # so as to not increase peak memory
         ret_model._register_state_dict_hook(

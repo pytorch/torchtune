@@ -18,10 +18,9 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.models.llama2 import get_lora_module_names
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
-    merge_lora_weights_in_state_dict,
+    get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -39,7 +38,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     This recipe supports:
         - Activation checkpointing. This is enabled by default but is configurable.
-        - Mixed precision training via `torch.autocast` - fp32, fp16 and bf16 are supported.
         - Full bf16 training for supported HW architectures. We currently check bf16 support via
         the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
         the "full_bf16" configuration flag.
@@ -213,6 +211,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             with self._device:
                 model = config.instantiate(cfg_model)
 
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -220,13 +220,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        lora_module_keys = get_lora_module_names(
-            cfg_model.lora_attn_modules,
-            cfg_model.apply_lora_to_mlp,
-            cfg_model.apply_lora_to_output,
-        )
+
         validate_state_dict_for_lora(
-            lora_modules=lora_module_keys,
+            lora_attn_modules=cfg_model.lora_attn_modules,
+            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+            apply_lora_to_output=cfg_model.apply_lora_to_output,
             full_model_state_dict_keys=model.state_dict().keys(),
             lora_state_dict_keys=(
                 lora_weights_state_dict.keys()
@@ -235,6 +233,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
             base_model_state_dict_keys=base_model_state_dict.keys(),
         )
+
         model.load_state_dict(base_model_state_dict, strict=False)
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
@@ -334,9 +333,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 }
             )
 
+        # Move to CPU to avoid a copy on GPU
+        state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
+
         # Construct the full state dict with LoRA weights merged into base LLM weights
-        with merge_lora_weights_in_state_dict(self._model):
-            ckpt_dict.update({utils.MODEL_KEY: self._model.state_dict()})
+        merged_state_dict = get_merged_lora_ckpt(
+            state_dict,
+            rank=self._lora_rank,
+            alpha=self._lora_alpha,
+        )
+        ckpt_dict.update({utils.MODEL_KEY: merged_state_dict})
 
         # Construct the adapter weights
         adapter_key_filter = lambda x: x in self.adapter_params
@@ -344,7 +350,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
         ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
-
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -382,9 +387,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
 
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-
                 if self.total_training_steps % self._log_every_n_steps == 0:
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
@@ -412,7 +416,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     Configurable parameters are read in the following order:
         - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
-        - Overwritten by arguments from the command-line using ``--override``
+        - Overwritten by arguments from the command-line
     """
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)

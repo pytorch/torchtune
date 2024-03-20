@@ -1,7 +1,7 @@
-# Config for FullFinetuneRecipe in full_finetune.py
+# Config for FullFinetuneRecipe in full_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 full_finetune --config alpaca_llama2_full_finetune --override model_checkpoint=<your_checkpoint_dir> ...
+#    tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device --config alpaca_llama2_full_finetune_single_device model_checkpoint=<your_checkpoint_dir> ...
 
 # Tokenizer
 tokenizer:
@@ -38,19 +38,20 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-log_every_n_steps: null
-run_generation: null
 
 
-# Distributed
+# Training environment
 device: cuda
-dtype: fp32
-enable_fsdp: True
+
+# Memory management
 enable_activation_checkpointing: True
-cpu_offload: False
+
+# Reduced precision
+dtype: bf16
 
 # Logging
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
+log_every_n_steps: null

@@ -6,8 +6,6 @@
 import math
 from typing import List
 
-import torch
-
 import torch.nn.functional as F
 
 from torch import nn, Tensor
@@ -36,8 +34,6 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout (float): dropout probability. Default: 0.0
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
-        use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
-            A and B. Default: False
     """
 
     def __init__(
@@ -48,8 +44,11 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
+<<<<<<< HEAD
         use_bias_in_lora_matrices: bool = False,
         quantize_base: bool = False,
+=======
+>>>>>>> a57d6062db1af48f6786b082bbfc3d18725686f0
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -62,13 +61,8 @@ class LoRALinear(nn.Module, AdapterModule):
         self.register_parameter("weight", nn.Parameter(weight))
         self.register_parameter("bias", nn.Parameter(bias) if bias is not None else None)
         self.dropout = nn.Dropout(p=dropout)
-        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
-        self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
-        )
-        self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
-        )
+        self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
+        self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
@@ -140,10 +134,9 @@ class LoRALinear(nn.Module, AdapterModule):
         # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
         adapter_params = ["lora_a.weight", "lora_b.weight"]
-        if self.use_bias_in_lora_matrices:
-            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
+<<<<<<< HEAD
     # def _unquantize_base_weight(self, *args, **kwargs):
     #     return
     #     if not self._quantize_base:
@@ -191,6 +184,8 @@ class LoRALinear(nn.Module, AdapterModule):
         self.weight -= self._lora_delta
         self.merged = False
 
+=======
+>>>>>>> a57d6062db1af48f6786b082bbfc3d18725686f0
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:
