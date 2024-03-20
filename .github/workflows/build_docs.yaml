@@ -22,31 +22,34 @@ defaults:
 jobs:
   build:
     uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
+    strategy:
+      matrix:
+        python-version: ['3.11']
     with:
       job-name: Build doc
       runner: linux.g5.4xlarge.nvidia.gpu
       repository: pytorch/torchtune
       timeout: 120
       upload-artifact: docs
-    strategy:
-      matrix:
-        python-version: ['3.11']
-    script: |
-      set -ex
-      CONDA_PATH=$(which conda)
-      eval "$(${CONDA_PATH} shell.bash hook)"
-      conda activate ci
-      # Update pip
-      python -m pip install --upgrade pip
-      #Install dependencies
-      python -m pip install -r requirements.txt
-      python -m pip install -e .
-      cd docs
-      python -m pip install -r requirements.txt
-      #Build docs
-      cd docs
-      make html
-      cp -r build/html "${RUNNER_ARTIFACT_DIR}"
+      script: |
+        set -ex
+        CONDA_PATH=$(which conda)
+        eval "$(${CONDA_PATH} shell.bash hook)"
+        conda activate ci
+        
+        # Update pip
+        python -m pip install --upgrade pip
+        
+        #Install dependencies
+        python -m pip install -r requirements.txt
+        python -m pip install -e .
+        cd docs
+        python -m pip install -r requirements.txt
+        
+        #Build docs
+        cd docs
+        make html
+        cp -r build/html "${RUNNER_ARTIFACT_DIR}"
 
   upload:
     needs: build
