@@ -219,3 +219,26 @@ class TestLoRALlama2:
             qlora_sd = qlora.state_dict()
             for v in qlora_sd.values():
                 assert v.dtype == torch.bfloat16
+
+    def test_qlora_llama2_merged_state_dict(self):
+        with utils.set_default_dtype(torch.bfloat16):
+            qlora = self.get_lora_llama2(
+                lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+                apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
+                vocab_size=50,
+                quantize_base=True,
+            )
+
+        qlora_sd = qlora.state_dict()
+        # Ensure checkpoint merging produces bf16 tensors
+        merged_ckpt = get_merged_lora_ckpt(deepcopy(qlora_sd), rank=RANK, alpha=ALPHA)
+        adapter_ckpt = {k: v for k, v in qlora_sd if "lora_a" in k or "lora_b" in k}
+        for v in merged_ckpt.values():
+            # paranoid check for both, as NF4Tensor had issue where NF4Tensor.dtype would return bf16
+            assert not isinstance(v, NF4Tensor)
+            assert v.dtype == torch.bfloat16
+
+        # Ensure checkpoint can be loaded into non-LoRA model
+        with utils.set_default_dtype(torch.bfloat16):
+            llama2 = self.get_ref_llama2(vocab_size=50)

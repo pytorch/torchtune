@@ -4,11 +4,24 @@ from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl, to_nf4
 
 @nf4_tensor_impl([torch.ops.aten.clone.default])
 def clone(func, *args, **kwargs):
+    """
+    __torch_dispatch__ override that is called when cloning an NF4Tensor.
+    This is implemented by creating a new NF4Tensor with the unquantized weight
+    of the input tensor. Note that this is not an exact "clone" due to the loss
+    in precision.
+    """
     return to_nf4(args[0][0].get_original_weight())
 
 
 @nf4_tensor_impl([torch.ops.aten.copy_.default])
 def inplace_copy(func, *args, **kwargs):
+    """
+    Performs an inplace copy of an incoming tensor into the tensor
+    being copied into. The inplace tensor is given by args[0][1] and the
+    tensor being copied into is given by args[0][0]. The copy is performed
+    by copying over all attributes. This method would have to be updated
+    if additional attributes are added to NF4Tensor.
+    """
     dest_tensor = args[0][0]  # tensor we are inplace copying into
     ref_tensor = to_nf4(
         args[0][1].to(dest_tensor.device)
@@ -24,6 +37,10 @@ def inplace_copy(func, *args, **kwargs):
 
 @nf4_tensor_impl([torch.ops.aten.sub_.Tensor])
 def sub_bf16_tensor(func, *args, **kwargs):
+    """
+    Subtracts a bf16 tensor from an NF4Tensor, by subtracting it from the
+    unquantized weight and re-casting to NF4.
+    """
     nf4_tensor = args[0][0]
     sub_tensor = args[0][1]
     assert sub_tensor.dtype == torch.bfloat16
@@ -31,6 +48,10 @@ def sub_bf16_tensor(func, *args, **kwargs):
 
 @nf4_tensor_impl([torch.ops.aten.add_.Tensor])
 def add_bf16_tensor(func, *args, **kwargs):
+    """
+    Adds a bf16 tensor from an NF4Tensor, by add it from the
+    unquantized weight and re-casting to NF4.
+    """
     nf4_tensor = args[0][0]
     sub_tensor = args[0][1]
     assert sub_tensor.dtype == torch.bfloat16
