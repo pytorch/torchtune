@@ -21,38 +21,33 @@ defaults:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    upload-artifact: docs
+    uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
+    with:
+      job-name: Build doc
+      runner: linux.g5.4xlarge.nvidia.gpu
+      repository: pytorch/torchtune
+      timeout: 120
+      upload-artifact: docs
     strategy:
       matrix:
         python-version: ['3.11']
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v3
-      - name: Setup conda env
-        uses: conda-incubator/setup-miniconda@v2
-        with:
-          auto-update-conda: true
-          miniconda-version: "latest"
-          activate-environment: test
-          python-version: ${{ matrix.python-version }}
-      - name: Update pip
-        run: python -m pip install --upgrade pip
-      - name: Install dependencies
-        run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -e .
-          cd docs
-          python -m pip install -r requirements.txt
-      - name: Build docs
-        run: |
-          cd docs
-          make html
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Built-Docs
-          path: docs/build/html/
-  
+    script: |
+      set -ex
+      CONDA_PATH=$(which conda)
+      eval "$(${CONDA_PATH} shell.bash hook)"
+      conda activate ci
+      # Update pip
+      python -m pip install --upgrade pip
+      #Install dependencies
+      python -m pip install -r requirements.txt
+      python -m pip install -e .
+      cd docs
+      python -m pip install -r requirements.txt
+      #Build docs
+      cd docs
+      make html
+      cp -r build/html "${RUNNER_ARTIFACT_DIR}"
+
   upload:
     needs: build
     if: github.repository == 'pytorch/torchtune' && github.event_name == 'push' && 
