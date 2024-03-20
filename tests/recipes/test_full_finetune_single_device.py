@@ -139,7 +139,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with config_file.open("w") as f:
             json.dump(config, f)
 
-        # Train
+        # Train for two epochs
         cmd_1 = f"""
         tune full_finetune_single_device
             --config alpaca_llama2_full_finetune_single_device \

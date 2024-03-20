@@ -1,9 +1,10 @@
-name: E2E Recipe Tests
+name: Multi-GPU E2E Recipe Tests
 
 on:
   push:
     branches: [ main ]
   pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}

@@ -65,6 +65,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
         self._dtype = utils.get_dtype(cfg.dtype)
@@ -364,13 +365,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-
                 if (
                     self.max_steps_per_epoch is not None
                     and idx == self.max_steps_per_epoch

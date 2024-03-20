@@ -56,7 +56,6 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "ckpt", ["small_test_ckpt_hf", "small_test_ckpt_meta", "small_test_ckpt_tune"]
     )
-    # @pytest.mark.parametrize("ckpt", ["small_test_ckpt_hf"])
     def test_loss(self, ckpt, tmpdir, monkeypatch):
         expected_loss_values = self._fetch_expected_loss_values()
         ckpt_path = Path(fetch_ckpt_model_path(ckpt))
@@ -116,7 +115,7 @@ class TestLoRAFinetuneDistributedRecipe:
         with config_file.open("w") as f:
             json.dump(config, f)
 
-        # Train
+        # Train for two epochs
         cmd_1 = f"""
         tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config alpaca_llama2_lora_finetune_distributed \
@@ -199,7 +198,6 @@ class TestLoRAFinetuneDistributedRecipe:
             lora_alpha=16,
         )
 
-        # Have to attach this after so it parses correctly
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")

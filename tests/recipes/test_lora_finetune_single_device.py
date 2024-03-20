@@ -112,6 +112,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with config_file.open("w") as f:
             json.dump(config, f)
 
+        # Train for two epochs
         cmd_1 = f"""
         tune lora_finetune_single_device
             --config alpaca_llama2_lora_finetune_single_device \

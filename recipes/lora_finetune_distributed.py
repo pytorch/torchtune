@@ -98,7 +98,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # logging attributes
