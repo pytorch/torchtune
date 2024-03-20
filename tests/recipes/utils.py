@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, Optional
+import os
+import re
+from typing import Dict, List, Optional
 
 import pytest
-
 import torch
 from tests.test_utils import get_assets_path
 from torch.utils.data import Dataset
@@ -57,54 +58,48 @@ def llama2_tiny_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDe
     )
 
 
-def llama2_small_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
-    return llama2(
-        vocab_size=32_000,
-        num_layers=4,
-        num_heads=16,
-        embed_dim=256,
-        max_seq_len=2048,
-        norm_eps=1e-5,
-        num_kv_heads=8,
-        max_batch_size=max_batch_size,
-    )
+def llama2_test_config(max_batch_size: Optional[int] = None) -> List[str]:
+    return [
+        "model._component_=torchtune.models.llama2.llama2",
+        "model.vocab_size=32_000",
+        "model.num_layers=4",
+        "model.num_heads=16",
+        "model.embed_dim=256",
+        "model.max_seq_len=2048",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+        f"model.max_batch_size={max_batch_size if max_batch_size else 'null'}",
+    ]
 
 
-def lora_llama2_small_test_ckpt(
+def lora_llama2_test_config(
     lora_attn_modules,
-    apply_lora_to_mlp,
-    apply_lora_to_output,
-    lora_rank,
-    lora_alpha,
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
-) -> TransformerDecoder:
-    return lora_llama2(
-        lora_attn_modules=lora_attn_modules,
-        apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
-        vocab_size=32_000,
-        num_layers=4,
-        num_heads=16,
-        embed_dim=256,
-        max_seq_len=2048,
-        norm_eps=1e-5,
-        num_kv_heads=8,
-        max_batch_size=max_batch_size,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=0.0,
-    )
-
-
-def fetch_loss_values(output) -> Dict[str, float]:
-    lines = output.splitlines()
-    loss_values = {}
-    for line in lines:
-        if "Loss:" in line:
-            splits = line.split("Loss:")
-            loss_value = float(splits[1].split(":")[0])
-            loss_values[splits[0]] = loss_value
-    return loss_values
+) -> List[str]:
+    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
+    return [
+        # Note: we explicitly use _component_ so that we can also call
+        # config.instantiate directly for easier comparison
+        "model._component_=torchtune.models.llama2.lora_llama2",
+        f"model.lora_attn_modules={lora_attn_modules}",
+        f"model.apply_lora_to_mlp={apply_lora_to_mlp}",
+        f"model.apply_lora_to_output={apply_lora_to_output}",
+        "model.vocab_size=32000",
+        "model.num_layers=4",
+        "model.num_heads=16",
+        "model.embed_dim=256",
+        "model.max_seq_len=2048",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=8",
+        f"model.max_batch_size={max_batch_size if max_batch_size else 'null'}",
+        f"model.lora_rank={lora_rank}",
+        f"model.lora_alpha={lora_alpha}",
+        "model.lora_dropout=0.0",
+    ]
 
 
 def fetch_ckpt_model_path(ckpt) -> str:
@@ -131,3 +126,18 @@ def validate_loss_values(loss_values, expected_loss_values):
         assert key in expected_loss_values
         expected_loss_value = expected_loss_values[key]
         assert value == pytest.approx(expected_loss_value, abs=0.001)
+
+
+def get_loss_values_from_metric_logger(
+    out_dir: str, remove_found_file: bool = False
+) -> Dict[str, float]:
+    # import pdb; pdb.set_trace()
+    txt_files = [f for f in os.listdir(out_dir) if f.endswith(".txt")]
+    assert len(txt_files) == 1, "Should have exactly one log file"
+    log_file_path = os.path.join(out_dir, txt_files[0])
+    with open(log_file_path, "r") as f:
+        logs = f.read()
+    losses = [float(x) for x in re.findall("loss:(\d+\d.\d+)", logs)]
+    if remove_found_file:  # TODO: is this kosher?
+        os.remove(log_file_path)
+    return losses

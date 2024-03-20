@@ -83,6 +83,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
+        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -468,6 +469,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             for idx, batch in enumerate(
                 pbar := tqdm(self._dataloader, disable=not (rank == 0))
             ):
+                log.error(f"EPOCH IS {curr_epoch}, IDX IS {idx}, RANK IS {self._rank}")
                 if (
                     self.max_steps_per_epoch is not None
                     and idx == self.max_steps_per_epoch
@@ -488,8 +490,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
 
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-
+                log.error(f"HI, {curr_epoch+1},{idx+1},{loss.item()}, {self._rank}")
                 if (
                     self.total_training_steps % self._log_every_n_steps == 0
                     and self._is_rank_zero
