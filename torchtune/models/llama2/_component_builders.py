@@ -29,8 +29,8 @@ Component builders for the Llama2 model and popular variants such as LoRA.
 TorchTune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example,
-``CausalSelfAttention`` can take either nn.Linear or nn.LoRALinear for ``q_proj``.
+- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
 """
