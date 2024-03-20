@@ -10,7 +10,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
 seed: null
 shuffle: True
@@ -44,7 +44,6 @@ gradient_accumulation_steps: 1
 device: cuda
 
 # Distributed
-enable_fsdp: True
 cpu_offload: False
 
 # Memory management

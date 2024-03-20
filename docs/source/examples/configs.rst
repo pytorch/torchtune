@@ -55,13 +55,13 @@ common examples of this. You can easily do this using the :code:`_component_`
 subfield. In :code:`_component_`, you need to specify the dotpath of the object
 you wish to instantiate in the recipe. The dotpath is the exact path you would use
 to import the object normally in a Python file. For example, to specify the
-:class:`~torchtune.datasets._alpaca.AlpacaDataset` in your config with custom
+:class:`~torchtune.datasets._alpaca.alpaca_dataset` in your config with custom
 arguments:
 
 .. code-block:: yaml
 
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: False
 
 Here, we are changing the default value for :code:`train_on_input` from :code:`True`
@@ -80,7 +80,7 @@ instance of the specified object in your recipe's setup like so:
 This will automatically use any keyword arguments specified in the fields under
 :code:`dataset`.
 
-As written, the preceding example will actually throw an error. If you look at the constructor for :class:`~torchtune.datasets._alpaca.AlpacaDataset`,
+As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets._alpaca.alpaca_dataset`,
 you'll notice that we're missing a required positional argument, the tokenizer.
 Since this is another configurable TorchTune object, let's understand how to handle
 this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` API.
@@ -106,7 +106,7 @@ keyword arguments not specified in the config if we'd like:
       path: /tmp/tokenizer.model
 
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
 .. code-block:: python
@@ -116,14 +116,11 @@ keyword arguments not specified in the config if we'd like:
 
     # Note the API of the dataset we specified - we need to pass in a tokenizer
     # and any optional keyword arguments
-    class AlpacaDataset(Dataset):
-        def __init__(
-            self,
-            tokenizer: Tokenizer,
-            train_on_input: bool = True,
-            use_clean: bool = False,
-            **kwargs,
-        ) -> None;
+    def alpaca_dataset(
+        tokenizer: Tokenizer,
+        train_on_input: bool = True,
+        use_clean: bool = False,
+    ) -> InstructDataset:
 
     from torchtune import config
 
@@ -171,7 +168,7 @@ make it significantly easier to debug.
 
     # dont do this
     alpaca_dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
     slimorca_dataset:
       ...
@@ -179,7 +176,7 @@ make it significantly easier to debug.
     # do this
     dataset:
       # change this in config or override when needed
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
 Use public APIs only
@@ -194,12 +191,12 @@ component dotpath.
 
     # don't do this
     dataset:
-      _component_: torchtune.datasets._alpaca.AlpacaDataset
+      _component_: torchtune.datasets._alpaca.alpaca_dataset
       train_on_input: True
 
     # do this
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
 
@@ -226,7 +223,7 @@ name directly. Any nested fields in the components can be overridden with dot no
 .. code-block:: yaml
 
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
 .. code-block:: bash

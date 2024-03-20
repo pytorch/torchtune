@@ -29,7 +29,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
   use_clean: True
 seed: null

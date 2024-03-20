@@ -10,7 +10,7 @@ import torch
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
-from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
+from torchtune.models.llama2._component_builders import lora_llama2_self_attention
 from torchtune.utils.seed import set_seed
 
 RANK = 4
@@ -35,7 +35,7 @@ class TestLoRALlamaSelfAttention:
         return inputs
 
     def get_lora_llama_self_attention(self, lora_modules):
-        lora_llama_sa = _lora_llama_self_attention(
+        lora_llama_sa = lora_llama2_self_attention(
             lora_modules=lora_modules,
             embed_dim=EMBED_DIM,
             num_heads=NUM_HEADS,

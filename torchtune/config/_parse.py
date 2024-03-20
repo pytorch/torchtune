@@ -49,10 +49,8 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
         conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
         logger = get_logger("DEBUG")
-        # logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
-        # logger.info({k: conf[k] for k in sorted(list(conf.keys()))})
-        for k in sorted(list(conf.keys())):
-            print(k, conf[k])
+        logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
+
         sys.exit(recipe_main(conf))
 
     return wrapper

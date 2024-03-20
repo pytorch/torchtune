@@ -10,7 +10,8 @@ import pytest
 
 from tests.test_utils import get_assets_path
 
-from torchtune.datasets._alpaca import AlpacaDataset, CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets._alpaca import alpaca_dataset
+from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -21,7 +22,7 @@ class TestAlpacaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    @patch("torchtune.datasets._alpaca.load_dataset")
+    @patch("torchtune.datasets._instruct.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -40,15 +41,15 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer)
-        input, labels = alpaca_dataset[0]
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
+        input, labels = alpaca_ds[0]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
         assert input[0] == tokenizer.bos_id
         assert CROSS_ENTROPY_IGNORE_IDX not in labels
 
-    @patch("torchtune.datasets._alpaca.load_dataset")
+    @patch("torchtune.datasets._instruct.load_dataset")
     def test_label_masking(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is masked.
@@ -67,23 +68,23 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer, train_on_input=False)
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, train_on_input=False)
 
         # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
         # input correctly
-        sample = alpaca_dataset._data[0]
-        prompt = alpaca_dataset.template.format(sample=sample)
+        sample = alpaca_ds._data[0]
+        prompt = alpaca_ds.template.format(sample=sample)
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = alpaca_dataset[0]
+        input, labels = alpaca_ds[0]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
         assert input[0] == tokenizer.bos_id
         assert labels.count(CROSS_ENTROPY_IGNORE_IDX) == len(encoded_prompt)
 
-    @patch("torchtune.datasets._alpaca.load_dataset")
+    @patch("torchtune.datasets._instruct.load_dataset")
     def test_alpaca_clean(self, load_dataset, tokenizer):
         """
         Test whether the input and the labels are correctly created when the input is not masked.
@@ -102,8 +103,8 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_dataset = AlpacaDataset(tokenizer=tokenizer, use_clean=True)
-        input, labels = alpaca_dataset[0]
+        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, use_clean=True)
+        input, labels = alpaca_ds[0]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
