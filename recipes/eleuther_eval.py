@@ -1,11 +1,5 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
 
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
@@ -13,20 +7,26 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
-import lm_eval
-
 import torch
 import torchtune.utils as utils
-from lm_eval.evaluator import evaluate
-from lm_eval.models.huggingface import HFLM
-from lm_eval.tasks import get_task_dict
+
 from omegaconf import DictConfig
 from torchtune import config
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.utils import get_logger
 
+logger = get_logger("INFO")
 
-logger = get_logger("DEBUG")
+try:
+    import lm_eval
+    from lm_eval.evaluator import evaluate
+    from lm_eval.models.huggingface import HFLM
+    from lm_eval.tasks import get_task_dict
+except (ImportError, ModuleNotFoundError):
+    logger.error(
+        f"Recipe 'eleuther_eval' requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
+    )
+    sys.exit(1)
 
 _default_tasks = ["hellaswag"]
 
