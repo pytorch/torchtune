@@ -9,7 +9,7 @@ from typing import List
 import torch.nn.functional as F
 
 from torch import nn, Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, to_nf4, NF4Tensor
+from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor, to_nf4
 from torchtune.modules.low_precision import _register_nf4_dispatch_ops, FrozenNF4Linear
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
@@ -56,7 +56,9 @@ class LoRALinear(nn.Module, AdapterModule):
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
         self.register_parameter("weight", nn.Parameter(weight))
-        self.register_parameter("bias", nn.Parameter(bias) if bias is not None else None)
+        self.register_parameter(
+            "bias", nn.Parameter(bias) if bias is not None else None
+        )
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)

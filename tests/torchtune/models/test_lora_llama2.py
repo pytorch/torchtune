@@ -9,11 +9,13 @@ import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
+from copy import deepcopy
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import utils
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
 from torchtune.modules.peft import LoRALinear
+from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt
 from torchtune.utils.seed import set_seed
 
 RANK = 4
@@ -86,6 +88,7 @@ class TestLoRALlama2:
         vocab_size,
         reset_norm=True,
         quantize_base=False,
+        embed_dim=EMBED_DIM,
     ):
         num_layers = 3
         model = lora_llama2(
@@ -96,7 +99,7 @@ class TestLoRALlama2:
             num_layers=num_layers,
             num_heads=NUM_HEADS,
             num_kv_heads=NUM_KV_HEADS,
-            embed_dim=EMBED_DIM,
+            embed_dim=embed_dim,
             max_seq_len=MAX_SEQ_LEN,
             lora_rank=RANK,
             lora_alpha=ALPHA,
@@ -184,10 +187,38 @@ class TestLoRALlama2:
             apply_lora_to_output=False,
             vocab_size=50,
             quantize_base=True,
+            embed_dim=512,
         )
         for module in model.modules():
             if isinstance(module, LoRALinear):
                 assert module._quantize_base
+
+    def test_qlora_llama2_parity(self, inputs):
+        with utils.set_default_dtype(torch.bfloat16):
+            model_ref = self.get_lora_llama2(
+                lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+                apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
+                vocab_size=50,
+                quantize_base=False,
+                embed_dim=512,
+            )
+            qlora = self.get_lora_llama2(
+                lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
+                apply_lora_to_mlp=True,
+                apply_lora_to_output=False,
+                vocab_size=50,
+                quantize_base=True,
+                embed_dim=512,
+            )
+
+        model_ref.load_state_dict(qlora.state_dict())
+        # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
+        # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
+        # for backward.
+        ref_output = model_ref(inputs)
+        output = qlora(inputs)
+        torch.testing.assert_close(ref_output, output)
 
     def test_qlora_llama2_state_dict(self):
         with utils.set_default_dtype(torch.bfloat16):
@@ -197,6 +228,7 @@ class TestLoRALlama2:
                 apply_lora_to_output=False,
                 vocab_size=50,
                 quantize_base=False,
+                embed_dim=512,
             )
             bf16_sd = model_ref.state_dict()
             for v in bf16_sd.values():
@@ -209,6 +241,7 @@ class TestLoRALlama2:
                 apply_lora_to_output=False,
                 vocab_size=50,
                 quantize_base=True,
+                embed_dim=512,
             )
             qlora.load_state_dict(bf16_sd)
             # LoRALinear weights should be nf4 still
@@ -228,12 +261,12 @@ class TestLoRALlama2:
                 apply_lora_to_output=False,
                 vocab_size=50,
                 quantize_base=True,
+                embed_dim=512,
             )
 
         qlora_sd = qlora.state_dict()
         # Ensure checkpoint merging produces bf16 tensors
         merged_ckpt = get_merged_lora_ckpt(deepcopy(qlora_sd), rank=RANK, alpha=ALPHA)
-        adapter_ckpt = {k: v for k, v in qlora_sd if "lora_a" in k or "lora_b" in k}
         for v in merged_ckpt.values():
             # paranoid check for both, as NF4Tensor had issue where NF4Tensor.dtype would return bf16
             assert not isinstance(v, NF4Tensor)

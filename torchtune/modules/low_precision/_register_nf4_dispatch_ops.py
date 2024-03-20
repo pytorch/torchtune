@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import torch
 from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl, to_nf4
 
@@ -35,6 +41,7 @@ def inplace_copy(func, *args, **kwargs):
     dest_tensor.quantized_data = ref_tensor.quantized_data
     dest_tensor.nf4 = ref_tensor.nf4
 
+
 @nf4_tensor_impl([torch.ops.aten.sub_.Tensor])
 def sub_bf16_tensor(func, *args, **kwargs):
     """
@@ -45,6 +52,7 @@ def sub_bf16_tensor(func, *args, **kwargs):
     sub_tensor = args[0][1]
     assert sub_tensor.dtype == torch.bfloat16
     return to_nf4(nf4_tensor.get_original_weight().sub_(sub_tensor))
+
 
 @nf4_tensor_impl([torch.ops.aten.add_.Tensor])
 def add_bf16_tensor(func, *args, **kwargs):

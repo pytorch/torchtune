@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from functools import partial
+
 import pytest
 
 import torch
@@ -14,7 +16,6 @@ from torchtune import utils
 from torchtune.modules.low_precision import reparametrize_as_bf16_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
-from functools import partial
 
 RANK = 4
 ALPHA = 1.0
@@ -110,6 +111,37 @@ class TestLoRALinear:
                 quantize_base=True,
             )
 
+    def test_qlora_parity(self):
+        with utils.set_default_dtype(torch.bfloat16):
+            qlora_linear = LoRALinear(
+                in_dim=512,
+                out_dim=512,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=False,
+                quantize_base=True,
+            )
+            lora_linear = LoRALinear(
+                in_dim=512,
+                out_dim=512,
+                rank=RANK,
+                alpha=ALPHA,
+                use_bias=False,
+                quantize_base=False,
+            )
+
+        # set weight of lora_linear to unquantized bf16 of qlora_linear and check
+        # parity.
+        lora_linear.weight.data = qlora_linear.weight.get_original_weight()
+
+        # Ensure forward passes are the same. This is because LoRALinear should use a special
+        # quantized linear operator that runs compute in bf16 (but only saves the 4 bit quantized tensor)
+        # for autograd.
+        inputs = torch.randn(BSZ, SEQ_LEN, 512, dtype=torch.bfloat16)
+        lora_linear_out = lora_linear(inputs)
+        qlora_linear_out = qlora_linear(inputs)
+        torch.testing.assert_close(lora_linear_out, qlora_linear_out)
+
     def test_quantized_state_dict_bf16(self):
         with utils.set_default_dtype(torch.bfloat16):
             lora_linear = LoRALinear(
@@ -141,13 +173,15 @@ class TestLoRALinear:
             quantize_base=True,
         )
         # Zero out weight to verify reloading works
-        lora_linear_reload.weight = nn.Parameter(to_nf4(
-            torch.zeros_like(
-                lora_linear.weight.get_original_weight(),
-                dtype=torch.bfloat16,
-                device=lora_linear.weight.device,
+        lora_linear_reload.weight = nn.Parameter(
+            to_nf4(
+                torch.zeros_like(
+                    lora_linear.weight.get_original_weight(),
+                    dtype=torch.bfloat16,
+                    device=lora_linear.weight.device,
+                )
             )
-        ))
+        )
         # nf4 tensors should be different
         assert not torch.allclose(
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
