@@ -14,27 +14,27 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/llama2/
+  checkpoint_dir: /tmp/model/
   checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
-  output_dir: /tmp/llama2/
+  output_dir: /finetunes/alpaca_lora_mar_18/
   model_type: LLAMA2
 resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /tmp/llama2/tokenizer.model
+  path: /tmp/model/tokenizer.model
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
   use_clean: True
-seed: null
+seed: 123
 shuffle: True
-batch_size: 2
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
@@ -55,7 +55,7 @@ max_steps_per_epoch: null
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.WandBLogger
   log_dir: ${output_dir}
 log_every_n_steps: null
 
