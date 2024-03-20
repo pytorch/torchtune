@@ -33,9 +33,8 @@ jobs:
       upload-artifact: docs
       script: |
         set -ex
-        CONDA_PATH=$(which conda)
-        eval "$(${CONDA_PATH} shell.bash hook)"
-        conda activate ci
+        CONDA_ENV=$(conda env list --json | jq -r ".envs | .[-1]")
+        conda activate "${CONDA_ENV}"
         
         # Update pip
         python -m pip install --upgrade pip
