@@ -212,7 +212,11 @@ For example, to run the :code:`full_finetune` recipe with custom model and token
 
 .. code-block:: bash
 
-    tune full_finetune --config alpaca_llama2_full_finetune model_directory=/home/my_model_checkpoint tokenizer_directory=/home/my_tokenizer_checkpoint device=cuda
+    tune full_finetune_distributed \
+    --config full_finetune_distributed \
+    checkpointer.checkpoint_dir=/home/my_model_checkpoint \
+    checkpointer.checkpoint_files=[file_1, file_2] \
+    device=cuda
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^

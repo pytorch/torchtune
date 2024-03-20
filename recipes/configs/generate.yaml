@@ -1,7 +1,10 @@
 # Config alpaca_generate.py recipe
 #
 # To launch, run the following command from root:
-#    tune alpaca_generate --config alpaca_llama2_generate model_checkpoint=<your_checkpoint_dir> tokenizer_checkpoint=<your_tokenizer_dir>
+#    tune alpaca_generate \
+#    --config generate \
+#    model_checkpoint=<your_checkpoint_dir> \
+#    tokenizer_checkpoint=<your_tokenizer_dir>
 
 # Model arguments
 model:

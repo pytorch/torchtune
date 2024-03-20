@@ -27,7 +27,7 @@ The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | [Full Finetuning](recipes/full_finetune.py), [LoRA](recipes/lora_finetune.py)  |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning for [single device](recipes/full_finetune_single_device.py) and [distributed w/ FSDP](recipes/full_finetune_distributed.py), LoRA for [single device](recipes/lora_finetune_single_device.py) and [distributed w/ FSDP](recipes/lora_finetune_distributed.py)  |
 
 &nbsp;
 
@@ -38,11 +38,11 @@ experience different peak memory utilization based on changes made in configurat
 
 | HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
-| 2 x RTX 4090 |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    18 GB *           |
-| 1 x A6000    |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    29.5 GB *           |
-| 4 x T4       |     LoRA          | [lora_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_lora_finetune.yaml)    |    7B      |    12 GB *           |
-| 2 x A100 80G |   Full finetune   | [full_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    62 GB             |
-| 8 x A6000    |   Full finetune   | [full_finetune](https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml)    |    7B      |    42 GB *             |
+| 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/lora_finetune_distributed.yaml)    |    7B      |    18 GB *           |
+| 1 x A6000    |     LoRA          | [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/lora_finetune_single_device.yaml)    |    7B      |    29.5 GB *           |
+| 4 x T4       |     LoRA          | [lora_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/lora_finetune_distributed.yaml)    |    7B      |    12 GB *           |
+| 2 x A100 80G |   Full finetune   | [full_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/full_finetune_distributed.yaml)    |    7B      |    62 GB             |
+| 8 x A6000    |   Full finetune   | [full_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/full_finetune_distributed.yaml)    |    7B      |    42 GB *             |
 
 
 NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Peak memory per GPU is as reported by `nvidia-smi` monitored over a couple hundred training iterations. Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
@@ -103,14 +103,16 @@ Note: While the ``tune download`` command allows you to download *any* model fro
 
 #### Running recipes
 
-TorchTune contains recipes for [full finetuning](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py) and LoRA finetuning both for [multiple devices](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py) and [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py).
+TorchTune contains recipes for:
+- Full finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py)
+- LoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py) and .
 
 To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
 ```
 tune --nnodes 1 --nproc_per_node 2 \
-full_finetune \
---config alpaca_llama2_full_finetune
+full_finetune_distributed \
+--config full_finetune_distributed
 ```
 
 The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
@@ -120,7 +122,7 @@ Similarly, you can finetune with LoRA on the Alpaca dataset on two devices via t
 ```
 tune --nnodes 1 --nproc_per_node 2 \
 lora_finetune_distributed \
---config alpaca_llama2_lora_finetune_distributed
+--config lora_finetune_distributed
 ```
 
 Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
@@ -131,9 +133,9 @@ Again, the argument to `--nproc_per_node` can be varied subject to memory constr
 
 To copy a recipe to customize it yourself and then run
 ```
-tune cp full_finetune.py my_recipe/full_finetune.py
-tune cp alpaca_llama2_full_finetune.yaml my_recipe/alpaca_llama2_full_finetune.yaml
-tune my_recipe/full_finetune.py --config my_recipe/alpaca_llama2_full_finetune.yaml
+tune cp full_finetune_distributed.py my_recipe/full_finetune_distributed.py
+tune cp full_finetune_distributed.yaml my_recipe/full_finetune_distributed.yaml
+tune my_recipe/full_finetune_distributed.py --config my_recipe/full_finetune_distributed.yaml
 ```
 
 &nbsp;

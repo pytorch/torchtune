@@ -43,13 +43,13 @@ if __name__ == "__main__":
             """\
         examples:
             $ tune ls
-            RECIPE               CONFIG
-            full_finetune.py     alpaca_llama2_full_finetune.yaml
-            lora_finetune.py     alpaca_llama2_lora_finetune.yaml
-            alpaca_generate.py   <>
+            RECIPE                           CONFIG
+            full_finetune_distributed.py     full_finetune_distributed.yaml
+            lora_finetune_distributed.py     lora_finetune_distributed.yaml
+            alpaca_generate.py               generate.yaml
 
         To run one of these recipes:
-            $ tune full_finetune --config alpaca_llama2_full_finetune.yaml
+            $ tune full_finetune_single_device --config full_finetune_single_device
         """
         ),
         formatter_class=argparse.RawTextHelpFormatter,

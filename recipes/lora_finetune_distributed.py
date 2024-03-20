@@ -39,7 +39,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
+class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -61,7 +61,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                         CONFIG
-        lora_finetune_distributed        alpaca_llama2_lora_finetune_distributed
+        lora_finetune_distributed      lora_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -547,7 +547,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_distributed.yaml``
+        - Parameters specified in ``lora_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():
@@ -558,7 +558,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
+    recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

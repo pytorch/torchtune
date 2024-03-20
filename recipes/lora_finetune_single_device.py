@@ -53,7 +53,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_device        alpaca_llama2_lora_finetune_single_device
+        lora_finetune_single_device     lora_finetune_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -424,7 +424,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
+        - Parameters specified in ``lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line
     """
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
