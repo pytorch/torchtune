@@ -21,7 +21,7 @@ PYTEST_COMMAND="pytest tests/recipes -s"
 
 if [[ $# -gt 0 ]]; then
     if [ "$1" = "--large-scale" ]; then
-        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-01242024")
+        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
         PYTEST_COMMAND+=" --large-scale True"
     fi
 fi

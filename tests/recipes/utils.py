@@ -8,13 +8,9 @@ import os
 import re
 from typing import Dict, List, Optional
 
-import pytest
 import torch
 from tests.test_utils import get_assets_path
 from torch.utils.data import Dataset
-from torchtune.models.llama2 import llama2, lora_llama2
-
-from torchtune.modules import TransformerDecoder
 
 _ASSETS = get_assets_path()
 
@@ -43,19 +39,6 @@ class DummyDataset(Dataset):
 
     def __len__(self):
         return len(self._data)
-
-
-def llama2_tiny_test_ckpt(max_batch_size: Optional[int] = None) -> TransformerDecoder:
-    return llama2(
-        vocab_size=100,
-        num_layers=2,
-        num_heads=4,
-        embed_dim=64,
-        max_seq_len=64,
-        norm_eps=1e-5,
-        num_kv_heads=2,
-        max_batch_size=max_batch_size,
-    )
 
 
 def llama2_test_config(max_batch_size: Optional[int] = None) -> List[str]:
@@ -120,24 +103,30 @@ def fetch_ckpt_model_path(ckpt) -> str:
     raise ValueError(f"Unknown ckpt {ckpt}")
 
 
-def validate_loss_values(loss_values, expected_loss_values):
-    assert len(loss_values) == len(expected_loss_values)
-    for key, value in loss_values.items():
-        assert key in expected_loss_values
-        expected_loss_value = expected_loss_values[key]
-        assert value == pytest.approx(expected_loss_value, abs=0.001)
+def get_checkpointer_class_path_for_test_ckpt(ckpt_name: str) -> str:
+    test_weights_to_checkpointer_class_mapping = {
+        "small_test_ckpt_tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
+        "llama2.llama2_7b": "torchtune.utils.FullModelTorchTuneCheckpointer",
+        "small_test_ckpt_meta": "torchtune.utils.FullModelMetaCheckpointer",
+        "small_test_ckpt_hf": "torchtune.utils.FullModelHFCheckpointer",
+    }
+    checkpoint_class_path = test_weights_to_checkpointer_class_mapping.get(
+        ckpt_name, None
+    )
+    if not checkpoint_class_path:
+        raise ValueError("Invalid checkpointer class for checkpoint {ckpt_name}")
+    return checkpoint_class_path
 
 
 def get_loss_values_from_metric_logger(
     out_dir: str, remove_found_file: bool = False
 ) -> Dict[str, float]:
-    # import pdb; pdb.set_trace()
     txt_files = [f for f in os.listdir(out_dir) if f.endswith(".txt")]
     assert len(txt_files) == 1, "Should have exactly one log file"
     log_file_path = os.path.join(out_dir, txt_files[0])
     with open(log_file_path, "r") as f:
         logs = f.read()
-    losses = [float(x) for x in re.findall("loss:(\d+\d.\d+)", logs)]
-    if remove_found_file:  # TODO: is this kosher?
+    losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
+    if remove_found_file:
         os.remove(log_file_path)
     return losses

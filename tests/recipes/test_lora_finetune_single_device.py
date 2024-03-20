@@ -4,21 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import json
 import os
 import runpy
 import sys
-from functools import partial
 from pathlib import Path
-from typing import Dict
 
 import pytest
 import torch
-import torchtune
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
-from tests.recipes.common import RECIPE_TESTS_DIR
 from tests.recipes.utils import (
     fetch_ckpt_model_path,
     get_loss_values_from_metric_logger,
@@ -27,22 +22,24 @@ from tests.recipes.utils import (
 )
 from torchtune import config
 
-test_config_overrides = [
-    "batch_size=8",
-    "device=cpu",
-    "enable_activation_checkpointing=False",
-    "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-    "dataset.train_on_input=False",
-    "dataset.use_clean=False",
-    "seed=9",
-    "epochs=2",
-    "max_steps_per_epoch=2",
-    "optimizer.lr=2e-5",
-]
 
+class TestLoRAFinetuneSingleDeviceRecipe:
+    def _get_test_config_overrides(self):
+        return [
+            "batch_size=8",
+            "device=cpu",
+            "dtype=fp32",
+            "enable_activation_checkpointing=False",
+            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "dataset.train_on_input=False",
+            "dataset.use_clean=False",
+            "seed=9",
+            "epochs=2",
+            "max_steps_per_epoch=2",
+            "optimizer.lr=2e-5",
+        ]
 
-class TestLoRAFinetuneRecipe:
-    def _fetch_expected_loss_values(self) -> Dict[str, float]:
+    def _fetch_expected_loss_values(self):
         return [10.5074, 10.5614, 10.5205, 10.4918]
 
     def fetch_checkpointer(self, ckpt):
@@ -56,7 +53,6 @@ class TestLoRAFinetuneRecipe:
     @pytest.mark.parametrize(
         "ckpt", ["small_test_ckpt_hf", "small_test_ckpt_meta", "small_test_ckpt_tune"]
     )
-    # @pytest.mark.parametrize("ckpt", ["small_test_ckpt_hf"])
     def test_loss(self, ckpt, tmpdir, monkeypatch):
         expected_loss_values = self._fetch_expected_loss_values()
         ckpt_path = Path(fetch_ckpt_model_path(ckpt))
@@ -65,7 +61,7 @@ class TestLoRAFinetuneRecipe:
         tune lora_finetune_single_device
             --config alpaca_llama2_lora_finetune_single_device \
             output_dir={tmpdir} \
-            checkpointer d=torchtune.utils.{self.fetch_checkpointer(ckpt)}
+            checkpointer=torchtune.utils.{self.fetch_checkpointer(ckpt)}
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -80,7 +76,7 @@ class TestLoRAFinetuneRecipe:
             lora_alpha=16,
         )
 
-        cmd = cmd + test_config_overrides + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -100,7 +96,6 @@ class TestLoRAFinetuneRecipe:
         """
 
         model_ckpt = "small_test_ckpt_hf"
-        expected_loss_values = self._fetch_expected_loss_values()
 
         ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
         ckpt_dir = ckpt_path.parent
@@ -136,7 +131,7 @@ class TestLoRAFinetuneRecipe:
             lora_alpha=16,
         )
 
-        cmd_1 = cmd_1 + test_config_overrides + model_config
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -162,7 +157,7 @@ class TestLoRAFinetuneRecipe:
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
         """.split()
-        cmd_2 = cmd_2 + test_config_overrides + model_config
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -199,7 +194,7 @@ class TestLoRAFinetuneRecipe:
             lora_alpha=16,
         )
 
-        cmd = cmd + test_config_overrides + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -232,5 +227,4 @@ class TestLoRAFinetuneRecipe:
             sd = torch.load(f, weights_only=True)
         llama2_model.load_state_dict(sd)
         merged_ckpt_out = llama2_model(inputs)
-
         torch.testing.assert_close(baseline_out, merged_ckpt_out, rtol=1e-5, atol=1e-5)

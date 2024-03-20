@@ -13,36 +13,33 @@ import pytest
 
 from tests.common import TUNE_PATH
 from tests.recipes.common import RECIPE_TESTS_DIR
-
-from tests.recipes.utils import llama2_small_test_ckpt
-from torchtune import models
+from tests.recipes.utils import fetch_ckpt_model_path, llama2_test_config
 
 _CONFIG_PATH = RECIPE_TESTS_DIR / "alpaca_generate_test_config.yaml"
 
-models.small_test_ckpt = llama2_small_test_ckpt
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 class TestAlpacaGenerateRecipe:
-    def _fetch_ckpt_model_path(self, ckpt) -> str:
-        if ckpt == "small_test_ckpt":
-            return "/tmp/test-artifacts/small-ckpt-01242024"
-        if ckpt == "llama2.llama2_7b":
-            return "/tmp/test-artifacts/llama2-7b-01242024"
-        raise ValueError(f"Unknown ckpt {ckpt}")
-
     def test_alpaca_generate(self, capsys, pytestconfig, tmpdir, monkeypatch):
         large_scale = pytestconfig.getoption("--large-scale")
-        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt"
+        ckpt = "llama2.llama2_7b" if large_scale else "small_test_ckpt_tune"
 
         cmd = f"""
         tune alpaca_generate
-            --config {_CONFIG_PATH} \
-            model=torchtune.models.{ckpt} \
-            model_checkpoint={self._fetch_ckpt_model_path(ckpt)} \
+            --config alpaca_llama2_generate \
+            model_checkpoint={fetch_ckpt_model_path(ckpt)} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             output_dir={tmpdir} \
         """.split()
+
+        model_config = (
+            ["model=torchtune.models.llama2.llama2_7b"]
+            if large_scale
+            else llama2_test_config()
+        )
+        cmd += model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):

@@ -488,7 +488,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             for idx, batch in enumerate(
                 pbar := tqdm(self._dataloader, disable=not (rank == 0))
             ):
-                log.error(f"EPOCH IS {curr_epoch}, IDX IS {idx}, RANK IS {self._rank}")
                 if (
                     self.max_steps_per_epoch is not None
                     and idx == self.max_steps_per_epoch

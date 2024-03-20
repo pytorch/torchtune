@@ -60,7 +60,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
@@ -264,7 +263,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 
@@ -340,7 +339,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-
                 if self.total_training_steps % self._log_every_n_steps == 0:
                     self._metric_logger.log_dict(
                         {

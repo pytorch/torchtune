@@ -4,21 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import json
 import os
 import runpy
 import sys
-from functools import partial
 from pathlib import Path
-from typing import Dict
 
 import pytest
 import torch
-import torchtune
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
-from tests.recipes.common import RECIPE_TESTS_DIR
 from tests.recipes.utils import (
     fetch_ckpt_model_path,
     get_loss_values_from_metric_logger,
@@ -28,25 +23,25 @@ from tests.recipes.utils import (
 from tests.test_utils import gpu_test
 from torchtune import config
 
-test_config_overrides = [
-    "batch_size=4",
-    "enable_activation_checkpointing=False",
-    "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-    "dataset.train_on_input=False",
-    "dataset.use_clean=False",
-    "seed=9",
-    "epochs=2",
-    "dtype=fp32",
-    "max_steps_per_epoch=2",
-    "optimizer.lr=2e-5",
-]
 
+class TestLoRAFinetuneDistributedRecipe:
+    def _get_test_config_overrides(self):
+        return [
+            "batch_size=4",
+            "enable_activation_checkpointing=False",
+            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "dataset.train_on_input=False",
+            "dataset.use_clean=False",
+            "seed=9",
+            "epochs=2",
+            "dtype=fp32",
+            "max_steps_per_epoch=2",
+            "optimizer.lr=2e-5",
+        ]
 
-class TestLoRAFinetuneRecipe:
-    def _fetch_expected_loss_values(self) -> Dict[str, float]:
+    def _fetch_expected_loss_values(self):
         # These values have been validated against single device recipe test via
-        # https://www.internalfb.com/intern/diffing/?paste_number=1198290775
-        # TODO: remove FB link
+        # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         return [10.4574, 10.5912, 10.5141, 10.4833]
 
     def fetch_checkpointer(self, ckpt):
@@ -85,7 +80,7 @@ class TestLoRAFinetuneRecipe:
             lora_alpha=16,
         )
 
-        cmd = cmd + test_config_overrides + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(tmpdir)
@@ -141,7 +136,7 @@ class TestLoRAFinetuneRecipe:
             lora_alpha=16,
         )
 
-        cmd_1 = cmd_1 + test_config_overrides + model_config
+        cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -167,7 +162,7 @@ class TestLoRAFinetuneRecipe:
             resume_from_checkpoint=True \
         """.split()
 
-        cmd_2 = cmd_2 + test_config_overrides + model_config
+        cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -205,7 +200,7 @@ class TestLoRAFinetuneRecipe:
         )
 
         # Have to attach this after so it parses correctly
-        cmd = cmd + test_config_overrides + model_config
+        cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 

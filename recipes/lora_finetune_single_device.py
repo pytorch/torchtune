@@ -65,7 +65,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-        # import pdb; pdb.set_trace()
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
         self._dtype = utils.get_dtype(cfg.dtype)
@@ -371,8 +370,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
             for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                log.error(f"EPOCH IS {curr_epoch}, IDX IS {idx}")
-                # import pdb; pdb.set_trace()
+
                 if (
                     self.max_steps_per_epoch is not None
                     and idx == self.max_steps_per_epoch

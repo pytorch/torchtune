@@ -6,18 +6,13 @@
 
 from typing import List, Mapping, Tuple
 
-import torch
-
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune import utils
 
 from torchtune.data import AlpacaInstructTemplate
 
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.modules import Tokenizer
-
-log = utils.get_logger("DEBUG")
 
 CROSS_ENTROPY_IGNORE_IDX = -100
 
@@ -77,12 +72,11 @@ class AlpacaDataset(Dataset):
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         sample = self._data[index]
 
-        return self._transform(sample=sample, index=index)
+        return self._transform(sample=sample)
 
     def _transform(
         self,
         sample: Mapping,
-        index: int,
     ) -> Tuple[List[int], List[int]]:
         """
         Split a sample on ``response`` tag to create input and labels.
@@ -111,14 +105,7 @@ class AlpacaDataset(Dataset):
             labels[: len(encoded_prompt)] = [CROSS_ENTROPY_IGNORE_IDX] * len(
                 encoded_prompt
             )
-        if torch.distributed.is_available() and torch.distributed.is_initialized():
-            log.error(
-                f"GETTING {index} ON RANK {torch.distributed.get_rank()} WITH LENGTH {len(encoded_prompt_with_response) - len(encoded_prompt)}"
-            )
-        else:
-            log.error(
-                f"GETTING {index} WITH LENGTH {len(encoded_prompt_with_response) - len(encoded_prompt)}"
-            )
+
         assert len(encoded_prompt_with_response) == len(labels)
 
         return encoded_prompt_with_response, labels
