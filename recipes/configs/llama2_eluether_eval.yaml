@@ -1,7 +1,7 @@
 # Config for torchtune/_cli/eval.py
 #
 # To launch, run the following command from root torchtune directory:
-#    tune custom_eval --config default_eval_config
+#    tune custom_eval --config instruct_custom_eval
 
 # Model Arguments
 model:
@@ -19,11 +19,6 @@ tokenizer:
 device: cuda
 seed: 217
 
-# Dataset on which to evaluate
-dataset:
-  _component_: torchtune.datasets.build_dataset
-  source: tatsu-lab/alpaca_eval
-  tokenizer: $tokenizer
-  template: instruct
-  pad: True
-  packing: False
+# EleutherAI specific eval args
+tasks: ["truthfulqa", "mmlu"]
+limit: 100
