@@ -102,7 +102,7 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
   # Dataset
   dataset:
-    _component_: torchtune.datasets.AlpacaDataset
+    _component_: torchtune.datasets.alpaca_dataset
   seed: 42
   shuffle: True
 
