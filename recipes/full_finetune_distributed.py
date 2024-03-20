@@ -37,7 +37,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipe(FTRecipeInterface):
+class FullFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -60,7 +60,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                           CONFIG
-        full_finetune_distributed        alpaca_llama2_full_finetune_distributed
+        full_finetune_distributed        full_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -475,7 +475,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_full_finetune_distributed.yaml``
+        - Parameters specified in ``full_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():
@@ -486,7 +486,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    recipe = FullFinetuneRecipe(cfg=cfg)
+    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
