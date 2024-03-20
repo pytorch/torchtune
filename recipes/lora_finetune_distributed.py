@@ -67,12 +67,27 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
+        ValueError: If ``dtype`` is set to fp16.
         ValueError: If world_size is 1
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         world_size, rank = utils.get_world_size_and_rank()
         if world_size == 1:
@@ -89,7 +104,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-
+        self._log_peak_memory_every_n_steps = 100
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
@@ -318,7 +333,11 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(utils.memory_stats_log("Memory Stats after model init:"))
+            log.info(
+                utils.memory_stats_log(
+                    "Memory Stats after model init:", device=self._device
+                )
+            )
         return model
 
     def _setup_optimizer(
@@ -490,7 +509,6 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
 
-                log.error(f"HI, {curr_epoch+1},{idx+1},{loss.item()}, {self._rank}")
                 if (
                     self.total_training_steps % self._log_every_n_steps == 0
                     and self._is_rank_zero
@@ -508,8 +526,13 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 loss.backward()
                 self._optimizer.step()
                 self._lr_scheduler.step()
-                if self.total_training_steps % 100 == 0 and self._is_rank_zero:
-                    log.info(utils.memory_stats_log("Memory Stats:"))
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
