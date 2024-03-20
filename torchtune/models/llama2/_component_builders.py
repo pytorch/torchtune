@@ -15,7 +15,6 @@ from torchtune.modules import (
     KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
-    Tokenizer,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
