@@ -46,7 +46,7 @@ if __name__ == "__main__":
             RECIPE                           CONFIG
             full_finetune_distributed.py     full_finetune_distributed.yaml
             lora_finetune_distributed.py     lora_finetune_distributed.yaml
-            alpaca_generate.py               generate.yaml
+            alpaca_generate.py               alpaca_generate.yaml
 
         To run one of these recipes:
             $ tune full_finetune_single_device --config full_finetune_single_device

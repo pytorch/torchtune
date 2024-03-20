@@ -18,7 +18,7 @@ _CONFIG_LISTS = {
     "full_finetune_distributed.py": ["full_finetune_distributed.yaml"],
     "lora_finetune_single_device.py": ["lora_finetune_single_device.yaml"],
     "lora_finetune_distributed.py": ["lora_finetune_distributed.yaml"],
-    "alpaca_generate.py": ["generate.yaml"],
+    "alpaca_generate.py": ["alpaca_generate.yaml"],
 }
 
 
