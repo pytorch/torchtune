@@ -58,11 +58,11 @@ jobs:
     if: github.repository == 'pytorch/torchtune' && github.event_name == 'push' && ((github.ref_type == 'branch' && github.ref_name == 'main') || github.ref_type == 'tag')
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: gh-pages
       - name: Download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: Built-Docs
           path: docs
