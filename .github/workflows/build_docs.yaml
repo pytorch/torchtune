@@ -20,84 +20,80 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  build:
-    uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
+  build_docs:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.11']
-    with:
-      job-name: Build doc
-      runner: linux.2xlarge
-      repository: pytorch/torchtune
-      timeout: 120
-      upload-artifact: docs
-      script: |
-        set -ex
-        CONDA_ENV=$(conda env list --json | jq -r ".envs | .[-1]")
-        conda activate "${CONDA_ENV}"
-        
-        # Update pip
-        python -m pip install --upgrade pip
-        
-        #Install dependencies
-        python -m pip install -r requirements.txt
-        python -m pip install -e .
-        cd docs
-        python -m pip install -r requirements.txt
-        
-        #Build docs
-        cd docs
-        make html
-        cp -r build/html "${RUNNER_ARTIFACT_DIR}"
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v3
+      - name: Setup conda env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          activate-environment: test
+          python-version: ${{ matrix.python-version }}
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -e .
+          cd docs
+          python -m pip install -r requirements.txt
+      - name: Build docs
+        run: |
+          cd docs
+          make html
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Built-Docs
+          path: docs/build/html/
 
   upload:
-    needs: build
-    if: github.repository == 'pytorch/torchtune' && github.event_name == 'push' && 
-        ((github.ref_type == 'branch' && github.ref_name == 'main') || github.ref_type == 'tag')
-    permissions:
-      contents: write
-    uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
-    with:
-      repository: pytorch/torchtune
-      download-artifact: docs
-      ref: gh-pages
-      test-infra-ref: main
-      script: |
-        set -euo pipefail
-
-        REF_TYPE=${{ github.ref_type }}
-        REF_NAME=${{ github.ref_name }}
-
-        if [[ "${REF_TYPE}" == branch ]]; then
-          TARGET_FOLDER="${REF_NAME}"
-        elif [[ "${REF_TYPE}" == tag ]]; then
-          case "${REF_NAME}" in
-            *-rc*)
-              echo "Aborting upload since this is an RC tag: ${REF_NAME}"
-              exit 0
-              ;;
-            *)
-              # Strip the leading "v" as well as the trailing patch version. For example:
-              # 'v0.15.2' -> '0.15'
-              TARGET_FOLDER=$(echo "${REF_NAME}" | sed 's/v\([0-9]\+\)\.\([0-9]\+\)\.[0-9]\+/\1.\2/')
-              ;;
-          esac
-        fi
-        echo "Target Folder: ${TARGET_FOLDER}"
-
-        mkdir -p "${TARGET_FOLDER}"
-        rm -rf "${TARGET_FOLDER}"/*
-        mv "${RUNNER_ARTIFACT_DIR}"/html/* "${TARGET_FOLDER}"
-        git add "${TARGET_FOLDER}" || true
-
-        if [[ "${TARGET_FOLDER}" == main ]]; then
-          mkdir -p _static
-          rm -rf _static/*
-          cp -r "${TARGET_FOLDER}"/_static/* _static
-          git add _static || true
-        fi
-
-        git config user.name 'pytorchbot'
-        git config user.email 'soumith+bot@pytorch.org'
-        git commit -m "auto-generating sphinx docs" || true
-        git push -f 
+    runs-on: ubuntu-latest
+    needs: build_docs
+    if: github.repository == 'pytorch/torchtune' && github.event_name == 'push' &&
+    ((github.ref_type == 'branch' && github.ref_name == 'main') || github.ref_type == 'tag'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: gh-pages
+      - name: Download artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: Built-Docs
+          path: docs
+      - name: Configure Git
+        run: |
+          git config user.name 'pytorchbot'
+          git config user.email 'soumith+bot@pytorch.org'
+      - name: Move and commit changes
+        run: |
+          set -euo pipefail
+          REF_TYPE=${{ github.ref_type }}
+          REF_NAME=${{ github.ref_name }}
+          if [[ "${REF_TYPE}" == branch ]]; then
+            TARGET_FOLDER="${REF_NAME}"
+          elif [[ "${REF_TYPE}" == tag ]]; then
+            case "${REF_NAME}" in
+              *-rc*)
+                echo "Aborting upload since this is an RC tag: ${REF_NAME}"
+                exit 0
+                ;;
+              *)
+                TARGET_FOLDER=$(echo "${REF_NAME}" | sed 's/v\([0-9]\+\)\.\([0-9]\+\)\.[0-9]\+/\1.\2/')
+                ;;
+            esac
+          fi
+            echo "Target Folder: ${TARGET_FOLDER}"
+            mkdir -p "${TARGET_FOLDER}"
+            rm -rf "${TARGET_FOLDER}"/*
+            mv docs/* "${TARGET_FOLDER}"
+            git add "${TARGET_FOLDER}" || true
+          fi
+          git commit -m "auto-generating sphinx docs" || true
+          git push -f
