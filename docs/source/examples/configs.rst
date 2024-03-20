@@ -151,6 +151,17 @@ will automatically resolve it for you.
       _component_: torchtune.utils.metric_logging.DiskLogger
       log_dir: ${output_dir}
 
+Validating your config
+^^^^^^^^^^^^^^^^^^^^^^
+We provide a convenient CLI utility, :code:`tune validate`, to quickly verify that
+your config is well-formed and all components can be instantiated properly. You
+can also pass in overrides if you want to test out the exact commands you will run
+your experiments with. If any parameters are not well-formed, :code:`tune validate`
+will list out all the locations where an error was found.
+
+.. code-block:: bash
+
+  tune validate --config recipes/configs/alpaca_llama2_full_finetune_single_device.yaml batch_size=4
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
