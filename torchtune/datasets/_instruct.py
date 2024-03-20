@@ -5,10 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import copy
+import re
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+from torchtune.config._errors import InstantiationError
 from torchtune.config._utils import _get_component_from_path
 
 from torchtune.data import PromptTemplate
