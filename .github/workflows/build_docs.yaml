@@ -27,7 +27,7 @@ jobs:
         python-version: ['3.11']
     with:
       job-name: Build doc
-      runner: linux.g5.4xlarge.nvidia.gpu
+      runner: linux.2xlarge
       repository: pytorch/torchtune
       timeout: 120
       upload-artifact: docs
