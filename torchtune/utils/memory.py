@@ -48,12 +48,15 @@ def memory_stats_log(
     """
     if device.type != "cuda":
         return
-    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0)
-    print(
-        f"{prefix}, GPU peak memory allocation: {torch.cuda.max_memory_allocated(device) / 1e9}GB, "
-        f"GPU peak memory reserved: {torch.cuda.max_memory_reserved(device) / 1e9}GB, "
-        f"GPU peak memory active: {peak_memory_active / 1e9}GB",
-        flush=True,
-    )
+    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
+    peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
+    peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
+    ret = f"""
+    {prefix}, GPU peak memory allocation: {peak_mem_alloc} GB,
+    GPU peak memory reserved: {peak_mem_reserved} GB,
+    "GPU peak memory active: {peak_memory_active} GB"
+    """
     if reset_stats:
         torch.cuda.reset_peak_memory_stats(device)
+
+    return ret
