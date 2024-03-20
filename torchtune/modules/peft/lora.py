@@ -44,11 +44,8 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
-<<<<<<< HEAD
         use_bias_in_lora_matrices: bool = False,
         quantize_base: bool = False,
-=======
->>>>>>> a57d6062db1af48f6786b082bbfc3d18725686f0
     ):
         super().__init__()
         self.in_dim = in_dim
@@ -105,27 +102,6 @@ class LoRALinear(nn.Module, AdapterModule):
             bias = _copy_tensor(linear.bias)
         return weight_tensor, bias
 
-    # def _dequant_state_dict_pre_hook(self, *args, **kwargs):
-    #     """
-    #     Pre-hook that converts quantized LoRA weight to bf16 to support
-    #     checkpoints in bf16. TODO (rohan-varma): make this configurable and possibly
-    #     generalize to other dtypes.
-    #     """
-    #     # print(f"RV -- _dequant_state_dict_pre_hook")
-    #     if self._quantize_base:
-    #         print(f"RV -- _dequant_state_dict_pre_hook")
-    #         # self.weight = self.weight.to(torch.bfloat16)
-    #         self.weight = nn.Parameter(self.weight.get_original_weight())
-    #         assert not isinstance(self.weight, NF4Tensor)
-
-    # def _quant_state_dict_post_hook(self, *args, **kwargs):
-    #     """
-    #     Post hook that converts unquantized nf4 weight back to nf4.
-    #     """
-    #     if self._quantize_base:
-    #         assert not isinstance(self.weight, NF4Tensor)
-    #         self.weight = nn.Parameter(to_nf4(self.weight))
-
     def adapter_params(self) -> List[str]:
         """
         Return lora_a.weight and lora_b.weight as adapter params.
@@ -136,56 +112,6 @@ class LoRALinear(nn.Module, AdapterModule):
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
-<<<<<<< HEAD
-    # def _unquantize_base_weight(self, *args, **kwargs):
-    #     return
-    #     if not self._quantize_base:
-    #         raise RuntimeError("Cannot call _unquantize_base_weight, weights are not quantized")
-    #     # TODO (rohan-varma): only supports bf16 for the time being.
-    #     self.weight = self.weight.to(torch.bfloat16)
-
-    # def _quantize_base_weight(self, *args, **kwargs):
-    #     return
-    #     if not self._quantize_base:
-    #         raise RuntimeError("Cannot call _quantize_base_weight, weights are not quantized")
-    #     self.weight = to_nf4(self.weight)
-
-    @property
-    def _lora_delta(self):
-        return (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight)
-
-    @torch.no_grad
-    def _merge_lora_weights(self, *args, **kwargs):
-        if self.merged:
-            raise RuntimeError("Cannot call _merge_lora_weights, weights are merged")
-        if self.use_bias_in_lora_matrices:
-            raise RuntimeError(
-                "Cannot merge LoRA weights when LoRA matrices have biases"
-            )
-        self.weight += self._lora_delta
-        self.cached_lora_a_weight = torch.clone(self.lora_a.weight)
-        self.cached_lora_b_weight = torch.clone(self.lora_b.weight)
-        del self.lora_a
-        del self.lora_b
-        self.merged = True
-
-    @torch.no_grad
-    def _unmerge_lora_weights(self, *args, **kwargs):
-        if not self.merged:
-            raise RuntimeError(
-                "Cannot call _unmerge_lora_weights, weights are not merged"
-            )
-        self.lora_a = nn.Linear(self.in_dim, self.rank, bias=False)
-        self.lora_b = nn.Linear(self.rank, self.out_dim, bias=False)
-        self.lora_a.weight = nn.Parameter(self.cached_lora_a_weight)
-        self.lora_b.weight = nn.Parameter(self.cached_lora_b_weight)
-        del self.cached_lora_a_weight
-        del self.cached_lora_b_weight
-        self.weight -= self._lora_delta
-        self.merged = False
-
-=======
->>>>>>> a57d6062db1af48f6786b082bbfc3d18725686f0
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:

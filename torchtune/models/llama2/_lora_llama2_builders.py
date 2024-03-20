@@ -28,7 +28,7 @@ from torchtune.modules.low_precision import (
 )
 
 from torchtune.modules.peft import LoRALinear, LORA_ATTN_MODULES
-
+from typing import Literal
 # Modules from CausalSelfAttention that LoRA can be applied to
 LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
