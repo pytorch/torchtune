@@ -43,7 +43,7 @@ import torchtune
 from torch.distributed.run import get_args_parser, run
 from torchtune import list_recipes
 from torchtune._cli import list_scripts
-from torchtune.utils.distributed import _valid_distributed_single_node_nnodes
+from torchtune.utils._distributed import _valid_distributed_single_node_nnodes
 
 
 def _update_parser_help(parser):

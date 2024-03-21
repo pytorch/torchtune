@@ -14,15 +14,11 @@ _RECIPE_LIST = [
     "lora_finetune_distributed.py",
 ]
 _CONFIG_LISTS = {
-    "full_finetune_single_device.py": [
-        "alpaca_llama2_full_finetune_single_device.yaml"
-    ],
-    "full_finetune_distributed.py": ["alpaca_llama2_full_finetune_distributed.yaml"],
-    "lora_finetune_single_device.py": [
-        "alpaca_llama2_lora_finetune_single_device.yaml"
-    ],
-    "lora_finetune_distributed.py": ["alpaca_llama2_lora_finetune_distributed.yaml"],
-    "alpaca_generate.py": ["alpaca_llama2_generate.yaml"],
+    "full_finetune_single_device.py": ["full_finetune_single_device.yaml"],
+    "full_finetune_distributed.py": ["full_finetune_distributed.yaml"],
+    "lora_finetune_single_device.py": ["lora_finetune_single_device.yaml"],
+    "lora_finetune_distributed.py": ["lora_finetune_distributed.yaml"],
+    "alpaca_generate.py": ["alpaca_generate.yaml"],
 }
 
 

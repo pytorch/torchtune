@@ -1,7 +1,9 @@
-# Config for LoRAFinetuneDistributedRecipe in lora_finetune_distributed.py
+# Config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 lora_finetune_distributed --config alpaca_llama2_lora_finetune_distributed model_checkpoint=<your_checkpoint_dir> ...
+#    tune lora_finetune_single_device \
+#    --config lora_finetune_single_device \
+#    checkpointer.checkpoint_dir=<YOUR_CHECKOPOINT_DIR> ...
 
 # Model Arguments
 model:
@@ -29,7 +31,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
   use_clean: True
 seed: null
@@ -62,4 +64,4 @@ log_every_n_steps: 1
 # Environment
 device: cuda
 dtype: bf16
-enable_activation_checkpointing: False
+enable_activation_checkpointing: True

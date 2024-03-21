@@ -122,12 +122,20 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
 
     Returns:
         DictConfig: OmegaConf DictConfig containing merged args
+
+    Raises:
+        ValueError: If a cli override is not in the form of key=value
     """
     # Convert Namespace to simple dict
     yaml_kwargs = vars(yaml_args)
     cli_dotlist = []
     for arg in cli_args:
-        k, v = arg.split("=")
+        try:
+            k, v = arg.split("=")
+        except ValueError:
+            raise ValueError(
+                f"Command-line overrides must be in the form of key=value, got {arg}"
+            ) from None
         # If a cli arg overrides a yaml arg with a _component_ field, update the
         # key string to reflect this
         if k in yaml_kwargs and _has_component(yaml_kwargs[k]):

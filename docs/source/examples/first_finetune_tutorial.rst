@@ -50,15 +50,6 @@ This command will also download the model tokenizer and some other helpful files
   You can also download the model directly through the Llama2 repository.
   See `this page <https://llama.meta.com/get-started#getting-the-models>`_ for more details.
 
-Converting model weights
-------------------------
-TorchTune has modular native-PyTorch implementations of popular LLMs. To convert a model to this format, use the following command:
-
-.. code-block:: bash
-
-  tune convert_checkpoint --checkpoint-path /tmp/llama2/consolidated.00.pth
-
-By default, this will output a file to the same directory as the checkpoint with the name `native_pytorch_model.pt`
 
 Selecting a recipe
 ------------------
@@ -87,7 +78,7 @@ It looks like there's already a config called :code:`alpaca_llama_full_finetune`
 
 .. code-block:: bash
 
-  tune cp alpaca_llama2_full_finetune.yaml custom_config.yaml
+  tune cp full_finetune_distributed.yaml custom_config.yaml
 
 Now you can update the custom YAML config to point to your model and tokenizer. While you're at it,
 you can make some other changes, like setting the random seed in order to make replication easier,
@@ -102,14 +93,22 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 
   # Dataset
   dataset:
-    _component_: torchtune.datasets.AlpacaDataset
+    _component_: torchtune.datasets.alpaca_dataset
   seed: 42
   shuffle: True
 
   # Model Arguments
   model:
-    _component_: torchtune.models.llama2.llama2_7b
-  model_checkpoint: /tmp/llama2/native_pytorch_model.pt
+  _component_: torchtune.models.llama2.llama2_7b
+
+  checkpointer:
+    _component_: torchtune.utils.FullModelMetaCheckpointer
+    checkpoint_dir: /tmp/llama2
+    checkpoint_files: [consolidated.00.pth]
+    recipe_checkpoint: null
+    output_dir: /tmp/llama2
+    model_type: LLAMA2
+  resume_from_checkpoint: False
 
   # Fine-tuning arguments
   batch_size: 2
@@ -119,12 +118,13 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
     lr: 1e-5
   loss:
     _component_: torch.nn.CrossEntropyLoss
+
   output_dir: /tmp/alpaca-llama2-finetune
+
   device: cuda
-  dtype: fp32
-  enable_fsdp: True
+  dtype: bf16
+
   enable_activation_checkpointing: True
-  resume_from_checkpoint: False
 
 
 Training a model
@@ -138,7 +138,7 @@ run using two GPUs, it's as easy as:
 
 .. code-block:: bash
 
-  tune --nnodes 1 --nproc_per_node 2 full_finetune.py --config custom_config.yaml
+  tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed.py --config custom_config.yaml
 
 You should see some immediate output and see the loss going down, indicating your model is training succesfully.
 

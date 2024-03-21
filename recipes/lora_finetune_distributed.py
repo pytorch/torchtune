@@ -33,13 +33,12 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
-from torchtune.utils.distributed import validate_no_params_on_meta_device
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
+class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -61,18 +60,33 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                         CONFIG
-        lora_finetune_distributed        alpaca_llama2_lora_finetune_distributed
+        lora_finetune_distributed      lora_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
+        ValueError: If ``dtype`` is set to fp16.
         ValueError: If world_size is 1
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
+            )
+
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         world_size, rank = utils.get_world_size_and_rank()
         if world_size == 1:
@@ -88,7 +102,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-
+        self._log_peak_memory_every_n_steps = 100
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
@@ -310,7 +324,7 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
         )
 
         # Ensure no params and buffers are on meta device
-        validate_no_params_on_meta_device(model)
+        utils.validate_no_params_on_meta_device(model)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -514,7 +528,10 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
                 loss.backward()
                 self._optimizer.step()
                 self._lr_scheduler.step()
-                if self.total_training_steps % 100 == 0 and self._is_rank_zero:
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
                     log.info(
                         utils.memory_stats_log("Memory Stats:", device=self._device)
                     )
@@ -534,7 +551,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_distributed.yaml``
+        - Parameters specified in ``lora_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():
@@ -545,7 +562,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    recipe = LoRAFinetuneDistributedRecipe(cfg=cfg)
+    recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
