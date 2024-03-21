@@ -19,8 +19,8 @@ pkg_path = Path(torchtune.__file__).parent.absolute()
 EVAL_CONFIG_PATH = Path.joinpath(
     pkg_path, "_cli", "eval_configs", "default_eval_config.yaml"
 )
-
-from tests.recipes.utils import CKPT_MODEL_PATHS, llama2_test_config
+from tests.recipes.utils import llama2_test_config
+from tests.test_utils import CKPT_MODEL_PATHS
 
 # TODO: Move this to tests/recipes once we convert eval script into a recipe
 class TestEval:

@@ -13,7 +13,8 @@ import pytest
 
 from tests.common import TUNE_PATH
 from tests.recipes.common import RECIPE_TESTS_DIR
-from tests.recipes.utils import CKPT_MODEL_PATHS, llama2_test_config
+from tests.recipes.utils import llama2_test_config
+from tests.test_utils import CKPT_MODEL_PATHS
 
 _CONFIG_PATH = RECIPE_TESTS_DIR / "alpaca_generate_test_config.yaml"
 
