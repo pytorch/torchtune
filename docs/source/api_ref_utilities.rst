@@ -13,9 +13,8 @@ Distributed
     :toctree: generated/
     :nosignatures:
 
-    distributed.init_distributed
-    distributed.get_world_size_and_rank
-    distributed.wrap_fsdp
+    init_distributed
+    get_world_size_and_rank
 
 .. _mp_label:
 
@@ -98,5 +97,5 @@ Miscellaneous
 
     argparse.TuneArgumentParser
     logging.get_logger
-    device.get_device
+    get_device
     seed.set_seed
