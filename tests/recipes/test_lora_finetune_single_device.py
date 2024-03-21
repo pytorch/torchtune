@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import json
 import os
 import runpy
 import sys
@@ -92,10 +91,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
-        # config file needed for model conversion. Since this is a really small json
-        # this can be written within the test instead of downloading from s3.
-        # We need two copies one for initial read and one for resume
+        # Config file needed for model conversion.
+        # Create a second copy for training resume
         write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
 
         # Train for two epochs
         cmd_1 = f"""
@@ -124,10 +123,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # We don't care about these loss values, just remove the log file
         _ = get_loss_values_from_metric_logger(tmpdir, remove_found_file=True)
-
-        config_file = Path.joinpath(Path(tmpdir), "config.json")
-        with config_file.open("w") as f:
-            json.dump(config, f)
 
         # Resume training
         cmd_2 = f"""
