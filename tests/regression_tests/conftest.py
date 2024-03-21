@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import subprocess
+import os
 from pathlib import Path
 
 import torchtune
@@ -16,4 +16,4 @@ CACHE_ARTIFACTS_SCRIPT_PATH = Path.joinpath(
 
 
 def pytest_sessionstart(session):
-    subprocess.call(["sh", CACHE_ARTIFACTS_SCRIPT_PATH])
+    os.system(CACHE_ARTIFACTS_SCRIPT_PATH)
