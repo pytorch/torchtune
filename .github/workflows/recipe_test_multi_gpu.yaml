@@ -20,7 +20,6 @@ defaults:
 
 jobs:
   recipe_test:
-    runs-on: ubuntu-latest
     with:
       runner: linux.8xlarge.nvidia.gpu
       gpu-arch-type: cuda
