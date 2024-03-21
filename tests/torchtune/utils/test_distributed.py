@@ -15,11 +15,11 @@ import torch.nn as nn
 from tests.test_utils import single_box_init
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torchtune import utils
 from torchtune.models.llama2._component_builders import lora_llama2
 from torchtune.modules import TransformerDecoderLayer
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
-from torchtune import utils
 
 
 class TestDistributed:
