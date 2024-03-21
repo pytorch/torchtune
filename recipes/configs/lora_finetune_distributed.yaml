@@ -11,6 +11,7 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  quantize_base: True
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer

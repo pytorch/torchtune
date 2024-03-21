@@ -19,6 +19,14 @@ def clone(func, *args, **kwargs):
     return to_nf4(args[0][0].get_original_weight())
 
 
+@nf4_tensor_impl([torch.ops.aten.empty_like.default])
+def empty_like(func, *args, **kwargs):
+    import pdb ; pdb.set_trace()
+    dest_tensor = args[0][0]
+    empty_like = torch.empty_like(args[0][1], dtype=torch.bfloat16).to(dest_tensor.device)
+    return to_nf4(empty_like)
+
+
 @nf4_tensor_impl([torch.ops.aten.copy_.default])
 def inplace_copy(func, *args, **kwargs):
     """

@@ -89,11 +89,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         world_size, rank = utils.get_world_size_and_rank()
-        if world_size == 1:
-            raise ValueError(
-                "This recipe doesn't support training with world_size = 1."
-                "Please use the single device version of the recipe instead."
-            )
+        # if world_size == 1:
+        #     raise ValueError(
+        #         "This recipe doesn't support training with world_size = 1."
+        #         "Please use the single device version of the recipe instead."
+        #     )
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -273,26 +273,27 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             with utils.set_default_dtype(self._dtype), torch.device("meta"):
                 model = config.instantiate(cfg_model)
 
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
+        # if self._dtype == torch.bfloat16:
+        #     model = model.to(torch.bfloat16)
 
         # The model contains LoRA params which won't have any matching keys in
         # the state dict. As a result, we need to load with strict=False.
         # Before loading the state dict, ensure the state dict keys for the base
         # model and adapters (if available) match the keys in the full LoRA model
         # This is a good sanity check to prevent silent errors
-        validate_state_dict_for_lora(
-            lora_attn_modules=cfg_model.lora_attn_modules,
-            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            apply_lora_to_output=cfg_model.apply_lora_to_output,
-            full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(
-                lora_weights_state_dict.keys()
-                if lora_weights_state_dict is not None
-                else None
-            ),
-            base_model_state_dict_keys=base_model_state_dict.keys(),
-        )
+        # from itertools import chain
+        # validate_state_dict_for_lora(
+        #     lora_attn_modules=cfg_model.lora_attn_modules,
+        #     apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+        #     apply_lora_to_output=cfg_model.apply_lora_to_output,
+        #     full_model_state_dict_keys=chain([n for n, p in model.named_parameters()], [n for n, b in model.named_buffers()]),
+        #     lora_state_dict_keys=(
+        #         lora_weights_state_dict.keys()
+        #         if lora_weights_state_dict is not None
+        #         else None
+        #     ),
+        #     base_model_state_dict_keys=base_model_state_dict.keys(),
+        # )
 
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
