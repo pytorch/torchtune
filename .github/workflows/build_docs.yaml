@@ -74,8 +74,8 @@ jobs:
         run: |
           REF_NAME=$(echo "${{ github.ref }}")
           echo "Ref name: ${REF_NAME}"
-          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then 
-            find docs -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">'
+          if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then
+            find docs -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">';
           fi
       - name: Move and commit changes
         run: |
