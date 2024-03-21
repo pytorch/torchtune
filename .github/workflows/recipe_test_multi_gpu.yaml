@@ -20,10 +20,7 @@ defaults:
 
 jobs:
   recipe_test:
-    with:
-      runner: linux.8xlarge.nvidia.gpu
-      gpu-arch-type: cuda
-      gpu-arch-version: "12.1"
+    runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
