@@ -13,15 +13,9 @@ import pytest
 import torchtune
 from tests.common import TUNE_PATH
 
+models.small_test_ckpt_tune = llama2_small_test_ckpt
 
-pkg_path = Path(torchtune.__file__).parent.absolute()
-EVAL_CONFIG_PATH = Path.joinpath(
-    pkg_path, "_cli", "eval_configs", "default_eval_config.yaml"
-)
-from tests.recipes.utils import llama2_test_config
-from tests.test_utils import CKPT_MODEL_PATHS
 
-# TODO: Move this to tests/recipes once we convert eval script into a recipe
 class TestEval:
     @pytest.mark.integration_test
     def test_torchune_checkpoint_eval_result(self, capsys, monkeypatch):
@@ -32,7 +26,7 @@ class TestEval:
         tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
 
         cmd = f"""
-        tune eval \
+        tune eleuther_eval \
             --config {EVAL_CONFIG_PATH} \
             model_checkpoint={ckpt_path} \
             tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
@@ -47,3 +41,18 @@ class TestEval:
 
         out_err = capsys.readouterr()
         assert "'acc,none': 0.3" in out_err.out
+
+    def test_eval_recipe_errors_without_lm_eval(self, capsys, monkeypatch):
+        cmd = f"""
+        tune eleuther_eval \
+            --config {EVAL_CONFIG_PATH} \
+            model._component_=torchtune.models.llama2.llama2_tokenizer \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
+            limit=10 \
+        """.split()
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        out_err = capsys.readouterr()
+        assert "Missing required argument" in out_err.err

@@ -1,7 +1,7 @@
-# Config for torchtune/_cli/eval.py
+# Config for EleutherEvalRecipe in eluether_eval.py
 #
 # To launch, run the following command from root torchtune directory:
-#    tune custom_eval --config instruct_custom_eval
+#    tune eleuther_eval --config llama2_eleuther_eval
 
 # Model Arguments
 model:
@@ -10,12 +10,9 @@ model:
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer
   checkpoint_dir: ./
-  checkpoint_files: [qlora_trained.pt]
-  recipe_checkpoint: null
+  checkpoint_files: [qlora_128_grad_acc_bs_1.pt]
   output_dir: ./
   model_type: LLAMA2
-
-model_checkpoint: ./qlora_trained.pt
 
 # Tokenizer
 tokenizer:
@@ -24,9 +21,10 @@ tokenizer:
 
 # Environment
 device: cuda
-dtype: fp32
+dtype: bf16
 seed: 217
 
 # EleutherAI specific eval args
-tasks: ["truthfulqa"]
-limit: 100
+tasks: ["truthfulqa_mc2"]
+limit: null
+max_seq_length: 4096

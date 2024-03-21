@@ -54,7 +54,7 @@ class _EvalWrapper(HFLM):
         max_seq_length: int = 4096,
         batch_size: int = 32,
     ):
-        super().__init__(device=str(device))
+        super().__init__()
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
@@ -111,11 +111,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._cfg = cfg
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
-        self._checkpointer = config.instantiate(
-            cfg,
-            resume_from_checkpoint=False,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
+        checkpointer = config.instantiate(cfg)
+        checkpoint_dict = checkpointer.load_checkpoint()
         return checkpoint_dict
 
     def setup(self) -> None:
@@ -125,9 +122,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._tasks = list(self._cfg.tasks or _DEFAULT_TASKS)
 
         seed = utils.set_seed(seed=self._cfg.seed)
-        logger.info(f"Random seed set to {self.seed}.")
+        logger.info(f"Random seed set to {seed}.")
 
-        ckpt_dict = self.load_checkpoint(self._cfg.checkpoint)
+        ckpt_dict = self.load_checkpoint(self._cfg.checkpointer)
         self._model = self._setup_model(
             cfg_model=self._cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -177,7 +174,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
         for task, res in eleuther_output["results"].items():
-            print(f"{task}: {res}")
+            logger.info(f"{task}: {res}")
 
 
 @config.parse
