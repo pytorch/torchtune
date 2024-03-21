@@ -4,15 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 import os
 import re
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import torch
-from tests.test_utils import get_assets_path
 from torch.utils.data import Dataset
 
-_ASSETS = get_assets_path()
+CKPT_MODEL_PATHS = {
+    "small_test_ckpt_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
+    "small_test_ckpt_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
+    "small_test_ckpt_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+}
 
 
 class DummyDataset(Dataset):
@@ -85,39 +90,6 @@ def lora_llama2_test_config(
     ]
 
 
-def fetch_ckpt_model_path(ckpt) -> str:
-    # TODO: same checkpoint is returned for small scale llama2
-    # and lora. This should be fine as the lora adapter params
-    # are initialized, but we may want to load in a lora specific
-    # checkpoint.
-    if ckpt == "small_test_ckpt_tune":
-        return "/tmp/test-artifacts/small-ckpt-tune-03082024.pt"
-    if ckpt == "small_test_ckpt_meta":
-        return "/tmp/test-artifacts/small-ckpt-meta-03082024.pt"
-    if ckpt == "small_test_ckpt_hf":
-        return "/tmp/test-artifacts/small-ckpt-hf-03082024.pt"
-    if "llama2_7b" in ckpt:
-        return "/tmp/test-artifacts/llama2-7b-torchtune.pt"
-    if "tiny_test_ckpt" in ckpt:
-        return _ASSETS / "tiny_llama2_checkpoint.pt"
-    raise ValueError(f"Unknown ckpt {ckpt}")
-
-
-def get_checkpointer_class_path_for_test_ckpt(ckpt_name: str) -> str:
-    test_weights_to_checkpointer_class_mapping = {
-        "small_test_ckpt_tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
-        "llama2.llama2_7b": "torchtune.utils.FullModelTorchTuneCheckpointer",
-        "small_test_ckpt_meta": "torchtune.utils.FullModelMetaCheckpointer",
-        "small_test_ckpt_hf": "torchtune.utils.FullModelHFCheckpointer",
-    }
-    checkpoint_class_path = test_weights_to_checkpointer_class_mapping.get(
-        ckpt_name, None
-    )
-    if not checkpoint_class_path:
-        raise ValueError("Invalid checkpointer class for checkpoint {ckpt_name}")
-    return checkpoint_class_path
-
-
 def get_loss_values_from_metric_logger(
     out_dir: str, remove_found_file: bool = False
 ) -> Dict[str, float]:
@@ -130,3 +102,14 @@ def get_loss_values_from_metric_logger(
     if remove_found_file:
         os.remove(log_file_path)
     return losses
+
+
+def write_hf_ckpt_config(ckpt_dir: str):
+    config = {
+        "hidden_size": 256,
+        "num_attention_heads": 16,
+        "num_key_value_heads": 8,
+    }
+    config_file = Path.joinpath(Path(ckpt_dir), "config.json")
+    with config_file.open("w") as f:
+        json.dump(config, f)

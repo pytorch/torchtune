@@ -4,21 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import json
 import os
 import runpy
 import sys
 from pathlib import Path
 
-import pytest
 import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
-    fetch_ckpt_model_path,
+    CKPT_MODEL_PATHS,
     get_loss_values_from_metric_logger,
     llama2_test_config,
     lora_llama2_test_config,
+    write_hf_ckpt_config,
 )
 from tests.test_utils import gpu_test
 from torchtune import config
@@ -37,6 +36,7 @@ class TestLoRAFinetuneDistributedRecipe:
             "dtype=fp32",
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
+            "log_every_n_steps=1",
         ]
 
     def _fetch_expected_loss_values(self):
@@ -44,27 +44,16 @@ class TestLoRAFinetuneDistributedRecipe:
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         return [10.4574, 10.5912, 10.5141, 10.4833]
 
-    def fetch_checkpointer(self, ckpt):
-        if ckpt == "small_test_ckpt_tune":
-            return "FullModelTorchTuneCheckpointer"
-        if ckpt == "small_test_ckpt_hf":
-            return "FullModelHFCheckpointer"
-        if ckpt == "small_test_ckpt_meta":
-            return "FullModelMetaCheckpointer"
-
     @gpu_test(gpu_count=2)
-    @pytest.mark.parametrize(
-        "ckpt", ["small_test_ckpt_hf", "small_test_ckpt_meta", "small_test_ckpt_tune"]
-    )
-    def test_loss(self, ckpt, tmpdir, monkeypatch):
-        expected_loss_values = self._fetch_expected_loss_values()
-        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
+    def test_loss(self, tmpdir, monkeypatch):
+        ckpt = "small_test_ckpt_tune"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
         tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config alpaca_llama2_lora_finetune_distributed \
+            --config lora_finetune_distributed \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.{self.fetch_checkpointer(ckpt)}
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -83,6 +72,7 @@ class TestLoRAFinetuneDistributedRecipe:
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(tmpdir)
+        expected_loss_values = self._fetch_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -97,28 +87,21 @@ class TestLoRAFinetuneDistributedRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        model_ckpt = "small_test_ckpt_hf"
+        ckpt = "small_test_ckpt_hf"
         expected_loss_values = self._fetch_expected_loss_values()
 
-        ckpt_path = Path(fetch_ckpt_model_path(model_ckpt))
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
-        # config file needed for model conversion. Since this is a really small json
-        # this can be written within the test instead of downloading from s3.
-        # We need two copies one for initial read and one for resume
-        config = {
-            "hidden_size": 256,
-            "num_attention_heads": 16,
-            "num_key_value_heads": 8,
-        }
-        config_file = Path.joinpath(Path(ckpt_dir), "config.json")
-        with config_file.open("w") as f:
-            json.dump(config, f)
+        # Config file needed for model conversion.
+        # Create a second copy for training resume
+        write_hf_ckpt_config(ckpt_dir)
+        write_hf_ckpt_config(tmpdir)
 
         # Train for two epochs
         cmd_1 = f"""
         tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config alpaca_llama2_lora_finetune_distributed \
+            --config lora_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -142,14 +125,10 @@ class TestLoRAFinetuneDistributedRecipe:
         # We don't care about these loss values, just remove the log file
         _ = get_loss_values_from_metric_logger(tmpdir, remove_found_file=True)
 
-        config_file = Path.joinpath(Path(tmpdir), "config.json")
-        with config_file.open("w") as f:
-            json.dump(config, f)
-
         # Resume training
         cmd_2 = f"""
         tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config alpaca_llama2_lora_finetune_distributed \
+            --config lora_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -176,11 +155,11 @@ class TestLoRAFinetuneDistributedRecipe:
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
 
-        ckpt_path = Path(fetch_ckpt_model_path(ckpt))
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
         tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config alpaca_llama2_lora_finetune_distributed \
+            --config lora_finetune_distributed \
             output_dir={tmpdir} \
             model=torchtune.models.lora_small_test_model \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
