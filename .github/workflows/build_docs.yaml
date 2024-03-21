@@ -95,11 +95,11 @@ jobs:
                 ;;
             esac
           fi
-            echo "Target Folder: ${TARGET_FOLDER}"
-            mkdir -p "${TARGET_FOLDER}"
-            rm -rf "${TARGET_FOLDER}"/*
-            mv docs/* "${TARGET_FOLDER}"
-            git add "${TARGET_FOLDER}" || true
-          fi
+
+          echo "Target Folder: ${TARGET_FOLDER}"
+          mkdir -p "${TARGET_FOLDER}"
+          rm -rf "${TARGET_FOLDER}"/*
+          mv docs/* "${TARGET_FOLDER}"
+          git add "${TARGET_FOLDER}" || true
           git commit -m "auto-generating sphinx docs" || true
           git push -f
