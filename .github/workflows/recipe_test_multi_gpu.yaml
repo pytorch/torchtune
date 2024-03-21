@@ -68,6 +68,6 @@ jobs:
           runner: linux.8xlarge.nvidia.gpu
           gpu-arch-type: cuda
           gpu-arch-version: "12.1"
-        run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv
+          script: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
