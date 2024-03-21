@@ -5,7 +5,7 @@
 
 # TorchTune
 
-NOTE: TorchTune is currently in a pre-release state under extensive development.
+NOTE: TorchTune is currently in a pre-release state and under extensive development.
 
 [**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
