@@ -38,7 +38,7 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            init_distributed(backend="gloo")
+            utils.init_distributed(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
