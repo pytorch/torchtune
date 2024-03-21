@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import time
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -15,13 +16,20 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.distributed import init_process_group
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import (
+    FullOptimStateDictConfig,
+    FullStateDictConfig,
+    FullyShardedDataParallel as FSDP,
+    StateDictType,
+)
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.distributed import validate_no_params_on_meta_device
 
 from tqdm import tqdm
 
@@ -29,29 +37,30 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipe(FTRecipeInterface):
+class FullFinetuneRecipeDistributed(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
-        - FSDP and activation checkpointing. This is enabled by default but can be
-            configured using the ``enable_fsdp`` and ``enable_activation_checkpointing`` flags.
-        - Full bf16 training via setting the ``dtype`` flag to bf16.
+        - FSDP and activation checkpointing. AC is disabled by default but can be enabled using
+            the ``activation_checkpointing`` flag. DDP is not supported.
+        - Full fp32 and bf16 training are supported
         - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
         - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
-        - Logging to terminal. WandB and TensorBoard are currently not supported.
+        - Logging to terminal. WandB and TensorBoard.
 
     Assumptions:
         - Training is launched with the Tune CLI (recommended) which uses TorchRun under the
             hood. Setting up the env variables is handled by TorchRun.
-        - Training happens on CUDA (CPU training is not supported)
+        - Training is on multiple GPUs (--nproc_per_node > 1). ``world_size=1`` is currently supported
+            on CPU for our unit tests. This will change soon
         - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
-        - Datasets are Map-style and data fits in memory (not streamed).
+        - Datasets are Map-style and data fits in memory (not streamed)
 
     The following configs can be used to run this recipe:
         >>> tune ls
-        RECIPE                          CONFIG
-        full_finetune_distributed       alpaca_llama2_full_finetune_distributed
+        RECIPE                           CONFIG
+        full_finetune_distributed        full_finetune_distributed
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -64,20 +73,12 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype)
-        # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
-        # enabled necessary features such as gradient scaling.
+
         if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
@@ -90,7 +91,6 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._enable_fsdp = cfg.enable_fsdp
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
         # These are public properties which are updated by the checkpoint loader
@@ -156,27 +156,22 @@ class FullFinetuneRecipe(FTRecipeInterface):
         # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_fsdp=cfg.enable_fsdp,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
-        if self._is_rank_zero:
-            log.info("Tokenizer is initialized from file.")
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
-            ),
+            opt_state_dict=ckpt_dict[utils.OPT_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
-        if self._is_rank_zero:
-            log.info("Loss is initialized.")
 
         # sampler and dataloader depend on the tokenizer and loss_fn and should be
         # setup after both of these are initialized
@@ -206,44 +201,78 @@ class FullFinetuneRecipe(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_fsdp: bool,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
-        Set up the model including enabling FSDP and activation checkpointing. For this recipe,
-        ``enable_fsdp`` should always be ``True``. This is currently a configurable flag for
-        running tests on CPUs.
+        Model initialization has some important considerations:
+            a. To minimize GPU peak memory, we load the model on CPU with the right
+               dtype. To ensure that we don't instantiate ``world_size`` number of models,
+               we initialize on meta_device for all ranks other than rank 0.
+            b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
+               model weights from checkpoint.
+            c. While wrapping the model with FSDP, we set ``sync_module_states``
+               to TRUE and broadcast module params and buffers from rank 0.
+            d. The ``device_id`` param ensures that the FSDP initialization happens on
+               the correct device.
         """
-        with utils.set_default_dtype(self._dtype), self._device:
-            model = config.instantiate(cfg_model)
+        if self._is_rank_zero:
+            log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
+            init_start = time.perf_counter()
 
-        model = (
-            utils.wrap_fsdp(
-                model=model,
-                device=self._device,
-                dtype=self._dtype,
-                strategy="FULL_SHARD",
-                auto_wrap_policy={modules.TransformerDecoderLayer},
+            with utils.set_default_dtype(self._dtype):
+                model = config.instantiate(cfg_model)
+
+            log.info(
+                f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
             )
-            if enable_fsdp
-            else model
+
+            # Load both the model weights. This should happen only on Rank 0
+            model.load_state_dict(model_state_dict)
+
+        else:
+            # For non-zero ranks, load the model on meta device
+            with utils.set_default_dtype(self._dtype), torch.device("meta"):
+                model = config.instantiate(cfg_model)
+
+        if self._dtype == torch.bfloat16:
+            model = model.to(torch.bfloat16)
+
+        # Wrap the model with FSDP. This will ensure that the model is sharded
+        # across all available GPUs.
+        model = FSDP(
+            module=model,
+            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
+            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            device_id=self._device,
+            # this recipe does not currently support mixed precision training
+            mixed_precision=None,
+            # Ensure we broadcast params and buffers from rank 0
+            sync_module_states=True,
+            # Initialize empty modules on all non-zero ranks
+            param_init_fn=(
+                lambda module: module.to_empty(
+                    device=torch.device("cuda"), recurse=False
+                )
+                if not self._is_rank_zero
+                else None
+            ),
         )
+
+        # Ensure no params and buffers are on meta device
+        validate_no_params_on_meta_device(model)
+
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-
-        model.load_state_dict(model_state_dict)
-        # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._dtype)
         if self._is_rank_zero:
-            log.info(f"Model is initialized with precision {self._dtype}.")
             log.info(
                 utils.memory_stats_log(
-                    "Memory Stats after model init:", device=self._device
+                    "Memory Stats after model init", device=self._device
                 )
             )
+
         return model
 
     def _setup_optimizer(
@@ -309,26 +338,39 @@ class FullFinetuneRecipe(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
-        ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
-        # if training is in-progress, checkpoint the optimizer state as well
-        if epoch + 1 < self.total_epochs:
-            optimizer_state_dict = (
-                FSDP.optim_state_dict(self._model, self._optimizer)
-                if utils.contains_fsdp(self._model)
-                else self._optimizer.state_dict()
-            )
-            ckpt_dict.update(
-                {
-                    utils.OPT_KEY: optimizer_state_dict,
-                    utils.SEED_KEY: self.seed,
-                    utils.EPOCHS_KEY: self.epochs_run,
-                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                }
-            )
+        checkpoint_dict = {}
+
+        # To prevent GPU memory from spiking during checkpoint save,
+        # we consolidate the full model and optim state dicts on CPU for rank 0
+        with FSDP.state_dict_type(
+            self._model,
+            StateDictType.FULL_STATE_DICT,
+            FullStateDictConfig(offload_to_cpu=True, rank0_only=True),
+            FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
+        ):
+            cpu_state_dict = self._model.state_dict()
+            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+
+        # Now that we have the model and opt state dict, create the actual checkpoint dict
+        # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+
+            checkpoint_dict.update({utils.MODEL_KEY: cpu_state_dict})
+
+            # if training is in-progress, checkpoint the optimizer state as well
+            if epoch + 1 < self.total_epochs:
+                checkpoint_dict.update(
+                    {
+                        utils.OPT_KEY: opt_state_dict,
+                        utils.SEED_KEY: self.seed,
+                        utils.EPOCHS_KEY: self.epochs_run,
+                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    }
+                )
+
             self._checkpointer.save_checkpoint(
-                ckpt_dict,
+                checkpoint_dict,
                 epoch=epoch,
                 intermediate_checkpoint=(epoch + 1 < self.total_epochs),
             )
@@ -353,6 +395,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -373,6 +416,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
+
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -380,6 +424,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
                 if self.total_training_steps % self._log_every_n_steps == 0:
@@ -395,16 +440,21 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+
                 if self._should_update_weights(idx):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
 
                 # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
                     log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                        utils.memory_stats_log("Memory Stats", device=self._device)
                     )
 
             self.epochs_run += 1
@@ -421,7 +471,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_full_finetune_distributed.yaml``
+        - Parameters specified in ``full_finetune_distributed.yaml``
         - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():
@@ -432,7 +482,7 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
-    recipe = FullFinetuneRecipe(cfg=cfg)
+    recipe = FullFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

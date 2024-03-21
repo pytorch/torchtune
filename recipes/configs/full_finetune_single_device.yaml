@@ -1,7 +1,9 @@
 # Config for FullFinetuneRecipe in full_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device --config alpaca_llama2_full_finetune_single_device model_checkpoint=<your_checkpoint_dir> ...
+#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device \
+#   --config full_finetune_single_device \
+#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>=<your_checkpoint_dir> ...
 
 # Tokenizer
 tokenizer:
@@ -10,7 +12,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
 seed: null
 shuffle: True

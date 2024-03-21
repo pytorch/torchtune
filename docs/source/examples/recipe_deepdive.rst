@@ -42,8 +42,8 @@ Each recipe consists of three components:
 - **Recipe Class**, core logic needed for training, exposed to users through a set of APIs
 
 In the following sections, we'll take a closer look at each of these components. For a complete working example, refer to the
-`full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py>`_ in TorchTune and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/alpaca_llama2_full_finetune.yaml>`_.
+`full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_ in TorchTune and the associated
+`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/full_finetune_distributed.yaml>`_.
 
 
 What Recipes are not?
