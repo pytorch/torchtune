@@ -6,12 +6,13 @@
 
 import math
 import os
+import re
 import sys
 import unittest
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any, Generator, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, TextIO, Tuple, Union
 
 import pytest
 
@@ -22,6 +23,13 @@ from torch import nn
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
 )
+
+CKPT_MODEL_PATHS = {
+    "small_test_ckpt_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
+    "small_test_ckpt_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
+    "small_test_ckpt_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
+}
 
 
 def get_assets_path():
@@ -154,3 +162,21 @@ def gpu_test(gpu_count: int = 1):
     message = f"Not enough GPUs to run the test: requires {gpu_count}"
     local_gpu_count: int = torch.cuda.device_count()
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
+
+
+def get_loss_values_from_metric_logger(
+    out_dir: str, remove_found_file: bool = False
+) -> Dict[str, float]:
+    """
+    Given an output directory containing metric logger .txt file,
+    parse the .txt and return a list of losses from each logged iteration.
+    """
+    txt_files = [f for f in os.listdir(out_dir) if f.endswith(".txt")]
+    assert len(txt_files) == 1, "Should have exactly one log file"
+    log_file_path = os.path.join(out_dir, txt_files[0])
+    with open(log_file_path, "r") as f:
+        logs = f.read()
+    losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
+    if remove_found_file:
+        os.remove(log_file_path)
+    return losses

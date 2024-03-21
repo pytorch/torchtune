@@ -1,13 +1,13 @@
-name: recipe integration test
+name: Regression Tests
 
 on:
   push:
     branches: [ main ]
+  pull_request:
   workflow_dispatch:
 
-
 concurrency:
-  group: recipe-integration-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -19,8 +19,8 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_integration_test:
-    runs-on: 32-core-ubuntu
+  recipe_test:
+    runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.11']
@@ -42,25 +42,9 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
           aws-region: us-east-1
-      - name: Download files from S3
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 3
-          retry_on: error
-          timeout_seconds: 14400
-          command: |
-            sudo swapoff -a
-            sudo fallocate -l 64G /swapfile
-            sudo chmod 600 /swapfile
-            sudo mkswap /swapfile
-            sudo swapon /swapfile
-            python3 -m pip install awscli==1.32.6
-            mkdir -p /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b-torchtune.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-hf-03082024.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-tune-03082024.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-meta-03082024.pt /tmp/test-artifacts
+      - name: Install S3 CLI
+        run: |
+          python3 -m pip install awscli==1.32.6
       - name: Install dependencies
         run: |
           python -m pip install torch
@@ -68,6 +52,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run unit tests with coverage
-        run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv -s --large-scale True
+        run: pytest tests/regression_tests --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

@@ -5,9 +5,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Script to run recipe test locally
-# Shorter Test using test checkpoint: ./run_test.sh
-# Longer Test using llama 7b checkpoint: ./run_test.sh --large-scale
+# Script cache artifacts for recipe tests
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=(
@@ -17,14 +15,6 @@ S3_URLS=(
     "s3://pytorch-multimodal/small-ckpt-meta-03082024.pt"
     "s3://pytorch-multimodal/small-ckpt-hf-03082024.pt"
 )
-PYTEST_COMMAND="pytest tests/recipes -s"
-
-if [[ $# -gt 0 ]]; then
-    if [ "$1" = "--large-scale" ]; then
-        S3_URLS+=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
-        PYTEST_COMMAND+=" --large-scale True"
-    fi
-fi
 
 mkdir -p $LOCAL_DIR
 for S3_URL in "${S3_URLS[@]}"; do

@@ -13,13 +13,15 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
-    CKPT_MODEL_PATHS,
-    get_loss_values_from_metric_logger,
     llama2_test_config,
     lora_llama2_test_config,
     write_hf_ckpt_config,
 )
-from tests.test_utils import gpu_test
+from tests.test_utils import (
+    CKPT_MODEL_PATHS,
+    get_loss_values_from_metric_logger,
+    gpu_test,
+)
 from torchtune import config
 
 

@@ -5,19 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-import os
-import re
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 import torch
 from torch.utils.data import Dataset
-
-CKPT_MODEL_PATHS = {
-    "small_test_ckpt_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
-    "small_test_ckpt_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
-    "small_test_ckpt_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
-}
 
 
 class DummyDataset(Dataset):
@@ -88,20 +80,6 @@ def lora_llama2_test_config(
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
     ]
-
-
-def get_loss_values_from_metric_logger(
-    out_dir: str, remove_found_file: bool = False
-) -> Dict[str, float]:
-    txt_files = [f for f in os.listdir(out_dir) if f.endswith(".txt")]
-    assert len(txt_files) == 1, "Should have exactly one log file"
-    log_file_path = os.path.join(out_dir, txt_files[0])
-    with open(log_file_path, "r") as f:
-        logs = f.read()
-    losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
-    if remove_found_file:
-        os.remove(log_file_path)
-    return losses
 
 
 def write_hf_ckpt_config(ckpt_dir: str):

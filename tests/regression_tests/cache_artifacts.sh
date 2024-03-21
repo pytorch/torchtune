@@ -5,13 +5,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Script to cache artifacts for eval tests
+# Script to cache artifacts for regression tests
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=(
     "s3://pytorch-multimodal/llama2-7b/tokenizer.model"
-    "s3://pytorch-multimodal/small-ckpt-tune-03082024.pt"
+    "s3://pytorch-multimodal/llama2-7b-torchtune.pt"
 )
+
 
 mkdir -p $LOCAL_DIR
 for S3_URL in "${S3_URLS[@]}"; do
