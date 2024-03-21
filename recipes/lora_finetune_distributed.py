@@ -274,8 +274,8 @@ class LoRAFinetuneDistributedRecipe(FTRecipeInterface):
             with utils.set_default_dtype(self._dtype), torch.device("meta"):
                 model = config.instantiate(cfg_model)
 
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
+        # if self._dtype == torch.bfloat16:
+        #     model = model.to(torch.bfloat16)
 
         # The model contains LoRA params which won't have any matching keys in
         # the state dict. As a result, we need to load with strict=False.
