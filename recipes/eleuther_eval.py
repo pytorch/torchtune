@@ -7,23 +7,16 @@
 import sys
 import time
 
-from functools import partial
-from typing import Any, Dict, Optional, Tuple
-from warnings import warn
+from typing import Any, Dict
 
 import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 
-from torchtune import config, modules, utils
+from torchtune import config, utils
 from torchtune.modules import Tokenizer, TransformerDecoder
-
 from torchtune.recipe_interfaces import EvalRecipeInterface
-
-from tqdm import tqdm
 
 
 logger = utils.get_logger("DEBUG")
@@ -33,33 +26,39 @@ try:
     from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict
-except (ImportError, ModuleNotFoundError) as e:
+except ImportError:
     logger.error(
-        f"Recipe requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
+        "Recipe requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
     )
-    print(e)
     sys.exit(1)
-
-_default_tasks = ["hellaswag"]
 
 
 class _EvalWrapper(HFLM):
-    """
-    An EvalWrapper for EleutherAI's eval harness based on fast-gpt's
+    """An EvalWrapper for EleutherAI's eval harness based on fast-gpt's
     EvalWrapper: https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py.
+
+    Args:
+        model (TransformerDecoder): The model to evaluate.
+        tokenizer (Tokenizer): The tokenizer to use.
+        device (torch.device): The device to use.
+        max_seq_length (int): The maximum sequence length to use.
+        batch_size (int): The batch size per GPU to use.
     """
 
     def __init__(
         self,
-        model,
-        tokenizer,
-        device,
-        max_seq_length,
+        model: TransformerDecoder,
+        tokenizer: Tokenizer,
+        *,
+        device: torch.device,
+        max_seq_length: int = 4096,
+        batch_size: int = 32,
     ):
         super().__init__(device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
+        self._batch_size = batch_size
 
     @property
     def eot_token_id(self):
@@ -71,15 +70,11 @@ class _EvalWrapper(HFLM):
 
     @property
     def max_gen_toks(self):
-        # Sample text from model undergoing eval until this maximum output length. Using
-        # 256 for now for parity with what eleuther does by default for HF models
-        # (https://github.com/EleutherAI/lm-evaluation-harness/blob/96d185fa6232a5ab685ba7c43e45d1dbb3bb906d/lm_eval/models/huggingface.py#L376),
-        # and we benchmark against HF llama-2 7b for correctness.
         return 256
 
     @property
     def batch_size(self):
-        return 32
+        return self._batch_size
 
     @property
     def device(self):
@@ -91,63 +86,53 @@ class _EvalWrapper(HFLM):
         # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
         # though notably fast-gpt does the opposite
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
-        encoded = self._tokenizer.encode(text=string, add_bos=False, add_eos=False)
-        return encoded
+        return self._tokenizer.encode(text=string, add_bos=False, add_eos=False)
 
     def tok_decode(self, tokens, **kwargs):
-        decoded = self._tokenizer.decode(tokens)
-        return decoded
+        return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps):
-        logits = self._model(inps)
-        return logits
+        return self._model(inps)
 
     def _model_generate(self, *args, **kwargs):
-        raise Exception('unimplemented')
+        raise RuntimeError(
+            "This recipe does not currently support tasks that evaluate free generation,"
+            "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
+        )
+
+
+_DEFAULT_TASKS = ["hellaswag"]
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
-    """
-
-    """
+    """This recipe runs evaluation on a trained model using EleutherAI's eval harness."""
 
     def __init__(self, cfg: DictConfig) -> None:
-        self._device = utils.get_device(device=cfg.device)
-        self._dtype = utils.get_dtype(dtype=cfg.dtype)
-        self.seed = utils.set_seed(seed=cfg.seed)
-        self._limit = cfg.limit
-        self._tasks = list(cfg.tasks)
-
+        self._cfg = cfg
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
         self._checkpointer = config.instantiate(
             cfg,
             resume_from_checkpoint=False,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
-
         return checkpoint_dict
 
-    def setup(self, cfg: DictConfig) -> None:
-        """
-        Sets up the recipe state correctly. This includes setting recipe attributes based
-        on the ``resume_from_checkpoint`` flag.
-        """
+    def setup(self) -> None:
+        self._device = utils.get_device(device=self._cfg.device)
+        self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
+        self._limit = self._cfg.limit
+        self._tasks = list(self._cfg.tasks or _DEFAULT_TASKS)
 
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        seed = utils.set_seed(seed=self._cfg.seed)
+        logger.info(f"Random seed set to {self.seed}.")
 
-        # ``_setup_model`` handles initialization and loading the state dict. This method
-        # should be called before ``_setup_optimizer`` since transforming the optimizer
-        # state dict requires the model
+        ckpt_dict = self.load_checkpoint(self._cfg.checkpoint)
         self._model = self._setup_model(
-            cfg_model=cfg.model,
+            cfg_model=self._cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
-        self._tokenizer = config.instantiate(cfg.tokenizer)
+        self._tokenizer = config.instantiate(self._cfg.tokenizer)
         logger.info("Tokenizer is initialized from file.")
 
     def _setup_model(
@@ -155,9 +140,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         cfg_model: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        """
-        Set up the model.
-        """
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
@@ -175,35 +157,34 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_eval_wrapper = _EvalWrapper(
             self._model,
             self._tokenizer,
-            self._device,
-            max_seq_length=4096,
+            device=self._device,
+            max_seq_length=self._cfg.max_seq_length,
         )
 
+        # Task initialization API changed between v0.4.1 and 0.4.2
         try:
             lm_eval.tasks.initialize_tasks()
-        except:
+        except Exception:
             pass
 
-        task_dict = get_task_dict(self._tasks or _default_tasks)
+        task_dict = get_task_dict(self._tasks)
+        logger.info(f"Running evaluation on {self._tasks} tasks.")
         eleuther_output = evaluate(
             model_eval_wrapper,
             task_dict,
             limit=self._limit,
         )
 
-        # Report results.
-        logger.info(f"Time to run eval: {time.time() - t1:.02f} seconds.")
+        logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
         for task, res in eleuther_output["results"].items():
             print(f"{task}: {res}")
 
 
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
-    """
-    Entry point for the recipe.
-    """
+    """Entry point for the recipe."""
     recipe = EleutherEvalRecipe(cfg=cfg)
-    recipe.setup(cfg=cfg)
+    recipe.setup()
     recipe.evaluate()
 
 
