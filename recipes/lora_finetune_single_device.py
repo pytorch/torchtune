@@ -96,6 +96,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
@@ -158,6 +159,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
+        # Not for shipping
+        self._model = torch.compile(self._model)
+        print(f"RV: compiled model", flush=True)
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -187,12 +191,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
         steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < len(
-            self._dataloader
-        ):
-            steps_per_epoch = self.max_steps_per_epoch
-            self.total_training_steps = self.epochs_run * steps_per_epoch
+        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
+            self._steps_per_epoch = self.max_steps_per_epoch
+            self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -361,6 +366,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
+    def _should_update_weights(self, current_iteration: int) -> bool:
+        """
+        Determines whether the weights should be updated on the current iteration or not.
+        True is returned either if we've accumulated gradients for enough steps or if this
+        is the last step in the epoch.
+        """
+        should_update_weights = (
+            current_iteration + 1
+        ) % self._gradient_accumulation_steps == 0
+        return should_update_weights
+
+
     def train(self) -> None:
         """
         The core training loop.
@@ -374,11 +391,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
                 if (
                     self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
-                self.total_training_steps += 1
-                self._optimizer.zero_grad()
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -402,10 +418,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         },
                         step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                     )
-
+                loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                self._optimizer.step()
-                self._lr_scheduler.step()
+                if self._should_update_weights(idx):
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     log.info(
