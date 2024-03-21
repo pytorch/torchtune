@@ -21,7 +21,8 @@ The library provides:
 - Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
 - YAML configs for easily configuring training runs
-- [Upcoming] Support for Quantization techniques from [TorchAO](https://github.com/pytorch-labs/ao) and various inference tools
+- [Upcoming] Support for lower precision dtypes and quantization techniques from [TorchAO](https://github.com/pytorch-labs/ao)
+- [Upcoming] Interop with various inference engines
 
 &nbsp;
 
