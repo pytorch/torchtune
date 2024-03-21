@@ -1,31 +1,43 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
-
-# This source code is licensed under the license found in the
+#
+# This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+
 import sys
 import time
-from typing import Any, Dict, List, Optional
+
+from functools import partial
+from typing import Any, Dict, Optional, Tuple
+from warnings import warn
 
 import torch
-import torchtune.utils as utils
-
 from omegaconf import DictConfig
-from torchtune import config
-from torchtune.modules import Tokenizer, TransformerDecoder
-from torchtune.utils import get_logger
 
-logger = get_logger("INFO")
+from torch import nn
+from torch.optim import Optimizer
+from torch.utils.data import DataLoader
+
+from torchtune import config, modules, utils
+from torchtune.modules import Tokenizer, TransformerDecoder
+
+from torchtune.recipe_interfaces import EvalRecipeInterface
+
+from tqdm import tqdm
+
+
+logger = utils.get_logger("DEBUG")
 
 try:
     import lm_eval
     from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict
-except (ImportError, ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError) as e:
     logger.error(
-        f"Recipe 'eleuther_eval' requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
+        f"Recipe requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
     )
+    print(e)
     sys.exit(1)
 
 _default_tasks = ["hellaswag"]
@@ -51,7 +63,7 @@ class _EvalWrapper(HFLM):
 
     @property
     def eot_token_id(self):
-        return self._tokenizer.eos_id()
+        return self._tokenizer.eos_id
 
     @property
     def max_length(self):
@@ -67,7 +79,6 @@ class _EvalWrapper(HFLM):
 
     @property
     def batch_size(self):
-        # batch size used for evaluation
         return 32
 
     @property
@@ -83,7 +94,7 @@ class _EvalWrapper(HFLM):
         encoded = self._tokenizer.encode(text=string, add_bos=False, add_eos=False)
         return encoded
 
-    def tok_decode(self, tokens):
+    def tok_decode(self, tokens, **kwargs):
         decoded = self._tokenizer.decode(tokens)
         return decoded
 
@@ -91,141 +102,110 @@ class _EvalWrapper(HFLM):
         logits = self._model(inps)
         return logits
 
+    def _model_generate(self, *args, **kwargs):
+        raise Exception('unimplemented')
 
-@torch.no_grad()
-def eval(
-    model: TransformerDecoder,
-    tokenizer: Tokenizer,
-    tasks: List[str],
-    limit: Optional[int] = None,
-    max_seq_length: Optional[int] = 4096,
-    device: torch.device = torch.device("cpu"),
-) -> Dict[str, Any]:
-    """
-    Evaluates a language model on a specified task using the lm-evaluation-harness library. Based
-    off of fast-gpt's evaluation wrapper: https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py
 
-    Args:
-        model (TransformerDecoder): The pre-trained or finetuned language model to evaluate.
-        tokenizer (Tokenizer): The tokenizer to use for encoding/decoding text.
-        tasks (List[str]): List of tasks to perform evaluation on.
-        limit (Optional[int]): The maximum number of samples to evaluate (None for all available).
-        max_seq_length (Optional[int]): The maximum sequence length allowed for input text. Defaults to 4096.
-        device (torch.device): torch.device indicating device to run eval on.
-
-    Returns:
-        eval_results (Dict[str, Any]): A dictionary of evaluation results for the specified task(s).
+class EleutherEvalRecipe(EvalRecipeInterface):
     """
 
-    model_eval_wrapper = _EvalWrapper(
-        model,
-        tokenizer,
-        device,
-        max_seq_length,
-    )
-
-    lm_eval.tasks.initialize_tasks()
-
-    task_dict = get_task_dict(tasks)
-    eval_results = evaluate(
-        model_eval_wrapper,
-        task_dict,
-        limit=limit,
-    )
-    return eval_results
-
-
-def _load_checkpoint(checkpoint_path: str):
     """
-    Loads a checkpoint from a given path.
-    TODO: checkpoint validation.
-    """
-    return torch.load(checkpoint_path, map_location="cpu", weights_only=True)
+
+    def __init__(self, cfg: DictConfig) -> None:
+        self._device = utils.get_device(device=cfg.device)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self.seed = utils.set_seed(seed=cfg.seed)
+        self._limit = cfg.limit
+        self._tasks = list(cfg.tasks)
 
 
-def _setup_model(
-    cfg_model: DictConfig,
-    device: torch.device,
-    model_checkpoint: str,
-):
-    """
-    Sets up the model via passed in config, including loading checkpoint.
-    """
-    # Load state_dicts from file.
-    base_model_state_dict = _load_checkpoint(model_checkpoint)
+    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
+        """
+        Extract the checkpoint state from file and validate. If resume_from_checkpoint
+        is True, this also includes the recipe state.
+        """
+        self._checkpointer = config.instantiate(
+            cfg,
+            resume_from_checkpoint=False,
+        )
+        checkpoint_dict = self._checkpointer.load_checkpoint()
 
-    # Create model.
-    with device:
-        model = config.instantiate(cfg_model)
+        return checkpoint_dict
 
-    # Load state_dicts into model.
-    # TODO: Improve validation such as in training recipes.
+    def setup(self, cfg: DictConfig) -> None:
+        """
+        Sets up the recipe state correctly. This includes setting recipe attributes based
+        on the ``resume_from_checkpoint`` flag.
+        """
 
-    # TODO: recent refactor removed "model", but some old checkpoints to test parity still have
-    # this key. Remove once full testing / validation is complete, or we re-write those checkpoints
-    # to remove "Model" key.
-    base_model_state_dict = (
-        base_model_state_dict["model"]
-        if "model" in base_model_state_dict
-        else base_model_state_dict
-    )
-    missing, unexpected = model.load_state_dict(base_model_state_dict, strict=False)
-    assert not unexpected, f"Unexpected keys {unexpected}"
-    assert not missing, f"Missing keys {missing}"
+        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
-    return model
+        # ``_setup_model`` handles initialization and loading the state dict. This method
+        # should be called before ``_setup_optimizer`` since transforming the optimizer
+        # state dict requires the model
+        self._model = self._setup_model(
+            cfg_model=cfg.model,
+            model_state_dict=ckpt_dict[utils.MODEL_KEY],
+        )
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        logger.info("Tokenizer is initialized from file.")
+
+    def _setup_model(
+        self,
+        cfg_model: DictConfig,
+        model_state_dict: Dict[str, Any],
+    ) -> nn.Module:
+        """
+        Set up the model.
+        """
+        with utils.set_default_dtype(self._dtype), self._device:
+            model = config.instantiate(cfg_model)
+
+        model.load_state_dict(model_state_dict)
+
+        # Validate model was loaded in with the expected dtype.
+        utils.validate_expected_param_dtype(model, dtype=self._dtype)
+        logger.info(f"Model is initialized with precision {self._dtype}.")
+        return model
+
+    @torch.no_grad()
+    def evaluate(self) -> None:
+        t1 = time.time()
+
+        model_eval_wrapper = _EvalWrapper(
+            self._model,
+            self._tokenizer,
+            self._device,
+            max_seq_length=4096,
+        )
+
+        try:
+            lm_eval.tasks.initialize_tasks()
+        except:
+            pass
+
+        task_dict = get_task_dict(self._tasks or _default_tasks)
+        eleuther_output = evaluate(
+            model_eval_wrapper,
+            task_dict,
+            limit=self._limit,
+        )
+
+        # Report results.
+        logger.info(f"Time to run eval: {time.time() - t1:.02f} seconds.")
+        for task, res in eleuther_output["results"].items():
+            print(f"{task}: {res}")
 
 
 @config.parse
-def main(
-    cfg: DictConfig,
-) -> None:
+def recipe_main(cfg: DictConfig) -> None:
     """
-    Main entry point for running evaluation on finetuned models. Sets up the environment,
-    loads in the model + checkpoint, and runs evaluation.
-
-    Example usage: tune eval --config eval_configs/full_finetune_eval_config.yaml --override limit=100 tasks=["truthfulqa_mc2"]
-    Please see eval_configs/ for example configs.
+    Entry point for the recipe.
     """
-    # Set up environment incl. device and random seed.
-    device = utils.get_device(device=cfg.device)
-    if cfg.seed is not None:
-        torch.manual_seed(cfg.seed)
-
-    # Set up model per configuration.
-    model = _setup_model(
-        cfg_model=cfg.model,
-        device=device,
-        model_checkpoint=cfg.model_checkpoint,
-    )
-
-    # Set up tokenizer per configuration.
-    tokenizer = config.instantiate(cfg.tokenizer)
-
-    # Set up Eleuther tasks per configuration.
-    if not cfg.tasks:
-        task_list = _default_tasks
-    else:
-        # TODO: Is there a better way for Omega to instantiate list?
-        task_list = [task for task in cfg.tasks]
-
-    logger.info(f"Initialized model and tokenizer. Running eval on {task_list}.")
-
-    # Run evaluation.
-    t1 = time.time()
-    result = eval(
-        model=model,
-        tokenizer=tokenizer,
-        tasks=task_list,
-        limit=cfg.limit,
-        device=device,
-    )
-    # Report results.
-    logger.info(f"Time to run eval: {time.time() - t1:.02f} seconds.")
-    logger.info(f"For model {cfg.model_checkpoint}")
-    for task, res in result["results"].items():
-        print(f"{task}: {res}")
+    recipe = EleutherEvalRecipe(cfg=cfg)
+    recipe.setup(cfg=cfg)
+    recipe.evaluate()
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(recipe_main())
