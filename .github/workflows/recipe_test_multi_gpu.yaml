@@ -20,7 +20,7 @@ defaults:
 
 jobs:
   recipe_test:
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
@@ -63,6 +63,11 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run unit tests with coverage
+        uses: pytorch/test-infra/.github/workflows/linux_job.yml@main
+        with:
+          runner: linux.8xlarge.nvidia.gpu
+          gpu-arch-type: cuda
+          gpu-arch-version: "12.1"
         run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
