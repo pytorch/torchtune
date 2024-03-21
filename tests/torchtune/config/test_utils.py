@@ -95,3 +95,15 @@ class TestUtils:
         ), f"b == {conf.b._component_}, not 2 as set in the config."
         assert conf.b.c == 5, f"b.c == {conf.b.c}, not 5 as set in overrides."
         assert mock_load.call_count == 3
+
+        yaml_args, cli_args = parser.parse_known_args(
+            [
+                "--config",
+                "test.yaml",
+                "b",  # Test invalid override
+            ]
+        )
+        with pytest.raises(
+            ValueError, match="Command-line overrides must be in the form of key=value"
+        ):
+            _ = _merge_yaml_and_cli_args(yaml_args, cli_args)
