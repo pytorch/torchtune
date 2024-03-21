@@ -4,16 +4,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
+
 import pytest
 import torch
 
 from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
-from copy import deepcopy
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import utils
 from torchtune.models.llama2 import llama2, lora_llama2
-from torchtune.models.llama2._component_builders import _lora_llama_self_attention
+from torchtune.models.llama2._component_builders import lora_llama2_self_attention
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt
 from torchtune.utils.seed import set_seed
@@ -184,6 +185,7 @@ class TestLoRALlama2:
         model = self.get_lora_llama2(
             lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
             apply_lora_to_mlp=True,
+            # quantize_base
             apply_lora_to_output=False,
             vocab_size=50,
             quantize_base=True,
@@ -211,8 +213,8 @@ class TestLoRALlama2:
                 quantize_base=True,
                 embed_dim=512,
             )
-
-        model_ref.load_state_dict(qlora.state_dict())
+        qlora_sd = qlora.state_dict()
+        model_ref.load_state_dict(qlora_sd)
         # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
         # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
         # for backward.

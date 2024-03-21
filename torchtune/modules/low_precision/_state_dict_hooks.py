@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import torch.nn as nn
 from torchao.dtypes.nf4tensor import NF4Tensor
@@ -13,9 +13,9 @@ from torchao.dtypes.nf4tensor import NF4Tensor
 def reparametrize_as_bf16_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
-    *args,
+    *args: Tuple[Any, ...],
     offload_to_cpu: bool = True,
-    **kwargs,
+    **kwargs: Dict[Any, Any],
 ):
     """
     A state_dict hook that replaces nf4 tensors with their restored
@@ -32,7 +32,9 @@ def reparametrize_as_bf16_state_dict_post_hook(
     Args:
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
+        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
         offload_to_cpu (bool): whether to offload the restored weight to CPU
+        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
     """
     for k, v in state_dict.items():
         if isinstance(v, NF4Tensor):

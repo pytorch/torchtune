@@ -59,6 +59,7 @@ def lora_llama2_7b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Llama2 model with LoRA enabled.
@@ -98,4 +99,5 @@ def lora_llama2_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        quantize_base=quantize_base,
     )

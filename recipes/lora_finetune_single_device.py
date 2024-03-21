@@ -160,8 +160,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             ),
         )
         # Not for shipping
-        self._model = torch.compile(self._model)
-        print(f"RV: compiled model", flush=True)
+        # self._model = torch.compile(self._model)
+        # print(f"RV: compiled model", flush=True)
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -195,7 +195,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             len(self._dataloader) // self._gradient_accumulation_steps
         )
         steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < self._steps_per_epoch:
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
+        ):
             self._steps_per_epoch = self.max_steps_per_epoch
             self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
@@ -376,7 +379,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             current_iteration + 1
         ) % self._gradient_accumulation_steps == 0
         return should_update_weights
-
 
     def train(self) -> None:
         """

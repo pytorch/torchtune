@@ -9,8 +9,11 @@ from typing import List
 import torch.nn.functional as F
 
 from torch import nn, Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor, to_nf4
-from torchtune.modules.low_precision import _register_nf4_dispatch_ops, FrozenNF4Linear
+from torchao.dtypes.nf4tensor import linear_nf4
+from torchtune.modules.low_precision import (  # noqa: F401
+    _register_nf4_dispatch_ops,
+    FrozenNF4Linear,
+)
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
 
@@ -34,6 +37,8 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout (float): dropout probability. Default: 0.0
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
+        quantize_base (bool): Whether to quantize base linear weight or not.
+            Default: False
     """
 
     def __init__(
@@ -44,7 +49,6 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
-        use_bias_in_lora_matrices: bool = False,
         quantize_base: bool = False,
     ):
         super().__init__()
@@ -90,11 +94,13 @@ class LoRALinear(nn.Module, AdapterModule):
             if not self._quantize_base
             else FrozenNF4Linear(in_dim, out_dim, bias=False)
         )
-        weight_tensor = (
-            linear.weight
-            if not self._quantize_base
-            else to_nf4(linear.weight.get_original_weight())
-        )
+        weight_tensor = linear.weight
+        # TODO: remove below, there for debugging
+        # weight_tensor = (
+        #     linear.weight
+        #     if not self._quantize_base
+        #     else to_nf4(linear.weight.get_original_weight())
+        # )
         bias = None
         if self.use_bias:
             if self._quantize_base:
