@@ -66,10 +66,6 @@ jobs:
         with:
           name: Built-Docs
           path: docs
-      - name: Configure Git
-        run: |
-          git config user.name 'pytorchbot'
-          git config user.email 'soumith+bot@pytorch.org'
       - name: Add no-index tag
         run: |
           REF_NAME=$(echo "${{ github.ref }}")
@@ -100,6 +96,9 @@ jobs:
           mkdir -p "${TARGET_FOLDER}"
           rm -rf "${TARGET_FOLDER}"/*
           mv docs/* "${TARGET_FOLDER}"
+          
+          git config user.name 'pytorchbot'
+          git config user.email 'soumith+bot@pytorch.org'
           git add "${TARGET_FOLDER}" || true
           git commit -m "auto-generating sphinx docs" || true
           git push -f
