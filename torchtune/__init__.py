@@ -13,7 +13,6 @@ _RECIPE_LIST = [
     "lora_finetune_single_device.py",
     "lora_finetune_distributed.py",
     "eleuther_eval.py",
-    "eleuther_eval_copy.py"
 ]
 _CONFIG_LISTS = {
     "full_finetune_single_device.py": ["full_finetune_single_device.yaml"],
@@ -22,7 +21,6 @@ _CONFIG_LISTS = {
     "lora_finetune_distributed.py": ["lora_finetune_distributed.yaml"],
     "alpaca_generate.py": ["alpaca_generate.yaml"],
     "eleuther_eval.py": ["llama2_eleuther_eval.yaml"],
-    "eleuther_eval_copy.py": ["llama2_eleuther_eval.yaml"]
 }
 
 
