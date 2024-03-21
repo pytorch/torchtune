@@ -15,11 +15,13 @@ TorchTune is a native-Pytorch library for easily authoring, fine-tuning and expe
 
 The library provides:
 
-- Native-PyTorch implementations of popular LLMs, with convertors to transform checkpoints into TorchTune's format
+- Native-PyTorch implementations of popular LLMs
+- Support for checkpoints in various formats, including checkpoints in HF format
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
 - Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
 - Support for distributed training using FSDP from PyTorch Distributed
 - YAML configs for easily configuring training runs
+- [Upcoming] Support for Quantization techniques from [TorchAO](https://github.com/pytorch-labs/ao) and various inference tools
 
 &nbsp;
 
