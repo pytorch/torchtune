@@ -26,7 +26,7 @@ from torchtune.modules.peft.lora import (
     LoRALinear,
 )
 
-from torchtune.utils.device import _validate_device_from_env, get_device
+from torchtune.utils._device import _validate_device_from_env, get_device
 from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()

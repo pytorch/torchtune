@@ -13,7 +13,7 @@ from pkg_resources import packaging
 from torch.cuda.amp import GradScaler
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
 
-from torchtune.utils.device import _validate_device_from_env
+from torchtune.utils._device import _validate_device_from_env
 from torchtune.utils.logging import get_logger
 
 log = get_logger()

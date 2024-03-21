@@ -13,7 +13,7 @@ from typing import Mapping, Optional, Union
 from numpy import ndarray
 from torch import Tensor
 
-from torchtune.utils.distributed import get_world_size_and_rank
+from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
