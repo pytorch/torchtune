@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .argparse import TuneArgumentParser
 from ._checkpointing import (  # noqa
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
@@ -22,6 +21,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
     wrap_fsdp,
 )
+from .argparse import TuneArgumentParser
 from .checkpoint import (  # noqa
     save_checkpoint,
     transform_opt_state_dict,
@@ -39,10 +39,10 @@ from .constants import (  # noqa
     TOTAL_EPOCHS_KEY,
 )
 from .logging import get_logger
-from .memory import (   # noqa
+from .memory import (  # noqa
+    cleanup_before_training,
     memory_stats_log,
     set_activation_checkpointing,
-    cleanup_before_training,
 )
 from .precision import (
     get_autocast,
