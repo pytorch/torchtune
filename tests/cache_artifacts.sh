@@ -5,7 +5,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Script to cache artifacts for recipe tests
+# Script to cache artifacts for all tests
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=(
@@ -13,6 +13,7 @@ S3_URLS=(
     "s3://pytorch-multimodal/small-ckpt-tune-03082024.pt"
     "s3://pytorch-multimodal/small-ckpt-meta-03082024.pt"
     "s3://pytorch-multimodal/small-ckpt-hf-03082024.pt"
+    "s3://pytorch-multimodal/llama2-7b-torchtune.pt"
 )
 
 mkdir -p $LOCAL_DIR

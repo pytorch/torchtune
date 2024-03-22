@@ -5,10 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import os
 import uuid
+from pathlib import Path
 
 import pytest
 import torch.distributed.launcher as pet
+
+import torchtune
+
+root = Path(torchtune.__file__).parent.parent.absolute()
+CACHE_ARTIFACTS_SCRIPT_PATH = Path.joinpath(root, "tests", "cache_artifacts.sh")
+
+
+def pytest_sessionstart(session):
+    os.system(CACHE_ARTIFACTS_SCRIPT_PATH)
 
 
 @pytest.fixture(scope="session")
