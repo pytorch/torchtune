@@ -358,6 +358,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 
@@ -413,6 +414,7 @@
     <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
     <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
     <span class="n">max_batch_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model with LoRA enabled.</span>
@@ -432,6 +434,7 @@
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.</span>
+<span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied</span>
@@ -452,7 +455,16 @@
         <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
         <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
         <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
     <span class="p">)</span>
+
+<span class="n">qlora_llama2_7b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama2_7b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">qlora_llama2_7b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for creating a Llama2 model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
+<span class="s2">Please see `lora_llama2_7b` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
              </article>
