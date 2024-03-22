@@ -11,7 +11,7 @@ from torchtune.modules import Tokenizer
 
 def grammar_dataset(
     tokenizer: Tokenizer,
-    train_on_input: bool = True,
+    train_on_input: bool = False,
 ) -> InstructDataset:
     """
     Support for the Grammar dataset and its variants from HuggingFace Datasets.
@@ -25,14 +25,14 @@ def grammar_dataset(
     where `input` and `output` are fields from the dataset.
 
     Masking of the prompt during training is controlled by the `train_on_input` flag, which is
-    set to `True` by default
+    set to `False` by default
     - If `train_on_input` is True, the prompt is used during training and
     contributes to the loss.
     - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
 
     Returns:
         InstructDataset: dataset configured with Grammar source data and template
