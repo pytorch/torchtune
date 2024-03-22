@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import gc
 import sys
 import time
 
@@ -237,6 +238,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
+
+
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -271,6 +274,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     "Memory Stats after model init", device=self._device
                 )
             )
+
+        # synchronize before training begins
+        torch.distributed.barrier()
 
         return model
 
@@ -390,6 +396,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+        # clean up before training begins
+        gc.collect()
+        torch.cuda.empty_cache()
+
         _, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training

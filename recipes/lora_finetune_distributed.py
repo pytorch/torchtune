@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import gc
 import sys
 import time
 
@@ -102,7 +103,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_every_n_steps = 10
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
@@ -336,6 +337,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     "Memory Stats after model init:", device=self._device
                 )
             )
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
         return model
 
     def _setup_optimizer(
@@ -474,6 +479,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         The core training loop.
         """
+        # clean up before training begins
+        gc.collect()
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
+
+
         _, rank = utils.get_world_size_and_rank()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
@@ -525,7 +536,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._lr_scheduler.step()
                 if (
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._is_rank_zero
+                    # and self._is_rank_zero
                 ):
                     log.info(
                         utils.memory_stats_log("Memory Stats:", device=self._device)
