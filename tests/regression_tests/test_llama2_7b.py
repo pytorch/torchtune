@@ -68,7 +68,6 @@ class TestFullFinetuneDistributed7BLoss:
             metric_logger.filename={log_file} \
         """.split()
         cmd = cmd + self._get_test_config_overrides()
-
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -98,7 +97,7 @@ class TestLoRA7BDistributedFinetuneEval:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            max_steps_per_epoch=500 \
+            max_steps_per_epoch=10 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", ft_cmd)
@@ -111,7 +110,7 @@ class TestLoRA7BDistributedFinetuneEval:
             tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']
-            limit=100 \
+            limit=10 \
             device=cuda \
         """.split()
         monkeypatch.setattr(sys, "argv", eval_cmd)

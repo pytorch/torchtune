@@ -57,7 +57,7 @@ jobs:
             sudo chmod 600 /swapfile
             sudo mkswap /swapfile
             sudo swapon /swapfile
-            python3 -m pip install awscli==1.32.6
+            python -m pip install awscli==1.32.6
             mkdir -p /tmp/test-artifacts
             aws s3 cp s3://pytorch-multimodal/llama2-7b/consolidated.00.pth /tmp/test-artifacts/llama2-7b-fair
       - name: Install dependencies

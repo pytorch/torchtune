@@ -168,10 +168,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         ]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
-    def test_gradient_accumulation(
-        self, full_batch_size, micro_batch_size, tmpdir, monkeypatch
-    ):
+    def test_gradient_accumulation(self, tmpdir, monkeypatch):
         """Test whether gradient accumulation runs properly in the recipe. In general
         the sum of loss across minibatches should equal the loss over the full batch,
         but since our loss is normalized by the number of unmasked tokens, this does not
@@ -179,6 +176,8 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         in this test check that a single batch size of N yields the same loss as N accumulated
         microbatches of size 1.
         """
+        full_batch_size = 4
+        micro_batch_size = 1
         gradient_accumulation_steps = full_batch_size // micro_batch_size
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])

@@ -12,7 +12,7 @@ import unittest
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, Optional, TextIO, Tuple, Union
 
 import pytest
 
