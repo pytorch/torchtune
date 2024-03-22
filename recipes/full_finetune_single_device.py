@@ -246,7 +246,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 p: config.instantiate(cfg_optimizer, [p])
                 for p in self._model.parameters()
             }
-            self._optim_ckpt_wrapper = utils.OptimInBackwardWrapper(optim_dict)
+            self._optim_ckpt_wrapper = utils.OptimizerInBackwardWrapper(optim_dict)
             def optim_step(param) -> None:
                 optim_dict[param].step()
                 optim_dict[param].zero_grad()
@@ -392,7 +392,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "loss": loss.item(),
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
-                            "lr": list(self._optim_ckpt_wrapper.optim_dict.values())[0].param_groups[0]["lr"] if self._optimizer_in_bwd else self._optimizer.param_groups[0]["lr"],
+                            "lr": list(self._optim_ckpt_wrapper.optim_map.values())[0].param_groups[0]["lr"] if self._optimizer_in_bwd else self._optimizer.param_groups[0]["lr"],
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,
