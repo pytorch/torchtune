@@ -9,7 +9,11 @@ from typing import List
 import torch.nn.functional as F
 
 from torch import nn, Tensor
-
+from torchao.dtypes.nf4tensor import linear_nf4
+from torchtune.modules.low_precision import (  # noqa: F401
+    _register_nf4_dispatch_ops,
+    FrozenNF4Linear,
+)
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
 
@@ -33,6 +37,8 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout (float): dropout probability. Default: 0.0
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
+        quantize_base (bool): Whether to quantize base linear weight or not.
+            Default: False
     """
 
     def __init__(
@@ -43,20 +49,20 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
+        quantize_base: bool = False,
     ):
         super().__init__()
         self.in_dim = in_dim
         self.rank = rank
         self.alpha = alpha
         self.out_dim = out_dim
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-        # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
-        # vanilla Transformers.
-        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
-        if use_bias:
-            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
-        else:
-            self.register_parameter("bias", None)
+        self.use_bias = use_bias
+        self._quantize_base = quantize_base
+        weight, bias = self._create_weight_and_bias()
+        self.register_parameter("weight", nn.Parameter(weight))
+        self.register_parameter(
+            "bias", nn.Parameter(bias) if bias is not None else None
+        )
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
@@ -77,11 +83,34 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
+    def _create_weight_and_bias(self):
+        """
+        Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
+        (indicated via quantize_base=True).
+        """
+        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
+        linear = (
+            nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+            if not self._quantize_base
+            else FrozenNF4Linear(in_dim, out_dim, bias=False)
+        )
+        weight = linear.weight
+        bias = None
+        if self.use_bias:
+            if self._quantize_base:
+                raise NotImplementedError(
+                    "Quantized LoRALinear does not support bias at the moment."
+                )
+            bias = _copy_tensor(linear.bias)
+        return weight, bias
+
     def adapter_params(self) -> List[str]:
         """
         Return lora_a.weight and lora_b.weight as adapter params.
         If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
+        # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
+        # in this module change.
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
@@ -94,7 +123,10 @@ class LoRALinear(nn.Module, AdapterModule):
             Tensor: output tensor with shape ``(..., out_dim)``
 
         """
-        out = F.linear(x, self.weight, self.bias)
+        if self._quantize_base:
+            out = linear_nf4(input=x, weight=self.weight)
+        else:
+            out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out
