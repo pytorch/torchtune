@@ -36,7 +36,7 @@ class TestGrammarDataset:
             }
         ]
 
-        grammar_ds = grammar_dataset(tokenizer=tokenizer)
+        grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=True)
         input, labels = grammar_ds[0]
 
         assert len(input) == len(labels)
@@ -58,7 +58,7 @@ class TestGrammarDataset:
             }
         ]
 
-        grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=False)
+        grammar_ds = grammar_dataset(tokenizer=tokenizer)
 
         # Extract the prompt and tokenize it; we'll need this to test whether we're masking the
         # input correctly
