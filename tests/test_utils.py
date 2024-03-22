@@ -164,19 +164,12 @@ def gpu_test(gpu_count: int = 1):
     return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
 
 
-def get_loss_values_from_metric_logger(
-    out_dir: str, remove_found_file: bool = False
-) -> Dict[str, float]:
+def get_loss_values_from_metric_logger(log_file_path: str) -> Dict[str, float]:
     """
     Given an output directory containing metric logger .txt file,
     parse the .txt and return a list of losses from each logged iteration.
     """
-    txt_files = [f for f in os.listdir(out_dir) if f.endswith(".txt")]
-    assert len(txt_files) == 1, "Should have exactly one log file"
-    log_file_path = os.path.join(out_dir, txt_files[0])
     with open(log_file_path, "r") as f:
         logs = f.read()
     losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
-    if remove_found_file:
-        os.remove(log_file_path)
     return losses

@@ -91,3 +91,17 @@ def write_hf_ckpt_config(ckpt_dir: str):
     config_file = Path.joinpath(Path(ckpt_dir), "config.json")
     with config_file.open("w") as f:
         json.dump(config, f)
+
+
+def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
+    """
+    Take the tmpdir and just append a non-path version of it as the
+    filename, optionally adding specified suffix. This is used to
+    write metric logs to a deterministic file per test run.
+    E.g. /tmp/my/dir -> /tmp/my/dir/tmpmydir.txt
+    """
+    filename = str(tmpdir) + str(tmpdir).replace("/", "")
+    if suffix:
+        filename += suffix
+    filename += ".txt"
+    return filename

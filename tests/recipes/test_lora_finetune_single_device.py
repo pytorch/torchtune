@@ -14,6 +14,7 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
+    gen_log_file_name,
     llama2_test_config,
     lora_llama2_test_config,
     write_hf_ckpt_config,
@@ -47,6 +48,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
         tune lora_finetune_single_device
@@ -57,6 +59,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
+            metric_logger.filename={log_file} \
         """.split()
 
         model_config = lora_llama2_test_config(
@@ -72,7 +75,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        loss_values = get_loss_values_from_metric_logger(tmpdir)
+        loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
@@ -91,6 +94,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt = "small_test_ckpt_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -122,9 +126,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # We don't care about these loss values, just remove the log file
-        _ = get_loss_values_from_metric_logger(tmpdir, remove_found_file=True)
-
         # Resume training
         cmd_2 = f"""
         tune lora_finetune_single_device
@@ -138,6 +139,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
@@ -147,7 +149,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # Second epoch only
         expected_loss_values = self._fetch_expected_loss_values()[2:]
 
-        loss_values = get_loss_values_from_metric_logger(tmpdir)
+        loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )

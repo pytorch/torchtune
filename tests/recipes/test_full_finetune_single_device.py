@@ -19,7 +19,11 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.recipes.utils import (
+    gen_log_file_name,
+    llama2_test_config,
+    write_hf_ckpt_config,
+)
 from tests.test_utils import CKPT_MODEL_PATHS, get_loss_values_from_metric_logger
 
 logging.basicConfig(level=logging.INFO)
@@ -51,6 +55,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
         tune full_finetune_single_device
@@ -61,6 +66,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
+            metric_logger.filename={log_file} \
         """.split()
 
         model_config = llama2_test_config()
@@ -70,7 +76,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        loss_values = get_loss_values_from_metric_logger(tmpdir)
+        loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
@@ -89,6 +95,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         ckpt = "small_test_ckpt_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
 
         # Config file needed for model conversion.
         # Create a second copy for training resume
@@ -114,9 +121,6 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        # We don't care about these loss values, just remove the log file
-        _ = get_loss_values_from_metric_logger(tmpdir, remove_found_file=True)
-
         # Resume training
         cmd_2 = f"""
         tune full_finetune_single_device
@@ -129,6 +133,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             resume_from_checkpoint=True \
+            metric_logger.filename={log_file} \
         """.split()
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
@@ -139,7 +144,7 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         expected_loss_values = self._fetch_expected_loss_values()[2:]
 
-        loss_values = get_loss_values_from_metric_logger(tmpdir)
+        loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
@@ -178,6 +183,8 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
+        no_grad_accum_log_file = gen_log_file_name(tmpdir, suffix="no_grad_accum")
+        grad_accum_log_file = gen_log_file_name(tmpdir, suffix="grad_accum")
 
         cmd_1 = f"""
         tune full_finetune_single_device \
@@ -190,6 +197,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             batch_size={full_batch_size} \
             output_dir={tmpdir} \
             log_every_n_steps=1 \
+            metric_logger.filename={no_grad_accum_log_file} \
         """.split()
 
         model_config = llama2_test_config()
@@ -199,9 +207,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        no_accum_loss = get_loss_values_from_metric_logger(
-            tmpdir, remove_found_file=True
-        )[
+        no_accum_loss = get_loss_values_from_metric_logger(no_grad_accum_log_file)[
             0
         ]  # List of a single element
 
@@ -217,6 +223,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \
+            metric_logger.filename={grad_accum_log_file} \
         """.split()
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
 
@@ -224,5 +231,5 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        accum_loss = np.mean(get_loss_values_from_metric_logger(tmpdir))
+        accum_loss = np.mean(get_loss_values_from_metric_logger(grad_accum_log_file))
         torch.testing.assert_close(no_accum_loss, accum_loss, atol=1e-5, rtol=1e-5)

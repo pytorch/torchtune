@@ -87,7 +87,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
         _, rank = utils.get_world_size_and_rank()
-        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # Training cfg

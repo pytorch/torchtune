@@ -59,6 +59,8 @@ class DiskLogger(MetricLoggerInterface):
 
     Args:
         log_dir (str): directory to store logs
+        filename (Optional[str]): optional filename to write logs to.
+            Default: None, in which case log_{unixtimestamp}.txt will be used.
         **kwargs: additional arguments
 
     Warning:
@@ -68,11 +70,13 @@ class DiskLogger(MetricLoggerInterface):
         This logger creates a new file based on the current time.
     """
 
-    def __init__(self, log_dir: str, **kwargs):
+    def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        unix_timestamp = int(time.time())
-        self._file_name = self.log_dir / f"log_{unix_timestamp}.txt"
+        if not filename:
+            unix_timestamp = int(time.time())
+            filename = f"log_{unix_timestamp}.txt"
+        self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
 
