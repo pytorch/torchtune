@@ -74,6 +74,7 @@ jobs:
           if [[ "${{ github.ref }}" == 'refs/heads/main' ]]; then
             find docs -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">';
           fi
+          persist-credentials: false
       - name: Move and commit changes
         env:
           GITHUB_PYTORCHBOT_TOKEN: ${{ secrets.GH_PYTORCHBOT_TOKEN }}
