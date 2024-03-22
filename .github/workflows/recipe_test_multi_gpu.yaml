@@ -52,6 +52,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run recipe tests with coverage
-        run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests -m integration_test --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
