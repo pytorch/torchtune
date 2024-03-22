@@ -263,6 +263,24 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
             )
 
+            # The model contains LoRA params which won't have any matching keys in
+            # the state dict. As a result, we need to load with strict=False.
+            # Before loading the state dict, ensure the state dict keys for the base
+            # model and adapters (if available) match the keys in the full LoRA model
+            # This is a good sanity check to prevent silent errors
+            validate_state_dict_for_lora(
+                lora_attn_modules=cfg_model.lora_attn_modules,
+                apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+                apply_lora_to_output=cfg_model.apply_lora_to_output,
+                full_model_state_dict_keys=model.state_dict().keys(),
+                lora_state_dict_keys=(
+                    lora_weights_state_dict.keys()
+                    if lora_weights_state_dict is not None
+                    else None
+                ),
+                base_model_state_dict_keys=base_model_state_dict.keys(),
+            )
+
             # Load both the base model weights and (if available) the adapter weights. Both
             # of this should happen only on Rank 0
             model.load_state_dict(base_model_state_dict, strict=False)
@@ -276,24 +294,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
-
-        # The model contains LoRA params which won't have any matching keys in
-        # the state dict. As a result, we need to load with strict=False.
-        # Before loading the state dict, ensure the state dict keys for the base
-        # model and adapters (if available) match the keys in the full LoRA model
-        # This is a good sanity check to prevent silent errors
-        validate_state_dict_for_lora(
-            lora_attn_modules=cfg_model.lora_attn_modules,
-            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            apply_lora_to_output=cfg_model.apply_lora_to_output,
-            full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(
-                lora_weights_state_dict.keys()
-                if lora_weights_state_dict is not None
-                else None
-            ),
-            base_model_state_dict_keys=base_model_state_dict.keys(),
-        )
 
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
@@ -533,7 +533,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 self._lr_scheduler.step()
                 if (
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    # and self._is_rank_zero
+                    and self._is_rank_zero
                 ):
                     log.info(
                         utils.memory_stats_log("Memory Stats:", device=self._device)

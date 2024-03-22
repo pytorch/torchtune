@@ -397,8 +397,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ``max_steps_per_epoch``.
         """
         # clean up before training begins
-        gc.collect()
-        torch.cuda.empty_cache()
+        utils.cleanup_before_training()
 
         _, rank = utils.get_world_size_and_rank()
 

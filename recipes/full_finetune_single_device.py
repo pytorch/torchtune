@@ -311,9 +311,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-
-        utils.cleanup_before_training()
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
