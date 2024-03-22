@@ -72,7 +72,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-        torch.cuda.set_per_process_memory_fraction(0.3, device=self._device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
 
         if self._dtype == torch.float16:
