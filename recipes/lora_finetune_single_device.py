@@ -159,9 +159,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
-        # Not for shipping
-        # self._model = torch.compile(self._model)
-        # print(f"RV: compiled model", flush=True)
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -372,8 +369,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _should_update_weights(self, current_iteration: int) -> bool:
         """
         Determines whether the weights should be updated on the current iteration or not.
-        True is returned either if we've accumulated gradients for enough steps or if this
-        is the last step in the epoch.
+        True is returned either if we've accumulated gradients for enough steps.
         """
         should_update_weights = (
             current_iteration + 1

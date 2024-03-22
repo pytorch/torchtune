@@ -1,8 +1,8 @@
-# Config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
+# QLoRA specific config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
 #
 # To launch, run the following command from root:
 #    tune lora_finetune_single_device \
-#    --config lora_finetune_single_device \
+#    --config qlora_finetune_single_device \
 #    checkpointer.checkpoint_dir=<YOUR_CHECKOPOINT_DIR> ...
 
 # Model Arguments
