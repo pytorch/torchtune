@@ -10,5 +10,7 @@ torchtune.datasets
     :toctree: generated/
     :nosignatures:
 
-    AlpacaDataset
+    alpaca_dataset
+    grammar_dataset
+    samsum_dataset
     SlimOrcaDataset

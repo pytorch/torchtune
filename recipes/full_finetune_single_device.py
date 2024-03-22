@@ -27,7 +27,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class FullFinetuneRecipe(FTRecipeInterface):
+class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
@@ -49,25 +49,34 @@ class FullFinetuneRecipe(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                             CONFIG
-        full_finetune_single_device        alpaca_llama2_full_finetune_single_device
+        full_finetune_single_device        full_finetune_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
         ValueError: If ``dtype`` is set to fp16.
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-        self._training_precision = utils.get_dtype(dtype=cfg.dtype)
+        self._dtype = utils.get_dtype(dtype=cfg.dtype)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
-        if self._training_precision == torch.float16:
+        if self._dtype == torch.float16:
             raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
+
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -200,7 +209,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
         """
         Set up the model including enabling activation checkpointing.
         """
-        with utils.set_default_dtype(self._training_precision), self._device:
+        with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
         if enable_activation_checkpointing:
@@ -211,9 +220,13 @@ class FullFinetuneRecipe(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._training_precision)
-        log.info(f"Model is initialized with precision {self._training_precision}.")
-        utils.memory_stats_log("Memory Stats after model init:", device=self._device)
+        utils.validate_expected_param_dtype(model, dtype=self._dtype)
+        log.info(f"Model is initialized with precision {self._dtype}.")
+        log.info(
+            utils.memory_stats_log(
+                "Memory Stats after model init:", device=self._device
+            )
+        )
         return model
 
     def _setup_optimizer(
@@ -396,7 +409,9 @@ class FullFinetuneRecipe(FTRecipeInterface):
 
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    utils.memory_stats_log("Memory Stats:", device=self._device)
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -410,10 +425,10 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_full_finetune_single_device.yaml``
+        - Parameters specified in ``full_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line
     """
-    recipe = FullFinetuneRecipe(cfg=cfg)
+    recipe = FullFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()

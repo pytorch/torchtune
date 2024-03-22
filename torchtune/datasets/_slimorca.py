@@ -9,6 +9,8 @@ from typing import Dict, List, Tuple
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
+from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+
 # Not ideal to import this type here but it's needed for the transform function
 from torchtune.modules import Tokenizer
 
@@ -20,9 +22,6 @@ class _Llama2ChatFormatConstants:
 
     B_INST, E_INST = "[INST]", "[/INST]"
     B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-
-
-_CROSS_ENTROPY_IGNORE_IDX = -100
 
 
 class SlimOrcaDataset(Dataset):
@@ -109,7 +108,7 @@ class SlimOrcaDataset(Dataset):
 
         input = prompt_tokens + label_tokens
         label = [
-            _CROSS_ENTROPY_IGNORE_IDX for _ in range(len(prompt_tokens))
+            CROSS_ENTROPY_IGNORE_IDX for _ in range(len(prompt_tokens))
         ] + label_tokens
         return input, label
 

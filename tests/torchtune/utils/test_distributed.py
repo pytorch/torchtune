@@ -15,24 +15,17 @@ import torch.nn as nn
 from tests.test_utils import single_box_init
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torchtune.models.llama2._lora_llama2_builders import lora_llama2
+from torchtune import utils
+from torchtune.models.llama2._component_builders import lora_llama2
 from torchtune.modules import TransformerDecoderLayer
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
-from torchtune.utils.distributed import (
-    get_world_size_and_rank,
-    init_distributed,
-    lora_fsdp_wrap_policy,
-    prepare_model_for_fsdp_with_meta_device,
-    validate_no_params_on_meta_device,
-    wrap_fsdp,
-)
 
 
 class TestDistributed:
     def test_init_distributed(self) -> None:
         """Integration test to confirm consistency across device initialization utilities."""
-        distributed = init_distributed()
+        distributed = utils.init_distributed()
         assert (
             not distributed
         ), "Should return False as there are no distributed environment variables"
@@ -45,7 +38,7 @@ class TestDistributed:
         if init_pg_explicit:
             torch.distributed.init_process_group(backend="gloo")
         if not torch.distributed.is_initialized():
-            init_distributed(backend="gloo")
+            utils.init_distributed(backend="gloo")
         if not torch.distributed.is_initialized():
             raise AssertionError("Expected torch.distributed to be initialized")
         pg_backend = torch.distributed.get_backend()
@@ -55,8 +48,8 @@ class TestDistributed:
 
     @staticmethod
     def _test_world_size_with_cpu_device(expected_world_size: int) -> None:
-        init_distributed(backend="gloo")
-        world_size, _ = get_world_size_and_rank()
+        utils.init_distributed(backend="gloo")
+        world_size, _ = utils.get_world_size_and_rank()
         if world_size != expected_world_size:
             raise AssertionError(
                 f"Expected different world size: received {world_size}, expected {expected_world_size}"
@@ -91,7 +84,7 @@ class TestDistributed:
     def test_default_wrap_fsdp(self) -> None:
         with single_box_init():
             model = nn.Linear(5, 5)
-            fsdp_model = wrap_fsdp(
+            fsdp_model = utils.wrap_fsdp(
                 model, device=torch.device("cpu"), dtype=torch.float32
             )
             # Should create a single FSDP unit with FULL_SHARD
@@ -102,7 +95,7 @@ class TestDistributed:
         with single_box_init():
             model = nn.Sequential(nn.Linear(3, 3), nn.Linear(3, 3))
             orig_num_modules = len([m for m in model.modules()])
-            fsdp_model = wrap_fsdp(
+            fsdp_model = utils.wrap_fsdp(
                 model,
                 device=torch.device("cpu"),
                 dtype=torch.float32,
@@ -121,7 +114,7 @@ class TestDistributed:
         )
         num_modules = len([m for m in model.modules()])
         with single_box_init():
-            fsdp_model = wrap_fsdp(
+            fsdp_model = utils.wrap_fsdp(
                 model,
                 device=torch.device("cpu"),
                 dtype=torch.float32,
@@ -135,7 +128,7 @@ class TestDistributed:
             model = torch.nn.Linear(3, 3)
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
-            validate_no_params_on_meta_device(model)
+            utils.validate_no_params_on_meta_device(model)
 
         # Test model with only buffer
         model = torch.nn.Linear(3, 3)
@@ -143,7 +136,7 @@ class TestDistributed:
         model.register_buffer("buffer", buffer)
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
-            validate_no_params_on_meta_device(model)
+            utils.validate_no_params_on_meta_device(model)
 
 
 N_LAYERS = 3
@@ -191,10 +184,10 @@ class TestLoRAFSDP:
         set_trainable_params(model, adapter_params)
         num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
         with single_box_init():
-            lora_wrap_policy = lora_fsdp_wrap_policy(
+            lora_wrap_policy = utils.lora_fsdp_wrap_policy(
                 modules_to_wrap={TransformerDecoderLayer}
             )
-            prepare_model_for_fsdp_with_meta_device(model)
+            utils.prepare_model_for_fsdp_with_meta_device(model)
             wrapped_lora = FSDP(
                 model,
                 auto_wrap_policy=lora_wrap_policy,
@@ -238,7 +231,7 @@ class TestLoRAFSDP:
                 lora_rank=4,
                 lora_alpha=1.0,
             )
-        prepare_model_for_fsdp_with_meta_device(lora)
+        utils.prepare_model_for_fsdp_with_meta_device(lora)
         for m in lora.modules():
             m.to_empty(device=torch.device("cpu"), recurse=False)
             m.reset_parameters()

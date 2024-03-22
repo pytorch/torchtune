@@ -10,6 +10,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torchtune.utils._distributed import get_world_size_and_rank
 
 from torchtune.utils.constants import (
     EPOCHS_KEY,
@@ -19,7 +20,6 @@ from torchtune.utils.constants import (
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
-from torchtune.utils.distributed import get_world_size_and_rank
 
 
 class OptimizerInBackwardWrapper:

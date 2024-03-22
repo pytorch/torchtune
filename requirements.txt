@@ -1,11 +1,11 @@
 # HuggingFace Integration Reqs
-datasets==2.15.0
-huggingface_hub==0.19.4
+datasets
+huggingface_hub
 
 # Misc
-sentencepiece==0.1.99
-tqdm==4.66.1
-omegaconf>=2.3.0
+sentencepiece
+tqdm
+omegaconf
 
 # Evaluation
 lm_eval==0.4.1

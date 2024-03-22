@@ -1,20 +1,23 @@
-# Config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
+# QLoRA specific config for LoRAFinetuneRecipeSingleDevice in lora_finetune_single_device.py
 #
 # To launch, run the following command from root:
-#    tune lora_finetune_single_device --config alpaca_llama2_lora_finetune_single_device model_checkpoint=<your_checkpoint_dir> ...
+#    tune lora_finetune_single_device \
+#    --config qlora_finetune_single_device \
+#    checkpointer.checkpoint_dir=<YOUR_CHECKOPOINT_DIR> ...
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama2.lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
+  _component_: torchtune.models.llama2.qlora_llama2_7b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
+  apply_lora_to_mlp: True
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  quantize_base: True
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/llama2/
+  checkpoint_dir: /tmp/llama2
   checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
@@ -29,7 +32,7 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.AlpacaDataset
+  _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
   use_clean: True
 seed: null
@@ -51,9 +54,10 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
+gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/qlora_finetune_output/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
@@ -61,5 +65,5 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-full_bf16: False
+dtype: bf16
 enable_activation_checkpointing: True

@@ -44,11 +44,19 @@ class TuneArgumentParser(argparse.ArgumentParser):
 
         https://docs.python.org/3/library/argparse.html#the-parse-args-method
         """
-        namespace, _ = super().parse_known_args(*args, **kwargs)
-        if namespace.config is not None:
-            config = OmegaConf.load(namespace.config)
-            assert "config" not in config, "Cannot use 'config' within a config file"
-            self.set_defaults(**config)
+        namespace, unknown_args = super().parse_known_args(*args, **kwargs)
+
+        unknown_flag_args = [arg for arg in unknown_args if arg.startswith("--")]
+        if unknown_flag_args:
+            raise ValueError(
+                f"Additional flag arguments not supported: {unknown_flag_args}. Please use --config or key=value overrides"
+            )
+
+        config = OmegaConf.load(namespace.config)
+        assert "config" not in config, "Cannot use 'config' within a config file"
+        self.set_defaults(**config)
+
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
         del namespace.config
+
         return namespace, unknown_args
