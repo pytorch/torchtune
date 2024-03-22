@@ -78,7 +78,7 @@ jobs:
         env:
           GITHUB_PYTORCHBOT_TOKEN: ${{ secrets.GH_PYTORCHBOT_TOKEN }}
         run: |
-          git remote set-url origin https://pytorchbot:${{ env.GITHUB_PYTORCHBOT_TOKEN }}@github.com/pytorch/torchtune.git
+          git remote set-url origin https://pytorchbot:${GITHUB_PYTORCHBOT_TOKEN}@github.com/pytorch/torchtune.git
           set -euo pipefail
           REF_TYPE=${{ github.ref_type }}
           REF_NAME=${{ github.ref_name }}
