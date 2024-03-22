@@ -57,7 +57,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output_abcd/
+output_dir: /tmp/qlora_finetune_output/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
