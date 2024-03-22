@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils.checkpoint
+
+
+load_checkpoint
+===============
+
+.. autofunction:: load_checkpoint

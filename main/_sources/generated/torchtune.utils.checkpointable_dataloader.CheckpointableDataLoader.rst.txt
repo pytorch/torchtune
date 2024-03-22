@@ -1,0 +1,10 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils.checkpointable_dataloader
+
+
+CheckpointableDataLoader
+========================
+
+.. autoclass:: CheckpointableDataLoader
+    :members:
