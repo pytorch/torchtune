@@ -30,25 +30,23 @@ EVAL_CONFIG_PATH = Path.joinpath(
 )
 
 
-@gpu_test(gpu_count=2)
+@gpu_test(gpu_count=4)
 class TestFullFinetuneDistributed7BLoss:
     def _get_test_config_overrides(self):
         return [
-            "batch_size=4",
-            "dtype=fp32",
-            "enable_activation_checkpointing=False",
+            "batch_size=1",
+            "dtype=bf16",
+            "enable_activation_checkpointing=True",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
             "max_steps_per_epoch=2",
-            "optimizer=torch.optim.AdamW",
-            "optimizer.lr=2e-5",
             "log_every_n_steps=1",
         ]
 
     def _fetch_expected_loss_values(self):
-        return [1.2012, 1.0482, 1.3395, 0.9876]
+        return [1.1281, 1.8182, 1.2476, 0.9085]
 
     @pytest.mark.slow_integration_test
     def test_loss(self, tmpdir, monkeypatch):
@@ -73,13 +71,29 @@ class TestFullFinetuneDistributed7BLoss:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
+        import pdb
+
+        pdb.set_trace()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
 
 
-@gpu_test(gpu_count=2)
+@gpu_test(gpu_count=4)
 class TestLoRA7BDistributedFinetuneEval:
+    def _get_test_config_overrides(self):
+        return [
+            "batch_size=1",
+            "dtype=bf16",
+            "enable_activation_checkpointing=True",
+            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
+            "dataset.train_on_input=False",
+            "seed=9",
+            "log_every_n_steps=1",
+            "optimizer=torch.optim.SGD",
+            "optimizer.lr=2e-5",
+        ]
+
     @pytest.mark.slow_integration_test
     def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
 

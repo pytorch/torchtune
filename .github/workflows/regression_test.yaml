@@ -20,7 +20,7 @@ defaults:
 
 jobs:
   regression_test:
-    runs-on: linux.g4dn.12xlarge.nvidia.gpu
+    runs-on: linux.g5.12xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.11']

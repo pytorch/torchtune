@@ -98,7 +98,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
-        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # logging attributes
@@ -303,22 +302,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
-
-        if self._is_rank_zero:  # Debugging
-            log.error(
-                utils.memory_stats_log(
-                    "Memory Stats before FSDP wrap", device=self._device
-                )
-            )
-
-        import os
-
-        if self._is_rank_zero:
-            smi_file = f"{self._metric_logger.log_dir}/smi.txt"
-            os.system(f"nvidia-smi > {smi_file}")
-            with open(smi_file, "rb") as f:
-                smi_out = f.read()
-            log.error(smi_out)
 
         model = FSDP(
             module=model,
