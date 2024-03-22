@@ -10,127 +10,216 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-"""
-Launcher and utilities for torchtune recipes
+# """
+# Launcher and utilities for torchtune recipes
 
-``tune`` provides functionality for launching torchtune recipes as well as local
-recipes. Aside from torchtune recipe utilties it integrates with ``torch.distributed.run``
-to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
-does with the following additional functionalities:
+# ``tune`` provides functionality for launching torchtune recipes as well as local
+# recipes. Aside from torchtune recipe utilties it integrates with ``torch.distributed.run``
+# to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
+# does with the following additional functionalities:
 
-1. ``tune <recipe> <recipe_args>`` with no optional ``torchrun`` options launches a single python process
+# 1. ``tune <recipe> <recipe_args>`` with no optional ``torchrun`` options launches a single python process
 
-2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
+# 2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
 
-3. ``tune <path/to/recipe.py> <recipe_args>`` can be used to launch local recipes
+# 3. ``tune <path/to/recipe.py> <recipe_args>`` can be used to launch local recipes
 
-4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
+# 4. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
 
-.. note:: ``tune`` is a python
-          `console script <https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts>`_
-          to the main module
-          `scripts.cli_utils.tune <https://github.com/pytorch/torchtune/blob/main/scripts/cli_utils/tune>`_
-          declared in the ``scripts`` configuration in
-          `setup.py <https://github.com/pytorch/torchtune/blob/main/setup.py>`_.
-          It is equivalent to invoking ``python -m scripts.cli_utils.tune``.
-"""
+# .. note:: ``tune`` is a python
+#           `console script <https://packaging.python.org/en/latest/specifications/entry-points/#use-for-scripts>`_
+#           to the main module
+#           `scripts.cli_utils.tune <https://github.com/pytorch/torchtune/blob/main/scripts/cli_utils/tune>`_
+#           declared in the ``scripts`` configuration in
+#           `setup.py <https://github.com/pytorch/torchtune/blob/main/setup.py>`_.
+#           It is equivalent to invoking ``python -m scripts.cli_utils.tune``.
+# """
+# import argparse
+# import runpy
+# import sys
+# from pathlib import Path
+
+# import torchtune
+# from torch.distributed.run import get_args_parser, run
+# from torchtune import list_recipes
+# from torchtune._cli import list_scripts
+# from torchtune.utils._distributed import _valid_distributed_single_node_nnodes
+
+
+# def _update_parser_help(parser):
+#     parser.description = "Torch Tune Recipe Launcher"
+#     parser.usage = "tune [options] <recipe> [recipe_args]"
+#     parser.formatter_class = argparse.RawDescriptionHelpFormatter
+
+#     # Update torchrun argparse name for more accurate CLI help
+#     actions = [a.dest for a in parser._actions]
+#     # Update training_script help to be recipe
+#     idx = actions.index("training_script")
+#     parser._actions[idx].dest = "recipe"
+#     parser._actions[idx].help = "Name or path to recipe to be launched followed by args"
+
+#     # Update training_script_args help to be recipe_args
+#     idx = actions.index("training_script_args")
+#     parser._actions[idx].dest = "recipe_args"
+
+
+# def _is_distributed_args(args):
+#     total = len(sys.argv) - 1  # total args minus "tune"
+#     script_args = len(args.recipe_args) + 1  # script args + 1 for script name
+#     return total > script_args
+
+
+# def _validate_distributed_args(args):
+#     """
+#     Validates nnodes and nproc_per_node are appropriately set for distributed training
+#     runs.
+#     """
+#     if not hasattr(args, "nnodes"):
+#         raise RuntimeError("Expect --nnodes to be specified for distributed runs")
+
+#     if args.nnodes not in _valid_distributed_single_node_nnodes:
+#         raise RuntimeError(
+#             f"Expect --nnodes to be one of {_valid_distributed_single_node_nnodes}"
+#         )
+
+#     if not hasattr(args, "nproc_per_node"):
+#         raise RuntimeError(
+#             "Expect --nproc_per_node to be specified for distributed runs"
+#         )
+
+#     # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+#     # we don't do this since we test on CPUs for distributed. Will update once multi GPU
+#     # CI is supported.
+
 import argparse
-import runpy
-import sys
+import textwrap
 from pathlib import Path
 
-import torchtune
-from torch.distributed.run import get_args_parser, run
-from torchtune import list_recipes
-from torchtune._cli import list_scripts
-from torchtune.utils._distributed import _valid_distributed_single_node_nnodes
-
-
-def _update_parser_help(parser):
-    parser.description = "Torch Tune Recipe Launcher"
-    parser.usage = "tune [options] <recipe> [recipe_args]"
-    parser.formatter_class = argparse.RawDescriptionHelpFormatter
-
-    # Update torchrun argparse name for more accurate CLI help
-    actions = [a.dest for a in parser._actions]
-    # Update training_script help to be recipe
-    idx = actions.index("training_script")
-    parser._actions[idx].dest = "recipe"
-    parser._actions[idx].help = "Name or path to recipe to be launched followed by args"
-
-    # Update training_script_args help to be recipe_args
-    idx = actions.index("training_script_args")
-    parser._actions[idx].dest = "recipe_args"
-
-
-def _is_distributed_args(args):
-    total = len(sys.argv) - 1  # total args minus "tune"
-    script_args = len(args.recipe_args) + 1  # script args + 1 for script name
-    return total > script_args
-
-
-def _validate_distributed_args(args):
-    """
-    Validates nnodes and nproc_per_node are appropriately set for distributed training
-    runs.
-    """
-    if not hasattr(args, "nnodes"):
-        raise RuntimeError("Expect --nnodes to be specified for distributed runs")
-
-    if args.nnodes not in _valid_distributed_single_node_nnodes:
-        raise RuntimeError(
-            f"Expect --nnodes to be one of {_valid_distributed_single_node_nnodes}"
-        )
-
-    if not hasattr(args, "nproc_per_node"):
-        raise RuntimeError(
-            "Expect --nproc_per_node to be specified for distributed runs"
-        )
-
-    # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
-    # we don't do this since we test on CPUs for distributed. Will update once multi GPU
-    # CI is supported.
+from torchtune._cli.cp import cp_cmd
+from torchtune._cli.ls import ls_cmd
 
 
 def main():
-    parser = get_args_parser()
-    _update_parser_help(parser)
-    args = parser.parse_args()
+    tune_parser = argparse.ArgumentParser(
+        prog="tune",
+        description="Welcome to the TorchTune CLI!",
+        add_help=True,
+    )
+    tune_parser.set_defaults(func=lambda args: tune_parser.print_help())
+    subparsers = tune_parser.add_subparsers(title="subcommands")
 
-    distributed_args = _is_distributed_args(args)
-    cmd = args.recipe
-    if not cmd.endswith(".py"):
-        pkg_path = Path(torchtune.__file__).parent.absolute()
-        if f"{cmd}.py" in list_recipes():
-            recipes_pkg_path = pkg_path.parent / "recipes"
-            cmd = recipes_pkg_path / f"{cmd}.py"
-            args.recipe = str(cmd)
+    # Add `ls` command
+    ls_parser = subparsers.add_parser(
+        "ls",
+        prog="tune ls",
+        help="List all built-in recipes and configs",
+        epilog=textwrap.dedent(
+            """\
+        examples:
+            $ tune ls
+            RECIPE                           CONFIG
+            full_finetune_distributed.py     full_finetune_distributed.yaml
+            lora_finetune_distributed.py     lora_finetune_distributed.yaml
+            alpaca_generate.py               alpaca_generate.yaml
 
-            # Replace config name with package path if provided
-            if "--config" in args.recipe_args:
-                cfg_idx = args.recipe_args.index("--config") + 1
-                config = args.recipe_args[cfg_idx]
-                if not config.endswith(".yaml"):
-                    args.recipe_args[cfg_idx] = str(
-                        recipes_pkg_path / "configs" / f"{config}.yaml"
-                    )
-        elif cmd in list_scripts():
-            cmd = pkg_path / "_cli" / f"{cmd}.py"
-            args.recipe = str(cmd)
-            assert not distributed_args, "You can't use distributed args with scripts"
-        else:
-            parser.error(
-                f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information."
-            )
+        To run one of these recipes:
+            $ tune full_finetune_single_device --config full_finetune_single_device
+        """
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    ls_parser.set_defaults(func=ls_cmd)
 
-    if distributed_args:
-        _validate_distributed_args(args)
-        args.training_script = str(cmd)  # arg names expected by torchrun
-        args.training_script_args = args.recipe_args
-        run(args)
-    else:
-        sys.argv = [str(cmd)] + args.recipe_args
-        runpy.run_path(str(cmd), run_name="__main__")
+    # Add `cp` command
+    cp_parser = subparsers.add_parser(
+        "cp",
+        prog="tune cp",
+        usage="tune cp <recipe|config> destination [OPTIONS]",
+        help="Copy a built-in recipe or config to a local path.",
+        epilog=textwrap.dedent(
+            """\
+        examples:
+            $ tune cp lora_finetune_distributed.yaml ./my_custom_llama2_lora.yaml
+            $ tune cp full_finetune_distributed.py ./my_custom_full_finetune.py
+            $ tune cp full_finetune_distributed.py ./new_dir/my_custom_full_finetune.py --make-parents
+
+        Need to see all possible recipes/configs to copy? Try running `tune ls`.
+        And as always, you can also run `tune cp --help` for more information.
+        """
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
+    )
+    cp_parser.add_argument(
+        "file",
+        type=str,
+        help="Recipe/config to copy. For a list of all possible options, run `tune ls`",
+    )
+    cp_parser.add_argument(
+        "destination",
+        type=Path,
+        help="Location to copy the file to",
+    )
+    cp_parser.add_argument(
+        "-n",
+        "--no-clobber",
+        action="store_true",
+        help="Do not overwrite destination if it already exists",
+        default=False,
+    )
+    cp_parser.add_argument(
+        "--make-parents",
+        action="store_true",
+        help="Create parent directories for destination if they do not exist. "
+        "If not set to True, will error if parent directories do not exist",
+        default=False,
+    )
+    cp_parser.set_defaults(func=cp_cmd)
+
+    # download_parser = subparsers.add_parser("download")
+    # convert_ckpt_parser = subparsers.add_parser("convert_checkpoint")
+    # validate_parser = subparsers.add_parser("validate")
+
+    args = tune_parser.parse_args()
+    args.func(args)
+
+    # parser = get_args_parser()
+    # _update_parser_help(parser)
+    # args = parser.parse_args()
+
+    # distributed_args = _is_distributed_args(args)
+    # cmd = args.recipe
+    # if not cmd.endswith(".py"):
+    #     pkg_path = Path(torchtune.__file__).parent.absolute()
+    #     if f"{cmd}.py" in list_recipes():
+    #         recipes_pkg_path = pkg_path.parent / "recipes"
+    #         cmd = recipes_pkg_path / f"{cmd}.py"
+    #         args.recipe = str(cmd)
+
+    #         # Replace config name with package path if provided
+    #         if "--config" in args.recipe_args:
+    #             cfg_idx = args.recipe_args.index("--config") + 1
+    #             config = args.recipe_args[cfg_idx]
+    #             if not config.endswith(".yaml"):
+    #                 args.recipe_args[cfg_idx] = str(
+    #                     recipes_pkg_path / "configs" / f"{config}.yaml"
+    #                 )
+    #     elif cmd in list_scripts():
+    #         cmd = pkg_path / "_cli" / f"{cmd}.py"
+    #         args.recipe = str(cmd)
+    #         assert not distributed_args, "You can't use distributed args with scripts"
+    #     else:
+    #         parser.error(
+    #             f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information."
+    #         )
+
+    # if distributed_args:
+    #     _validate_distributed_args(args)
+    #     args.training_script = str(cmd)  # arg names expected by torchrun
+    #     args.training_script_args = args.recipe_args
+    #     run(args)
+    # else:
+    #     sys.argv = [str(cmd)] + args.recipe_args
+    #     runpy.run_path(str(cmd), run_name="__main__")
 
 
 if __name__ == "__main__":

@@ -6,15 +6,12 @@
 
 """This script lists all built-in recipes/configs"""
 
-import argparse
-import textwrap
-
 from torchtune import list_configs, list_recipes
 
 _NULL_VALUE = "<>"
 
 
-def main():
+def ls_cmd(*args):
     # Print table header
     header = f"{'RECIPE':<40} {'CONFIG':<40}"
     print(header)
@@ -33,28 +30,3 @@ def main():
                 recipe = ""
             row = f"{recipe:<40} {config:<40}"
             print(row)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="List all built-in recipes and configs",
-        usage="tune ls",
-        epilog=textwrap.dedent(
-            """\
-        examples:
-            $ tune ls
-            RECIPE                           CONFIG
-            full_finetune_distributed.py     llama2/7B_full,
-                                             llama2/13B_full
-            lora_finetune_distributed.py     llama2/7B_lora,
-                                             llama2/13B_lora
-            alpaca_generate.py               alpaca_generate.yaml
-
-        To run one of these recipes:
-            $ tune full_finetune_single_device --config llama2/7B_full_single_device
-        """
-        ),
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    parser.parse_args()
-    main()
