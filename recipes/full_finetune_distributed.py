@@ -267,7 +267,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.error(
+            log.info(
                 utils.memory_stats_log(
                     "Memory Stats after model init", device=self._device
                 )
