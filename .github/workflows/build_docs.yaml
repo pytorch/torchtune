@@ -21,7 +21,7 @@ defaults:
 
 jobs:
   build_docs:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux.2xlarge]
     strategy:
       matrix:
         python-version: ['3.11']
@@ -54,7 +54,7 @@ jobs:
           retention-days: 14
           s3-bucket: doc-previews
           if-no-files-found: error
-          path: docs
+          path: docs/build/html/
           s3-prefix: pytorch/torchtune/${{ github.event.pull_request.number }}
       - uses: actions/upload-artifact@v3
         with:
