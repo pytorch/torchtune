@@ -77,7 +77,11 @@ class InstructDataset(Dataset):
         transformed_sample = self._transform(sample) if self._transform else sample
 
         prompt = self.template.format(transformed_sample, self._column_map)
-        key_output = self._column_map["output"] if self._column_map else "output"
+        key_output = (
+            self._column_map["output"]
+            if self._column_map and "output" in self._column_map
+            else "output"
+        )
         prompt_with_response = prompt + sample[key_output]
 
         encoded_prompt = self._tokenizer.encode(

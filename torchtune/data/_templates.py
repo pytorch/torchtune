@@ -27,7 +27,8 @@ class PromptTemplate(ABC):
             sample (Mapping[str, Any]): a single data sample with various fields
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+                If None, assume these are identical. Note: if the sample output is not named
+                as "output" in the dataset, you always need to map it to "output" in column_map.
 
         Returns:
             The formatted prompt
