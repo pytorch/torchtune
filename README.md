@@ -48,6 +48,7 @@ experience different peak memory utilization based on changes made in configurat
 
 | Example HW Resources | Finetuning Method |  Config | Model Size | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
+| 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/qlora_finetune_single_device.yaml)         |    7B      |     9.29 GB *           |
 | 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/lora_finetune_distributed.yaml)         |    7B      |    14.17 GB *           |
 | 1 x RTX 4090 |     LoRA          | [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/lora_finetune_single_device.yaml)     |    7B      | 17.18 GB *           |
 | 1 x A6000    |   Full finetune   | [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/full_finetune_single_device.yaml)     |    7B      |    27.15 GB *           |
