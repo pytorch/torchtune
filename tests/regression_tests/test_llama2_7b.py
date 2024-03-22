@@ -30,12 +30,12 @@ EVAL_CONFIG_PATH = Path.joinpath(
 )
 
 
-@gpu_test(gpu_count=4)
+@gpu_test(gpu_count=2)
 class TestFullFinetuneDistributed7BLoss:
     def _get_test_config_overrides(self):
         return [
             "batch_size=1",
-            "dtype=fp32",
+            "dtype=bf16",
             "enable_activation_checkpointing=True",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "dataset.train_on_input=False",
@@ -46,7 +46,7 @@ class TestFullFinetuneDistributed7BLoss:
         ]
 
     def _fetch_expected_loss_values(self):
-        return [1.1322, 5.5594, 1.2430, 1.5354]
+        return [1.1281, 1.8182, 1.2476, 0.9085]
 
     @pytest.mark.slow_integration_test
     def test_loss(self, tmpdir, monkeypatch):
@@ -55,7 +55,7 @@ class TestFullFinetuneDistributed7BLoss:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed
+        tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed
             --config full_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
@@ -122,7 +122,7 @@ class TestLoRA7BDistributedFinetuneEval:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']
             limit=10 \
-            device=cpu \
+            device=cuda \
         """.split()
         monkeypatch.setattr(sys, "argv", eval_cmd)
         with pytest.raises(SystemExit):
