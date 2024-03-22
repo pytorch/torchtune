@@ -1,4 +1,4 @@
-# Config for EleutherEvalRecipe in eluether_eval.py
+# Config for EleutherEvalRecipe in eleuther_eval.py
 #
 # To launch, run the following command from root torchtune directory:
 #    tune eleuther_eval --config llama2_eleuther_eval tasks=["truthfulqa_mc2", "hellaswag"]
