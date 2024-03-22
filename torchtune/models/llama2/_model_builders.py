@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from typing import List, Optional
+from functools import partial
 
 from torch import nn
 
@@ -79,6 +80,7 @@ def lora_llama2_7b(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
+        quantize_base (bool): Whether to quantize base model weights
 
     Returns:
         TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied
@@ -101,3 +103,11 @@ def lora_llama2_7b(
         lora_dropout=0.05,
         quantize_base=quantize_base,
     )
+
+qlora_llama2_7b = partial(lora_llama2_7b, quantize_base=True)
+
+qlora_llama2_7b.__doc__ = """
+Builder for creating a Llama2 model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_llama2_7b` for full API arguments.
+"""

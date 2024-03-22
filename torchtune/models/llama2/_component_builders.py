@@ -25,9 +25,6 @@ from torchtune.modules.low_precision import reparametrize_as_bf16_state_dict_pos
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
-# Modules from CausalSelfAttention that LoRA can be applied to
-LORA_ATTN_MODULES = Literal["q_proj", "k_proj", "v_proj", "output_proj"]
-
 """
 Component builders for the Llama2 model and popular variants such as LoRA.
 
@@ -244,7 +241,7 @@ def lora_llama2(
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
-    ret_model = TransformerDecoder(
+    model = TransformerDecoder(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
@@ -255,11 +252,11 @@ def lora_llama2(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
         # so as to not increase peak memory
-        ret_model._register_state_dict_hook(
+        model._register_state_dict_hook(
             partial(reparametrize_as_bf16_state_dict_post_hook, offload_to_cpu=True)
         )
 
-    return ret_model
+    return model
 
 
 def lora_llama2_self_attention(

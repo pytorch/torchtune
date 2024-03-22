@@ -7,16 +7,17 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama2.lora_llama2_7b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
+  _component_: torchtune.models.llama2.qlora_llama2_7b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
+  apply_lora_to_mlp: True
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  quantize_base: True
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/llama2/
+  checkpoint_dir: /tmp/llama2
   checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
@@ -56,7 +57,7 @@ max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/lora_finetune_output_abcd/
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}

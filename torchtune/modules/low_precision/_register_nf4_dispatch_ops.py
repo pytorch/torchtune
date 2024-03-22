@@ -40,27 +40,3 @@ def inplace_copy(func, *args, **kwargs):
     dest_tensor.scaler_mean = ref_tensor.scaler_mean
     dest_tensor.quantized_data = ref_tensor.quantized_data
     dest_tensor.nf4 = ref_tensor.nf4
-
-
-@nf4_tensor_impl([torch.ops.aten.sub_.Tensor])
-def sub_bf16_tensor(func, *args, **kwargs):
-    """
-    Subtracts a bf16 tensor from an NF4Tensor, by subtracting it from the
-    unquantized weight and re-casting to NF4.
-    """
-    nf4_tensor = args[0][0]
-    sub_tensor = args[0][1]
-    assert sub_tensor.dtype == torch.bfloat16
-    return to_nf4(nf4_tensor.get_original_weight().sub_(sub_tensor))
-
-
-@nf4_tensor_impl([torch.ops.aten.add_.Tensor])
-def add_bf16_tensor(func, *args, **kwargs):
-    """
-    Adds a bf16 tensor from an NF4Tensor, by add it from the
-    unquantized weight and re-casting to NF4.
-    """
-    nf4_tensor = args[0][0]
-    sub_tensor = args[0][1]
-    assert sub_tensor.dtype == torch.bfloat16
-    return to_nf4(nf4_tensor.get_original_weight().add_(sub_tensor))

@@ -246,7 +246,7 @@ class TestLoRALlama2:
                 embed_dim=512,
             )
             qlora.load_state_dict(bf16_sd)
-            # LoRALinear weights should be nf4 still
+            # LoRALinear base weights should be nf4 still
             for module in qlora.modules():
                 if isinstance(module, LoRALinear):
                     assert isinstance(module.weight, NF4Tensor)

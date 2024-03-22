@@ -94,13 +94,7 @@ class LoRALinear(nn.Module, AdapterModule):
             if not self._quantize_base
             else FrozenNF4Linear(in_dim, out_dim, bias=False)
         )
-        weight_tensor = linear.weight
-        # TODO: remove below, there for debugging
-        # weight_tensor = (
-        #     linear.weight
-        #     if not self._quantize_base
-        #     else to_nf4(linear.weight.get_original_weight())
-        # )
+        weight = linear.weight
         bias = None
         if self.use_bias:
             if self._quantize_base:
@@ -108,7 +102,7 @@ class LoRALinear(nn.Module, AdapterModule):
                     "Quantized LoRALinear does not support bias at the moment."
                 )
             bias = _copy_tensor(linear.bias)
-        return weight_tensor, bias
+        return weight, bias
 
     def adapter_params(self) -> List[str]:
         """
