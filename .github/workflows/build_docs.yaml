@@ -39,5 +39,5 @@ jobs:
           git config user.email "csl@meta.com"
           mkdir -p hello
           git add .
-          git c "update"
+          git commit "update"
           git push origin csl/test1
