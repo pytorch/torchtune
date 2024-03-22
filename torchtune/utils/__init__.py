@@ -15,6 +15,7 @@ from .checkpoint import (  # noqa
     save_checkpoint,
     transform_opt_state_dict,
     validate_checkpoint,
+    OptimizerInBackwardWrapper,
 )
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
@@ -71,4 +72,5 @@ __all__ = [
     "validate_expected_param_dtype",
     "TuneArgumentParser",
     "CheckpointableDataLoader",
+    "OptimizerInBackwardWrapper",
 ]

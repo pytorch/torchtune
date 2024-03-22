@@ -233,8 +233,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                 p: config.instantiate(cfg_optimizer, [p])
                 for p in self._model.parameters()
             }
-            # NOTE: self._optim_dict only maintained for now to log LR during training.
-            self._optim_dict = optim_dict
+            self._optim_ckpt_wrapper = utils.OptimInBackwardWrapper(optim_dict)
             def optim_step(param) -> None:
                 optim_dict[param].step()
                 optim_dict[param].zero_grad()
@@ -242,12 +241,17 @@ class FullFinetuneRecipe(FTRecipeInterface):
             for p in self._model.parameters():
                 p.register_post_accumulate_grad_hook(optim_step)
 
-            # Warn that loading optimizer states when resuming training is not supported.
+            # Load optimizer states. If optimizer states are being restored in an optimizer in backward
+            # run, these need to have been saved with the same setting. Cannot restore from runs that did not
+            # use optimizer in backward.
             if opt_state_dict is not None:
-                log.warning(
-                    "Loading optimizer state dict when resuming training with optimizer in backward is not supported. "
-                    "Optimizer state dict will be ignored."
-                )
+                try:
+                    self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
+                except BaseException as e:
+                    raise RuntimeError(
+                        "Failed loading in-backward optimizer checkpoints."
+                        "Please make sure run being restored from was using in-backward optimizer."
+                    ) from e
             log.info("In-backward optimizers are set up.")
             return None
         else:
@@ -373,7 +377,7 @@ class FullFinetuneRecipe(FTRecipeInterface):
                             "loss": loss.item(),
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
-                            "lr": list(self._optim_dict.values())[0].param_groups[0]["lr"] if self._optimizer_in_bwd else self._optimizer.param_groups[0]["lr"],
+                            "lr": list(self._optim_ckpt_wrapper.optim_dict.values())[0].param_groups[0]["lr"] if self._optimizer_in_bwd else self._optimizer.param_groups[0]["lr"],
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,
