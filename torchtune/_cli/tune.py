@@ -63,10 +63,10 @@
 #     parser._actions[idx].dest = "recipe_args"
 
 
-# def _is_distributed_args(args):
-#     total = len(sys.argv) - 1  # total args minus "tune"
-#     script_args = len(args.recipe_args) + 1  # script args + 1 for script name
-#     return total > script_args
+def _is_distributed_args(args):
+    total = len(sys.argv) - 1  # total args minus "tune"
+    script_args = len(args.recipe_args) + 1  # script args + 1 for script name
+    return total > script_args
 
 
 # def _validate_distributed_args(args):
@@ -94,9 +94,13 @@
 import argparse
 import textwrap
 from pathlib import Path
+import os
 
 from torchtune._cli.cp import cp_cmd
 from torchtune._cli.ls import ls_cmd
+from torchtune._cli.download import download_cmd
+from torchtune._cli.convert_checkpoint import convert_checkpoint_cmd, _PYTORCH_MODEL_FILENAME
+from torchtune._cli.validate import validate_cmd
 
 
 def main():
@@ -175,9 +179,133 @@ def main():
     )
     cp_parser.set_defaults(func=cp_cmd)
 
-    # download_parser = subparsers.add_parser("download")
-    # convert_ckpt_parser = subparsers.add_parser("convert_checkpoint")
-    # validate_parser = subparsers.add_parser("validate")
+    # Add `download` command
+    download_parser = subparsers.add_parser("download",
+        prog="tune download",
+        usage="tune download <repo-id> [OPTIONS]",
+        help="Download a model from the Hugging Face Hub."
+    )
+    download_parser.add_argument(
+        "repo-id",
+        type=str,
+        help="Name of the repository on Hugging Face Hub.",
+    )
+    download_parser.add_argument(
+        "--output-dir",
+        type=Path,
+        required=False,
+        default="/tmp/model",
+        help="Directory in which to save the model.",
+    )
+    download_parser.add_argument(
+        "--hf-token",
+        type=str,
+        required=False,
+        default=os.getenv("HF_TOKEN", None),
+        help="Hugging Face API token. Needed for gated models like Llama2.",
+    )
+    download_parser.set_defaults(func=download_cmd)
+
+    # Add `convert_checkpoint` command
+    convert_ckpt_parser = subparsers.add_parser(
+        "convert_checkpoint",
+        prog="tune convert_checkpoint",
+        usage="tune convert_checkpoint <ckpt-path> --output-path <path> --model <model> --train-type <type> [OPTIONS]",
+        help="Convert a model checkpoint to a format compatible with TorchTune.",
+    )
+    convert_ckpt_parser.add_argument(
+        "checkpoint-path", type=Path, help="Path to the checkpoint to convert."
+    )
+    convert_ckpt_parser.add_argument(
+        "--output-path",
+        type=Path,
+        help="Where to write the converted checkpoint. "
+        "Will default to the same directory as the original checkpoint if no arg is provided"
+        f"under the filename {_PYTORCH_MODEL_FILENAME}.",
+        required=False,
+        default=None,
+    )
+    convert_ckpt_parser.add_argument(
+        "--model",
+        type=str,
+        help="model name",
+        choices=["llama2"],
+        required=True,
+    )
+    convert_ckpt_parser.add_argument(
+        "--train-type",
+        type=str,
+        help="Type of finetuning. Currently Full-Finetuning and LoRA have slightly different formats. "
+        "This will be resolved soon.",
+        choices=["full", "lora"],
+        required=True,
+    )
+    convert_ckpt_parser.add_argument(
+        "--output-numerical-validation",
+        action="store_true",
+        help="Whether to load the original checkpoint and the converted checkpoint and compare"
+        "the numerical output of a forward pass to ensure that the conversion was successful."
+        "Prints results to stdout. This additional check is only available for Llama2 7B."
+        "This will take awhile and may consume lots of memory. If you see an OOM error,"
+        "please disable this flag. Note: All our checkpoints conversions are already validated"
+        "in unit tests for smaller checkpoints and integration tests for larger checkpoints."
+        "This flag is primarily for debugging purposes.",
+        required=False,
+        default=False,
+    )
+    convert_ckpt_parser.set_defaults(func=convert_checkpoint_cmd)
+
+    # Add `validate` command
+    validate_parser = subparsers.add_parser(
+        "validate",
+        prog="tune validate",
+        help="Validate a config and ensure that it is well-formed.",
+        usage="tune validate --config recipes/configs/full_finetune_distributed.yaml",
+        epilog=textwrap.dedent(
+            """\
+            examples:
+
+                $ tune validate --config recipes/configs/full_finetune_distributed.yaml
+                Config is well-formed!
+
+            """
+            formatter_class=argparse.RawTextHelpFormatter,
+        )
+    )
+    validate_parser.set_defaults(func=validate_cmd)
+
+    # Add `run` command
+    run_parser = subparsers.add_parser(
+        "run",
+        prog="tune run",
+        help="Run a recipe.",
+        usage="tune run <recipe> --config <config> [OPTIONS]",
+        epilog=textwrap.dedent(
+            """\
+            examples:
+
+                $ tune run full_finetune_distributed.py --config recipes/configs/full_finetune_distributed.yaml
+            """
+            formatter_class=argparse.RawTextHelpFormatter,
+        )
+    )
+    run_parser.add_argument(
+        "recipe",
+        type=str,
+        help="Recipe to run. For a list of all possible recipes, run `tune ls`.",
+    )
+    run_parser.add_argument(
+        "--config",
+        type=str,
+        help="Config to use for the recipe. For a list of all possible configs, run `tune ls`.",
+    )
+    run_parser.add_argument(
+        "--num_gpus",
+        type=int,
+        help="Number of GPUs to use for the recipe. If not set, will use all available GPUs. Max number of GPUs is 8, multi-node not supported.",
+        default=None,
+    )
+
 
     args = tune_parser.parse_args()
     args.func(args)
@@ -202,24 +330,8 @@ def main():
     #             if not config.endswith(".yaml"):
     #                 args.recipe_args[cfg_idx] = str(
     #                     recipes_pkg_path / "configs" / f"{config}.yaml"
-    #                 )
-    #     elif cmd in list_scripts():
-    #         cmd = pkg_path / "_cli" / f"{cmd}.py"
-    #         args.recipe = str(cmd)
-    #         assert not distributed_args, "You can't use distributed args with scripts"
-    #     else:
-    #         parser.error(
-    #             f"Unrecognized command '{cmd}'\nTry 'tune --help' for more information."
-    #         )
 
-    # if distributed_args:
-    #     _validate_distributed_args(args)
-    #     args.training_script = str(cmd)  # arg names expected by torchrun
-    #     args.training_script_args = args.recipe_args
-    #     run(args)
-    # else:
-    #     sys.argv = [str(cmd)] + args.recipe_args
-    #     runpy.run_path(str(cmd), run_name="__main__")
+
 
 
 if __name__ == "__main__":
