@@ -480,10 +480,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop.
         """
         # clean up before training begins
-        gc.collect()
-        torch.cuda.empty_cache()
-        torch.cuda.reset_peak_memory_stats()
-
+        utils.cleanup_before_training()
 
         _, rank = utils.get_world_size_and_rank()
 
