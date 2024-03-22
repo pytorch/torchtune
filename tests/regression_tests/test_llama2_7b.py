@@ -30,7 +30,7 @@ EVAL_CONFIG_PATH = Path.joinpath(
 )
 
 
-@gpu_test(gpu_count=4)
+@gpu_test(gpu_count=2)
 class TestFullFinetuneDistributed7BLoss:
     def _get_test_config_overrides(self):
         return [
@@ -55,7 +55,7 @@ class TestFullFinetuneDistributed7BLoss:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed
+        tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed
             --config full_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
@@ -76,7 +76,7 @@ class TestFullFinetuneDistributed7BLoss:
         )
 
 
-@gpu_test(gpu_count=4)
+@gpu_test(gpu_count=2)
 class TestLoRA7BDistributedFinetuneEval:
     def _get_test_config_overrides(self):
         return [
@@ -99,7 +99,7 @@ class TestLoRA7BDistributedFinetuneEval:
 
         # Run on prod LoRA FT config but with only 10 steps for now
         ft_cmd = f"""
-        tune --nnodes 1 --nproc_per_node 4 lora_finetune_distributed
+        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config lora_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
