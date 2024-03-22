@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import runpy
 import builtins
+import runpy
 
 import sys
 from pathlib import Path
@@ -14,11 +14,8 @@ import pytest
 
 import torchtune
 from tests.common import TUNE_PATH
+from tests.recipes.utils import fetch_ckpt_model_path, llama2_small_test_ckpt
 from torchtune import models
-from tests.recipes.utils import (
-    fetch_ckpt_model_path,
-    llama2_small_test_ckpt,
-)
 
 pkg_path = Path(torchtune.__file__).parent.parent.absolute()
 EVAL_CONFIG_PATH = Path.joinpath(
@@ -33,6 +30,7 @@ class TestEleutherEval:
     model_ckpt = "small_test_ckpt_tune"
 
     import os
+
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
     def test_torchune_checkpoint_eval_result(self, caplog, monkeypatch, tmpdir):
@@ -58,23 +56,22 @@ class TestEleutherEval:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        out_err = capsys.readouterr()
-        assert "'acc,none': 0.3" in out_err.out
+        log_out = caplog.messages[-1]
+        assert "'acc,none': 0.3" in log_out
 
     @pytest.fixture
     def hide_available_pkg(self, monkeypatch):
         import_orig = builtins.__import__
 
         def mocked_import(name, *args, **kwargs):
-            if name == 'lm_eval':
+            if name == "lm_eval":
                 raise ImportError()
             return import_orig(name, *args, **kwargs)
 
-        monkeypatch.setattr(builtins, '__import__', mocked_import)
+        monkeypatch.setattr(builtins, "__import__", mocked_import)
 
-
-    @pytest.mark.usefixtures('hide_available_pkg')
-    def test_eval_recipe_errors_without_lm_eval(self,caplog, monkeypatch, tmpdir):
+    @pytest.mark.usefixtures("hide_available_pkg")
+    def test_eval_recipe_errors_without_lm_eval(self, caplog, monkeypatch, tmpdir):
         ckpt_path = Path(fetch_ckpt_model_path(self.model_ckpt))
         ckpt_dir = ckpt_path.parent
 
