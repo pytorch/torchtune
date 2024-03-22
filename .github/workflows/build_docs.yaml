@@ -22,7 +22,6 @@ defaults:
 jobs:
   build_docs:
     runs-on: ubuntu-latest
-    needs: build_docs
     steps:
       - name: Checkout
         uses: actions/checkout@v3
