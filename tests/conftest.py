@@ -30,6 +30,7 @@ def pytest_configure(config):
     - `pytest tests -m slow_integration_test`: run regression tests only
 
     This hook ensures that the appropriate artifacts are available locally for each of these cases.
+    It also supports optional silencing of S3 progress bars to reduce CI log spew.
     """
     # Default is to run both integration and slow integration tests (i.e. both are None)
     run_recipe_tests = (
@@ -52,6 +53,10 @@ def pytest_configure(config):
         cmd += " --run-recipe-tests"
     if run_regression_tests:
         cmd += " --run-regression-tests"
+
+    # Optionally silence S3 download logs (useful when running on CI)
+    if config.option.silence_s3_logs:
+        cmd += " --silence-s3-logs"
 
     # Only need to handle artifacts for recipe and regression tests
     if run_recipe_tests or run_regression_tests:
@@ -96,3 +101,13 @@ def pytest_addoption(parser: argparse.ArgumentParser) -> None:
         default=False,
         help="Run a larger scale integration test",
     )
+    parser.addoption(
+        "--silence-s3-logs",
+        action="store_true",
+        help="Silence progress bar when fetching assets from S3",
+    )
+
+
+@pytest.fixture
+def cmdopt(request):
+    return request.config.getoption("--cmdopt")

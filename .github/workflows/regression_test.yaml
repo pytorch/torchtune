@@ -20,7 +20,7 @@ defaults:
 
 jobs:
   regression_test:
-    runs-on: linux.8xlarge.nvidia.gpu
+    runs-on: linux.g4dn.12xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.11']
@@ -52,6 +52,6 @@ jobs:
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
       - name: Run regression tests with coverage
-        run: pytest tests -m slow_integration_test --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests -m slow_integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

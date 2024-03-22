@@ -23,6 +23,7 @@ TOKENIZER_URL=("s3://pytorch-multimodal/llama2-7b/tokenizer.model")
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=()
+S3_OPTS=()
 
 # Iterate over command-line args
 while [[ $# -gt 0 ]]; do
@@ -39,6 +40,13 @@ while [[ $# -gt 0 ]]; do
             # Add URL for large model
             S3_URLS+=(
                 $FULL_MODEL_URL
+            )
+            shift # Next argument
+            ;;
+        "--silence-s3-logs")
+            # Disable S3 progress bar
+            S3_OPTS+=(
+                "--no-progress"
             )
             shift # Next argument
             ;;
@@ -68,8 +76,12 @@ for S3_URL in "${S3_URLS[@]}"; do
     if [ -e "$LOCAL_DIR/$FILE_NAME" ]; then
         echo "File already exists locally: $LOCAL_DIR/$FILE_NAME"
     else
-        # Download file from S3
-        aws s3 cp "$S3_URL" "$LOCAL_DIR" --no-progress
+        # Download file from S3, optionally silencing progress bar
+        cp_cmd="aws s3 cp ${S3_URL} ${LOCAL_DIR}"
+        if ! [ -z "$S3_OPTS" ]; then
+            cp_cmd="${cp_cmd} ${S3_OPTS}"
+        fi
+        bash -c "${cp_cmd}"
 
         # Check if download was successful
         if [ $? -eq 0 ]; then
