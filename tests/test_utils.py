@@ -173,3 +173,17 @@ def get_loss_values_from_metric_logger(log_file_path: str) -> Dict[str, float]:
         logs = f.read()
     losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
     return losses
+
+
+def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
+    """
+    Take the tmpdir and just append a non-path version of it as the
+    filename, optionally adding specified suffix. This is used to
+    write metric logs to a deterministic file per test run.
+    E.g. /tmp/my/dir -> /tmp/my/dir/tmpmydir.txt
+    """
+    filename = str(tmpdir) + str(tmpdir).replace("/", "")
+    if suffix:
+        filename += suffix
+    filename += ".txt"
+    return filename

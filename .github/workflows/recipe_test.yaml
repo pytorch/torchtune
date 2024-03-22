@@ -49,9 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install torch
-          python -m pip install -r requirements.txt
-          python -m pip install -r dev-requirements.txt
-          python -m pip install -e .
+          python -m pip install -e ".[dev]"
       - name: Run recipe tests with coverage
         run: pytest tests -m integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov

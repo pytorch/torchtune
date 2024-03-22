@@ -19,12 +19,12 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-from tests.recipes.utils import (
+from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.test_utils import (
+    CKPT_MODEL_PATHS,
     gen_log_file_name,
-    llama2_test_config,
-    write_hf_ckpt_config,
+    get_loss_values_from_metric_logger,
 )
-from tests.test_utils import CKPT_MODEL_PATHS, get_loss_values_from_metric_logger
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
