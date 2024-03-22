@@ -35,13 +35,21 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
 
     # Dataset
     dataset:
-      _component_: torchtune.datasets.AlpacaDataset
+      _component_: torchtune.datasets.alpaca_dataset
     shuffle: True
 
     # Model Arguments
     model:
       _component_: torchtune.models.llama2.llama2_7b
-    model_checkpoint: /tmp/llama2-7b
+
+    checkpointer:
+      _component_: torchtune.utils.FullModelMetaCheckpointer
+      checkpoint_dir: /tmp/llama2
+      checkpoint_files: [consolidated.00.pth]
+      recipe_checkpoint: null
+      output_dir: /tmp/llama2
+      model_type: LLAMA2
+    resume_from_checkpoint: False
 
     # Fine-tuning arguments
     batch_size: 2
@@ -52,29 +60,29 @@ An example config for training the Llama 7B model using the Alpaca dataset looks
     loss:
       _component_: torch.nn.CrossEntropyLoss
     output_dir: /tmp/alpaca-llama2-finetune
+
     device: cuda
-    dtype: fp32
-    enable_fsdp: True
+    dtype: bf16
+
     enable_activation_checkpointing: True
-    resume_from_checkpoint: False
 
 To run the recipe without any changes on 4 GPUs, launch a training run using TuneCLI:
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 4 full_finetune --config alpaca_llama2_full_finetune
+    tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config full_finetune_distributed
 
 Dataset
 -------
 
-In this example, we use :class:`~torchtune.datasets.AlpacaDataset`
+In this example, we use :class:`~torchtune.datasets.alpaca_dataset`
 from Stanford. The following parameters are related to the data:
 
 .. code-block:: python
 
     # Point the dataset to the Alpaca Dataset implementation in TorchTune
     # This is set in the config
-    dataset: AlpacaDataset
+    dataset: alpaca_dataset
 
     # Don't mask the prompt during training
     # This is the default value
@@ -107,15 +115,22 @@ The following parameters are related to the model:
 .. code-block:: python
 
     # Point the model to the default llama-7B model
-    model: llama2_7b
-    model_checkpoint: <PATH_TO_MODEL_CHECKPOINT>
+    model:
+      _component_: torchtune.models.llama2.llama2_7b
+
+    checkpointer:
+      _component_: torchtune.utils.FullModelMetaCheckpointer
+      checkpoint_dir: /tmp/llama2
+      checkpoint_files: [consolidated.00.pth]
+      recipe_checkpoint: null
+      output_dir: /tmp/llama2
+      model_type: LLAMA2
 
     # Point to the default tokenizer for llama2
     tokenizer: llama2_tokenizer
     tokenizer_checkpoint: <PATH_TO_MODEL_TOKENIZER>
 
-    # FSDP and Activation checkpointing are enabled
-    enable_fsdp: True
+    # Activation checkpointing are enabled
     enable_activation_checkpointing: True
 
 

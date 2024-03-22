@@ -10,6 +10,17 @@ from ._checkpointing import (  # noqa
     FullModelTorchTuneCheckpointer,
     ModelType,
 )
+from ._device import get_device
+from ._distributed import (  # noqa
+    contains_fsdp,
+    get_world_size_and_rank,
+    init_distributed,
+    is_distributed,
+    lora_fsdp_wrap_policy,
+    prepare_model_for_fsdp_with_meta_device,
+    validate_no_params_on_meta_device,
+    wrap_fsdp,
+)
 from .argparse import TuneArgumentParser
 from .checkpoint import (  # noqa
     save_checkpoint,
@@ -26,15 +37,6 @@ from .constants import (  # noqa
     OPT_KEY,
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
-)
-from .device import get_device
-from .distributed import (  # noqa
-    contains_fsdp,
-    get_world_size_and_rank,
-    init_distributed,
-    is_distributed,
-    lora_fsdp_wrap_policy,
-    wrap_fsdp,
 )
 from .logging import get_logger
 from .memory import memory_stats_log, set_activation_checkpointing  # noqa

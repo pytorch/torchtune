@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import contextlib
 import sys
 
 from functools import partial
@@ -40,7 +39,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         - Activation checkpointing. This is enabled by default but is configurable.
         - Full bf16 training for supported HW architectures. We currently check bf16 support via
         the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
-        the "full_bf16" configuration flag.
+        setting `dtype=bf16` in configuration.
         - Checkpointing: of LoRA adapter parameters and their optimizer states. When resuming
             from a checkpoint, the adapter parameters are loaded from the checkpoint along
             with the base model weights. Note that intra-epoch resumption is not supported.
@@ -54,20 +53,39 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_device        alpaca_llama2_lora_finetune_single_device
+        lora_finetune_single_device     lora_finetune_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
+
+    Raises:
+        ValueError: If ``dtype`` is set to fp16.
+        RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
 
     """
 
     def __init__(self, cfg: DictConfig) -> None:
 
         self._device = utils.get_device(device=cfg.device)
-
+        # Reduced precision logic
+        self._dtype = utils.get_dtype(cfg.dtype)
+        # fp16 precision is explicitly disabled as it is not supported in this
+        # recipe (for example, no gradient scaling).
+        if self._dtype == torch.float16:
+            raise ValueError(
+                "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
+            )
+        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
+        if (
+            self._dtype == torch.bfloat16
+            and self._device != torch.device("cpu")
+            and not torch.cuda.is_bf16_supported()
+        ):
+            raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
+        self._log_peak_memory_every_n_steps = 100
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -78,6 +96,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
@@ -130,17 +149,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
 
-        # For CUDA devices, check if the HW supports bf16.
-        if (
-            cfg.full_bf16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
-
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            full_bf16=cfg.full_bf16,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
@@ -155,9 +165,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -178,12 +188,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # by the dataloader and the max_steps_per_epoch param set by the user and is used
         # for logging and tracking training state. This should be computed after the dataloader
         # has been setup
+        self._steps_per_epoch = (
+            len(self._dataloader) // self._gradient_accumulation_steps
+        )
         steps_per_epoch = len(self._dataloader)
-        if self.max_steps_per_epoch is not None and self.max_steps_per_epoch < len(
-            self._dataloader
+        if (
+            self.max_steps_per_epoch is not None
+            and self.max_steps_per_epoch < self._steps_per_epoch
         ):
-            steps_per_epoch = self.max_steps_per_epoch
-            self.total_training_steps = self.epochs_run * steps_per_epoch
+            self._steps_per_epoch = self.max_steps_per_epoch
+            self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
@@ -196,20 +210,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        full_bf16: bool,
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
-
-        dtype_context = (
-            utils.set_default_dtype(torch.bfloat16)
-            if full_bf16
-            else contextlib.nullcontext()
-        )
-        with dtype_context:
-            with self._device:
-                model = config.instantiate(cfg_model)
+        with utils.set_default_dtype(self._dtype), self._device:
+            model = config.instantiate(cfg_model)
 
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
@@ -239,10 +245,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
         # Validate model was loaded in with the expected dtype.
-        expected_dtype = torch.bfloat16 if full_bf16 else torch.float32
-        utils.validate_expected_param_dtype(model, dtype=expected_dtype)
+        utils.validate_expected_param_dtype(model, dtype=self._dtype)
 
-        log.info(f"Model is initialized with precision {expected_dtype}.")
+        log.info(f"Model is initialized with precision {self._dtype}.")
+        log.info(
+            utils.memory_stats_log(
+                "Memory Stats after model init:", device=self._device
+            )
+        )
         return model
 
     def _setup_optimizer(
@@ -356,6 +366,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
+    def _should_update_weights(self, current_iteration: int) -> bool:
+        """
+        Determines whether the weights should be updated on the current iteration or not.
+        True is returned either if we've accumulated gradients for enough steps.
+        """
+        should_update_weights = (
+            current_iteration + 1
+        ) % self._gradient_accumulation_steps == 0
+        return should_update_weights
+
     def train(self) -> None:
         """
         The core training loop.
@@ -369,11 +389,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
                 if (
                     self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
                 ):
                     break
-                self.total_training_steps += 1
-                self._optimizer.zero_grad()
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -397,11 +416,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         },
                         step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                     )
-
+                loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                self._optimizer.step()
-                self._lr_scheduler.step()
-
+                if self._should_update_weights(idx):
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+                # Log peak memory for iteration
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -415,7 +442,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``alpaca_llama2_lora_finetune_single_device.yaml``
+        - Parameters specified in ``lora_finetune_single_device.yaml``
         - Overwritten by arguments from the command-line
     """
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)

@@ -41,3 +41,8 @@ class TestArgParse:
         assert (
             cli_kwargs.c == 4
         ), f"c == {cli_kwargs.c} not 4 as set in the command args."
+
+        with pytest.raises(ValueError, match="Additional flag arguments not supported"):
+            _ = parser.parse_known_args(
+                ["--config", "test.yaml", "--b", "3"],
+            )
