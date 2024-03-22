@@ -26,12 +26,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: gh-pages
+          ref: csl/test1
 
       - name: Move and commit changes
         env:
-          GITHUB_PYTORCHBOT_TOKEN: gibberish
+          GITHUB_PYTORCHBOT_TOKEN: ${{ secrets.CATS_TOKEN }}
         run: |
           set -euox pipefail
-          git remote set-url origin https://pytorchbot:${GITHUB_PYTORCHBOT_TOKEN}@github.com/pytorch/torchtune.git
+          git remote set-url origin https://clee2000:${GITHUB_PYTORCHBOT_TOKEN}@github.com/pytorch/torchtune.git
           git remote -v
+          git config user.name "clee2000"
+          git config user.email "csl@meta.com"
+          mkdir -p hello
+          git add .
+          git c "update"
+          git push origin csl/test1
