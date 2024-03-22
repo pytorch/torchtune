@@ -37,7 +37,7 @@ The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning [[single device](recipes/full_finetune_single_device.py),  [distributed](recipes/full_finetune_distributed.py)], LoRA [[single device](recipes/lora_finetune_single_device.py),  [distributed](recipes/lora_finetune_distributed.py)], QLoRA [[single device](recipes/lora_finetune_single_device.py) |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning [[single device](recipes/full_finetune_single_device.py),  [distributed](recipes/full_finetune_distributed.py)], LoRA [[single device](recipes/lora_finetune_single_device.py),  [distributed](recipes/lora_finetune_distributed.py)], QLoRA [single device](recipes/lora_finetune_single_device.py) |
 
 &nbsp;
 
