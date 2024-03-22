@@ -3,9 +3,14 @@
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
-# TorchTune
+# TorchTune is still pre-release!
 
-NOTE: TorchTune is currently in a pre-release state and under extensive development.
+TorchTune is currently in a pre-release state and under extensive development.
+While the 0.0.1 version is available on PyPI there may still be rough edges.
+Stay *tuned* for the first release in the coming weeks!
+
+
+# TorchTune
 
 [**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
