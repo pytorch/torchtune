@@ -25,10 +25,10 @@ checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/llama2
   checkpoint_files: [consolidated.00.pth]
-  recipe_checkpoint: null
+  recipe_checkpoint: /tmp/llama2/recipe_state.pt
   output_dir: /tmp/llama2
   model_type: LLAMA2
-resume_from_checkpoint: False
+resume_from_checkpoint: True
 
 # Fine-tuning arguments
 batch_size: 2
@@ -54,7 +54,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
-  log_dir: ${output_dir}
+  _component_: torchtune.utils.metric_logging.WandBLogger
+  project: foo
 output_dir: /tmp/alpaca-llama2-finetune
 log_every_n_steps: null

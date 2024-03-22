@@ -246,7 +246,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 p: config.instantiate(cfg_optimizer, [p])
                 for p in self._model.parameters()
             }
-            self._optim_ckpt_wrapper = utils.OptimizerInBackwardWrapper(optim_dict)
+            self._optim_ckpt_wrapper = utils.OptimizerInBackwardWrapper({
+                n: optim_dict[p] for n, p in self._model.named_parameters()
+            })
             def optim_step(param) -> None:
                 optim_dict[param].step()
                 optim_dict[param].zero_grad()
@@ -260,10 +262,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             if opt_state_dict is not None:
                 try:
                     self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
+                    print(f"RV: successfully loaded in backward state", flush=True)
                 except BaseException as e:
                     raise RuntimeError(
                         "Failed loading in-backward optimizer checkpoints."
                         "Please make sure run being restored from was using in-backward optimizer."
+                        f"Original error {str(e)}"
                     ) from e
             log.info("In-backward optimizers are set up.")
             return None
