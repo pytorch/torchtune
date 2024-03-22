@@ -87,6 +87,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
         _, rank = utils.get_world_size_and_rank()
+        self._rank = rank
         self._is_rank_zero = rank == 0
 
         # Training cfg
@@ -238,6 +239,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
+        if self._is_rank_zero:  # Debugging
+            log.error(
+                utils.memory_stats_log(
+                    "Memory Stats before FSDP wrap", device=self._device
+                )
+            )
+
+        import os
+
+        if self._is_rank_zero:
+            smi_file = f"{self._metric_logger.log_dir}/smi.txt"
+            os.system(f"nvidia-smi > {smi_file}")
+            with open(smi_file, "rb") as f:
+                smi_out = f.read()
+            log.error(smi_out)
+
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -267,7 +284,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(
+            log.error(
                 utils.memory_stats_log(
                     "Memory Stats after model init", device=self._device
                 )
