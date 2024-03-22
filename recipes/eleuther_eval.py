@@ -139,7 +139,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         ckpt_dict = self.load_checkpoint(self._cfg.checkpointer)
         self._model = self._setup_model(
-            cfg_model=self._cfg.model,
+            model_cfg=self._cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(self._cfg.tokenizer)
