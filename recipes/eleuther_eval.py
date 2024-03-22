@@ -105,7 +105,23 @@ _DEFAULT_TASKS = ["hellaswag"]
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
-    """This recipe runs evaluation on a trained model using EleutherAI's eval harness."""
+    """This recipe runs evaluation on a trained model using EleutherAI's eval harness.
+
+    This recipe supports:
+        - Single GPU evaluation
+        - Loading model in fp32 or bf16
+        - Any task from the EleutherAI eval harness that is not free generation
+
+    Assumptions:
+        - Evaluation is launched with the Tune CLI (recommended)
+        - User has the EleutherAI eval harness installed, see https://github.com/EleutherAI/lm-evaluation-harness
+
+    The following configs can be used to run this recipe:
+        - llama2_eleuther_eval.yaml
+
+    Args:
+        cfg (DictConfig): OmegaConf object parsed from YAML file
+    """
 
     def __init__(self, cfg: DictConfig) -> None:
         self._cfg = cfg
