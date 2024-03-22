@@ -331,6 +331,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
             if not self._optimizer_in_bwd:
                 ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
+            else:
+                ckpt_dict[utils.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
