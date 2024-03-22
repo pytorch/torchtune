@@ -37,7 +37,7 @@ jobs:
           git remote -v
           git config user.name "clee2000"
           git config user.email "csl@meta.com"
-          mkdir -p hello
+          echo 'yet another line' >> data.txt
           git add .
           git commit -m "update"
           git push origin csl/test1
