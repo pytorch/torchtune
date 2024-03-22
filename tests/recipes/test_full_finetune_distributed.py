@@ -11,6 +11,7 @@ import runpy
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 from tests.common import TUNE_PATH
 
@@ -44,6 +45,7 @@ class TestFullFinetuneDistributedRecipe:
     def _fetch_expected_loss_values(self, ckpt):
         return [10.4574, 10.5872, 10.5092, 10.4756]
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_hf"

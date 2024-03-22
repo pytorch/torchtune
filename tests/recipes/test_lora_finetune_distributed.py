@@ -9,6 +9,7 @@ import runpy
 import sys
 from pathlib import Path
 
+import pytest
 import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
@@ -46,6 +47,7 @@ class TestLoRAFinetuneDistributedRecipe:
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         return [10.4574, 10.5912, 10.5141, 10.4833]
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
@@ -79,6 +81,7 @@ class TestLoRAFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
@@ -153,6 +156,7 @@ class TestLoRAFinetuneDistributedRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"

@@ -46,6 +46,7 @@ class TestFullFinetuneSingleDeviceRecipe:
     def _fetch_expected_loss_values(self):
         return [10.5074, 10.5563, 10.5152, 10.4851]
 
+    @pytest.mark.integration_test
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -75,6 +76,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
 
+    @pytest.mark.integration_test
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -160,6 +162,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "log_every_n_steps=1",
         ]
 
+    @pytest.mark.integration_test
     @pytest.mark.parametrize("full_batch_size, micro_batch_size", [(2, 1), (4, 1)])
     def test_gradient_accumulation(
         self, full_batch_size, micro_batch_size, tmpdir, monkeypatch

@@ -49,6 +49,7 @@ class TestFullFinetuneDistributed7BLoss:
     def _fetch_expected_loss_values(self):
         return [1.2012, 1.0482, 1.3395, 0.9876]
 
+    @pytest.mark.slow_integration_test
     def test_loss(self, tmpdir, monkeypatch):
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
         ckpt_dir = ckpt_path.parent
@@ -76,6 +77,7 @@ class TestFullFinetuneDistributed7BLoss:
 
 @gpu_test(gpu_count=2)
 class TestLoRA7BDistributedFinetuneEval:
+    @pytest.mark.slow_integration_test
     def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
 
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])

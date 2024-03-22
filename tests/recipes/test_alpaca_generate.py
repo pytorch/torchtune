@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 
 class TestAlpacaGenerateRecipe:
+    @pytest.mark.integration_test
     def test_alpaca_generate(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
         model_checkpoint = CKPT_MODEL_PATHS[ckpt]

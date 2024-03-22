@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import runpy
 import sys
 from pathlib import Path
@@ -24,6 +23,7 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 # TODO: Move this to tests/recipes once we convert eval script into a recipe
 class TestEval:
+    @pytest.mark.integration_test
     def test_torchune_checkpoint_eval_result(self, capsys, monkeypatch):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -31,7 +31,6 @@ class TestEval:
         cpu_device_str = "cpu"
         tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
 
-        os.environ["CUDA_VISIBLE_DEVICES"] = ""
         cmd = f"""
         tune eval \
             --config {EVAL_CONFIG_PATH} \

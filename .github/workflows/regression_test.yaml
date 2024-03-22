@@ -51,7 +51,7 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r dev-requirements.txt
           python -m pip install -e .
-      - name: Run unit tests with coverage
-        run: pytest tests/regression_tests --cov=. --cov-report=xml --durations=20 -vv
+      - name: Run regression tests with coverage
+        run: pytest tests -m slow_integration_test --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

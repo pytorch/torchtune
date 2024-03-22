@@ -42,6 +42,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     def _fetch_expected_loss_values(self):
         return [10.5074, 10.5614, 10.5205, 10.4918]
 
+    @pytest.mark.integration_test
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -77,6 +78,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.integration_test
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -150,6 +152,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
 
+    @pytest.mark.integration_test
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
