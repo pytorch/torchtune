@@ -94,7 +94,7 @@ class TestLoRA7BDistributedFinetuneEval:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
-            max_steps_per_epoch=10 \
+            max_steps_per_epoch=500 \
         """.split()
 
         monkeypatch.setattr(sys, "argv", ft_cmd)
@@ -107,7 +107,7 @@ class TestLoRA7BDistributedFinetuneEval:
             tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']
-            limit=10 \
+            limit=100 \
             device=cuda \
         """.split()
         monkeypatch.setattr(sys, "argv", eval_cmd)

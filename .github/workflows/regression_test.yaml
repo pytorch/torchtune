@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: regression-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -19,7 +19,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_test:
+  regression_test:
     runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:

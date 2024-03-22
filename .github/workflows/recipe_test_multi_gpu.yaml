@@ -1,4 +1,4 @@
-name: Multi-GPU E2E Recipe Tests
+name: Multi-GPU Recipe Tests
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: recipe-test-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: recipe-test-multi-gpu-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -19,7 +19,7 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_test:
+  recipe_test_multi_gpu:
     runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:

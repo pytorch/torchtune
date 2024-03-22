@@ -1,4 +1,4 @@
-name: E2E Recipe Tests
+name: Recipe Tests
 
 on:
   push:
