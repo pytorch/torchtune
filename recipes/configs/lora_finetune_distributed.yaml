@@ -18,7 +18,7 @@ checkpointer:
   checkpoint_files: [consolidated.00.pth]
   adapter_checkpoint: null
   recipe_checkpoint: null
-  output_dir: /tmp/llama2
+  output_dir: /tmp/llama2/
   model_type: LLAMA2
 resume_from_checkpoint: False
 
