@@ -55,7 +55,7 @@ class TestFullFinetuneDistributed7BLoss:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed
+        tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed
             --config full_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
@@ -71,9 +71,6 @@ class TestFullFinetuneDistributed7BLoss:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
-        import pdb
-
-        pdb.set_trace()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
@@ -102,7 +99,7 @@ class TestLoRA7BDistributedFinetuneEval:
 
         # Run on prod LoRA FT config but with only 10 steps for now
         ft_cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
+        tune --nnodes 1 --nproc_per_node 4 lora_finetune_distributed
             --config lora_finetune_distributed \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
