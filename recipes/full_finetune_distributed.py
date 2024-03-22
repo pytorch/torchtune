@@ -272,6 +272,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
             )
 
+        # synchronize before training begins
+        torch.distributed.barrier()
+
         return model
 
     def _setup_optimizer(
@@ -390,6 +393,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+        # clean up before training begins
+        utils.cleanup_before_training()
+
         _, rank = utils.get_world_size_and_rank()
 
         # zero out the gradients before starting training
