@@ -69,7 +69,7 @@ for S3_URL in "${S3_URLS[@]}"; do
         echo "File already exists locally: $LOCAL_DIR/$FILE_NAME"
     else
         # Download file from S3
-        aws s3 cp "$S3_URL" "$LOCAL_DIR"
+        aws s3 cp "$S3_URL" "$LOCAL_DIR" --no-progress
 
         # Check if download was successful
         if [ $? -eq 0 ]; then
