@@ -37,7 +37,7 @@ The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning [[single device](recipes/full_finetune_single_device.py),  [distributed](recipes/full_finetune_distributed.py)], LoRA [[single device](recipes/lora_finetune_single_device.py),  [distributed](recipes/lora_finetune_distributed.py)]  |
+| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning [[single device](recipes/full_finetune_single_device.py),  [distributed](recipes/full_finetune_distributed.py)], LoRA [[single device](recipes/lora_finetune_single_device.py),  [distributed](recipes/lora_finetune_distributed.py)], QLoRA [[single device](recipes/lora_finetune_single_device.py) |
 
 &nbsp;
 
@@ -115,7 +115,8 @@ Note: While the ``tune download`` command allows you to download *any* model fro
 
 TorchTune contains recipes for:
 - Full finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py)
-- LoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py) and .
+- LoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py).
+- QLoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py), with a QLoRA specific [configuration](https://github.com/pytorch/torchtune/blob/main/recipes/configs/qlora_finetune_single_device.yaml)
 
 To run a full finetune on two devices on the Alpaca dataset using FSDP:
 
@@ -136,6 +137,12 @@ lora_finetune_distributed \
 ```
 
 Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
+
+An example to run QLoRA on a single device can be achieved with the following:
+
+```
+tune lora_finetune_single_device --config recipes/configs/qlora_finetune_single_device.yaml
+```
 
 &nbsp;
 
