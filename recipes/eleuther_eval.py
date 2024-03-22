@@ -7,7 +7,7 @@
 import sys
 import time
 
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import torch
 from omegaconf import DictConfig
@@ -80,18 +80,18 @@ class _EvalWrapper(HFLM):
     def device(self):
         return self._device
 
-    def tok_encode(self, string: str, **kwargs):
+    def tok_encode(self, text: str, **kwargs) -> List[int]:
         # Note on add_bos flag: setting to False as this gives better results, for example
         # +1% on truthfulqa_mc2 with a LoRA finetune. lit-gpt also sets this to False,
         # see https://github.com/Lightning-AI/lit-gpt/blob/main/eval/lm_eval_harness.py#L66,
         # though notably fast-gpt does the opposite
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
-        return self._tokenizer.encode(text=string, add_bos=False, add_eos=False)
+        return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
-    def tok_decode(self, tokens, **kwargs):
+    def tok_decode(self, tokens: List[int], **kwargs) -> str:
         return self._tokenizer.decode(tokens)
 
-    def _model_call(self, inps):
+    def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
     def _model_generate(self, *args, **kwargs):
@@ -99,9 +99,6 @@ class _EvalWrapper(HFLM):
             "This recipe does not currently support tasks that evaluate free generation,"
             "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
         )
-
-
-_DEFAULT_TASKS = ["hellaswag"]
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
@@ -126,8 +123,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._cfg = cfg
 
-    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
-        checkpointer = config.instantiate(cfg)
+    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
+        checkpointer = config.instantiate(checkpointer_cfg)
         checkpoint_dict = checkpointer.load_checkpoint()
         return checkpoint_dict
 
@@ -135,7 +132,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._device = utils.get_device(device=self._cfg.device)
         self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
         self._limit = self._cfg.limit
-        self._tasks = list(self._cfg.tasks or _DEFAULT_TASKS)
+        self._tasks = list(self._cfg.tasks)
 
         seed = utils.set_seed(seed=self._cfg.seed)
         logger.info(f"Random seed set to {seed}.")
@@ -150,11 +147,11 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     def _setup_model(
         self,
-        cfg_model: DictConfig,
+        model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
-            model = config.instantiate(cfg_model)
+            model = config.instantiate(model_cfg)
 
         model.load_state_dict(model_state_dict)
 
