@@ -386,49 +386,83 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+            def trace_handler(prof):
+                prof.export_chrome_trace(
+                    "./log/torchtune_lora/torchtune_lora_chunked_loss_pro_trace.json"
+                )
 
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+            with torch.profiler.profile(
+                activities=[
+                    torch.profiler.ProfilerActivity.CPU,
+                    torch.profiler.ProfilerActivity.CUDA,
+                ],
+                schedule=torch.profiler.schedule(wait=5, warmup=5, active=10, repeat=1),
+                on_trace_ready=trace_handler,
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True,
+            ) as p:
+                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                    p.step()
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                    )
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
-                if self._should_update_weights(idx):
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
-                # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
-                    )
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
+
+                    chunk_size = 128
+                    logits = self._model(input_ids)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+
+                    # Chunked loss logic
+                    logit_chunks = logits.split(chunk_size)
+                    label_chunks = labels.split(chunk_size)
+                    loss_chunks = [
+                        # self._loss_fn(logit_chunk, target_chunk)
+                        torch.nn.functional.cross_entropy(
+                            logit_chunk, label_chunk, reduction="none"
+                        )
+                        for logit_chunk, label_chunk in zip(logit_chunks, label_chunks)
+                    ]
+                    loss = torch.cat(loss_chunks).sum() / labels.numel()
+
+                    if self.total_training_steps % self._log_every_n_steps == 0:
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
+                        )
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
+                        )
+                    loss = loss / self._gradient_accumulation_steps
+                    loss.backward()
+                    if self._should_update_weights(idx):
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        self._lr_scheduler.step()
+                        # Update the number of steps when the weights are updated
+                        self.total_training_steps += 1
+                    # Log peak memory for iteration
+                    if (
+                        self.total_training_steps % self._log_peak_memory_every_n_steps
+                        == 0
+                    ):
+                        log.info(
+                            utils.memory_stats_log("Memory Stats:", device=self._device)
+                        )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
