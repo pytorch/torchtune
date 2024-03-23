@@ -1,4 +1,4 @@
-name: E2E Recipe Tests
+name: Recipe Tests
 
 on:
   push:
@@ -43,26 +43,14 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
           aws-region: us-east-1
-      - name: Download files from S3
-        uses: nick-fields/retry@v2
-        with:
-          max_attempts: 3
-          retry_on: error
-          timeout_seconds: 14400
-          command: |
-            python3 -m pip install awscli==1.32.6
-            mkdir -p /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/llama2-7b/tokenizer.model /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-01242024 /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-hf-03082024.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-tune-03082024.pt /tmp/test-artifacts
-            aws s3 cp s3://pytorch-multimodal/small-ckpt-meta-03082024.pt /tmp/test-artifacts
+      - name: Install S3 CLI
+        run: |
+          python -m pip install awscli==1.32.6
       - name: Install dependencies
         run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -r dev-requirements.txt
-          python -m pip install -e .
-      - name: Run unit tests with coverage
-        run: pytest tests/recipes --cov=. --cov-report=xml --durations=20 -vv
+          python -m pip install torch
+          python -m pip install -e ".[dev]"
+      - name: Run recipe tests with coverage
+        run: pytest tests -m integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

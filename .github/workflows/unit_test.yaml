@@ -33,10 +33,9 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Install dependencies
         run: |
-          python -m pip install -r requirements.txt
-          python -m pip install -r dev-requirements.txt
-          python -m pip install -e .
+          python -m pip install torch
+          python -m pip install -e ".[dev]"
       - name: Run unit tests with coverage
-        run: pytest tests/torchtune --cov=. --cov-report=xml --durations=20 -vv
+        run: pytest tests --without-integration --without-slow-integration --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3

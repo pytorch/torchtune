@@ -326,7 +326,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,  # TODO support loss without ignore_index
+                ignore_idx=self._loss_fn.ignore_index,
             ),
         )
 
@@ -432,7 +432,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                if self.total_training_steps % self._log_every_n_steps == 0:
+                if (
+                    self.total_training_steps % self._log_every_n_steps == 0
+                    and self._is_rank_zero
+                ):
                     pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
