@@ -262,6 +262,24 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
             )
 
+            # The model contains LoRA params which won't have any matching keys in
+            # the state dict. As a result, we need to load with strict=False.
+            # Before loading the state dict, ensure the state dict keys for the base
+            # model and adapters (if available) match the keys in the full LoRA model
+            # This is a good sanity check to prevent silent errors
+            validate_state_dict_for_lora(
+                lora_attn_modules=cfg_model.lora_attn_modules,
+                apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+                apply_lora_to_output=cfg_model.apply_lora_to_output,
+                full_model_state_dict_keys=model.state_dict().keys(),
+                lora_state_dict_keys=(
+                    lora_weights_state_dict.keys()
+                    if lora_weights_state_dict is not None
+                    else None
+                ),
+                base_model_state_dict_keys=base_model_state_dict.keys(),
+            )
+
             # Load both the base model weights and (if available) the adapter weights. Both
             # of this should happen only on Rank 0
             model.load_state_dict(base_model_state_dict, strict=False)
@@ -275,24 +293,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
-
-        # The model contains LoRA params which won't have any matching keys in
-        # the state dict. As a result, we need to load with strict=False.
-        # Before loading the state dict, ensure the state dict keys for the base
-        # model and adapters (if available) match the keys in the full LoRA model
-        # This is a good sanity check to prevent silent errors
-        validate_state_dict_for_lora(
-            lora_attn_modules=cfg_model.lora_attn_modules,
-            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            apply_lora_to_output=cfg_model.apply_lora_to_output,
-            full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(
-                lora_weights_state_dict.keys()
-                if lora_weights_state_dict is not None
-                else None
-            ),
-            base_model_state_dict_keys=base_model_state_dict.keys(),
-        )
 
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
@@ -336,6 +336,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     "Memory Stats after model init:", device=self._device
                 )
             )
+
+        # synchronize before training begins
+        torch.distributed.barrier()
+
         return model
 
     def _setup_optimizer(
@@ -421,6 +425,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # final dict passed onto the checkpointer
         checkpoint_dict = {}
 
+        intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
         with FSDP.state_dict_type(
@@ -430,7 +435,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             FullOptimStateDictConfig(offload_to_cpu=True, rank0_only=True),
         ):
             cpu_state_dict = self._model.state_dict()
-            opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+            if intermediate_checkpoint:
+                opt_state_dict = FSDP.optim_state_dict(self._model, self._optimizer)
+            else:
+                opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
@@ -452,8 +460,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
             checkpoint_dict.update({utils.MODEL_KEY: merged_state_dict})
 
-            # if training is in-progress, checkpoint the optimizer state as well
-            if epoch + 1 < self.total_epochs:
+            # if training is in-progress, checkpoint the optimizer state and recipe state
+            # as well.
+            if intermediate_checkpoint:
                 checkpoint_dict.update(
                     {
                         utils.OPT_KEY: opt_state_dict,
@@ -467,13 +476,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
-                intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+                intermediate_checkpoint=intermediate_checkpoint,
             )
 
     def train(self) -> None:
         """
         The core training loop.
         """
+        # clean up before training begins
+        utils.cleanup_before_training()
+
         _, rank = utils.get_world_size_and_rank()
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint

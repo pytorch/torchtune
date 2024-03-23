@@ -6,12 +6,15 @@
 
 import math
 import os
+import re
 import sys
 import unittest
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any, Generator, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, Optional, TextIO, Tuple, Union
+
+import pytest
 
 import torch
 from torch import nn
@@ -20,6 +23,13 @@ from torch import nn
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
 )
+
+CKPT_MODEL_PATHS = {
+    "small_test_ckpt_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
+    "small_test_ckpt_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
+    "small_test_ckpt_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
+}
 
 
 def get_assets_path():
@@ -142,3 +152,38 @@ def captured_output() -> Generator[Tuple[TextIO, TextIO], None, None]:
         yield sys.stdout, sys.stderr
     finally:
         sys.stdout, sys.stderr = old_out, old_err
+
+
+def gpu_test(gpu_count: int = 1):
+    """
+    Annotation for GPU tests, skipping the test if the
+    required amount of GPU is not available
+    """
+    message = f"Not enough GPUs to run the test: requires {gpu_count}"
+    local_gpu_count: int = torch.cuda.device_count()
+    return pytest.mark.skipif(local_gpu_count < gpu_count, reason=message)
+
+
+def get_loss_values_from_metric_logger(log_file_path: str) -> Dict[str, float]:
+    """
+    Given an output directory containing metric logger .txt file,
+    parse the .txt and return a list of losses from each logged iteration.
+    """
+    with open(log_file_path, "r") as f:
+        logs = f.read()
+    losses = [float(x) for x in re.findall(r"loss:(\d+\.\d+)", logs)]
+    return losses
+
+
+def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
+    """
+    Take the tmpdir and just append a non-path version of it as the
+    filename, optionally adding specified suffix. This is used to
+    write metric logs to a deterministic file per test run.
+    E.g. /tmp/my/dir -> /tmp/my/dir/tmpmydir.txt
+    """
+    filename = str(tmpdir) + str(tmpdir).replace("/", "")
+    if suffix:
+        filename += suffix
+    filename += ".txt"
+    return filename

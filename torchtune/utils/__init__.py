@@ -40,7 +40,11 @@ from .constants import (  # noqa
     TOTAL_EPOCHS_KEY,
 )
 from .logging import get_logger
-from .memory import memory_stats_log, set_activation_checkpointing  # noqa
+from .memory import (  # noqa
+    cleanup_before_training,
+    memory_stats_log,
+    set_activation_checkpointing,
+)
 from .precision import (
     get_autocast,
     get_dtype,
