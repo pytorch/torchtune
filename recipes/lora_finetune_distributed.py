@@ -60,7 +60,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                         CONFIG
-        lora_finetune_distributed      lora_finetune_distributed
+        lora_finetune_distributed      llama2/7B_lora, llama2/13B_lora
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -80,20 +80,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
-
-        world_size, rank = utils.get_world_size_and_rank()
-        if world_size == 1:
-            raise ValueError(
-                "This recipe doesn't support training with world_size = 1."
-                "Please use the single device version of the recipe instead."
-            )
+        _, rank = utils.get_world_size_and_rank()
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -102,7 +89,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_every_n_steps = 10
+
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
@@ -558,7 +546,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``lora_finetune_distributed.yaml``
+        - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
     if not utils.is_distributed():

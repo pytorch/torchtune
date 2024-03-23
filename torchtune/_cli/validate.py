@@ -25,7 +25,7 @@ if __name__ == "__main__":
         epilog=textwrap.dedent(
             """\
         examples:
-            $ tune validate --config recipes/configs/full_finetune_distributed.yaml
+            $ tune validate --config recipes/configs/llama2/7B_lora.yaml
             Config is well-formed!
         """
         ),
