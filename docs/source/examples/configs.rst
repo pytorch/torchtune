@@ -161,7 +161,7 @@ will list out all the locations where an error was found.
 
 .. code-block:: bash
 
-  tune validate --config recipes/configs/full_finetune_single_device.yaml batch_size=4
+  tune validate --config recipes/configs/llama2/7B_full.yaml batch_size=4
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

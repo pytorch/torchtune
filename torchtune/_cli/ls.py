@@ -16,7 +16,7 @@ _NULL_VALUE = "<>"
 
 def main():
     # Print table header
-    header = f"{'RECIPE':<20} {'CONFIG':<15}"
+    header = f"{'RECIPE':<40} {'CONFIG':<40}"
     print(header)
 
     # Print recipe/config pairs
@@ -24,14 +24,14 @@ def main():
         configs = list_configs(recipe)
         # If there are no configs for a recipe, print a blank config
         if len(configs) == 0:
-            row = f"{recipe:<20} {_NULL_VALUE:<15}"
+            row = f"{recipe:<40} {_NULL_VALUE:<40}"
             print(row)
         for i, config in enumerate(configs):
             # If there are multiple configs for a single recipe, omit the recipe name
             # on latter configs
             if i > 0:
                 recipe = ""
-            row = f"{recipe:<20} {config:<15}"
+            row = f"{recipe:<40} {config:<40}"
             print(row)
 
 
@@ -44,12 +44,14 @@ if __name__ == "__main__":
         examples:
             $ tune ls
             RECIPE                           CONFIG
-            full_finetune_distributed.py     full_finetune_distributed.yaml
-            lora_finetune_distributed.py     lora_finetune_distributed.yaml
+            full_finetune_distributed.py     llama2/7B_full,
+                                             llama2/13B_full
+            lora_finetune_distributed.py     llama2/7B_lora,
+                                             llama2/13B_lora
             alpaca_generate.py               alpaca_generate.yaml
 
         To run one of these recipes:
-            $ tune full_finetune_single_device --config full_finetune_single_device
+            $ tune full_finetune_single_device --config llama2/7B_full_single_device
         """
         ),
         formatter_class=argparse.RawTextHelpFormatter,

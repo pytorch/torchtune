@@ -43,7 +43,7 @@ Each recipe consists of three components:
 
 In the following sections, we'll take a closer look at each of these components. For a complete working example, refer to the
 `full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_ in TorchTune and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/full_finetune_distributed.yaml>`_.
+`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml>`_.
 
 
 What Recipes are not?

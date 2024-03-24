@@ -151,6 +151,7 @@ def lora_llama2(
     num_kv_heads: int,
     embed_dim: int,
     max_seq_len: int,
+    intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
     max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
@@ -185,6 +186,8 @@ def lora_llama2(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
+            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
         max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
         lora_rank (int): rank of each low-rank approximation
@@ -214,7 +217,7 @@ def lora_llama2(
         quantize_base=quantize_base,
     )
 
-    hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     if apply_lora_to_mlp:
         mlp = lora_llama2_mlp(
             dim=embed_dim,

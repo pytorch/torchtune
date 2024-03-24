@@ -78,7 +78,7 @@ It looks like there's already a config called :code:`alpaca_llama_full_finetune`
 
 .. code-block:: bash
 
-  tune cp full_finetune_distributed.yaml custom_config.yaml
+  tune cp llama2/7B_full.yaml custom_config.yaml
 
 Now you can update the custom YAML config to point to your model and tokenizer. While you're at it,
 you can make some other changes, like setting the random seed in order to make replication easier,

@@ -14,7 +14,7 @@ from typing import Any, Dict, List, Optional, Protocol
 import torch
 from torchtune import utils
 
-from torchtune.models import llama2
+from torchtune.models import convert_weights
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
     ModelType,
@@ -376,7 +376,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
 
-        converted_state_dict[utils.MODEL_KEY] = llama2.hf_to_tune_llama2_7b(
+        converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
             merged_state_dict,
             num_heads=self._config["num_attention_heads"],
             num_kv_heads=self._config["num_key_value_heads"],
@@ -424,7 +424,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._output_dir.mkdir(exist_ok=True)
 
         # convert the state_dict back to hf format; do this inplace
-        state_dict[utils.MODEL_KEY] = llama2.tune_to_hf_llama2_7b(
+        state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
             state_dict[utils.MODEL_KEY],
             num_heads=self._config["num_attention_heads"],
             num_kv_heads=self._config["num_key_value_heads"],
@@ -553,7 +553,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
-        state_dict[utils.MODEL_KEY] = llama2.meta_to_tune_llama2_7b(model_state_dict)
+        state_dict[utils.MODEL_KEY] = convert_weights.meta_to_tune(model_state_dict)
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -597,7 +597,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         self._output_dir.mkdir(exist_ok=True)
         model_state_dict = state_dict[utils.MODEL_KEY]
-        state_dict[utils.MODEL_KEY] = llama2.tune_to_meta_llama2_7b(model_state_dict)
+        state_dict[utils.MODEL_KEY] = convert_weights.tune_to_meta(model_state_dict)
 
         # Output file is always a .pt file with the epoch number in the name
         checkpoint_file = Path.joinpath(

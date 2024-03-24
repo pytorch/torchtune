@@ -258,7 +258,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
     either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
-    or by directly modifying the :code:`lora_finetune_distributed.yaml` file. See our :ref:`config_tutorial_label`
+    or by directly modifying the :code:`7B_lora.yaml` file. See our :ref:`config_tutorial_label`
     for more details on how you can easily clone and modify TorchTune configs.
 
 .. note::
