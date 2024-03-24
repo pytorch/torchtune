@@ -27,9 +27,9 @@
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.lora_llama2_13b
-  lora_attn_modules: ['q_proj', 'v_proj']
-  apply_lora_to_mlp: False
-  apply_lora_to_output: False
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: True
   lora_rank: 8
   lora_alpha: 16
 
@@ -59,13 +59,13 @@ dataset:
   use_clean: True
 seed: null
 shuffle: True
-batch_size: 2
+batch_size: 32
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 2e-4
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
