@@ -18,6 +18,7 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 
 class TestEleutherEval:
+    @pytest.mark.integration_test
     def test_torchune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -60,6 +61,7 @@ class TestEleutherEval:
         monkeypatch.setattr(builtins, "__import__", mocked_import)
 
     @pytest.mark.usefixtures("hide_available_pkg")
+    @pytest.mark.integration_test
     def test_eval_recipe_errors_without_lm_eval(self, caplog, monkeypatch, tmpdir):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
