@@ -597,7 +597,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         self._output_dir.mkdir(exist_ok=True)
         model_state_dict = state_dict[utils.MODEL_KEY]
-        state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(model_state_dict)
+        state_dict[utils.MODEL_KEY] = convert_weights.tune_to_meta(model_state_dict)
 
         # Output file is always a .pt file with the epoch number in the name
         checkpoint_file = Path.joinpath(
