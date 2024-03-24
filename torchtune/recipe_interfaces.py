@@ -85,9 +85,3 @@ class EvalRecipeInterface(Protocol):
         All of the evaluation logic, including reporting.
         """
         ...
-
-    def cleanup(self, **kwargs) -> None:
-        """
-        Any cleaning up needed for the recipe.
-        """
-        ...
