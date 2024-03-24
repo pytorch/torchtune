@@ -5,7 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Mapping, Optional
+from typing import Dict, Optional
+
+from torchtune.datasets._types import Sample
 
 
 class PromptTemplate(ABC):
@@ -18,13 +20,13 @@ class PromptTemplate(ABC):
 
     @abstractmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Format the prompt template with the given arguments.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with various fields
+            sample (Sample): a single data sample with various fields
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical. Note: if the sample output is not named
@@ -56,13 +58,13 @@ class AlpacaInstructTemplate(PromptTemplate):
     }
 
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from instruction and input.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with instruction
+            sample (Sample): a single data sample with instruction
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -96,13 +98,13 @@ class GrammarErrorCorrectionTemplate(PromptTemplate):
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
 
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from sentence.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with sentence
+            sample (Sample): a single data sample with sentence
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -127,13 +129,13 @@ class SummarizeTemplate(PromptTemplate):
     template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from dialogue.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with dialog
+            sample (Sample): a single data sample with dialog
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -148,3 +150,49 @@ class SummarizeTemplate(PromptTemplate):
 
         prompt = self.template.format(dialogue=sample[key_dialogue])
         return prompt
+
+
+class Llama2ChatTemplate(PromptTemplate):
+    """
+    Prompt template that formats human and system prompts with appropriate tags
+    used in LLaMA2 pre-training. Taken from Meta's official LLaMA inference
+    repository at https://github.com/meta-llama/llama/blob/main/llama/generation.py.
+    The response is tokenized outside of this template.
+
+    Example:
+        "[INST] <<SYS>>
+        You are a helpful, respectful and honest assistant.
+        <</SYS>>
+
+        I am going to Paris, what should I see? [/INST] "
+    """
+
+    B_INST, E_INST = "[INST]", "[/INST]"
+    B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+    template = {
+        "system": "{self.B_INST} {self.B_SYS}{system}{self.E_SYS}{user} {self.E_INST} ",
+        "no_system": "{self.B_INST} {user} {self.E_INST} ",
+    }
+
+    def format(
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from a user message and optional system prompt.
+
+        Args:
+            sample (Sample): a single data sample, expects role keys "system" (optional)
+                and "user" in the sample.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                role names in the template to the actual role names in the sample.
+                If None, assume these are "system" and "user".
+
+        Returns:
+            The formatted prompt
+        """
+        if "system" in sample:
+            return self.template["system"].format(
+                system=sample["system"], user=sample["user"]
+            )
+        else:
+            return self.template["no_system"].format(user=sample["user"])

@@ -15,15 +15,6 @@ from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
 
-class _Llama2ChatFormatConstants:
-    """
-    Contains constants that are used in Llama2 Chat Format.
-    """
-
-    B_INST, E_INST = "[INST]", "[/INST]"
-    B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-
-
 class SlimOrcaDataset(Dataset):
     """
     PyTorch Representation of the SlimOrca Dataset
@@ -132,3 +123,15 @@ class SlimOrcaDataset(Dataset):
 
         response = f" {agent_text_dict['gpt']} "
         return prompt, response
+
+
+def slimorca_dataset(tokenizer: Tokenizer, max_seq_len: int = 1024) -> ChatDataset:
+    return ChatDataset(
+        tokenizer=tokenizer,
+        source="Open-Orca/SlimOrca-Dedup",
+        convert_to_dialogue=sharegpt_to_llama2_dialogue,
+        template=Llama2ChatTemplate(),
+        max_seq_len=max_seq_len,
+        train_on_input=False,
+        split="train",
+    )
