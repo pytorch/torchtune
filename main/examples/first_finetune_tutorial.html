@@ -434,7 +434,7 @@ For a list of all currently supported datasets, see <a class="reference internal
 Or, you can visit the specific <a class="reference internal" href="finetune_llm.html#basic-finetune-llm"><span class="std std-ref">recipe page</span></a> and copy/paste the config from there.
 It looks like there’s already a config called <code class="code docutils literal notranslate"><span class="pre">alpaca_llama_full_finetune</span></code> that utilizes the popular
 <a class="reference external" href="https://crfm.stanford.edu/2023/03/13/alpaca.html">Alpaca instruction dataset</a>. This seems like a good place to start so let’s copy it!</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>full_finetune_distributed.yaml<span class="w"> </span>custom_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_full.yaml<span class="w"> </span>custom_config.yaml
 </pre></div>
 </div>
 <p>Now you can update the custom YAML config to point to your model and tokenizer. While you’re at it,
