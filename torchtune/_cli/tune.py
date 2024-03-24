@@ -40,7 +40,6 @@
 # from pathlib import Path
 
 # import torchtune
-# from torch.distributed.run import get_args_parser, run
 # from torchtune import list_recipes
 # from torchtune._cli import list_scripts
 # from torchtune.utils._distributed import _valid_distributed_single_node_nnodes
@@ -63,43 +62,33 @@
 #     parser._actions[idx].dest = "recipe_args"
 
 
-def _is_distributed_args(args):
-    total = len(sys.argv) - 1  # total args minus "tune"
-    script_args = len(args.recipe_args) + 1  # script args + 1 for script name
-    return total > script_args
+# def _is_distributed_args(args):
+#     total = len(sys.argv) - 1  # total args minus "tune"
+#     script_args = len(args.recipe_args) + 1  # script args + 1 for script name
+#     return total > script_args
 
-
-# def _validate_distributed_args(args):
-#     """
-#     Validates nnodes and nproc_per_node are appropriately set for distributed training
-#     runs.
-#     """
-#     if not hasattr(args, "nnodes"):
-#         raise RuntimeError("Expect --nnodes to be specified for distributed runs")
-
-#     if args.nnodes not in _valid_distributed_single_node_nnodes:
-#         raise RuntimeError(
-#             f"Expect --nnodes to be one of {_valid_distributed_single_node_nnodes}"
-#         )
-
-#     if not hasattr(args, "nproc_per_node"):
-#         raise RuntimeError(
-#             "Expect --nproc_per_node to be specified for distributed runs"
-#         )
 
 #     # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
 #     # we don't do this since we test on CPUs for distributed. Will update once multi GPU
 #     # CI is supported.
 
 import argparse
+import os
 import textwrap
 from pathlib import Path
-import os
+
+from torch.distributed.run import (
+    get_args_parser as get_torchrun_args_parser,
+    run as torchrun_cmd,
+)
+from torchtune._cli.convert_checkpoint import (
+    _PYTORCH_MODEL_FILENAME,
+    convert_checkpoint_cmd,
+)
 
 from torchtune._cli.cp import cp_cmd
-from torchtune._cli.ls import ls_cmd
 from torchtune._cli.download import download_cmd
-from torchtune._cli.convert_checkpoint import convert_checkpoint_cmd, _PYTORCH_MODEL_FILENAME
+from torchtune._cli.ls import ls_cmd
 from torchtune._cli.validate import validate_cmd
 
 
@@ -180,13 +169,14 @@ def main():
     cp_parser.set_defaults(func=cp_cmd)
 
     # Add `download` command
-    download_parser = subparsers.add_parser("download",
+    download_parser = subparsers.add_parser(
+        "download",
         prog="tune download",
         usage="tune download <repo-id> [OPTIONS]",
-        help="Download a model from the Hugging Face Hub."
+        help="Download a model from the Hugging Face Hub.",
     )
     download_parser.add_argument(
-        "repo-id",
+        "repo_id",
         type=str,
         help="Name of the repository on Hugging Face Hub.",
     )
@@ -269,8 +259,8 @@ def main():
                 Config is well-formed!
 
             """
-            formatter_class=argparse.RawTextHelpFormatter,
-        )
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     validate_parser.set_defaults(func=validate_cmd)
 
@@ -278,60 +268,49 @@ def main():
     run_parser = subparsers.add_parser(
         "run",
         prog="tune run",
-        help="Run a recipe.",
-        usage="tune run <recipe> --config <config> [OPTIONS]",
+        help="Run a recipe. This is a wrapper around torchrun so you can also use any torchrun args.",
+        usage="tune run <recipe> --config <config> [RECIPE-OPTIONS] [TORCHRUN-OPTIONS]",
         epilog=textwrap.dedent(
             """\
             examples:
 
-                $ tune run full_finetune_distributed.py --config recipes/configs/full_finetune_distributed.yaml
+                $ tune run full_finetune_distributed.py \
+                    --config recipes/configs/full_finetune_distributed.yaml \
+                    --num-gpu 4 \
+
+                # Override a parameter in the config file and specify a number of GPUs for torchrun
+                $ tune run lora_finetune_distributed.py \
+                    --config recipes/configs/lora_finetune_distributed.yaml \
+                    model.lora_rank=16 \
+                    --num-gpu 4 \
             """
-            formatter_class=argparse.RawTextHelpFormatter,
-        )
-    )
-    run_parser.add_argument(
-        "recipe",
-        type=str,
-        help="Recipe to run. For a list of all possible recipes, run `tune ls`.",
-    )
-    run_parser.add_argument(
-        "--config",
-        type=str,
-        help="Config to use for the recipe. For a list of all possible configs, run `tune ls`.",
-    )
-    run_parser.add_argument(
-        "--num_gpus",
-        type=int,
-        help="Number of GPUs to use for the recipe. If not set, will use all available GPUs. Max number of GPUs is 8, multi-node not supported.",
-        default=None,
+        ),
+        formatter_class=argparse.RawTextHelpFormatter,
     )
 
+    torchrun_argparser = get_torchrun_args_parser()
+    for action in torchrun_argparser._actions:
+        if action.dest == "nproc_per_node":
+            action.option_strings += ["--num-gpu", "--num_gpu"]
+        elif action.dest == "training_script":
+            action.dest = "recipe"
+            action.help = "Name or path to recipe to be launched followed by args. For a list of all possible recipes, run `tune ls`."
+        elif action.dest == "training_script_args":
+            action.dest = "recipe_args"
+            action.help = "Args to be passed to the recipe."
+        elif action.dest == "help":
+            continue
+        try:
+            run_parser._add_action(action)
+        except Exception as e:
+            print(e)
+            import pdb
+
+            pdb.set_trace()
+    run_parser.set_defaults(func=torchrun_cmd)
 
     args = tune_parser.parse_args()
     args.func(args)
-
-    # parser = get_args_parser()
-    # _update_parser_help(parser)
-    # args = parser.parse_args()
-
-    # distributed_args = _is_distributed_args(args)
-    # cmd = args.recipe
-    # if not cmd.endswith(".py"):
-    #     pkg_path = Path(torchtune.__file__).parent.absolute()
-    #     if f"{cmd}.py" in list_recipes():
-    #         recipes_pkg_path = pkg_path.parent / "recipes"
-    #         cmd = recipes_pkg_path / f"{cmd}.py"
-    #         args.recipe = str(cmd)
-
-    #         # Replace config name with package path if provided
-    #         if "--config" in args.recipe_args:
-    #             cfg_idx = args.recipe_args.index("--config") + 1
-    #             config = args.recipe_args[cfg_idx]
-    #             if not config.endswith(".yaml"):
-    #                 args.recipe_args[cfg_idx] = str(
-    #                     recipes_pkg_path / "configs" / f"{config}.yaml"
-
-
 
 
 if __name__ == "__main__":

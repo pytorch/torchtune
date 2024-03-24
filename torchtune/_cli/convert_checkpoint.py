@@ -20,9 +20,7 @@ _PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
 log = get_logger("DEBUG")
 
 
-def convert_checkpoint_cmd(
-    args
-):
+def convert_checkpoint_cmd(args):
     """Convert model checkpoint to a PyTorch-native format compatible with Torchtune.
 
     Args:

@@ -9,7 +9,7 @@
 from huggingface_hub import snapshot_download
 
 
-def download_cmd(*args) -> None:
+def download_cmd(args) -> None:
     """Downloads a model from the Hugging Face Hub.
 
     Raises:
