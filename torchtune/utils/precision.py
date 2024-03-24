@@ -159,4 +159,4 @@ def validate_expected_param_dtype(model: torch.nn.Module, dtype: torch.dtype) ->
     """
     for name, param in model.named_parameters():
         if param.dtype != dtype:
-            raise ValueError(f"Parameter {name} has dtype {param.dtype}")
+            raise ValueError(f"Parameter {name} has dtype {param.dtype}, but expected {dtype}")
