@@ -13,34 +13,33 @@ from pathlib import Path
 import pytest
 
 from tests.common import TUNE_PATH
-from tests.recipes.utils import fetch_ckpt_model_path, llama2_small_test_ckpt
-from torchtune import models
-
-models.small_test_ckpt_tune = llama2_small_test_ckpt
+from tests.recipes.utils import llama2_test_config
+from tests.test_utils import CKPT_MODEL_PATHS
 
 
 class TestEleutherEval:
-    tokenizer_pth = "/tmp/test-artifacts/tokenizer.model"
-    model_ckpt = "small_test_ckpt_tune"
-
     def test_torchune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
-        ckpt_path = Path(fetch_ckpt_model_path(self.model_ckpt))
+        ckpt = "small_test_ckpt_tune"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune eleuther_eval \
             --config eleuther_eval \
-            model._component_=torchtune.models.{self.model_ckpt} \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
-            tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
-            tokenizer.path={self.tokenizer_pth} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             limit=10 \
             dtype=fp32 \
             device=cpu \
         """.split()
+
+        model_config = llama2_test_config()
+        cmd = cmd + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
@@ -62,19 +61,20 @@ class TestEleutherEval:
 
     @pytest.mark.usefixtures("hide_available_pkg")
     def test_eval_recipe_errors_without_lm_eval(self, caplog, monkeypatch, tmpdir):
-        ckpt_path = Path(fetch_ckpt_model_path(self.model_ckpt))
+        ckpt = "small_test_ckpt_tune"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune eleuther_eval \
             --config eleuther_eval \
-            model._component_=torchtune.models.{self.model_ckpt} \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
-            tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
-            tokenizer.path={self.tokenizer_pth} \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             limit=10 \
             dtype=fp32 \
             device=cpu \
