@@ -55,6 +55,8 @@ def list_dtypes() -> List[str]:
 
 
 def verify_bf16_support():
+    if not torch.cuda.is_available():
+        return True # bf16 is supported on CPU
     return (
         torch.cuda.is_available()
         and torch.version.cuda
@@ -89,7 +91,6 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
         raise ValueError(
             f"Dtype {torch_dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )
-
     if torch_dtype == torch.bfloat16 and not verify_bf16_support():
         log.info("BF16 not supported on this hardware. Setting dtype to float32")
         torch_dtype = torch.float32
