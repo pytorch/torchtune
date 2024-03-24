@@ -57,7 +57,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        prefix = f"qlora" if run_qlora else "lora"
+        prefix = "qlora" if run_qlora else "lora"
         cmd = f"""
         tune lora_finetune_single_device
             --config {prefix}_finetune_single_device \
