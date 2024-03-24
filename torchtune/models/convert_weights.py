@@ -64,9 +64,7 @@ def _get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     return new_key
 
 
-def meta_to_tune(
-    state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
     Convert a state dict from Meta's format to TorchTune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
@@ -90,9 +88,7 @@ def meta_to_tune(
     return converted_state_dict
 
 
-def tune_to_meta(
-    state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
     Convert a state dict from TorchTune's format to Meta's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
@@ -130,6 +126,9 @@ def hf_to_tune(
 
     Args:
         state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        num_heads (int): Number of heads in the model.
+        num_kv_heads (int): Number of heads in the key/value projection layers.
+        dim (int): Dimension of the model.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in TorchTune's format.
@@ -157,9 +156,9 @@ def hf_to_tune(
 
 def tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
-    num_heads=32,
-    num_kv_heads=32,
-    dim=4096,
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
 ):
     """
     Convert a state dict from TorchTune's format to HF's format. This function
@@ -168,6 +167,9 @@ def tune_to_hf(
 
     Args:
         state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        num_heads (int): Number of heads in the model.
+        num_kv_heads (int): Number of heads in the key/value projection layers.
+        dim (int): Dimension of the model.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in Meta's format.
