@@ -56,7 +56,7 @@ def list_dtypes() -> List[str]:
 
 def verify_bf16_support():
     if not torch.cuda.is_available():
-        return True # bf16 is supported on CPU
+        return True  # bf16 is supported on CPU
     return (
         torch.cuda.is_available()
         and torch.version.cuda
