@@ -121,6 +121,7 @@ class TransformerDecoder(nn.Module):
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
         self.output = output
+        print("testing")
 
     def forward(
         self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0
