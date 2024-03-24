@@ -25,7 +25,8 @@ The library provides:
 - Native-PyTorch implementations of popular LLMs
 - Support for checkpoints in various formats, including checkpoints in HF format
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
-- Integration with HuggingFace Datasets for training and EleutherAI's Eval Harness for evaluation
+- Evaluation of trained models with EleutherAI Eval Harness
+- Integration with HuggingFace Datasets for training
 - Support for distributed training using FSDP from PyTorch Distributed
 - YAML configs for easily configuring training runs
 - [Upcoming] Support for lower precision dtypes and quantization techniques from [TorchAO](https://github.com/pytorch-labs/ao)
