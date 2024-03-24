@@ -60,7 +60,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                         CONFIG
-        lora_finetune_distributed      llama2/7B_lora, llama2/13B_lora
+        lora_finetune_distributed      llama2/7B_lora
+                                       llama2/13B_lora
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file

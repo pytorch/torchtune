@@ -59,7 +59,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                           CONFIG
-        full_finetune_distributed        llama2/7B_full, llama2/13B_full
+        full_finetune_distributed        llama2/7B_full
+                                         llama2/13B_full
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -81,7 +82,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 10
+        self._log_peak_memory_every_n_steps = 100
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
