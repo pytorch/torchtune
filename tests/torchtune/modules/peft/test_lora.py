@@ -97,7 +97,6 @@ class TestLoRALinear:
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 
-    @pytest.mark.skip(reason="broken by ao nightly")
     def test_lora_weight_nf4_when_quantized(self, qlora_linear):
         assert isinstance(qlora_linear.weight, NF4Tensor)
 
