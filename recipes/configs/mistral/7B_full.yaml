@@ -1,0 +1,58 @@
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.mistral.mistral_tokenizer
+  path: /tmp/llama2/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  train_on_input: True
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.mistral.mistral_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /data/users/kartikayk/cpts/Mistral-7B-v0.1
+  checkpoint_files: [
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin
+  ]
+  recipe_checkpoint: null
+  output_dir: /data/users/kartikayk/cpts/Mistral-7B-v0.1
+  model_type: LLAMA2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 32
+epochs: 3
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+
+
+# Training env
+device: cuda
+
+# Distributed
+cpu_offload: False
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-llama2-finetune
+log_every_n_steps: null

@@ -38,7 +38,10 @@ The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2.py)   | 7B        | Full Finetuning [[single device](recipes/full_finetune_single_device.py),  [distributed](recipes/full_finetune_distributed.py)], LoRA [[single device](recipes/lora_finetune_single_device.py),  [distributed](recipes/lora_finetune_distributed.py)], QLoRA [single device](recipes/lora_finetune_single_device.py) |
+| [Llama2](torchtune/models/llama2/_model_builders.py)   | 7B        | Full Finetuning [[single device](recipes/configs/llama2/7B_full_single_device.yaml),  [distributed](recipes/configs/llama2/7B_full.yaml)], LoRA [[single device](recipes/configs/llama2/7B_lora_single_device.yaml),  [distributed](recipes/configs/llama2/7B_lora.yaml)], QLoRA [single device](recipes/configs/llama2/7B_qlora_single_device.yaml) |
+| [Llama2](torchtune/models/llama2/_model_builders.py)   | 13B       | [Full Finetuning](recipes/configs/llama2/13B_full.yaml), [LoRA](recipes/configs/llama2/13B_lora.yaml)
+| [Mistral](torchtune/models/mistral//_model_builders.py)   | 7B       | [Full Finetuning](recipes/configs/mistral/7B_full.yaml)
+
 
 &nbsp;
 
