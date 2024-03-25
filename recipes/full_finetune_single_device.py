@@ -84,7 +84,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-
+        self._optimizer_in_bwd = cfg.optimizer_in_bwd
         # TODO: find a better place / way to perform validation of args that don't yet
         # compose with each other.
         if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
@@ -238,7 +238,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
         if optimizer_in_bwd:
-            self._optimizer_in_bwd = True
             # Maintain a dict of optims for every parameter.
             # TODO (rohan-varma): check foreach arg
             optim_dict = {
@@ -271,7 +270,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("In-backward optimizers are set up.")
             return None
         else:
-            self._optimizer_in_bwd = False
             optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
             if opt_state_dict:
