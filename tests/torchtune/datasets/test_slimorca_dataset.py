@@ -23,13 +23,13 @@ class TestSlimOrcaDataset:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         return Tokenizer.from_file(str(get_assets_path() / "m.model"))
 
-    @patch("torchtune.datasets._slimorca.load_dataset")
+    @patch("torchtune.datasets._chat.load_dataset")
     def test_value_error(self, load_dataset, tokenizer):
         load_dataset.return_value = []
         with pytest.raises(ValueError):
             slimorca_dataset(tokenizer=tokenizer, max_seq_len=3)
 
-    @patch("torchtune.datasets._slimorca.load_dataset")
+    @patch("torchtune.datasets._chat.load_dataset")
     @pytest.mark.parametrize("max_seq_len", [128, 512, 1024, 4096])
     def test_dataset_get_item(self, load_dataset, tokenizer, max_seq_len):
         # Sample data from slimorca dataset
