@@ -21,17 +21,39 @@ CACHE_ARTIFACTS_SCRIPT_PATH = root + "/tests/cache_artifacts.sh"
 def pytest_configure(config):
     """
     This hook runs before each pytest invocation. Its purpose is to handle optional fetching
-    of remote artifacts needed for the test run. For testing, you should run one of the following:
+    of remote artifacts needed for the test run and filtering across unit tests, recipe tests, and
+    regression tests.
 
-    - `pytest tests --without-integration --without-slow-integration`: run unit tests only
-    - `pytest tests --without-slow-integration`: run unit tests and recipe tests
-    - `pytest tests`: run all tests
+    When testing, you should run one of the following:
+
+    - `pytest tests`: run unit tests only
+    - `pytest tests --with-integration`: run unit tests and recipe tests
+    - `pytest tests --with-integration --with-slow-integration`: run all tests
     - `pytest tests -m integration_test`: run recipe tests only
     - `pytest tests -m slow_integration_test`: run regression tests only
 
-    This hook ensures that the appropriate artifacts are available locally for each of these cases.
-    It also supports optional silencing of S3 progress bars to reduce CI log spew.
+    Similar commands apply for filtering in subdirectories or individual test files.
+
+    This hook also ensures that the appropriate artifacts are available locally for all of the above cases.
+    Note that artifact download is determined by the CLI flags, so if you run e.g.
+    `pytest tests/torchtune/some_unit_test.py -m integration_test`, the integration test
+    artifacts will be downloaded even if your test doesn't require them.
+
+    The hook also supports optional silencing of S3 progress bars to reduce CI log spew via `--silence-s3-logs`.
     """
+
+    # To make it more convenient to run an individual unit test, we override the default
+    # behavior of pytest-integration to run with --without-integration --without-slow-integration
+    # This means that we need to manually override the values of run_integration and run_slow_integration
+    # whenever either set of tests is passed via the -m option.
+
+    if config.option.markexpr == "integration_test":
+        config.option.run_integration = True
+        run_regression_tests = False
+    if config.option.markexpr == "slow_integration_test":
+        config.option.run_slow_integration = True
+        run_recipe_tests = False
+
     # Default is to run both integration and slow integration tests (i.e. both are None)
     run_recipe_tests = (
         config.option.run_integration is None or config.option.run_integration is True
@@ -40,12 +62,6 @@ def pytest_configure(config):
         config.option.run_slow_integration is None
         or config.option.run_slow_integration is True
     )
-
-    # For -m flags, we run only those tests and so disable the others here
-    if config.option.markexpr == "integration_test":
-        run_regression_tests = False
-    if config.option.markexpr == "slow_integration_test":
-        run_recipe_tests = False
 
     cmd = str(CACHE_ARTIFACTS_SCRIPT_PATH)
 

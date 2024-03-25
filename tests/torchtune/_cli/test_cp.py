@@ -23,7 +23,7 @@ class TestTuneCLIWithCopyScript:
         if already_exists:
             dest.touch()
 
-        args = f"tune cp full_finetune_single_device.yaml {dest}".split()
+        args = f"tune cp llama2/7B_full.yaml {dest}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -41,7 +41,7 @@ class TestTuneCLIWithCopyScript:
         existing_file = tmpdir_path / "existing_file.yaml"
         existing_file.touch()
 
-        args = f"tune cp full_finetune_single_device.yaml {existing_file} -n".split()
+        args = f"tune cp llama2/7B_full_single_device.yaml {existing_file} -n".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
