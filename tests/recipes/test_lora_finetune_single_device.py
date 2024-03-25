@@ -50,17 +50,15 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             return [10.5074, 10.5614, 10.5205, 10.4918]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("run_qlora", [True, False])
-    def test_loss(self, run_qlora, tmpdir, monkeypatch):
+    def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
-        prefix = "qlora" if run_qlora else "lora"
         cmd = f"""
         tune lora_finetune_single_device
-            --config llama2/7B_{prefix}_single_device \
+            --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -72,24 +70,59 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         model_config = lora_llama2_test_config(
             lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
-            apply_lora_to_mlp=run_qlora,
+            apply_lora_to_mlp=False,
             apply_lora_to_output=False,
             lora_rank=8,
             lora_alpha=16,
         )
 
         # TODO (rohan-varma): QLoRA only supported with bf16 for now
-        cmd = (
-            cmd
-            + self._get_test_config_overrides(dtype_str="bf16" if run_qlora else "fp32")
-            + model_config
-        )
+        cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values(run_qlora=run_qlora)
+        expected_loss_values = self._fetch_expected_loss_values(run_qlora=False)
+        torch.testing.assert_close(
+            loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
+        )
+
+    @pytest.mark.integration_test
+    def test_loss_qlora(self, tmpdir, monkeypatch):
+        ckpt = "small_test_ckpt_meta"
+        ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        ckpt_dir = ckpt_path.parent
+        log_file = gen_log_file_name(tmpdir)
+
+        cmd = f"""
+        tune lora_finetune_single_device
+            --config llama2/7B_qlora_single_device \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.utils.FullModelMetaCheckpointer
+            checkpointer.checkpoint_dir='{ckpt_dir}' \
+            checkpointer.checkpoint_files=[{ckpt_path}]\
+            checkpointer.output_dir={tmpdir} \
+            checkpointer.model_type=LLAMA2 \
+            metric_logger.filename={log_file} \
+        """.split()
+
+        model_config = lora_llama2_test_config(
+            lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+            apply_lora_to_mlp=True,
+            apply_lora_to_output=False,
+            lora_rank=8,
+            lora_alpha=16,
+        )
+
+        # TODO (rohan-varma): QLoRA only supported with bf16 for now
+        cmd = cmd + self._get_test_config_overrides(dtype_str="bf16") + model_config
+        monkeypatch.setattr(sys, "argv", cmd)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        loss_values = get_loss_values_from_metric_logger(log_file)
+        expected_loss_values = self._fetch_expected_loss_values(run_qlora=True)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )

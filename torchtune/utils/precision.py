@@ -77,9 +77,8 @@ def get_dtype(
         dtype (Optional[str]): The precision dtype. Default: ``None``, in which we default to torch.float32
         device (Optional[torch.device]): Device in use for training. Only CUDA and CPU
             devices are supported. If a CUDA device is passed in, additional checking is done
-            to ensure that the device supports the requested precision. Default: ``None``, in which
-            case the device given by `torch.get_default_device()` is used.
-
+            to ensure that the device supports the requested precision. Default: ``None``, in which case
+            a CUDA device is assumed.
     Raises:
         ValueError: if precision isn't supported by the precision utils
 
@@ -101,7 +100,8 @@ def get_dtype(
             f"Dtype {torch_dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )
 
-    device = device or torch.get_default_device()
+    # TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on
+    # CPU or GPU, but it is not supported in versions of torch we test.
     if (
         torch_dtype == torch.bfloat16
         and device != torch.device("cpu")
