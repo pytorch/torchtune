@@ -65,18 +65,28 @@ def verify_bf16_support():
     )
 
 
-def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
+def get_dtype(
+    dtype: Optional[str] = None, device: Optional[torch.device] = None
+) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
-    Args:
-        dtype (Optional[str]): The precision dtype.
+    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
+        bf16 kernels. If not, the dtype returned is `torch.float32`.
 
+    Args:
+        dtype (Optional[str]): The precision dtype. Default: ``None``, in which we default to torch.float32
+        device (Optional[torch.device]): Device in use for training. Only CUDA and CPU
+            devices are supported. If a CUDA device is passed in, additional checking is done
+            to ensure that the device supports the requested precision. Default: ``None``, in which case
+            a CUDA device is assumed.
     Raises:
         ValueError: if precision isn't supported by the precision utils
 
     Returns:
         torch.dtype: The corresponding torch.dtype.
+
     """
+
     # None defaults to float32
     if dtype is None:
         return torch.float32
@@ -90,7 +100,13 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
             f"Dtype {torch_dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )
 
-    if torch_dtype == torch.bfloat16 and not verify_bf16_support():
+    # TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on
+    # CPU or GPU, but it is not supported in versions of torch we test.
+    if (
+        torch_dtype == torch.bfloat16
+        and device != torch.device("cpu")
+        and not verify_bf16_support()
+    ):
         log.info("BF16 not supported on this hardware. Setting dtype to float32")
         torch_dtype = torch.float32
 
@@ -158,4 +174,6 @@ def validate_expected_param_dtype(model: torch.nn.Module, dtype: torch.dtype) ->
     """
     for name, param in model.named_parameters():
         if param.dtype != dtype:
-            raise ValueError(f"Parameter {name} has dtype {param.dtype}")
+            raise ValueError(
+                f"Parameter {name} has dtype {param.dtype}, but expected {dtype}"
+            )

@@ -181,7 +181,6 @@ class TestLoRALlama2:
         assert not unexpected
         assert all(["lora" in key for key in missing])
 
-    @pytest.mark.skip(reason="broken by ao nightly")
     def test_lora_linear_quantize_base(self):
         model = self.get_lora_llama2(
             lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
@@ -196,7 +195,6 @@ class TestLoRALlama2:
             if isinstance(module, LoRALinear):
                 assert module._quantize_base
 
-    @pytest.mark.skip(reason="broken by ao nightly")
     def test_qlora_llama2_parity(self, inputs):
         with utils.set_default_dtype(torch.bfloat16):
             model_ref = self.get_lora_llama2(
@@ -224,7 +222,6 @@ class TestLoRALlama2:
         output = qlora(inputs)
         torch.testing.assert_close(ref_output, output)
 
-    @pytest.mark.skip(reason="broken by ao nightly")
     def test_qlora_llama2_state_dict(self):
         with utils.set_default_dtype(torch.bfloat16):
             model_ref = self.get_lora_llama2(
@@ -258,7 +255,6 @@ class TestLoRALlama2:
             for v in qlora_sd.values():
                 assert v.dtype == torch.bfloat16
 
-    @pytest.mark.skip(reason="broken by ao nightly")
     def test_qlora_llama2_merged_state_dict(self):
         with utils.set_default_dtype(torch.bfloat16):
             qlora = self.get_lora_llama2(

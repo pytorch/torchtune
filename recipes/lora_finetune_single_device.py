@@ -69,7 +69,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
-        self._dtype = utils.get_dtype(cfg.dtype)
+        self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
         # fp16 precision is explicitly disabled as it is not supported in this
         # recipe (for example, no gradient scaling).
         if self._dtype == torch.float16:
