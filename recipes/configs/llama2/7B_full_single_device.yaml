@@ -70,7 +70,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
-  project: foo
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
 log_every_n_steps: null
