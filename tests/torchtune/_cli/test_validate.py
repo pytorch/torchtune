@@ -17,7 +17,7 @@ INVALID_CONFIG_PATH = "tests/assets/invalid_dummy_config.yaml"
 
 class TestTuneCLIWithValidateScript:
     def test_validate_good_config(self, capsys, monkeypatch):
-        args = f"tune validate --config {VALID_CONFIG_PATH}".split()
+        args = f"tune validate {VALID_CONFIG_PATH}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -28,7 +28,7 @@ class TestTuneCLIWithValidateScript:
         assert out == "Config is well-formed!"
 
     def test_validate_bad_config(self, monkeypatch, capsys):
-        args = f"tune validate --config {INVALID_CONFIG_PATH}".split()
+        args = f"tune validate {INVALID_CONFIG_PATH}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(SystemExit):
@@ -38,15 +38,3 @@ class TestTuneCLIWithValidateScript:
         err = captured.err.rstrip("\n")
 
         assert "got an unexpected keyword argument 'dummy'" in err
-
-    def test_validate_bad_override(self, monkeypatch, tmpdir):
-        args = f"\
-            tune validate --config {VALID_CONFIG_PATH} \
-            test._component_=torchtune.utils.get_dtype \
-            test.dtype=fp32 test.dummy=3".split()
-
-        monkeypatch.setattr(sys, "argv", args)
-        with pytest.raises(
-            SystemExit, match="got an unexpected keyword argument 'dummy'"
-        ):
-            runpy.run_path(TUNE_PATH, run_name="__main__")

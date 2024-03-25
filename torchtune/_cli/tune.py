@@ -16,13 +16,12 @@ import shutil
 import textwrap
 
 from pathlib import Path
-from typing import List, Tuple
 
 import torch
-
 import torchtune
 
 from huggingface_hub import snapshot_download
+from omegaconf import OmegaConf
 
 from torch.distributed.run import (
     get_args_parser as get_torchrun_args_parser,
@@ -30,6 +29,7 @@ from torch.distributed.run import (
 )
 
 from torchtune import config, list_configs, list_recipes
+from torchtune.config._errors import ConfigError
 
 from torchtune.models.llama2 import convert_llama2_fair_format
 from torchtune.utils.constants import MODEL_KEY
@@ -56,6 +56,7 @@ class TuneCLIParser:
         ls_parser = subparsers.add_parser(
             "ls",
             prog="tune ls",
+            help="List all built-in recipes and configs",
             description="List all built-in recipes and configs",
             epilog=textwrap.dedent(
                 """\
@@ -84,6 +85,7 @@ class TuneCLIParser:
             "cp",
             prog="tune cp",
             usage="tune cp <recipe|config> destination [OPTIONS]",
+            help="Copy a built-in recipe or config to a local path.",
             description="Copy a built-in recipe or config to a local path.",
             epilog=textwrap.dedent(
                 """\
@@ -128,6 +130,7 @@ class TuneCLIParser:
             "download",
             prog="tune download",
             usage="tune download <repo-id> [OPTIONS]",
+            help="Download a model from the HuggingFace Hub.",
             description="Download a model from the HuggingFace Hub.",
             epilog=textwrap.dedent(
                 """\
@@ -169,7 +172,7 @@ class TuneCLIParser:
             description="Convert a model checkpoint to a format compatible with TorchTune.",
         )
         convert_ckpt_parser.add_argument(
-            "checkpoint-path", type=Path, help="Path to the checkpoint to convert."
+            "checkpoint_path", type=Path, help="Path to the checkpoint to convert."
         )
         convert_ckpt_parser.add_argument(
             "--output-path",
@@ -214,8 +217,9 @@ class TuneCLIParser:
         validate_parser = subparsers.add_parser(
             "validate",
             prog="tune validate",
+            help="Validate a config and ensure that it is well-formed.",
             description="Validate a config and ensure that it is well-formed.",
-            usage="tune validate <PATH-TO-CONFIG>",
+            usage="tune validate <config>",
             epilog=textwrap.dedent(
                 """\
                 examples:
@@ -227,6 +231,11 @@ class TuneCLIParser:
             ),
             formatter_class=argparse.RawTextHelpFormatter,
         )
+        validate_parser.add_argument(
+            "config",
+            type=Path,
+            help="Path to the config to validate.",
+        )
         validate_parser.set_defaults(func=self._validate_cmd)
 
         # Add `run` command
@@ -234,6 +243,7 @@ class TuneCLIParser:
             "run",
             prog="tune run",
             help="Run a recipe. This is a wrapper around torchrun so you can also use any torchrun args.",
+            description="Run a recipe. This is a wrapper around torchrun so you can also use any torchrun args.",
             usage="tune run <recipe> --config <config> [RECIPE-OPTIONS] [TORCHRUN-OPTIONS]",
             epilog=textwrap.dedent(
                 """\
@@ -244,10 +254,9 @@ class TuneCLIParser:
                         --num-gpu 4 \
 
                     # Override a parameter in the config file and specify a number of GPUs for torchrun
-                    $ tune run lora_finetune_distributed.py \
+                    $ tune run --num-gpu=4 lora_finetune_distributed.py \
                         --config recipes/configs/lora_finetune_distributed.yaml \
                         model.lora_rank=16 \
-                        --num-gpu 4 \
                 """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -354,7 +363,7 @@ class TuneCLIParser:
             sep="\n",
         )
 
-    def _validate_cmd(self, args: Tuple[argparse.Namespace, List[str]]):
+    def _validate_cmd(self, args: argparse.Namespace):
         """Validate a config file."""
         cfg = OmegaConf.load(args.config)
 
@@ -381,9 +390,12 @@ class TuneCLIParser:
 
         # Convert checkpoint
         if model == "llama2":
-            state_dict = convert_llama2_fair_format(
-                original_state_dict, output_numerical_validation
-            )
+            try:
+                state_dict = convert_llama2_fair_format(
+                    original_state_dict, output_numerical_validation
+                )
+            except Exception as e:
+                self._parser.error(str(e))
         else:
             self._parser.error(f"Model {model} is not supported in TorchTune.")
 
@@ -403,9 +415,9 @@ class TuneCLIParser:
 
     def parse_args(self) -> argparse.Namespace:
         args = self._parser.parse_args()
+        # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+        # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
         if args.func == _torchrun_cmd:
-            # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
-            # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
             # Point UUID to the actual recipe and config file
             recipe_spec = args.recipe
             if recipe_spec in list_recipes():

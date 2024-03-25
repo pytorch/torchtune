@@ -46,13 +46,17 @@ class TestTuneCLIWithConvertCheckpointScript:
     def test_convert_checkpoint_errors_on_bad_conversion(self, capsys):
         incorrect_state_dict_loc = ASSETS / "tiny_state_dict_with_one_key.pt"
         testargs = (
-            f"tune convert_checkpoint --checkpoint-path {incorrect_state_dict_loc} --model llama2 --train-type full"
+            f"tune convert_checkpoint {incorrect_state_dict_loc} --model llama2 --train-type full"
         ).split()
         with patch.object(sys, "argv", testargs):
-            with pytest.raises(
-                SystemExit, match=r".*Error converting the original Llama2.*"
-            ) as e:
+            with pytest.raises(SystemExit):
                 runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        captured = capsys.readouterr()
+        out = captured.out.rstrip("\n")
+        err = captured.err.rstrip("\n")
+
+        assert "Error converting the original Llama2" in err
 
     def _tiny_fair_transformer(self, ckpt):
         tiny_fair_transfomer = Transformer(
@@ -120,7 +124,7 @@ class TestTuneCLIWithConvertCheckpointScript:
     def _generate_toks_for_llama2_7b(self):
         return torch.randint(low=0, high=32_000, size=(16, 128))
 
-    def test_convert_checkpoint_matches_fair_model(self, caplog, pytestconfig):
+    def test_convert_checkpoint_matches_fair_model(self, capsys, pytestconfig):
         is_large_scale_test = pytestconfig.getoption("--large-scale")
 
         if is_large_scale_test:
@@ -132,12 +136,12 @@ class TestTuneCLIWithConvertCheckpointScript:
 
         output_path = tempfile.NamedTemporaryFile(delete=True).name
         testargs = (
-            f"tune convert_checkpoint --checkpoint-path {ckpt} --output-path {output_path} --model llama2 --train-type lora"
+            f"tune convert_checkpoint {ckpt} --output-path {output_path} --model llama2 --train-type lora"
         ).split()
         with patch.object(sys, "argv", testargs):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        output = caplog.text
+        output = capsys.readouterr().out.rstrip("\n")
         assert "Succesfully wrote PyTorch-native model checkpoint" in output
 
         native_transformer = (
