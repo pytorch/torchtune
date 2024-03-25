@@ -21,6 +21,7 @@ from torchtune.utils.constants import (
     TOTAL_EPOCHS_KEY,
 )
 
+
 def _contains_fsdp(model: nn.Module) -> bool:
     """
     Checks if the model contains FSDP.

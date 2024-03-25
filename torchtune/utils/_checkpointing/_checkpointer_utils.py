@@ -14,6 +14,7 @@ import torch
 class ModelType(Enum):
     LLAMA2 = "llama2"
 
+
 class OptimizerInBackwardWrapper:
     """
     A bare-bones class meant for checkpoint save and load for optimizers running
@@ -42,14 +43,12 @@ class OptimizerInBackwardWrapper:
         optimizer state checkpointing, are not supported.
 
     """
+
     def __init__(self, optim_map: Dict[str, torch.optim.Optimizer]):
         self.optim_map = optim_map
 
     def state_dict(self):
-        return {
-            p: opt.state_dict() for p, opt in self.optim_map.items()
-        }
-
+        return {p: opt.state_dict() for p, opt in self.optim_map.items()}
 
     def load_state_dict(self, optim_ckpt_map: Dict[str, Any]):
         params_covered = set()
