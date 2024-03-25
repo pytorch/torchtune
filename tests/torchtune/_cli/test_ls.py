@@ -12,7 +12,7 @@ from tests.common import TUNE_PATH
 
 from torchtune import list_configs, list_recipes
 
-from torchtune._cli.ls import _NULL_VALUE
+from torchtune._cli.tune import NULL_VALUE
 
 
 class TestTuneCLIWithListScript:
@@ -31,4 +31,4 @@ class TestTuneCLIWithListScript:
                 for config in list_configs(recipe):
                     assert config in output, f"{config} was not found in output"
             else:
-                assert _NULL_VALUE in output, f"{_NULL_VALUE} was not found in output"
+                assert NULL_VALUE in output, f"{NULL_VALUE} was not found in output"

@@ -20,7 +20,7 @@ class TestTuneCLIWithDownloadScript:
         model = "meta-llama/Llama-2-7b"
         testargs = f"tune download --repo-id {model}".split()
         with patch.object(sys, "argv", testargs):
-            with pytest.raises(ValueError) as e:
+            with pytest.raises(SystemError) as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
     def test_download_calls_snapshot(self, capsys):

@@ -10,7 +10,6 @@ import sys
 import pytest
 
 from tests.common import TUNE_PATH
-from torchtune.config._errors import ConfigError
 
 VALID_CONFIG_PATH = "tests/assets/valid_dummy_config.yaml"
 INVALID_CONFIG_PATH = "tests/assets/invalid_dummy_config.yaml"
@@ -33,7 +32,7 @@ class TestTuneCLIWithValidateScript:
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(
-            ConfigError, match="got an unexpected keyword argument 'dummy'"
+            SystemExit, match="got an unexpected keyword argument 'dummy'"
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
@@ -45,6 +44,6 @@ class TestTuneCLIWithValidateScript:
 
         monkeypatch.setattr(sys, "argv", args)
         with pytest.raises(
-            ConfigError, match="got an unexpected keyword argument 'dummy'"
+            SystemExit, match="got an unexpected keyword argument 'dummy'"
         ):
             runpy.run_path(TUNE_PATH, run_name="__main__")

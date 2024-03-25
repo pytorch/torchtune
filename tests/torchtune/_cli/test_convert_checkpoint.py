@@ -50,7 +50,7 @@ class TestTuneCLIWithConvertCheckpointScript:
         ).split()
         with patch.object(sys, "argv", testargs):
             with pytest.raises(
-                Exception, match=r".*Error converting the original Llama2.*"
+                SystemExit, match=r".*Error converting the original Llama2.*"
             ) as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
 
