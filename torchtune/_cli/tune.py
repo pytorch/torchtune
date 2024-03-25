@@ -287,7 +287,6 @@ def main():
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
-
     torchrun_argparser = get_torchrun_args_parser()
     for action in torchrun_argparser._actions:
         if action.dest == "nproc_per_node":
@@ -300,16 +299,17 @@ def main():
             action.help = "Args to be passed to the recipe."
         elif action.dest == "help":
             continue
-        try:
-            run_parser._add_action(action)
-        except Exception as e:
-            print(e)
-            import pdb
-
-            pdb.set_trace()
+        run_parser._add_action(action)
     run_parser.set_defaults(func=torchrun_cmd)
 
+    # Parse commands and run
     args = tune_parser.parse_args()
+
+    # If the user is running `tune run`, we need to reset the `recipe` and `recipe_args`
+    if args.func == torchrun_cmd:
+        args.__dict__["training_script"] = args.__dict__.pop("recipe")
+        args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
+
     args.func(args)
 
 

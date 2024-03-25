@@ -11,7 +11,7 @@ from torchtune import list_configs, list_recipes
 _NULL_VALUE = "<>"
 
 
-def ls_cmd(*args):
+def ls_cmd(args):
     # Print table header
     header = f"{'RECIPE':<40} {'CONFIG':<40}"
     print(header)

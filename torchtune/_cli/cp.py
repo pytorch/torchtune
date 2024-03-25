@@ -23,7 +23,7 @@ def _get_absolute_path(file_name: str) -> Path:
     return path
 
 
-def cp_cmd(parser, *args):
+def cp_cmd(parser, *other_args):
     args = parser.parse_args()
     destination = args.destination
 
