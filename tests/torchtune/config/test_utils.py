@@ -9,10 +9,11 @@ from unittest import mock
 import pytest
 from torchtune.config._utils import (
     _get_component_from_path,
+    _get_template,
     _merge_yaml_and_cli_args,
     InstantiationError,
-    _get_template,
 )
+from torchtune.data import AlpacaInstructTemplate
 from torchtune.utils.argparse import TuneArgumentParser
 
 _CONFIG = {

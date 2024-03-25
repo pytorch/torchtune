@@ -9,10 +9,9 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import PromptTemplate
-from torchtune.datasets._types import Sample
-from torchtune.datasets._utils import tokenize_prompt_and_response
 from torchtune.config._utils import _get_template
+
+from torchtune.data import PromptTemplate, Sample, tokenize_prompt_and_response
 from torchtune.modules import Tokenizer
 
 
@@ -75,7 +74,11 @@ class InstructDataset(Dataset):
         transformed_sample = self._transform(sample) if self._transform else sample
 
         prompt = self.template.format(transformed_sample, self._column_map)
-        key_output = self._column_map["output"] if self._column_map and "output" in self._column_map else "output"
+        key_output = (
+            self._column_map["output"]
+            if self._column_map and "output" in self._column_map
+            else "output"
+        )
 
         return tokenize_prompt_and_response(
             tokenizer=self._tokenizer,

@@ -7,7 +7,7 @@
 import copy
 from typing import List, Tuple
 
-from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
 
@@ -52,26 +52,22 @@ def truncate_if_necessary(
     max_seq_len: int,
 ) -> Tuple[List[int], List[int]]:
     """
-    Truncate a prompt and response pair if longer than max sequence length.
+    Truncate a prompt and label pair if longer than max sequence length.
 
     Args:
         tokenizer (Tokenizer): The tokenizer to use.
-        prompt_tokens (List[int]): The prompt tokens.
+        prompt_tokens (List[int]): The prompt + response tokens.
         label_tokens (List[int]): The label tokens.
         max_seq_len (int): The maximum sequence length.
 
     Returns:
-        The truncated prompt and response.
+        The truncated prompt and label.
     """
-    # Truncate to max token length - 2 (so that there is at least one label token)
-    prompt_tokens_truncated = prompt_tokens[: max_seq_len - 2]
-
-    # Calculate space left for label tokens
-    label_tokens_length = max_seq_len - len(prompt_tokens_truncated)
-
-    # Truncate label tokens
-    label_tokens_truncated = label_tokens[: label_tokens_length - 1]
+    prompt_tokens_truncated = prompt_tokens[:max_seq_len]
+    label_tokens_truncated = label_tokens[:max_seq_len]
+    if prompt_tokens_truncated[-1] != tokenizer.eos_id:
+        prompt_tokens_truncated[-1] = tokenizer.eos_id
     if label_tokens_truncated[-1] != tokenizer.eos_id:
-        label_tokens_truncated.append(tokenizer.eos_id)
+        label_tokens_truncated[-1] = tokenizer.eos_id
 
     return prompt_tokens_truncated, label_tokens_truncated

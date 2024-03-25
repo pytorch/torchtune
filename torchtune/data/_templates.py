@@ -7,7 +7,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
-from torchtune.datasets._types import Sample
+from torchtune.data._types import Sample
 
 
 class PromptTemplate(ABC):
@@ -72,12 +72,9 @@ class AlpacaInstructTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None:
-            key_input = column_map["input"]
-            key_instruction = column_map["instruction"]
-        else:
-            key_input = "input"
-            key_instruction = "instruction"
+        column_map = column_map or {}
+        key_input = column_map.get("input", "input")
+        key_instruction = column_map.get("instruction", "instruction")
 
         if key_input in sample and sample[key_input]:
             prompt = self.template["prompt_input"].format(
@@ -112,10 +109,8 @@ class GrammarErrorCorrectionTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None and "sentence" in column_map:
-            key_sentence = column_map["sentence"]
-        else:
-            key_sentence = "sentence"
+        column_map = column_map or {}
+        key_sentence = column_map.get("sentence", "sentence")
 
         prompt = self.template.format(sentence=sample[key_sentence])
         return prompt
@@ -143,10 +138,8 @@ class SummarizeTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None and "dialogue" in column_map:
-            key_dialogue = column_map["dialogue"]
-        else:
-            key_dialogue = "dialogue"
+        column_map = column_map or {}
+        key_dialogue = column_map.get("dialogue", "dialogue")
 
         prompt = self.template.format(dialogue=sample[key_dialogue])
         return prompt
@@ -170,8 +163,8 @@ class Llama2ChatTemplate(PromptTemplate):
     B_INST, E_INST = "[INST]", "[/INST]"
     B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
     template = {
-        "system": "{self.B_INST} {self.B_SYS}{system}{self.E_SYS}{user} {self.E_INST} ",
-        "no_system": "{self.B_INST} {user} {self.E_INST} ",
+        "system": f"{B_INST} {B_SYS}{{system}}{E_SYS}{{user}} {E_INST} ",
+        "no_system": f"{B_INST} {{user}} {E_INST} ",
     }
 
     def format(
@@ -190,12 +183,17 @@ class Llama2ChatTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if "system" in sample:
+        column_map = column_map or {}
+        key_system = column_map.get("system", "system")
+        key_user = column_map.get("user", "user")
+
+        if key_system in sample:
             return self.template["system"].format(
-                system=sample["system"], user=sample["user"]
+                system=sample[key_system], user=sample[key_user]
             )
         else:
-            return self.template["no_system"].format(user=sample["user"])
+            return self.template["no_system"].format(user=sample[key_user])
+
 
 class MistralChatTemplate(PromptTemplate):
     """
@@ -206,11 +204,12 @@ class MistralChatTemplate(PromptTemplate):
     prompts.
 
     Example:
-        "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
+        "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital
+        of France, is known for its stunning architecture..."
     """
 
     B_INST, E_INST = "[INST]", "[/INST]"
-    template = "{self.B_INST} {user} {self.E_INST} "
+    template = f"{B_INST} {{user}} {E_INST} "
 
     def format(
         self, sample: Sample, column_map: Optional[Dict[str, str]] = None
@@ -232,7 +231,11 @@ class MistralChatTemplate(PromptTemplate):
         """
         if "system" in sample:
             raise ValueError("System prompts are not supported in MistralChatTemplate")
-        return self.template.format(user=sample["user"])
+
+        column_map = column_map or {}
+        key_user = column_map.get("user", "user")
+
+        return self.template.format(user=sample[key_user])
 
 
 class ChatMLTemplate(PromptTemplate):
@@ -252,8 +255,8 @@ class ChatMLTemplate(PromptTemplate):
 
     IM_START, IM_END = "<|im_start|>", "<|im_end|>"
     template = {
-        "system": "{self.IM_START}system\n{system}{self.IM_END}\n{self.IM_START}user\n{user}{self.IM_END}\n{self.IM_START}assistant",
-        "no_system": "{self.IM_START}user\n{user}{self.IM_END}\n{self.IM_START}assistant",
+        "system": f"{IM_START}system\n{{system}}{IM_END}\n{IM_START}user\n{{user}}{IM_END}\n{IM_START}assistant\n",
+        "no_system": f"{IM_START}user\n{{user}}{IM_END}\n{IM_START}assistant\n",
     }
 
     def format(
@@ -272,9 +275,13 @@ class ChatMLTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if "system" in sample:
+        column_map = column_map or {}
+        key_system = column_map.get("system", "system")
+        key_user = column_map.get("user", "user")
+
+        if key_system in sample:
             return self.template["system"].format(
-                system=sample["system"], user=sample["user"]
+                system=sample[key_system], user=sample[key_user]
             )
         else:
-            return self.template["no_system"].format(user=sample["user"])
+            return self.template["no_system"].format(user=sample[key_user])

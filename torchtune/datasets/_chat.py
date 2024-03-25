@@ -8,14 +8,15 @@ from typing import Any, Callable, Dict, Generator, List, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
+from torchtune.config._utils import _get_template
 
-from torchtune.data import PromptTemplate
-from torchtune.datasets._types import Dialogue, Sample
-from torchtune.datasets._utils import (
+from torchtune.data import (
+    Dialogue,
+    PromptTemplate,
+    Sample,
     tokenize_prompt_and_response,
     truncate_if_necessary,
 )
-from torchtune.config._utils import _get_template
 from torchtune.modules import Tokenizer
 
 
@@ -99,7 +100,7 @@ class ChatDataset(Dataset):
                 break
 
         prompt_tokens, label_tokens = truncate_if_necessary(
-            prompt_tokens, label_tokens, self.max_seq_len
+            self._tokenizer, prompt_tokens, label_tokens, self.max_seq_len
         )
 
         assert len(prompt_tokens) == len(label_tokens)
@@ -113,16 +114,25 @@ class ChatDataset(Dataset):
         for message in dialogue:
             # If we are at the assistant message, we are at the end of a turn, yield.
             if message["role"] == "assistant":
+                if "user" not in prompt_messages:
+                    raise ValueError(
+                        f"Missing a user message before assistant message: {message['content']}"
+                    )
                 yield prompt_messages, message["content"]
                 prompt_messages = {}
             # Otherwise, continue to add to the turn's messages
             else:
+                if message["role"] in prompt_messages:
+                    raise ValueError(
+                        f"Duplicate {message['role']} message in dialogue: {message['content']}"
+                    )
                 prompt_messages[message["role"]] = message["content"]
 
-        if "assistant" not in prompt_messages:
-            # If we never yielded, then the last turn was incomplete, so yield it now.
-            # This is typically the case for the last turn on inference.
-            yield prompt_messages, ""
+        # If we never yielded, then the last turn was incomplete
+        if prompt_messages:
+            raise ValueError(
+                f"Incomplete turn in dialogue, current turn: {prompt_messages}"
+            )
 
 
 def chat_dataset(

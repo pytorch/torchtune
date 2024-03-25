@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from torchtune.data._types import Dialogue, Message, Sample
+
 
 def sharegpt_to_llama2_dialogue(sample: Sample) -> Dialogue:
     """

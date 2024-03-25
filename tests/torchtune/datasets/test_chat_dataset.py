@@ -7,10 +7,10 @@
 from unittest import mock
 
 import pytest
-from torchtune.data import AlpacaInstructTemplate
-from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import Message
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets._instruct import _get_template, InstructDataset
+from torchtune.datasets import ChatDataset
 
 
 class DummyTokenizer:
@@ -18,79 +18,180 @@ class DummyTokenizer:
         words = text.split()
         return [len(word) for word in words]
 
+    @property
+    def eos_id(self):
+        return -1
+
 
 class DummyTemplate:
-    def __init__(self, template):
-        self.template = template
+    def __init__(self):
+        self.template = {
+            "system": "System:\n{system}\nUser:\n{user}\nAssistant:\n",
+            "no_system": "User:\n{user}\nAssistant:\n",
+        }
 
-    def format(self, sample, column_map):
-        return self.template.format(**sample)
+    def format(self, sample, column_map=None):
+        if "system" in sample:
+            return self.template["system"].format(**sample)
+        else:
+            return self.template["no_system"].format(**sample)
+
+
+def _are_messages_equal(messages_a, messages_b):
+    for ma, mb in zip(messages_a, messages_b):
+        if ma.role != mb.role:
+            return False
+        if ma.content != mb.content:
+            return False
+    return True
 
 
 class TestChatDataset:
-    template = DummyTemplate(
-        "Instruction:\n{instruction}\n\nInput:\n{input}\n\nResponse: "
-    )
-    expected_tokenized_prompts = [
-        [12, 4, 2, 3, 2, 12, 10, 6, 4, 2, 3, 2, 6, 10, 9, 1, 5, 4, 4, 3, 6, 2, 4],
-        [12, 4, 2, 2, 12, 10, 6, 4, 2, 2, 6, 10, 9, 1, 6, 4, 4, 3, 6, 2, 4],
-    ]
+    @pytest.fixture
+    def template(self):
+        return DummyTemplate()
 
-    def get_samples(self):
+    @pytest.fixture
+    def dialogue(self):
         return [
             {
-                "instruction": "This is not an instruction.",
-                "input": "This is not an input.",
-                "output": "I never know what I'm doing, do you?",
-            },
-            {
-                "instruction": "This is an instruction.",
-                "input": "This is an input.",
-                "output": "I always know what I'm doing, do you?",
+                "dialogue": [
+                    Message(role="system", content="You are an AI assistant."),
+                    Message(role="user", content="What is the meaning of life?"),
+                    Message(role="assistant", content="The meaning of life is 42."),
+                    Message(role="user", content="That's ridiculous."),
+                    Message(role="assistant", content="I agree."),
+                ],
             },
         ]
 
-    @mock.patch("torchtune.datasets._instruct.load_dataset")
-    def test_get_item_no_train_on_input(self, mock_load_dataset):
-        mock_load_dataset.return_value = self.get_samples()
-        prompt_lengths = (15, 13)
-        expected_labels = [
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0] + [1, 5, 4, 4, 3, 6, 2, 4],
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1] + [1, 6, 4, 4, 3, 6, 2, 4],
-        ]
-
-        dataset = InstructDataset(
+    @mock.patch("torchtune.datasets._chat.load_dataset")
+    def test_get_turns(self, mock_load_dataset, template, dialogue):
+        ds = ChatDataset(
             tokenizer=DummyTokenizer(),
             source="iam/agoofy/goober",
-            template=self.template,
-            transform=dummy_transform,
+            convert_to_dialogue=lambda x: x,
+            template=template,
+            max_seq_len=100,
             train_on_input=False,
         )
-        assert len(dataset) == 2
-        mock_load_dataset.assert_called_once()
 
-        for i in range(len(dataset)):
-            prompt, label = dataset[i]
-            print(prompt, label)
-            assert prompt == self.expected_tokenized_prompts[i]
-            assert label == expected_labels[i]
+        # Test a normal multiturn dialogue
+        prompts, responses = zip(
+            *[(p, l) for p, l in ds._get_turns(dialogue[0]["dialogue"])]
+        )
+        print(prompts, responses)
+        assert prompts[0] == {
+            "system": "You are an AI assistant.",
+            "user": "What is the meaning of life?",
+        }
+        assert responses[0] == "The meaning of life is 42."
+        assert prompts[1] == {"user": "That's ridiculous."}
+        assert responses[1] == "I agree."
 
-    @mock.patch("torchtune.datasets._instruct.load_dataset")
-    def test_get_item_train_on_input(self, mock_load_dataset):
-        mock_load_dataset.return_value = self.get_samples()
-        expected_labels = self.expected_tokenized_prompts
+        # Test without system prompt
+        prompts, responses = zip(
+            *[(p, l) for p, l in ds._get_turns(dialogue[0]["dialogue"][1:])]
+        )
+        assert prompts[0] == {"user": "What is the meaning of life?"}
+        assert responses[0] == "The meaning of life is 42."
+        assert prompts[1] == {"user": "That's ridiculous."}
+        assert responses[1] == "I agree."
 
-        dataset = InstructDataset(
+        # Test a missing user message
+        with pytest.raises(
+            ValueError, match="Missing a user message before assistant message"
+        ):
+            for _ in ds._get_turns(
+                [dialogue[0]["dialogue"][0]] + dialogue[0]["dialogue"][2:]
+            ):
+                pass
+
+        # Test a missing user message and no system message
+        with pytest.raises(
+            ValueError, match="Missing a user message before assistant message"
+        ):
+            for _ in ds._get_turns(dialogue[0]["dialogue"][2:]):
+                pass
+
+        # Test repeated messages
+        with pytest.raises(ValueError, match="Duplicate"):
+            for _ in ds._get_turns(
+                dialogue[0]["dialogue"][:2] + dialogue[0]["dialogue"][3:]
+            ):
+                pass
+        with pytest.raises(ValueError, match="Duplicate"):
+            for _ in ds._get_turns(
+                [dialogue[0]["dialogue"][0]] + [dialogue[0]["dialogue"][0]]
+            ):
+                pass
+
+        # Test incomplete turn
+        with pytest.raises(ValueError, match="Incomplete turn in dialogue"):
+            for _ in ds._get_turns(dialogue[0]["dialogue"][:2]):
+                pass
+
+    @mock.patch("torchtune.datasets._chat.load_dataset")
+    def test_get_item(self, mock_load_dataset, template, dialogue):
+        mock_load_dataset.return_value = dialogue
+        expected_tokenized_prompts = [
+            [
+                7,
+                3,
+                3,
+                2,
+                2,
+                10,
+                5,
+                4,
+                2,
+                3,
+                7,
+                2,
+                5,
+                10,
+                3,
+                7,
+                2,
+                4,
+                2,
+                3,
+                5,
+                6,
+                11,
+                10,
+                1,
+                -1,
+            ]
+        ]
+        prompt_lengths = (14, 4)
+        expected_labels = [
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
+            + [
+                3,
+                7,
+                2,
+                4,
+                2,
+                3,
+            ]
+            + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
+            + [1, -1]
+        ]
+
+        ds = ChatDataset(
             tokenizer=DummyTokenizer(),
             source="iam/agoofy/goober",
-            template=self.template,
-            transform=dummy_transform,
-            train_on_input=True,
+            convert_to_dialogue=lambda x: x["dialogue"],
+            template=template,
+            max_seq_len=100,
+            train_on_input=False,
         )
-        assert len(dataset) == 2
+        assert len(ds) == 1
         mock_load_dataset.assert_called_once()
 
-        for i in range(len(dataset)):
-            prompt, label = dataset[i]
-            assert prompt == self.expected_tokenized_prompts[i]
+        for i in range(len(ds)):
+            prompt, label = ds[i]
+            print(prompt, label)
+            assert prompt == expected_tokenized_prompts[i]
             assert label == expected_labels[i]

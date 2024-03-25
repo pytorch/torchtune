@@ -9,9 +9,9 @@ from unittest.mock import patch
 import pytest
 
 from tests.test_utils import get_assets_path
-from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets._samsum import samsum_dataset
+from torchtune.datasets import samsum_dataset
 from torchtune.modules.tokenizer import Tokenizer
 
 

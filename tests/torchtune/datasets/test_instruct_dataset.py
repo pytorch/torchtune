@@ -6,11 +6,9 @@
 
 from unittest import mock
 
-import pytest
-from torchtune.data import AlpacaInstructTemplate
-from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets._instruct import _get_template, InstructDataset
+from torchtune.datasets import InstructDataset
 
 
 class DummyTokenizer:
@@ -77,7 +75,6 @@ class TestInstructDataset:
 
         for i in range(len(dataset)):
             prompt, label = dataset[i]
-            print(prompt, label)
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
 
