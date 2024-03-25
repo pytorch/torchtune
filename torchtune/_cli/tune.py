@@ -37,10 +37,10 @@
 # import argparse
 # import runpy
 # import sys
-# from pathlib import Path
+from pathlib import Path
 
-# import torchtune
-# from torchtune import list_recipes
+import torchtune
+from torchtune import list_recipes
 # from torchtune._cli import list_scripts
 # from torchtune.utils._distributed import _valid_distributed_single_node_nnodes
 
@@ -90,6 +90,8 @@ from torchtune._cli.cp import cp_cmd
 from torchtune._cli.download import download_cmd
 from torchtune._cli.ls import ls_cmd
 from torchtune._cli.validate import validate_cmd
+
+ROOT = Path(torchtune.__file__).parent.parent.absolute()
 
 
 def main():
@@ -287,10 +289,12 @@ def main():
         ),
         formatter_class=argparse.RawTextHelpFormatter,
     )
+    # Apply torchrun args to run parser
     torchrun_argparser = get_torchrun_args_parser()
     for action in torchrun_argparser._actions:
         if action.dest == "nproc_per_node":
             action.option_strings += ["--num-gpu", "--num_gpu"]
+            action.help += "If `num_gpu` used, max number is 8 - does not support multi-node training."
         elif action.dest == "training_script":
             action.dest = "recipe"
             action.help = "Name or path to recipe to be launched followed by args. For a list of all possible recipes, run `tune ls`."
@@ -302,14 +306,24 @@ def main():
         run_parser._add_action(action)
     run_parser.set_defaults(func=torchrun_cmd)
 
-    # Parse commands and run
+    # Parse commands
     args = tune_parser.parse_args()
 
-    # If the user is running `tune run`, we need to reset the `recipe` and `recipe_args`
     if args.func == torchrun_cmd:
+        # Point UUID to the actual recipe and config file
+        recipe_spec = args.recipe
+        if recipe_spec in list_recipes():
+            args.recipe = str(ROOT / "recipes" / f"{recipe_spec}.py")
+            config_idx = args.recipes_args.index("--config") + 1
+            config_spec = args.recipes_args[config_idx]
+            if config_spec in list_configs(recipe_spec):
+                args.recipes_args[config_idx] = str(ROOT / "recipes" / "configs" / f"{config_uuid}.yaml")
+
+        # If the user is running `tune run`, we need to reset the `recipe` and `recipe_args`
         args.__dict__["training_script"] = args.__dict__.pop("recipe")
         args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
 
+    # Run the command w/ parsed args
     args.func(args)
 
 

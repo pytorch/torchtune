@@ -10,6 +10,7 @@ from pathlib import Path
 
 import torchtune
 from torchtune import list_configs, list_recipes
+import argparse
 
 
 def _get_absolute_path(file_name: str) -> Path:
@@ -23,8 +24,7 @@ def _get_absolute_path(file_name: str) -> Path:
     return path
 
 
-def cp_cmd(parser, *other_args):
-    args = parser.parse_args()
+def cp_cmd(args):
     destination = args.destination
 
     # Check if recipe/config is valid
@@ -49,7 +49,7 @@ def cp_cmd(parser, *other_args):
                 destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(src, destination)
     except FileNotFoundError:
-        parser.error(
+        argparse.ArgumentError(
             f"Cannot create regular file: '{destination}'. No such file or directory. "
             "If the specified destination's parent directory does not exist and you would "
             "like to create it on-the-fly, use the --make-parents flag."
