@@ -419,18 +419,28 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.get_dtype.html#torchtune.utils.precision.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.get_dtype.html#torchtune.utils.precision.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the torch.dtype corresponding to the given precision string.</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        dtype (Optional[str]): The precision dtype.</span>
+<span class="sd">    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports</span>
+<span class="sd">        bf16 kernels. If not, the dtype returned is `torch.float32`.</span>
 
+<span class="sd">    Args:</span>
+<span class="sd">        dtype (Optional[str]): The precision dtype. Default: ``None``, in which we default to torch.float32</span>
+<span class="sd">        device (Optional[torch.device]): Device in use for training. Only CUDA and CPU</span>
+<span class="sd">            devices are supported. If a CUDA device is passed in, additional checking is done</span>
+<span class="sd">            to ensure that the device supports the requested precision. Default: ``None``, in which case</span>
+<span class="sd">            a CUDA device is assumed.</span>
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if precision isn&#39;t supported by the precision utils</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.dtype: The corresponding torch.dtype.</span>
+
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># None defaults to float32</span>
     <span class="k">if</span> <span class="n">dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
@@ -444,7 +454,13 @@
             <span class="sa">f</span><span class="s2">&quot;Dtype </span><span class="si">{</span><span class="n">torch_dtype</span><span class="si">}</span><span class="s2"> must be one of </span><span class="si">{</span><span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">list_dtypes</span><span class="p">())</span><span class="si">}</span><span class="s2"> for finetuning.&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">torch_dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">verify_bf16_support</span><span class="p">():</span>
+    <span class="c1"># TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on</span>
+    <span class="c1"># CPU or GPU, but it is not supported in versions of torch we test.</span>
+    <span class="k">if</span> <span class="p">(</span>
+        <span class="n">torch_dtype</span> <span class="o">==</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span>
+        <span class="ow">and</span> <span class="n">device</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+        <span class="ow">and</span> <span class="ow">not</span> <span class="n">verify_bf16_support</span><span class="p">()</span>
+    <span class="p">):</span>
         <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BF16 not supported on this hardware. Setting dtype to float32&quot;</span><span class="p">)</span>
         <span class="n">torch_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
 
@@ -512,7 +528,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_parameters</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">param</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parameter </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has dtype </span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;Parameter </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2"> has dtype </span><span class="si">{</span><span class="n">param</span><span class="o">.</span><span class="n">dtype</span><span class="si">}</span><span class="s2">, but expected </span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
 </pre></div>
 
              </article>
