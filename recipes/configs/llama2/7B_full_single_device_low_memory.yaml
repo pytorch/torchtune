@@ -48,10 +48,11 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
-  _component_: torch.optim.SGD
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 2e-5
+optimizer_in_bwd: True
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
