@@ -76,7 +76,6 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             lora_alpha=16,
         )
 
-        # TODO (rohan-varma): QLoRA only supported with bf16 for now
         cmd = cmd + self._get_test_config_overrides(dtype_str="fp32") + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         with pytest.raises(SystemExit):
