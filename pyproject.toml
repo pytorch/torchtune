@@ -10,9 +10,9 @@ check-return-types = 'False'
 exclude = 'tests/torchtune/models/llama2/scripts/'
 
 [tool.pytest.ini_options]
-addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
-pythonpath = 'tests'
+addopts = ["--showlocals", "--import-mode=importlib", "--without-integration", "--without-slow-integration"]
 # --showlocals will show local variables in tracebacks
-# --import-model=importlib ensures pytest doesn't append the repo root to sys.path,
+# --import-mode=importlib ensures pytest doesn't append the repo root to sys.path,
 # causing our tests to bypass legitimate import errors
 # --without-integration and --without-slow-integration: default to running unit tests only
+pythonpath = 'tests'
