@@ -25,7 +25,7 @@ class TestEleutherEval:
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
-        tune eleuther_eval \
+        tune run eleuther_eval \
             --config eleuther_eval \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer

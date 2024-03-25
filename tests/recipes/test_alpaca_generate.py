@@ -28,7 +28,7 @@ class TestAlpacaGenerateRecipe:
         ckpt = "small_test_ckpt_tune"
         model_checkpoint = CKPT_MODEL_PATHS[ckpt]
         cmd = f"""
-        tune alpaca_generate
+        tune run alpaca_generate
             --config alpaca_generate \
             model_checkpoint={model_checkpoint} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \

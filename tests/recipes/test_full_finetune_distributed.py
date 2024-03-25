@@ -58,7 +58,7 @@ class TestFullFinetuneDistributedRecipe:
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed
             --config llama2/7B_full \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer

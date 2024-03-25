@@ -56,7 +56,7 @@ class TestLoRAFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
             --config llama2/7B_lora \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer

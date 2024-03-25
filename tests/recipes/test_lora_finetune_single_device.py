@@ -57,7 +57,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune lora_finetune_single_device
+        tune run lora_finetune_single_device
             --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelMetaCheckpointer
