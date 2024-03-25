@@ -67,6 +67,49 @@ class OptimizerInBackwardWrapper:
             )
 
 
+def create_optim_in_bwd_wrapper(
+    model: torch.nn.Module, optim_dict: Dict[torch.nn.Parameter, torch.optim.Optimizer]
+) -> OptimizerInBackwardWrapper:
+    """
+    Create a wrapper for optimizer step running in backward.
+
+    Args:
+        model (torch.nn.Module): Model that contains parameters that are being optimized. For now,
+            it is assumed that all parameters being optimized belong to a single top-level model.
+            `named_parameters` attribute of `model` will be accessed to look up parameter names for
+            parameters being optimized.
+        optim_dict (Dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
+            parameters to optimizers.
+
+    Returns:
+        ``OptimizerInBackwardWrapper``: Wrapper for optimizer states running in backward.
+    """
+    return OptimizerInBackwardWrapper(
+        {n: optim_dict[p] for n, p in model.named_parameters()}
+    )
+
+
+def register_optim_in_bwd_hooks(
+    model: torch.nn.Module, optim_dict: Dict[torch.nn.Parameter, torch.optim.Optimizer]
+) -> None:
+    """
+    Register hooks for optimizer step running in backward.
+
+    Args:
+        model (torch.nn.Module): Model whose parameters will be optimized. Note that currently
+            hooks for ALL parameters in the model will be registered.
+        optim_dict (Dict[torch.nn.Parameter, torch.optim.Optimizer]): Mapping from
+            parameters to optimizers.
+    """
+
+    def optim_step(param) -> None:
+        optim_dict[param].step()
+        optim_dict[param].zero_grad()
+
+    for p in model.parameters():
+        p.register_post_accumulate_grad_hook(optim_step)
+
+
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     """
     Utility to recover and validate the path for a given file within a given directory.

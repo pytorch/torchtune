@@ -10,6 +10,8 @@ from ._checkpointing import (  # noqa
     FullModelTorchTuneCheckpointer,
     ModelType,
     OptimizerInBackwardWrapper,
+    create_optim_in_bwd_wrapper,
+    register_optim_in_bwd_hooks,
 )
 from ._device import get_device
 from ._distributed import (  # noqa
