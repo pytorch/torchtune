@@ -164,7 +164,7 @@ class Llama2ChatTemplate(PromptTemplate):
         You are a helpful, respectful and honest assistant.
         <</SYS>>
 
-        I am going to Paris, what should I see? [/INST] "
+        I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
     """
 
     B_INST, E_INST = "[INST]", "[/INST]"
@@ -172,6 +172,88 @@ class Llama2ChatTemplate(PromptTemplate):
     template = {
         "system": "{self.B_INST} {self.B_SYS}{system}{self.E_SYS}{user} {self.E_INST} ",
         "no_system": "{self.B_INST} {user} {self.E_INST} ",
+    }
+
+    def format(
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from a user message and optional system prompt.
+
+        Args:
+            sample (Sample): a single data sample, expects role keys "system" (optional)
+                and "user" in the sample.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                role names in the template to the actual role names in the sample.
+                If None, assume these are "system" and "user".
+
+        Returns:
+            The formatted prompt
+        """
+        if "system" in sample:
+            return self.template["system"].format(
+                system=sample["system"], user=sample["user"]
+            )
+        else:
+            return self.template["no_system"].format(user=sample["user"])
+
+class MistralChatTemplate(PromptTemplate):
+    """
+    Prompt template that formats according to Mistral's instruct model:
+    https://docs.mistral.ai/models/
+
+    It is identical to `Llama2ChatTemplate`, except it does not support system
+    prompts.
+
+    Example:
+        "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
+    """
+
+    B_INST, E_INST = "[INST]", "[/INST]"
+    template = "{self.B_INST} {user} {self.E_INST} "
+
+    def format(
+        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from a user message
+
+        Args:
+            sample (Sample): a single data sample, expects only "user" in the sample.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                role names in the template to the actual role names in the sample.
+                If None, assume these are "user".
+
+        Returns:
+            The formatted prompt
+
+        Raises:
+            ValueError: if the sample contains a "system" key
+        """
+        if "system" in sample:
+            raise ValueError("System prompts are not supported in MistralChatTemplate")
+        return self.template.format(user=sample["user"])
+
+
+class ChatMLTemplate(PromptTemplate):
+    """
+    OpenAI's Chat Markup Language used by their chat models:
+    https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/openai/includes/chat-markup-language.md
+    It is the default template used by HuggingFace models.
+
+    Example:
+        <|im_start|>system
+        Provide some context and/or instructions to the model.<|im_end|>
+        <|im_start|>user
+        The user’s message goes here<|im_end|>
+        <|im_start|>assistant
+        The assistant’s response goes here<|im_end|>
+    """
+
+    IM_START, IM_END = "<|im_start|>", "<|im_end|>"
+    template = {
+        "system": "{self.IM_START}system\n{system}{self.IM_END}\n{self.IM_START}user\n{user}{self.IM_END}\n{self.IM_START}assistant",
+        "no_system": "{self.IM_START}user\n{user}{self.IM_END}\n{self.IM_START}assistant",
     }
 
     def format(

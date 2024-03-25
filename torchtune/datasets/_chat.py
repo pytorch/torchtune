@@ -15,6 +15,7 @@ from torchtune.datasets._utils import (
     tokenize_prompt_and_response,
     truncate_if_necessary,
 )
+from torchtune.config._utils import _get_template
 from torchtune.modules import Tokenizer
 
 

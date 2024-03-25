@@ -19,12 +19,6 @@ class DummyTokenizer:
         return [len(word) for word in words]
 
 
-def dummy_transform(sample):
-    sample["input"] = sample["input"] + " asdfghjkl; "
-    sample["instruction"] = sample["instruction"] + " asdfghjkl; "
-    return sample
-
-
 class DummyTemplate:
     def __init__(self, template):
         self.template = template
@@ -33,7 +27,7 @@ class DummyTemplate:
         return self.template.format(**sample)
 
 
-class TestInstructDataset:
+class TestChatDataset:
     template = DummyTemplate(
         "Instruction:\n{instruction}\n\nInput:\n{input}\n\nResponse: "
     )

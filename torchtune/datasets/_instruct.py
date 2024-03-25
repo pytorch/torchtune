@@ -11,7 +11,8 @@ from torch.utils.data import Dataset
 
 from torchtune.data import PromptTemplate
 from torchtune.datasets._types import Sample
-from torchtune.datasets._utils import _get_template, tokenize_prompt_and_response
+from torchtune.datasets._utils import tokenize_prompt_and_response
+from torchtune.config._utils import _get_template
 from torchtune.modules import Tokenizer
 
 
