@@ -45,7 +45,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, run_qlora: bool = False):
         if run_qlora:
-            return [10.5056, 10.5575, 10.5179, 10.4897]
+            return [10.5057, 10.5575, 10.5179, 10.4898]
         else:
             return [10.5074, 10.5614, 10.5205, 10.4918]
 

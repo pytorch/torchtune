@@ -55,8 +55,6 @@ def list_dtypes() -> List[str]:
 
 
 def verify_bf16_support():
-    if not torch.cuda.is_available():
-        return True  # bf16 is supported on CPU
     return (
         torch.cuda.is_available()
         and torch.version.cuda
@@ -67,18 +65,27 @@ def verify_bf16_support():
     )
 
 
-def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
+def get_dtype(dtype: Optional[str] = None, device: Optional[torch.device] = None) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
     Args:
-        dtype (Optional[str]): The precision dtype.
+        dtype (Optional[str]): The precision dtype. Default: ``None``, in which case torch.float32
+        is returned
+        device (Optional[torch.device]): Device in use for training. Only CUDA and CPU
+            devices are supported. If a CUDA device is passed in, additional checking is done
+            to ensure that the device supports the requested precision. Default: ``None``, in which
+            case the device given by `torch.get_default_device()` is used.
 
     Raises:
         ValueError: if precision isn't supported by the precision utils
 
     Returns:
         torch.dtype: The corresponding torch.dtype.
+
+    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
+        bf16 kernels. If not, the dtype returned is `torch.float32`.
     """
+
     # None defaults to float32
     if dtype is None:
         return torch.float32
@@ -91,7 +98,9 @@ def get_dtype(dtype: Optional[str] = None) -> torch.dtype:
         raise ValueError(
             f"Dtype {torch_dtype} must be one of {', '.join(list_dtypes())} for finetuning."
         )
-    if torch_dtype == torch.bfloat16 and not verify_bf16_support():
+
+    device = device or torch.get_default_device()
+    if torch_dtype == torch.bfloat16 and device != torch.device("cpu") and not verify_bf16_support():
         log.info("BF16 not supported on this hardware. Setting dtype to float32")
         torch_dtype = torch.float32
 
