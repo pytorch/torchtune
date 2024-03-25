@@ -147,7 +147,7 @@ class WandBLogger(MetricLoggerInterface):
 
     def __init__(
         self,
-        project: str,
+        project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
         **kwargs,
