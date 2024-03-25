@@ -60,7 +60,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         prefix = "qlora" if run_qlora else "lora"
         cmd = f"""
         tune lora_finetune_single_device
-            --config {prefix}_finetune_single_device \
+            --config llama2/7B_{prefix}_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -117,7 +117,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune lora_finetune_single_device
-            --config lora_finetune_single_device \
+            --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -142,7 +142,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune lora_finetune_single_device
-            --config lora_finetune_single_device \
+            --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -175,7 +175,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         cmd = f"""
         tune lora_finetune_single_device
-            --config lora_finetune_single_device \
+            --config llama2/7B_lora_single_device \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \

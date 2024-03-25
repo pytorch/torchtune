@@ -64,14 +64,23 @@ def _get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     return new_key
 
 
-# =========== Convertors for Llama2 7B ===========
+def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    """
+    Convert a state dict from Meta's format to TorchTune's format. State dicts
+    from multiple checkpoint files should be consolidated into a single state dict
+    before calling this function.
 
+    Eg of Meta-format state dict can be found in the ``meta-llama/Llama-2-7b``
+    repo in HF (https://huggingface.co/meta-llama/Llama-2-7b).
 
-def meta_to_tune_llama2_7b(
-    original_state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+    Args:
+        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+
+    Returns:
+        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+    """
     converted_state_dict = {}
-    for key, value in original_state_dict.items():
+    for key, value in state_dict.items():
         if key not in ["rope.freqs"]:  # Skip loading the position embeddings
             new_key = _get_mapped_key(key, _FROM_META)
             converted_state_dict[new_key] = value
@@ -79,71 +88,109 @@ def meta_to_tune_llama2_7b(
     return converted_state_dict
 
 
-def tune_to_meta_llama2_7b(
-    original_state_dict: Dict[str, torch.Tensor]
-) -> Dict[str, torch.Tensor]:
+def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    """
+    Convert a state dict from TorchTune's format to Meta's format. This function
+    doesn't handle any sharding or splitting of state dicts. It follows the
+    state_dict IN -> state_dict OUT pattern.
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+
+    Returns:
+        Dict[str, torch.Tensor]: State dict in Meta's format.
+    """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
 
-    for key, value in original_state_dict.items():
+    for key, value in state_dict.items():
         new_key = _get_mapped_key(key, inverted_mapping_dict)
         converted_state_dict[new_key] = value
 
     return converted_state_dict
 
 
-def hf_to_tune_llama2_7b(
-    original_state_dict,
-    num_heads=32,
-    num_kv_heads=32,
-    dim=4096,
-):
+def hf_to_tune(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
+) -> Dict[str, torch.Tensor]:
+    """
+    Convert a state dict from HF's format to TorchTune's format. State dicts
+    from multiple checkpoint files should be consolidated into a single state dict
+    before calling this function.
+
+    Eg of HF-format state dict can be found in the ``meta-llama/Llama-2-7b-hf``
+    repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        num_heads (int): Number of heads in the model.
+        num_kv_heads (int): Number of heads in the key/value projection layers.
+        dim (int): Dimension of the model.
+
+    Returns:
+        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+    """
     converted_state_dict = {}
     head_dim = dim // num_heads
 
-    for key, value in original_state_dict.items():
+    def _permute(t, n_heads):
+        return (
+            t.view(n_heads, 2, head_dim // 2, dim)
+            .transpose(1, 2)
+            .reshape((head_dim * n_heads), dim)
+        )
+
+    for key, value in state_dict.items():
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
             new_key = _get_mapped_key(key, _FROM_HF)
             if "q_proj" in key:
-                value = (
-                    value.view(num_heads, 2, head_dim // 2, dim)
-                    .transpose(1, 2)
-                    .reshape((head_dim * num_heads), dim)
-                )
+                value = _permute(value, num_heads)
             elif "k_proj" in key:
-                value = (
-                    value.view(num_kv_heads, 2, head_dim // 2, dim)
-                    .transpose(1, 2)
-                    .reshape((head_dim * num_kv_heads), dim)
-                )
+                value = _permute(value, num_kv_heads)
             converted_state_dict[new_key] = value
     return converted_state_dict
 
 
-def tune_to_hf_llama2_7b(
-    original_state_dict,
-    num_heads=32,
-    num_kv_heads=32,
-    dim=4096,
+def tune_to_hf(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
 ):
+    """
+    Convert a state dict from TorchTune's format to HF's format. This function
+    doesn't handle any sharding or splitting of state dicts. It follows the
+    state_dict IN -> state_dict OUT pattern.
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        num_heads (int): Number of heads in the model.
+        num_kv_heads (int): Number of heads in the key/value projection layers.
+        dim (int): Dimension of the model.
+
+    Returns:
+        Dict[str, torch.Tensor]: State dict in Meta's format.
+    """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
     head_dim = dim // num_heads
 
-    for key, value in original_state_dict.items():
+    def _permute(t, n_heads):
+        return (
+            t.view(n_heads, head_dim // 2, 2, dim)
+            .transpose(1, 2)
+            .reshape((head_dim * n_heads), dim)
+        )
+
+    for key, value in state_dict.items():
         new_key = _get_mapped_key(key, inverted_mapping_dict)
         if "q_proj" in key:
-            value = (
-                value.view(num_heads, head_dim // 2, 2, dim)
-                .transpose(1, 2)
-                .reshape((head_dim * num_heads), dim)
-            )
+            value = _permute(value, num_heads)
         elif "k_proj" in key:
-            value = (
-                value.view(num_kv_heads, head_dim // 2, 2, dim)
-                .transpose(1, 2)
-                .reshape((head_dim * num_kv_heads), dim)
-            )
+            value = _permute(value, num_kv_heads)
         converted_state_dict[new_key] = value
 
     return converted_state_dict

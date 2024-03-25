@@ -49,7 +49,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                             CONFIG
-        full_finetune_single_device        full_finetune_single_device
+        full_finetune_single_device        llama2/7B_full_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -377,7 +377,7 @@ def recipe_main(cfg: DictConfig) -> None:
     Entry point for the recipe.
 
     Configurable parameters are read in the following order:
-        - Parameters specified in ``full_finetune_single_device.yaml``
+        - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
     recipe = FullFinetuneRecipeSingleDevice(cfg=cfg)
