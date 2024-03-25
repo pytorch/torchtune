@@ -83,14 +83,20 @@ pip install -e .
 To confirm that the package is installed correctly, you can run the following command:
 
 ```
-tune
+tune --help
 ```
 
 And should see the following output:
 
 ```
-usage: tune [options] <recipe> [recipe_args]
-tune: error: the following arguments are required: recipe, recipe_args
+usage: tune [-h] {ls,cp,download,convert_checkpoint,validate,run} ...
+
+Welcome to the TorchTune CLI!
+
+options:
+  -h, --help            show this help message and exit
+
+...
 ```
 
 &nbsp;
@@ -109,9 +115,9 @@ Follow the instructions on the official [`meta-llama`](https://huggingface.co/me
 You can find your token at https://huggingface.co/settings/tokens
 
 ```
-tune download --repo-id meta-llama/Llama-2-7b \
+tune download meta-llama/Llama-2-7b \
+--output-dir /tmp/llama2 \
 --hf-token <HF_TOKEN> \
---output-dir /tmp/llama2
 ```
 
 Note: While the ``tune download`` command allows you to download *any* model from the hub, there's no guarantee that the model can be finetuned with TorchTune. Currently supported models can be found [here](#introduction)
@@ -125,40 +131,36 @@ TorchTune contains recipes for:
 - LoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py).
 - QLoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py), with a QLoRA specific [configuration](https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_qlora_single_device.yaml)
 
-To run a full finetune on two devices on the Alpaca dataset using the Llama2 7B model and FSDP:
+To run a LoRA finetune on a single device using the [Alpaca Dataset](https://huggingface.co/datasets/tatsu-lab/alpaca):
 
 ```
-tune --nnodes 1 --nproc_per_node 2 \
-full_finetune_distributed \
---config llama2/7B_full
+tune run lora_finetune_single_device.py --config llama2/7B_lora_single_device.yaml
 ```
 
-The argument passed to `--nproc_per_node` can be varied depending on how many GPUs you have. A full finetune can be memory-intensive, so make sure you are running on enough devices. See [this table](https://github.com/pytorch/torchtune/blob/main/README.md#finetuning-resource-requirements) for resource requirements on common hardware setups.
-
-Similarly, you can finetune with LoRA on the Alpaca dataset using the Llama2 13B model on two devices via the following.
-
-```
-tune --nnodes 1 --nproc_per_node 2 \
-lora_finetune_distributed \
---config llama2/13B_lora
-```
-
-Again, the argument to `--nproc_per_node` can be varied subject to memory constraints of your device(s).
-
-An example to run QLoRA on a single device can be achieved with the following:
+TorchTune integrates with the [`torchrun` CLI tool](https://pytorch.org/docs/stable/elastic/run.html) for easily running distributed training. See below for an example of running a Llama2 7B full-finetune on two GPUs.
+Make sure to place any torchrun commands before the recipe filename b/c any other CLI args will overwrite the config, not affect distributed training.
 
 ```
-tune lora_finetune_single_device --config llama2/7B_qlora_single_device
+tune run --num-gpu=2 full_finetune_distributed.py --config llama2/7B_full_distributed.yaml
+```
+
+> Because `tune run` uses torchrun under the hood, if you are familiar with options such as `--nproc_per_node`, you can use those directly!
+
+You can easily overwrite some config properties with the following command, but you can also easily copy a whole config and modify it following the instructions in the
+next section.
+```
+tune run lora_finetune_single_device.py --config llama2/7B_lora_single_device.yaml batch_size=8
 ```
 
 &nbsp;
 
-#### Copy and edit a custom recipe
+#### Copy and edit a custom recipe/config
 
 To copy a recipe to customize it yourself and then run
 ```
 tune cp full_finetune_distributed.py my_recipe/full_finetune_distributed.py
 tune cp llama2/7B_full.yaml my_recipe/7B_full.yaml
+# Make changes to recipe and/or config
 tune my_recipe/full_finetune_distributed.py --config my_recipe/7B_full.yaml
 ```
 
@@ -166,16 +168,7 @@ tune my_recipe/full_finetune_distributed.py --config my_recipe/7B_full.yaml
 
 #### Command Utilities
 
-``tune`` provides functionality for launching torchtune recipes as well as local
-recipes. Aside from torchtune recipe utilties, it integrates with ``torch.distributed.run``
-to support distributed job launching by default. ``tune`` offers everyting that ``torchrun``
-does with the following additional functionalities:
-
-1. ``tune <torchrun_options> <recipe> <recipe_args>`` will launch a torchrun job
-
-2. ``<recipe>`` and recipe arg ``<config>`` can both be passed in as names instead of paths if they're included in torchtune
-
-3. ``tune ls`` and ``tune cp`` commands provide utilities for listing and copying packaged recipes and configs
+``tune`` is a CLI designed to help you use TorchTune easily. Check out `tune --help` for all commands and options.
 
 &nbsp;
 

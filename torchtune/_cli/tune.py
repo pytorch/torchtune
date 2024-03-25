@@ -10,16 +10,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
-# we don't do this since we test on CPUs for distributed. Will update once multi GPU
-# CI is supported.
-
 import argparse
 import os
 import shutil
 import textwrap
 
 from pathlib import Path
+from typing import List, Tuple
 
 import torch
 
@@ -33,10 +30,8 @@ from torch.distributed.run import (
 )
 
 from torchtune import config, list_configs, list_recipes
-from torchtune.config._utils import _merge_yaml_and_cli_args
 
 from torchtune.models.llama2 import convert_llama2_fair_format
-from torchtune.utils import get_logger
 from torchtune.utils.constants import MODEL_KEY
 
 ROOT = Path(torchtune.__file__).parent.parent.absolute()
@@ -44,36 +39,40 @@ NULL_VALUE = "<>"
 PYTORCH_MODEL_FILENAME = "native_pytorch_model.pt"
 
 
-class TuneArgumentParser:
+class TuneCLIParser:
     """Holds all information related to running the CLI"""
 
     def __init__(self):
-        self._logger = get_logger("INFO")
         self._parser = argparse.ArgumentParser(
             prog="tune",
             description="Welcome to the TorchTune CLI!",
             add_help=True,
             exit_on_error=True,
         )
-        self._parser.set_defaults(func=lambda args: tune_parser.print_help())
+        self._parser.set_defaults(func=lambda args: self._parser.print_help())
         subparsers = self._parser.add_subparsers(title="subcommands")
 
         # Add `ls` command
         ls_parser = subparsers.add_parser(
             "ls",
             prog="tune ls",
-            help="List all built-in recipes and configs",
+            description="List all built-in recipes and configs",
             epilog=textwrap.dedent(
                 """\
             examples:
                 $ tune ls
-                RECIPE                           CONFIG
-                full_finetune_distributed.py     full_finetune_distributed.yaml
-                lora_finetune_distributed.py     lora_finetune_distributed.yaml
-                alpaca_generate.py               alpaca_generate.yaml
+                RECIPE                                   CONFIG
+                full_finetune_single_device.py           llama2/7B_full_single_device.yaml
+                full_finetune_distributed.py             llama2/7B_full.yaml
+                                                         llama2/13B_full.yaml
+                lora_finetune_single_device.py           llama2/7B_lora_single_device.yaml
+                                                         llama2/7B_qlora_single_device.yaml
+                lora_finetune_distributed.py             llama2/7B_lora.yaml
+                                                         llama2/13B_lora.yaml
+                eleuther_eval.py                         eleuther_eval.yaml
 
             To run one of these recipes:
-                $ tune full_finetune_single_device --config full_finetune_single_device
+                $ tune run full_finetune_single_device.py --config full_finetune_single_device.yaml
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -85,16 +84,15 @@ class TuneArgumentParser:
             "cp",
             prog="tune cp",
             usage="tune cp <recipe|config> destination [OPTIONS]",
-            help="Copy a built-in recipe or config to a local path.",
+            description="Copy a built-in recipe or config to a local path.",
             epilog=textwrap.dedent(
                 """\
             examples:
-                $ tune cp lora_finetune_distributed.yaml ./my_custom_llama2_lora.yaml
+                $ tune cp lora_finetune_distributed.yaml .
                 $ tune cp full_finetune_distributed.py ./my_custom_full_finetune.py
                 $ tune cp full_finetune_distributed.py ./new_dir/my_custom_full_finetune.py --make-parents
 
             Need to see all possible recipes/configs to copy? Try running `tune ls`.
-            And as always, you can also run `tune cp --help` for more information.
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -130,12 +128,22 @@ class TuneArgumentParser:
             "download",
             prog="tune download",
             usage="tune download <repo-id> [OPTIONS]",
-            help="Download a model from the Hugging Face Hub.",
+            description="Download a model from the HuggingFace Hub.",
+            epilog=textwrap.dedent(
+                """\
+            examples:
+                $ tune download meta-llama/Llama-2-7b-hf --hf-token <TOKEN> --output-dir /tmp/model
+                $ tune download mistralai/Mistral-7B-Instruct-v0.2
+
+            For a list of all downloadable models, visit the HuggingFace Hub https://huggingface.co/models.
+            """
+            ),
+            formatter_class=argparse.RawTextHelpFormatter,
         )
         download_parser.add_argument(
             "repo_id",
             type=str,
-            help="Name of the repository on Hugging Face Hub.",
+            help="Name of the repository on HuggingFace Hub.",
         )
         download_parser.add_argument(
             "--output-dir",
@@ -158,7 +166,7 @@ class TuneArgumentParser:
             "convert_checkpoint",
             prog="tune convert_checkpoint",
             usage="tune convert_checkpoint <ckpt-path> --output-path <path> --model <model> --train-type <type> [OPTIONS]",
-            help="Convert a model checkpoint to a format compatible with TorchTune.",
+            description="Convert a model checkpoint to a format compatible with TorchTune.",
         )
         convert_ckpt_parser.add_argument(
             "checkpoint-path", type=Path, help="Path to the checkpoint to convert."
@@ -206,13 +214,13 @@ class TuneArgumentParser:
         validate_parser = subparsers.add_parser(
             "validate",
             prog="tune validate",
-            help="Validate a config and ensure that it is well-formed.",
-            usage="tune validate --config recipes/configs/full_finetune_distributed.yaml",
+            description="Validate a config and ensure that it is well-formed.",
+            usage="tune validate <PATH-TO-CONFIG>",
             epilog=textwrap.dedent(
                 """\
                 examples:
 
-                    $ tune validate --config recipes/configs/full_finetune_distributed.yaml
+                    $ tune validate recipes/configs/full_finetune_distributed.yaml
                     Config is well-formed!
 
                 """
@@ -269,7 +277,7 @@ class TuneArgumentParser:
 
         # Check if recipe/config is valid
         all_recipes_and_configs = list_recipes() + [
-            config for recipe in list_recipes() for config in list_configs(recipe)
+            _config for recipe in list_recipes() for _config in list_configs(recipe)
         ]
         if args.file not in all_recipes_and_configs:
             self._parser.error(
@@ -278,7 +286,10 @@ class TuneArgumentParser:
 
         # Get file path
         file_name = args.file
-        src = ROOT / "recipes" / file_name
+        if args.file.endswith(".yaml"):
+            src = ROOT / "recipes" / "configs" / file_name
+        else:
+            src = ROOT / "recipes" / file_name
 
         # Copy file
         try:
@@ -321,31 +332,37 @@ class TuneArgumentParser:
     def _download_cmd(self, args) -> None:
         """Downloads a model from the Hugging Face Hub."""
         if "meta-llama" in args.repo_id and args.hf_token is None:
-            raise self._parser.error(
+            self._parser.error(
                 "You need to provide a Hugging Face API token to download gated models."
                 "You can find your token by visiting https://huggingface.co/settings/tokens"
             )
 
         # Download the tokenizer and PyTorch model files
-        true_output_dir = snapshot_download(
-            args.repo_id,
-            local_dir=args.output_dir,
-            resume_download=True,
-            token=args.hf_token,
-        )
+        try:
+            true_output_dir = snapshot_download(
+                args.repo_id,
+                local_dir=args.output_dir,
+                resume_download=True,
+                token=args.hf_token,
+            )
+        except Exception as e:
+            self._parser.error(str(e))
 
         print(
             "Succesfully downloaded model repo and wrote to the following locations:",
-            *list(Path(true_output_dir.iterdir())),
+            *list(Path(true_output_dir).iterdir()),
             sep="\n",
         )
 
-    def _validate_cmd(self, args: argparse.Namespace):
+    def _validate_cmd(self, args: Tuple[argparse.Namespace, List[str]]):
         """Validate a config file."""
-        yaml_args = args.yaml_args
-        cli_args = args.cli_args
-        conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
-        config.validate(cfg)
+        cfg = OmegaConf.load(args.config)
+
+        try:
+            config.validate(cfg)
+        except ConfigError as e:
+            self._parser.error(str(e))
+
         print("Config is well-formed!")
 
     def _convert_checkpoint_cmd(self, args: argparse.Namespace):
@@ -360,7 +377,7 @@ class TuneArgumentParser:
         original_state_dict = torch.load(
             checkpoint_path, map_location="cpu", weights_only=True
         )
-        self._logger.info(msg="Loaded original state dict")
+        print("Loaded original state dict")
 
         # Convert checkpoint
         if model == "llama2":
@@ -382,13 +399,13 @@ class TuneArgumentParser:
             output_state_dict = state_dict
         torch.save(output_state_dict, output_path)
 
-        self._logger.info(
-            msg=f"Succesfully wrote PyTorch-native model checkpoint to {output_path}"
-        )
+        print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}")
 
     def parse_args(self) -> argparse.Namespace:
         args = self._parser.parse_args()
         if args.func == _torchrun_cmd:
+            # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+            # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
             # Point UUID to the actual recipe and config file
             recipe_spec = args.recipe
             if recipe_spec in list_recipes():
@@ -412,6 +429,10 @@ class TuneArgumentParser:
 
 def main():
     """Entrypoint for CLI"""
-    parser = TuneArgumentParser()
+    parser = TuneCLIParser()
     args = parser.parse_args()
     parser.run(args)
+
+
+if __name__ == "__main__":
+    main()

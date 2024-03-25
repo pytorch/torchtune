@@ -27,14 +27,17 @@ class TestTuneCLIWithValidateScript:
 
         assert out == "Config is well-formed!"
 
-    def test_validate_bad_config(self, monkeypatch):
+    def test_validate_bad_config(self, monkeypatch, capsys):
         args = f"tune validate --config {INVALID_CONFIG_PATH}".split()
 
         monkeypatch.setattr(sys, "argv", args)
-        with pytest.raises(
-            SystemExit, match="got an unexpected keyword argument 'dummy'"
-        ):
+        with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        captured = capsys.readouterr()
+        err = captured.err.rstrip("\n")
+
+        assert "got an unexpected keyword argument 'dummy'" in err
 
     def test_validate_bad_override(self, monkeypatch, tmpdir):
         args = f"\

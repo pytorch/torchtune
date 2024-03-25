@@ -7,8 +7,6 @@
 
 import runpy
 import sys
-import tempfile
-from unittest.mock import patch
 
 import pytest
 
@@ -16,18 +14,22 @@ from tests.common import TUNE_PATH
 
 
 class TestTuneCLIWithDownloadScript:
-    def test_download_no_hf_token_set_for_gated_model(self, capsys):
+    def test_download_no_hf_token_set_for_gated_model(self, capsys, monkeypatch):
         model = "meta-llama/Llama-2-7b"
-        testargs = f"tune download --repo-id {model}".split()
-        with patch.object(sys, "argv", testargs):
-            with pytest.raises(SystemError) as e:
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+        testargs = f"tune download {model}".split()
+        monkeypatch.setattr(sys, "argv", testargs)
+        with pytest.raises(SystemExit) as e:
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
-    def test_download_calls_snapshot(self, capsys):
+    def test_download_calls_snapshot(self, capsys, tmpdir, monkeypatch, mocker):
         model = "meta-llama/Llama-2-7b"
-        with tempfile.TemporaryDirectory() as tmpdir:
-            testargs = f"tune download --repo-id {model} --output-dir {tmpdir} --hf-token ABCDEF".split()
-            with patch.object(sys, "argv", testargs):
-                with patch("huggingface_hub.snapshot_download") as snapshot:
-                    runpy.run_path(TUNE_PATH, run_name="__main__")
-                    snapshot.assert_called_once()
+        testargs = (
+            f"tune download {model} --output-dir {tmpdir} --hf-token ABCDEF".split()
+        )
+        monkeypatch.setattr(sys, "argv", testargs)
+        with mocker.patch("huggingface_hub.snapshot_download") as snapshot:
+            # This error is to be expected b/c we don't actually make the download call
+            # in the test. Therefore, there are no files to be found.
+            with pytest.raises(FileNotFoundError):
+                runpy.run_path(TUNE_PATH, run_name="__main__")
+                snapshot.assert_called_once()
