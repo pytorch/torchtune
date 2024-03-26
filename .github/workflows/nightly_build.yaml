@@ -1,0 +1,87 @@
+name: Build/Push Nightly Binary
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # Runs at midnight every day
+    - cron:  '0 0 * * *'
+  # manual trigger
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -l -eo pipefail {0}
+
+jobs:
+  build_and_upload_wheel:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+         - os: ubuntu-latest
+           python-version: 3.8
+           python-tag: "py38"
+         - os: ubuntu-latest
+           python-version: 3.9
+           python-tag: "py39"
+         - os: ubuntu-latest
+           python-version: 3.10
+           python-tag: "py310"
+         - os: ubuntu-latest
+           python-version: 3.11
+           python-tag: "py311"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+      - name: Set up conda
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          miniconda-version: "latest"
+          activate-environment: build_binary
+          python-version: ${{ matrix.python-version }}
+      - name: Check conda info
+        run: conda info
+      - name: Check python version with conda
+        run: python --version
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Update build/packaging tools
+        run: python -m pip install --upgrade setuptools wheel twine
+      - name: Install dependencies
+        run: |
+          python -m pip install --pre torch torchvision torchaudio --extra-index-url \
+            https://download.pytorch.org/whl/nightly/cpu
+          python -m pip install -r requirements.txt
+      - name: Test installation of dependencies
+        run: |
+          python -c "import torch"
+          echo "Import torch succeeded"
+      - name: Build torchtune nightly
+        run: |
+          rm -r dist || true
+          python setup.py bdist_wheel --package_name torchtune-nightly \
+            --python-tag=${{ matrix.python-tag }}
+      - name: Install torchtune nightly
+        run: python -m pip install dist/torchtune*.whl
+      - name: Test torchtune installation
+        # Go one-level up to avoid importing the source code
+        run: |
+          pushd ../
+          python -c "import torchtune"
+          popd
+      - name: Run unit tests against the installation
+        # import-model MUST be `append` to give precedence to the installed package
+        # rather than the source code
+        run: |
+          python -m pip install pytest pytest-mock pytest-cov
+          pytest tests --import-mode=append --junitxml=junit/test-results.xml \
+            --cov-report=xml --cov-report=html --cov=. --durations=20 -vv
+      - name: Push wheel to PyPI
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          python -m twine upload dist/torchtune_nightly-*.whl \
+            --username __token__ --password "$PYPI_API_TOKEN" \
+            --skip-existing \
+            --verbose
