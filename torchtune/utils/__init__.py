@@ -52,6 +52,8 @@ from .precision import (
     set_default_dtype,
     validate_expected_param_dtype,
 )
+
+from ._compile_utils import wrap_compile
 from .seed import set_seed
 
 __all__ = [
@@ -75,6 +77,7 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
+    "wrap_compile",
     "TuneArgumentParser",
     "CheckpointableDataLoader",
 ]

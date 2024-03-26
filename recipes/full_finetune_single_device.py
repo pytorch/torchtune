@@ -221,7 +221,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             compile_start = time.perf_counter()
-            model = torch.compile(model)
+            model = utils.wrap_compile(model)
             log.info(f"Model compilation took {time.perf_counter() - compile_start:.2f} secs.")
         log.info(
             utils.memory_stats_log(

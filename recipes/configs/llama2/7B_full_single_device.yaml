@@ -40,7 +40,7 @@ model:
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/llama2
-  checkpoint_files: [consolidated.00.pth]
+  checkpoint_files: [meta_model_0.pt]
   recipe_checkpoint: null
   output_dir: /tmp/llama2
   model_type: LLAMA2
