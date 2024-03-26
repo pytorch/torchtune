@@ -48,12 +48,9 @@ class TestNF4Linear:
         with pytest.raises(RuntimeError, match="does not currently support biases"):
             _ = FrozenNF4Linear(1, 1, bias=True)
 
-    def test_non_bf16_unsupported(self):
-        with pytest.raises(RuntimeError, match="only supported with bf16"):
-            _ = FrozenNF4Linear(1, 1, dtype=torch.float32)
-
-    def test_parameters(self):
-        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=torch.bfloat16)
+    @pytest.mark.parametrize("dtype", [torch.float32])
+    def test_parameters(self, dtype):
+        nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype)
         params = list(nf4_linear.parameters())
         assert len(params) == 1
         assert isinstance(params[0], NF4Tensor)

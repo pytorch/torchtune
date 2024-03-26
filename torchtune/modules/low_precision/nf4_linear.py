@@ -22,8 +22,6 @@ class FrozenNF4Linear(nn.Linear):
     and is meant to be used as the base Linear layer for modeling
     use cases such as QLoRA where base model parameters are frozen.
     NOTE: biases are currently not supported.
-    NOTE: This class always creates the underlying full precision weight as bf16 dtypte. Note that
-    this will override the default PyTorch dtype that is set via `torch.set_default_dtype`.
 
     Args:
         in_dim (int): input dimension
@@ -34,7 +32,6 @@ class FrozenNF4Linear(nn.Linear):
 
     Raises:
         RuntimeError: if ``bias`` is set to ``True``
-        RuntimeError: if ``dtype`` is not set to ``torch.bfloat16``
     """
 
     def __init__(
@@ -43,14 +40,8 @@ class FrozenNF4Linear(nn.Linear):
         if "bias" in kwargs and kwargs.pop("bias"):
             raise RuntimeError("FrozenNF4Linear does not currently support biases!")
 
-        if "dtype" in kwargs:
-            kwargs_dtype = kwargs.pop("dtype")
-            if kwargs_dtype != torch.bfloat16:
-                raise RuntimeError(
-                    "FrozenNF4Linear is only supported with bf16 parameter currently."
-                )
         super().__init__(
-            in_dim, out_dim, device=device, dtype=torch.bfloat16, bias=False, **kwargs
+            in_dim, out_dim, device=device, bias=False, **kwargs
         )
         self.weight.requires_grad_(False)
         self.nf4_weight = to_nf4(self.weight.data)
@@ -63,7 +54,7 @@ class FrozenNF4Linear(nn.Linear):
 
     def forward(self, input: Tensor) -> Tensor:
         """
-        Runs linear operation with input tensor as given by `input`. Computation happens in bf16
+        Runs linear operation with input tensor as given by `input`. Computation happens in higher
         precision, though only the nf4 weight is saved for backward for gradient computation to ensure
         additional memory is not used.
         Args:
