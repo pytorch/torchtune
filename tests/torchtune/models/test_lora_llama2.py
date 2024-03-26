@@ -222,14 +222,14 @@ class TestLoRALlama2:
                 embed_dim=512,
                 run_fixed_init=False,
             )
-            qlora_sd = qlora.state_dict()
-            model_ref.load_state_dict(qlora_sd)
-            # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
-            # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
-            # for backward.
-            ref_output = model_ref(inputs)
-            output = qlora(inputs)
-            torch.testing.assert_close(ref_output, output)
+        qlora_sd = qlora.state_dict()
+        model_ref.load_state_dict(qlora_sd)
+        # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
+        # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
+        # for backward.
+        ref_output = model_ref(inputs)
+        output = qlora(inputs)
+        torch.testing.assert_close(ref_output, output)
 
     def test_qlora_llama2_state_dict(self):
         with utils.set_default_dtype(torch.bfloat16):
@@ -276,7 +276,7 @@ class TestLoRALlama2:
                 quantize_base=True,
                 embed_dim=512,
                 run_fixed_init=False,
-                reset_norm=False # to ensure norm.scale key exists
+                reset_norm=False,  # to ensure norm.scale key exists
             )
 
         qlora_sd = qlora.state_dict()

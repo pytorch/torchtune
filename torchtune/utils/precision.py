@@ -178,7 +178,7 @@ def validate_expected_param_dtype(
     Validates that all input parameters have the expected dtype.
 
     Args:
-        named_params (Iterable[str, nn.Parameter]): Iterable of named parameters.
+        named_params (Iterable[Tuple[str, nn.Parameter]]): Iterable of named parameters.
         dtype (torch.dtype): Expected dtype.
 
     Raises:

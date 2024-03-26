@@ -244,8 +244,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
-        # Validate model was loaded in with the expected dtype, allowing for separate
-        # dtypes for base and adapter params.
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
