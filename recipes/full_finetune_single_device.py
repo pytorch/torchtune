@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-
+import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -146,9 +146,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
+        self._model_compile = cfg.compile
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            compile_model=self._model_compile,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -195,6 +197,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        compile_model: bool,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
@@ -213,6 +216,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         log.info(f"Model is initialized with precision {self._dtype}.")
+
+        # Compile model, if enabled.
+        if compile_model:
+            log.info("Compiling model with torch.compile...")
+            compile_start = time.perf_counter()
+            model = torch.compile(model)
+            log.info(f"Model compilation took {time.perf_counter() - compile_start:.2f} secs.")
         log.info(
             utils.memory_stats_log(
                 "Memory Stats after model init:", device=self._device
@@ -310,6 +320,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+
+        if self._model_compile:
+            log.info(
+                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
+            )
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 

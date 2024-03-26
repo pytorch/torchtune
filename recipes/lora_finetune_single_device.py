@@ -252,6 +252,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
+        # Compile model, if enabled.
+        if cfg_model.compile:
+            log.info("Compiling model with torch.compile...")
+            compile_start = time.perf_counter()
+            model = torch.compile(model)
+            log.info(f"Model compilation took {time.perf_counter() - init_start:.2f} secs.")
         log.info(
             utils.memory_stats_log(
                 "Memory Stats after model init:", device=self._device
