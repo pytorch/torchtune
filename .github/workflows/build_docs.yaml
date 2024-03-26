@@ -59,9 +59,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          ref: gh-pages
-          persist-credentials: false
       - name: Download artifact
         uses: actions/download-artifact@v3
         with:
