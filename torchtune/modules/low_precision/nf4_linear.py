@@ -40,9 +40,7 @@ class FrozenNF4Linear(nn.Linear):
         if "bias" in kwargs and kwargs.pop("bias"):
             raise RuntimeError("FrozenNF4Linear does not currently support biases!")
 
-        super().__init__(
-            in_dim, out_dim, device=device, bias=False, **kwargs
-        )
+        super().__init__(in_dim, out_dim, device=device, bias=False, **kwargs)
         self.weight.requires_grad_(False)
         self.nf4_weight = to_nf4(self.weight.data)
         # re-register self.weight as the nf4 weight, so that the nf4 weight

@@ -156,7 +156,11 @@ class TestLoRALinear:
             )
 
         lora_linear._register_state_dict_hook(
-            partial(reparametrize_as_dtype_state_dict_post_hook, dtype=dtype, offload_to_cpu=False)
+            partial(
+                reparametrize_as_dtype_state_dict_post_hook,
+                dtype=dtype,
+                offload_to_cpu=False,
+            )
         )
         sd = lora_linear.state_dict()
         # No nf4 tensors, all have type dtype

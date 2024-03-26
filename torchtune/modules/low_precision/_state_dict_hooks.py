@@ -6,8 +6,9 @@
 
 from typing import Any, Dict, Tuple
 
-import torch.nn as nn
 import torch
+
+import torch.nn as nn
 from torchao.dtypes.nf4tensor import NF4Tensor
 
 
@@ -35,7 +36,8 @@ def reparametrize_as_dtype_state_dict_post_hook(
         model (nn.Module): the model to take ``state_dict()`` on
         state_dict (Dict[str, Any]): the state dict to modify
         *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.
-        offload_to_cpu (bool): whether to offload the restored weight to CPU
+        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.
+        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.
         **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.
     """
     for k, v in state_dict.items():
