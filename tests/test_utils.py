@@ -69,6 +69,7 @@ def fixed_init_model(
     min_val: Union[float, int] = 0.0,
     max_val: Union[float, int] = 1.0,
     nonlinear: bool = False,
+    dtype: Optional[torch.dtype] = None,
 ):
     """
     This utility initializes all parameters of a model deterministically using the
@@ -81,7 +82,7 @@ def fixed_init_model(
                 min_val=min_val,
                 max_val=max_val,
                 nonlinear=nonlinear,
-                dtype=param.dtype,
+                dtype=param.dtype if dtype is None else dtype,
             )
         )
 

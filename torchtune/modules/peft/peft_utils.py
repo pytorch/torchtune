@@ -33,7 +33,7 @@ class AdapterModule(Protocol):
 
 
 @functools.lru_cache()
-def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
+def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     """
     Return the subset of parameters from a model that correspond to an adapter.
     Assumes that any adapter class has defined the
@@ -43,7 +43,7 @@ def get_adapter_params(model: nn.Module) -> Dict[str, Any]:
         model (nn.Module): Instance of model class containing some adapter params.
 
     Returns:
-        Dict[str, Any]: the subset of model's state dict containing
+        Dict[str, nn.Parameter]: the subset of model's state dict containing
         only adapter parameters.
 
     """

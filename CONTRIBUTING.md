@@ -18,12 +18,26 @@ pip install -e ".[dev]"
 
 &nbsp;
 
-## Unit Tests and Recipe Tests
-For running unit tests locally:
-```pytest tests```
+## Testing
+TorchTune contains three different types of tests: unit tests, recipe test, and regression tests. These tests are distinguished by their complexity and the resources they require to run. Recipe tests and regression tests are explicitly marked via pytest.mark decorators and both require S3 access to download the requisite assets.
 
-For running recipe tests locally (requires access to private S3 bucket):
-```./tests/recipes/run_test.sh```
+- **Unit tests**
+  - These should be minimal tests runnable without remote access. (No large models, no downloading weights). Unit tests should be under [tests/torchtune](https://github.com/pytorch/torchtune/tree/main/tests/torchtune).
+  - All unit tests can be run via ```pytest tests```.
+- **Recipe tests**
+  - These are relatively small-scale integration tests for running our recipes. These include
+  both single-device recipes and distributed recipes. In the latter case, tests should be marked with the `@gpu_test` decorator to indicate how many GPUs they need to run.
+  - Recipe tests require remote access as (small) model weights will be downloaded from S3 to run them.
+  - Recipe tests are found under [tests/recipes](https://github.com/pytorch/torchtune/tree/main/tests/recipes) and should be marked with the `@pytest.mark.integration_test` decorator.
+  - To run only recipe tests, you can run `pytest tests -m integration_test`.
+- **Regression tests**
+  - These are the most heavyweight tests in the repo. They involve building a full model (i.e. 7B size or larger), then running some finetune and/or evaluation via a combination of tune CLI commands. Whereas an individual recipe test runtime is generally still O(seconds), integration tests should be O(minutes) or greater. Like recipe tests, regression tests also require S3 access.
+  - Regression tests are found under [tests/regression_tests](https://github.com/pytorch/torchtune/tree/main/tests/regression_tests) and should be marked with the `@pytest.mark.slow_integration_test` decorator.
+  - To run only regression tests, you can use the command `pytest tests -m slow_integration_test`.
+
+Whenever running tests in TorchTune, favor using the command line flags as much as possible (e.g. run `pytest tests -m integration_test` over `pytest tests/recipes`). This is because (a) the default behavior is to run unit tests only (so you will miss recipe tests without the flag), and (b) using the flags ensures pytest will automatically download any remote assets needed for your test run.
+
+Note that the above flags can be combined with other pytest flags, so e.g. `pytest tests -m integration_test -k 'test_loss'` will run only recipe tests matching the substring `test_loss`.
 
 &nbsp;
 
