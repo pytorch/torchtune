@@ -71,6 +71,7 @@ class TestLoRALinear:
                 use_bias=False,
                 quantize_base=True,
             )
+            fixed_init_model(qlora_linear, dtype=torch.bfloat16)
             return qlora_linear
 
     @torch.no_grad()
