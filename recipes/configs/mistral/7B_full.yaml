@@ -19,7 +19,7 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Mistral-7B-v0.1/
+  checkpoint_dir: /tmp/Mistral-7B-v0.1
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
     pytorch_model-00002-of-00002.bin
