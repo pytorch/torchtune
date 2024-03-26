@@ -22,7 +22,7 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama2.qlora_llama2_7b
+  _component_: torchtune.models.llama2.lora_llama2_13b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
@@ -74,8 +74,8 @@ gradient_accumulation_steps: 1
 # Logging
 output_dir: /tmp/qlora_finetune_output/
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
-  project: foo
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 log_every_n_steps: 1
 
 # Environment
