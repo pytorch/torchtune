@@ -56,8 +56,8 @@ class TestLoRAFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config llama2/7B_lora \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
+            --config llama2/7B_lora.yaml \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -109,8 +109,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config llama2/7B_lora \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
+            --config llama2/7B_lora.yaml \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -133,8 +133,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         # Resume training
         cmd_2 = f"""
-        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config llama2/7B_lora \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
+            --config llama2/7B_lora.yaml \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -166,8 +166,8 @@ class TestLoRAFinetuneDistributedRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
-            --config llama2/7B_lora \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
+            --config llama2/7B_lora.yaml \
             output_dir={tmpdir} \
             model=torchtune.models.lora_small_test_model \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer

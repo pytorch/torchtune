@@ -47,7 +47,6 @@ class TuneCLIParser:
             prog="tune",
             description="Welcome to the TorchTune CLI!",
             add_help=True,
-            exit_on_error=True,
         )
         self._parser.set_defaults(func=lambda args: self._parser.print_help())
         subparsers = self._parser.add_subparsers(title="subcommands")
@@ -421,13 +420,21 @@ class TuneCLIParser:
             # Point UUID to the actual recipe and config file
             recipe_spec = args.recipe
             if recipe_spec in list_recipes():
-                args.recipe = str(ROOT / "recipes" / f"{recipe_spec}.py")
-                config_idx = args.recipes_args.index("--config") + 1
-                config_spec = args.recipes_args[config_idx]
+                args.recipe = str(ROOT / "recipes" / recipe_spec)
+                config_idx = args.recipe_args.index("--config") + 1
+                config_spec = args.recipe_args[config_idx]
                 if config_spec in list_configs(recipe_spec):
-                    args.recipes_args[config_idx] = str(
-                        ROOT / "recipes" / "configs" / f"{config_uuid}.yaml"
+                    args.recipe_args[config_idx] = str(
+                        ROOT / "recipes" / "configs" / config_spec
                     )
+                else:
+                    self._parser.error(
+                        f"Invalid config name: {config_spec}. Try `tune ls` to see all available configs."
+                    )
+            else:
+                self._parser.error(
+                    f"Invalid recipe name: {recipe_spec}. Try `tune ls` to see all available recipes."
+                )
 
             # If the user is running `tune run`, we need to reset the `recipe` and `recipe_args`
             args.__dict__["training_script"] = args.__dict__.pop("recipe")

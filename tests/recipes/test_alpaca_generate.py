@@ -28,8 +28,8 @@ class TestAlpacaGenerateRecipe:
         ckpt = "small_test_ckpt_tune"
         model_checkpoint = CKPT_MODEL_PATHS[ckpt]
         cmd = f"""
-        tune run alpaca_generate
-            --config alpaca_generate \
+        tune run alpaca_generate.py
+            --config alpaca_generate.yaml \
             model_checkpoint={model_checkpoint} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             output_dir={tmpdir} \
@@ -39,5 +39,4 @@ class TestAlpacaGenerateRecipe:
         cmd += model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")

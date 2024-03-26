@@ -76,8 +76,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
@@ -107,8 +106,8 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune full_finetune_single_device
-            --config llama2/7B_full_single_device \
+        tune run full_finetune_single_device.py
+            --config llama2/7B_full_single_device.yaml \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -121,13 +120,12 @@ class TestFullFinetuneSingleDeviceRecipe:
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
         cmd_2 = f"""
-        tune full_finetune_single_device
-            --config llama2/7B_full_single_device \
+        tune run full_finetune_single_device.py
+            --config llama2/7B_full_single_device.yaml \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -142,8 +140,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_2)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         expected_loss_values = self._fetch_expected_loss_values()[2:]
 
@@ -206,8 +203,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         no_accum_loss = get_loss_values_from_metric_logger(no_grad_accum_log_file)[
             0
@@ -215,8 +211,8 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
-        tune full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+        tune full_finetune_single_device.py \
+            --config llama2/7B_full_single_device.yaml \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -230,8 +226,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_2)
-        with pytest.raises(SystemExit):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         accum_loss = np.mean(get_loss_values_from_metric_logger(grad_accum_log_file))
         torch.testing.assert_close(no_accum_loss, accum_loss, atol=1e-5, rtol=1e-5)
