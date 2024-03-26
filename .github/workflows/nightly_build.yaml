@@ -59,7 +59,6 @@ jobs:
           echo "Import torch succeeded"
       - name: Build torchtune nightly
         run: |
-          rm -r dist || true
           python setup.py bdist_wheel --package_name torchtune-nightly \
             --python-tag=${{ matrix.python-tag }}
       - name: Install torchtune nightly
