@@ -21,13 +21,15 @@ defaults:
 
 jobs:
   recipe_test:
-    runs-on: ubuntu-latest
+    runs-on: linux.2xlarge
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
+      - name: Setup Linux
+        uses: pytorch/test-infra/.github/actions/setup-linux@main
       - name: Setup conda env
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -37,12 +39,6 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Update pip
         run: python -m pip install --upgrade pip
-      - name: configure aws credentials
-        id: aws_creds
-        uses: aws-actions/configure-aws-credentials@v1.7.0
-        with:
-          role-to-assume: arn:aws:iam::308535385114:role/gha_workflow_torchtune_pytorch-multimodal
-          aws-region: us-east-1
       - name: Install S3 CLI
         run: |
           python -m pip install awscli==1.32.6
@@ -55,3 +51,5 @@ jobs:
         run: pytest tests -m integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
+      - name: Teardown Linux
+        uses: pytorch/test-infra/.github/actions/teardown-linux@main
