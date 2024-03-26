@@ -15,13 +15,15 @@ defaults:
 
 jobs:
   unit_tests:
-    runs-on: ubuntu-latest
+    runs-on: linux.2xlarge
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
+      - name: Setup Linux
+        uses: pytorch/test-infra/.github/actions/setup-linux@main
       - name: Setup conda env
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -39,3 +41,5 @@ jobs:
         run: pytest tests --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v3
+      - name: Teardown Linux
+        uses: pytorch/test-infra/.github/actions/teardown-linux@main
