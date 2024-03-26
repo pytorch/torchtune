@@ -66,8 +66,7 @@ jobs:
           path: docs
       - name: Add no-index tag
         run: |
-          cd docs
-          find . -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">';
+          find docs -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">';
       - name: Upload docs preview
         uses: seemethere/upload-artifact-s3@v5
         if: ${{ github.event_name == 'pull_request' }}
@@ -75,7 +74,7 @@ jobs:
           retention-days: 14
           s3-bucket: doc-previews
           if-no-files-found: error
-          path: docs/build/html/
+          path: docs
           s3-prefix: pytorch/torchtune/${{ github.event.pull_request.number }}
 
   upload:
