@@ -47,6 +47,30 @@ jobs:
         run: |
           cd docs
           make html
+      - uses: actions/upload-artifact@v3
+        with:
+          name: Built-Docs
+          path: docs/build/html/
+
+  doc-preview:
+    runs-on: [self-hosted, linux.2xlarge]
+    needs: build_docs
+    if: ${{ github.event_name == 'pull_request' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          persist-credentials: false
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: Built-Docs
+          path: docs
+      - name: Add no-index tag
+        run: |
+          cd docs
+          find . -name "*.html" -print0 | xargs -0 sed -i '/<head>/a \ \ <meta name="robots" content="noindex">';
       - name: Upload docs preview
         uses: seemethere/upload-artifact-s3@v5
         if: ${{ github.event_name == 'pull_request' }}
@@ -56,10 +80,6 @@ jobs:
           if-no-files-found: error
           path: docs/build/html/
           s3-prefix: pytorch/torchtune/${{ github.event.pull_request.number }}
-      - uses: actions/upload-artifact@v3
-        with:
-          name: Built-Docs
-          path: docs/build/html/
 
   upload:
     runs-on: ubuntu-latest
