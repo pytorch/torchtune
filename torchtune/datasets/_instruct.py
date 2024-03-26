@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
 from torchtune.config._utils import _get_template
 
-from torchtune.data import PromptTemplate, Sample, tokenize_prompt_and_response
+from torchtune.data import PromptTemplate, tokenize_prompt_and_response
 from torchtune.modules import Tokenizer
 
 
@@ -70,7 +70,7 @@ class InstructDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Sample) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
 
         prompt = self.template.format(transformed_sample, self._column_map)

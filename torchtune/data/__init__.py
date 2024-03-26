@@ -14,8 +14,8 @@ from torchtune.data._templates import (
     SummarizeTemplate,
 )
 from torchtune.data._transforms import sharegpt_to_llama2_dialogue
-from torchtune.data._types import Dialogue, Message, Sample
-from torchtune.data._utils import tokenize_prompt_and_response, truncate_if_necessary
+from torchtune.data._types import Dialogue, Message
+from torchtune.data._utils import tokenize_prompt_and_response, truncate
 
 __all__ = [
     "AlpacaInstructTemplate",
@@ -26,9 +26,8 @@ __all__ = [
     "MistralChatTemplate",
     "ChatMLTemplate",
     "sharegpt_to_llama2_dialogue",
-    "truncate_if_necessary",
+    "truncate",
     "tokenize_prompt_and_response",
     "Dialogue",
-    "Sample",
     "Message",
 ]

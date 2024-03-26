@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import tokenize_prompt_and_response, truncate_if_necessary
+from torchtune.data import tokenize_prompt_and_response, truncate
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 
@@ -74,7 +74,7 @@ def test_truncate_if_necessary():
     max_seq_len = 5
 
     # Test no truncation
-    truncated_prompt_tokens, truncated_label_tokens = truncate_if_necessary(
+    truncated_prompt_tokens, truncated_label_tokens = truncate(
         tokenizer=DummyTokenizer(),
         prompt_tokens=prompt_tokens,
         label_tokens=label_tokens,
@@ -85,7 +85,7 @@ def test_truncate_if_necessary():
 
     # Test truncated
     max_seq_len = 4
-    truncated_prompt_tokens, truncated_label_tokens = truncate_if_necessary(
+    truncated_prompt_tokens, truncated_label_tokens = truncate(
         tokenizer=DummyTokenizer(),
         prompt_tokens=prompt_tokens,
         label_tokens=label_tokens,

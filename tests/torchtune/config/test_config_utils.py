@@ -123,19 +123,19 @@ class TestUtils:
             _ = _get_template("InvalidTemplate")
 
         # Test valid template strings
-        s = [
+        valid_templates = [
             "Instruction: {instruction}\nInput: {input}",
             "Instruction: {instruction}",
             "{a}",
         ]
-        for t in s:
-            assert _get_template(t) == t
+        for template in valid_templates:
+            assert _get_template(template) == template
 
         # Test invalid template strings
-        s = ["hello", "{}", "a}{b"]
-        for t in s:
+        invalid_templates = ["hello", "{}", "a}{b"]
+        for template in invalid_templates:
             with pytest.raises(
                 ValueError,
                 match="Must be a PromptTemplate class or a string with placeholders.",
             ):
-                _ = _get_template(t)
+                _ = _get_template(template)

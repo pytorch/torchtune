@@ -5,9 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
-from typing import Dict, Optional
-
-from torchtune.data._types import Sample
+from typing import Any, Dict, Mapping, Optional
 
 
 class PromptTemplate(ABC):
@@ -20,13 +18,13 @@ class PromptTemplate(ABC):
 
     @abstractmethod
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Format the prompt template with the given arguments.
 
         Args:
-            sample (Sample): a single data sample with various fields
+            sample (Mapping[str, Any]): a single data sample with various fields
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical. Note: if the sample output is not named
@@ -58,13 +56,13 @@ class AlpacaInstructTemplate(PromptTemplate):
     }
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from instruction and input.
 
         Args:
-            sample (Sample): a single data sample with instruction
+            sample (Mapping[str, Any]): a single data sample with instruction
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -95,13 +93,13 @@ class GrammarErrorCorrectionTemplate(PromptTemplate):
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from sentence.
 
         Args:
-            sample (Sample): a single data sample with sentence
+            sample (Mapping[str, Any]): a single data sample with sentence
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -124,13 +122,13 @@ class SummarizeTemplate(PromptTemplate):
     template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from dialogue.
 
         Args:
-            sample (Sample): a single data sample with dialog
+            sample (Mapping[str, Any]): a single data sample with dialog
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
@@ -168,13 +166,13 @@ class Llama2ChatTemplate(PromptTemplate):
     }
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from a user message and optional system prompt.
 
         Args:
-            sample (Sample): a single data sample, expects role keys "system" (optional)
+            sample (Mapping[str, Any]): a single data sample, expects role keys "system" (optional)
                 and "user" in the sample.
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 role names in the template to the actual role names in the sample.
@@ -212,13 +210,13 @@ class MistralChatTemplate(PromptTemplate):
     template = f"{B_INST} {{user}} {E_INST} "
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from a user message
 
         Args:
-            sample (Sample): a single data sample, expects only "user" in the sample.
+            sample (Mapping[str, Any]): a single data sample, expects only "user" in the sample.
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 role names in the template to the actual role names in the sample.
                 If None, assume these are "user".
@@ -260,13 +258,13 @@ class ChatMLTemplate(PromptTemplate):
     }
 
     def format(
-        self, sample: Sample, column_map: Optional[Dict[str, str]] = None
+        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from a user message and optional system prompt.
 
         Args:
-            sample (Sample): a single data sample, expects role keys "system" (optional)
+            sample (Mapping[str, Any]): a single data sample, expects role keys "system" (optional)
                 and "user" in the sample.
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 role names in the template to the actual role names in the sample.

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, Generator, List, Tuple
+from typing import Any, Callable, Dict, Generator, List, Mapping, Tuple
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
@@ -13,9 +13,8 @@ from torchtune.config._utils import _get_template
 from torchtune.data import (
     Dialogue,
     PromptTemplate,
-    Sample,
     tokenize_prompt_and_response,
-    truncate_if_necessary,
+    truncate,
 )
 from torchtune.modules import Tokenizer
 
@@ -47,7 +46,7 @@ class ChatDataset(Dataset):
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by HuggingFace's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        convert_to_dialogue (Callable[[Sample], Dialogue]): function that keys into the desired field in the sample
+        convert_to_dialogue (Callable[[Mapping[str, Any]], Dialogue]): function that keys into the desired field in the sample
             and converts to a list of `Messages` that follows the llama format with the expected keys
         template (PromptTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
@@ -60,7 +59,7 @@ class ChatDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        convert_to_dialogue: Callable[[Sample], Dialogue],
+        convert_to_dialogue: Callable[[Mapping[str, Any]], Dialogue],
         template: PromptTemplate,
         max_seq_len: int,
         train_on_input: bool = False,
@@ -80,7 +79,7 @@ class ChatDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Sample) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         dialogue = self._convert_to_dialogue(sample)
 
         prompt_tokens = []
@@ -99,7 +98,7 @@ class ChatDataset(Dataset):
             if len(prompt_tokens) >= self.max_seq_len:
                 break
 
-        prompt_tokens, label_tokens = truncate_if_necessary(
+        prompt_tokens, label_tokens = truncate(
             self._tokenizer, prompt_tokens, label_tokens, self.max_seq_len
         )
 

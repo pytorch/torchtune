@@ -14,7 +14,8 @@ from torchtune.data import (
     SummarizeTemplate,
 )
 
-# Taken from Open-Orca/SlimOrca-Dedup on HuggingFace
+# Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
+# https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
 CHAT_SAMPLE = {
     "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
     "user": "Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? How about on an icy road? Well one father in Russia did just that, and recorded the entire thing. To her credit, the child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\nSummary:",  # noqa: B950
@@ -205,6 +206,7 @@ class TestMistralChatTemplate:
         actual = self.template.format(no_system_sample)
         assert actual == self.expected_prompt
 
+    def test_format_with_system_prompt_raises(self):
         with pytest.raises(
             ValueError, match="System prompts are not supported in MistralChatTemplate"
         ):

@@ -4,10 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data._types import Dialogue, Message, Sample
+from typing import Any, Mapping
+
+from torchtune.data._types import Dialogue, Message
 
 
-def sharegpt_to_llama2_dialogue(sample: Sample) -> Dialogue:
+def sharegpt_to_llama2_dialogue(sample: Mapping[str, Any]) -> Dialogue:
     """
     Convert a chat sample adhering to the ShareGPT format to the LLaMA2 format.
 
@@ -32,7 +34,7 @@ def sharegpt_to_llama2_dialogue(sample: Sample) -> Dialogue:
         ]
 
     Args:
-        sample (Sample): a single data sample with "conversations" field pointing
+        sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
             to a list of dict messages.
 
     Returns:

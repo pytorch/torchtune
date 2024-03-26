@@ -45,7 +45,7 @@ def tokenize_prompt_and_response(
     return encoded_prompt_with_response, labels
 
 
-def truncate_if_necessary(
+def truncate(
     tokenizer: Tokenizer,
     prompt_tokens: List[int],
     label_tokens: List[int],
