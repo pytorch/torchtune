@@ -14,20 +14,49 @@ def read_requirements(file):
     return reqs.strip().split("\n")
 
 
-setup(
-    name="torchtune",
-    version="0.0.1",
-    packages=find_packages(),
-    python_requires=">=3.8",
-    install_requires=read_requirements("requirements.txt"),
-    entry_points={
-        "console_scripts": [
-            "tune = torchtune._cli.tune:main",
-        ]
-    },
-    description="Package for finetuning LLMs using native PyTorch",
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/pytorch/torchtune",
-    extras_require={"dev": read_requirements("dev-requirements.txt")},
-)
+def get_nightly_version():
+    today = date.today()
+    return f"{today.year}.{today.month}.{today.day}"
+
+
+def parse_args(argv):  # Pass in a list of string from CLI
+    parser = argparse.ArgumentParser(description="torchtune setup")
+    parser.add_argument(
+        "--package_name",
+        type=str,
+        default="torchtune",
+        help="The name of this output wheel",
+    )
+    return parser.parse_known_args(argv)
+
+
+if __name__ == "__main__":
+    args, unknown = parse_args(sys.argv[1:])
+
+    # Set up package name and version
+    name = args.package_name
+    is_nightly = "nightly" in name
+
+    version = get_nightly_version() if is_nightly else get_version()
+
+    print(f"-- {name} building version: {version}")
+
+    sys.argv = [sys.argv[0]] + unknown
+
+    setup(
+        name="torchtune",
+        version="0.0.1",
+        packages=find_packages(),
+        python_requires=">=3.8",
+        install_requires=read_requirements("requirements.txt"),
+        entry_points={
+            "console_scripts": [
+                "tune = torchtune._cli.tune:main",
+            ]
+        },
+        description="Package for finetuning LLMs using native PyTorch",
+        long_description=open("README.md").read(),
+        long_description_content_type="text/markdown",
+        url="https://github.com/pytorch/torchtune",
+        extras_require={"dev": read_requirements("dev-requirements.txt")},
+    )
