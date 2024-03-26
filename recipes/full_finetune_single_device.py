@@ -211,7 +211,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._dtype)
+        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         log.info(f"Model is initialized with precision {self._dtype}.")
         log.info(
             utils.memory_stats_log(
