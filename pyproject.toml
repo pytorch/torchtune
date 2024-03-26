@@ -12,6 +12,6 @@ exclude = 'tests/torchtune/models/llama2/scripts/'
 [tool.pytest.ini_options]
 addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
 # --showlocals will show local variables in tracebacks
-# --import-mode=importlib ensures pytest doesn't append the repo root to sys.path,
-# causing our tests to bypass legitimate import errors
+# --import-mode=prepend will add the root (the parent dir of torchtune/, tests/, recipes/)
+# to `sys.path` when invoking pytest, allowing us to treat `tests` as a package within the tests.
 # --without-integration and --without-slow-integration: default to running unit tests only
