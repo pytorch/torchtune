@@ -4,17 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-# Copyright (c) Facebook, Inc. and its affiliates.
-# All rights reserved.
-#
-# This source code is licensed under the BSD-style license found in the
-# LICENSE file in the root directory of this source tree.
-
 import argparse
 import os
+import runpy
 import shutil
+import sys
 import textwrap
-
 from pathlib import Path
 
 import torch
@@ -28,9 +23,8 @@ from torch.distributed.run import (
     run as _torchrun_cmd,
 )
 
-from torchtune import config, list_configs, list_recipes
+from torchtune import config, get_all_recipes
 from torchtune.config._errors import ConfigError
-
 from torchtune.models.llama2 import convert_llama2_fair_format
 from torchtune.utils.constants import MODEL_KEY
 
@@ -241,21 +235,22 @@ class TuneCLIParser:
         run_parser = subparsers.add_parser(
             "run",
             prog="tune run",
-            help="Run a recipe. This is a wrapper around torchrun so you can also use any torchrun args.",
-            description="Run a recipe. This is a wrapper around torchrun so you can also use any torchrun args.",
-            usage="tune run <recipe> --config <config> [RECIPE-OPTIONS] [TORCHRUN-OPTIONS]",
+            help="Run a recipe. For distributed recipes, this supports all torchrun arguments.",
+            description="Run a recipe. For distributed recipes, this supports all torchrun arguments.",
+            usage="tune run [TORCHRUN-OPTIONS] <recipe> --config <config> [RECIPE-OPTIONS]",
             epilog=textwrap.dedent(
                 """\
                 examples:
 
-                    $ tune run full_finetune_distributed.py \
+                    $ tune run --num-gpu 4 full_finetune_distributed.py \
                         --config recipes/configs/full_finetune_distributed.yaml \
-                        --num-gpu 4 \
 
                     # Override a parameter in the config file and specify a number of GPUs for torchrun
                     $ tune run --num-gpu=4 lora_finetune_distributed.py \
                         --config recipes/configs/lora_finetune_distributed.yaml \
                         model.lora_rank=16 \
+
+                    $ tune run lora_finetune_single_device --config llama2/7B_lora_single_device
                 """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -277,27 +272,34 @@ class TuneCLIParser:
             elif action.dest == "help":
                 continue
             run_parser._add_action(action)
-        run_parser.set_defaults(func=_torchrun_cmd)
+        run_parser.set_defaults(func=self._run_cmd)
 
     def _cp_cmd(self, args: argparse.Namespace):
         """Copy a recipe or config to a new location."""
-        destination = args.destination
+        destination: Path = args.destination
+        src = None
 
-        # Check if recipe/config is valid
-        all_recipes_and_configs = list_recipes() + [
-            _config for recipe in list_recipes() for _config in list_configs(recipe)
-        ]
-        if args.file not in all_recipes_and_configs:
+        # Iterate through all recipes and configs
+        for recipe in get_all_recipes():
+            if recipe.uuid == args.file:
+                src = ROOT / "recipes" / recipe.file_name
+                proper_suffix = ".py"
+                break
+            for config in recipe.configs:
+                if config.uuid == args.file:
+                    src = ROOT / "recipes" / "configs" / config.file_name
+                    proper_suffix = ".yaml"
+                    break
+
+        # Fail if no file exists
+        if src is None:
             self._parser.error(
                 f"Invalid file name: {args.file}. Try `tune ls` to see all available files to copy."
             )
 
-        # Get file path
-        file_name = args.file
-        if args.file.endswith(".yaml"):
-            src = ROOT / "recipes" / "configs" / file_name
-        else:
-            src = ROOT / "recipes" / file_name
+        # Attach proper suffix if needed
+        if destination != "." and destination.suffix != proper_suffix:
+            destination = destination.with_suffix(proper_suffix)
 
         # Copy file
         try:
@@ -308,7 +310,8 @@ class TuneCLIParser:
             else:
                 if args.make_parents:
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy(src, destination)
+                output = shutil.copy(src, destination)
+                print(f"Copied file to {output}")
         except FileNotFoundError:
             self._parser.error(
                 f"Cannot create regular file: '{destination}'. No such file or directory. "
@@ -323,18 +326,18 @@ class TuneCLIParser:
         print(header)
 
         # Print recipe/config pairs
-        for recipe in list_recipes():
-            configs = list_configs(recipe)
+        for recipe in get_all_recipes():
             # If there are no configs for a recipe, print a blank config
-            if len(configs) == 0:
-                row = f"{recipe:<40} {NULL_VALUE:<40}"
+            recipe_str = recipe.uuid
+            if len(recipe.get_configs()) == 0:
+                row = f"{recipe_str:<40} {NULL_VALUE:<40}"
                 print(row)
-            for i, config_name in enumerate(configs):
+            for i, config in enumerate(recipe.get_configs()):
                 # If there are multiple configs for a single recipe, omit the recipe name
                 # on latter configs
                 if i > 0:
-                    recipe = ""
-                row = f"{recipe:<40} {config_name:<40}"
+                    recipe_str = ""
+                row = f"{recipe_str:<40} {config.uuid:<40}"
                 print(row)
 
     def _download_cmd(self, args) -> None:
@@ -412,34 +415,76 @@ class TuneCLIParser:
 
         print(f"Succesfully wrote PyTorch-native model checkpoint to {output_path}")
 
-    def parse_args(self) -> argparse.Namespace:
-        args = self._parser.parse_args()
-        # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
-        # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
-        if args.func == _torchrun_cmd:
-            # Point UUID to the actual recipe and config file
-            recipe_spec = args.recipe
-            if recipe_spec in list_recipes():
-                args.recipe = str(ROOT / "recipes" / recipe_spec)
-                config_idx = args.recipe_args.index("--config") + 1
-                config_spec = args.recipe_args[config_idx]
-                if config_spec in list_configs(recipe_spec):
-                    args.recipe_args[config_idx] = str(
-                        ROOT / "recipes" / "configs" / config_spec
+    def _run_distributed(self, args: argparse.Namespace):
+        """Run a recipe with torchrun."""
+        print("Running with torchrun...")
+        # Have to reset the argv so that the recipe can be run with the correct arguments
+        args.__dict__["training_script"] = args.__dict__.pop("recipe")
+        args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
+        _torchrun_cmd(args)
+
+    def _run_single_device(self, args: argparse.Namespace):
+        """Run a recipe on a single device."""
+        sys.argv = [str(args.recipe)] + args.recipe_args
+        runpy.run_path(str(args.recipe), run_name="__main__")
+
+    def _is_distributed_args(self, args: argparse.Namespace):
+        """Check if the user is trying to run a distributed recipe."""
+        total = len(sys.argv) - 2  # total args minus "tune run"
+        script_args = len(args.recipe_args) + 1  # script args + 1 for script name
+        return total > script_args
+
+    def _run_cmd(self, args: argparse.Namespace):
+        """Run a recipe."""
+        config_idx = args.recipe_args.index("--config") + 1
+        config_str = args.recipe_args[config_idx]
+
+        for recipe in get_all_recipes():
+            if recipe.uuid == args.recipe:
+                # Locate the actual file
+                full_recipe_path = str(ROOT / "recipes" / recipe.file_name)
+                args.recipe = full_recipe_path
+
+                # Attempt to locate the config file
+                for config in recipe.configs:
+                    if config_str == config.uuid:
+                        full_config_path = str(
+                            ROOT / "recipes" / "configs" / config.file_name
+                        )
+                        args.recipe_args[config_idx] = full_config_path
+                        break
+
+                # Handle distributed vs. non-distributed cases
+                if recipe.supports_distributed and self._is_distributed_args(args):
+                    # TODO (rohan-varma): Add check that nproc_per_node <= cuda device count. Currently,
+                    # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
+                    self._run_distributed(args)
+                elif not recipe.supports_distributed and self._is_distributed_args(
+                    args
+                ):
+                    self._parser.error(
+                        f"Recipe {recipe.uuid} does not support distributed training. Please run without torchrun commands."
                     )
                 else:
-                    self._parser.error(
-                        f"Invalid config name: {config_spec}. Try `tune ls` to see all available configs."
-                    )
-            else:
-                self._parser.error(
-                    f"Invalid recipe name: {recipe_spec}. Try `tune ls` to see all available recipes."
-                )
+                    self._run_single_device(args)
 
-            # If the user is running `tune run`, we need to reset the `recipe` and `recipe_args`
-            args.__dict__["training_script"] = args.__dict__.pop("recipe")
-            args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
-        return args
+        # Handle the case where the recipe UUID is not known and the config is likely a default config
+        if not config_str.endswith(".yaml"):
+            self._parser.error(
+                f"It looks like you might be trying to use a default config with a custom recipe script. This is not currently supported,"
+                "please copy the config file to your local dir first with `tune cp {config_str} .` Then specify the new config file"
+                "in your `tune run ...` command."
+            )
+
+        # Handle the case where we don't know the recipe UUID
+        if self._is_distributed_args(args):
+            self._run_distributed(args)
+        else:
+            self._run_single_device(args)
+
+    def parse_args(self) -> argparse.Namespace:
+        """Parse CLI arguments"""
+        return self._parser.parse_args()
 
     def run(self, args: argparse.Namespace):
         """Execute CLI"""
