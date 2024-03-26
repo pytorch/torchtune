@@ -41,7 +41,7 @@ if __name__ == "__main__":
     name = args.package_name
     is_nightly = "nightly" in name
 
-    version = get_nightly_version() if is_nightly else get_version()
+    version = get_nightly_version() if is_nightly else "0.0.1"
 
     print(f"-- {name} building version: {version}")
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
     setup(
         name="torchtune",
-        version="0.0.1",
+        version=version,
         packages=find_packages(exclude=["tests", "tests.*", "recipes", "recipes.*"]),
         python_requires=">=3.8",
         install_requires=read_requirements("requirements.txt"),
