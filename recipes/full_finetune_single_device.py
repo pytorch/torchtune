@@ -260,7 +260,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     raise RuntimeError(
                         "Failed loading in-backward optimizer checkpoints."
                         "Please make sure run being restored from was using in-backward optimizer."
-                        f"Original error {str(e)}"
                     ) from e
             log.info("In-backward optimizers are set up.")
             return None
