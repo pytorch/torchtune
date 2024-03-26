@@ -5,4 +5,4 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._component_builders import mistral  # noqa
-from ._model_builders import mistral_7b, mistral_tokenizer  # noqa
+from ._model_builders import mistral_7b, mistral_tokenizer, lora_mistral_7b  # noqa

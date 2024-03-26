@@ -15,7 +15,12 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.mistral.mistral_7b
+  _component_: torchtune.models.mistral.lora_mistral_7b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: True
+  lora_rank: 64
+  lora_alpha: 16
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
@@ -34,7 +39,10 @@ batch_size: 32
 epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 5e-6
+  lr: 2e-4
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
