@@ -7,23 +7,25 @@
 from typing import Any, Dict, Tuple
 
 import torch.nn as nn
+import torch
 from torchao.dtypes.nf4tensor import NF4Tensor
 
 
-def reparametrize_as_bf16_state_dict_post_hook(
+def reparametrize_as_dtype_state_dict_post_hook(
     model: nn.Module,
     state_dict: Dict[str, Any],
     *args: Tuple[Any, ...],
+    dtype: torch.dtype = torch.bfloat16,
     offload_to_cpu: bool = True,
     **kwargs: Dict[Any, Any],
 ):
     """
     A state_dict hook that replaces nf4 tensors with their restored
-    bf16 weight and optionally offloads the restored weight to CPU.
+    higher-precision weight and optionally offloads the restored weight to CPU.
 
     This function is meant to be used with PyTorch's ``nn.Module._register_state_dict_hook``, i.e.
     >>> m = MyModule()
-    >>> m._register_state_dict_hook(reparametrize_as_bf16_state_dict_post_hook)
+    >>> m._register_state_dict_hook(reparametrize_as_dtype_state_dict_post_hook)
 
     If the hook is registered per the above process, this hook will be called _after_ the module's
     ``state_dict`` method is called. The hook will replace all ``NF4Tensor`` instances by unquantizing
@@ -38,6 +40,6 @@ def reparametrize_as_bf16_state_dict_post_hook(
     """
     for k, v in state_dict.items():
         if isinstance(v, NF4Tensor):
-            state_dict[k] = v.get_original_weight()
+            state_dict[k] = v.to(dtype)
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
