@@ -90,6 +90,7 @@ class TestLoRALlama2:
         reset_norm=True,
         quantize_base=False,
         embed_dim=EMBED_DIM,
+        run_fixed_init=True,
     ):
         num_layers = 3
         model = lora_llama2(
@@ -109,17 +110,22 @@ class TestLoRALlama2:
         # To make final outputs less trivial
         if reset_norm:
             model.norm = nn.Identity()
-        fixed_init_model(model)
+
+        # Some tests don't rely on fixed_init, NF4Tensor does not have op
+        # coverage to cover ops done in fixed_init (i.e. arange). So only
+        # run fixed_init if needed.
+        if run_fixed_init:
+            fixed_init_model(model)
         return model
 
-    def get_ref_llama2(self, vocab_size):
+    def get_ref_llama2(self, vocab_size, embed_dim=EMBED_DIM):
         num_layers = 3
         model = llama2(
             vocab_size=vocab_size,
             num_layers=num_layers,
             num_heads=NUM_HEADS,
             num_kv_heads=NUM_KV_HEADS,
-            embed_dim=EMBED_DIM,
+            embed_dim=embed_dim,
             max_seq_len=MAX_SEQ_LEN,
         )
         return model
@@ -190,6 +196,7 @@ class TestLoRALlama2:
             vocab_size=50,
             quantize_base=True,
             embed_dim=512,
+            run_fixed_init=False,
         )
         for module in model.modules():
             if isinstance(module, LoRALinear):
@@ -204,6 +211,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=False,
                 embed_dim=512,
+                run_fixed_init=False,
             )
             qlora = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
@@ -212,15 +220,16 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
+                run_fixed_init=False,
             )
-        qlora_sd = qlora.state_dict()
-        model_ref.load_state_dict(qlora_sd)
-        # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
-        # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
-        # for backward.
-        ref_output = model_ref(inputs)
-        output = qlora(inputs)
-        torch.testing.assert_close(ref_output, output)
+            qlora_sd = qlora.state_dict()
+            model_ref.load_state_dict(qlora_sd)
+            # Forward pass of model_ref and qlora should be the same, as QLoRA linear layers should use
+            # a special linear operator that runs the compute in bf16, but only saves the 4 bit tensors
+            # for backward.
+            ref_output = model_ref(inputs)
+            output = qlora(inputs)
+            torch.testing.assert_close(ref_output, output)
 
     def test_qlora_llama2_state_dict(self):
         with utils.set_default_dtype(torch.bfloat16):
@@ -231,6 +240,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=False,
                 embed_dim=512,
+                run_fixed_init=False,
             )
             bf16_sd = model_ref.state_dict()
             for v in bf16_sd.values():
@@ -244,6 +254,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
+                run_fixed_init=False,
             )
             qlora.load_state_dict(bf16_sd)
             # LoRALinear base weights should be nf4 still
@@ -264,6 +275,8 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
+                run_fixed_init=False,
+                reset_norm=False # to ensure norm.scale key exists
             )
 
         qlora_sd = qlora.state_dict()
@@ -276,4 +289,6 @@ class TestLoRALlama2:
 
         # Ensure checkpoint can be loaded into non-LoRA model
         with utils.set_default_dtype(torch.bfloat16):
-            llama2 = self.get_ref_llama2(vocab_size=50)
+            llama2 = self.get_ref_llama2(vocab_size=50, embed_dim=512)
+
+        llama2.load_state_dict(merged_ckpt)

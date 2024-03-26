@@ -23,7 +23,6 @@ from torchtune.modules.peft.peft_utils import (
     set_trainable_params,
     validate_state_dict_for_lora,
 )
-
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
@@ -245,8 +244,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if lora_weights_state_dict:
             model.load_state_dict(lora_weights_state_dict, strict=False)
 
-        # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model, dtype=self._dtype)
+        # Validate model was loaded in with the expected dtype, allowing for separate
+        # dtypes for base and adapter params.
+        # Validate model adapter params were loaded in with the expected dtype
+        # TODO (rohan-varma): Further validation to ensure the appropriate base params
+        # are NF4 vs bf16 based on the quantization config.
+        utils.validate_expected_param_dtype(
+            self.adapter_params.items(), dtype=self._dtype
+        )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         log.info(

@@ -5,9 +5,19 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import ContextManager, Dict, Generator, List, Optional, Union
+from typing import (
+    ContextManager,
+    Dict,
+    Generator,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 import torch
+import torch.nn as nn
 from pkg_resources import packaging
 
 from torch.cuda.amp import GradScaler
@@ -161,18 +171,20 @@ def set_default_dtype(dtype: torch.dtype) -> Generator[None, None, None]:
         torch.set_default_dtype(old_dtype)
 
 
-def validate_expected_param_dtype(model: torch.nn.Module, dtype: torch.dtype) -> None:
+def validate_expected_param_dtype(
+    named_params: Iterable[Tuple[str, nn.Parameter]], dtype: torch.dtype
+) -> None:
     """
-    Validates that all parameters in the model have the expected dtype.
+    Validates that all input parameters have the expected dtype.
 
     Args:
-        model (torch.nn.Module): Model to validate.
+        named_params (Iterable[str, nn.Parameter]): Iterable of named parameters.
         dtype (torch.dtype): Expected dtype.
 
     Raises:
-        ValueError: If any parameter in the model has a different dtype than `dtype`.
+        ValueError: If any parameter has a different dtype than `dtype`.
     """
-    for name, param in model.named_parameters():
+    for name, param in named_params:
         if param.dtype != dtype:
             raise ValueError(
                 f"Parameter {name} has dtype {param.dtype}, but expected {dtype}"
