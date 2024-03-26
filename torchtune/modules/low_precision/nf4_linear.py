@@ -10,9 +10,32 @@ import torch
 
 import torch.nn as nn
 from torch import Tensor
-from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
+from torchao.dtypes.nf4tensor import to_nf4, NF4Tensor
 
-# TESTING
+# TODO (rohan-varma): Remove this asap after torchao side changes land to decouple
+# linear_nf4 from bf16.
+class _LinearNF4(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, input: torch.Tensor, weight: NF4Tensor):
+        """Save the quantized nf4 weight for backward pass"""
+        ctx.nf4_weight = weight
+        return F.linear(input, weight.to(input.dtype))
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        """The nf4 weight will never require grad so we can just return the grad_output @ weight.get_original_weight()"""
+        weight: NF4Tensor = ctx.nf4_weight
+        return grad_output @ weight.to(grad_output.dtype), None
+
+
+def _linear_nf4(input: torch.Tensor, weight: NF4Tensor) -> torch.Tensor:
+    """Apply a linear operation with the NF4Tensor weight
+
+    Args:
+        input: Input tensor
+        weight: NF4Tensor weight
+    """
+    return LinearNF4.apply(input, weight)
 
 
 class FrozenNF4Linear(nn.Linear):
@@ -47,8 +70,6 @@ class FrozenNF4Linear(nn.Linear):
         # shows up as expected in .parameters, state_dict, etc.
         self.weight = torch.nn.Parameter(self.nf4_weight, requires_grad=False)
 
-        # TODO: likely need to handle state_dict save & load via hooks to properly manage
-        # types.
 
     def forward(self, input: Tensor) -> Tensor:
         """
@@ -61,4 +82,4 @@ class FrozenNF4Linear(nn.Linear):
         Returns:
             Tensor: output tensor
         """
-        return linear_nf4(input=input, weight=self.weight)
+        return _linear_nf4(input=input, weight=self.weight)
