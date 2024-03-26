@@ -10,7 +10,7 @@ import torch
 
 import torch.nn as nn
 from torch import Tensor
-from torchao.dtypes.nf4tensor import to_nf4, NF4Tensor
+from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 
 # TODO (rohan-varma): Remove this asap after torchao side changes land to decouple
 # linear_nf4 from bf16.
@@ -29,12 +29,6 @@ class _LinearNF4(torch.autograd.Function):
 
 
 def _linear_nf4(input: torch.Tensor, weight: NF4Tensor) -> torch.Tensor:
-    """Apply a linear operation with the NF4Tensor weight
-
-    Args:
-        input: Input tensor
-        weight: NF4Tensor weight
-    """
     return LinearNF4.apply(input, weight)
 
 
@@ -69,7 +63,6 @@ class FrozenNF4Linear(nn.Linear):
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
         self.weight = torch.nn.Parameter(self.nf4_weight, requires_grad=False)
-
 
     def forward(self, input: Tensor) -> Tensor:
         """
