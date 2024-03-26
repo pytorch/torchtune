@@ -50,7 +50,7 @@ if __name__ == "__main__":
     setup(
         name="torchtune",
         version="0.0.1",
-        packages=find_packages(),
+        packages=find_packages(exclude=["tests", "tests.*", "recipes", "recipes.*"]),
         python_requires=">=3.8",
         install_requires=read_requirements("requirements.txt"),
         entry_points={
