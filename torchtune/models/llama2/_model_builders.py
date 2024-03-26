@@ -188,5 +188,7 @@ def lora_llama2_13b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
-        quantize_base=False,
+        quantize_base=quantize_base,
     )
+
+qlora_llama2_13b = partial(lora_llama2_13b, quantize_base=True)

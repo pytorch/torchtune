@@ -9,6 +9,7 @@ from typing import Optional
 import torch
 
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 
@@ -29,7 +30,7 @@ class _LinearNF4(torch.autograd.Function):
 
 
 def _linear_nf4(input: torch.Tensor, weight: NF4Tensor) -> torch.Tensor:
-    return LinearNF4.apply(input, weight)
+    return _LinearNF4.apply(input, weight)
 
 
 class FrozenNF4Linear(nn.Linear):
