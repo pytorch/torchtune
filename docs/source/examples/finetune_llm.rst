@@ -24,7 +24,7 @@ This recipe supports:
 This guide will walk you through the different aspects of the `recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune.py>`_.
 
 
-An example config for training the Llama 7B model using the Alpaca dataset looks something like this:
+An example config for training the Llama 7B model using the Alpaca dataset might look like this:
 
 .. code-block:: yaml
 
