@@ -13,6 +13,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from torchtune.utils._distributed import contains_fsdp
+
 
 class ModelType(Enum):
     LLAMA2 = "llama2"
@@ -77,7 +79,7 @@ def transform_opt_state_dict(
     """
     optim_state_dict_to_load = (
         FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
-        if _contains_fsdp(model)
+        if contains_fsdp(model)
         else opt_state_dict
     )
 
