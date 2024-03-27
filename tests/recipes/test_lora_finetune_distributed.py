@@ -56,10 +56,10 @@ class TestLoRAFinetuneDistributedRecipe:
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
-            --config llama2/7B_lora.yaml \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed
+            --config llama2/7B_lora \
             output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -77,7 +77,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
         torch.testing.assert_close(
@@ -109,8 +110,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         # Train for two epochs
         cmd_1 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
-            --config llama2/7B_lora.yaml \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
+            --config llama2/7B_lora \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -129,12 +130,13 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
         cmd_2 = f"""
-        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
-            --config llama2/7B_lora.yaml \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
+            --config llama2/7B_lora \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -149,7 +151,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         expected_loss_values = self._fetch_expected_loss_values()[2:]
 
@@ -166,8 +169,8 @@ class TestLoRAFinetuneDistributedRecipe:
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed.py
-            --config llama2/7B_lora.yaml \
+        tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed \
+            --config llama2/7B_lora \
             output_dir={tmpdir} \
             model=torchtune.models.lora_small_test_model \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
@@ -187,7 +190,8 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Next load both the merged weights in a Llama2 base model
         # and the base model weights + trained adapter weights in the LoRA Llama 2 model

@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
-
 import runpy
 
 import sys
@@ -22,9 +20,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     gpu_test,
 )
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class TestFullFinetuneDistributedRecipe:
@@ -58,10 +53,10 @@ class TestFullFinetuneDistributedRecipe:
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed.py
-            --config llama2/7B_full.yaml \
+        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
+            --config llama2/7B_full \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer
+            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -72,7 +67,8 @@ class TestFullFinetuneDistributedRecipe:
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        with pytest.raises(SystemExit, match=""):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
         torch.testing.assert_close(
