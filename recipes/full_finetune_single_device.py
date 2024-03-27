@@ -239,7 +239,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         if optimizer_in_bwd:
             # Maintain a dict of optims for every parameter.
-            # TODO (rohan-varma): check foreach arg
             optim_dict = {
                 p: config.instantiate(cfg_optimizer, [p])
                 for p in self._model.parameters()
@@ -387,9 +386,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                             # true since we don't expose the ability to configure this yet.
                             "lr": (
-                                list(self._optim_ckpt_wrapper.optim_map.values())[
-                                    0
-                                ].param_groups[0]["lr"]
+                                self._optim_ckpt_wrapper.get_optim_key("lr")
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),

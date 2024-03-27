@@ -9,3 +9,4 @@ omegaconf
 
 # Quantization
 torchao-nightly==2024.3.25
+bitsandbytes

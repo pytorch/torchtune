@@ -9,9 +9,4 @@ from ._checkpointer import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
 )
-from ._checkpointer_utils import (  # noqa
-    create_optim_in_bwd_wrapper,
-    ModelType,
-    OptimizerInBackwardWrapper,
-    register_optim_in_bwd_hooks,
-)
+from ._checkpointer_utils import ModelType  # noqa

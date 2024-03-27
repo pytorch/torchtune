@@ -5,13 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._checkpointing import (  # noqa
-    create_optim_in_bwd_wrapper,
     FullModelHFCheckpointer,
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
-    OptimizerInBackwardWrapper,
-    register_optim_in_bwd_hooks,
 )
 from ._device import get_device
 from ._distributed import (  # noqa
@@ -44,7 +41,10 @@ from .constants import (  # noqa
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
+    create_optim_in_bwd_wrapper,
     memory_stats_log,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
 from .precision import (
