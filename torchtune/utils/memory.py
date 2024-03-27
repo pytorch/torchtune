@@ -6,7 +6,7 @@
 
 import gc
 
-from typing import Optional, Set
+from typing import Optional, Set, Dict, Any
 
 import torch
 
@@ -109,7 +109,12 @@ class OptimizerInBackwardWrapper:
             )
 
     def get_optim_key(self, key: str) -> Any:
-        return next(optim_map.values()).param_groups[0][key]
+        """
+        Returns value o key from an arbitrary optimizer running in backward. Note that
+        this assumes all optimizer in backwards have the same value for the key, i.e.,
+        are initialized with the same hyperparameters.
+        """
+        return list(self.optim_map.values())[0].param_groups[0][key]
 
 
 def create_optim_in_bwd_wrapper(
