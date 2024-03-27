@@ -77,10 +77,6 @@ def transform_opt_state_dict(
     Returns:
         ckpt_dict (Dict[str, Any]): Transformed optimizer state dict.
     """
-    optim_state_dict_to_load = (
-        FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
-        if contains_fsdp(model)
-        else opt_state_dict
-    )
 
-    return optim_state_dict_to_load
+
+    return opt_state_dict
