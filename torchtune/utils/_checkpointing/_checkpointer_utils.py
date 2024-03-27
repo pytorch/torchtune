@@ -9,10 +9,14 @@ from pathlib import Path
 from typing import Any, Dict
 
 import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 
 class ModelType(Enum):
     LLAMA2 = "llama2"
+    MISTRAL = "mistral"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
@@ -54,3 +58,27 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
+
+
+def transform_opt_state_dict(
+    opt_state_dict: Dict[str, Any], model: nn.Module, optimizer: optim.Optimizer
+) -> Dict[str, Any]:
+    """
+    Transforms the optimizer state dict for FSDP using the ``optim_state_dict_to_load``
+    from distributed library within PyTorch. If FSDP is not used, the optimizer state dict is returned as is.
+
+    Args:
+        opt_state_dict (Dict[str, Any]): Optimizer state dict extracted from the checkpoint
+        model (nn.Module): Model that checkpoint will be loaded into.
+        optimizer (optim.Optimizer): Optimizer that optimizer state checkpoints will be loaded into.
+
+    Returns:
+        ckpt_dict (Dict[str, Any]): Transformed optimizer state dict.
+    """
+    optim_state_dict_to_load = (
+        FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
+        if _contains_fsdp(model)
+        else opt_state_dict
+    )
+
+    return optim_state_dict_to_load
