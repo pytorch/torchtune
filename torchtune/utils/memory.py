@@ -110,7 +110,7 @@ class OptimizerInBackwardWrapper:
 
     def get_optim_key(self, key: str) -> Any:
         """
-        Returns value o key from an arbitrary optimizer running in backward. Note that
+        Returns value of key from an arbitrary optimizer running in backward. Note that
         this assumes all optimizer in backwards have the same value for the key, i.e.,
         are initialized with the same hyperparameters.
         """

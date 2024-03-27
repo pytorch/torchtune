@@ -51,7 +51,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         return [10.5074, 10.5563, 10.5152, 10.4851]
 
     @pytest.mark.integration_test
-    def test_loss(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("config", ["full_single_device_low_memory"])
+    def test_loss(self, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -59,7 +60,7 @@ class TestFullFinetuneSingleDeviceRecipe:
 
         cmd = f"""
         tune full_finetune_single_device
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_{config} \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
