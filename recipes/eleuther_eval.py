@@ -19,7 +19,7 @@ from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
 
-logger = utils.get_logger("DEBUG")
+logger = utils.get_logger("INFO")
 
 try:
     import lm_eval
@@ -154,6 +154,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
+        from torchao.quantization.quant_api import change_linear_weights_to_int8_woqtensors
+        model = model.cuda().to(torch.bfloat16)
+        change_linear_weights_to_int8_woqtensors(model)
         model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
@@ -194,9 +197,13 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """Entry point for the recipe."""
+    print("init eval recipe")
     recipe = EleutherEvalRecipe(cfg=cfg)
+    print("setup:")
     recipe.setup()
+    print("eval")
     recipe.evaluate()
+    print("eval done")
 
 
 if __name__ == "__main__":

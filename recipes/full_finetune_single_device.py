@@ -276,6 +276,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         Save state dict to file. The recipe save_checkpoint method is responsible for
         correctly creating the checkpoint dict and passing to the checkpointer.
         """
+        # quantizing the model before saving
+        from torchao.quantization.quant_api import change_linear_weights_to_int8_woqtensors
+        self._model = self._model.cuda().to(torch.bfloat16)
+        change_linear_weights_to_int8_woqtensors(self._model)
         ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
         # if training is in-progress, checkpoint the optimizer state as well
         if epoch + 1 < self.total_epochs:

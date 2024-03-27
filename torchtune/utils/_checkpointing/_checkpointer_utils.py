@@ -49,7 +49,7 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
         state_dict = torch.load(
-            str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
+            str(checkpoint_path), map_location="cuda", mmap=True, weights_only=False
         )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e

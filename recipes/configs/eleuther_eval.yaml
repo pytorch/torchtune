@@ -8,16 +8,16 @@ model:
   _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
-  checkpoint_dir: /tmp/llama/
-  checkpoint_files: [finetuned_model.pt]
-  output_dir: /tmp/llama/
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/llama2/
+  checkpoint_files: [meta_model_0.pt]
+  output_dir: /tmp/llama2/
   model_type: LLAMA2
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /tmp/llama/tokenizer.model
+  path: /tmp/llama2/tokenizer.model
 
 # Environment
 device: cuda
