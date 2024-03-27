@@ -44,6 +44,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+from .perf_tracker import pytorch_profiler_or_nullcontext
 from .precision import (
     get_autocast,
     get_dtype,
@@ -80,4 +81,5 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
+    "pytorch_profiler_or_nullcontext",
 ]
