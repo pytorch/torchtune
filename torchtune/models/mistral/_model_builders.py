@@ -57,11 +57,7 @@ def lora_mistral_7b(
     lora_alpha: float = 16,
 ) -> TransformerDecoder:
     """
-    Builder for creating a Llama2 7B model with LoRA enabled.
-
-    The Llama2 defaults are the same as in :func:`~torchtune.models.llama2.llama2_7b`,
-    while LoRA default params are based on
-    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+    Builder for creating a Mistral 7B model with LoRA enabled.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -76,7 +72,7 @@ def lora_mistral_7b(
         max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Mistral 7B model with LoRA applied
     """
     return lora_mistral(
         lora_attn_modules=lora_attn_modules,

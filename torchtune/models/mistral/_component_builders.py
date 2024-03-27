@@ -208,7 +208,6 @@ def lora_mistral(
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
-    # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
         LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
         if apply_lora_to_output

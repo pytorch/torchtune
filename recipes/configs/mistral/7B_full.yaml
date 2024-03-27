@@ -1,5 +1,9 @@
-# This config is currently a WIP. Use it with caution
-
+# This config uses hyperparameters based on small set of experiments and information
+# available on various forums. These are not meant to replicate the numbers
+# from the paper
+#
+# Run this config on 4 GPUs using the following:
+# tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
 
 # Tokenizer
 tokenizer:
