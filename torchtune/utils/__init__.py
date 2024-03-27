@@ -44,6 +44,7 @@ from .memory import (  # noqa
     memory_stats_log,
     set_activation_checkpointing,
 )
+from .perf_tracker import pytorch_profiler_or_nullcontext
 from .precision import (
     get_autocast,
     get_dtype,
@@ -77,4 +78,5 @@ __all__ = [
     "validate_expected_param_dtype",
     "TuneArgumentParser",
     "CheckpointableDataLoader",
+    "pytorch_profiler_or_nullcontext",
 ]
