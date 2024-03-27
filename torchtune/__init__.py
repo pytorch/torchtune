@@ -11,22 +11,16 @@ from torchtune import datasets, models, modules, utils
 
 @dataclass
 class Config:
-    uuid: str
-    file_name: str
-
-    def __repr___(self):
-        return self.uuid
+    name: str
+    file_path: str
 
 
 @dataclass
 class Recipe:
-    uuid: str
-    file_name: str
+    name: str
+    file_path: str
     configs: List[Config]
     supports_distributed: bool
-
-    def __repr___(self):
-        return self.uuid
 
     def get_configs(self):
         return self.configs
@@ -34,71 +28,85 @@ class Recipe:
 
 _ALL_RECIPES = [
     Recipe(
-        uuid="full_finetune_single_device",
-        file_name="full_finetune_single_device.py",
+        name="full_finetune_single_device",
+        file_path="full_finetune_single_device.py",
         configs=[
             Config(
-                uuid="llama2/7B_full_single_device",
-                file_name="llama2/7B_full_single_device.yaml",
+                name="llama2/7B_full_single_device",
+                file_path="llama2/7B_full_single_device.yaml",
             ),
         ],
         supports_distributed=False,
     ),
     Recipe(
-        uuid="full_finetune_distributed",
-        file_name="full_finetune_distributed.py",
+        name="full_finetune_distributed",
+        file_path="full_finetune_distributed.py",
         configs=[
-            Config(uuid="llama2/7B_full", file_name="llama2/7B_full.yaml"),
-            Config(uuid="llama2/13B_full", file_name="llama2/13B_full.yaml"),
+            Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
+            Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
         ],
         supports_distributed=True,
     ),
     Recipe(
-        uuid="lora_finetune_single_device",
-        file_name="lora_finetune_single_device.py",
+        name="lora_finetune_single_device",
+        file_path="lora_finetune_single_device.py",
         configs=[
             Config(
-                uuid="llama2/7B_lora_single_device",
-                file_name="llama2/7B_lora_single_device.yaml",
+                name="llama2/7B_lora_single_device",
+                file_path="llama2/7B_lora_single_device.yaml",
             ),
             Config(
-                uuid="llama2/7B_qlora_single_device",
-                file_name="llama2/7B_qlora_single_device.yaml",
+                name="llama2/7B_qlora_single_device",
+                file_path="llama2/7B_qlora_single_device.yaml",
             ),
         ],
         supports_distributed=False,
     ),
     Recipe(
-        uuid="lora_finetune_distributed",
-        file_name="lora_finetune_distributed.py",
+        name="lora_finetune_distributed",
+        file_path="lora_finetune_distributed.py",
         configs=[
-            Config(uuid="llama2/7B_lora", file_name="llama2/7B_lora.yaml"),
-            Config(uuid="llama2/13B_lora", file_name="llama2/13B_lora.yaml"),
+            Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
+            Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
         ],
         supports_distributed=True,
     ),
     Recipe(
-        uuid="alpaca_generate",
-        file_name="alpaca_generate.py",
+        name="alpaca_generate",
+        file_path="alpaca_generate.py",
         configs=[
-            Config(uuid="alpaca_generate", file_name="alpaca_generate.yaml"),
+            Config(name="alpaca_generate", file_path="alpaca_generate.yaml"),
         ],
         supports_distributed=False,
     ),
     Recipe(
-        uuid="eleuther_eval",
-        file_name="eleuther_eval.py",
+        name="eleuther_eval",
+        file_path="eleuther_eval.py",
         configs=[
-            Config(uuid="eleuther_eval", file_name="eleuther_eval.yaml"),
+            Config(name="eleuther_eval", file_path="eleuther_eval.yaml"),
         ],
         supports_distributed=False,
     ),
 ]
 
 
+_ALL_RECIPES_DICT = {recipe.name: recipe for recipe in _ALL_RECIPES}
+
+
 def get_all_recipes():
     """List of recipes available from the CLI."""
     return _ALL_RECIPES
+
+
+def get_all_recipe_names():
+    """List of recipes available from the CLI."""
+    return _ALL_RECIPES.keys()
+
+
+def get_configs_for_recipe(recipe_name: str) -> List[Config]:
+    """Get the configs for a given recipe."""
+    recipe = _ALL_RECIPES_DICT[recipe_name]
+    return recipe.get_configs()
 
 
 __all__ = [datasets, models, modules, utils]

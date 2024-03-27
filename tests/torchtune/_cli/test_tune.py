@@ -5,29 +5,17 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import os
 import runpy
 import sys
-import tempfile
 from pathlib import Path
 
 import pytest
-import torch
-
-import torchtune
 
 from tests.common import TUNE_PATH
-from tests.test_utils import assert_expected
-from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
 
 from torchtune import get_all_recipes
-from torchtune.models.llama2 import llama2
 
 ASSETS = Path(__file__).parent.parent.parent / "assets"
-
-
-class TestTuneCLI:
-    pass
 
 
 class TestTuneListCommand:
@@ -43,9 +31,9 @@ class TestTuneListCommand:
         output = captured.out.rstrip("\n")
 
         for recipe in get_all_recipes():
-            assert recipe.uuid in output
+            assert recipe.name in output
             for config in recipe.get_configs():
-                assert config.uuid in output
+                assert config.name in output
 
 
 class TestTuneCLIWithCopyScript:
@@ -196,143 +184,62 @@ class TestTuneDownloadCommand:
                 snapshot.assert_called_once()
 
 
-class TestTuneCLIWithConvertCheckpointScript:
-    # Generating `tiny_state_dict_with_one_key.pt`
-    # >>> import torch
-    # >>> state_dict = {"test_key": torch.randn(10, 10)}
-    # >>> torch.save(state_dict, "tiny_state_dict_with_one_key.pt")
+class TestTuneRunCommand:
+    def test_run_calls_distributed_run_for_distributed_recipe(
+        self, capsys, monkeypatch, mocker
+    ):
+        testargs = "tune run --num-gpu 4 full_finetune_distributed --config llama2/7B_full".split()
 
-    # Generating `tiny_fair_checkpoint.pt`
-    # >>> from tests.torchtune.models.llama2.scripts.compare_decoder import Transformer
-    # >>> from tests.test_utils import init_weights_with_constant
-    # >>> import torch
-    # >>> tiny_fair_transfomer = Transformer(
-    #     vocab_size=500,
-    #     n_layers=2,
-    #     n_heads=4,
-    #     dim=32,
-    #     max_seq_len=64,
-    #     n_kv_heads=4,
-    # )
-    # >>> init_weights_with_constant(tiny_fair_transfomer, constant=0.2)
-    # >>> torch.save(tiny_fair_transfomer.state_dict(), "tiny_fair_checkpoint.pt")
+        monkeypatch.setattr(sys, "argv", testargs)
+        distributed_run = mocker.patch("torch.distributed.run.run")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+        distributed_run.assert_called_once()
 
-    def test_convert_checkpoint_errors_on_bad_conversion(self, capsys, monkeypatch):
-        incorrect_state_dict_loc = ASSETS / "tiny_state_dict_with_one_key.pt"
-        testargs = (
-            f"tune convert_checkpoint {incorrect_state_dict_loc} --model llama2 --train-type full"
-        ).split()
+        output = capsys.readouterr()
+        assert "Running with torchrun..." in output.out
+
+    def test_run_calls_single_device_run_for_single_device_recipe(
+        self, capsys, monkeypatch, mocker
+    ):
+        testargs = "tune run full_finetune_single_device --config llama2/7B_full_single_device".split()
+
+        monkeypatch.setattr(sys, "argv", testargs)
+        single_device_run = mocker.patch.object(
+            torchtune._cli.tune.Run, "_run_single_device", autospec=True
+        )
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+        single_device_run.assert_called_once()
+
+    def test_run_fails_when_called_with_distributed_args_for_single_device_recipe(
+        self, capsys, monkeypatch
+    ):
+        testargs = "tune run --num-gpu 4 full_finetune_single_device --config llama2/7B_full_single_device".split()
+
         monkeypatch.setattr(sys, "argv", testargs)
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        captured = capsys.readouterr()
-        out = captured.out.rstrip("\n")
-        err = captured.err.rstrip("\n")
+        output = capsys.readouterr()
+        assert "does not support distributed training" in output.err
 
-        assert "Error converting the original Llama2" in err
-
-    def _tiny_fair_transformer(self, ckpt):
-        tiny_fair_transfomer = Transformer(
-            vocab_size=500,
-            n_layers=2,
-            n_heads=4,
-            dim=32,
-            max_seq_len=64,
-            n_kv_heads=4,
-        )
-        tiny_fair_state_dict = torch.load(ckpt, weights_only=True)
-        tiny_fair_transfomer.load_state_dict(tiny_fair_state_dict, strict=True)
-        return tiny_fair_transfomer
-
-    def _tiny_native_transformer(self, ckpt):
-        tiny_native_transfomer = llama2(
-            vocab_size=500,
-            num_layers=2,
-            num_heads=4,
-            embed_dim=32,
-            max_seq_len=64,
-            num_kv_heads=4,
-        )
-        tiny_native_state_dict = torch.load(ckpt, weights_only=True)
-        tiny_native_transfomer.load_state_dict(
-            tiny_native_state_dict["model"], strict=False
-        )
-        return tiny_native_transfomer
-
-    def _llama2_7b_fair_transformer(self, ckpt):
-        llama2_7b_fair_transformer = Transformer(
-            vocab_size=32_000,
-            n_layers=32,
-            n_heads=32,
-            dim=4096,
-            max_seq_len=2048,
-            n_kv_heads=32,
-        )
-        llama2_7b_fair_state_dict = torch.load(ckpt, weights_only=True)
-        llama2_7b_fair_transformer.load_state_dict(
-            llama2_7b_fair_state_dict, strict=False
-        )
-        llama2_7b_fair_transformer.eval()
-        return llama2_7b_fair_transformer
-
-    def _llama2_7b_native_transformer(self, ckpt):
-        llama2_7b_native_transformer = llama2(
-            vocab_size=32_000,
-            num_layers=32,
-            num_heads=32,
-            embed_dim=4096,
-            max_seq_len=2048,
-            num_kv_heads=32,
-        )
-        llama2_7b_native_state_dict = torch.load(ckpt, weights_only=True)
-        llama2_7b_native_transformer.load_state_dict(
-            llama2_7b_native_state_dict["model"], strict=True
-        )
-        llama2_7b_native_transformer.eval()
-        return llama2_7b_native_transformer
-
-    def _generate_toks_for_tiny(self):
-        return torch.randint(low=0, high=500, size=(16, 64))
-
-    def _generate_toks_for_llama2_7b(self):
-        return torch.randint(low=0, high=32_000, size=(16, 128))
-
-    def test_convert_checkpoint_matches_fair_model(
-        self, capsys, pytestconfig, monkeypatch
+    def test_run_calls_local_file_run_for_local_file_recipe(
+        self, capsys, monkeypatch, mocker
     ):
-        is_large_scale_test = pytestconfig.getoption("--large-scale")
+        testargs = "tune run my_custom_recipe.py --config custom_config.yaml".split()
 
-        if is_large_scale_test:
-            ckpt = "/tmp/test-artifacts/llama2-7b-fair"
-            fair_transformer = self._llama2_7b_fair_transformer(ckpt)
-        else:
-            ckpt = ASSETS / "tiny_fair_checkpoint.pt"
-            fair_transformer = self._tiny_fair_transformer(ckpt)
-
-        output_path = tempfile.NamedTemporaryFile(delete=True).name
-        testargs = (
-            f"tune convert_checkpoint {ckpt} --output-path {output_path} --model llama2 --train-type lora"
-        ).split()
         monkeypatch.setattr(sys, "argv", testargs)
+        local_file_run = mocker.patch("torchtune._cli.tune.Run._run_single_device")
         runpy.run_path(TUNE_PATH, run_name="__main__")
+        local_file_run.assert_called_once()
 
-        output = capsys.readouterr().out.rstrip("\n")
-        assert "Succesfully wrote PyTorch-native model checkpoint" in output
+    def test_run_fails_when_using_custom_recipe_and_default_config(
+        self, capsys, monkeypatch
+    ):
+        testargs = "tune run my_custom_recipe.py --config llama2/7B_full".split()
 
-        native_transformer = (
-            self._llama2_7b_native_transformer(output_path)
-            if is_large_scale_test
-            else self._tiny_native_transformer(output_path)
-        )
+        monkeypatch.setattr(sys, "argv", testargs)
+        with pytest.raises(SystemExit):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        with torch.no_grad():
-            for i in range(10):
-                toks = (
-                    self._generate_toks_for_llama2_7b()
-                    if is_large_scale_test
-                    else self._generate_toks_for_tiny()
-                )
-                fair_out = fair_transformer(toks)
-                native_out = native_transformer(toks)
-                assert_expected(fair_out.sum(), native_out.sum())
+        output = capsys.readouterr()
+        assert "please copy the config file to your local dir first" in output.err
