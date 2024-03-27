@@ -7,6 +7,6 @@
 import pytest
 
 
-def test_import_receipes():
+def test_import_recipes():
     with pytest.raises(ModuleNotFoundError, match="recipes folder isn't a package"):
         import recipes  # noqa
