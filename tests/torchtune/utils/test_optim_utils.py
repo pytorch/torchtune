@@ -1,39 +1,78 @@
 import pytest
 import torch
-from torch.optim import SGD
-from your_module import OptimizerInBackwardWrapper, create_optim_in_bwd_wrapper, register_optim_in_bwd_hooks
+from torchtune.utils import (
+    create_optim_in_bwd_wrapper,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
+)
+
+
+def _run_dummy_step(model, wrapper):
+    with torch.no_grad():
+        for p in model.parameters():
+            p.grad = torch.rand_like(p)
+    for v in wrapper.optim_map.values():
+        v.step()
+        v.zero_grad()
+
+
+def _validate_dicts(d1, d2):
+    if len(d1) != len(d2):
+        return False
+    for k, v in d1.items():
+        if k not in d2:
+            return False
+        if isinstance(v, dict):
+            return _validate_dicts(v, d2[k])
+        else:
+            if isinstance(v, torch.Tensor):
+                if not torch.allclose(v, d2[k]):
+                    return False
+            elif v != d2[k]:
+                return False
+    return True
+
+
 @pytest.fixture
 def model():
     return torch.nn.Linear(10, 1)
+
+
 @pytest.fixture
 def optim_dict(model):
-    return {p: SGD([p], lr=0.01) for p in model.parameters()}
+    return {p: torch.optim.AdamW([p], lr=0.01) for p in model.parameters()}
+
+
 @pytest.fixture
-def wrapper(optim_dict):
-    return OptimizerInBackwardWrapper(optim_dict)
-def test_state_dict(wrapper, optim_dict):
-    state_dict = wrapper.state_dict()
-    assert isinstance(state_dict, dict)
-    assert len(state_dict) == len(optim_dict)
-def test_load_state_dict(wrapper, optim_dict):
-    state_dict = wrapper.state_dict()
-    wrapper.load_state_dict(state_dict)
-    for param_name, optimizer in optim_dict.items():
-        assert optimizer.state_dict() == state_dict[param_name]
-def test_get_optim_key(wrapper):
-    lr = wrapper.get_optim_key('lr')
-    assert lr == 0.01
-def test_create_optim_in_bwd_wrapper(model, optim_dict):
-    wrapper = create_optim_in_bwd_wrapper(model, optim_dict)
-    assert isinstance(wrapper, OptimizerInBackwardWrapper)
-def test_register_optim_in_bwd_hooks(model, optim_dict):
-    register_optim_in_bwd_hooks(model, optim_dict)
-    # Here, you would need to add assertions based on what you expect to happen
-    # when the hooks are registered. This could involve running a forward and
-    # backward pass and checking the gradients, for example.
+def wrapper(model, optim_dict):
+    return create_optim_in_bwd_wrapper(model, optim_dict)
 
 
+class TestOptimInBackward:
+    def test_state_dict_save_load(self, model, wrapper):
+        # Run a dummy step to create optimizer states
+        _run_dummy_step(model, wrapper)
 
-class TestOptimUtils:
-    def test_optim_in_bwd_wrapper(self):
-        pass
+        sd = wrapper.state_dict()
+        new_optim_dict = create_optim_in_bwd_wrapper(
+            model, {p: torch.optim.AdamW([p], lr=0.01) for p in model.parameters()}
+        )
+        assert not _validate_dicts(sd, new_optim_dict.state_dict())
+        new_optim_dict.load_state_dict(sd)
+        assert _validate_dicts(sd, new_optim_dict.state_dict())
+
+    def test_missing_unexpected_param_load_raises(self, model, wrapper):
+        # Run a dummy step to create optimizer states
+        _run_dummy_step(model, wrapper)
+        sd = wrapper.state_dict()
+        new_optim_dict = create_optim_in_bwd_wrapper(
+            model, {p: torch.optim.AdamW([p], lr=0.01) for p in model.parameters()}
+        )
+        with pytest.raises(RuntimeError, match="Expected to load optimizer state"):
+            sd.pop(next(iter(sd.keys())))
+            new_optim_dict.load_state_dict(sd)
+
+        sd = wrapper.state_dict()
+        sd["new_key"] = 1234
+        with pytest.raises(RuntimeError, match="unexpected param"):
+            new_optim_dict.load_state_dict(sd)
