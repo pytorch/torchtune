@@ -40,7 +40,7 @@ The library currently supports the following models and fine-tuning methods.
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
 | [Llama2](torchtune/models/llama2/_model_builders.py)   | 7B        | Full Finetuning [[single device](recipes/configs/llama2/7B_full_single_device.yaml),  [distributed](recipes/configs/llama2/7B_full.yaml)] LoRA [[single device](recipes/configs/llama2/7B_lora_single_device.yaml),  [distributed](recipes/configs/llama2/7B_lora.yaml)] QLoRA [single device](recipes/configs/llama2/7B_qlora_single_device.yaml) |
 | [Llama2](torchtune/models/llama2/_model_builders.py)   | 13B       | [Full Finetuning](recipes/configs/llama2/13B_full.yaml), [LoRA](recipes/configs/llama2/13B_lora.yaml)
-| [Mistral](torchtune/models/mistral//_model_builders.py)   | 7B       | Full Finetuning and LoRA are WIP and will be added soon
+| [Mistral](torchtune/models/mistral//_model_builders.py)   | 7B       | [Full Finetuning](recipes/configs/mistral/7B_full.yaml), [LoRA](recipes/configs/mistral/7B_lora.yaml)
 
 
 &nbsp;
@@ -145,7 +145,7 @@ Again, the argument to `--nproc_per_node` can be varied subject to memory constr
 An example to run QLoRA on a single device can be achieved with the following:
 
 ```
-tune lora_finetune_single_device --config recipes/configs/llama2/7B_qlora_single_device
+tune lora_finetune_single_device --config llama2/7B_qlora_single_device
 ```
 
 &nbsp;

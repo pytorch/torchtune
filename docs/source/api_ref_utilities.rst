@@ -65,16 +65,6 @@ Data
     checkpointable_dataloader.CheckpointableDataLoader
     collate.padded_collate
 
-Checkpoint saving & loading
----------------------------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    checkpoint.save_checkpoint
-    checkpoint.load_checkpoint
-
 .. _gen_label:
 
 Generation
