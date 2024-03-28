@@ -89,7 +89,7 @@ tune --help
 And should see the following output:
 
 ```
-usage: tune [-h] {ls,cp,download,convert_checkpoint,validate,run} ...
+usage: tune [-h] {ls,cp,download,run,validate} ...
 
 Welcome to the TorchTune CLI!
 
@@ -126,49 +126,51 @@ Note: While the ``tune download`` command allows you to download *any* model fro
 
 #### Running recipes
 
-TorchTune contains recipes for:
+TorchTune contains built-in recipes for:
 - Full finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py)
 - LoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and on [multiple devices with FSDP](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_distributed.py).
 - QLoRA finetuning on [single device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py), with a QLoRA specific [configuration](https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_qlora_single_device.yaml)
 
 To run a LoRA finetune on a single device using the [Alpaca Dataset](https://huggingface.co/datasets/tatsu-lab/alpaca):
-
 ```
-tune run lora_finetune_single_device.py --config llama2/7B_lora_single_device.yaml
-```
-
-TorchTune integrates with the [`torchrun` CLI tool](https://pytorch.org/docs/stable/elastic/run.html) for easily running distributed training. See below for an example of running a Llama2 7B full-finetune on two GPUs.
-Make sure to place any torchrun commands before the recipe filename b/c any other CLI args will overwrite the config, not affect distributed training.
-
-```
-tune run --num-gpu=2 full_finetune_distributed.py --config llama2/7B_full_distributed.yaml
+tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 ```
 
-> Because `tune run` uses torchrun under the hood, if you are familiar with options such as `--nproc_per_node`, you can use those directly!
+TorchTune integrates with [`torchrun`](https://pytorch.org/docs/stable/elastic/run.html) for easily running distributed training. See below for an example of running a Llama2 7B full-finetune on two GPUs.
 
-You can easily overwrite some config properties with the following command, but you can also easily copy a whole config and modify it following the instructions in the
-next section.
+> Make sure to place any torchrun commands **before** the recipe specification b/c any other CLI args will
+overwrite the config, not affect distributed training.
+
 ```
-tune run lora_finetune_single_device.py --config llama2/7B_lora_single_device.yaml batch_size=8
+tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full_distributed
 ```
 
-&nbsp;
-
-#### Copy and edit a custom recipe/config
-
-To copy a recipe to customize it yourself and then run
+You can easily overwrite some config properties as follows, but you can also easily copy a built-in config and
+modify it following the instructions in the [next section](#copy-and-edit-a-custom-recipe-or-config).
 ```
-tune cp full_finetune_distributed.py my_recipe/full_finetune_distributed.py
-tune cp llama2/7B_full.yaml my_recipe/7B_full.yaml
-# Make changes to recipe and/or config
-tune my_recipe/full_finetune_distributed.py --config my_recipe/7B_full.yaml
+tune run lora_finetune_single_device --config llama2/7B_lora_single_device batch_size=8
 ```
 
 &nbsp;
 
-#### Command Utilities
+#### Copy and edit a custom recipe or config
 
-``tune`` is a CLI designed to help you use TorchTune easily. Check out `tune --help` for all commands and options.
+```
+tune cp full_finetune_distributed my_custom_finetune_recipe.py
+Copied to ./my_custom_finetune_config.py
+
+tune cp llama2/7B_full .
+Copied to ./7B_full.yaml
+```
+
+Then, you can run your custom recipe by directing the `tune run` command to your local files:
+```
+tune run my_custom_finetune_config --config 7B_full.yaml
+```
+
+&nbsp;
+
+Check out `tune --help` for all possible CLI commands and options.
 
 &nbsp;
 

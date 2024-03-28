@@ -94,7 +94,7 @@ class Copy(Subcommand):
             )
 
         # Attach proper suffix if needed
-        if destination != "." and destination.suffix != proper_suffix:
+        if destination.name != "" and destination.suffix != proper_suffix:
             destination = destination.with_suffix(proper_suffix)
 
         # Copy file
