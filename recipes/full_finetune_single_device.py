@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -220,9 +219,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             log.info("Compiling model with torch.compile...")
-            compile_start = time.perf_counter()
             model = utils.wrap_compile(model)
-            log.info(f"Model compilation took {time.perf_counter() - compile_start:.2f} secs.")
         log.info(
             utils.memory_stats_log(
                 "Memory Stats after model init:", device=self._device
