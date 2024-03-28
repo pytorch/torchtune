@@ -9,6 +9,7 @@ from ._checkpointing import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
+    transform_opt_state_dict,
 )
 from ._device import get_device
 from ._distributed import (  # noqa
@@ -22,11 +23,6 @@ from ._distributed import (  # noqa
     wrap_fsdp,
 )
 from .argparse import TuneArgumentParser
-from .checkpoint import (  # noqa
-    save_checkpoint,
-    transform_opt_state_dict,
-    validate_checkpoint,
-)
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .constants import (  # noqa
