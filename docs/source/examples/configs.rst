@@ -243,5 +243,5 @@ name directly. Any nested fields in the components can be overridden with dot no
 
 .. code-block:: bash
 
-    # Change to SlimOrcaDataset and set train_on_input to False
-    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.SlimOrcaDataset dataset.train_on_input=False
+    # Change to slimorca_dataset and set train_on_input to False
+    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
