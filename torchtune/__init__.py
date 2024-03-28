@@ -22,7 +22,7 @@ class Recipe:
     configs: List[Config]
     supports_distributed: bool
 
-    def get_configs(self):
+    def get_configs(self) -> List[Config]:
         return self.configs
 
 
@@ -90,23 +90,9 @@ _ALL_RECIPES = [
 ]
 
 
-_ALL_RECIPES_DICT = {recipe.name: recipe for recipe in _ALL_RECIPES}
-
-
 def get_all_recipes():
     """List of recipes available from the CLI."""
     return _ALL_RECIPES
-
-
-def get_all_recipe_names():
-    """List of recipes available from the CLI."""
-    return _ALL_RECIPES.keys()
-
-
-def get_configs_for_recipe(recipe_name: str) -> List[Config]:
-    """Get the configs for a given recipe."""
-    recipe = _ALL_RECIPES_DICT[recipe_name]
-    return recipe.get_configs()
 
 
 __all__ = [datasets, models, modules, utils]
