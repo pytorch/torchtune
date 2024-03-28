@@ -11,6 +11,7 @@ import tempfile
 from unittest.mock import patch
 
 import pytest
+import os
 
 from tests.common import TUNE_PATH
 
@@ -19,6 +20,12 @@ class TestTuneCLIWithDownloadScript:
     def test_download_no_hf_token_set_for_gated_model(self, capsys):
         model = "meta-llama/Llama-2-7b"
         testargs = f"tune download --repo-id {model}".split()
+
+        # Skip this test for local developers when HF_TOKEN is set.
+        # CI is not affected.
+        if "HF_TOKEN" in os.environ:
+            return
+
         with patch.object(sys, "argv", testargs):
             with pytest.raises(ValueError) as e:
                 runpy.run_path(TUNE_PATH, run_name="__main__")
