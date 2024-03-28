@@ -49,7 +49,6 @@ class Download(Subcommand):
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
-            exit_on_error=True,
         )
         self._add_arguments()
         self._parser.set_defaults(func=self._download_cmd)
