@@ -538,6 +538,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
+        torch.distributed.barrier()
         destroy_process_group()
 
 

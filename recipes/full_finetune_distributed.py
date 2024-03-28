@@ -15,7 +15,7 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-from torch.distributed import init_process_group
+from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed.fsdp import (
     FullOptimStateDictConfig,
     FullStateDictConfig,
@@ -471,7 +471,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
     def cleanup(self) -> None:
         self._metric_logger.close()
-        torch.distributed.destroy_process_group()
+        torch.distributed.barrier()
+        destroy_process_group()
 
 
 @config.parse
