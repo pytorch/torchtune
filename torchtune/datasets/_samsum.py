@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data import SummarizeTemplate
-from torchtune.datasets._instruct import InstructDataset
+from torchtune.datasets import InstructDataset
 from torchtune.modules import Tokenizer
 
 

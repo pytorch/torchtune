@@ -32,6 +32,16 @@ CKPT_MODEL_PATHS = {
 }
 
 
+class DummyTokenizer:
+    def encode(self, text, **kwargs):
+        words = text.split()
+        return [len(word) for word in words]
+
+    @property
+    def eos_id(self):
+        return -1
+
+
 def get_assets_path():
     return Path(__file__).parent / "assets"
 
