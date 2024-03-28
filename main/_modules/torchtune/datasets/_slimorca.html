@@ -358,27 +358,16 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatTemplate</span><span class="p">,</span> <span class="n">sharegpt_to_llama2_dialogue</span>
 
-<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
-<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets._chat</span> <span class="kn">import</span> <span class="n">ChatDataset</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.datasets._common</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
-
-<span class="c1"># Not ideal to import this type here but it&#39;s needed for the transform function</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
 
 
-<span class="k">class</span> <span class="nc">_Llama2ChatFormatConstants</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Contains constants that are used in Llama2 Chat Format.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="n">B_INST</span><span class="p">,</span> <span class="n">E_INST</span> <span class="o">=</span> <span class="s2">&quot;[INST]&quot;</span><span class="p">,</span> <span class="s2">&quot;[/INST]&quot;</span>
-    <span class="n">B_SYS</span><span class="p">,</span> <span class="n">E_SYS</span> <span class="o">=</span> <span class="s2">&quot;&lt;&lt;SYS&gt;&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&lt;&lt;/SYS&gt;&gt;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
-
-
-<div class="viewcode-block" id="SlimOrcaDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.SlimOrcaDataset.html#torchtune.datasets.SlimOrcaDataset">[docs]</a><span class="k">class</span> <span class="nc">SlimOrcaDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="slimorca_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">[docs]</a><span class="k">def</span> <span class="nf">slimorca_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    PyTorch Representation of the SlimOrca Dataset</span>
 <span class="sd">    https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup</span>
@@ -389,7 +378,7 @@
 <span class="sd">    The base Llama2 Model doesn&#39;t prescribe a particular format.</span>
 
 <span class="sd">    The returned data is a tuple of input token id list and label token id</span>
-<span class="sd">    list. If `max_token_length` keyword argument is provided, the returned</span>
+<span class="sd">    list. If `max_seq_len` keyword argument is provided, the returned</span>
 <span class="sd">    input token id list is ensured (by truncation if necessary) to be within</span>
 <span class="sd">    that length.</span>
 
@@ -397,95 +386,41 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
-<span class="sd">        **kwargs: Additional keyword arguments to pass to the SlimOrca Dataset.</span>
-
-<span class="sd">    Keyword Arguments:</span>
-<span class="sd">        max_token_length (int): Maximum number of tokens in the returned input and label token id lists. This value needs to be at least 4 though it is generally set to max sequence length accepted by the model. Default is 1024.</span>
+<span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
+<span class="sd">            This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.</span>
+<span class="sd">            Default is 1024.</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">        ValueError: If `max_token_length` is less than 4.</span>
+<span class="sd">        ValueError: If `max_seq_len` is less than 4.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ChatDataset: dataset configured with SlimOrca source data and LLaMA2 chat template</span>
 
 <span class="sd">    Example:</span>
-<span class="sd">        &gt;&gt;&gt; ds = SlimOrcaDataset(tokenizer=tokenizer, max_token_length=10)</span>
+<span class="sd">        &gt;&gt;&gt; ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)</span>
 <span class="sd">        &gt;&gt;&gt; for input, label in ds:</span>
 <span class="sd">        &gt;&gt;&gt;     print(input)</span>
 <span class="sd">        &gt;&gt;&gt;     print(label)</span>
 <span class="sd">        &gt;&gt;&gt;</span>
-<span class="sd">        &gt;&gt;&gt; Sample Ouput:</span>
+<span class="sd">        &gt;&gt;&gt; Sample Output:</span>
 <span class="sd">        &gt;&gt;&gt; [1, 351, 82, 391, 221, 220, 193, 12, 471, ..., 2]</span>
 <span class="sd">        &gt;&gt;&gt; [-100, -100, -100, -100, -100, -100, -100, -100, 471, ..., 2]</span>
-<span class="sd">    &quot;&quot;&quot;</span>  <span class="c1"># noqa</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">max_seq_len</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="c1"># Input token needs to have 1 bos, 1 eos,</span>
+        <span class="c1"># and 1 token from prompt, 1 from label</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_seq_len must be at least 4&quot;</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span> <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_max_token_length</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max_token_length&quot;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_token_length</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
-            <span class="c1"># Input token needs to have 1 bos, 1 eos,</span>
-            <span class="c1"># and 1 token from prompt, 1 from label</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;max_token_length must be at least 4&quot;</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">][</span><span class="s2">&quot;conversations&quot;</span><span class="p">]</span>
-        <span class="n">prompt</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_prompt_label</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_tokens</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_generate_tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prompt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Given a prompt string and label string, generate input and label token id lists.</span>
-
-<span class="sd">        Tokenizer is used to tokenize both the strings.</span>
-<span class="sd">        The prompt token list is truncated to `max_token_length` - 2</span>
-<span class="sd">        (so that there is at least one label token, as EOS takes one token).</span>
-
-<span class="sd">        The label token list is truncated to `max_token_length` - len(prompt_token_list)</span>
-
-<span class="sd">        Finally input token list is the concatenation of prompt and label token lists.</span>
-
-<span class="sd">        Label token list is padded with cross entropy ignore idx value to match the length of input token list.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">prompt_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prompt</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="c1"># Truncate to max token length - 2 (so that there is at least one label token)</span>
-        <span class="n">prompt_tokens</span> <span class="o">=</span> <span class="n">prompt_tokens</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_token_length</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span>
-
-        <span class="c1"># Calculate space left for label tokens</span>
-        <span class="n">label_tokens_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_token_length</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">prompt_tokens</span><span class="p">)</span>
-        <span class="n">label_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-        <span class="c1"># Truncate label tokens</span>
-        <span class="n">label_tokens</span> <span class="o">=</span> <span class="n">label_tokens</span><span class="p">[:</span> <span class="n">label_tokens_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">label_tokens</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">eos_id</span><span class="p">:</span>
-            <span class="n">label_tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
-
-        <span class="nb">input</span> <span class="o">=</span> <span class="n">prompt_tokens</span> <span class="o">+</span> <span class="n">label_tokens</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">CROSS_ENTROPY_IGNORE_IDX</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">prompt_tokens</span><span class="p">))</span>
-        <span class="p">]</span> <span class="o">+</span> <span class="n">label_tokens</span>
-        <span class="k">return</span> <span class="nb">input</span><span class="p">,</span> <span class="n">label</span>
-
-    <span class="k">def</span> <span class="nf">_generate_prompt_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Construct prompt and label strings adhering to Llama2 Chat Format.</span>
-<span class="sd">        This method supports only back-and-forth conversation per sample (as it is sufficient for SlimOrca dataset).</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">agent_text_dict</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="c1"># agents can be {system, human, gpt}</span>
-        <span class="k">for</span> <span class="n">conversation</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
-            <span class="n">agent</span> <span class="o">=</span> <span class="n">conversation</span><span class="p">[</span><span class="s2">&quot;from&quot;</span><span class="p">]</span>
-            <span class="n">text</span> <span class="o">=</span> <span class="n">conversation</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]</span>
-            <span class="n">agent_text_dict</span><span class="p">[</span><span class="n">agent</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
-
-        <span class="c1"># Llama2 Chat Format - https://github.com/facebookresearch/llama/blob/main/llama/generation.py#L284</span>
-        <span class="k">if</span> <span class="s2">&quot;system&quot;</span> <span class="ow">in</span> <span class="n">agent_text_dict</span><span class="p">:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">B_INST</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">B_SYS</span><span class="si">}{</span><span class="n">agent_text_dict</span><span class="p">[</span><span class="s1">&#39;system&#39;</span><span class="p">]</span><span class="si">}{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">E_SYS</span><span class="si">}{</span><span class="n">agent_text_dict</span><span class="p">[</span><span class="s1">&#39;human&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">E_INST</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># noqa: B950</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">prompt</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">B_INST</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">agent_text_dict</span><span class="p">[</span><span class="s1">&#39;human&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">_Llama2ChatFormatConstants</span><span class="o">.</span><span class="n">E_INST</span><span class="si">}</span><span class="s2">&quot;</span>
-
-        <span class="n">response</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot; </span><span class="si">{</span><span class="n">agent_text_dict</span><span class="p">[</span><span class="s1">&#39;gpt&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> &quot;</span>
-        <span class="k">return</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">response</span></div>
+    <span class="k">return</span> <span class="n">ChatDataset</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
+        <span class="n">convert_to_dialogue</span><span class="o">=</span><span class="n">sharegpt_to_llama2_dialogue</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">Llama2ChatTemplate</span><span class="p">(),</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
              </article>

@@ -585,8 +585,8 @@ name directly. Any nested fields in the components can be overridden with dot no
 <span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to SlimOrcaDataset and set train_on_input to False</span>
-tune<span class="w"> </span>full_finetune<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.SlimOrcaDataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to slimorca_dataset and set train_on_input to False</span>
+tune<span class="w"> </span>full_finetune<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
 </pre></div>
 </div>
 </section>

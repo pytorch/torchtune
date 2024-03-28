@@ -3,8 +3,7 @@
 .. currentmodule:: torchtune.datasets
 
 
-SlimOrcaDataset
-===============
+slimorca_dataset
+================
 
-.. autoclass:: SlimOrcaDataset
-    :members:
+.. autofunction:: slimorca_dataset
