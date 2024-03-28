@@ -19,12 +19,9 @@ class TestTuneRunCommand:
         testargs = "tune run --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full".split()
 
         monkeypatch.setattr(sys, "argv", testargs)
-        distributed_run = mocker.patch("torch.distributed.run.run")
+        distributed_run = mocker.patch("torchtune._cli.tune.Run._run_distributed")
         runpy.run_path(TUNE_PATH, run_name="__main__")
         distributed_run.assert_called_once()
-
-        output = capsys.readouterr()
-        assert "Running with torchrun..." in output.out
 
     def test_run_calls_single_device_run_for_single_device_recipe(
         self, capsys, monkeypatch, mocker

@@ -7,11 +7,7 @@
 import runpy
 import sys
 
-import huggingface_hub
-
 import pytest
-from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
-
 from tests.common import TUNE_PATH
 
 
@@ -20,9 +16,11 @@ class TestTuneDownloadCommand:
 
     @pytest.fixture
     def snapshot_download(self, mocker, tmpdir):
-        return mocker.patch.object(
-            huggingface_hub,
-            "snapshot_download",
+
+        from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
+
+        yield mocker.patch(
+            "torchtune._cli.download.snapshot_download",
             return_value=tmpdir,
             # Side effects are iterated through on each call
             side_effect=[
