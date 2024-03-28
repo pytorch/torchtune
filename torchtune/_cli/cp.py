@@ -3,14 +3,16 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 import argparse
+import shutil
 import textwrap
 from pathlib import Path
 
+import torchtune
 from torchtune import get_all_recipes
-
 from torchtune._cli.subcommand import Subcommand
+
+ROOT = Path(torchtune.__file__).parent.parent
 
 
 class Copy(Subcommand):
@@ -79,7 +81,7 @@ class Copy(Subcommand):
                 src = ROOT / "recipes" / recipe.file_path
                 proper_suffix = ".py"
                 break
-            for config in recipe.configs:
+            for config in recipe.get_configs():
                 if config.name == args.file:
                     src = ROOT / "recipes" / "configs" / config.file_path
                     proper_suffix = ".yaml"

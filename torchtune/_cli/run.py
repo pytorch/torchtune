@@ -7,9 +7,12 @@
 import argparse
 import textwrap
 
-from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
+import torchtune
 
+from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
 from torchtune._cli.subcommand import Subcommand
+
+ROOT = Path(torchtune.__file__).parent.parent
 
 
 class Run(Subcommand):
