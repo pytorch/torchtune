@@ -331,14 +331,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     break
 
                 input_ids, labels = batch
-                perf_monitor.start_record("data_transfer", use_cuda=False)
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
                 logits = self._model(input_ids)
-                perf_monitor.end_record("data_transfer")
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
-                perf_monitor.emit("data_transfer")
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
