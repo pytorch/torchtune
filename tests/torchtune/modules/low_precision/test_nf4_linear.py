@@ -126,4 +126,4 @@ class TestNF4Linear:
 
         err_bnb = (out_bnb - out_ref).sum().abs().max()
         err_native = (out_nf4 - out_ref).sum().abs().max()
-        assert err_native.item() <= err_bnb
+        assert err_native.item() <= err_bnb.item()
