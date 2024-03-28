@@ -1,8 +1,15 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import runpy
 import sys
 
-import pytest
 import huggingface_hub
+
+import pytest
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 
 from tests.common import TUNE_PATH
@@ -18,7 +25,11 @@ class TestTuneDownloadCommand:
             "snapshot_download",
             return_value=tmpdir,
             # Side effects are iterated through on each call
-            side_effect=[GatedRepoError("test"), RepositoryNotFoundError("test"), mocker.DEFAULT],
+            side_effect=[
+                GatedRepoError("test"),
+                RepositoryNotFoundError("test"),
+                mocker.DEFAULT,
+            ],
         )
 
     def test_download_calls_snapshot(self, capsys, monkeypatch, snapshot_download):
