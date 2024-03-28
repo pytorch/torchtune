@@ -7,6 +7,7 @@
 import argparse
 import sys
 import textwrap
+import runpy
 
 from pathlib import Path
 from typing import Optional
