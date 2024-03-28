@@ -5,15 +5,19 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.datasets._alpaca import alpaca_dataset
+from torchtune.datasets._chat import ChatDataset
 from torchtune.datasets._grammar import grammar_dataset
-from torchtune.datasets._instruct import InstructDataset
+from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._samsum import samsum_dataset
-from torchtune.datasets._slimorca import SlimOrcaDataset
+from torchtune.datasets._slimorca import slimorca_dataset
 
 __all__ = [
     "alpaca_dataset",
     "grammar_dataset",
     "samsum_dataset",
-    "SlimOrcaDataset",
     "InstructDataset",
+    "slimorca_dataset",
+    "ChatDataset",
+    "instruct_dataset",
+    "chat_dataset",
 ]
