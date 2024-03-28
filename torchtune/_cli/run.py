@@ -5,9 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import runpy
 import sys
 import textwrap
-import runpy
 
 from pathlib import Path
 from typing import Optional
