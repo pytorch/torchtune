@@ -145,7 +145,7 @@ Again, the argument to `--nproc_per_node` can be varied subject to memory constr
 An example to run QLoRA on a single device can be achieved with the following:
 
 ```
-tune lora_finetune_single_device --config recipes/configs/llama2/7B_qlora_single_device
+tune lora_finetune_single_device --config llama2/7B_qlora_single_device
 ```
 
 &nbsp;
