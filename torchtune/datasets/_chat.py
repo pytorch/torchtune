@@ -13,6 +13,7 @@ from torchtune.config._utils import _get_template
 from torchtune.data import (
     Dialogue,
     PromptTemplate,
+    sharegpt_to_llama2_dialogue,
     tokenize_prompt_and_response,
     truncate,
 )

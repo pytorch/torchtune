@@ -177,7 +177,7 @@ def _get_template(template: str) -> PromptTemplate:
     except InstantiationError:
         # Verify that string can be used as a template, should have variable
         # placeholders
-        pattern = r"\{.+?\}"
+        pattern = r"\{\w+\}"
         if not re.search(pattern, template):
             raise ValueError(
                 f"Invalid template '{template}': "

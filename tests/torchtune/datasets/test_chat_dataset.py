@@ -7,20 +7,11 @@
 from unittest import mock
 
 import pytest
+from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import ChatDataset
-
-
-class DummyTokenizer:
-    def encode(self, text, **kwargs):
-        words = text.split()
-        return [len(word) for word in words]
-
-    @property
-    def eos_id(self):
-        return -1
 
 
 class DummyTemplate:
@@ -80,7 +71,6 @@ class TestChatDataset:
         prompts, responses = zip(
             *[(p, l) for p, l in ds._get_turns(dialogue[0]["dialogue"])]
         )
-        print(prompts, responses)
         assert prompts[0] == {
             "system": "You are an AI assistant.",
             "user": "What is the meaning of life?",
@@ -190,8 +180,6 @@ class TestChatDataset:
         assert len(ds) == 1
         mock_load_dataset.assert_called_once()
 
-        for i in range(len(ds)):
-            prompt, label = ds[i]
-            print(prompt, label)
-            assert prompt == expected_tokenized_prompts[i]
-            assert label == expected_labels[i]
+        prompt, label = ds[0]
+        assert prompt == expected_tokenized_prompts[0]
+        assert label == expected_labels[0]

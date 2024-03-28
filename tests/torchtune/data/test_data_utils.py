@@ -4,18 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from tests.test_utils import DummyTokenizer
 from torchtune.data import tokenize_prompt_and_response, truncate
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-
-
-class DummyTokenizer:
-    def encode(self, text, **kwargs):
-        words = text.split()
-        return [len(word) for word in words]
-
-    @property
-    def eos_id(self):
-        return -1
 
 
 def test_tokenize_prompt_and_response():
@@ -68,28 +59,26 @@ def test_tokenize_prompt_and_response():
     assert tokenized_label == expected_tokenized_prompt
 
 
-def test_truncate_if_necessary():
+def test_truncate():
     prompt_tokens = [1, 2, 3, 4, -1]
     label_tokens = [1, 2, 3, 4, -1]
-    max_seq_len = 5
 
     # Test no truncation
     truncated_prompt_tokens, truncated_label_tokens = truncate(
         tokenizer=DummyTokenizer(),
         prompt_tokens=prompt_tokens,
         label_tokens=label_tokens,
-        max_seq_len=max_seq_len,
+        max_seq_len=5,
     )
-    assert truncated_prompt_tokens == [1, 2, 3, 4, -1]
-    assert truncated_label_tokens == [1, 2, 3, 4, -1]
+    assert truncated_prompt_tokens == prompt_tokens
+    assert truncated_label_tokens == label_tokens
 
     # Test truncated
-    max_seq_len = 4
     truncated_prompt_tokens, truncated_label_tokens = truncate(
         tokenizer=DummyTokenizer(),
         prompt_tokens=prompt_tokens,
         label_tokens=label_tokens,
-        max_seq_len=max_seq_len,
+        max_seq_len=4,
     )
     assert truncated_prompt_tokens == [1, 2, 3, -1]
     assert truncated_label_tokens == [1, 2, 3, -1]

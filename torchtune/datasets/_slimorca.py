@@ -11,7 +11,9 @@ from torchtune.datasets._chat import ChatDataset
 from torchtune.modules import Tokenizer
 
 
-def slimorca_dataset(tokenizer: Tokenizer, max_seq_len: int = 1024) -> ChatDataset:
+def slimorca_dataset(
+    tokenizer: Tokenizer, max_seq_len: int = 1024, train_on_input: bool = False
+) -> ChatDataset:
     """
     PyTorch Representation of the SlimOrca Dataset
     https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
@@ -33,6 +35,7 @@ def slimorca_dataset(tokenizer: Tokenizer, max_seq_len: int = 1024) -> ChatDatas
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.
             Default is 1024.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
 
     Raises:
         ValueError: If `max_seq_len` is less than 4.
@@ -61,6 +64,6 @@ def slimorca_dataset(tokenizer: Tokenizer, max_seq_len: int = 1024) -> ChatDatas
         convert_to_dialogue=sharegpt_to_llama2_dialogue,
         template=Llama2ChatTemplate(),
         max_seq_len=max_seq_len,
-        train_on_input=False,
+        train_on_input=train_on_input,
         split="train",
     )

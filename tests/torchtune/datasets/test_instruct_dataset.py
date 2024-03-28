@@ -6,15 +6,11 @@
 
 from unittest import mock
 
+from tests.test_utils import DummyTokenizer
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import InstructDataset
-
-
-class DummyTokenizer:
-    def encode(self, text, **kwargs):
-        words = text.split()
-        return [len(word) for word in words]
 
 
 def dummy_transform(sample):
