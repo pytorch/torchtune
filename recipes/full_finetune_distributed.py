@@ -202,6 +202,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._torch_profiler = utils.pytorch_profiler_or_nullcontext(
             enabled=self._enable_torch_profiler,
             output_file_path=cfg.output_file_path,
+            is_rank_zero=self._is_rank_zero,
         )
 
     def _setup_model(
@@ -427,7 +428,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     ):
                         break
 
-                    if self._enable_torch_profiler:
+                    if self._enable_torch_profiler and self._is_rank_zero:
                         torch_profiler.step()
 
                     input_ids, labels = batch
