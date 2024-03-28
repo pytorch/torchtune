@@ -88,7 +88,7 @@ class Download(Subcommand):
             )
         except GatedRepoError:
             self._parser.error(
-                "You need to provide a Hugging Face API token to download gated models."
+                "You need to provide a HuggingFace API token to download gated models."
                 "You can find your token by visiting https://huggingface.co/settings/tokens"
             )
         except RepositoryNotFoundError:
