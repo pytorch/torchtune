@@ -6,7 +6,7 @@
 
 import contextlib
 
-from typing import ContextManager
+from typing import ContextManager, Optional
 
 import torch
 from torch.profiler import profile
@@ -15,6 +15,7 @@ from torch.profiler import profile
 def pytorch_profiler_or_nullcontext(
     enabled: bool,
     output_file_path: str = "./torchtune_perf_tracing.json",
+    is_rank_zero: Optional[bool] = True,
 ) -> ContextManager:
     """
     Utility to trace the code with pytorch profiler.
@@ -25,6 +26,7 @@ def pytorch_profiler_or_nullcontext(
     Args:
         enabled (bool): Whether enable pytorch profiler or not.
         output_file_path (str): Tracing file output path.
+        is_rank_zero (Optional[bool]): Whether the current rank is zero.
 
     Returns:
         ContextManager: pytorch profiler context manager
@@ -45,6 +47,6 @@ def pytorch_profiler_or_nullcontext(
             profile_memory=True,
             with_stack=True,
         )
-        if enabled
+        if enabled and is_rank_zero
         else contextlib.nullcontext()
     )
