@@ -6,7 +6,7 @@
 
 import gc
 
-from typing import Optional, Set, Dict, Any
+from typing import Any, Dict, Optional, Set
 
 import torch
 
