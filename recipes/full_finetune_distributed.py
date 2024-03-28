@@ -41,8 +41,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     Full finetuning recipe for dense transformer-based LLMs such as Llama2.
 
     This recipe supports:
-        - FSDP and activation checkpointing. AC is disabled by default but can be enabled using
-            the ``activation_checkpointing`` flag. DDP is not supported.
+        - FSDP and activation checkpointing. AC is enabled by default but can be
+            configured using the ``enable_activation_checkpointing`` flags. DDP is not supported.
         - Full fp32 and bf16 training are supported
         - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
         - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
