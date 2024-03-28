@@ -5,11 +5,16 @@
 # LICENSE file in the root directory of this source tree.
 
 import argparse
+import sys
 import textwrap
+
+from pathlib import Path
+from typing import Optional
 
 import torchtune
 
 from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
+from torchtune import Config, get_all_recipes, Recipe
 from torchtune._cli.subcommand import Subcommand
 
 ROOT = Path(torchtune.__file__).parent.parent
@@ -34,7 +39,7 @@ class Run(Subcommand):
                     $ tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 
                     # Run a finetuning recipe in a distributed fashion using torchrun w/ default values
-                    $ tune run --num-gpu=4 full_finetune_distributed --config llama2/7B_full_finetune_distributed
+                    $ tune run --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full_finetune_distributed
 
                     # Override a parameter in the config file and specify a number of GPUs for torchrun
                     $ tune run lora_finetune_single_device \
@@ -72,17 +77,14 @@ class Run(Subcommand):
         # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
         print("Running with torchrun...")
         # Have to reset the argv so that the recipe can be run with the correct arguments
-        # args = copy.deepcopy(args)
         args.__dict__["training_script"] = args.__dict__.pop("recipe")
         args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
         run(args)
-        # return 0
 
     def _run_single_device(self, args: argparse.Namespace):
         """Run a recipe on a single device."""
         sys.argv = [str(args.recipe)] + args.recipe_args
         runpy.run_path(str(args.recipe), run_name="__main__")
-        # return 0
 
     def _is_distributed_args(self, args: argparse.Namespace):
         """Check if the user is trying to run a distributed recipe."""
@@ -106,7 +108,7 @@ class Run(Subcommand):
                 if config.name == config_str:
                     return config
 
-        # Search through all recipes
+        # If not, search through all recipes
         for recipe in get_all_recipes():
             for config in recipe.get_configs():
                 if config.name == config_str:

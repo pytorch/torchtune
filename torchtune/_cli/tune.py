@@ -9,8 +9,7 @@ import argparse
 from torchtune._cli.cp import Copy
 from torchtune._cli.download import Download
 from torchtune._cli.ls import List
-
-# from torchtune._cli.run import Run
+from torchtune._cli.run import Run
 from torchtune._cli.validate import Validate
 
 
@@ -33,7 +32,7 @@ class TuneCLIParser:
         Download.create(subparsers)
         List.create(subparsers)
         Copy.create(subparsers)
-        # Run.create(subparsers)
+        Run.create(subparsers)
         Validate.create(subparsers)
 
     def parse_args(self) -> argparse.Namespace:
