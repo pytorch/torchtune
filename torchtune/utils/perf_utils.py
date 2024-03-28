@@ -72,6 +72,9 @@ class TunePerfMonitor:
             self._metric_dict[metric_name].val = metric_val
 
     def start_record(metric: str):
+        """
+        Start tracking metric given by ``str``
+        """
         assert (
             metric not in self._inflight
         ), f"Already tracking metric {metric} for this iteration!"
@@ -80,6 +83,9 @@ class TunePerfMonitor:
     def end_record(
         metric_name: str, reduction_type: _ReductionType = _ReductionType.MEAN
     ):
+        """
+        End tracking metric given by ``str`` and compute and store the metric value.
+        """
         # TODO: only MEAN reduction supported right now, and end_record is not the best place to specify it.
         # Don't want to specify it in emit_metric either, as then we'll have to store metric for every
         # iteration, possibly too much space used. Could have a solution where user a priori defines the metric
@@ -103,4 +109,9 @@ class TunePerfMonitor:
         self._record_metric(metric_name, reduced_metric)
 
     def get_metric_val(metric_name) -> float:
+        """
+        Get the current value of metric given by metric_name. Note that the metric is already reduced with the reduction
+        specified in ``end_record``.
+        """
+        # TODO: its pretty limiting to only specify the reduction in end_record.
         return self.metric_dict[metric_name].val

@@ -313,13 +313,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
+        monitor = utils.perf_utils.TunePerfMonitor()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
+        perf_monitor = TunePerfMonitor()
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
             for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                perf_monitor.start_record("avg_it_s")
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -328,11 +331,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     break
 
                 input_ids, labels = batch
+                perf_monitor.start_record("data_transfer", use_cuda=False)
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
                 logits = self._model(input_ids)
+                perf_monitor.end_record("data_transfer")
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
+                perf_monitor.emit("data_transfer")
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
@@ -341,23 +347,33 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Check if this is the norm or not
                 pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                 if self.total_training_steps % self._log_every_n_steps == 0:
+                    log_dict = {
+                        "loss": loss.item(),
+                        "lr": self._optimizer.param_groups[0]["lr"],
+                        "gpu_resources": torch.cuda.memory_allocated(),
+                    }
+
+                    # TODO hacky
+                    if "avg_it_s" in perf_monitor.metric_dict:
+                        log_dict["avg_it_s"] = perf_monitor.get_metric_val("avg_it_s")
+
                     self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
+                        log_dict,
                         step=self.total_training_steps,
                     )
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+                # Snapshot the max memory allocated after backward.
+                perf_monitor.log_metric("max_cuda_mem_allocated_gb", torch.cuda.max_memory_allocated() / 1e9)
                 if self._should_update_weights(idx):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
+
+                perf_monitor.end_record("avg_it_s")
 
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
