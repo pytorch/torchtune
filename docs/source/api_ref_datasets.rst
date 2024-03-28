@@ -13,4 +13,4 @@ torchtune.datasets
     alpaca_dataset
     grammar_dataset
     samsum_dataset
-    SlimOrcaDataset
+    slimorca_dataset
