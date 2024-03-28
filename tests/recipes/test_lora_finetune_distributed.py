@@ -77,8 +77,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
         torch.testing.assert_close(
@@ -130,8 +129,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Resume training
         cmd_2 = f"""
@@ -151,8 +149,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd_2 = cmd_2 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_2)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         expected_loss_values = self._fetch_expected_loss_values()[2:]
 
@@ -190,8 +187,7 @@ class TestLoRAFinetuneDistributedRecipe:
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Next load both the merged weights in a Llama2 base model
         # and the base model weights + trained adapter weights in the LoRA Llama 2 model

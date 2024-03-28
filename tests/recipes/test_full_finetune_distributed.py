@@ -67,8 +67,7 @@ class TestFullFinetuneDistributedRecipe:
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
-        with pytest.raises(SystemExit, match=""):
-            runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values(ckpt)
         torch.testing.assert_close(
