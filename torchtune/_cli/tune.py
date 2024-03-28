@@ -22,7 +22,6 @@ class TuneCLIParser:
             prog="tune",
             description="Welcome to the TorchTune CLI!",
             add_help=True,
-            exit_on_error=True,
         )
         # Default command is to print help
         self._parser.set_defaults(func=lambda args: self._parser.print_help())
