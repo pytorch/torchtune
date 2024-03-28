@@ -10,7 +10,7 @@ import textwrap
 
 from pathlib import Path
 
-from huggingface_hub import model_info, snapshot_download
+from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 from torchtune._cli.subcommand import Subcommand
 
@@ -78,9 +78,14 @@ class Download(Subcommand):
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
         """Downloads a model from the HuggingFace Hub."""
-        # Check if the model exists and is accessible on the HuggingFace Hub
+        # Download the tokenizer and PyTorch model files
         try:
-            model_info(args.repo_id, token=args.hf_token)
+            true_output_dir = snapshot_download(
+                args.repo_id,
+                local_dir=args.output_dir,
+                resume_download=True,
+                token=args.hf_token,
+            )
         except GatedRepoError:
             self._parser.error(
                 "You need to provide a Hugging Face API token to download gated models."
@@ -89,15 +94,6 @@ class Download(Subcommand):
         except RepositoryNotFoundError:
             self._parser.error(
                 f"Repository '{args.repo_id}' not found on the HuggingFace Hub."
-            )
-
-        # Download the tokenizer and PyTorch model files
-        try:
-            true_output_dir = snapshot_download(
-                args.repo_id,
-                local_dir=args.output_dir,
-                resume_download=True,
-                token=args.hf_token,
             )
         except Exception as e:
             self._parser.error(e)

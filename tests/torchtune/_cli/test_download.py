@@ -12,16 +12,16 @@ class TestTuneDownloadCommand:
     """This class tests the `tune download` command."""
 
     @pytest.fixture
-    def model_info(self, mocker):
+    def snapshot_download(self, mocker, tmpdir):
         return mocker.patch.object(
             huggingface_hub,
-            "model_info",
-            return_value=None,
+            "snapshot_download",
+            return_value=tmpdir,
             # Side effects are iterated through on each call
             side_effect=[GatedRepoError("test"), RepositoryNotFoundError("test"), mocker.DEFAULT],
         )
 
-    def test_download_calls_model_info_error(self, capsys, monkeypatch, model_info):
+    def test_download_calls_snapshot(self, capsys, monkeypatch, snapshot_download):
         model = "meta-llama/Llama-2-7b"
         testargs = f"tune download {model}".split()
         monkeypatch.setattr(sys, "argv", testargs)
@@ -41,20 +41,10 @@ class TestTuneDownloadCommand:
         err = capsys.readouterr().err
         assert "not found on the HuggingFace Hub" in err
 
-        # Make sure it was called twice
-        assert model_info.call_count == 2
-
-    def test_download_calls_snapshot(self, capsys, tmpdir, monkeypatch, model_info, mocker):
-        model = "mistralai/Mistral-7b-v0.1"
-        testargs = f"tune download {model} --output-dir {tmpdir}".split()
-
-        snapshot_download = mocker.patch.object(
-            huggingface_hub,
-            "snapshot_download",
-            return_value=tmpdir,
-        )
-
-        monkeypatch.setattr(sys, "argv", testargs)
+        # Call the third time and get the expected output
         runpy.run_path(TUNE_PATH, run_name="__main__")
+        output = capsys.readouterr().out
+        assert "Succesfully downloaded model repo" in output
 
-        snapshot_download.assert_called_once()
+        # Make sure it was called twice
+        assert snapshot_download.call_count == 3
