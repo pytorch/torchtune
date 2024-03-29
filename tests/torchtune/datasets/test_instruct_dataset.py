@@ -6,17 +6,11 @@
 
 from unittest import mock
 
-import pytest
-from torchtune.data import AlpacaInstructTemplate
-from torchtune.datasets._common import CROSS_ENTROPY_IGNORE_IDX
+from tests.test_utils import DummyTokenizer
 
-from torchtune.datasets._instruct import _get_template, InstructDataset
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-
-class DummyTokenizer:
-    def encode(self, text, **kwargs):
-        words = text.split()
-        return [len(word) for word in words]
+from torchtune.datasets import InstructDataset
 
 
 def dummy_transform(sample):
@@ -77,7 +71,6 @@ class TestInstructDataset:
 
         for i in range(len(dataset)):
             prompt, label = dataset[i]
-            print(prompt, label)
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
 
@@ -100,34 +93,3 @@ class TestInstructDataset:
             prompt, label = dataset[i]
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
-
-
-def test_get_template():
-    # Test valid template class
-    template = _get_template("AlpacaInstructTemplate")
-    assert isinstance(template, AlpacaInstructTemplate)
-
-    # Test invalid template class
-    with pytest.raises(
-        ValueError,
-        match="Must be a PromptTemplate class or a string with placeholders.",
-    ):
-        _ = _get_template("InvalidTemplate")
-
-    # Test valid template strings
-    s = [
-        "Instruction: {instruction}\nInput: {input}",
-        "Instruction: {instruction}",
-        "{a}",
-    ]
-    for t in s:
-        assert _get_template(t) == t
-
-    # Test invalid template strings
-    s = ["hello", "{}", "a}{b"]
-    for t in s:
-        with pytest.raises(
-            ValueError,
-            match="Must be a PromptTemplate class or a string with placeholders.",
-        ):
-            _ = _get_template(t)
