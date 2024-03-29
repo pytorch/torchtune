@@ -212,8 +212,10 @@ The Llama2 code in this repository is inspired by the original [Llama2 code](htt
 - EleutherAI's [LM Evaluation Harness](https://github.com/EleutherAI/lm-evaluation-harness)
 - HugginFace for the [Datasets Repository](https://github.com/huggingface/datasets)
 - [gpt-fast](https://github.com/pytorch-labs/gpt-fast) for performant LLM inference techniques which we've adopted OOTB
-- [lit-gpt](https://github.com/Lightning-AI/litgpt), [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) and [transformers](https://github.com/huggingface/transformers) for providing reference implementations and spring boarding the LLM finetuning community
+- [lit-gpt](https://github.com/Lightning-AI/litgpt), [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) and [transformers](https://github.com/huggingface/transformers)
 - [llama recipes](https://github.com/meta-llama/llama-recipes)
+- [Mistral AI](https://mistral.ai/)
+- [bitsandbytes](https://github.com/TimDettmers/bitsandbytes)
 
 &nbsp;
 
