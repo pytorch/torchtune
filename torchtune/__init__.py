@@ -35,6 +35,10 @@ _ALL_RECIPES = [
                 name="llama2/7B_full_single_device",
                 file_path="llama2/7B_full_single_device.yaml",
             ),
+            Config(
+                name="llama2/7B_full_single_device_low_memory",
+                file_path="llama2/7B_full_single_device_low_memory.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
