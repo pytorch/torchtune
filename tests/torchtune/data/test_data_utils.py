@@ -13,8 +13,9 @@ def test_tokenize_prompt_and_response():
     tokenizer = DummyTokenizer()
     prompt = "Instruction:\nThis is an instruction.\n\nInput:\nThis is an input.\n\nResponse: "
     response = "I always know what I'm doing, do you?"
-    prompt_length = 11
+    prompt_length = 12
     expected_tokenized_prompt = [
+        -1,
         12,
         4,
         2,
@@ -44,6 +45,7 @@ def test_tokenize_prompt_and_response():
         6,
         2,
         4,
+        -1,
     ]
 
     tokenized_prompt, tokenized_label = tokenize_prompt_and_response(
