@@ -11,7 +11,7 @@ from unittest import mock
 import pytest
 from omegaconf import OmegaConf
 
-from torchtune.utils import TuneArgumentParser
+from torchtune.utils import TuneRecipeArgumentParser
 
 _CONFIG = {"a": 1, "b": 2}
 
@@ -19,7 +19,7 @@ _CONFIG = {"a": 1, "b": 2}
 class TestArgParse:
     @pytest.fixture
     def parser(self):
-        parser = TuneArgumentParser("Test parser")
+        parser = TuneRecipeArgumentParser("Test parser")
         return parser
 
     @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
