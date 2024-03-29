@@ -45,7 +45,7 @@ class TestTuneCLIWithCopyScript:
 
         args = "tune cp llama2/7B_full .".split()
         monkeypatch.setattr(sys, "argv", args)
-        runpy.run_path(tune_path_as_absolute, run_name="__main__")
+        runpy.run_path(str(tune_path_as_absolute), run_name="__main__")
 
         captured = capsys.readouterr()
         out = captured.out.rstrip("\n")
