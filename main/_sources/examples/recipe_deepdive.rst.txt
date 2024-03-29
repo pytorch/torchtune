@@ -82,7 +82,7 @@ An example script looks something like this:
 .. code-block:: python
 
     # Launch using TuneCLI which uses TorchRun under the hood
-    parser = utils.TuneArgumentParser(...)
+    parser = utils.TuneRecipeArgumentParser(...)
 
     # Parse and validate the params
     args, _ = parser.parse_known_args()

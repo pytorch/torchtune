@@ -364,7 +364,7 @@
 
 <span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
 <span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.argparse</span> <span class="kn">import</span> <span class="n">TuneArgumentParser</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils.argparse</span> <span class="kn">import</span> <span class="n">TuneRecipeArgumentParser</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 
@@ -394,7 +394,7 @@
 
     <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="n">parser</span> <span class="o">=</span> <span class="n">TuneArgumentParser</span><span class="p">(</span>
+        <span class="n">parser</span> <span class="o">=</span> <span class="n">TuneRecipeArgumentParser</span><span class="p">(</span>
             <span class="n">description</span><span class="o">=</span><span class="n">recipe_main</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span>
             <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">,</span>
         <span class="p">)</span>

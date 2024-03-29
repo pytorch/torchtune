@@ -3,8 +3,8 @@
 .. currentmodule:: torchtune.utils.argparse
 
 
-TuneArgumentParser
-==================
+TuneRecipeArgumentParser
+========================
 
-.. autoclass:: TuneArgumentParser
+.. autoclass:: TuneRecipeArgumentParser
     :members:

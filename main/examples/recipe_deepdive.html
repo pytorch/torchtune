@@ -432,7 +432,7 @@ trained and how the subsequent checkpoints are used. This includes:</p>
 </ul>
 <p>An example script looks something like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Launch using TuneCLI which uses TorchRun under the hood</span>
-<span class="n">parser</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">TuneArgumentParser</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<span class="n">parser</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">TuneRecipeArgumentParser</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 
 <span class="c1"># Parse and validate the params</span>
 <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>

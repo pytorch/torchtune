@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>TuneArgumentParser &mdash; TorchTune  documentation</title>
+  <title>TuneRecipeArgumentParser &mdash; TorchTune  documentation</title>
   
 
   
@@ -322,13 +322,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>TuneArgumentParser</li>
+      <li>TuneRecipeArgumentParser</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.argparse.TuneArgumentParser.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.argparse.TuneRecipeArgumentParser.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -358,12 +358,12 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="tuneargumentparser">
-<h1>TuneArgumentParser<a class="headerlink" href="#tuneargumentparser" title="Permalink to this heading">¶</a></h1>
+  <section id="tunerecipeargumentparser">
+<h1>TuneRecipeArgumentParser<a class="headerlink" href="#tunerecipeargumentparser" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
-<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneArgumentParser">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.argparse.</span></span><span class="sig-name descname"><span class="pre">TuneArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneArgumentParser" title="Permalink to this definition">¶</a></dt>
-<dd><p>TuneArgumentParser is a helpful utility subclass of the argparse ArgumentParser that
+<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneRecipeArgumentParser">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.argparse.</span></span><span class="sig-name descname"><span class="pre">TuneRecipeArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneRecipeArgumentParser" title="Permalink to this definition">¶</a></dt>
+<dd><p>TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that
 adds a builtin argument “config”. The config argument takes a file path to a yaml file
 and will load in argument defaults from the yaml file. The yaml file must only contain
 argument names and their values and nothing more, it does not have to include all of the
@@ -373,8 +373,8 @@ consult the docs for more info.</p>
 <p><a class="reference external" href="https://docs.python.org/3/library/argparse.html">https://docs.python.org/3/library/argparse.html</a></p>
 <p><em>Note: This class uses “config” as a builtin argument so it is not available to use</em></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneArgumentParser.parse_known_args">
-<span class="sig-name descname"><span class="pre">parse_known_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.12)"><span class="pre">Namespace</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneArgumentParser.parse_known_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneArgumentParser.parse_known_args" title="Permalink to this definition">¶</a></dt>
+<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneRecipeArgumentParser.parse_known_args">
+<span class="sig-name descname"><span class="pre">parse_known_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.12)"><span class="pre">Namespace</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser.parse_known_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneRecipeArgumentParser.parse_known_args" title="Permalink to this definition">¶</a></dt>
 <dd><p>This acts the same as the base parse_known_args but will first load in defaults from
 from the config yaml file if it is provided. The command line args will always take
 precident over the values in the config file. All other parsing method, such as parse_args,
@@ -430,7 +430,7 @@ the docs for the base method.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">TuneArgumentParser</a></li>
+<li><a class="reference internal" href="#">TuneRecipeArgumentParser</a></li>
 </ul>
 
             </div>
