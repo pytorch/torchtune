@@ -14,7 +14,7 @@ from torchtune.config._utils import (
     InstantiationError,
 )
 from torchtune.data import AlpacaInstructTemplate
-from torchtune.utils.argparse import TuneArgumentParser
+from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
     "a": 1,
@@ -47,7 +47,7 @@ class TestUtils:
 
     @mock.patch("torchtune.utils.argparse.OmegaConf.load", return_value=_CONFIG)
     def test_merge_yaml_and_cli_args(self, mock_load):
-        parser = TuneArgumentParser("test parser")
+        parser = TuneRecipeArgumentParser("test parser")
         yaml_args, cli_args = parser.parse_known_args(
             [
                 "--config",

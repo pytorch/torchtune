@@ -22,7 +22,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
     wrap_fsdp,
 )
-from .argparse import TuneArgumentParser
+from .argparse import TuneRecipeArgumentParser
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .constants import (  # noqa
@@ -74,7 +74,7 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
-    "TuneArgumentParser",
+    "TuneRecipeArgumentParser",
     "CheckpointableDataLoader",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
