@@ -36,20 +36,24 @@ class TestTuneCLIWithCopyScript:
 
     def test_copy_successful_with_cwd_as_path(self, capsys, monkeypatch, tmpdir):
         tmpdir_path = Path(tmpdir)
-        dest = tmpdir_path / "."
 
-        args = f"tune cp llama2/7B_full {dest}".split()
+        # Needed so we can run test from tmpdir
+        tune_path_as_absolute = Path(TUNE_PATH).absolute()
 
+        # Change cwd to tmpdir
+        monkeypatch.chdir(tmpdir_path)
+
+        args = "tune cp llama2/7B_full .".split()
         monkeypatch.setattr(sys, "argv", args)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
+        runpy.run_path(tune_path_as_absolute, run_name="__main__")
 
         captured = capsys.readouterr()
         out = captured.out.rstrip("\n")
 
-        dest = dest.with_suffix(".yaml")
+        dest = tmpdir_path / "7B_full.yaml"
 
-        assert dest.exists(), f"Expected {dest} to exist"
-        assert f"Copied file to {dest}" in out
+        assert dest.exists()
+        assert "Copied file to ./7B_full.yaml" in out
 
     def test_copy_skips_when_dest_already_exists_and_no_clobber_is_true(
         self, capsys, monkeypatch, tmpdir

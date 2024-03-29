@@ -157,7 +157,7 @@ tune run lora_finetune_single_device --config llama2/7B_lora_single_device batch
 
 ```
 tune cp full_finetune_distributed my_custom_finetune_recipe.py
-Copied to ./my_custom_finetune_config.py
+Copied to ./my_custom_finetune_recipe.py
 
 tune cp llama2/7B_full .
 Copied to ./7B_full.yaml
@@ -165,7 +165,7 @@ Copied to ./7B_full.yaml
 
 Then, you can run your custom recipe by directing the `tune run` command to your local files:
 ```
-tune run my_custom_finetune_config --config 7B_full.yaml
+tune run my_custom_finetune_recipe.py --config 7B_full.yaml
 ```
 
 &nbsp;

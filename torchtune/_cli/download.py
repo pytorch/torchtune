@@ -31,7 +31,7 @@ class Download(Subcommand):
             examples:
                 # Download a model from the HuggingFace Hub with a Hugging Face API token
                 $ tune download meta-llama/Llama-2-7b-hf --hf-token <TOKEN> --output-dir /tmp/model
-                Succesfully downloaded model repo and wrote to the following locations:
+                Successfully downloaded model repo and wrote to the following locations:
                 ./model/config.json
                 ./model/README.md
                 ./model/consolidated.00.pth
@@ -39,10 +39,10 @@ class Download(Subcommand):
 
                 # Download an ungated model from the HuggingFace Hub
                 $ tune download mistralai/Mistral-7B-Instruct-v0.2
-                Succesfully downloaded model repo and wrote to the following locations:
+                Successfully downloaded model repo and wrote to the following locations:
                 ./model/config.json
                 ./model/README.md
-                ./model/model-00003-of-00003.safetensors
+                ./model/model-00001-of-00003.safetensors
                 ...
 
             For a list of all models, visit the HuggingFace Hub https://huggingface.co/models.
@@ -98,7 +98,7 @@ class Download(Subcommand):
             self._parser.error(e)
 
         print(
-            "Succesfully downloaded model repo and wrote to the following locations:",
+            "Successfully downloaded model repo and wrote to the following locations:",
             *list(Path(true_output_dir).iterdir()),
             sep="\n",
         )

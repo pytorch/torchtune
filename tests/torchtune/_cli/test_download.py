@@ -53,7 +53,7 @@ class TestTuneDownloadCommand:
         # Call the third time and get the expected output
         runpy.run_path(TUNE_PATH, run_name="__main__")
         output = capsys.readouterr().out
-        assert "Succesfully downloaded model repo" in output
+        assert "Successfully downloaded model repo" in output
 
         # Make sure it was called twice
         assert snapshot_download.call_count == 3

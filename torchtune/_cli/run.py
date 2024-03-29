@@ -43,7 +43,8 @@ class Run(Subcommand):
                     $ tune run --nproc_per_node 4 full_finetune_distributed --config llama2/7B_full_finetune_distributed
 
                     # Override a parameter in the config file and specify a number of GPUs for torchrun
-                    $ tune run lora_finetune_single_device \
+                    $ tune run --nproc_per_node 2 \
+                        lora_finetune_single_device \
                         --config llama2/7B_lora_single_device \
                         model.lora_rank=16 \
 
@@ -56,9 +57,14 @@ class Run(Subcommand):
         self._parser.set_defaults(func=self._run_cmd)
 
     def _add_arguments(self) -> None:
-        """Add arguments to the parser."""
+        """Add arguments to the parser.
+
+        This is a bit hacky since we need to add the torchrun arguments to our parser.
+        This grabs the argparser from torchrun, iterates over it's actions, and adds them
+        to our parser. We rename the training_script and training_script_args to recipe and recipe_args
+        respectively. In addition, we leave out the help argument since we add it manually to ours.
+        """
         torchrun_argparser = get_torchrun_args_parser()
-        # Add torchrun arguments to the parser
         for action in torchrun_argparser._actions:
             if action.dest == "training_script":
                 action.dest = "recipe"
