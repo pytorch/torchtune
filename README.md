@@ -55,11 +55,14 @@ experience different peak memory utilization based on changes made in configurat
 | 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml)         |    Llama-7B      |     9.29 GB *           |
 | 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora.yaml)         |    Llama-7B      |    14.17 GB *           |
 | 1 x RTX 4090 |     LoRA          | [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml)     |    Llama-7B      | 17.18 GB *           |
-| 1 x A6000    |   Full finetune   | [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_single_device.yaml)     |    Llama-7B      |    27.15 GB *           |
+| 1 x A6000    |   Full finetune   | [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_single_device_low_memory.yaml)     |    Llama-7B      |    15.97 GB * ^           |
 | 4 x RTX 4090 |   Full finetune   | [full_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full.yaml)         |    Llama-7B      |    12.01 GB *           |
 
 
 NOTE: * indicates an estimated metric based on experiments conducted on A100 GPUs with GPU memory artificially limited using [torch.cuda.set_per_process_memory_fraction API](https://pytorch.org/docs/stable/generated/torch.cuda.set_per_process_memory_fraction.html). Peak memory per GPU is as reported by `torch.cuda.max_memory_reserved()`. Please file an issue if you are not able to reproduce these results when running TorchTune on certain hardware.
+
+NOTE: ^ indicates the required use of third-party dependencies that are not installed with torchtune by default. In particular, for the most memory efficient full finetuning [configuration](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_single_device_low_memory.yaml), [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) is required and can be installed via `pip install bitsandbytes`, after which the configuration
+can be run successfully.
 
 &nbsp;
 
