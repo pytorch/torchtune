@@ -82,16 +82,16 @@ def llama2(
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    kv_cache = (
-        KVCache(
-            max_batch_size=max_batch_size,
-            max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
-            head_dim=head_dim,
-        )
-        if max_batch_size is not None
-        else None
-    )
+    # kv_cache = (
+    #     KVCache(
+    #         max_batch_size=max_batch_size,
+    #         max_seq_len=max_seq_len,
+    #         n_kv_heads=num_kv_heads,
+    #         head_dim=head_dim,
+    #     )
+    #     if max_batch_size is not None
+    #     else None
+    # )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
@@ -103,7 +103,7 @@ def llama2(
         v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
-        kv_cache=kv_cache,
+        kv_cache=None,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
@@ -321,7 +321,7 @@ def lora_llama2_self_attention(
         KVCache(
             max_batch_size=max_batch_size,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            n_kv_heads=num_kv_heads,
             head_dim=head_dim,
         )
         if max_batch_size is not None

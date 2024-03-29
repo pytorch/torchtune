@@ -10,6 +10,8 @@ from torch import nn, Tensor
 
 from torchtune.modules.kv_cache import KVCache
 
+import torch
+
 
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
@@ -122,7 +124,7 @@ class CausalSelfAttention(nn.Module):
         self,
         x: Tensor,
         mask: Optional[Tensor] = None,
-        curr_pos: int = 0,
+        input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
@@ -149,9 +151,11 @@ class CausalSelfAttention(nn.Module):
             - Return the attention weights
             - Make application of positional embeddings optional
         """
-
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
+
+        # self.wqkv.weight.data = torch.cat([self.q_proj.weight, self.k_proj.weight, self.v_proj.weight ])
+        # q, k, v = self.wqkv(x).split([5120, 5120, 5120], dim=-1)
 
         if seq_len > self.max_seq_len:
             raise ValueError(
@@ -166,6 +170,8 @@ class CausalSelfAttention(nn.Module):
         k = self.k_proj(x)
         v = self.v_proj(x)
 
+        # pdb.set_trace()
+
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
 
@@ -175,6 +181,7 @@ class CausalSelfAttention(nn.Module):
         q = q.view(bsz, seq_len, self.num_kv_heads, q_per_kv, self.head_dim)
         k = k.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
         v = v.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
+
 
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
@@ -190,19 +197,18 @@ class CausalSelfAttention(nn.Module):
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
         # Apply positional embeddings
-        q = self.pos_embeddings(q, curr_pos)
-        k = self.pos_embeddings(k, curr_pos)
-
-        # Update key-value cache
-        if self.kv_cache is not None:
-            k, v = self.kv_cache.update(
-                bsz=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
-            )
+        q = self.pos_embeddings(q, input_pos)
+        k = self.pos_embeddings(k, input_pos)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
+
+
+        # Update key-value cache
+        if self.kv_cache is not None:
+            k, v = self.kv_cache.update(input_pos, k, v)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(

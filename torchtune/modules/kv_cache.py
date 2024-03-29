@@ -25,42 +25,23 @@ class KVCache(nn.Module):
         self,
         max_batch_size: int,
         max_seq_len: int,
-        n_kv_heads: int,
+        num_heads: int,
         head_dim: int,
+        dtype: torch.dtype
     ):
         super().__init__()
-        cache_shape = (max_batch_size, max_seq_len, n_kv_heads, head_dim)
-        self.register_buffer("k_cache", torch.zeros(cache_shape), persistent=False)
-        self.register_buffer("v_cache", torch.zeros(cache_shape), persistent=False)
+        cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
+        self.register_buffer("k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
+        self.register_buffer("v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False)
         self.max_batch_size = max_batch_size
 
-    def update(
-        self, bsz: int, seq_len: int, curr_pos: int, k_val: Tensor, v_val: Tensor
-    ) -> Tuple[Tensor, Tensor]:
-        """
-        Updates the kv-cache at curr_pos with the given k_val and v_val.
+    def update(self, input_pos, k_val, v_val):
+        # input_pos: [S], k_val: [B, H, S, D]
+        assert input_pos.shape[0] == k_val.shape[2]
 
-        Args:
-            bsz (int): Batch size.
-            seq_len (int): Sequence length.
-            curr_pos (int): Current position in sequence.
-            k_val (Tensor): New k value.
-            v_val (Tensor): New v value.
+        k_out = self.k_cache
+        v_out = self.v_cache
+        k_out[:, :, input_pos] = k_val
+        v_out[:, :, input_pos] = v_val
 
-        Raises:
-            ValueError: if bsz is greater than the ``max_batch_size`` supported by the model
-
-        Returns:
-            Tuple[Tensor, Tensor]: the key-cache and value-cache
-        """
-        if bsz > self.max_batch_size:
-            raise ValueError(
-                f"Batch size {bsz} greater than max batch size {self.max_batch_size}"
-            )
-
-        self.k_cache[:bsz, curr_pos : curr_pos + seq_len] = k_val
-        self.v_cache[:bsz, curr_pos : curr_pos + seq_len] = v_val
-        return (
-            self.k_cache[:bsz, : curr_pos + seq_len],
-            self.v_cache[:bsz, : curr_pos + seq_len],
-        )
+        return k_out, v_out

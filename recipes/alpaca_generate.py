@@ -7,10 +7,13 @@ import sys
 
 import torch
 from omegaconf import DictConfig
+from typing import Optional
 
-from torchtune import config
+from torchtune import config, utils
 from torchtune.utils import get_device, get_logger, set_seed
 from torchtune.utils.generation import GenerationUtils
+
+import pdb
 
 # From https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31
 PROMPT_DICT = {
@@ -26,6 +29,58 @@ PROMPT_DICT = {
     ),
 }
 
+def multinomial_sample_one_no_sync(probs_sort): # Does multinomial sampling without a cuda synchronization
+    q = torch.empty_like(probs_sort).exponential_(1)
+    return torch.argmax(probs_sort / q, dim=-1, keepdim=True).to(dtype=torch.int)
+
+def logits_to_probs(logits, temperature: float = 1.0, top_k: Optional[int] = None):
+    # pdb.set_trace()
+
+    logits = logits / max(temperature, 1e-5)
+
+    if top_k is not None:
+        v, _ = torch.topk(logits, min(top_k, logits.size(-1)))
+        pivot = v.select(-1, -1).unsqueeze(-1)
+        logits = torch.where(logits < pivot, -float("Inf"), logits)
+    probs = torch.nn.functional.softmax(logits, dim=-1)
+
+    return probs
+
+def sample(logits, temperature: float = 1.0, top_k: Optional[int] = None):
+    probs = logits_to_probs(logits[0, -1], temperature, top_k)
+    idx_next = multinomial_sample_one_no_sync(probs)
+    # pdb.set_trace()
+    return idx_next, probs
+
+
+def prefill(model, x, input_pos) -> torch.Tensor:
+    # input_pos: [B, S]
+    logits = model(x, input_pos)
+    # import pdb; pdb.set_trace()
+    return sample(logits, temperature=0.8, top_k=200)[0]
+
+def decode_one_token(model, x, input_pos,):
+    # input_pos: [B, 1]
+    assert input_pos.shape[-1] == 1
+    logits = model(x, input_pos)
+    # import pdb; pdb.set_trace()
+    return sample(logits, temperature=0.8, top_k=200)
+
+def decode_n_tokens(model, cur_token, input_pos, num_new_tokens: int):
+    new_tokens, new_probs = [], []
+    for i in range(num_new_tokens):
+        with torch.backends.cuda.sdp_kernel(enable_flash=False, enable_mem_efficient=False, enable_math=True): # Actually better for Inductor to codegen attention here
+            next_token, next_prob = decode_one_token(
+                model, cur_token, input_pos
+            )
+            input_pos += 1
+            new_tokens.append(next_token.clone())
+            new_probs.append(next_prob.clone())
+            cur_token = next_token.view(1, -1)
+    # import pdb; pdb.set_trace()
+    return new_tokens, new_probs
+
+
 
 def recipe(
     cfg: DictConfig,
@@ -35,46 +90,56 @@ def recipe(
     # Inference setup
     tokenizer = config.instantiate(cfg.tokenizer)
 
-    example = {"instruction": cfg.instruction}
-    if cfg.input != "":
-        example["input"] = cfg.input
-        prompt = PROMPT_DICT["prompt_input"].format_map(example)
-    else:
-        prompt = PROMPT_DICT["prompt_no_input"].format_map(example)
+    device = utils.get_device(device=cfg.device)
+    dtype = utils.get_dtype(dtype=cfg.dtype)
+    checkpointer = config.instantiate(cfg.checkpointer)
+    checkpoint_dict = checkpointer.load_checkpoint()
 
-    token_for_generation = [tokenizer.encode(prompt, add_eos=False)]
+    # global decode_one_token
+    # decode_one_token = torch.compile(decode_one_token, mode="reduce-overhead", fullgraph=True)
 
-    set_seed()
-
-    device = get_device()
+    print("Model init:")
+    model = config.instantiate(cfg.model).to(torch.bfloat16).to('cuda').eval()
+    model.load_state_dict(checkpoint_dict["model"], strict=False)
 
     with device:
-        decoder = config.instantiate(cfg.model, max_batch_size=1)
+        model.setup_caches(max_batch_size=1, max_seq_len=308, num_heads=40, head_dim=5120//40, dtype=dtype)
 
-    # Load state_dict into decoder
-    native_state_dict = torch.load(cfg.model_checkpoint, weights_only=True)
-    missing, unexpected = decoder.load_state_dict(native_state_dict, strict=False)
+    print(model.causal_mask)
 
-    decoder.eval()
+    tokens = tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
+    prompt = torch.tensor(tokens, dtype=torch.int, device=device)
+
+    torch.manual_seed(1234)
+
+    T = prompt.size(0)
+    T_new = T + 200
+
+    empty = torch.empty(T_new, dtype=torch.int, device=device)
+    empty[:T] = prompt
+    seq = empty
+    input_pos = torch.arange(0, T, device=device)
 
     with torch.no_grad():
-        generations, _ = GenerationUtils(
-            decoder_lm=decoder,
-            eos_id=tokenizer.eos_id,
-            pad_id=tokenizer.pad_id,
-        ).generate(
-            prompt_tokens=token_for_generation,
-            incremental_decode=True,
-            min_gen_len=1,
-            max_gen_len=cfg.max_gen_len,
-            top_p=0,
-            top_k=1,
-            temperature=1.0,
-            device=device,
-        )
+        next_token = prefill(model, prompt.view(1, -1), input_pos)
+        seq[T] = next_token
+        input_pos = torch.tensor([T], device=device, dtype=torch.int)
 
-        generated_tokens = tokenizer.decode(generations.tolist())
-    logger.info(msg=generated_tokens[0])
+        generated_tokens, _ = decode_n_tokens(
+            model,
+            next_token.view(1, -1),
+            input_pos,
+            200 - 1
+        )
+        seq[T + 1:] = torch.cat(generated_tokens)
+
+    print(seq)
+    print(input_pos)
+
+    print(tokenizer.decode(seq.tolist()))
+
+
+
 
 
 @config.parse

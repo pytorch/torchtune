@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional
+
 import torch
 
 from torch import nn, Tensor
@@ -70,7 +72,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, curr_pos: int = 0) -> Tensor:
+    def forward(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
@@ -91,7 +93,10 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
-        rope_cache = self.cache[curr_pos : curr_pos + seq_len]
+
+        # extract the values based on whether input_pos is set or not. When
+        # input_pos is provided, we're in infernce mode
+        rope_cache = self.cache[input_pos] if input_pos else self.cache[:seq_len]
 
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation

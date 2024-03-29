@@ -9,7 +9,7 @@ from typing import Optional
 import torch
 from torch import nn, Tensor
 
-from torchtune.modules import CausalSelfAttention
+from torchtune.modules import CausalSelfAttention, KVCache
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -39,7 +39,7 @@ class TransformerDecoderLayer(nn.Module):
         self,
         x: Tensor,
         mask: Optional[Tensor] = None,
-        curr_pos: int = 0,
+        input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
@@ -63,7 +63,7 @@ class TransformerDecoderLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        attn_out = self.attn(self.sa_norm(x), mask, curr_pos)
+        attn_out = self.attn(self.sa_norm(x), mask, input_pos)
 
         # Residual connection; shape: [b, s, d]
         h = attn_out + x
@@ -121,10 +121,22 @@ class TransformerDecoder(nn.Module):
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
         self.output = output
+        self.causal_mask = None
 
-    def forward(
-        self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0
-    ) -> Tensor:
+    def setup_caches(
+        self,
+        max_batch_size: int,
+        max_seq_len: int,
+        num_heads: int,
+        head_dim: int,
+        dtype: torch.dtype,
+    ) -> None:
+        for layer in self.layers:
+            layer.attn.kv_cache = KVCache(max_batch_size, max_seq_len, num_heads, head_dim, dtype)
+
+        self.causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
+
+    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
@@ -147,16 +159,15 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        # TODO: Fix the masking logic to not rely on checking kv_cache
-        if seq_len > 1 and self.layers[0].attn.kv_cache is not None:
-            mask = torch.full(
-                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
-            )
-            mask = torch.triu(mask, diagonal=curr_pos + 1)
+        mask = None
+        if self.causal_mask is not None:
+            if input_pos is None:
+                raise ValueError("Caches are setup, but the position of input token is missing")
+            mask = self.causal_mask[None, None, input_pos]
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask, curr_pos)
+            h = layer(h, mask, input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)
