@@ -208,7 +208,7 @@ TorchTune provides well-tested components with a high-bar on correctness. The li
 The Llama2 code in this repository is inspired by the original [Llama2 code](https://github.com/meta-llama/llama/blob/main/llama/model.py). We'd also like to give a huge shoutout to some awesome libraries and tools in the ecosystem!
 
 - EleutherAI's [LM Evaluation Harness](https://github.com/EleutherAI/lm-evaluation-harness)
-- HuggingFace for the [Datasets Repository](https://github.com/huggingface/datasets)
+- Hugging Face for the [Datasets Repository](https://github.com/huggingface/datasets)
 - [gpt-fast](https://github.com/pytorch-labs/gpt-fast) for performant LLM inference techniques which we've adopted OOTB
 - [lit-gpt](https://github.com/Lightning-AI/litgpt), [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl), [transformers](https://github.com/huggingface/transformers) and [llama recipes](https://github.com/meta-llama/llama-recipes) for reference implementations and pushing forward the LLM finetuning community
 - [bitsandbytes](https://github.com/TimDettmers/bitsandbytes)
