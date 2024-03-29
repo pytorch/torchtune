@@ -39,10 +39,7 @@ class TestTuneDownloadCommand:
         with pytest.raises(SystemExit, match="2"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
         err = capsys.readouterr().err
-        assert (
-            "You need to provide a HuggingFace API token to download gated models"
-            in err
-        )
+        assert "It looks like you are trying to access a gated repository." in err
 
         # Call the second time and get RepositoryNotFoundError
         with pytest.raises(SystemExit, match="2"):
