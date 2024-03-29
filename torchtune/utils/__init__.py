@@ -37,7 +37,10 @@ from .constants import (  # noqa
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
+    create_optim_in_bwd_wrapper,
     memory_stats_log,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
 from .precision import (
@@ -73,4 +76,7 @@ __all__ = [
     "validate_expected_param_dtype",
     "TuneArgumentParser",
     "CheckpointableDataLoader",
+    "OptimizerInBackwardWrapper",
+    "create_optim_in_bwd_wrapper",
+    "register_optim_in_bwd_hooks",
 ]
