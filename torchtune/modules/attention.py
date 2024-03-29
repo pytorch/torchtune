@@ -154,9 +154,6 @@ class CausalSelfAttention(nn.Module):
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
 
-        # self.wqkv.weight.data = torch.cat([self.q_proj.weight, self.k_proj.weight, self.v_proj.weight ])
-        # q, k, v = self.wqkv(x).split([5120, 5120, 5120], dim=-1)
-
         if seq_len > self.max_seq_len:
             raise ValueError(
                 f"seq_len ({seq_len}) of input tensor should be smaller "
@@ -169,8 +166,6 @@ class CausalSelfAttention(nn.Module):
         q = self.q_proj(x)
         k = self.k_proj(x)
         v = self.v_proj(x)
-
-        # pdb.set_trace()
 
         # number of queries per key/value
         q_per_kv = self.num_heads // self.num_kv_heads
