@@ -24,12 +24,12 @@ class Download(Subcommand):
             "download",
             prog="tune download",
             usage="tune download <repo-id> [OPTIONS]",
-            help="Download a model from the HuggingFace Hub.",
-            description="Download a model from the HuggingFace Hub.",
+            help="Download a model from the Hugging Face Hub.",
+            description="Download a model from the Hugging Face Hub.",
             epilog=textwrap.dedent(
                 """\
             examples:
-                # Download a model from the HuggingFace Hub with a Hugging Face API token
+                # Download a model from the Hugging Face Hub with a Hugging Face API token
                 $ tune download meta-llama/Llama-2-7b-hf --hf-token <TOKEN> --output-dir /tmp/model
                 Successfully downloaded model repo and wrote to the following locations:
                 ./model/config.json
@@ -37,7 +37,7 @@ class Download(Subcommand):
                 ./model/consolidated.00.pth
                 ...
 
-                # Download an ungated model from the HuggingFace Hub
+                # Download an ungated model from the Hugging Face Hub
                 $ tune download mistralai/Mistral-7B-Instruct-v0.2
                 Successfully downloaded model repo and wrote to the following locations:
                 ./model/config.json
@@ -45,7 +45,7 @@ class Download(Subcommand):
                 ./model/model-00001-of-00002.bin
                 ...
 
-            For a list of all models, visit the HuggingFace Hub https://huggingface.co/models.
+            For a list of all models, visit the Hugging Face Hub https://huggingface.co/models.
             """
             ),
             formatter_class=argparse.RawTextHelpFormatter,
@@ -58,7 +58,7 @@ class Download(Subcommand):
         self._parser.add_argument(
             "repo_id",
             type=str,
-            help="Name of the repository on HuggingFace Hub.",
+            help="Name of the repository on Hugging Face Hub.",
         )
         self._parser.add_argument(
             "--output-dir",
@@ -72,7 +72,7 @@ class Download(Subcommand):
             type=str,
             required=False,
             default=os.getenv("HF_TOKEN", None),
-            help="HuggingFace API token. Needed for gated models like Llama2.",
+            help="Hugging Face API token. Needed for gated models like Llama2.",
         )
         self._parser.add_argument(
             "--ignore-patterns",
@@ -84,7 +84,7 @@ class Download(Subcommand):
         )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
-        """Downloads a model from the HuggingFace Hub."""
+        """Downloads a model from the Hugging Face Hub."""
         # Download the tokenizer and PyTorch model files
         try:
             true_output_dir = snapshot_download(
@@ -96,13 +96,13 @@ class Download(Subcommand):
         except GatedRepoError:
             self._parser.error(
                 "It looks like you are trying to access a gated repository. Please ensure you "
-                "have access to the repository and have provided the proper HuggingFace API token "
+                "have access to the repository and have provided the proper Hugging Face API token "
                 "using the option `--hf-token` or by running `huggingface-cli login`."
                 "You can find your token by visiting https://huggingface.co/settings/tokens"
             )
         except RepositoryNotFoundError:
             self._parser.error(
-                f"Repository '{args.repo_id}' not found on the HuggingFace Hub."
+                f"Repository '{args.repo_id}' not found on the Hugging Face Hub."
             )
         except Exception as e:
             self._parser.error(e)

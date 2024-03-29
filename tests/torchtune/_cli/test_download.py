@@ -45,7 +45,7 @@ class TestTuneDownloadCommand:
         with pytest.raises(SystemExit, match="2"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
         err = capsys.readouterr().err
-        assert "not found on the HuggingFace Hub" in err
+        assert "not found on the Hugging Face Hub" in err
 
         # Call the third time and get the expected output
         runpy.run_path(TUNE_PATH, run_name="__main__")

@@ -15,7 +15,7 @@ def alpaca_dataset(
     use_clean: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Alpaca dataset and its variants from HuggingFace Datasets.
+    Support for the Alpaca dataset and its variants from Hugging Face Datasets.
     https://huggingface.co/datasets/tatsu-lab/alpaca
 
     Data input format: https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances
