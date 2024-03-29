@@ -9,11 +9,13 @@ from typing import List
 import torch.nn.functional as F
 
 from torch import nn, Tensor
+
+# from torchtune.modules.low_precision.nf4_linear import _linear_nf4
+from torchao.dtypes.nf4tensor import linear_nf4
 from torchtune.modules.low_precision import (  # noqa: F401
     _register_nf4_dispatch_ops,
     FrozenNF4Linear,
 )
-from torchtune.modules.low_precision.nf4_linear import _linear_nf4
 from torchtune.modules.peft.peft_utils import AdapterModule
 from torchtune.utils.tensor_utils import _copy_tensor
 
@@ -124,7 +126,7 @@ class LoRALinear(nn.Module, AdapterModule):
 
         """
         if self._quantize_base:
-            out = _linear_nf4(input=x, weight=self.weight)
+            out = linear_nf4(input=x, weight=self.weight)
         else:
             out = F.linear(x, self.weight, self.bias)
         lora_out = self.lora_a(self.dropout(x))

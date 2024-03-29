@@ -70,12 +70,12 @@ class TestNF4Linear:
         out = nf4_linear(inp)
         assert out.dtype == dtype
 
-    @pytest.mark.parametrize("dtype", [torch.float32])
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
     def test_backward_dtype(self, dtype):
         # Test to ensure backward pass gives activation a bf16 gradient and no gradient
         # to the linear's weight, as it is frozen.
         nf4_linear = FrozenNF4Linear(512, 512, device="cpu", dtype=dtype)
-        inp = torch.randn(2, 512, dtype=torch.float32, requires_grad=True)
+        inp = torch.randn(2, 512, dtype=dtype, requires_grad=True)
         nf4_linear(inp).sum().backward()
         assert inp.grad is not None and inp.grad.dtype == dtype
         assert nf4_linear.weight.grad is None

@@ -9,28 +9,8 @@ from typing import Optional
 import torch
 
 import torch.nn as nn
-import torch.nn.functional as F
 from torch import Tensor
-from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-
-# TODO (rohan-varma): Remove this asap after torchao side changes land to decouple
-# linear_nf4 from bf16.
-class _LinearNF4(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, input: torch.Tensor, weight: NF4Tensor):
-        """Save the quantized nf4 weight for backward pass"""
-        ctx.nf4_weight = weight
-        return F.linear(input, weight.to(input.dtype))
-
-    @staticmethod
-    def backward(ctx, grad_output):
-        """The nf4 weight will never require grad so we can just return the grad_output @ weight.get_original_weight()"""
-        weight: NF4Tensor = ctx.nf4_weight
-        return grad_output @ weight.to(grad_output.dtype), None
-
-
-def _linear_nf4(input: torch.Tensor, weight: NF4Tensor) -> torch.Tensor:
-    return _LinearNF4.apply(input, weight)
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
 
 class FrozenNF4Linear(nn.Linear):
@@ -76,4 +56,4 @@ class FrozenNF4Linear(nn.Linear):
         Returns:
             Tensor: output tensor
         """
-        return _linear_nf4(input=input, weight=self.weight)
+        return linear_nf4(input=input, weight=self.weight)
