@@ -8,7 +8,7 @@ import sys
 
 from tests.common import TUNE_PATH
 
-from torchtune import get_all_recipes
+from torchtune._recipe_registry import get_all_recipes
 
 
 class TestTuneListCommand:
@@ -25,5 +25,5 @@ class TestTuneListCommand:
 
         for recipe in get_all_recipes():
             assert recipe.name in output
-            for config in recipe.get_configs():
+            for config in recipe.configs:
                 assert config.name in output

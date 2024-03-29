@@ -9,8 +9,8 @@ import textwrap
 from pathlib import Path
 
 import torchtune
-from torchtune import get_all_recipes
 from torchtune._cli.subcommand import Subcommand
+from torchtune._recipe_registry import get_all_recipes
 
 ROOT = Path(torchtune.__file__).parent.parent
 
@@ -81,7 +81,7 @@ class Copy(Subcommand):
                 src = ROOT / "recipes" / recipe.file_path
                 proper_suffix = ".py"
                 break
-            for config in recipe.get_configs():
+            for config in recipe.configs:
                 if config.name == args.file:
                     src = ROOT / "recipes" / "configs" / config.file_path
                     proper_suffix = ".yaml"

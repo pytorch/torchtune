@@ -85,7 +85,7 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
-    argparse.TuneArgumentParser
+    argparse.TuneRecipeArgumentParser
     logging.get_logger
     get_device
     seed.set_seed

@@ -42,7 +42,7 @@ class Download(Subcommand):
                 Successfully downloaded model repo and wrote to the following locations:
                 ./model/config.json
                 ./model/README.md
-                ./model/model-00001-of-00003.safetensors
+                ./model/model-00001-of-00002.bin
                 ...
 
             For a list of all models, visit the HuggingFace Hub https://huggingface.co/models.
@@ -74,6 +74,14 @@ class Download(Subcommand):
             default=os.getenv("HF_TOKEN", None),
             help="HuggingFace API token. Needed for gated models like Llama2.",
         )
+        self._parser.add_argument(
+            "--ignore-patterns",
+            type=str,
+            required=False,
+            default="*.safetensors",
+            help="If provided, files matching any of the patterns are not downloaded. Defaults to ignoring "
+            "safetensors files as those are not currently supported in TorchTune.",
+        )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
         """Downloads a model from the HuggingFace Hub."""
@@ -82,7 +90,7 @@ class Download(Subcommand):
             true_output_dir = snapshot_download(
                 args.repo_id,
                 local_dir=args.output_dir,
-                resume_download=True,
+                ignore_patterns=args.ignore_patterns,
                 token=args.hf_token,
             )
         except GatedRepoError:

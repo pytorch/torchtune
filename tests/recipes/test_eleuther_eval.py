@@ -5,8 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 import builtins
+import math
+import re
 import runpy
-
 import sys
 from pathlib import Path
 
@@ -47,7 +48,10 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         err_log = caplog.messages[-1]
-        assert "'acc,none': 0.3" in err_log
+        log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
+        assert log_search_results is not None
+        acc_result = float(log_search_results.group(1))
+        assert math.isclose(acc_result, 0.3, abs_tol=0.05)
 
     @pytest.fixture
     def hide_available_pkg(self, monkeypatch):

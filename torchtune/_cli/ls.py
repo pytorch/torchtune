@@ -7,8 +7,9 @@
 import argparse
 import textwrap
 
-from torchtune import get_all_recipes
 from torchtune._cli.subcommand import Subcommand
+
+from torchtune._recipe_registry import get_all_recipes
 
 
 class List(Subcommand):
@@ -51,10 +52,10 @@ class List(Subcommand):
         for recipe in get_all_recipes():
             # If there are no configs for a recipe, print a blank config
             recipe_str = recipe.name
-            if len(recipe.get_configs()) == 0:
+            if len(recipe.configs) == 0:
                 row = f"{recipe_str:<40} {self.NULL_VALUE:<40}"
                 print(row)
-            for i, config in enumerate(recipe.get_configs()):
+            for i, config in enumerate(recipe.configs):
                 # If there are multiple configs for a single recipe, omit the recipe name
                 # on latter configs
                 if i > 0:

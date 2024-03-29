@@ -15,8 +15,8 @@ from typing import Optional
 import torchtune
 
 from torch.distributed.run import get_args_parser as get_torchrun_args_parser, run
-from torchtune import Config, get_all_recipes, Recipe
 from torchtune._cli.subcommand import Subcommand
+from torchtune._recipe_registry import Config, get_all_recipes, Recipe
 
 ROOT = Path(torchtune.__file__).parent.parent
 
@@ -100,7 +100,14 @@ class Run(Subcommand):
         return total > script_args
 
     def _get_recipe(self, recipe_str: str) -> Optional[Recipe]:
-        """Get a recipe from the name or path."""
+        """Get a recipe from the name or path.
+
+        Args:
+            recipe_str (str): The name or path of the recipe.
+
+        Returns:
+            The recipe if it's found in built-in recipes, otherwise None.
+        """
         for recipe in get_all_recipes():
             if recipe.name == recipe_str:
                 return recipe
@@ -108,16 +115,24 @@ class Run(Subcommand):
     def _get_config(
         self, config_str: str, specific_recipe: Optional[Recipe]
     ) -> Optional[Config]:
-        """Get a config from the name or path."""
+        """Get a config from the name or path.
+
+        Args:
+            config_str (str): The name or path of the config.
+            specific_recipe (Optional[Recipe]): The specific recipe to search through.
+
+        Returns:
+            The config if it's found in built-in configs, otherwise None.
+        """
         # If a specific recipe is provided, search through it
         if specific_recipe is not None:
-            for config in specific_recipe.get_configs():
+            for config in specific_recipe.configs:
                 if config.name == config_str:
                     return config
 
         # If not, search through all recipes
         for recipe in get_all_recipes():
-            for config in recipe.get_configs():
+            for config in recipe.configs:
                 if config.name == config_str:
                     return config
 
