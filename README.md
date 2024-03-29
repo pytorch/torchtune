@@ -26,7 +26,7 @@ The library provides:
 - Support for checkpoints in various formats, including checkpoints in HF format
 - Training recipes for popular fine-tuning techniques with reference benchmarks and comprehensive correctness checks
 - Evaluation of trained models with EleutherAI Eval Harness
-- Integration with HuggingFace Datasets for training
+- Integration with Hugging Face Datasets for training
 - Support for distributed training using FSDP from PyTorch Distributed
 - YAML configs for easily configuring training runs
 - [Upcoming] Support for lower precision dtypes and quantization techniques from [TorchAO](https://github.com/pytorch-labs/ao)
@@ -182,7 +182,7 @@ TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/
 
 #### Native PyTorch
 
-TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
+TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
 
 #### Simplicity and Extensibility
 

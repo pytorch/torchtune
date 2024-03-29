@@ -25,13 +25,13 @@ job using TorchTune.
 Downloading a model
 -------------------
 First, you need to download a model. TorchTune's supports an integration
-with the `HuggingFace Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
+with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
 meaning that you need to be granted access in order to download the weights. Follow `these instructions <https://huggingface.co/meta-llama>`_ on the official Meta page
-hosted on HuggingFace to complete this process. (This should take less than 5 minutes.)
+hosted on Hugging Face to complete this process. (This should take less than 5 minutes.)
 
-Once you have authorization, you will need to authenticate with HuggingFace Hub. The easiest way to do so is to provide an
+Once you have authorization, you will need to authenticate with Hugging Face Hub. The easiest way to do so is to provide an
 access token to the download script. You can find your token `here <https://huggingface.co/settings/tokens>`_.
 
 Then, it's as simple as:
