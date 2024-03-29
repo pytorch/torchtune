@@ -163,8 +163,9 @@ class GenerationUtils:
         eos_reached = torch.zeros(batch_size, dtype=torch.bool, device=device)
         for cur_pos in range(min_prompt_len, total_gen_len):
             input_ids = tokens[:, prev_pos:cur_pos]
+            input_pos = torch.arange(prev_pos, cur_pos)
             if incremental_decode:
-                outputs = self.decoder_lm(input_ids, curr_pos=prev_pos)
+                outputs = self.decoder_lm(input_ids, input_pos=input_pos)
             else:
                 outputs = self.decoder_lm(input_ids)
             if logits_accessor:

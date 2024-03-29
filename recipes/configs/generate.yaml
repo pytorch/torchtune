@@ -24,6 +24,10 @@ checkpointer:
 
 device: cuda
 dtype: bf16
+seed: 1234
+
+temperature: 0.8
+top_k: 300
 
 # Tokenizer arguments
 tokenizer:
@@ -31,6 +35,5 @@ tokenizer:
   path: /tmp/llama2/tokenizer.model
 
 # Generation arguments
-instruction: "Answer the question."
 prompt: "Hello, my name is"
-max_gen_len: 64
+max_new_tokens: 350

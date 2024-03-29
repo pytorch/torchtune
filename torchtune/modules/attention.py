@@ -10,8 +10,6 @@ from torch import nn, Tensor
 
 from torchtune.modules.kv_cache import KVCache
 
-import torch
-
 
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
@@ -130,8 +128,10 @@ class CausalSelfAttention(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): boolean mask, defaults to None.
-            curr_pos (int): current position in the sequence, defaults to 0.
+            mask (Optional[Tensor]): Optional tensor which contains the mask.
+                Only used during inference. Default is None.
+            input_pos (Optional[Tensor]): Optional tensor which contains the position
+                of the current token. This is only used during inference. Default is None
 
         Returns:
             Tensor: output tensor with attention applied
@@ -182,7 +182,6 @@ class CausalSelfAttention(nn.Module):
         k = k.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
         v = v.view(bsz, seq_len, self.num_kv_heads, 1, self.head_dim)
 
-
         # if needed, expand the key and value tensors to have the same shape
         # as the query tensor by copying values across the relevant dim
         if self.num_heads != self.num_kv_heads:
@@ -204,7 +203,6 @@ class CausalSelfAttention(nn.Module):
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
-
 
         # Update key-value cache
         if self.kv_cache is not None:

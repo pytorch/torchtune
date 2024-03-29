@@ -71,7 +71,7 @@ class TestTextGenerate:
     def _batch_size(self):
         return 2
 
-    def _get_generation_model(self, use_kv_cache):
+    def _get_generation_model(self, use_kv_cache, dtype=torch.float32):
         model = llama2(
             vocab_size=4_000,
             embed_dim=128,
@@ -79,10 +79,11 @@ class TestTextGenerate:
             num_heads=4,
             num_kv_heads=None,
             max_seq_len=2048,
-            max_batch_size=None if not use_kv_cache else 2,
         )
         init_weights_with_constant(model)
         model.eval()
+        if use_kv_cache:
+            model.setup_caches(max_batch_size=2, dtype=dtype)
         return model
 
     @pytest.fixture
@@ -226,8 +227,8 @@ class TestTextGenerate:
             temperature = 1.0
             top_p = 1.0
             top_k = 0
-            gen_model = self._get_generation_model(use_kv_cache=False)
-            gen_model_kv = self._get_generation_model(use_kv_cache=True)
+            gen_model = self._get_generation_model(use_kv_cache=False, dtype=dtype)
+            gen_model_kv = self._get_generation_model(use_kv_cache=True, dtype=dtype)
             generate = _make_generate(gen_model)
             generate_kv_cache = _make_generate(gen_model_kv)
             outputs, _ = generate(

@@ -77,7 +77,8 @@ class RotaryPositionalEmbeddings(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            curr_pos (int): current position in the sequence, defualts to 0.
+            input_pos (Optional[Tensor]): Optional tensor which contains the position
+                of the current token. This is only used during inference. Default is None
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -96,7 +97,9 @@ class RotaryPositionalEmbeddings(nn.Module):
 
         # extract the values based on whether input_pos is set or not. When
         # input_pos is provided, we're in infernce mode
-        rope_cache = self.cache[input_pos] if input_pos else self.cache[:seq_len]
+        rope_cache = (
+            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
+        )
 
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation
