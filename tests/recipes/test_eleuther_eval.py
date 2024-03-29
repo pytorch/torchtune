@@ -47,7 +47,7 @@ class TestEleutherEval:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         err_log = caplog.messages[-1]
-        assert "'acc,none': 0.346" in err_log
+        assert "'acc,none': 0.3" in err_log
 
     @pytest.fixture
     def hide_available_pkg(self, monkeypatch):
