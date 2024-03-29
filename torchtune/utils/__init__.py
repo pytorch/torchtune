@@ -77,4 +77,6 @@ __all__ = [
     "TuneArgumentParser",
     "CheckpointableDataLoader",
     "OptimizerInBackwardWrapper",
+    "create_optim_in_bwd_wrapper",
+    "register_optim_in_bwd_hooks",
 ]

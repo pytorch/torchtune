@@ -51,7 +51,9 @@ class TestFullFinetuneSingleDeviceRecipe:
         return [10.5074, 10.5563, 10.5152, 10.4851]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize("config", ["full_single_device_low_memory"])
+    @pytest.mark.parametrize(
+        "config", ["full_single_device_low_memory", "full_single_device"]
+    )
     def test_loss(self, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])

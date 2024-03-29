@@ -7,7 +7,7 @@
 import sys
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -44,6 +44,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             hood. Setting up the env variables is handled by TorchRun.
         - Training happens on CUDA (CPU training is not supported)
         - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
+        - User can only use ONE of gradient accumulation or optimizer in backward. These features
+            currently do not work together.
         - Datasets are Map-style and data fits in memory (not streamed).
 
     The following configs can be used to run this recipe:
@@ -55,8 +57,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
-        ValueError: If ``dtype`` is set to fp16.
+        RuntimeError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
+        RuntimeError: If ``gradient_accumulation_steps > 1`` and ``optimizer_in_bwd`` is `True`.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -65,7 +68,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
         if self._dtype == torch.float16:
-            raise ValueError(
+            raise RuntimeError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
@@ -80,7 +83,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 1
+        self._log_peak_memory_every_n_steps = 100
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -88,7 +91,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # TODO: find a better place / way to perform validation of args that don't yet
         # compose with each other.
         if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
-            raise ValueError(
+            raise RuntimeError(
                 "Gradient accumulation is not supported with optimizer in bwd."
                 "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
             )
@@ -233,7 +236,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg_optimizer: DictConfig,
         optimizer_in_bwd: bool = False,
         opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Union[Optimizer, None]:
+    ) -> Optional[Optimizer]:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
