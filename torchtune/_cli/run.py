@@ -84,8 +84,8 @@ class Run(Subcommand):
         # we don't do this since we test on CPUs for distributed. Will update once multi GPU CI is supported.
         print("Running with torchrun...")
         # Have to reset the argv so that the recipe can be run with the correct arguments
-        args.__dict__["training_script"] = args.__dict__.pop("recipe")
-        args.__dict__["training_script_args"] = args.__dict__.pop("recipe_args")
+        args.training_script = args.recipe
+        args.training_script_args = args.recipe_args
         run(args)
 
     def _run_single_device(self, args: argparse.Namespace):
