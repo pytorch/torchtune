@@ -240,7 +240,7 @@ class ChatMLTemplate(PromptTemplate):
     """
     OpenAI's Chat Markup Language used by their chat models:
     https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/openai/includes/chat-markup-language.md
-    It is the default template used by HuggingFace models.
+    It is the default template used by Hugging Face models.
 
     Example:
         <|im_start|>system

@@ -22,7 +22,7 @@ TorchTune provides:
 - Modular native-PyTorch implementations of popular LLMs
 - Interoperability with popular model zoos through checkpoint-conversion utilities
 - Training recipes for a variety of fine-tuning techniques
-- Integration with `HuggingFace Datasets <https://huggingface.co/docs/datasets/en/index>`_ for training and `EleutherAI's Eval <https://github.com/EleutherAI/lm-evaluation-harness>`_ Harness for evaluation
+- Integration with `Hugging Face Datasets <https://huggingface.co/docs/datasets/en/index>`_ for training and `EleutherAI's Eval <https://github.com/EleutherAI/lm-evaluation-harness>`_ Harness for evaluation
 - Support for distributed training using `FSDP <https://pytorch.org/docs/stable/fsdp.html>`_
 - Yaml configs for easily configuring training runs
 
@@ -55,7 +55,7 @@ TorchTune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stab
 
 **Native PyTorch**
 
-TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: HuggingFace Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
+TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
 
 
 **Simplicity and Extensibility**

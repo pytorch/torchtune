@@ -14,7 +14,7 @@ from torchtune.data import (
     SummarizeTemplate,
 )
 
-# Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
+# Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
 CHAT_SAMPLE = {
     "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
