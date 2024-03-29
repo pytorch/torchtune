@@ -32,13 +32,6 @@ class TestCausalSelfAttention:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
     """
 
-    def _get_mask(self, inpt: Tensor) -> Tensor:
-        # seq_len = inpt.shape[1]
-        # mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=inpt.device)
-        # mask = torch.triu(mask, diagonal=1).type_as(inpt)
-
-        return mask
-
     @pytest.fixture
     def input_params(self) -> Tuple[int, int, int]:
         batch_size = 4
