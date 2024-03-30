@@ -33,13 +33,22 @@ CKPT_MODEL_PATHS = {
 
 
 class DummyTokenizer:
-    def encode(self, text, **kwargs):
+    def encode(self, text, add_bos=True, add_eos=True, **kwargs):
         words = text.split()
-        return [len(word) for word in words]
+        tokens = [len(word) for word in words]
+        if add_bos:
+            tokens = [self.bos_id] + tokens
+        if add_eos:
+            tokens = tokens + [self.eos_id]
+        return tokens
 
     @property
     def eos_id(self):
         return -1
+
+    @property
+    def bos_id(self):
+        return 0
 
 
 def get_assets_path():
