@@ -11,7 +11,7 @@ from torch.utils.data import Dataset
 
 from torchtune.config._utils import _get_template
 
-from torchtune.data import PromptTemplate, tokenize_prompt_and_response
+from torchtune.data import PromptTemplate, tokenize_prompt_and_response, truncate
 from torchtune.modules import Tokenizer
 
 
@@ -43,6 +43,9 @@ class InstructDataset(Dataset):
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
+            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
+            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
     """
 
@@ -54,6 +57,7 @@ class InstructDataset(Dataset):
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
         train_on_input: bool = False,
+        max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
@@ -62,6 +66,7 @@ class InstructDataset(Dataset):
         self._transform = transform
         self._column_map = column_map
         self.train_on_input = train_on_input
+        self.max_seq_len = max_seq_len
 
     def __len__(self):
         return len(self._data)
@@ -80,12 +85,21 @@ class InstructDataset(Dataset):
             else "output"
         )
 
-        return tokenize_prompt_and_response(
+        prompt_tokens, label_tokens = tokenize_prompt_and_response(
             tokenizer=self._tokenizer,
             prompt=prompt,
             response=transformed_sample[key_output],
             train_on_input=self.train_on_input,
         )
+
+        if self.max_seq_len is not None:
+            prompt_tokens, label_tokens = truncate(
+                self._tokenizer, prompt_tokens, label_tokens, self.max_seq_len
+            )
+
+        assert len(prompt_tokens) == len(label_tokens)
+
+        return prompt_tokens, label_tokens
 
 
 def instruct_dataset(
@@ -94,6 +108,7 @@ def instruct_dataset(
     template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
+    max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> InstructDataset:
     """
@@ -110,6 +125,9 @@ def instruct_dataset(
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
+            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
+            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Returns:
@@ -121,5 +139,6 @@ def instruct_dataset(
         template=_get_template(template),
         column_map=column_map,
         train_on_input=train_on_input,
+        max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
