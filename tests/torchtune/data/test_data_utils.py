@@ -15,7 +15,7 @@ def test_tokenize_prompt_and_response():
     response = "I always know what I'm doing, do you?"
     prompt_length = 12
     expected_tokenized_prompt = [
-        -1,
+        0,
         12,
         4,
         2,
