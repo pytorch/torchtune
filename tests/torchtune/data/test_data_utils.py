@@ -35,6 +35,7 @@ def test_tokenize_prompt_and_response():
         6,
         2,
         4,
+        -1,
     ]
     expected_tokenized_label = [CROSS_ENTROPY_IGNORE_IDX] * prompt_length + [
         1,

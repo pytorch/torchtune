@@ -85,7 +85,7 @@ class InstructDataset(Dataset):
             else "output"
         )
 
-        encoded_prompt_with_response, labels = tokenize_prompt_and_response(
+        prompt_tokens, label_tokens = tokenize_prompt_and_response(
             tokenizer=self._tokenizer,
             prompt=prompt,
             response=transformed_sample[key_output],
@@ -94,7 +94,7 @@ class InstructDataset(Dataset):
 
         if self.max_seq_len is not None:
             prompt_tokens, label_tokens = truncate(
-                self._tokenizer, encoded_prompt_with_response, labels, self.max_seq_len
+                self._tokenizer, prompt_tokens, label_tokens, self.max_seq_len
             )
 
         assert len(prompt_tokens) == len(label_tokens)
