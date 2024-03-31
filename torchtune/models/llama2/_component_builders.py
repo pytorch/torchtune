@@ -49,7 +49,6 @@ def llama2(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     intermediate_dim: Optional[int] = None,
-    max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
@@ -74,7 +73,6 @@ def llama2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
 
     Returns:
@@ -147,7 +145,6 @@ def lora_llama2(
     max_seq_len: int,
     intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
     # LoRA args
     lora_rank: int,
@@ -182,7 +179,6 @@ def lora_llama2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
@@ -204,7 +200,6 @@ def lora_llama2(
         num_kv_heads=num_kv_heads,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
-        max_batch_size=max_batch_size,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -268,7 +263,6 @@ def lora_llama2_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -293,7 +287,6 @@ def lora_llama2_self_attention(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0

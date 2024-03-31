@@ -201,7 +201,6 @@ class TestTransformerDecoder:
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)

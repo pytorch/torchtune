@@ -67,16 +67,6 @@ Data
 
 .. _gen_label:
 
-Generation
-----------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    generation.GenerationUtils
-    generation.generate_from_prompt
-
 
 Miscellaneous
 -------------

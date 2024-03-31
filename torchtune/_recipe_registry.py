@@ -72,10 +72,10 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="alpaca_generate",
-        file_path="alpaca_generate.py",
+        name="generate",
+        file_path="generate.py",
         configs=[
-            Config(name="alpaca_generate", file_path="alpaca_generate.yaml"),
+            Config(name="generate", file_path="generate.yaml"),
         ],
         supports_distributed=False,
     ),
