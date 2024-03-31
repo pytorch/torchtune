@@ -8,12 +8,12 @@ from unittest.mock import patch
 import pytest
 
 from tests.test_utils import get_assets_path
-from torchtune.data import Llama2ChatTemplate
+from torchtune.data import Llama2ChatFormat
 
 from torchtune.datasets import slimorca_dataset
 from torchtune.modules.tokenizer import Tokenizer
 
-LLAMA_TEMPLATE = Llama2ChatTemplate()
+LLAMA_TEMPLATE = Llama2ChatFormat()
 
 
 class TestSlimOrcaDataset:

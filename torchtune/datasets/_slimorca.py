@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import Llama2ChatTemplate, sharegpt_to_llama2_dialogue
+from torchtune.data import Llama2ChatFormat, sharegpt_to_llama2_messages
 
 from torchtune.datasets._chat import ChatDataset
 
@@ -61,8 +61,8 @@ def slimorca_dataset(
     return ChatDataset(
         tokenizer=tokenizer,
         source="Open-Orca/SlimOrca-Dedup",
-        convert_to_dialogue=sharegpt_to_llama2_dialogue,
-        template=Llama2ChatTemplate(),
+        convert_to_messages=sharegpt_to_llama2_messages,
+        chat_format=Llama2ChatFormat(),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         split="train",

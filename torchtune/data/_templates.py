@@ -143,7 +143,7 @@ class SummarizeTemplate(PromptTemplate):
         return prompt
 
 
-class Llama2ChatTemplate(PromptTemplate):
+class Llama2ChatFormat(PromptTemplate):
     """
     Prompt template that formats human and system prompts with appropriate tags
     used in LLaMA2 pre-training. Taken from Meta's official LLaMA inference
@@ -193,12 +193,12 @@ class Llama2ChatTemplate(PromptTemplate):
             return self.template["no_system"].format(user=sample[key_user])
 
 
-class MistralChatTemplate(PromptTemplate):
+class MistralChatFormat(PromptTemplate):
     """
     Prompt template that formats according to Mistral's instruct model:
     https://docs.mistral.ai/models/
 
-    It is identical to `Llama2ChatTemplate`, except it does not support system
+    It is identical to `Llama2ChatFormat`, except it does not support system
     prompts.
 
     Example:
@@ -228,7 +228,7 @@ class MistralChatTemplate(PromptTemplate):
             ValueError: if the sample contains a "system" key
         """
         if "system" in sample:
-            raise ValueError("System prompts are not supported in MistralChatTemplate")
+            raise ValueError("System prompts are not supported in MistralChatFormat")
 
         column_map = column_map or {}
         key_user = column_map.get("user", "user")
@@ -236,7 +236,7 @@ class MistralChatTemplate(PromptTemplate):
         return self.template.format(user=sample[key_user])
 
 
-class ChatMLTemplate(PromptTemplate):
+class ChatMLFormat(PromptTemplate):
     """
     OpenAI's Chat Markup Language used by their chat models:
     https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/openai/includes/chat-markup-language.md

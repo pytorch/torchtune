@@ -4,12 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Mapping
+from typing import Any, List, Mapping
 
-from torchtune.data._types import Dialogue, Message
+from torchtune.data._types import Message
 
 
-def sharegpt_to_llama2_dialogue(sample: Mapping[str, Any]) -> Dialogue:
+def sharegpt_to_llama2_messages(sample: Mapping[str, Any]) -> List[Message]:
     """
     Convert a chat sample adhering to the ShareGPT format to the LLaMA2 format.
 
@@ -38,16 +38,14 @@ def sharegpt_to_llama2_dialogue(sample: Mapping[str, Any]) -> Dialogue:
             to a list of dict messages.
 
     Returns:
-        Dialogue: a list of messages with "role" and "content" fields. See `torchtune.datasets._types.Message`
+        List[Message]: a list of messages with "role" and "content" fields. See `torchtune.datasets._types.Message`
             and `torchtune.datasets._types.Dialogue` for more details.
     """
     role_map = {"system": "system", "human": "user", "gpt": "assistant"}
     conversations = sample["conversations"]
-
-    dialogue = []
+    messages = []
     for message in conversations:
         role = role_map[message["from"]]
         content = message["value"]
-        dialogue.append(Message(role=role, content=content))
-
-    return dialogue
+        messages.append(Message(role=role, content=content))
+    return messages

@@ -14,18 +14,37 @@ from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ChatDataset
 
 
-class DummyTemplate:
-    def __init__(self):
-        self.template = {
-            "system": "System:\n{system}\nUser:\n{user}\nAssistant:\n",
-            "no_system": "User:\n{user}\nAssistant:\n",
-        }
+class DummyChatFormat:
 
-    def format(self, sample, column_map=None):
-        if "system" in sample:
-            return self.template["system"].format(**sample)
-        else:
-            return self.template["no_system"].format(**sample)
+    B_SYS, E_SYS = "System:\n", "\n"
+    B_INST, E_INST = "User:\n", "\nAssistant:\n"
+    B_ASST, E_ASST = "", ""
+    system = f"{B_SYS}{{content}}{E_SYS}"
+    user = f"{B_INST}{{content}}{E_INST}"
+    assistant = f"{B_ASST}{{content}}{E_ASST}"
+
+    @classmethod
+    def format(
+        cls,
+        messages,
+    ):
+        formatted_dialogue = []
+        for message in messages:
+            content = ""
+            if message.role == "system":
+                content = cls.system.format(content=message.content)
+            elif message.role == "user":
+                content = cls.user.format(
+                    content=message.content,
+                )
+            elif message.role == "assistant":
+                content = cls.assistant.format(
+                    content=message.content,
+                )
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue
 
 
 def _are_messages_equal(messages_a, messages_b):
@@ -39,90 +58,33 @@ def _are_messages_equal(messages_a, messages_b):
 
 class TestChatDataset:
     @pytest.fixture
-    def template(self):
-        return DummyTemplate()
+    def chat_format(self):
+        return DummyChatFormat()
 
     @pytest.fixture
     def dialogue(self):
         return [
             {
                 "dialogue": [
-                    Message(role="system", content="You are an AI assistant."),
-                    Message(role="user", content="What is the meaning of life?"),
-                    Message(role="assistant", content="The meaning of life is 42."),
-                    Message(role="user", content="That's ridiculous."),
-                    Message(role="assistant", content="I agree."),
+                    Message(
+                        role="system", content="You are an AI assistant.", masked=True
+                    ),
+                    Message(
+                        role="user", content="What is the meaning of life?", masked=True
+                    ),
+                    Message(
+                        role="assistant",
+                        content="The meaning of life is 42.",
+                        masked=False,
+                    ),
+                    Message(role="user", content="That's ridiculous.", masked=True),
+                    Message(role="assistant", content="I agree.", masked=False),
                 ],
             },
         ]
 
     @mock.patch("torchtune.datasets._chat.load_dataset")
-    def test_get_turns(self, mock_load_dataset, template, dialogue):
-        ds = ChatDataset(
-            tokenizer=DummyTokenizer(),
-            source="iam/agoofy/goober",
-            convert_to_dialogue=lambda x: x,
-            template=template,
-            max_seq_len=100,
-            train_on_input=False,
-        )
-
-        # Test a normal multiturn dialogue
-        prompts, responses = zip(
-            *[(p, l) for p, l in ds._get_turns(dialogue[0]["dialogue"])]
-        )
-        assert prompts[0] == {
-            "system": "You are an AI assistant.",
-            "user": "What is the meaning of life?",
-        }
-        assert responses[0] == "The meaning of life is 42."
-        assert prompts[1] == {"user": "That's ridiculous."}
-        assert responses[1] == "I agree."
-
-        # Test without system prompt
-        prompts, responses = zip(
-            *[(p, l) for p, l in ds._get_turns(dialogue[0]["dialogue"][1:])]
-        )
-        assert prompts[0] == {"user": "What is the meaning of life?"}
-        assert responses[0] == "The meaning of life is 42."
-        assert prompts[1] == {"user": "That's ridiculous."}
-        assert responses[1] == "I agree."
-
-        # Test a missing user message
-        with pytest.raises(
-            ValueError, match="Missing a user message before assistant message"
-        ):
-            for _ in ds._get_turns(
-                [dialogue[0]["dialogue"][0]] + dialogue[0]["dialogue"][2:]
-            ):
-                pass
-
-        # Test a missing user message and no system message
-        with pytest.raises(
-            ValueError, match="Missing a user message before assistant message"
-        ):
-            for _ in ds._get_turns(dialogue[0]["dialogue"][2:]):
-                pass
-
-        # Test repeated messages
-        with pytest.raises(ValueError, match="Duplicate"):
-            for _ in ds._get_turns(
-                dialogue[0]["dialogue"][:2] + dialogue[0]["dialogue"][3:]
-            ):
-                pass
-        with pytest.raises(ValueError, match="Duplicate"):
-            for _ in ds._get_turns(
-                [dialogue[0]["dialogue"][0]] + [dialogue[0]["dialogue"][0]]
-            ):
-                pass
-
-        # Test incomplete turn
-        with pytest.raises(ValueError, match="Incomplete turn in dialogue"):
-            for _ in ds._get_turns(dialogue[0]["dialogue"][:2]):
-                pass
-
-    @mock.patch("torchtune.datasets._chat.load_dataset")
-    def test_get_item(self, mock_load_dataset, template, dialogue):
+    def test_get_item(self, mock_load_dataset, chat_format, dialogue):
         mock_load_dataset.return_value = dialogue
         expected_tokenized_prompts = [
             [
@@ -177,8 +139,8 @@ class TestChatDataset:
         ds = ChatDataset(
             tokenizer=DummyTokenizer(),
             source="iam/agoofy/goober",
-            convert_to_dialogue=lambda x: x["dialogue"],
-            template=template,
+            convert_to_messages=lambda x: x["dialogue"],
+            chat_format=chat_format,
             max_seq_len=100,
             train_on_input=False,
         )

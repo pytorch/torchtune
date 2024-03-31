@@ -4,9 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List
+from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
+from torchtune.data._types import Message
+from torchtune.data._utils import truncate
 
 
 class Tokenizer:
@@ -89,3 +91,47 @@ class Tokenizer:
             str: The decoded text.
         """
         return self.spm_model.decode(ids)
+
+    def tokenize_messages(
+        self, messages: List[Message], max_seq_len: Optional[int] = None
+    ) -> Tuple[List[int], List[bool]]:
+        start_of_turn = True
+        end_of_turn = False
+        tokenized_messages = []
+        mask = []
+        for message in messages:
+            # If assistant message, this is the end of a turn
+            end_of_turn = message.role == "assistant"
+
+            # Prepend BOS on start of new turns
+            if start_of_turn:
+                tokenized_messages.append(self.bos_id)
+                mask.append(message.masked)
+                start_of_turn = False
+
+            # Tokenize current message, append with masks
+            tokens = self.spm_model.encode(
+                message.content,
+                add_bos=False,
+                add_eos=False,
+            )
+            tokenized_messages.extend(tokens)
+            mask.extend([message.masked] * len(tokens))
+
+            # Break out early if we reach max_seq_len
+            if max_seq_len and len(tokens) >= max_seq_len:
+                break
+
+            # If assistant message, append EOS at end
+            if end_of_turn:
+                tokenized_messages.append(self.eos_id)
+                mask.append(message.masked)
+                end_of_turn = False
+                start_of_turn = True
+
+        # Finally, truncate if necessary
+        if max_seq_len:
+            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
+            mask = truncate(mask, max_seq_len, message.masked)
+
+        return tokenized_messages, mask
