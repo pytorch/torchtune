@@ -49,7 +49,6 @@ def llama2(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     intermediate_dim: Optional[int] = None,
-    max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
@@ -74,7 +73,6 @@ def llama2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
 
     Returns:
@@ -82,16 +80,7 @@ def llama2(
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    kv_cache = (
-        KVCache(
-            max_batch_size=max_batch_size,
-            max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
-            head_dim=head_dim,
-        )
-        if max_batch_size is not None
-        else None
-    )
+
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
@@ -103,7 +92,7 @@ def llama2(
         v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
-        kv_cache=kv_cache,
+        kv_cache=None,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
@@ -121,6 +110,9 @@ def llama2(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
@@ -153,7 +145,6 @@ def lora_llama2(
     max_seq_len: int,
     intermediate_dim: Optional[int] = None,
     attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
     norm_eps: float = 1e-5,
     # LoRA args
     lora_rank: int,
@@ -188,7 +179,6 @@ def lora_llama2(
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
             this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         norm_eps (float): epsilon in RMS norms.
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
@@ -210,7 +200,6 @@ def lora_llama2(
         num_kv_heads=num_kv_heads,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
-        max_batch_size=max_batch_size,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
@@ -248,6 +237,9 @@ def lora_llama2(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=(embed_dim // num_heads),
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
@@ -271,7 +263,6 @@ def lora_llama2_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    max_batch_size: Optional[int] = None,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -296,7 +287,6 @@ def lora_llama2_self_attention(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
-        max_batch_size (Optional[int]): maximum batch size to be passed to :func:`~torchtune.modules.KVCache`
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -317,16 +307,6 @@ def lora_llama2_self_attention(
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    kv_cache = (
-        KVCache(
-            max_batch_size=max_batch_size,
-            max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
-            head_dim=head_dim,
-        )
-        if max_batch_size is not None
-        else None
-    )
     q_proj = (
         LoRALinear(
             embed_dim,
@@ -382,7 +362,7 @@ def lora_llama2_self_attention(
         v_proj=v_proj,
         output_proj=output_proj,
         pos_embeddings=rope,
-        kv_cache=kv_cache,
+        kv_cache=None,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )

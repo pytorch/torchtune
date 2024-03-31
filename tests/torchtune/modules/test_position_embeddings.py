@@ -65,12 +65,21 @@ class TestRotaryPositionEmbedding:
     def test_forward_with_curr_pos(
         self, input: tensor, rope: RotaryPositionalEmbeddings
     ) -> None:
-        x_out = rope(input, curr_pos=10)
+        (
+            _,
+            seq_len,
+            _,
+            _,
+        ) = input.shape
+        x_out = rope(input, input_pos=torch.arange(seq_len))
 
-        # check the numerics of the computed tensor
-        assert_expected(x_out.mean(), tensor(0.0002), atol=1e-4)
-        assert_expected(x_out.sum(), tensor(5158.3159))
-        assert_expected(x_out.max(), tensor(5.4543))
+        # these values should be exactly the same as test_forward
+        # since in this case input_pos covers the entire input
+        # sequence. This tests that input_pos works as expected i.e.
+        # extracts the embeddings for the relevant positions
+        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
+        assert_expected(x_out.sum(), tensor(2165.7053))
+        assert_expected(x_out.max(), tensor(5.4546))
 
         # check shapes
         assert_expected(x_out.shape, input.shape)
