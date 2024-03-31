@@ -383,6 +383,12 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
+        # TODO: Remove this once we have a better way to handle this
+        if "output.weight" not in converted_state_dict["model"].keys():
+            converted_state_dict["model"]["output.weight"] = converted_state_dict[
+                "model"
+            ]["tok_embeddings.weight"]
+
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
             converted_state_dict[utils.ADAPTER_KEY] = adapter_state_dict
