@@ -4,24 +4,20 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import functools
-from typing import Callable, List, Optional, Tuple
+from typing import Optional
 
 import torch
-import torch.nn.functional as F
-from torch import nn, Tensor
 
-from torchtune.modules import Tokenizer, TransformerDecoder
+from torchtune.modules import TransformerDecoder
 
 
 def multinomial_sample_one(probs):
     q = torch.empty_like(probs).exponential_(1)
     return torch.argmax(probs / q, dim=-1, keepdim=True).to(dtype=torch.int)
 
+
 def sample(
-    logits: torch.Tensor,
-    temperature: float = 1.0,
-    top_k: Optional[int] = None
+    logits: torch.Tensor, temperature: float = 1.0, top_k: Optional[int] = None
 ) -> torch.Tensor:
     # scale the logits based on temperature
     logits = logits / max(temperature, 1e-5)
@@ -41,6 +37,7 @@ def sample(
     # sample the next token
     token = multinomial_sample_one(probs)
     return token
+
 
 def generate_next_token(
     model: TransformerDecoder,
@@ -82,10 +79,17 @@ def generate(
         max_generated_tokens (int): number of tokens to be generated. This is the max
             since we can stop early based on whether the eos token is respected or not
         temperature (float): value to scale the predicted logits by. Default is 1.0
-        topk (Optional[int]): If specified, we prune the sampling to only token ids within
+        top_k (Optional[int]): If specified, we prune the sampling to only token ids within
             the top_k probabilities. Default is None
         eos_id (Optional[int]): If specified, generation is stopped when the eos token is
-            generated
+            generated. Default is None
+
+    Returns:
+        List: list of generated tokens
+
+    Raises:
+        ValueError: if max_seq_len supported by the model is smaller than the number of tokens
+            requested
     """
 
     prompt_length = prompt.size(0)
@@ -121,7 +125,7 @@ def generate(
             input_pos=input_pos,
             x=token.view(1, -1),
             temperature=temperature,
-            top_k=top_k
+            top_k=top_k,
         ).clone()
 
         generated_tokens.append(token)
