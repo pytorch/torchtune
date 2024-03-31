@@ -18,6 +18,13 @@ logger = utils.get_logger("DEBUG")
 
 
 class InferenceRecipe:
+    """
+    Recipe for generating tokens from a dense Transformer-based LLM.
+
+    Currently this recipe support single-GPU generation only. Speculative
+    decoding is not supported.
+    """
+
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
