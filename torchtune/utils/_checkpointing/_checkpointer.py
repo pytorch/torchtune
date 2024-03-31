@@ -437,6 +437,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
+        # TODO: Remove this once we have a better way to handle this
+        if (
+            "lm_head.weight" not in self._weight_map.keys()
+            and "lm_head.weight" in state_dict["model"].keys()
+        ):
+            self._weight_map["lm_head.weight"] = "0002"
+
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
         for key, weight in state_dict[utils.MODEL_KEY].items():
