@@ -11,14 +11,17 @@ from typing import Any, Dict
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from safetensors import safe_open
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils._distributed import contains_fsdp
+from transformers.utils import is_safetensors_available
 
 
 class ModelType(Enum):
     LLAMA2 = "llama2"
     MISTRAL = "mistral"
+    GEMMA = "gemma"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
@@ -54,9 +57,16 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
-        state_dict = torch.load(
-            str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
-        )
+        if str(checkpoint_path).endswith(".safetensors") and is_safetensors_available():
+            result = {}
+            with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
+                for k in f.keys():
+                    result[k] = f.get_tensor(k)
+            state_dict = result
+        else:
+            state_dict = torch.load(
+                str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
+            )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
