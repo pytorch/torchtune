@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.utils.generation
-
-
-generate_from_prompt
-====================
-
-.. autofunction:: generate_from_prompt
