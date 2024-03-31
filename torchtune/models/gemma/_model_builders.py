@@ -53,6 +53,23 @@ def lora_gemma_2b(
     lora_rank: int = 8,
     lora_alpha: float = 16,
 ) -> TransformerDecoder:
+    """
+    Builder for creating a Gemma 2B model with LoRA enabled.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+
+    Returns:
+        TransformerDecoder: Instantiation of Mistral 7B model with LoRA applied
+    """
     model = lora_gemma(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
