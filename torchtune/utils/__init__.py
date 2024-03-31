@@ -22,6 +22,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
     wrap_fsdp,
 )
+from ._generation import generate  # noqa
 from .argparse import TuneRecipeArgumentParser
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
