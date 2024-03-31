@@ -86,6 +86,7 @@ class Download(Subcommand):
     def _download_cmd(self, args: argparse.Namespace) -> None:
         """Downloads a model from the Hugging Face Hub."""
         # Download the tokenizer and PyTorch model files
+        print(f"Ignoring files matching the following patterns: {args.ignore_patterns}")
         try:
             true_output_dir = snapshot_download(
                 args.repo_id,
