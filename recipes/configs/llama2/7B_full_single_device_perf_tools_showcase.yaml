@@ -56,7 +56,6 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-optimizer_in_bwd: False
 
 
 # Training environment
@@ -74,3 +73,8 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
 log_every_n_steps: null
+
+# Pytorch profiler
+perf_profiler:
+  _component_: torchtune.utils.perf_profiler
+  output_dir: ./torchtune_perf_tracing.json

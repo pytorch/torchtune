@@ -9,7 +9,6 @@ import sys
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
-
 import torch
 from omegaconf import DictConfig
 
@@ -44,8 +43,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             hood. Setting up the env variables is handled by TorchRun.
         - Training happens on CUDA (CPU training is not supported)
         - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
-        - User can only use ONE of gradient accumulation or optimizer in backward. These features
-            currently do not work together.
         - Datasets are Map-style and data fits in memory (not streamed).
 
     The following configs can be used to run this recipe:
@@ -57,9 +54,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         cfg (DictConfig): OmegaConf object parsed from yaml file
 
     Raises:
-        RuntimeError: If ``dtype`` is set to fp16.
+        ValueError: If ``dtype`` is set to fp16.
         RuntimeError: If ``dtype`` is set to bf16 and the hardware does not support bf16.
-        RuntimeError: If ``gradient_accumulation_steps > 1`` and ``optimizer_in_bwd`` is `True`.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -68,7 +64,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
         # enabled necessary features such as gradient scaling.
         if self._dtype == torch.float16:
-            raise RuntimeError(
+            raise ValueError(
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
@@ -87,14 +83,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
-        # TODO: find a better place / way to perform validation of args that don't yet
-        # compose with each other.
-        if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
-            raise RuntimeError(
-                "Gradient accumulation is not supported with optimizer in bwd."
-                "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
-            )
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=cfg.seed)
@@ -168,7 +157,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=cfg.optimizer_in_bwd,
             opt_state_dict=(
                 ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
@@ -202,6 +190,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
+        self._perf_profiler = config.instantiate(cfg.perf_profiler)
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -232,46 +222,18 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         return model
 
     def _setup_optimizer(
-        self,
-        cfg_optimizer: DictConfig,
-        optimizer_in_bwd: bool = False,
-        opt_state_dict: Optional[Dict[str, Any]] = None,
-    ) -> Optional[Optimizer]:
+        self, cfg_optimizer: DictConfig, opt_state_dict: Optional[Dict[str, Any]] = None
+    ) -> Optimizer:
         """
         Set up the optimizer. This method also handles loading the optimizer state_dict, if specified.
         """
-        if optimizer_in_bwd:
-            # Maintain a dict of optims for every parameter.
-            optim_dict = {
-                p: config.instantiate(cfg_optimizer, [p])
-                for p in self._model.parameters()
-            }
-            # Register optimizer step hooks on the model to run optimizer in backward.
-            utils.register_optim_in_bwd_hooks(model=self._model, optim_dict=optim_dict)
-            # Create a wrapper for checkpoint save/load of optimizer states when running in backward.
-            self._optim_ckpt_wrapper = utils.create_optim_in_bwd_wrapper(
-                model=self._model, optim_dict=optim_dict
-            )
-            # Load optimizer states. If optimizer states are being restored in an optimizer in backward
-            # run, these need to have been saved with the same setting. Cannot restore from runs that did not
-            # use optimizer in backward.
-            if opt_state_dict is not None:
-                try:
-                    self._optim_ckpt_wrapper.load_state_dict(opt_state_dict)
-                except BaseException as e:
-                    raise RuntimeError(
-                        "Failed loading in-backward optimizer checkpoints."
-                        "Please make sure run being restored from was using in-backward optimizer."
-                    ) from e
-            log.info("In-backward optimizers are set up.")
-            return None
-        else:
-            optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
+        optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
-            if opt_state_dict:
-                optimizer.load_state_dict(opt_state_dict)
-            log.info("Optimizer is initialized.")
-            return optimizer
+        if opt_state_dict:
+            optimizer.load_state_dict(opt_state_dict)
+
+        log.info("Optimizer is initialized.")
+        return optimizer
 
     def _setup_data(
         self,
@@ -320,16 +282,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if epoch + 1 < self.total_epochs:
             ckpt_dict.update(
                 {
+                    utils.OPT_KEY: self._optimizer.state_dict(),
                     utils.SEED_KEY: self.seed,
                     utils.EPOCHS_KEY: self.epochs_run,
                     utils.TOTAL_EPOCHS_KEY: self.total_epochs,
                     utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                 }
             )
-            if not self._optimizer_in_bwd:
-                ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
-            else:
-                ckpt_dict[utils.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -353,67 +312,66 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         ``max_steps_per_epoch``.
         """
         # zero out the gradients before starting training
-        if not self._optimizer_in_bwd:
-            self._optimizer.zero_grad()
+        self._optimizer.zero_grad()
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
+            with self._perf_profiler:
+                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
-                # Note: We're always logging the loss before normalizing it
-                # Check if this is the norm or not
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
-                            "lr": (
-                                self._optim_ckpt_wrapper.get_optim_key("lr")
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
-                            ),
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,
-                    )
+                    # Send the signal to the profiler that the next step has started
+                    self._perf_profiler.step()
 
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
-                if not self._optimizer_in_bwd and self._should_update_weights(idx):
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
+                    logits = self._model(input_ids)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+                    # Note: We're always logging the loss before normalizing it
+                    # Check if this is the norm or not
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                    if self.total_training_steps % self._log_every_n_steps == 0:
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,
+                        )
 
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
-                elif self._optimizer_in_bwd:
-                    self.total_training_steps += 1
+                    loss = loss / self._gradient_accumulation_steps
+                    loss.backward()
+                    if self._should_update_weights(idx):
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
-                # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
-                    )
+                        # Update the number of steps when the weights are updated
+                        self.total_training_steps += 1
+
+                    # Log peak memory for iteration
+                    if (
+                        self.total_training_steps % self._log_peak_memory_every_n_steps
+                        == 0
+                    ):
+                        log.info(
+                            utils.memory_stats_log("Memory Stats:", device=self._device)
+                        )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
