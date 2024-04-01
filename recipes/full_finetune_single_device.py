@@ -202,12 +202,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
-        self._enable_torch_profiler = cfg.enable_torch_profiler
-        self._torch_profiler = utils.pytorch_profiler_or_nullcontext(
-            enabled=self._enable_torch_profiler,
-            output_file_path=cfg.output_file_path,
-        )
-
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -367,14 +361,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            with torch_profiler:
-                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                    if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
-                    ):
-                        break
+            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
@@ -416,17 +409,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
-                        # Update the number of steps when the weights are updated
-                        self.total_training_steps += 1
-
-                    # Log peak memory for iteration
-                    if (
-                        self.total_training_steps % self._log_peak_memory_every_n_steps
-                        == 0
-                    ):
-                        log.info(
-                            utils.memory_stats_log("Memory Stats:", device=self._device)
-                        )
+                # Log peak memory for iteration
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 

@@ -82,7 +82,3 @@ log_every_n_steps: 1
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
-
-# Pytorch Profiling
-enable_torch_profiler: False
-output_file_path: ./torchtune_perf_tracing.json
