@@ -383,11 +383,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
-        # TODO: Remove this once we have a better way to handle this
-        if "output.weight" not in converted_state_dict["model"].keys():
-            converted_state_dict["model"]["output.weight"] = converted_state_dict[
-                "model"
-            ]["tok_embeddings.weight"]
+        if (
+            self._model_type == "GEMMA"
+        ):  # TODO: Remove this once we have a better way to handle this
+            if "output.weight" not in converted_state_dict[utils.MODEL_KEY].keys():
+                converted_state_dict[utils.MODEL_KEY][
+                    "output.weight"
+                ] = converted_state_dict[utils.MODEL_KEY]["tok_embeddings.weight"]
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -437,12 +439,22 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
-        # TODO: Remove this once we have a better way to handle this
         if (
-            "lm_head.weight" not in self._weight_map.keys()
-            and "lm_head.weight" in state_dict["model"].keys()
-        ):
-            self._weight_map["lm_head.weight"] = "0002"
+            self._model_type == "GEMMA"
+        ):  # TODO: Remove this once we have a better way to handle this
+            if (
+                "lm_head.weight" not in self._weight_map.keys()
+                and "lm_head.weight" in state_dict[utils.MODEL_KEY].keys()
+            ):
+                if torch.equal(
+                    state_dict[utils.MODEL_KEY]["lm_head.weight"],
+                    state_dict[utils.MODEL_KEY]["model.embed_tokens.weight"],
+                ):
+                    del state_dict[utils.MODEL_KEY]["lm_head.weight"]
+                    logger.info(
+                        "Delete the model lm_head weight from the state dict "
+                        "because it is the same as the model embed_tokens weight"
+                    )
 
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
