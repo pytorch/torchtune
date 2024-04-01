@@ -13,11 +13,10 @@ import torch
 from omegaconf import DictConfig
 
 from torch import nn
-
 from torchtune import config, utils
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.recipe_interfaces import EvalRecipeInterface
-
+from tqdm import tqdm
 
 logger = utils.get_logger("DEBUG")
 
@@ -94,11 +93,31 @@ class _EvalWrapper(HFLM):
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
-    def _model_generate(self, *args, **kwargs):
+    def _model_generate(self, requests):
         raise RuntimeError(
             "This recipe does not currently support tasks that evaluate free generation,"
             "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
         )
+
+    def generate_until(self, requests):
+        res = []
+        for request in tqdm(requests):
+            inp = request.args[0]
+            request_args = request.args[1]
+            tokens = self._tokenizer.encode(inp, add_bos=True, add_eos=False)
+            prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
+            generated_tokens = utils.generate(
+                model=self._model,
+                prompt=prompt,
+                max_generated_tokens=request_args.get("max_new_tokens", 300),
+                temperature=request_args.get("temperature", 0.8),
+                top_k=request_args.get("top_k", 300),
+                eos_id=self._tokenizer.eos_id,
+            )
+            response = self._tokenizer.decode(generated_tokens)
+            res.append(response)
+
+        return res
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
