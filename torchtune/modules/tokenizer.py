@@ -62,6 +62,7 @@ class Tokenizer:
         text: str,
         add_bos: bool = True,
         add_eos: bool = True,
+        trim_leading_whitespace: bool = False,
     ) -> List[int]:
         """Encode text into token IDs.
 
@@ -69,17 +70,25 @@ class Tokenizer:
             text (str): The input text to be encoded, unbatched.
             add_bos (bool): Whether to prepend BOS to the input, defaults to True.
             add_eos (bool): Whether to append EOS to the input, defaults to True.
-
+            trim_leading_whitespace (bool): Whether to trim leading whitespace from
+                underlying sentencepiece tokenization. Default: False
         Returns:
             List[int]: The encoded token IDs.
         """
-        assert type(text) == str, f"Expected string but got {type(text)}"
-        return self.spm_model.encode(
-            text,
-            add_bos=add_bos,
-            add_eos=add_eos,
-            out_type=int,
-        )
+        if trim_leading_whitespace:
+            return self.spm_model.encode(
+                "\n" + text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )[2:]
+        else:
+            return self.spm_model.encode(
+                text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )
 
     def decode(self, ids: List[int]) -> str:
         """Decode token IDs to strings.
@@ -102,19 +111,18 @@ class Tokenizer:
         for message in messages:
             # If assistant message, this is the end of a turn
             end_of_turn = message.role == "assistant"
-
             # Prepend BOS on start of new turns
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
                 mask.append(message.masked)
-                start_of_turn = False
-
-            # Tokenize current message, append with masks
-            tokens = self.spm_model.encode(
+                # Tokenize current message, append with masks
+            tokens = self.encode(
                 message.content,
                 add_bos=False,
                 add_eos=False,
+                trim_leading_whitespace=not start_of_turn,
             )
+            start_of_turn = False
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
