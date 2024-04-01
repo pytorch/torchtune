@@ -20,7 +20,6 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
-from torchtune.models.gemma._model_utils import tie_weight
 
 """
 Component builders for the Gemma 2B models and popular variants such as LoRA.
@@ -107,7 +106,6 @@ def gemma(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-    # tie_weight(model)
     return model
 
 
@@ -230,7 +228,6 @@ def lora_gemma(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-    # tie_weight(model)
     return model
 
 
