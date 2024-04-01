@@ -1,0 +1,52 @@
+# Config for QuantizationRecipe in quantize.py
+#
+# To launch, run the following command from root torchtune directory:
+#    tune quantize --config quantize
+#
+# Supported quantization modes are:
+#      8w:
+#        torchtune.utils.quantization.Int8WeightOnlyQuantizer
+#        int8 weight only per axis group quantization
+#
+#      4w:
+#        torchtune.utils.quantization.Int4WeightOnlyQuantizer
+#        int4 weight only per axis group quantization
+#        Args:
+#          `groupsize` (int): a parameter of int4 weight only quantization,
+#           it refers to the size of quantization groups which get independent quantization parameters
+#           e.g. 32, 64, 128, 256, smaller numbers means more fine grained and higher accuracy
+#
+#      4w-gptq:
+#        torchtune.utils.quantization.Int4WeightOnlyGPTQQuantizer
+#        int4 weight only per axis group quantization with GPTQ
+#        Args:
+#           `groupsize`: see description in `4w`
+#           `blocksize`: GPTQ is applied to a 'block' of columns at a time,
+#            larger blocks trade off memory for perf, recommended to be a constant
+#            multiple of groupsize.
+#            `percdamp`: GPTQ stablization hyperparameter, recommended to be .01
+#
+#        future note: blocksize and percdamp should not have to be 'known' by users by default.
+#        Similar to momentum constant in MovingAverageObserver, it can be tuned,
+#        but 99% of users don't need to pay attention to it. blocksize should probably be set at
+#        max(`groupsize`, 128) and percdamp at .01
+
+#
+# Model arguments
+model:
+  _component_: torchtune.models.llama2.llama2_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelMetaCheckpointer
+  checkpoint_dir: /tmp/llama2/
+  checkpoint_files: [meta_model_0.pt]
+  output_dir: /tmp/llama2/
+  model_type: LLAMA2
+
+device: cuda
+dtype: bf16
+seed: 1234
+
+quantizer:
+  _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
+  groupsize: 256

@@ -105,6 +105,14 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    Recipe(
+        name="quantize",
+        file_path="quantize.py",
+        configs=[
+            Config(name="quantize", file_path="quantize.yaml"),
+        ],
+        supports_distributed=False,
+    ),
 ]
 
 
