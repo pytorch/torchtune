@@ -14,7 +14,7 @@ def samsum_dataset(
     train_on_input: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Summarize dataset and its variants from HuggingFace Datasets.
+    Support for the Summarize dataset and its variants from Hugging Face Datasets.
     https://huggingface.co/datasets/samsum
 
     Data input format: https://huggingface.co/datasets/samsum#data-fields

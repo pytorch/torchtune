@@ -3,7 +3,7 @@
 # from the paper
 #
 # Run this config on 4 GPUs using the following:
-# tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
+# tune run --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
 
 # Tokenizer
 tokenizer:

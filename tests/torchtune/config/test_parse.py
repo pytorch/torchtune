@@ -24,7 +24,7 @@ class TestParse:
             assert cfg.b != b
 
         with patch(
-            "torchtune.config._parse.TuneArgumentParser.parse_known_args",
+            "torchtune.config._parse.TuneRecipeArgumentParser.parse_known_args",
             return_value=(_CONFIG, []),
         ) as mock_parse_args:
             with pytest.raises(SystemExit):
