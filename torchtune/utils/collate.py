@@ -71,3 +71,20 @@ def padded_collate(
             value=padding_idx,
         )
     return input_ids, labels
+
+
+def padded_collate_dpo(
+    batch: List[TokenPair],
+    padding_idx: int = 0,
+    ignore_idx: int = -100,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    padded_batch = {} 
+    for k in batch[0].keys():
+        to_pad = [torch.LongTensor(ex[k]) for ex in batch]
+        if k.endswith("_input_ids"):
+            padding_value = padding_idx
+        elif k.endswith("_labels"):
+            padding_value = ignore_idx
+        padded_batch[k] = pad_sequence(to_pad, batch_first=True, padding_value=padding_value)
+
+    return padded_batch
