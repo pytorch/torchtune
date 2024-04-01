@@ -42,7 +42,7 @@ def gemma_2b() -> TransformerDecoder:
 
 def gemma_tokenizer(path: str) -> Tokenizer:
     tokenizer = Tokenizer.from_file(path)
-    tokenizer.pad_id = 0    # TODO: Check if this is correct
+    tokenizer.pad_id = 0
     return tokenizer
 
 
