@@ -9,6 +9,7 @@ import sys
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
+
 import torch
 from omegaconf import DictConfig
 
@@ -320,6 +321,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
+            # Showcase how to use pytorch profiler to trace the training loop.
             with self._perf_profiler:
                 for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
                     if (

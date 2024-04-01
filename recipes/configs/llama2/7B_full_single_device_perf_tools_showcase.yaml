@@ -8,8 +8,8 @@
 #   --output-dir /tmp/llama2
 #
 # To launch on a single device, run the following command from root:
-#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device \
-#   --config llama2/7B_full_single_device \
+#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device_perf_tools_showcase \
+#   --config llama2/7B_full_single_device_perf_tools_showcase \
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
@@ -18,7 +18,9 @@
 #   --config llama2/7B_full_single_device \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works only for training on single device.
+# This config showcases the performance prfiling tools we provided. You can plugin the tools
+# when you want to debug your training. Please note the performance profiling tools will cause
+# perf overhead
 
 
 # Tokenizer
@@ -77,4 +79,4 @@ log_every_n_steps: null
 # Pytorch profiler
 perf_profiler:
   _component_: torchtune.utils.perf_profiler
-  output_dir: ./torchtune_perf_tracing.json
+  output_dir: /tmp/alpaca-llama2-finetune

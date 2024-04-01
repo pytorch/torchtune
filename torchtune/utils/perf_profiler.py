@@ -20,25 +20,23 @@ def perf_profiler(
     Note: Enable pytorch profiler may casue performance overhead.
 
     Args:
-        enabled (Optional[bool]): Whether enable pytorch profiler or not.
-        output_file_path (Optional[str]): Tracing file output path.
-        is_rank_zero (Optional[bool]): Whether the current rank is zero.
+        output_dir (Optional[str]): Tracing file output path.
 
     Returns:
         ContextManager: pytorch profiler context manager
     """
 
     def trace_handler(prof) -> None:
-        prof.export_chrome_trace(output_file_path)
+        prof.export_chrome_trace(output_dir)
 
     return profile(
-            activities=[
-                torch.profiler.ProfilerActivity.CPU,
-                torch.profiler.ProfilerActivity.CUDA,
-            ],
-            schedule=torch.profiler.schedule(wait=5, warmup=5, active=5, repeat=1),
-            on_trace_ready=trace_handler,
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=True,
-        )
+        activities=[
+            torch.profiler.ProfilerActivity.CPU,
+            torch.profiler.ProfilerActivity.CUDA,
+        ],
+        schedule=torch.profiler.schedule(wait=5, warmup=5, active=5, repeat=1),
+        on_trace_ready=trace_handler,
+        record_shapes=True,
+        profile_memory=True,
+        with_stack=True,
+    )
