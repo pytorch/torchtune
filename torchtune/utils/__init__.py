@@ -81,6 +81,5 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
-    "pytorch_profiler_or_nullcontext",
     "perf_profiler",
 ]

@@ -1,4 +1,4 @@
-# Config for single device full finetuning in full_finetune_single_device.py
+# Config for single device full finetuning in full_finetune_single_device_perf_tools_showcase.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -8,14 +8,14 @@
 #   --output-dir /tmp/llama2
 #
 # To launch on a single device, run the following command from root:
-#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device_perf_tools_showcase \
-#   --config llama2/7B_full_single_device_perf_tools_showcase \
+#   tune run full_finetune_single_device_perf_tools_showcase\
+#   --config llama2/7B_full_single_device_perf_tools_showcase\
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device \
-#   --config llama2/7B_full_single_device \
+#   tune run full_finetune_single_device_perf_tools_showcase \
+#   --config llama2/7B_full_single_device_perf_tools_showcase \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config showcases the performance prfiling tools we provided. You can plugin the tools
