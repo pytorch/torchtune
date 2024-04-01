@@ -107,7 +107,7 @@ def gemma(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-    tie_weight(model)
+    # tie_weight(model)
     return model
 
 
@@ -230,7 +230,7 @@ def lora_gemma(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
-    tie_weight(model)
+    # tie_weight(model)
     return model
 
 

@@ -259,6 +259,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
+        # TODO: Remove this once FSDP supports this
+        model.output.weight = model.tok_embeddings.weight
+
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
