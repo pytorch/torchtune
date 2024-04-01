@@ -66,8 +66,9 @@ class TestTokenizer:
         s2 = "I'm an outgoing and friendly person."
         s1_tokens = tokenizer.encode(s1, add_bos=False, add_eos=False)
         s2_tokens = tokenizer.encode(s2, add_bos=False, add_eos=False)
+        # Set prefix="pre" since "\n" is not in the test tokenizer's vocab
         s2_tokens_no_whitespace = tokenizer.encode(
-            s2, add_bos=False, add_eos=False, trim_leading_whitespace=True
+            s2, add_bos=False, add_eos=False, trim_leading_whitespace=True, prefix="pre"
         )
         s1s2_tokens = tokenizer.encode(s1 + s2, add_bos=False, add_eos=False)
         assert (s1_tokens + s2_tokens) != s1s2_tokens
