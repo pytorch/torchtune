@@ -290,3 +290,5 @@ class TestTokenizer:
             2,
         ]
         expected_mask = [True] * 75 + [False] * 125
+        assert expected_tokens == tokens
+        assert expected_mask == mask
