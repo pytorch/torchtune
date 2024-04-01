@@ -201,11 +201,11 @@ class TestTransformerDecoder:
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
+        decoder.setup_caches(max_batch_size=4, dtype=torch.float32)
         return decoder
 
     def test_forward(
@@ -234,8 +234,11 @@ class TestTransformerDecoder:
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
+        _, seq_len = input.shape
+        input_pos = torch.arange(seq_len)
+
         with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input, 0)
+            output_cache = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
 

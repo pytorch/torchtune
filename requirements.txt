@@ -1,4 +1,4 @@
-# HuggingFace Integration Reqs
+# Hugging Face Integration Reqs
 datasets
 huggingface_hub
 

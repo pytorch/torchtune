@@ -1,4 +1,4 @@
-# Config for multi-device full finetuning in full_finetune_distributed.py
+# Config for single device full finetuning in full_finetune_single_device.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -7,20 +7,18 @@
 #   --hf-token <HF_TOKEN> \
 #   --output-dir /tmp/llama2
 #
-# To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 full_finetune_distributed \
-#   --config llama2/7B_full \
+# To launch on a single device, run the following command from root:
+#   tune run full_finetune_single_device \
+#   --config llama2/7B_full_single_device_low_memory \
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed \
-#   --config llama2/7B_full \
+#   tune --nnodes 1 --nproc_per_node 1 full_finetune_single_device \
+#   --config llama2/7B_full_single_device_low_memory \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 7B_full_single_device.yaml for those cases
+# This config works only for training on single device.
 
 
 # Tokenizer
@@ -50,21 +48,19 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
-  _component_: torch.optim.AdamW
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 2e-5
+optimizer_in_bwd: True
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
 
 
-# Training env
+# Training environment
 device: cuda
-
-# Distributed
-cpu_offload: False
 
 # Memory management
 enable_activation_checkpointing: True

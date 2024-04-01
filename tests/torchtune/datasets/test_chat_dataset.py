@@ -126,6 +126,7 @@ class TestChatDataset:
         mock_load_dataset.return_value = dialogue
         expected_tokenized_prompts = [
             [
+                0,
                 7,
                 3,
                 3,
@@ -146,15 +147,18 @@ class TestChatDataset:
                 4,
                 2,
                 3,
+                -1,
+                0,
                 5,
                 6,
                 11,
                 10,
                 1,
+                6,
                 -1,
             ]
         ]
-        prompt_lengths = (14, 4)
+        prompt_lengths = (15, 5)
         expected_labels = [
             [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
             + [
@@ -164,9 +168,10 @@ class TestChatDataset:
                 4,
                 2,
                 3,
+                -1,
             ]
             + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
-            + [1, -1]
+            + [1, 6, -1]
         ]
 
         ds = ChatDataset(

@@ -32,8 +32,34 @@ class TestInstructDataset:
         "Instruction:\n{instruction}\n\nInput:\n{input}\n\nResponse: "
     )
     expected_tokenized_prompts = [
-        [12, 4, 2, 3, 2, 12, 10, 6, 4, 2, 3, 2, 6, 10, 9, 1, 5, 4, 4, 3, 6, 2, 4],
-        [12, 4, 2, 2, 12, 10, 6, 4, 2, 2, 6, 10, 9, 1, 6, 4, 4, 3, 6, 2, 4],
+        [
+            0,
+            12,
+            4,
+            2,
+            3,
+            2,
+            12,
+            10,
+            6,
+            4,
+            2,
+            3,
+            2,
+            6,
+            10,
+            9,
+            1,
+            5,
+            4,
+            4,
+            3,
+            6,
+            2,
+            4,
+            -1,
+        ],
+        [0, 12, 4, 2, 2, 12, 10, 6, 4, 2, 2, 6, 10, 9, 1, 6, 4, 4, 3, 6, 2, 4, -1],
     ]
 
     def get_samples(self):
@@ -53,10 +79,12 @@ class TestInstructDataset:
     @mock.patch("torchtune.datasets._instruct.load_dataset")
     def test_get_item_no_train_on_input(self, mock_load_dataset):
         mock_load_dataset.return_value = self.get_samples()
-        prompt_lengths = (15, 13)
+        prompt_lengths = (16, 14)
         expected_labels = [
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0] + [1, 5, 4, 4, 3, 6, 2, 4],
-            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1] + [1, 6, 4, 4, 3, 6, 2, 4],
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
+            + [1, 5, 4, 4, 3, 6, 2, 4, -1],
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
+            + [1, 6, 4, 4, 3, 6, 2, 4, -1],
         ]
 
         dataset = InstructDataset(

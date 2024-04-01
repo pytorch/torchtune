@@ -13,9 +13,10 @@ def alpaca_dataset(
     tokenizer: Tokenizer,
     train_on_input: bool = True,
     use_clean: bool = False,
+    max_seq_len: int = 512,
 ) -> InstructDataset:
     """
-    Support for the Alpaca dataset and its variants from HuggingFace Datasets.
+    Support for the Alpaca dataset and its variants from Hugging Face Datasets.
     https://huggingface.co/datasets/tatsu-lab/alpaca
 
     Data input format: https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances
@@ -39,6 +40,10 @@ def alpaca_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
         use_clean (bool): Whether to use the cleaned version of the dataset or not. Default is False.
+        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
+            Default is 512, as set by Stanford Alpaca (https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#fine-tuning),
+            but we recommend setting this to the highest you can fit in memory and is supported by the model.
+            For example, llama2-7B supports up to 4096 for sequence length.
 
     Returns:
         InstructDataset: dataset configured with Alpaca source data and template
@@ -56,5 +61,6 @@ def alpaca_dataset(
         source="yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca",
         template=AlpacaInstructTemplate(),
         train_on_input=train_on_input,
+        max_seq_len=max_seq_len,
         split="train",
     )

@@ -105,6 +105,9 @@ def mistral(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
@@ -217,6 +220,9 @@ def lora_mistral(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=(embed_dim // num_heads),
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )

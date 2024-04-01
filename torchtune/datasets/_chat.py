@@ -45,7 +45,7 @@ class ChatDataset(Dataset):
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by HuggingFace's `load_dataset`
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_dialogue (Callable[[Mapping[str, Any]], Dialogue]): function that keys into the desired field in the sample
             and converts to a list of `Messages` that follows the llama format with the expected keys
@@ -151,7 +151,7 @@ def chat_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by HuggingFace's `load_dataset`
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_format (str): string specifying expected format of conversations in the dataset
             for automatic conversion to the llama format. Supported formats are: "sharegpt"
