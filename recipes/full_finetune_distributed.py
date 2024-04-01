@@ -151,6 +151,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
+        # TODO: This is a temporary fix to handle the model tie for GEMMA models.
+        if cfg.checkpointer.model_type == "GEMMA":
+            model_tie = True
+        else:
+            model_tie = False
+
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
@@ -158,6 +164,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            mode_tie=model_tie,
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -203,6 +210,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
+        mode_tie: bool = False,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -259,8 +267,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        # TODO: Remove this once FSDP supports this
-        model.output.weight = model.tok_embeddings.weight
+        if mode_tie:  # Tie the weights of the model if required
+            model.output.weight = model.tok_embeddings.weight
+            log.info("Model weights are tied")
 
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
