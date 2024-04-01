@@ -65,7 +65,7 @@ class Llama2ChatFormat(ChatFormat):
     def format(
         cls,
         sample: List[Message],
-    ) -> str:
+    ) -> List[Message]:
         """
         Format user and system messages with appropriate tags.
 
@@ -83,6 +83,11 @@ class Llama2ChatFormat(ChatFormat):
             if message.role == "system":
                 content = cls.system.format(content=message.content)
                 system_message = content
+                # Incorporate the system message in the user message - LLaMA2 only
+                # looks for the <<SYS>> tags and not the explicit role so this will
+                # be treated the same as an actual system message. We do this because
+                # of the nesting of the system prompt in the user message.
+                continue
             elif message.role == "user":
                 content = cls.user.format(
                     system_message=system_message, content=message.content
@@ -120,7 +125,7 @@ class MistralChatFormat(ChatFormat):
     def format(
         cls,
         sample: List[Message],
-    ) -> str:
+    ) -> List[Message]:
         """
         Format user and system messages with appropriate tags.
 
@@ -179,7 +184,7 @@ class ChatMLFormat(ChatFormat):
     def format(
         cls,
         sample: List[Message],
-    ) -> str:
+    ) -> List[Message]:
         """
         Format user and system messages with appropriate tags.
 

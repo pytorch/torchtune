@@ -76,7 +76,7 @@ class ChatDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
-        messages = self._convert_to_messages(sample)
+        messages = self._convert_to_messages(sample, self.train_on_input)
         messages = self.chat_format.format(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
@@ -92,7 +92,7 @@ def chat_dataset(
     tokenizer: Tokenizer,
     source: str,
     conversation_format: str,
-    chat_format: str,
+    chat_format: ChatFormat,
     max_seq_len: int,
     train_on_input: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
@@ -108,7 +108,7 @@ def chat_dataset(
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_format (str): string specifying expected format of conversations in the dataset
             for automatic conversion to the llama format. Supported formats are: "sharegpt"
-        chat_format (str): class name of template used to format the chat.
+        chat_format (ChatFormat): Template class used to format the chat.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.

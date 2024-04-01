@@ -10,6 +10,8 @@ from sentencepiece import SentencePieceProcessor
 from torchtune.data._types import Message
 from torchtune.data._utils import truncate
 
+WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
+
 
 class Tokenizer:
     """A wrapper around SentencePieceProcessor.
@@ -42,6 +44,10 @@ class Tokenizer:
         self.bos_id = bos_id
         self.eos_id = eos_id
         self.pad_id = pad_id
+        self.whitespace_encodings = {
+            c: self.spm_model.encode(c) for c in WHITESPACE_CHARS
+        }
+        self.encodes_whitespace = any(self.whitespace_encodings.values())
 
     @classmethod
     def from_file(cls, path: str) -> "Tokenizer":
@@ -63,6 +69,7 @@ class Tokenizer:
         add_bos: bool = True,
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
+        prefix: Optional[str] = None,
     ) -> List[int]:
         """Encode text into token IDs.
 
@@ -72,16 +79,25 @@ class Tokenizer:
             add_eos (bool): Whether to append EOS to the input, defaults to True.
             trim_leading_whitespace (bool): Whether to trim leading whitespace from
                 underlying sentencepiece tokenization. Default: False
+            prefix (Optional[str]): Optional string to encode for trimming leading
+                whitespaces. Default: None
         Returns:
             List[int]: The encoded token IDs.
         """
         if trim_leading_whitespace:
+            # Can define our own custom prefix depending on vocab if needed
+            if not hasattr(self, "prefix"):
+                self.prefix = prefix or "pre"
+                self.encoded_prefix = self.spm_model.encode(
+                    self.prefix, add_bos=False, add_eos=False
+                )
+            start_idx = len(self.encoded_prefix) + int(add_bos)
             return self.spm_model.encode(
-                "\n" + text,
+                self.prefix + text,
                 add_bos=add_bos,
                 add_eos=add_eos,
                 out_type=int,
-            )[2:]
+            )[start_idx:]
         else:
             return self.spm_model.encode(
                 text,
@@ -111,23 +127,36 @@ class Tokenizer:
         for message in messages:
             # If assistant message, this is the end of a turn
             end_of_turn = message.role == "assistant"
+
             # Prepend BOS on start of new turns
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
                 mask.append(message.masked)
-                # Tokenize current message, append with masks
+
+            # We want to trim leading whitespace on the next message when
+            # (a) it is a continuation of the turn (i.e. not the first message)
+            # (b) the vocabulary explicitly encodes whitespace characters, and
+            # (c) the previous message did not end with a space
+            trim_leading_whitespace = (
+                (not start_of_turn)
+                and self.encodes_whitespace
+                and not prev_ends_with_space
+            )
+
+            # Tokenize current message, append with masks
             tokens = self.encode(
-                message.content,
+                message.content.rstrip(" "),
                 add_bos=False,
                 add_eos=False,
-                trim_leading_whitespace=not start_of_turn,
+                trim_leading_whitespace=trim_leading_whitespace,
             )
+            prev_ends_with_space = message.content.endswith(" ")
             start_of_turn = False
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
             # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokens) >= max_seq_len:
+            if max_seq_len and len(tokenized_messages) >= max_seq_len:
                 break
 
             # If assistant message, append EOS at end

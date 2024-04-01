@@ -28,19 +28,10 @@ class DummyChatFormat:
         cls,
         messages,
     ):
+        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
         formatted_dialogue = []
         for message in messages:
-            content = ""
-            if message.role == "system":
-                content = cls.system.format(content=message.content)
-            elif message.role == "user":
-                content = cls.user.format(
-                    content=message.content,
-                )
-            elif message.role == "assistant":
-                content = cls.assistant.format(
-                    content=message.content,
-                )
+            content = formats.get(message.role).format(content=message.content)
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
@@ -135,11 +126,10 @@ class TestChatDataset:
             + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
             + [1, 6, -1]
         ]
-
         ds = ChatDataset(
             tokenizer=DummyTokenizer(),
             source="iam/agoofy/goober",
-            convert_to_messages=lambda x: x["dialogue"],
+            convert_to_messages=lambda x, y: x["dialogue"],
             chat_format=chat_format,
             max_seq_len=100,
             train_on_input=False,

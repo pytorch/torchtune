@@ -62,7 +62,7 @@ def slimorca_dataset(
         tokenizer=tokenizer,
         source="Open-Orca/SlimOrca-Dedup",
         convert_to_messages=sharegpt_to_llama2_messages,
-        chat_format=Llama2ChatFormat(),
+        chat_format=Llama2ChatFormat,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         split="train",
