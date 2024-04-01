@@ -87,7 +87,7 @@ class Tokenizer:
         if trim_leading_whitespace:
             # Can define our own custom prefix depending on vocab if needed
             if not hasattr(self, "prefix"):
-                self.prefix = prefix or "pre"
+                self.prefix = prefix or "\n"
                 self.encoded_prefix = self.spm_model.encode(
                     self.prefix, add_bos=False, add_eos=False
                 )

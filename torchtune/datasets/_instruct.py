@@ -91,6 +91,7 @@ class InstructDataset(Dataset):
             Message(role="user", content=prompt, masked=(not self.train_on_input)),
             Message(role="assistant", content=transformed_sample[key_output]),
         ]
+
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
