@@ -86,7 +86,7 @@ def gemma(
         k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
-        pos_embeddings=rope,    # TODO: check is it the same as in the paper, GemmaRotaryEmbedding
+        pos_embeddings=rope,
         kv_cache=None,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
@@ -334,7 +334,7 @@ def lora_gemma_self_attention(
         k_proj=k_proj,
         v_proj=v_proj,
         output_proj=output_proj,
-        pos_embeddings=rope,    # TODO: check is it the same as in the paper, GemmaRotaryEmbedding
+        pos_embeddings=rope,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
