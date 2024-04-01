@@ -44,7 +44,11 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+<<<<<<< HEAD
 from .perf_profiler import perf_profiler
+=======
+from .perf_tracker import pytorch_profiler_or_nullcontext
+>>>>>>> origin/torch_profiler
 from .precision import (
     get_autocast,
     get_dtype,
@@ -78,9 +82,13 @@ __all__ = [
     "validate_expected_param_dtype",
     "TuneRecipeArgumentParser",
     "CheckpointableDataLoader",
+<<<<<<< HEAD
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
     "pytorch_profiler_or_nullcontext",
     "perf_profiler",
+=======
+    "pytorch_profiler_or_nullcontext",
+>>>>>>> origin/torch_profiler
 ]

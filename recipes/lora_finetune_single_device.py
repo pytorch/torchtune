@@ -207,6 +207,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.total_training_steps - 1,
         )
 
+        self._enable_torch_profiler = cfg.enable_torch_profiler
+        self._torch_profiler = utils.pytorch_profiler_or_nullcontext(
+            enabled=self._enable_torch_profiler,
+            output_file_path=cfg.output_file_path,
+        )
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -389,25 +395,18 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+            with torch_profiler:
+                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+                    if self._enable_torch_profiler:
+                        torch_profiler.step()
 
                 if self.total_training_steps % self._log_every_n_steps == 0:
                     pbar.set_description(

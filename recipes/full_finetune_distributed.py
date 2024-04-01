@@ -166,9 +166,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -197,6 +197,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
+
+        self._enable_torch_profiler = cfg.enable_torch_profiler
+        self._torch_profiler = utils.pytorch_profiler_or_nullcontext(
+            enabled=self._enable_torch_profiler,
+            output_file_path=cfg.output_file_path,
+            is_rank_zero=self._is_rank_zero,
+        )
 
     def _setup_model(
         self,
@@ -251,11 +258,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -402,6 +409,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
+        torch_profiler = self._torch_profiler
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -416,19 +424,19 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and (idx // self._gradient_accumulation_steps)
                     == self.max_steps_per_epoch
                 ):
-                    break
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+                    if self._enable_torch_profiler and self._is_rank_zero:
+                        torch_profiler.step()
 
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
 
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
@@ -448,15 +456,30 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         step=self.total_training_steps,
                     )
 
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
+                    # Note: We're always logging the loss before normalizing it
+                    # Check if this is the norm or not
+                    if (
+                        self.total_training_steps % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
+                        )
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,
+                        )
 
-                if self._should_update_weights(idx):
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
+                    loss = loss / self._gradient_accumulation_steps
+                    loss.backward()
 
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
+                    if self._should_update_weights(idx):
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
                 # Log peak memory for iteration
                 if (

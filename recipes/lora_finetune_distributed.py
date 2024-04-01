@@ -183,9 +183,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -218,6 +218,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.total_epochs * steps_per_epoch,
             last_epoch=self.total_training_steps - 1,
+        )
+
+        self._enable_torch_profiler = cfg.enable_torch_profiler
+        self._torch_profiler = utils.pytorch_profiler_or_nullcontext(
+            enabled=self._enable_torch_profiler,
+            output_file_path=cfg.output_file_path,
+            is_rank_zero=self._is_rank_zero,
         )
 
     def _setup_model(
@@ -304,11 +311,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -477,6 +484,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
+        torch_profiler = self._torch_profiler
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -484,29 +492,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and idx == self.max_steps_per_epoch
+            with torch_profiler:
+                for idx, batch in enumerate(
+                    pbar := tqdm(self._dataloader, disable=not (rank == 0))
                 ):
                     break
 
                 self.total_training_steps += 1
                 self._optimizer.zero_grad()
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+                    if self._enable_torch_profiler and self._is_rank_zero:
+                        torch_profiler.step()
 
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+                    self.total_training_steps += 1
+                    self._optimizer.zero_grad()
 
                 if (
                     self.total_training_steps % self._log_every_n_steps == 0
