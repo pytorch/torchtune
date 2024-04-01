@@ -77,7 +77,7 @@ def gemma(
         TransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = CausalSelfAttention(  # TODO: check is it the same as in the paper, SdpaAttention
+    self_att = CausalSelfAttention(
         embed_dim=embed_dim,    # 2048
         num_heads=num_heads,    # 8
         num_kv_heads=num_kv_heads,  # 1
@@ -325,7 +325,7 @@ def lora_gemma_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(    # TODO: check is it the same as in the paper, SdpaAttention
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
