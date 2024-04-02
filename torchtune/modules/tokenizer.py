@@ -44,6 +44,10 @@ class Tokenizer:
         self.bos_id = bos_id
         self.eos_id = eos_id
         self.pad_id = pad_id
+
+        # This is used in tokenize_messages: if the tokenizer does not
+        # encode whitespace, then we can more easily split strings
+        # on whitespace characters and encode them separately.
         self.encodes_whitespace = any(
             [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
         )
@@ -124,6 +128,7 @@ class Tokenizer:
     ) -> Tuple[List[int], List[bool]]:
         start_of_turn = True
         end_of_turn = False
+        prev_ends_with_space = False
         tokenized_messages = []
         mask = []
         for message in messages:
@@ -153,7 +158,6 @@ class Tokenizer:
                 trim_leading_whitespace=trim_leading_whitespace,
             )
             prev_ends_with_space = message.content.endswith(" ")
-            start_of_turn = False
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
@@ -163,6 +167,8 @@ class Tokenizer:
                 mask.append(message.masked)
                 end_of_turn = False
                 start_of_turn = True
+            else:
+                start_of_turn = False
 
             # Break out early if we reach max_seq_len
             if max_seq_len and len(tokenized_messages) >= max_seq_len:

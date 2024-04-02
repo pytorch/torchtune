@@ -12,15 +12,13 @@ import unittest
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, Optional, TextIO, Tuple, Union
 
 import pytest
 
 import torch
 from torch import nn
-from torchtune.data._types import Message
-from torchtune.data._utils import truncate
-
+from torchtune.modules import Tokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -33,8 +31,11 @@ CKPT_MODEL_PATHS = {
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
 }
 
+# Inherit from tokenizer class to reuse its tokenize_messages method
+class DummyTokenizer(Tokenizer):
+    def __init__(self):
+        self.encodes_whitespace = False
 
-class DummyTokenizer:
     def encode(self, text, add_bos=True, add_eos=True, **kwargs):
         words = text.split()
         tokens = [len(word) for word in words]
@@ -51,45 +52,6 @@ class DummyTokenizer:
     @property
     def bos_id(self):
         return 0
-
-    def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
-    ):
-        start_of_turn = True
-        end_of_turn = False
-        tokenized_messages = []
-        mask = []
-        for message in messages:
-            # If assistant message, this is the end of a turn
-            end_of_turn = message.role == "assistant"
-
-            # Prepend BOS on start of new turns
-            if start_of_turn:
-                tokenized_messages.append(self.bos_id)
-                mask.append(message.masked)
-                start_of_turn = False
-
-            # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content,
-                add_bos=False,
-                add_eos=False,
-            )
-            tokenized_messages.extend(tokens)
-            mask.extend([message.masked] * len(tokens))
-
-            # If assistant message, append EOS at end
-            if end_of_turn:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
-                end_of_turn = False
-                start_of_turn = True
-
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, False)
-
-        return tokenized_messages, mask
 
 
 def get_assets_path():

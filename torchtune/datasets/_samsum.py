@@ -48,7 +48,7 @@ def samsum_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source="samsum",
-        template=SummarizeTemplate(),
+        template=SummarizeTemplate,
         column_map={"output": "summary"},
         train_on_input=train_on_input,
         split="train",

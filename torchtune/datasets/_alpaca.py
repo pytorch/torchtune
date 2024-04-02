@@ -59,7 +59,7 @@ def alpaca_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source="yahma/alpaca-cleaned" if use_clean else "tatsu-lab/alpaca",
-        template=AlpacaInstructTemplate(),
+        template=AlpacaInstructTemplate,
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
         split="train",
