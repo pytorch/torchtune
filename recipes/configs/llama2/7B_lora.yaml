@@ -1,26 +1,27 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
-# using a Llama2 7B model
+# Config for multi-device with lora_finetune_distributed.py or single-device LoRA
+# finetuning with lora_finetune_single_device.py using a Llama2 7B model
 #
-# This config assumes that you've run the following command before launching
-# this run:
-#   tune download --repo-id meta-llama/Llama-2-7b \
-#   --hf-token <HF_TOKEN> \
-#   --output-dir /tmp/llama2
+# This config assumes that you've run the following command before launching:
+# $ tune download meta-llama/Llama-2-7b \
+#       --hf-token <HF_TOKEN> \
+#       --output-dir /tmp/llama2
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/7B_lora \
+# $ tune run --nproc_per_node 4 lora_finetune_distributed \
+#       --config llama2/7B_lora
+#
+# To launch on a single device, run the following command:
+# $ tune run lora_finetune_single_device \
+#       --config llama2/7B_lora
 #
 # You can add specific overrides through the command line. For example
-# to override the checkpointer directory while launching training
-# you can run:
-#   tune --nnodes 1 --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/7B_lora \
-#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+# to override the checkpointer directory while launching training:
+# $ tune run --nproc_per_node 4 lora_finetune_distributed \
+#       --config llama2/7B_lora \
+#       checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device lora finetuning please use 7B_lora_single_device.yaml
-# or 7B_qlora_single_device.yaml
+# For more memory optimizations, such as those needed when running on a single GPU,
+# use llama2/7B_qlora
 
 
 # Model Arguments

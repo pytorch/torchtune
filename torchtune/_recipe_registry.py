@@ -28,16 +28,12 @@ _ALL_RECIPES = [
         file_path="full_finetune_single_device.py",
         configs=[
             Config(
-                name="llama2/7B_full_single_device",
-                file_path="llama2/7B_full_single_device.yaml",
+                name="llama2/7B_full",
+                file_path="llama2/7B_full.yaml",
             ),
             Config(
-                name="llama2/7B_full_single_device_low_memory",
-                file_path="llama2/7B_full_single_device_low_memory.yaml",
-            ),
-            Config(
-                name="mistral/7B_full",
-                file_path="mistral/7B_full.yaml",
+                name="llama2/7B_full_low_memory",
+                file_path="llama2/7B_full_low_memory.yaml",
             ),
         ],
         supports_distributed=False,
@@ -57,16 +53,12 @@ _ALL_RECIPES = [
         file_path="lora_finetune_single_device.py",
         configs=[
             Config(
-                name="llama2/7B_lora_single_device",
-                file_path="llama2/7B_lora_single_device.yaml",
+                name="llama2/7B_lora",
+                file_path="llama2/7B_lora.yaml",
             ),
             Config(
-                name="llama2/7B_qlora_single_device",
-                file_path="llama2/7B_qlora_single_device.yaml",
-            ),
-            Config(
-                name="mistral/7B_lora",
-                file_path="mistral/7B_lora.yaml",
+                name="llama2/7B_qlora",
+                file_path="llama2/7B_qlora.yaml",
             ),
         ],
         supports_distributed=False,

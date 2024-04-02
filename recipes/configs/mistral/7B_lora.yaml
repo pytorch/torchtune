@@ -3,7 +3,10 @@
 # from the paper
 #
 # Run this config on 4 GPUs using the following:
-# tune run --nproc_per_node 4 lora_finetune_distributed --config mistral/7B_lora
+# $ tune run --nproc_per_node 4 lora_finetune_distributed --config mistral/7B_lora
+#
+# Run this config on a single GPU with the following:
+# $ tune run lora_finetune_single_device --config mistral/7B_lora
 
 
 # Tokenizer
