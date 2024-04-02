@@ -223,4 +223,4 @@ We welcome any feature requests, bug reports, or pull requests from the communit
 
 ## License
 
-TorchTune is released under the [BSD 3 license](./LICENSE).
+TorchTune is released under the [BSD 3 license](./LICENSE). However you may have other legal obligations that govern your use of other content, such as the terms of service for third-party models.
