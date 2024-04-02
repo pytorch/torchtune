@@ -6,12 +6,13 @@
 
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
+import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.config._utils import _get_template
+from torchtune.data import InstructTemplate, Message
 
-from torchtune.data import PromptTemplate, tokenize_prompt_and_response, truncate
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
 
@@ -23,7 +24,7 @@ class InstructDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> format into template -> tokenize
 
-    If the column/key names differ from the expected names in the `PromptTemplate`,
+    If the column/key names differ from the expected names in the `InstructTemplate`,
     then the `column_map` argument can be used to provide this mapping.
 
     Masking of the prompt during training is controlled by the `train_on_input` flag, which is
@@ -36,7 +37,7 @@ class InstructDataset(Dataset):
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        template (PromptTemplate): template used to format the prompt. If the placeholder variable
+        template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.
@@ -53,7 +54,7 @@ class InstructDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        template: PromptTemplate,
+        template: InstructTemplate,
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
         train_on_input: bool = False,
@@ -84,28 +85,26 @@ class InstructDataset(Dataset):
             if self._column_map and "output" in self._column_map
             else "output"
         )
+        messages = [
+            Message(role="user", content=prompt, masked=(not self.train_on_input)),
+            Message(role="assistant", content=transformed_sample[key_output]),
+        ]
 
-        prompt_tokens, label_tokens = tokenize_prompt_and_response(
-            tokenizer=self._tokenizer,
-            prompt=prompt,
-            response=transformed_sample[key_output],
-            train_on_input=self.train_on_input,
+        tokens, mask = self._tokenizer.tokenize_messages(
+            messages, max_seq_len=self.max_seq_len
         )
 
-        if self.max_seq_len is not None:
-            prompt_tokens, label_tokens = truncate(
-                self._tokenizer, prompt_tokens, label_tokens, self.max_seq_len
-            )
+        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
+        assert len(tokens) == len(labels)
 
-        assert len(prompt_tokens) == len(label_tokens)
-
-        return prompt_tokens, label_tokens
+        return tokens, labels
 
 
 def instruct_dataset(
     tokenizer: Tokenizer,
     source: str,
-    template: str,
+    template: InstructTemplate,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
     max_seq_len: Optional[int] = None,
@@ -120,7 +119,7 @@ def instruct_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        template (str): class name of template used to format the prompt. If the placeholder variable
+        template (InstructTemplate): class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
@@ -136,7 +135,7 @@ def instruct_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source=source,
-        template=_get_template(template),
+        template=template,
         column_map=column_map,
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
