@@ -12,7 +12,7 @@ Stay *tuned* for the first release in the coming weeks!
 
 # TorchTune
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune) | [**Design Principles**](#design-principles) | [**Contributing**](#contributing) | [**License**](#license)
 
 &nbsp;
 
