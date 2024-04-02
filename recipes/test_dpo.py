@@ -7,13 +7,14 @@
 import sys
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union, List
 from warnings import warn
 
 import torch
 from omegaconf import DictConfig
 
 from torch import nn
+import torch.nn.functional as F
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
@@ -159,6 +160,27 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
+
+        # TODO: in lora, we don't need a ref_model
+        # we just need to turn off the lora adapters.
+        self._ref_model = self._setup_model(
+            cfg_model=cfg.model,
+            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+            lora_weights_state_dict=(
+                checkpoint_dict[utils.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
+        )
+
+        utils.disable_dropout(self._model)
+        utils.disable_dropout(self._ref_model)
+
+        # TODO: mkove to config
+        self.beta = 0.1
+        self.label_smoothing = 0
+        self.loss_type = 'sigmoid'
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -317,9 +339,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             ),
         )
-        for batch in dataloader:
-            print(batch.keys())
-            import pdb; pdb.set_trace()
         log.info("Dataset and Sampler are initialized.")
 
         return sampler, dataloader
@@ -382,6 +401,161 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         ) % self._gradient_accumulation_steps == 0
         return should_update_weights
 
+    def concatenated_forward(self, model, batch):
+        concatenated_batch = self.concatenated_inputs(
+            batch,
+            label_pad_token_id=self._loss_fn.ignore_index,
+            padding_value=self._tokenizer.pad_id,
+            device=self._device,
+        )
+        len_chosen = batch["chosen_labels"].shape[0]
+
+        all_logits = model(concatenated_batch['concatenated_input_ids'])
+
+        all_logps = self.get_batch_logps(
+            all_logits,concatenated_batch["concatenated_labels"],self._loss_fn.ignore_index)
+        
+
+        chosen_logps = all_logps[:len_chosen]
+        rejected_logps = all_logps[len_chosen:]
+
+        chosen_logits = all_logits[:len_chosen]
+        rejected_logits = all_logits[len_chosen:]
+
+        return (chosen_logps, rejected_logps, chosen_logits, rejected_logits)
+    
+    @staticmethod
+    def concatenated_inputs(
+        batch: Dict[str, Union[List, torch.LongTensor]],
+        label_pad_token_id: int = -100,
+        padding_value: int = 0,
+        device: Optional[torch.device] = None,
+    ) -> Dict[str, torch.LongTensor]:
+        concatenated_batch = {}
+        max_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])
+
+        for k in batch:
+            if k.startswith("chosen") and isinstance(batch[k], torch.Tensor):
+                if "labels" in k:
+                    pad_value = label_pad_token_id
+                elif k.endswith("_input_ids"):
+                    pad_value = padding_value
+
+                concatenated_key = k.replace("chosen", "concatenated")
+                concatenated_batch[concatenated_key] = utils.pad_to_length(batch[k], max_length, pad_value=pad_value)
+        for k in batch:
+            if k.startswith("rejected") and isinstance(batch[k], torch.Tensor):
+                if "labels" in k:
+                    pad_value = label_pad_token_id
+                elif k.endswith("_input_ids"):
+                    pad_value = padding_value
+
+                concatenated_key = k.replace("rejected", "concatenated")
+                concatenated_batch[concatenated_key] = torch.cat(
+                    (
+                        concatenated_batch[concatenated_key],
+                        utils.pad_to_length(batch[k], max_length, pad_value=pad_value),
+                    ),
+                    dim=0,
+                ).to(device=device)
+        return concatenated_batch 
+
+    @staticmethod
+    def get_batch_logps(
+        logits: torch.FloatTensor,
+        labels: torch.LongTensor,
+        label_pad_token_id: int = -100,
+    ) -> torch.FloatTensor:
+        if logits.shape[:-1] != labels.shape:
+            raise ValueError("Logits (batch and sequence length dim) and labels must have the same shape.")
+        
+        labels = labels[:, 1:].clone()
+        logits = logits[:, :-1, :]
+        loss_mask = labels != label_pad_token_id
+
+        labels[labels == label_pad_token_id] = 0
+        per_token_logps = torch.gather(logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)).squeeze(2)
+
+        return (per_token_logps * loss_mask).sum(-1)
+         
+
+    def dpo_loss(
+        self,
+        policy_chosen_logps: torch.FloatTensor,
+        policy_rejected_logps: torch.FloatTensor,
+        reference_chosen_logps: torch.FloatTensor,
+        reference_rejected_logps: torch.FloatTensor,
+    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+        """Compute the DPO loss for a batch of policy and reference model log probabilities.
+
+        Args:
+            policy_chosen_logps: Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
+            policy_rejected_logps: Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
+            reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
+            reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
+
+        Returns:
+            A tuple of three tensors: (losses, chosen_rewards, rejected_rewards).
+            The losses tensor contains the DPO loss for each example in the batch.
+            The chosen_rewards and rejected_rewards tensors contain the rewards for the chosen and rejected responses, respectively.
+        """
+        pi_logratios = policy_chosen_logps - policy_rejected_logps
+        
+        ref_logratios = reference_chosen_logps - reference_rejected_logps
+
+        pi_logratios = pi_logratios.to(self._device)
+        ref_logratios = ref_logratios.to(self._device)
+        logits = pi_logratios - ref_logratios
+
+        # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5.
+        # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the labels and
+        # calculates a conservative DPO loss.
+        if self.loss_type == "sigmoid":
+            losses = (
+                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
+            )
+        elif self.loss_type == "hinge":
+            losses = torch.relu(1 - self.beta * logits)
+        elif self.loss_type == "ipo":
+            # eqn (17) of the paper where beta is the regularization parameter for the IPO loss, denoted by tau in the paper.
+            losses = (logits - 1 / (2 * self.beta)) ** 2
+        elif self.loss_type == "kto_pair":
+            # eqn (7) of the HALOs paper
+            chosen_KL = (policy_chosen_logps - reference_chosen_logps).mean().clamp(min=0)
+            rejected_KL = (policy_rejected_logps - reference_rejected_logps).mean().clamp(min=0)
+
+            chosen_logratios = policy_chosen_logps - reference_chosen_logps
+            rejected_logratios = policy_rejected_logps - reference_rejected_logps
+            # As described in the KTO report, the KL term for chosen (rejected) is estimated using the rejected (chosen) half.
+            losses = torch.cat(
+                (
+                    1 - F.sigmoid(self.beta * (chosen_logratios - rejected_KL)),
+                    1 - F.sigmoid(self.beta * (chosen_KL - rejected_logratios)),
+                ),
+                0,
+            )
+        else:
+            raise ValueError(
+                f"Unknown loss type: {self.loss_type}. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair']"
+            )
+
+        chosen_rewards = (
+            self.beta
+            * (
+                policy_chosen_logps.to(self._device) - reference_chosen_logps.to(self._device)
+            ).detach()
+        )
+        rejected_rewards = (
+            self.beta
+            * (
+                policy_rejected_logps.to(self._device)
+                - reference_rejected_logps.to(self._device)
+            ).detach()
+        )
+
+        return losses, chosen_rewards, rejected_rewards
+
     def train(self) -> None:
         """
         The core training loop.
@@ -399,19 +573,25 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
-
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
-
+            
+                (
+                    policy_chosen_logps,
+                    policy_rejected_logps,
+                    policy_chosen_logits,
+                    policy_rejected_logits,
+                ) = self.concatenated_forward(self._model, batch)
+ 
+                with torch.no_grad():
+                    (
+                        reference_chosen_logps,
+                        reference_rejected_logps,
+                        _,
+                        _,
+                    ) = self.concatenated_forward(self._ref_model, batch)
+                
+                loss, chosen_rewards, rejected_rewards = self.dpo_loss(policy_chosen_logps, policy_rejected_logps, 
+                                     reference_chosen_logps, reference_rejected_logps)
+                loss = loss.mean()
                 if self.total_training_steps % self._log_every_n_steps == 0:
                     pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
