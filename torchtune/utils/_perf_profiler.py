@@ -14,7 +14,7 @@ def perf_profiler(
     output_dir: Optional[str] = "./torchtune_perf_tracing.json",
 ) -> ContextManager:
     """
-    Utility component to measure the time and memory consumption of the model’s operators..
+    Utility component to measure the time and memory consumption of the model’s operators.
     check the user manual: https://pytorch.org/docs/stable/profiler.html for more details.
     The schedule for this profiler is wait 5 steps, warmup 5 steps, trace 5 steps
     Note: Enabling pytorch profiler may have training speed reduction.
