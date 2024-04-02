@@ -49,6 +49,6 @@ def sharegpt_to_llama2_messages(
     for message in conversations:
         role = role_map[message["from"]]
         content = message["value"]
-        masked = (role != "assistant") and train_on_input
+        masked = (role != "assistant") and (not train_on_input)
         messages.append(Message(role=role, content=content, masked=masked))
     return messages

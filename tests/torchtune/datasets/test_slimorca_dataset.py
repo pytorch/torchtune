@@ -48,7 +48,11 @@ class TestSlimOrcaDataset:
                 ]
             }
         ]
-        ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=max_seq_len)
+        ds = slimorca_dataset(
+            tokenizer=tokenizer,
+            max_seq_len=max_seq_len,
+            train_on_input=(max_seq_len == 128),
+        )
         input, label = ds[0]
         assert len(input) <= max_seq_len
         assert len(label) <= max_seq_len

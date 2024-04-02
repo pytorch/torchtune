@@ -93,7 +93,9 @@ class InstructDataset(Dataset):
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
-        labels = list(np.where(np.logical_not(mask), tokens, CROSS_ENTROPY_IGNORE_IDX))
+
+        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
         assert len(tokens) == len(labels)
 
         return tokens, labels
