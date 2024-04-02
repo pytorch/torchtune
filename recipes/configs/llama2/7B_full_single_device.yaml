@@ -74,3 +74,9 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/alpaca-llama2-finetune
 log_every_n_steps: null
+
+# Show case the usage of pytorch profiler
+# Only needed for debugging training
+perf_profiler:
+  _component_: torchtune.utils.perf_profiler
+  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
