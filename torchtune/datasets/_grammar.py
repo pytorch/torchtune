@@ -48,7 +48,7 @@ def grammar_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source="liweili/c4_200m",
-        template=GrammarErrorCorrectionTemplate(),
+        template=GrammarErrorCorrectionTemplate,
         column_map={"sentence": "input"},
         train_on_input=train_on_input,
         split="train",
