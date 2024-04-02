@@ -48,7 +48,7 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
-        "config", ["full_single_device_low_memory", "full_single_device"]
+        "config", ["full_low_memory", "full"]
     )
     def test_loss(self, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
