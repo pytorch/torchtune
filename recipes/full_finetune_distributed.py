@@ -164,7 +164,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
-            mode_tie=model_tie,
+            model_tie=model_tie,
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -210,7 +210,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
-        mode_tie: bool = False,
+        model_tie: bool = False,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -267,7 +267,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if mode_tie:  # Tie the weights of the model if required
+        if model_tie:  # Tie the weights of the model if required
             model.output.weight = model.tok_embeddings.weight
             log.info("Model weights are tied")
 
