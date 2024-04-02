@@ -439,6 +439,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
+        print(f"======={self._model_type}==========")
         if (
             self._model_type == "GEMMA"
         ):  # TODO: Remove this once we have a better way to handle this
@@ -454,6 +455,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     logger.info(
                         "Delete the model lm_head weight from the state dict "
                         "because it is the same as the model embed_tokens weight"
+                    )
+                else:
+                    self._weight_map["lm_head.weight"] = "0002"
+                    logger.info(
+                        "Add the model lm_head weight to the weight map manually"
                     )
 
         # split the state_dict into separate dicts, one for each output checkpoint file
