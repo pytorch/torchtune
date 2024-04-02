@@ -117,7 +117,7 @@ class MistralChatFormat(ChatFormat):
     """
 
     B_INST, E_INST = "[INST]", "[/INST]"
-    system = ""
+    system = None
     user = f"{B_INST} {{content}} {E_INST} "
     assistant = ""
 
