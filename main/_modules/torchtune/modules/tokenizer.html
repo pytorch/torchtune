@@ -477,9 +477,43 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
 
-    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="Tokenizer.tokenize_messages"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tokenize a list of messages one at a time then concatenate them,</span>
+<span class="sd">        returning a list of tokens and a list of masks.</span>
+
+<span class="sd">        Note: llama2 sentencepiece has problems where in general</span>
+<span class="sd">        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.</span>
+<span class="sd">        We can get around this by prepending s2 with a known token and slicing the</span>
+<span class="sd">        beginning off the tokenized s2.</span>
+
+<span class="sd">        Example:</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer = Tokenizer.from_file(tokenizer_path)</span>
+<span class="sd">            &gt;&gt;&gt; messages = [</span>
+<span class="sd">                Message(role=&quot;system&quot;, content=&quot;system message\n&quot;, masked=True),</span>
+<span class="sd">                Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
+<span class="sd">                Message(role=&quot;assistant&quot;, content=&quot;assistant response\n&quot;),</span>
+<span class="sd">                ]</span>
+<span class="sd">            # tokenize_messages encodes messages separately and concats</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages, max_seq_len)[0]</span>
+<span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
+
+
+<span class="sd">            # Same result as encoding the full string in one go</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer.encode(&#39;&#39;.join([message.content for message in messages]))</span>
+<span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
+
+
+<span class="sd">        Args:</span>
+<span class="sd">            messages (List[Message]): A list of messages, each containing role, content,</span>
+<span class="sd">                and masked attributes.</span>
+<span class="sd">            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.</span>
+<span class="sd">                Default: None</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[List[int], List[bool]]: The tokenized messages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">start_of_turn</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">end_of_turn</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="n">prev_ends_with_space</span> <span class="o">=</span> <span class="kc">False</span>
@@ -533,7 +567,7 @@
             <span class="n">tokenized_messages</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div>
+        <span class="k">return</span> <span class="n">tokenized_messages</span><span class="p">,</span> <span class="n">mask</span></div></div>
 </pre></div>
 
              </article>
