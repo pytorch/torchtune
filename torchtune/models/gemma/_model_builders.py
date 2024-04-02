@@ -22,6 +22,7 @@ the ``gemma_2b`` model builder uses the ``gemma`` component builder.
 def gemma_2b() -> TransformerDecoder:
     """
     Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values
+    from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
         TransformerDecoder: Instantiation of Gemma 2B model
