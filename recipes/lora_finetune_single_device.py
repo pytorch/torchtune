@@ -207,6 +207,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.total_training_steps - 1,
         )
 
+        self._profiler_enabled = cfg.profiler.enabled
+        self._profiler = config.instantiate(cfg.profiler)
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -380,49 +383,55 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                labels = labels.to(self._device)
+            # Optionally profile the training loop
+            with self._profiler:
+                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                logits = self._model(input_ids)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
+                    if self._profiler_enabled:
+                        self._profiler.step()
 
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                    )
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
-                # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
-                    )
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
+
+                    logits = self._model(input_ids)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+
+                    if self.total_training_steps % self._log_every_n_steps == 0:
+                        pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
+                        )
+                    loss = loss / self._gradient_accumulation_steps
+                    loss.backward()
+                    if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        self._lr_scheduler.step()
+                        # Update the number of steps when the weights are updated
+                        self.total_training_steps += 1
+                    # Log peak memory for iteration
+                    if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                        log.info(
+                            utils.memory_stats_log("Memory Stats:", device=self._device)
+                        )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
