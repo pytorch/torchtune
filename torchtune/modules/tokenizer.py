@@ -126,7 +126,7 @@ class Tokenizer:
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
     ) -> Tuple[List[int], List[bool]]:
-        """Tokenize a list of messages one at a time then concatenate them,
+        r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
         Note: llama2 sentencepiece has problems where in general
@@ -139,11 +139,12 @@ class Tokenizer:
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
-                Message(role="assistant", content="assistant response"),
-            ]
+                Message(role="assistant", content="assistant response\n"),
+                ]
             # tokenize_messages encodes messages separately and concats
             >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
+
 
             # Same result as encoding the full string in one go
             >>> tokenizer.encode(''.join([message.content for message in messages]))
