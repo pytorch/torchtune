@@ -358,7 +358,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatTemplate</span><span class="p">,</span> <span class="n">sharegpt_to_llama2_dialogue</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">sharegpt_to_llama2_messages</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.datasets._chat</span> <span class="kn">import</span> <span class="n">ChatDataset</span>
 
@@ -415,8 +415,8 @@
     <span class="k">return</span> <span class="n">ChatDataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
-        <span class="n">convert_to_dialogue</span><span class="o">=</span><span class="n">sharegpt_to_llama2_dialogue</span><span class="p">,</span>
-        <span class="n">template</span><span class="o">=</span><span class="n">Llama2ChatTemplate</span><span class="p">(),</span>
+        <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">sharegpt_to_llama2_messages</span><span class="p">,</span>
+        <span class="n">chat_format</span><span class="o">=</span><span class="n">Llama2ChatFormat</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
