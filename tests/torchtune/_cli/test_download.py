@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -7,27 +6,62 @@
 
 import runpy
 import sys
-import tempfile
-from unittest.mock import patch
 
 import pytest
-
 from tests.common import TUNE_PATH
 
 
-class TestTuneCLIWithDownloadScript:
-    def test_download_no_hf_token_set_for_gated_model(self, capsys):
-        model = "meta-llama/Llama-2-7b"
-        testargs = f"tune download --repo-id {model}".split()
-        with patch.object(sys, "argv", testargs):
-            with pytest.raises(ValueError) as e:
-                runpy.run_path(TUNE_PATH, run_name="__main__")
+class TestTuneDownloadCommand:
+    """This class tests the `tune download` command."""
 
-    def test_download_calls_snapshot(self, capsys):
+    @pytest.fixture
+    def snapshot_download(self, mocker, tmpdir):
+
+        from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
+
+        yield mocker.patch(
+            "torchtune._cli.download.snapshot_download",
+            return_value=tmpdir,
+            # Side effects are iterated through on each call
+            side_effect=[
+                GatedRepoError("test"),
+                RepositoryNotFoundError("test"),
+                mocker.DEFAULT,
+            ],
+        )
+
+    def test_download_calls_snapshot(self, capsys, monkeypatch, snapshot_download):
         model = "meta-llama/Llama-2-7b"
-        with tempfile.TemporaryDirectory() as tmpdir:
-            testargs = f"tune download --repo-id {model} --output-dir {tmpdir} --hf-token ABCDEF".split()
-            with patch.object(sys, "argv", testargs):
-                with patch("huggingface_hub.snapshot_download") as snapshot:
-                    runpy.run_path(TUNE_PATH, run_name="__main__")
-                    snapshot.assert_called_once()
+        testargs = f"tune download {model}".split()
+        monkeypatch.setattr(sys, "argv", testargs)
+
+        # Call the first time and get GatedRepoError
+        with pytest.raises(SystemExit, match="2"):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+        out_err = capsys.readouterr()
+        assert (
+            "Ignoring files matching the following patterns: *.safetensors"
+            in out_err.out
+        )
+        assert (
+            "It looks like you are trying to access a gated repository." in out_err.err
+        )
+
+        # Call the second time and get RepositoryNotFoundError
+        with pytest.raises(SystemExit, match="2"):
+            runpy.run_path(TUNE_PATH, run_name="__main__")
+        out_err = capsys.readouterr()
+        assert (
+            "Ignoring files matching the following patterns: *.safetensors"
+            in out_err.out
+        )
+        assert "not found on the Hugging Face Hub" in out_err.err
+
+        # Call the third time and get the expected output
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+        output = capsys.readouterr().out
+        assert "Ignoring files matching the following patterns: *.safetensors" in output
+        assert "Successfully downloaded model repo" in output
+
+        # Make sure it was called twice
+        assert snapshot_download.call_count == 3

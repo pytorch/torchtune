@@ -8,17 +8,18 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Mapping, Optional
 
 
-class PromptTemplate(ABC):
+class InstructTemplate(ABC):
     """
-    Interface for prompt templates. Each template should include the template
+    Interface for instruction templates. Each template should include the template
     prompt with placeholders for the data inputs.
     """
 
     template = ""
 
+    @classmethod
     @abstractmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Format the prompt template with the given arguments.
@@ -36,7 +37,7 @@ class PromptTemplate(ABC):
         pass
 
 
-class AlpacaInstructTemplate(PromptTemplate):
+class AlpacaInstructTemplate(InstructTemplate):
     """
     Prompt template for the Alpaca dataset. Template prompt changes slightly depending
     on if there's an instruction + input or just an instruction.
@@ -55,8 +56,9 @@ class AlpacaInstructTemplate(PromptTemplate):
         ),
     }
 
+    @classmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from instruction and input.
@@ -70,33 +72,31 @@ class AlpacaInstructTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None:
-            key_input = column_map["input"]
-            key_instruction = column_map["instruction"]
-        else:
-            key_input = "input"
-            key_instruction = "instruction"
+        column_map = column_map or {}
+        key_input = column_map.get("input", "input")
+        key_instruction = column_map.get("instruction", "instruction")
 
         if key_input in sample and sample[key_input]:
-            prompt = self.template["prompt_input"].format(
+            prompt = cls.template["prompt_input"].format(
                 instruction=sample[key_instruction], input=sample[key_input]
             )
         else:
-            prompt = self.template["prompt_no_input"].format(
+            prompt = cls.template["prompt_no_input"].format(
                 instruction=sample[key_instruction]
             )
         return prompt
 
 
-class GrammarErrorCorrectionTemplate(PromptTemplate):
+class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
     Prompt template for the Grammar dataset.
     """
 
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
 
+    @classmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from sentence.
@@ -110,24 +110,23 @@ class GrammarErrorCorrectionTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None and "sentence" in column_map:
-            key_sentence = column_map["sentence"]
-        else:
-            key_sentence = "sentence"
+        column_map = column_map or {}
+        key_sentence = column_map.get("sentence", "sentence")
 
-        prompt = self.template.format(sentence=sample[key_sentence])
+        prompt = cls.template.format(sentence=sample[key_sentence])
         return prompt
 
 
-class SummarizeTemplate(PromptTemplate):
+class SummarizeTemplate(InstructTemplate):
     """
     Prompt template to format datasets for summarization tasks.
     """
 
     template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
+    @classmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from dialogue.
@@ -141,10 +140,8 @@ class SummarizeTemplate(PromptTemplate):
         Returns:
             The formatted prompt
         """
-        if column_map is not None and "dialogue" in column_map:
-            key_dialogue = column_map["dialogue"]
-        else:
-            key_dialogue = "dialogue"
+        column_map = column_map or {}
+        key_dialogue = column_map.get("dialogue", "dialogue")
 
-        prompt = self.template.format(dialogue=sample[key_dialogue])
+        prompt = cls.template.format(dialogue=sample[key_dialogue])
         return prompt

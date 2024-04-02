@@ -135,8 +135,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
 
-        seed = utils.set_seed(seed=self._cfg.seed)
-        logger.info(f"Random seed set to {seed}.")
+        utils.set_seed(seed=self._cfg.seed)
 
         ckpt_dict = self.load_checkpoint(self._cfg.checkpointer)
         self._model = self._setup_model(

@@ -122,14 +122,16 @@ class CausalSelfAttention(nn.Module):
         self,
         x: Tensor,
         mask: Optional[Tensor] = None,
-        curr_pos: int = 0,
+        input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): boolean mask, defaults to None.
-            curr_pos (int): current position in the sequence, defaults to 0.
+            mask (Optional[Tensor]): Optional tensor which contains the mask.
+                Only used during inference. Default is None.
+            input_pos (Optional[Tensor]): Optional tensor which contains the position
+                of the current token. This is only used during inference. Default is None
 
         Returns:
             Tensor: output tensor with attention applied
@@ -149,7 +151,6 @@ class CausalSelfAttention(nn.Module):
             - Return the attention weights
             - Make application of positional embeddings optional
         """
-
         # input has shape [b, s, d]
         bsz, seq_len, _ = x.shape
 
@@ -190,19 +191,17 @@ class CausalSelfAttention(nn.Module):
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
         # Apply positional embeddings
-        q = self.pos_embeddings(q, curr_pos)
-        k = self.pos_embeddings(k, curr_pos)
-
-        # Update key-value cache
-        if self.kv_cache is not None:
-            k, v = self.kv_cache.update(
-                bsz=bsz, seq_len=seq_len, curr_pos=curr_pos, k_val=k, v_val=v
-            )
+        q = self.pos_embeddings(q, input_pos)
+        k = self.pos_embeddings(k, input_pos)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
         k = k.transpose(1, 2)
         v = v.transpose(1, 2)
+
+        # Update key-value cache
+        if self.kv_cache is not None:
+            k, v = self.kv_cache.update(input_pos, k, v)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(

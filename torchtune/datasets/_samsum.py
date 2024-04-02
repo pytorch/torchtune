@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data import SummarizeTemplate
-from torchtune.datasets._instruct import InstructDataset
+from torchtune.datasets import InstructDataset
 from torchtune.modules import Tokenizer
 
 
@@ -14,7 +14,7 @@ def samsum_dataset(
     train_on_input: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Summarize dataset and its variants from HuggingFace Datasets.
+    Support for the Summarize dataset and its variants from Hugging Face Datasets.
     https://huggingface.co/datasets/samsum
 
     Data input format: https://huggingface.co/datasets/samsum#data-fields
@@ -48,7 +48,7 @@ def samsum_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source="samsum",
-        template=SummarizeTemplate(),
+        template=SummarizeTemplate,
         column_map={"output": "summary"},
         train_on_input=train_on_input,
         split="train",

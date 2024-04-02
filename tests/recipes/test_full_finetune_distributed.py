@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
-
 import runpy
 
 import sys
@@ -22,9 +20,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     gpu_test,
 )
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 
 class TestFullFinetuneDistributedRecipe:
@@ -58,10 +53,10 @@ class TestFullFinetuneDistributedRecipe:
         write_hf_ckpt_config(ckpt_dir)
 
         cmd = f"""
-        tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed \
             --config llama2/7B_full \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer
+            checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \

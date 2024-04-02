@@ -22,7 +22,7 @@ llama2 7B model.
 """
 
 
-def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+def llama2_7b() -> TransformerDecoder:
     """
     Builder for creating a Llama2 model initialized w/ the default 7b parameter values
     from https://arxiv.org/abs/2307.09288
@@ -40,7 +40,6 @@ def llama2_7b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=4096,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
     )
@@ -59,7 +58,6 @@ def lora_llama2_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    max_batch_size: Optional[int] = None,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -95,7 +93,6 @@ def lora_llama2_7b(
         num_kv_heads=32,
         embed_dim=4096,
         max_seq_len=4096,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
         lora_rank=lora_rank,
@@ -113,7 +110,7 @@ Please see `lora_llama2_7b` for full API arguments.
 """
 
 
-def llama2_13b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+def llama2_13b() -> TransformerDecoder:
     """
     Builder for creating a Llama2 model initialized w/ the default 13b parameter values
     from https://arxiv.org/abs/2307.09288
@@ -132,7 +129,6 @@ def llama2_13b(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         embed_dim=5120,
         intermediate_dim=13824,
         max_seq_len=4096,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
     )
@@ -144,7 +140,6 @@ def lora_llama2_13b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    max_batch_size: Optional[int] = None,
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
@@ -182,11 +177,12 @@ def lora_llama2_13b(
         embed_dim=5120,
         max_seq_len=4096,
         intermediate_dim=13824,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
-        quantize_base=False,
+        quantize_base=quantize_base,
     )
+
+qlora_llama2_13b = partial(lora_llama2_13b, quantize_base=True)

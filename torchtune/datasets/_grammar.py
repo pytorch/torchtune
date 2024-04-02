@@ -14,7 +14,7 @@ def grammar_dataset(
     train_on_input: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Grammar dataset and its variants from HuggingFace Datasets.
+    Support for the Grammar dataset and its variants from Hugging Face Datasets.
     https://huggingface.co/datasets/liweili/c4_200m
 
     Data input format: https://huggingface.co/datasets/liweili/c4_200m#description
@@ -48,7 +48,7 @@ def grammar_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source="liweili/c4_200m",
-        template=GrammarErrorCorrectionTemplate(),
+        template=GrammarErrorCorrectionTemplate,
         column_map={"sentence": "input"},
         train_on_input=train_on_input,
         split="train",

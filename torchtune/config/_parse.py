@@ -10,7 +10,7 @@ from typing import Any, Callable
 
 from omegaconf import DictConfig
 from torchtune.config._utils import _merge_yaml_and_cli_args
-from torchtune.utils.argparse import TuneArgumentParser
+from torchtune.utils.argparse import TuneRecipeArgumentParser
 from torchtune.utils.logging import get_logger
 
 
@@ -40,7 +40,7 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
 
     @functools.wraps(recipe_main)
     def wrapper(*args: Any, **kwargs: Any) -> Any:
-        parser = TuneArgumentParser(
+        parser = TuneRecipeArgumentParser(
             description=recipe_main.__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter,
         )
