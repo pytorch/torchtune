@@ -15,7 +15,6 @@ from torchtune.modules.low_precision import (  # noqa: F401
     FrozenNF4Linear,
 )
 from torchtune.modules.peft.peft_utils import AdapterModule
-from torchtune.utils.tensor_utils import _copy_tensor
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -101,7 +100,7 @@ class LoRALinear(nn.Module, AdapterModule):
                 raise NotImplementedError(
                     "Quantized LoRALinear does not support bias at the moment."
                 )
-            bias = _copy_tensor(linear.bias)
+            bias = linear.bias
         return weight, bias
 
     def adapter_params(self) -> List[str]:
