@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import utils
-from torchtune.modules.low_precision import reparametrize_as_bf16_state_dict_post_hook
+from torchtune.modules.low_precision import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
@@ -111,8 +111,9 @@ class TestLoRALinear:
                 quantize_base=True,
             )
 
-    def test_qlora_parity(self):
-        with utils.set_default_dtype(torch.bfloat16):
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_qlora_parity(self, dtype):
+        with utils.set_default_dtype(dtype):
             qlora_linear = LoRALinear(
                 in_dim=512,
                 out_dim=512,
@@ -130,20 +131,21 @@ class TestLoRALinear:
                 quantize_base=False,
             )
 
-        # set weight of lora_linear to unquantized bf16 of qlora_linear and check
+        # set weight of lora_linear to unquantized weight of qlora_linear and check
         # parity.
-        lora_linear.weight.data = qlora_linear.weight.get_original_weight()
+        lora_linear.weight.data = qlora_linear.weight.to(dtype)
 
         # Ensure forward passes are the same. This is because LoRALinear should use a special
-        # quantized linear operator that runs compute in bf16 (but only saves the 4 bit quantized tensor)
+        # quantized linear operator that runs compute in higher prec (but only saves the 4 bit quantized tensor)
         # for autograd.
-        inputs = torch.randn(BSZ, SEQ_LEN, 512, dtype=torch.bfloat16)
+        inputs = torch.randn(BSZ, SEQ_LEN, 512, dtype=dtype)
         lora_linear_out = lora_linear(inputs)
         qlora_linear_out = qlora_linear(inputs)
         torch.testing.assert_close(lora_linear_out, qlora_linear_out)
 
-    def test_quantized_state_dict_bf16(self):
-        with utils.set_default_dtype(torch.bfloat16):
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_quantized_state_dict(self, dtype):
+        with utils.set_default_dtype(dtype):
             lora_linear = LoRALinear(
                 in_dim=512,
                 out_dim=512,
@@ -154,12 +156,16 @@ class TestLoRALinear:
             )
 
         lora_linear._register_state_dict_hook(
-            partial(reparametrize_as_bf16_state_dict_post_hook, offload_to_cpu=False)
+            partial(
+                reparametrize_as_dtype_state_dict_post_hook,
+                dtype=dtype,
+                offload_to_cpu=False,
+            )
         )
         sd = lora_linear.state_dict()
-        # No nf4 tensors, all bf16
+        # No nf4 tensors, all have type dtype
         for v in sd.values():
-            assert v.dtype == torch.bfloat16
+            assert v.dtype == dtype
             assert not isinstance(v, NF4Tensor)
 
         # Load back in results in re-quant and creates the same nf4 tensor.
@@ -177,7 +183,7 @@ class TestLoRALinear:
             to_nf4(
                 torch.zeros_like(
                     lora_linear.weight.get_original_weight(),
-                    dtype=torch.bfloat16,
+                    dtype=dtype,
                     device=lora_linear.weight.device,
                 )
             )
