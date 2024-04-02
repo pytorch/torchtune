@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import re
 from argparse import Namespace
 from importlib import import_module
 from types import ModuleType
@@ -13,7 +12,6 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.data._templates import PromptTemplate
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
@@ -150,37 +148,3 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
 
     # CLI takes precedence over yaml args
     return OmegaConf.merge(yaml_conf, cli_conf)
-
-
-def _get_template(template: str) -> PromptTemplate:
-    """
-    Get the prompt template class from the template string.
-
-    String should either be the PromptTemplate class name directly, or a raw
-    string with 1 or more placeholders. If none of these apply, then raise an
-    error.
-
-    Args:
-        template (str): class name of template, or string with placeholders
-
-    Returns:
-        PromptTemplate: the prompt template class or the same verified string
-
-    Raises:
-        ValueError: if the template is not a PromptTemplate class or a proper
-            template string
-    """
-    path = "torchtune.data." + template
-    try:
-        template_class = _get_component_from_path(path)
-        return template_class()
-    except InstantiationError:
-        # Verify that string can be used as a template, should have variable
-        # placeholders
-        pattern = r"\{\w+\}"
-        if not re.search(pattern, template):
-            raise ValueError(
-                f"Invalid template '{template}': "
-                + "Must be a PromptTemplate class or a string with placeholders."
-            ) from None
-        return template

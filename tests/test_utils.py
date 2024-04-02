@@ -18,7 +18,7 @@ import pytest
 
 import torch
 from torch import nn
-
+from torchtune.modules import Tokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -31,8 +31,11 @@ CKPT_MODEL_PATHS = {
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
 }
 
+# Inherit from tokenizer class to reuse its tokenize_messages method
+class DummyTokenizer(Tokenizer):
+    def __init__(self):
+        self.encodes_whitespace = False
 
-class DummyTokenizer:
     def encode(self, text, add_bos=True, add_eos=True, **kwargs):
         words = text.split()
         tokens = [len(word) for word in words]

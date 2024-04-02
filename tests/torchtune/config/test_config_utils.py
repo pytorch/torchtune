@@ -9,11 +9,9 @@ from unittest import mock
 import pytest
 from torchtune.config._utils import (
     _get_component_from_path,
-    _get_template,
     _merge_yaml_and_cli_args,
     InstantiationError,
 )
-from torchtune.data import AlpacaInstructTemplate
 from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
@@ -109,33 +107,3 @@ class TestUtils:
             ValueError, match="Command-line overrides must be in the form of key=value"
         ):
             _ = _merge_yaml_and_cli_args(yaml_args, cli_args)
-
-    def test_get_template(self):
-        # Test valid template class
-        template = _get_template("AlpacaInstructTemplate")
-        assert isinstance(template, AlpacaInstructTemplate)
-
-        # Test invalid template class
-        with pytest.raises(
-            ValueError,
-            match="Must be a PromptTemplate class or a string with placeholders.",
-        ):
-            _ = _get_template("InvalidTemplate")
-
-        # Test valid template strings
-        valid_templates = [
-            "Instruction: {instruction}\nInput: {input}",
-            "Instruction: {instruction}",
-            "{a}",
-        ]
-        for template in valid_templates:
-            assert _get_template(template) == template
-
-        # Test invalid template strings
-        invalid_templates = ["hello", "{}", "a}{b"]
-        for template in invalid_templates:
-            with pytest.raises(
-                ValueError,
-                match="Must be a PromptTemplate class or a string with placeholders.",
-            ):
-                _ = _get_template(template)
