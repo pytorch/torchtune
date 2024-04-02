@@ -366,6 +366,8 @@
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">Tensor</span>
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span><span class="p">,</span> <span class="n">to_nf4</span>
 
+<span class="c1"># TESTING</span>
+
 
 <div class="viewcode-block" id="FrozenNF4Linear"><a class="viewcode-back" href="../../../../generated/torchtune.modules.low_precision.FrozenNF4Linear.html#torchtune.modules.low_precision.FrozenNF4Linear">[docs]</a><span class="k">class</span> <span class="nc">FrozenNF4Linear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -374,8 +376,6 @@
 <span class="sd">    and is meant to be used as the base Linear layer for modeling</span>
 <span class="sd">    use cases such as QLoRA where base model parameters are frozen.</span>
 <span class="sd">    NOTE: biases are currently not supported.</span>
-<span class="sd">    NOTE: This class always creates the underlying full precision weight as bf16 dtypte. Note that</span>
-<span class="sd">    this will override the default PyTorch dtype that is set via `torch.set_default_dtype`.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        in_dim (int): input dimension</span>
@@ -386,7 +386,6 @@
 
 <span class="sd">    Raises:</span>
 <span class="sd">        RuntimeError: if ``bias`` is set to ``True``</span>
-<span class="sd">        RuntimeError: if ``dtype`` is not set to ``torch.bfloat16``</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -395,27 +394,16 @@
         <span class="k">if</span> <span class="s2">&quot;bias&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">and</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;bias&quot;</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;FrozenNF4Linear does not currently support biases!&quot;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="s2">&quot;dtype&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-            <span class="n">kwargs_dtype</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dtype&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">kwargs_dtype</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                    <span class="s2">&quot;FrozenNF4Linear is only supported with bf16 parameter currently.&quot;</span>
-                <span class="p">)</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
-            <span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
-        <span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">requires_grad_</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nf4_weight</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
         <span class="c1"># re-register self.weight as the nf4 weight, so that the nf4 weight</span>
         <span class="c1"># shows up as expected in .parameters, state_dict, etc.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nf4_weight</span><span class="p">,</span> <span class="n">requires_grad</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="c1"># TODO: likely need to handle state_dict save &amp; load via hooks to properly manage</span>
-        <span class="c1"># types.</span>
-
 <div class="viewcode-block" id="FrozenNF4Linear.forward"><a class="viewcode-back" href="../../../../generated/torchtune.modules.low_precision.FrozenNF4Linear.html#torchtune.modules.low_precision.FrozenNF4Linear.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Runs linear operation with input tensor as given by `input`. Computation happens in bf16</span>
+<span class="sd">        Runs linear operation with input tensor as given by `input`. Computation happens in higher</span>
 <span class="sd">        precision, though only the nf4 weight is saved for backward for gradient computation to ensure</span>
 <span class="sd">        additional memory is not used.</span>
 <span class="sd">        Args:</span>

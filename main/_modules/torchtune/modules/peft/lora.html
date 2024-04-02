@@ -363,13 +363,13 @@
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+
 <span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">linear_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.low_precision</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: F401</span>
     <span class="n">_register_nf4_dispatch_ops</span><span class="p">,</span>
     <span class="n">FrozenNF4Linear</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft.peft_utils</span> <span class="kn">import</span> <span class="n">AdapterModule</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.tensor_utils</span> <span class="kn">import</span> <span class="n">_copy_tensor</span>
 
 
 <div class="viewcode-block" id="LoRALinear"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear">[docs]</a><span class="k">class</span> <span class="nc">LoRALinear</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">AdapterModule</span><span class="p">):</span>
@@ -455,7 +455,7 @@
                 <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
                     <span class="s2">&quot;Quantized LoRALinear does not support bias at the moment.&quot;</span>
                 <span class="p">)</span>
-            <span class="n">bias</span> <span class="o">=</span> <span class="n">_copy_tensor</span><span class="p">(</span><span class="n">linear</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span>
+            <span class="n">bias</span> <span class="o">=</span> <span class="n">linear</span><span class="o">.</span><span class="n">bias</span>
         <span class="k">return</span> <span class="n">weight</span><span class="p">,</span> <span class="n">bias</span>
 
 <div class="viewcode-block" id="LoRALinear.adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">[docs]</a>    <span class="k">def</span> <span class="nf">adapter_params</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
