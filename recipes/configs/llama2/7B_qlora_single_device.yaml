@@ -81,3 +81,9 @@ log_every_n_steps: 1
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
+
+# Show case the usage of pytorch profiler
+# Only needed for debugging training
+perf_profiler:
+  _component_: torchtune.utils.perf_profiler
+  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
