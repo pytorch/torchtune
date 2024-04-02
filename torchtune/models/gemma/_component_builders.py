@@ -361,6 +361,7 @@ def lora_gemma_mlp(
 
     Returns:
         FeedForward: instantiation of the MLP module with LoRA applied to
+        gate_proj, down_proj and up_proj.
     """
     gate_proj = LoRALinear(
         in_dim=dim,
