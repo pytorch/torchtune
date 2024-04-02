@@ -1,0 +1,46 @@
+name: Build Linux Wheels
+
+on:
+  pull_request:
+  push:
+    branches:
+      - nightly
+  workflow_dispatch:
+
+jobs:
+  generate-matrix:
+    uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
+    with:
+      package-type: wheel
+      os: linux
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
+      # TODO #1: Want to build with CUDA support? Enter "enable" or "disable".
+      with-cuda: enable
+      # TODO #2: Want to build with RoCM support? Enter "enable" or "disable".
+      with-rocm: disable
+      # TODO #3: Want to build with CPU support? Enter "enable" or "disable".
+      with-cpu: enable
+  build:
+    needs: generate-matrix
+    name: ${{ matrix.repository }}
+    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
+    with:
+      # TODO #4: Enter the name of your repo
+      repository: pytorch/torchtune
+      ref: ""
+      # TODO #5: Have custom build steps before building the wheel? Pass the path to the shell script with those steps below.
+      pre-script: <path/to/your/Custom_Pre_Build_Script.sh>
+      # TODO #6: Same as above, but post-build steps. If you have none, just use "".
+      post-script: <path/to/your/Custom_Post_Build_Script.sh>
+      # TODO #7: Want to verify the correctness of your binaries before distributing them? Add custom python smoke tests below.
+      smoke-test-script: <path/to/your/Smoke_Tests.py>
+      # TODO #8: Enter the name of your python package below. (for example, torchvision)
+      package-name: torchtune
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
+      build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+      trigger-event: ${{ github.event_name }}
+    secrets:
+      AWS_PYTORCH_UPLOADER_ACCESS_KEY_ID: ${{ secrets.AWS_PYTORCH_UPLOADER_ACCESS_KEY_ID }}
+      AWS_PYTORCH_UPLOADER_SECRET_ACCESS_KEY: ${{ secrets.AWS_PYTORCH_UPLOADER_SECRET_ACCESS_KEY }}
