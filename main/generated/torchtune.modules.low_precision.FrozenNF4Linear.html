@@ -367,7 +367,9 @@
 NF4Tensor as its weight. This class also freezes its <code class="docutils literal notranslate"><span class="pre">weight</span></code> parameter
 and is meant to be used as the base Linear layer for modeling
 use cases such as QLoRA where base model parameters are frozen.
-NOTE: biases are currently not supported.</p>
+NOTE: biases are currently not supported.
+NOTE: This class always creates the underlying full precision weight as bf16 dtypte. Note that
+this will override the default PyTorch dtype that is set via <cite>torch.set_default_dtype</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -379,13 +381,16 @@ device given by <cite>torch.get_default_device()</cite>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><strong>RuntimeError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">bias</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code></p>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><strong>RuntimeError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">bias</span></code> is set to <code class="docutils literal notranslate"><span class="pre">True</span></code></p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><strong>RuntimeError</strong></a> – if <code class="docutils literal notranslate"><span class="pre">dtype</span></code> is not set to <code class="docutils literal notranslate"><span class="pre">torch.bfloat16</span></code></p></li>
+</ul>
 </dd>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.modules.low_precision.FrozenNF4Linear.forward">
 <span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.2)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.2)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/low_precision/nf4_linear.html#FrozenNF4Linear.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.low_precision.FrozenNF4Linear.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Runs linear operation with input tensor as given by <cite>input</cite>. Computation happens in higher
+<dd><p>Runs linear operation with input tensor as given by <cite>input</cite>. Computation happens in bf16
 precision, though only the nf4 weight is saved for backward for gradient computation to ensure
 additional memory is not used.
 :param input: input tensor
