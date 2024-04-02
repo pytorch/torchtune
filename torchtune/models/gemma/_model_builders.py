@@ -8,7 +8,7 @@ from functools import partial
 
 from torch import nn
 
-from torchtune.models.gemma._component_builders import gemma, lora_gemma
+from torchtune.models.gemma._component_builders import gemma
 
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
