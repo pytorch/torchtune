@@ -78,12 +78,19 @@ class TestTokenizer:
         messages = [
             Message(
                 role="user",
-                content="Below is an instruction that describes a task. Write a response that appropriately completes the request.\n\n### Instruction:\nGenerate a realistic dating profile bio.\n\n### Response:\n",  # noqa
+                content="Below is an instruction that describes a task. Write a response "
+                "that appropriately completes the request.\n\n### Instruction:\nGenerate "
+                "a realistic dating profile bio.\n\n### Response:\n",
                 masked=True,
             ),
             Message(
                 role="assistant",
-                content="I'm an outgoing and friendly person who loves spending time with friends and family. I'm also a big-time foodie and love trying out new restaurants and different cuisines. I'm a big fan of the arts and enjoy going to museums and galleries. I'm looking for someone who shares my interest in exploring new places, as well as someone who appreciates a good conversation over coffee.",  # noqa
+                content="I'm an outgoing and friendly person who loves spending time with "
+                "friends and family. I'm also a big-time foodie and love trying out new "
+                "restaurants and different cuisines. I'm a big fan of the arts and enjoy "
+                "going to museums and galleries. I'm looking for someone who shares my "
+                "interest in exploring new places, as well as someone who appreciates a "
+                "good conversation over coffee.",
             ),
         ]
         tokens, mask = tokenizer.tokenize_messages(messages)

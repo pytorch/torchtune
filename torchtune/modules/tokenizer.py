@@ -44,10 +44,9 @@ class Tokenizer:
         self.bos_id = bos_id
         self.eos_id = eos_id
         self.pad_id = pad_id
-        self.whitespace_encodings = {
-            c: self.spm_model.encode(c) for c in WHITESPACE_CHARS
-        }
-        self.encodes_whitespace = any(self.whitespace_encodings.values())
+        self.encodes_whitespace = any(
+            [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
+        )
 
     @classmethod
     def from_file(cls, path: str) -> "Tokenizer":
@@ -78,9 +77,12 @@ class Tokenizer:
             add_bos (bool): Whether to prepend BOS to the input, defaults to True.
             add_eos (bool): Whether to append EOS to the input, defaults to True.
             trim_leading_whitespace (bool): Whether to trim leading whitespace from
-                underlying sentencepiece tokenization. Default: False
+                underlying sentencepiece tokenization. Sentencepiece normally prepends
+                whitespace to any tokenized text, which can cause differences where
+                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+                added to s2. Default: False
             prefix (Optional[str]): Optional string to encode for trimming leading
-                whitespaces. Default: None
+                whitespaces. Used only if trim_leading_whitespace=True. Default: None
         Returns:
             List[int]: The encoded token IDs.
         """
@@ -155,16 +157,16 @@ class Tokenizer:
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
-            # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
-                break
-
             # If assistant message, append EOS at end
             if end_of_turn:
                 tokenized_messages.append(self.eos_id)
                 mask.append(message.masked)
                 end_of_turn = False
                 start_of_turn = True
+
+            # Break out early if we reach max_seq_len
+            if max_seq_len and len(tokenized_messages) >= max_seq_len:
+                break
 
         # Finally, truncate if necessary
         if max_seq_len:
