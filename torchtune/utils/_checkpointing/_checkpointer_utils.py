@@ -15,7 +15,6 @@ from safetensors import safe_open
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils._distributed import contains_fsdp
-from transformers.utils import is_safetensors_available
 
 
 class ModelType(Enum):
@@ -57,7 +56,7 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
-        if str(checkpoint_path).endswith(".safetensors") and is_safetensors_available():
+        if str(checkpoint_path).endswith(".safetensors"):
             result = {}
             with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
                 for k in f.keys():
