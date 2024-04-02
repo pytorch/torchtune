@@ -39,7 +39,7 @@ Then, it's as simple as:
 .. code-block:: bash
 
   tune download \
-  --repo-id meta-llama/Llama-2-7b \
+  meta-llama/Llama-2-7b \
   --output-dir /tmp/llama2 \
   --hf-token <ACCESS TOKEN>
 
@@ -78,7 +78,7 @@ It looks like there's already a config called :code:`alpaca_llama_full_finetune`
 
 .. code-block:: bash
 
-  tune cp llama2/7B_full.yaml custom_config.yaml
+  tune cp llama2/7B_full custom_config.yaml
 
 Now you can update the custom YAML config to point to your model and tokenizer. While you're at it,
 you can make some other changes, like setting the random seed in order to make replication easier,
@@ -138,7 +138,7 @@ run using two GPUs, it's as easy as:
 
 .. code-block:: bash
 
-  tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed.py --config custom_config.yaml
+  tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed --config custom_config.yaml
 
 You should see some immediate output and see the loss going down, indicating your model is training succesfully.
 
