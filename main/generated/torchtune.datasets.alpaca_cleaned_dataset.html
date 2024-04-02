@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>alpaca_dataset &mdash; TorchTune  documentation</title>
+  <title>alpaca_cleaned_dataset &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="alpaca_cleaned_dataset" href="torchtune.datasets.alpaca_cleaned_dataset.html" />
-    <link rel="prev" title="torchtune.datasets" href="../api_ref_datasets.html" />
+    <link rel="next" title="grammar_dataset" href="torchtune.datasets.grammar_dataset.html" />
+    <link rel="prev" title="alpaca_dataset" href="torchtune.datasets.alpaca_dataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -322,13 +322,13 @@
         
           <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
         
-      <li>alpaca_dataset</li>
+      <li>alpaca_cleaned_dataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.alpaca_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.datasets.alpaca_cleaned_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -358,13 +358,13 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="alpaca-dataset">
-<h1>alpaca_dataset<a class="headerlink" href="#alpaca-dataset" title="Permalink to this heading">¶</a></h1>
+  <section id="alpaca-cleaned-dataset">
+<h1>alpaca_cleaned_dataset<a class="headerlink" href="#alpaca-cleaned-dataset" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.datasets.alpaca_dataset">
-<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">alpaca_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer" title="torchtune.modules.tokenizer.Tokenizer"><span class="pre">Tokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">512</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">InstructDataset</span></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_alpaca.html#alpaca_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.alpaca_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Support for the Alpaca dataset from Hugging Face Datasets.
-<a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca">https://huggingface.co/datasets/tatsu-lab/alpaca</a></p>
+<dt class="sig sig-object py" id="torchtune.datasets.alpaca_cleaned_dataset">
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">alpaca_cleaned_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer" title="torchtune.modules.tokenizer.Tokenizer"><span class="pre">Tokenizer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">512</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">InstructDataset</span></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_alpaca.html#alpaca_cleaned_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.alpaca_cleaned_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Support for the Alpaca cleaned dataset from Hugging Face Datasets.
+<a class="reference external" href="https://huggingface.co/datasets/yahma/alpaca-cleaned">https://huggingface.co/datasets/yahma/alpaca-cleaned</a></p>
 <p>Data input format: <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances</a></p>
 <p>The input is created using the prompt template from the original alpaca codebase:
 <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31">https://github.com/tatsu-lab/stanford_alpaca/blob/761dc5bfbdeeffa89b8bff5d038781a4055f796a/train.py#L31</a></p>
@@ -374,6 +374,9 @@ set to <cite>True</cite> by default (ref: <a class="reference external" href="ht
 - If <cite>train_on_input</cite> is True, the prompt is used during training and
 contributes to the loss.
 - If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+<p>This is the cleaned version of the original Alpaca dataset, which removes hallucinations,
+poorly formed instructions/inputs/outputs, wrong answers, and other errors. See more details
+on the Hugging Face dataset card.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
@@ -411,10 +414,10 @@ For example, llama2-7B supports up to 4096 for sequence length.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.alpaca_cleaned_dataset.html" class="btn btn-neutral float-right" title="alpaca_cleaned_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.datasets.grammar_dataset.html" class="btn btn-neutral float-right" title="grammar_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="../api_ref_datasets.html" class="btn btn-neutral" title="torchtune.datasets" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.datasets.alpaca_dataset.html" class="btn btn-neutral" title="alpaca_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -446,7 +449,7 @@ For example, llama2-7B supports up to 4096 for sequence length.</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">alpaca_dataset</a></li>
+<li><a class="reference internal" href="#">alpaca_cleaned_dataset</a></li>
 </ul>
 
             </div>

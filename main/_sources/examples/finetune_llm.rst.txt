@@ -88,17 +88,9 @@ from Stanford. The following parameters are related to the data:
     # This is the default value
     train_on_input: True
 
-    # Train on the raw data, not the cleaned version
-    # This is the default value
-    use_clean: False
+    # Truncate after a maximum sequence length to limit memory usage
+    max_seq_len: 512
 
-    # Shuffle the data between epochs
-    # This is set in the config
-    shuffle: True
-
-.. note::
-    Shuffling the data after every epoch is a good practice. This helps makes sure the model does not learn
-    spurious patterns related to the how the data is sequenced.
 
 .. note::
     Set ``train_on_input`` to False if you want to learn on the label only i.e. mask out the prompt. The resulting loss

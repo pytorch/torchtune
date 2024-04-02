@@ -428,19 +428,9 @@ from Stanford. The following parameters are related to the data:</p>
 <span class="c1"># This is the default value</span>
 <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">True</span>
 
-<span class="c1"># Train on the raw data, not the cleaned version</span>
-<span class="c1"># This is the default value</span>
-<span class="n">use_clean</span><span class="p">:</span> <span class="kc">False</span>
-
-<span class="c1"># Shuffle the data between epochs</span>
-<span class="c1"># This is set in the config</span>
-<span class="n">shuffle</span><span class="p">:</span> <span class="kc">True</span>
+<span class="c1"># Truncate after a maximum sequence length to limit memory usage</span>
+<span class="n">max_seq_len</span><span class="p">:</span> <span class="mi">512</span>
 </pre></div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Shuffling the data after every epoch is a good practice. This helps makes sure the model does not learn
-spurious patterns related to the how the data is sequenced.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
