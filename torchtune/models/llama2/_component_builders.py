@@ -21,7 +21,7 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.modules.low_precision import reparametrize_as_bf16_state_dict_post_hook
+from torchtune.modules.low_precision import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
@@ -39,6 +39,7 @@ the building blocks simple.
 
 
 # ------------------ Vanilla Llama2 ------------------
+
 
 def llama2(
     vocab_size: int,
@@ -96,7 +97,9 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
@@ -117,6 +120,7 @@ def llama2(
         output=output_proj,
     )
 
+
 def llama2_mlp(dim: int, hidden_dim: int) -> FeedForward:
     """
     Build the MLP layer associated with the Llama model.
@@ -125,7 +129,6 @@ def llama2_mlp(dim: int, hidden_dim: int) -> FeedForward:
     down_proj = nn.Linear(hidden_dim, dim, bias=False)
     up_proj = nn.Linear(dim, hidden_dim, bias=False)
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
-
 
 
 # ------------------ LoRA Llama2 ------------------
@@ -206,7 +209,9 @@ def lora_llama2(
         quantize_base=quantize_base,
     )
 
-    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    hidden_dim = (
+        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    )
     if apply_lora_to_mlp:
         mlp = lora_llama2_mlp(
             dim=embed_dim,
@@ -245,10 +250,16 @@ def lora_llama2(
     )
 
     if quantize_base:
-        # For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly
+        # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
         model._register_state_dict_hook(
-            partial(reparametrize_as_bf16_state_dict_post_hook, offload_to_cpu=True)
+            partial(
+                reparametrize_as_dtype_state_dict_post_hook,
+                # TODO this is clowny, figure out a better way to get what precision the rest
+                # of the model is in
+                dtype=tok_embeddings.weight.dtype,
+                offload_to_cpu=True,
+            )
         )
 
     return model

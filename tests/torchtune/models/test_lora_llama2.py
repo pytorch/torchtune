@@ -203,8 +203,9 @@ class TestLoRALlama2:
             if isinstance(module, LoRALinear):
                 assert module._quantize_base
 
-    def test_qlora_llama2_parity(self, inputs):
-        with utils.set_default_dtype(torch.bfloat16):
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_qlora_llama2_parity(self, dtype, inputs):
+        with utils.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -212,7 +213,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=False,
                 embed_dim=512,
-                dtype=torch.bfloat16,
+                dtype=dtype,
             )
             qlora = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
@@ -221,7 +222,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
-                dtype=torch.bfloat16,
+                dtype=dtype,
             )
         qlora_sd = qlora.state_dict()
         model_ref.load_state_dict(qlora_sd)
@@ -232,8 +233,9 @@ class TestLoRALlama2:
         output = qlora(inputs)
         torch.testing.assert_close(ref_output, output)
 
-    def test_qlora_llama2_state_dict(self):
-        with utils.set_default_dtype(torch.bfloat16):
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_qlora_llama2_state_dict(self, dtype):
+        with utils.set_default_dtype(dtype):
             model_ref = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -241,11 +243,11 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=False,
                 embed_dim=512,
-                dtype=torch.bfloat16,
+                dtype=dtype,
             )
-            bf16_sd = model_ref.state_dict()
-            for v in bf16_sd.values():
-                assert v.dtype == torch.bfloat16
+            high_prec_sd = model_ref.state_dict()
+            for v in high_prec_sd.values():
+                assert v.dtype == dtype
 
             # ensure quantized LoRA can load a bf16 state_dict
             qlora = self.get_lora_llama2(
@@ -255,9 +257,9 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
-                dtype=torch.bfloat16,
+                dtype=dtype,
             )
-            qlora.load_state_dict(bf16_sd)
+            qlora.load_state_dict(high_prec_sd)
             # LoRALinear base weights should be nf4 still
             for module in qlora.modules():
                 if isinstance(module, LoRALinear):
@@ -265,10 +267,11 @@ class TestLoRALlama2:
             # saved state_dict should have bf16 weights.
             qlora_sd = qlora.state_dict()
             for v in qlora_sd.values():
-                assert v.dtype == torch.bfloat16
+                assert v.dtype == dtype
 
-    def test_qlora_llama2_merged_state_dict(self):
-        with utils.set_default_dtype(torch.bfloat16):
+    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    def test_qlora_llama2_merged_state_dict(self, dtype):
+        with utils.set_default_dtype(dtype):
             qlora = self.get_lora_llama2(
                 lora_modules=["q_proj", "v_proj", "k_proj", "output_proj"],
                 apply_lora_to_mlp=True,
@@ -276,7 +279,7 @@ class TestLoRALlama2:
                 vocab_size=50,
                 quantize_base=True,
                 embed_dim=512,
-                dtype=torch.bfloat16,
+                dtype=dtype,
                 reset_norm=False,  # to ensure norm.scale key exists
             )
 
@@ -286,10 +289,10 @@ class TestLoRALlama2:
         for v in merged_ckpt.values():
             # paranoid check for both, as NF4Tensor had issue where NF4Tensor.dtype would return bf16
             assert not isinstance(v, NF4Tensor)
-            assert v.dtype == torch.bfloat16
+            assert v.dtype == dtype
 
         # Ensure checkpoint can be loaded into non-LoRA model
-        with utils.set_default_dtype(torch.bfloat16):
+        with utils.set_default_dtype(dtype):
             llama2 = self.get_ref_llama2(vocab_size=50, embed_dim=512)
 
         llama2.load_state_dict(merged_ckpt)
