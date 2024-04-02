@@ -126,6 +126,40 @@ class Tokenizer:
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
     ) -> Tuple[List[int], List[bool]]:
+        r"""Tokenize a list of messages one at a time then concatenate them,
+        returning a list of tokens and a list of masks.
+
+        Note: llama2 sentencepiece has problems where in general
+        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
+        We can get around this by prepending s2 with a known token and slicing the
+        beginning off the tokenized s2.
+
+        Example:
+            >>> tokenizer = Tokenizer.from_file(tokenizer_path)
+            >>> messages = [
+                Message(role="system", content="system message\n", masked=True),
+                Message(role="user", content="user prompt\n", masked=True),
+                Message(role="assistant", content="assistant response\n"),
+                ]
+            # tokenize_messages encodes messages separately and concats
+            >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
+            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
+
+
+            # Same result as encoding the full string in one go
+            >>> tokenizer.encode(''.join([message.content for message in messages]))
+            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
+
+
+        Args:
+            messages (List[Message]): A list of messages, each containing role, content,
+                and masked attributes.
+            max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
+                Default: None
+
+        Returns:
+            Tuple[List[int], List[bool]]: The tokenized messages
+        """
         start_of_turn = True
         end_of_turn = False
         prev_ends_with_space = False
