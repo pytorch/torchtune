@@ -400,7 +400,7 @@ hosted on Hugging Face to complete this process. (This should take less than 5 m
 access token to the download script. You can find your token <a class="reference external" href="https://huggingface.co/settings/tokens">here</a>.</p>
 <p>Then, it’s as simple as:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span><span class="se">\</span>
---repo-id<span class="w"> </span>meta-llama/Llama-2-7b<span class="w"> </span><span class="se">\</span>
+meta-llama/Llama-2-7b<span class="w"> </span><span class="se">\</span>
 --output-dir<span class="w"> </span>/tmp/llama2<span class="w"> </span><span class="se">\</span>
 --hf-token<span class="w"> </span>&lt;ACCESS<span class="w"> </span>TOKEN&gt;
 </pre></div>
@@ -434,7 +434,7 @@ For a list of all currently supported datasets, see <a class="reference internal
 Or, you can visit the specific <a class="reference internal" href="finetune_llm.html#basic-finetune-llm"><span class="std std-ref">recipe page</span></a> and copy/paste the config from there.
 It looks like there’s already a config called <code class="code docutils literal notranslate"><span class="pre">alpaca_llama_full_finetune</span></code> that utilizes the popular
 <a class="reference external" href="https://crfm.stanford.edu/2023/03/13/alpaca.html">Alpaca instruction dataset</a>. This seems like a good place to start so let’s copy it!</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_full.yaml<span class="w"> </span>custom_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_full<span class="w"> </span>custom_config.yaml
 </pre></div>
 </div>
 <p>Now you can update the custom YAML config to point to your model and tokenizer. While you’re at it,
@@ -489,7 +489,7 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 To make it easier for users already familiar with the PyTorch ecosystem, TorchTune integrates with
 <a class="reference external" href="https://pytorch.org/docs/stable/elastic/run.html">torchrun</a>. Therefore, in order to launch a distributed
 run using two GPUs, it’s as easy as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>full_finetune_distributed.py<span class="w"> </span>--config<span class="w"> </span>custom_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>custom_config.yaml
 </pre></div>
 </div>
 <p>You should see some immediate output and see the loss going down, indicating your model is training succesfully.</p>
