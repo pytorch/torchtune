@@ -375,7 +375,7 @@
     <span class="n">TransformerDecoderLayer</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules.low_precision</span> <span class="kn">import</span> <span class="n">reparametrize_as_bf16_state_dict_post_hook</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.low_precision</span> <span class="kn">import</span> <span class="n">reparametrize_as_dtype_state_dict_post_hook</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span><span class="p">,</span> <span class="n">LoRALinear</span>
 
@@ -393,6 +393,7 @@
 
 
 <span class="c1"># ------------------ Vanilla Llama2 ------------------</span>
+
 
 <span class="k">def</span> <span class="nf">llama2</span><span class="p">(</span>
     <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -450,7 +451,9 @@
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">attn_dropout</span><span class="o">=</span><span class="n">attn_dropout</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="n">mlp</span> <span class="o">=</span> <span class="n">llama2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="o">=</span><span class="n">hidden_dim</span><span class="p">)</span>
     <span class="n">layer</span> <span class="o">=</span> <span class="n">TransformerDecoderLayer</span><span class="p">(</span>
         <span class="n">attn</span><span class="o">=</span><span class="n">self_attn</span><span class="p">,</span>
@@ -471,6 +474,7 @@
         <span class="n">output</span><span class="o">=</span><span class="n">output_proj</span><span class="p">,</span>
     <span class="p">)</span>
 
+
 <span class="k">def</span> <span class="nf">llama2_mlp</span><span class="p">(</span><span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">FeedForward</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build the MLP layer associated with the Llama model.</span>
@@ -479,7 +483,6 @@
     <span class="n">down_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">up_proj</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">hidden_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">FeedForward</span><span class="p">(</span><span class="n">gate_proj</span><span class="o">=</span><span class="n">gate_proj</span><span class="p">,</span> <span class="n">down_proj</span><span class="o">=</span><span class="n">down_proj</span><span class="p">,</span> <span class="n">up_proj</span><span class="o">=</span><span class="n">up_proj</span><span class="p">)</span>
-
 
 
 <span class="c1"># ------------------ LoRA Llama2 ------------------</span>
@@ -560,7 +563,9 @@
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="n">hidden_dim</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">intermediate_dim</span> <span class="k">if</span> <span class="n">intermediate_dim</span> <span class="k">else</span> <span class="n">scale_hidden_dim_for_mlp</span><span class="p">(</span><span class="n">embed_dim</span><span class="p">)</span>
+    <span class="p">)</span>
     <span class="k">if</span> <span class="n">apply_lora_to_mlp</span><span class="p">:</span>
         <span class="n">mlp</span> <span class="o">=</span> <span class="n">lora_llama2_mlp</span><span class="p">(</span>
             <span class="n">dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
@@ -599,10 +604,16 @@
     <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">quantize_base</span><span class="p">:</span>
-        <span class="c1"># For QLoRA, we reparametrize 4-bit tensors to bf16, and offload to CPU on the fly</span>
+        <span class="c1"># For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly</span>
         <span class="c1"># so as to not increase peak memory</span>
         <span class="n">model</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span>
-            <span class="n">partial</span><span class="p">(</span><span class="n">reparametrize_as_bf16_state_dict_post_hook</span><span class="p">,</span> <span class="n">offload_to_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">partial</span><span class="p">(</span>
+                <span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">,</span>
+                <span class="c1"># TODO this is clowny, figure out a better way to get what precision the rest</span>
+                <span class="c1"># of the model is in</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">tok_embeddings</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">offload_to_cpu</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">model</span></div>
