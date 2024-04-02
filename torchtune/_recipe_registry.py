@@ -53,17 +53,6 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
-        name="full_finetune_single_device_perf_tools_showcase",
-        file_path="full_finetune_single_device_perf_tools_showcase.py",
-        configs=[
-            Config(
-                name="llama2/7B_full_single_device_perf_tools_showcase",
-                file_path="llama2/7B_full_single_device_perf_tools_showcase.yaml",
-            ),
-        ],
-        supports_distributed=False,
-    ),
-    Recipe(
         name="lora_finetune_single_device",
         file_path="lora_finetune_single_device.py",
         configs=[
