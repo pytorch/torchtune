@@ -18,7 +18,7 @@ def profiler(
 ) -> ContextManager:
     """
     Utility component that wraps around `torch.profiler` to profile model's operators.
-    See https://pytorch.org/docs/stable/profiler.html  for more details.
+    See https://pytorch.org/docs/stable/profiler.html for more details.
     The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps
     Note: Enabling pytorch profiler may have training speed reduction.
 
