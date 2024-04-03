@@ -1,0 +1,135 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from typing import Any, Callable, Dict, List, Mapping, Tuple
+
+import numpy as np
+
+from datasets import load_dataset
+from torch.utils.data import Dataset
+from torchtune.data import ChatFormat, Message, sharegpt_to_llama2_messages
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.modules import Tokenizer
+
+
+class ChatDataset(Dataset):
+    """
+    Class that supports any custom dataset with multiturn conversations.
+
+    The general flow from loading a sample to tokenized prompt is:
+    load sample -> apply transform -> foreach turn{format into template -> tokenize}
+
+    If the column/key names differ from the expected names in the `ChatFormat`,
+    then the `column_map` argument can be used to provide this mapping.
+
+    Use `convert_to_messages` to prepare your dataset into the llama conversation format
+    and roles:
+        [
+            {
+                "role": <system|user|assistant>,
+                "content": <message>,
+            },
+            ...
+        ]
+
+    This class supports multi-turn conversations. If a tokenizer sample with multiple
+    turns does not fit within `max_seq_len` then it is truncated.
+
+    Args:
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+        convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
+            and converts to a list of `Messages` that follows the llama format with the expected keys
+        chat_format (ChatFormat): template used to format the chat. If the placeholder variable
+            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+    """
+
+    def __init__(
+        self,
+        tokenizer: Tokenizer,
+        source: str,
+        convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
+        chat_format: ChatFormat,
+        max_seq_len: int,
+        train_on_input: bool = False,
+        **load_dataset_kwargs: Dict[str, Any],
+    ) -> None:
+        self._tokenizer = tokenizer
+        self._data = load_dataset(source, **load_dataset_kwargs)
+        self._convert_to_messages = convert_to_messages
+        self.chat_format = chat_format
+        self.max_seq_len = max_seq_len
+        self.train_on_input = train_on_input
+
+    def __len__(self):
+        return len(self._data)
+
+    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+        sample = self._data[index]
+        return self._prepare_sample(sample)
+
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
+        messages = self._convert_to_messages(sample, self.train_on_input)
+        messages = self.chat_format.format(messages)
+        tokens, mask = self._tokenizer.tokenize_messages(
+            messages, max_seq_len=self.max_seq_len
+        )
+        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
+        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
+        assert len(tokens) == len(labels)
+
+        return tokens, labels
+
+
+def chat_dataset(
+    tokenizer: Tokenizer,
+    source: str,
+    conversation_format: str,
+    chat_format: ChatFormat,
+    max_seq_len: int,
+    train_on_input: bool = False,
+    **load_dataset_kwargs: Dict[str, Any],
+) -> ChatDataset:
+    """
+    Build a configurable dataset with conversations. This method should be
+    used to configure a custom chat dataset from the yaml config instead of
+    using `ChatDataset` directly, as it is made to be config friendly.
+
+    Args:
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
+        conversation_format (str): string specifying expected format of conversations in the dataset
+            for automatic conversion to the llama format. Supported formats are: "sharegpt"
+        chat_format (ChatFormat): Template class used to format the chat.
+        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
+        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+
+    Returns:
+        ChatDataset: the configured ChatDataset
+
+    Raises:
+        ValueError: if the conversation format is not supported
+    """
+    if conversation_format == "sharegpt":
+        convert_to_messages = sharegpt_to_llama2_messages
+    else:
+        raise ValueError(f"Unsupported conversation format: {conversation_format}")
+
+    return ChatDataset(
+        tokenizer=tokenizer,
+        source=source,
+        convert_to_messages=convert_to_messages,
+        chat_format=chat_format,
+        max_seq_len=max_seq_len,
+        train_on_input=train_on_input,
+        **load_dataset_kwargs,
+    )

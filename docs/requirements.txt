@@ -1,0 +1,7 @@
+sphinx-gallery>0.11
+sphinx==5.0.0
+sphinx_design
+sphinx_copybutton
+sphinx-tabs
+matplotlib
+-e git+https://github.com/pytorch/pytorch_sphinx_theme.git#egg=pytorch_sphinx_theme

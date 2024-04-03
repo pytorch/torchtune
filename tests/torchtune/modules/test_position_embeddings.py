@@ -1,0 +1,99 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+from typing import Tuple
+
+import pytest
+import torch
+
+from tests.test_utils import assert_expected
+from torch import tensor
+
+from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
+from torchtune.utils.seed import set_seed
+
+
+@pytest.fixture(autouse=True)
+def random():
+    set_seed(0)
+
+
+class TestRotaryPositionEmbedding:
+    """
+    Class for testing our Rotary Positional Embeddings (RoPE)
+    implementation. The expected tensors are computed from the
+    reference implementation here:
+    https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
+    """
+
+    @pytest.fixture
+    def input_params(self) -> Tuple[int, int, int, int]:
+        bsz = 4
+        num_heads = 32
+        embed_dim = 4096
+        head_dim = embed_dim // num_heads
+        seq_len = 2048
+        max_seq_len = 4096
+        return bsz, num_heads, head_dim, seq_len, max_seq_len
+
+    @pytest.fixture
+    def input(self, input_params: Tuple[int, int, int, int]) -> tensor:
+        bsz, num_heads, head_dim, seq_len, _ = input_params
+        return torch.randn(bsz, seq_len, num_heads, head_dim)
+
+    @pytest.fixture
+    def rope(
+        self, input_params: Tuple[int, int, int, int]
+    ) -> RotaryPositionalEmbeddings:
+        _, _, head_dim, _, max_seq_len = input_params
+        return RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+
+    def test_forward(self, input: tensor, rope: RotaryPositionalEmbeddings) -> None:
+        x_out = rope(input)
+
+        # check the numerics of the computed tensor
+        assert_expected(x_out.mean(), tensor(6.4543e-05))
+        assert_expected(x_out.sum(), tensor(2165.7053))
+        assert_expected(x_out.max(), tensor(5.4546))
+
+        # check shapes
+        assert_expected(x_out.shape, input.shape)
+
+    def test_forward_with_curr_pos(
+        self, input: tensor, rope: RotaryPositionalEmbeddings
+    ) -> None:
+        (
+            _,
+            seq_len,
+            _,
+            _,
+        ) = input.shape
+        x_out = rope(input, input_pos=torch.arange(seq_len))
+
+        # these values should be exactly the same as test_forward
+        # since in this case input_pos covers the entire input
+        # sequence. This tests that input_pos works as expected i.e.
+        # extracts the embeddings for the relevant positions
+        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
+        assert_expected(x_out.sum(), tensor(2165.7053))
+        assert_expected(x_out.max(), tensor(5.4546))
+
+        # check shapes
+        assert_expected(x_out.shape, input.shape)
+
+    def test_rope_init_meta_device(self, input_params):
+        _, _, head_dim, _, max_seq_len = input_params
+        rope_on_device = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=max_seq_len
+        )
+        with torch.device("meta"):
+            meta_rope = RotaryPositionalEmbeddings(
+                dim=head_dim, max_seq_len=max_seq_len
+            )
+
+        meta_rope._rope_init()
+        for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
+            torch.testing.assert_close(p1, p2)

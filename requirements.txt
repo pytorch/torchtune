@@ -1,0 +1,11 @@
+# Hugging Face Integration Reqs
+datasets
+huggingface_hub
+
+# Misc
+sentencepiece
+tqdm
+omegaconf
+
+# Quantization
+torchao-nightly==2024.3.29

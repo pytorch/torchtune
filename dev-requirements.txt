@@ -1,0 +1,9 @@
+pytest
+pytest-cov
+pytest-mock
+pytest-integration
+pre-commit
+tensorboard
+wandb
+transformers
+bitsandbytes
