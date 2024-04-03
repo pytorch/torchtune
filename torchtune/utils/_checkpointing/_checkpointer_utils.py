@@ -20,6 +20,7 @@ class ModelType(Enum):
     LLAMA2 = "llama2"
     MISTRAL = "mistral"
 
+
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     """
     Utility to recover and validate the path for a given file within a given directory.
