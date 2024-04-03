@@ -46,7 +46,7 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     return file_path
 
 
-def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
+def safe_torch_load(checkpoint_path: Path, weights_only: bool = True) -> Dict[str, Any]:
     """
     Utility to load a checkpoint file in a safe manner.
     """
@@ -54,7 +54,10 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
         state_dict = torch.load(
-            str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
+            str(checkpoint_path),
+            map_location="cpu",
+            mmap=True,
+            weights_only=weights_only,
         )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e

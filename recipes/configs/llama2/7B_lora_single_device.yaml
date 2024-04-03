@@ -47,9 +47,8 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   train_on_input: True
-  use_clean: True
 seed: null
 shuffle: True
 batch_size: 2

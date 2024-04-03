@@ -11,7 +11,7 @@ import pytest
 from tests.test_utils import get_assets_path
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
-from torchtune.datasets import alpaca_dataset
+from torchtune.datasets import alpaca_cleaned_dataset, alpaca_dataset
 from torchtune.modules.tokenizer import Tokenizer
 
 
@@ -103,7 +103,7 @@ class TestAlpacaDataset:
             }
         ]
 
-        alpaca_ds = alpaca_dataset(tokenizer=tokenizer, use_clean=True)
+        alpaca_ds = alpaca_cleaned_dataset(tokenizer=tokenizer)
         input, labels = alpaca_ds[0]
 
         assert len(input) == len(labels)
