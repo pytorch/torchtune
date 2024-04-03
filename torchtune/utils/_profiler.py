@@ -13,7 +13,7 @@ from torch.profiler import profile
 
 
 def profiler(
-    enabled: Optional[bool] = True,
+    enabled: Optional[bool] = False,
     output_dir: Optional[str] = "./torchtune_perf_tracing.json",
 ) -> ContextManager:
     """
