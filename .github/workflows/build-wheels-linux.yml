@@ -15,26 +15,19 @@ jobs:
       os: linux
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
-      # TODO #1: Want to build with CUDA support? Enter "enable" or "disable".
-      with-cuda: enable
-      # TODO #2: Want to build with RoCM support? Enter "enable" or "disable".
+      with-cuda: disable
       with-rocm: disable
-      # TODO #3: Want to build with CPU support? Enter "enable" or "disable".
       with-cpu: enable
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     with:
-      # TODO #4: Enter the name of your repo
       repository: pytorch/torchtune
       ref: ""
-      # TODO #5: Have custom build steps before building the wheel? Pass the path to the shell script with those steps below.
       pre-script: ""
-      # TODO #6: Same as above, but post-build steps. If you have none, just use "".
       post-script: ""
-      # TODO #7: Want to verify the correctness of your binaries before distributing them? Add custom python smoke tests below.
-      smoke-test-script: ""
+      smoke-test-script: "tests/smoke_tests.py"
       package-name: torchtune
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
