@@ -6,4 +6,9 @@
 
 from torchtune import datasets, models, modules, utils
 
+try:
+    from .version import __version__  # noqa
+except ImportError:
+    pass
+
 __all__ = [datasets, models, modules, utils]

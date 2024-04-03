@@ -4,7 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+import subprocess
+from pathlib import Path
+
 from setuptools import find_packages, setup
+
+ROOT_DIR = Path(__file__).parent.resolve()
 
 
 def read_requirements(file):
@@ -14,9 +20,42 @@ def read_requirements(file):
     return reqs.strip().split("\n")
 
 
+def _get_version():
+    try:
+        cmd = ["git", "rev-parse", "HEAD"]
+        sha = subprocess.check_output(cmd, cwd=str(ROOT_DIR)).decode("ascii").strip()
+    except Exception:
+        sha = None
+
+    if "BUILD_VERSION" in os.environ:
+        version = os.environ["BUILD_VERSION"]
+    else:
+        with open(os.path.join(ROOT_DIR, "version.txt"), "r") as f:
+            version = f.readline().strip()
+        if sha is not None:
+            version += "+" + sha[:7]
+
+    if sha is None:
+        sha = "Unknown"
+    return version, sha
+
+
+def _export_version(version, sha):
+    version_path = ROOT_DIR / "torchtune" / "version.py"
+    with open(version_path, "w") as fileobj:
+        fileobj.write("__version__ = '{}'\n".format(version))
+        fileobj.write("git_version = {}\n".format(repr(sha)))
+
+
+VERSION, SHA = _get_version()
+_export_version(VERSION, SHA)
+
+print("-- Building version " + VERSION)
+
+
 setup(
     name="torchtune",
-    version="0.0.1",
+    version=VERSION,
     packages=find_packages(exclude=["tests", "tests.*", "recipes"]),
     python_requires=">=3.8",
     install_requires=read_requirements("requirements.txt"),
