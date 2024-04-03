@@ -51,7 +51,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                             CONFIG
-        full_finetune_single_device        llama2/7B_full_single_device
+        full_finetune_single_device        llama2/7B_full
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -87,7 +87,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
+        self._optimizer_in_bwd = cfg.get("optimizer_in_bwd", False)
         # TODO: find a better place / way to perform validation of args that don't yet
         # compose with each other.
         if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:

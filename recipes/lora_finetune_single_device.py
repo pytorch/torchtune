@@ -52,8 +52,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_device     llama2/7B_lora_single_device
-                                        llama2/7B_qlora_single_device
+        lora_finetune_single_device     llama2/7B_lora
+                                        llama2/7B_qlora
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -96,7 +96,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_training_steps = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
-        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._gradient_accumulation_steps = cfg.get("gradient_accumulation_steps", 1)
 
     def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
         """
