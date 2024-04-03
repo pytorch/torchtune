@@ -7,6 +7,10 @@ on:
       - nightly
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   generate-matrix:
     uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
