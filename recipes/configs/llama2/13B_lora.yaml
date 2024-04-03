@@ -1,5 +1,4 @@
-# Config for multi-device with lora_finetune_distributed.py or single-device LoRA
-# finetuning with lora_finetune_single_device.py using a Llama2 13B model
+# Config for multi-device with lora_finetune_distributed.py using a Llama2 13B model
 #
 # This config assumes that you've run the following command before launching:
 # $ tune download meta-llama/Llama-2-13b \
@@ -10,16 +9,13 @@
 # $ tune run --nproc_per_node 4 lora_finetune_distributed \
 #       --config llama2/13B_lora
 #
-# To launch on a single device, run the following command:
-# $ tune run lora_finetune_single_device \
-#       --config llama2/13B_lora
-#
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training:
 # $ tune run --nproc_per_node 4 lora_finetune_distributed \
 #       --config llama2/13B_lora \
 #       checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
-
+#
+# This config is only tested on a multi-device setup
 
 # Model Arguments
 model:
