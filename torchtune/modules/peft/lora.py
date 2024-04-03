@@ -56,6 +56,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.use_bias = use_bias
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
+        self.disabled = False # if to thrn off LoRA
         self.register_parameter("weight", nn.Parameter(weight))
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
@@ -111,7 +112,7 @@ class LoRALinear(nn.Module, AdapterModule):
         """
         Args:
             x (Tensor): input tensor with shape ``(..., in_dim)``
-
+            disabled (bool): whether to disable LoRA
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
 
@@ -120,6 +121,8 @@ class LoRALinear(nn.Module, AdapterModule):
             out = linear_nf4(input=x, weight=self.weight)
         else:
             out = F.linear(x, self.weight, self.bias)
+        if self.disabled:
+            return out 
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

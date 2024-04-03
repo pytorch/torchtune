@@ -258,6 +258,14 @@ def get_merged_lora_ckpt(
     return state_dict
 
 
+def disable_adapter(model: nn.Module, disabled: bool) -> None:
+    for k, v in model.named_modules():
+        if hasattr(v, "adapter_params") and callable(v.adapter_params) \
+            and hasattr(v,'disabled'):
+                v.disabled = disabled
+
+
+
 def validate_missing_and_unexpected_for_lora(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool,

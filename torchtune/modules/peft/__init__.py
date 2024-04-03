@@ -11,6 +11,7 @@ from .peft_utils import (  # noqa
     LORA_ATTN_MODULES,
     set_trainable_params,
     validate_state_dict_for_lora,
+    disable_adapter,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "set_trainable_params",
     "validate_missing_and_unexpected_for_lora",
     "validate_state_dict_for_lora",
+    "disable_adapter",
 ]
