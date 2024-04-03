@@ -12,7 +12,7 @@ def tie_weight(model: TransformerDecoder) -> None:
     Tie the weights of the output embeddings and the token embeddings in the model.
 
     Args:
-        model (TransformerDecoder): The to tie the weights of the output embeddings and the token embeddings.
+        model (TransformerDecoder): The model shared the weights between the output embeddings and the token embeddings.
 
     Returns:
         None
