@@ -93,3 +93,21 @@ def transform_opt_state_dict(
     )
 
     return optim_state_dict_to_load
+
+
+def load_shared_weight_utils(state_dict):
+    if "output.weight" not in state_dict.keys():
+        state_dict["output.weight"] = state_dict["tok_embeddings.weight"]
+    return state_dict
+
+
+def save_shared_weight_utils(weight_map, state_dict):
+    if (
+        "lm_head.weight" not in weight_map.keys()
+        and "lm_head.weight" in state_dict.keys()
+    ):
+        if torch.equal(
+            state_dict["lm_head.weight"],
+            state_dict["model.embed_tokens.weight"],
+        ):
+            del state_dict["lm_head.weight"]

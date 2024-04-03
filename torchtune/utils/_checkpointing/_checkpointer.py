@@ -17,8 +17,10 @@ from torchtune import utils
 from torchtune.models import convert_weights
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
+    load_shared_weight_utils,
     ModelType,
     safe_torch_load,
+    save_shared_weight_utils,
 )
 from torchtune.utils.logging import get_logger
 
@@ -383,13 +385,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
-        if (
-            self._model_type == "GEMMA"
-        ):  # TODO: Remove this once we have a better way to handle this
-            if "output.weight" not in converted_state_dict[utils.MODEL_KEY].keys():
-                converted_state_dict[utils.MODEL_KEY][
-                    "output.weight"
-                ] = converted_state_dict[utils.MODEL_KEY]["tok_embeddings.weight"]
+        if self._model_type == "GEMMA":
+            converted_state_dict[utils.MODEL_KEY] = load_shared_weight_utils(
+                converted_state_dict[utils.MODEL_KEY]
+            )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -439,28 +438,10 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
-        print(f"======={self._model_type}==========")
-        if (
-            self._model_type == "GEMMA"
-        ):  # TODO: Remove this once we have a better way to handle this
-            if (
-                "lm_head.weight" not in self._weight_map.keys()
-                and "lm_head.weight" in state_dict[utils.MODEL_KEY].keys()
-            ):
-                if torch.equal(
-                    state_dict[utils.MODEL_KEY]["lm_head.weight"],
-                    state_dict[utils.MODEL_KEY]["model.embed_tokens.weight"],
-                ):
-                    del state_dict[utils.MODEL_KEY]["lm_head.weight"]
-                    logger.info(
-                        "Delete the model lm_head weight from the state dict "
-                        "because it is the same as the model embed_tokens weight"
-                    )
-                else:
-                    self._weight_map["lm_head.weight"] = "0002"
-                    logger.info(
-                        "Add the model lm_head weight to the weight map manually"
-                    )
+        if self._model_type == "GEMMA":
+            save_shared_weight_utils(
+                weight_map=self._weight_map, state_dict=state_dict[utils.MODEL_KEY]
+            )
 
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}
