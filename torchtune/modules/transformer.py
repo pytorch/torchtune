@@ -99,8 +99,17 @@ class TransformerDecoder(nn.Module):
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
-        norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
-        output (nn.Linear): Callable that applies a linear transformation to the output of the decoder.
+        max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value. This is used to setup the
+            :func:`~torchtune.modules.KVCache`
+        head_dim (int): embedding dimension for each head in self-attention. This is used
+            to setup the :func:`~torchtune.modules.KVCache`
+        norm (nn.Module): Callable that applies normalization to the output of the decoder,
+            before final MLP.
+        output (nn.Linear): Callable that applies a linear transformation to the output of
+            the decoder.
         norm_before (bool): Whether to apply normalization before the self-attention layer, defaults to False.
 
     Note:
@@ -114,6 +123,9 @@ class TransformerDecoder(nn.Module):
         tok_embeddings: nn.Embedding,
         layer: TransformerDecoderLayer,
         num_layers: int,
+        max_seq_len: int,
+        num_heads: int,
+        head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
         norm_before: bool = False,
@@ -123,6 +135,10 @@ class TransformerDecoder(nn.Module):
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
         self.output = output
+        self.max_seq_len = max_seq_len
+        self.num_heads = num_heads
+        self.head_dim = head_dim
+        self.causal_mask = None
         self.norm_before = norm_before
 
     def forward(
