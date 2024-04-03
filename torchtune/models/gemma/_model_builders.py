@@ -35,7 +35,7 @@ def gemma_2b() -> TransformerDecoder:
         num_kv_heads=1,
         embed_dim=2048,
         intermediate_dim=16384,
-        max_seq_len=32768,
+        max_seq_len=8192,
         attn_dropout=0.0,
         norm_eps=1e-6,
     )
