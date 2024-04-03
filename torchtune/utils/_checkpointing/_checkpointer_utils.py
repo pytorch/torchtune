@@ -56,7 +56,10 @@ def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
-        if str(checkpoint_path).endswith(".safetensors"):
+        is_safetensors_file = (
+            True if str(checkpoint_path).endswith(".safetensors") else False
+        )
+        if is_safetensors_file:
             result = {}
             with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
                 for k in f.keys():
