@@ -484,7 +484,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     log.info(
                         utils.memory_stats_log("Memory Stats", device=self._device)
                     )
-                break
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
