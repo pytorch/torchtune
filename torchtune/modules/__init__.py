@@ -9,7 +9,7 @@ from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
-from .rms_norm import RMSNorm  # noqa
+from .rms_norm import GemmaRMSNorm, RMSNorm  # noqa
 from .tokenizer import Tokenizer  # noqa
 from .transformer import TransformerDecoder, TransformerDecoderLayer  # noqa
 
@@ -20,6 +20,7 @@ __all__ = [
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
+    "GemmaRMSNorm",
     "Tokenizer",
     "TransformerDecoder",
     "TransformerDecoderLayer",
