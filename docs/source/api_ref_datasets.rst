@@ -11,6 +11,7 @@ torchtune.datasets
     :nosignatures:
 
     alpaca_dataset
+    alpaca_cleaned_dataset
     grammar_dataset
     samsum_dataset
     slimorca_dataset
