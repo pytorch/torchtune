@@ -101,6 +101,7 @@ class TransformerDecoder(nn.Module):
         num_layers (int): Number of Transformer Decoder layers.
         norm (nn.Module): Callable that applies normalization to the output of the decoder, before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of the decoder.
+        norm_before (bool): Whether to apply normalization before the self-attention layer, defaults to False.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -115,12 +116,14 @@ class TransformerDecoder(nn.Module):
         num_layers: int,
         norm: nn.Module,
         output: nn.Linear,
+        norm_before: bool = False,
     ) -> None:
         super().__init__()
         self.tok_embeddings = tok_embeddings
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
         self.output = output
+        self.norm_before = norm_before
 
     def forward(
         self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0
@@ -153,6 +156,11 @@ class TransformerDecoder(nn.Module):
                 (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
             )
             mask = torch.triu(mask, diagonal=curr_pos + 1)
+
+        if self.norm_before:
+            hidden_size = h.size(-1)
+            normalizer = torch.tensor(hidden_size**0.5, dtype=h.dtype)
+            h = h * normalizer
 
         for layer in self.layers:
             # shape: [b, s, d]
