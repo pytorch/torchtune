@@ -33,6 +33,3 @@ jobs:
       test-infra-ref: main
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       trigger-event: ${{ github.event_name }}
-    secrets:
-      AWS_PYTORCH_UPLOADER_ACCESS_KEY_ID: ${{ secrets.AWS_PYTORCH_UPLOADER_ACCESS_KEY_ID }}
-      AWS_PYTORCH_UPLOADER_SECRET_ACCESS_KEY: ${{ secrets.AWS_PYTORCH_UPLOADER_SECRET_ACCESS_KEY }}
