@@ -1,13 +1,12 @@
-# Config for single device QLoRA with lora_finetune_single_device.py
+# Config for single-device QLoRA with lora_finetune_single_device.py
 # using a Llama2 7B model
 #
-# This config assumes that you've run the following command before launching
-# this run:
+# This config assumes that you've run the following command before launching:
 # $ tune download --repo-id meta-llama/Llama-2-7b \
 #       --hf-token <HF_TOKEN> \
 #       --output-dir /tmp/llama2
 #
-# To launch on a single device, run the following command from root:
+# To launch, run the following command from root:
 # $ tune run lora_finetune_single_device \
 #       --config llama2/7B_qlora
 #

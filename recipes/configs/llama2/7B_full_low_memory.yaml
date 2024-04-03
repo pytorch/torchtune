@@ -6,7 +6,7 @@
 #       --hf-token <HF_TOKEN> \
 #       --output-dir /tmp/llama2
 #
-# To launch on a single device, run the following command:
+# To launch, run the following command:
 # $ tune run full_finetune_single_device \
 #       --config llama2/7B_full_low_memory
 #
