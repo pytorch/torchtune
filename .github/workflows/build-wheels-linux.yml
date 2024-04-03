@@ -5,6 +5,12 @@ on:
   push:
     branches:
       - nightly
+      - main
+      - release/*
+    tags:
+      # NOTE: Binary build pipelines should only get triggered on release candidate builds
+      # Release candidate tags look like: v1.11.0-rc1
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
 
 permissions:
@@ -21,11 +27,12 @@ jobs:
       test-infra-ref: main
       with-cuda: disable
       with-rocm: disable
-      with-cpu: enable
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
     uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
+    strategy:
+      fail-fast: false
     with:
       repository: pytorch/torchtune
       ref: ""
