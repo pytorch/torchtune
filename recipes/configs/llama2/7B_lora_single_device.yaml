@@ -83,7 +83,8 @@ dtype: bf16
 enable_activation_checkpointing: True
 
 # Show case the usage of pytorch profiler
-# Only needed for debugging training
-perf_profiler:
-  _component_: torchtune.utils.perf_profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
   output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
