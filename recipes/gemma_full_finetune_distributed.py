@@ -6,6 +6,7 @@
 
 import sys
 import time
+from dataclasses import dataclass, field
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -34,6 +35,12 @@ from tqdm import tqdm
 
 
 log = utils.get_logger("DEBUG")
+
+
+@dataclass
+class ShareWeightsConfig:
+    name: str
+    weight_tying_config: Dict[str, str] = field(default_factory=dict)
 
 
 class FullFinetuneRecipeDistributed(FTRecipeInterface):
@@ -152,9 +159,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # TODO: This is a temporary fix to handle the model tie for GEMMA models.
         if cfg.checkpointer.model_type == "GEMMA":
-            model_tie = True
+            shared = ShareWeightsConfig(
+                name="shared",
+                weight_tying_config={
+                    "output": "tok_embeddings",
+                },
+            )
         else:
-            model_tie = False
+            shared = None
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -163,7 +175,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
-            model_tie=model_tie,
+            shared=shared,
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -209,7 +221,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
-        model_tie: bool = False,
+        shared: Dict[str, str] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -235,9 +247,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         model.load_state_dict(model_state_dict)
 
         # Tie the weights of the model
-        if model_tie:  # Tie the weights of the model if required
-            model.output.weight = model.tok_embeddings.weight
-            log.info("Model weights are tied")
+        if shared is not None:  # Tie the weights of the model if required
+            for k, v in shared.weight_tying_config.items():
+                out = getattr(model, v)
+                tok = getattr(model, k)
+                out.weight = tok.weight
+                log.info(f"Model weights are shared between {k} and {v}.")
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
