@@ -168,7 +168,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            optimizer_in_bwd=cfg.optimizer_in_bwd,
+            optimizer_in_bwd=self._optimizer_in_bwd,
             opt_state_dict=(
                 ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
             ),
