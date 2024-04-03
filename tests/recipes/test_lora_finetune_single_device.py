@@ -52,6 +52,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         return [10.5059, 10.5571, 10.5181, 10.4897]
 
     @pytest.mark.integration_test
+    @pytest.mark.parametrize("compile", [True, False])
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -68,6 +69,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(

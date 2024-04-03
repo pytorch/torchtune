@@ -50,7 +50,8 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config", ["full_single_device_low_memory", "full_single_device"]
     )
-    def test_loss(self, config, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss(self, compile, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -66,6 +67,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = llama2_test_config()

@@ -56,7 +56,7 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-compile: True
+compile: False
 optimizer_in_bwd: False
 
 
