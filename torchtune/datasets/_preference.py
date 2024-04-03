@@ -9,9 +9,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.config._utils import _get_template
-
-from torchtune.data import PromptTemplate, tokenize_prompt_and_response, truncate, tokenize_preference_sample
+from torchtune.data import InstructTemplate, tokenize_preference_sample
 from torchtune.modules import Tokenizer
 
 
@@ -23,7 +21,7 @@ class PreferenceDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> format into template -> tokenize
 
-    If the column/key names differ from the expected names in the `PromptTemplate`,
+    If the column/key names differ from the expected names in the `InstructTemplate`,
     then the `column_map` argument can be used to provide this mapping.
 
     Masking of the prompt during training is controlled by the `train_on_input` flag, which is
@@ -53,7 +51,7 @@ class PreferenceDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        template: PromptTemplate,
+        template: InstructTemplate,
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
         max_seq_len: Optional[int] = None,
