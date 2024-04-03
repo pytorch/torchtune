@@ -59,6 +59,7 @@ setup(
     packages=find_packages(exclude=["tests", "tests.*", "recipes"]),
     python_requires=">=3.8",
     install_requires=read_requirements("requirements.txt"),
+    include_package_data=True,
     entry_points={
         "console_scripts": [
             "tune = torchtune._cli.tune:main",
