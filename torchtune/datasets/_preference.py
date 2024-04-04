@@ -6,11 +6,13 @@
 
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
+import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
+from torchtune.data import InstructTemplate, Message
+
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data import InstructTemplate, Message, tokenize_preference_sample
 from torchtune.modules import Tokenizer
 
 
@@ -88,14 +90,20 @@ class PreferenceDataset(Dataset):
         
         # TODO: Trunction differs from original DPO repo
         # in DPO: first trunctate prompts, then responses
-        chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(chosen_message, self.max_seq_len)
-        chosen_labels = chosen_input_ids[:]
-        chosen_labels[:sum(c_masks)] = [CROSS_ENTROPY_IGNORE_IDX ] * sum(c_masks)
+        chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
+            chosen_message, self.max_seq_len
+        )
+        chosen_labels = list(np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids))
 
-        rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(rejected_message, self.max_seq_len)
-        rejected_labels = rejected_input_ids[:]
-        rejected_labels[:sum(r_masks)] = [CROSS_ENTROPY_IGNORE_IDX ] * sum(r_masks)
 
+        rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
+            rejected_message, self.max_seq_len
+        )
+        rejected_labels = list(np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids))
+        
+        assert len(chosen_input_ids) == len(chosen_labels)
+        assert len(rejected_input_ids) == len(rejected_labels)
+        
         batch = dict(
             chosen_input_ids = chosen_input_ids,
             chosen_labels = chosen_labels,
