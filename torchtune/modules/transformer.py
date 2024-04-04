@@ -130,7 +130,6 @@ class TransformerDecoder(nn.Module):
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
-        norm_before: bool = False,
     ) -> None:
         super().__init__()
 
@@ -199,11 +198,6 @@ class TransformerDecoder(nn.Module):
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, None, input_pos]
-
-        if self.norm_before:
-            hidden_size = h.size(-1)
-            normalizer = torch.tensor(hidden_size**0.5, dtype=h.dtype)
-            h = h * normalizer
 
         for layer in self.layers:
             # shape: [b, s, d]
