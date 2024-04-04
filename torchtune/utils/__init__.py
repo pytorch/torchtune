@@ -52,6 +52,7 @@ from .precision import (
     set_default_dtype,
     validate_expected_param_dtype,
 )
+from .perf_utils import TunePerfMonitor
 from .seed import set_seed
 
 __all__ = [
@@ -80,4 +81,5 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
+    "TunePerfMonitor",
 ]

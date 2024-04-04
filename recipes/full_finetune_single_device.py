@@ -341,6 +341,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+        # Create a perf monitor to log metrics such as QPS, memory usage, etc. Metrics are user defined
+        # and currently CPU only.
+        monitor = utils.TunePerfMonitor()
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -358,6 +361,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
 
+                # Log beginning of iteration
+                monitor.start_record("avg_s_it")
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)
@@ -382,6 +387,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
+                            "avg_it_s": 1 / monitor.get_metric_val("avg_s_it", default=1e9),
+                            "max_mem_post_bwd": monitor.get_metric_val(
+                                "max_mem_post_bwd",
+                                default=torch.cuda.max_memory_allocated() / 1e9,
+                            ),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,
@@ -389,6 +399,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+                # Log a metric snapshotting the peak memory usage during this backward pass.
+                monitor.log_metric(
+                    "max_mem_post_bwd", torch.cuda.max_memory_allocated() / 1e9
+                )
                 if (
                     not self._optimizer_in_bwd
                     and (idx + 1) % self._gradient_accumulation_steps == 0
@@ -401,6 +415,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
+                # Log end of iteration (also computes and stores avg_s_it metric)
+                monitor.end_record("avg_s_it")
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
                     log.info(
