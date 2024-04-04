@@ -124,9 +124,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._cfg = cfg
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpointer_cfg: DictConfig, weights_only: bool = True) -> Dict[str, Any]:
         checkpointer = config.instantiate(checkpointer_cfg)
-        checkpoint_dict = checkpointer.load_checkpoint()
+        checkpoint_dict = checkpointer.load_checkpoint(weights_only=weights_only)
         return checkpoint_dict
 
     def setup(self) -> None:
@@ -134,10 +134,13 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
+        self._quantization_mode = self._cfg.quantization_mode
 
         utils.set_seed(seed=self._cfg.seed)
 
-        ckpt_dict = self.load_checkpoint(self._cfg.checkpointer)
+        # weights_only needs to be False when loading a quantized model
+        weights_only = (self._quantization_mode is None)
+        ckpt_dict = self.load_checkpoint(self._cfg.checkpointer, weights_only=weights_only)
         self._model = self._setup_model(
             model_cfg=self._cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -150,13 +153,22 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
-            model = config.instantiate(model_cfg)
-
-        model.load_state_dict(model_state_dict)
+        if self._quantization_mode is not None:
+            with torch.device("meta"):
+                model = config.instantiate(model_cfg)
+            quantizer = utils.get_quantizer(self._quantization_mode)
+            model = quantizer.quantize(model)
+            model.load_state_dict(model_state_dict, assign=True)
+            model = model.to(device=self._device, dtype=self._dtype)
+        else:
+            with utils.set_default_dtype(self._dtype), self._device:
+                model = config.instantiate(model_cfg)
+            model.load_state_dict(model_state_dict, assign=True)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        # TODO: enable dtype checking for quantization
+        if self._quantization_mode is None:
+            utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")
         return model
 

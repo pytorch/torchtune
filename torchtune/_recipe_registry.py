@@ -86,6 +86,7 @@ _ALL_RECIPES = [
         file_path="generate.py",
         configs=[
             Config(name="generate", file_path="generate.yaml"),
+            Config(name="quant_generate", file_path="quant_generate.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -94,6 +95,14 @@ _ALL_RECIPES = [
         file_path="eleuther_eval.py",
         configs=[
             Config(name="eleuther_eval", file_path="eleuther_eval.yaml"),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
+        name="quantize",
+        file_path="quantize.py",
+        configs=[
+            Config(name="quantize", file_path="quantize.yaml"),
         ],
         supports_distributed=False,
     ),

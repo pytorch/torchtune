@@ -16,6 +16,7 @@ checkpointer:
 
 device: cuda
 dtype: bf16
+quantization_mode: null
 
 seed: 1234
 

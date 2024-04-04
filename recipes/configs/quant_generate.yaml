@@ -1,0 +1,29 @@
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama2.llama2_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  checkpoint_dir: /tmp/llama2/
+  checkpoint_files: [meta_model_0.f16a4w.pt]
+  output_dir: /tmp/llama2/
+  model_type: LLAMA2
+
+device: cpu
+dtype: bf16
+seed: 1234
+
+# Quantization Arguments
+quantization_mode: f16a4w
+
+# Tokenizer arguments
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/llama2/tokenizer.model
+
+# Generation arguments; defaults taken from gpt-fast
+prompt: "Hello, my name is"
+max_new_tokens: 300
+temperature: 0.8
+top_k: 300

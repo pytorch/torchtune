@@ -28,16 +28,19 @@ class InferenceRecipe:
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self._quantization_mode = cfg.quantization_mode
 
         utils.set_seed(seed=cfg.seed)
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, checkpointer_cfg: DictConfig, weights_only: bool = True) -> Dict[str, Any]:
         checkpointer = config.instantiate(checkpointer_cfg)
-        checkpoint_dict = checkpointer.load_checkpoint()
+        checkpoint_dict = checkpointer.load_checkpoint(weights_only=weights_only)
         return checkpoint_dict
 
     def setup(self, cfg: DictConfig) -> None:
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        # weights_only needs to be False when loading a quantized model
+	weights_only = (self._quantization_mode is None)
+        ckpt_dict = self.load_checkpoint(cfg.checkpointer, weights_only=weights_only)
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -52,10 +55,16 @@ class InferenceRecipe:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
-        model.load_state_dict(model_state_dict)
+        if self._quantization_mode is not None:
+            quantizer = utils.get_quantizer(self._quantization_mode)
+            model = quantizer.quantize(model)
+
+        model.load_state_dict(model_state_dict, assign=True)
 
         # Validate model was loaded in with the expected dtype.
-        utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
+        # TODO: enable this for quantization as well
+        if self._quantization_mode is None:
+            utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")
 
         # Ensure the cache is setup on the right device
