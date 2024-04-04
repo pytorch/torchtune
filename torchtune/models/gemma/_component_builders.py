@@ -13,11 +13,11 @@ from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
     KVCache,
-    GemmaRMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
+from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
