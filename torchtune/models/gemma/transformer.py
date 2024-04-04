@@ -9,6 +9,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from torch import Tensor
+from torchtune.modules import KVCache
 
 from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
@@ -18,7 +19,8 @@ class GemmaTransformerDecoder(nn.Module):
     Transformer Decoder derived from the Llama2 architecture.
 
     Args:
-        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move tokens to an embedding space.
+        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
+            tokens to an embedding space.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
@@ -32,7 +34,8 @@ class GemmaTransformerDecoder(nn.Module):
             before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
-        norm_embeddings (bool): Whether to apply normalization before the self-attention layer, defaults to False.
+        norm_embeddings (bool): Whether to normalize the embeddings before passing them
+            through the decoder layers. Defaults to False.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -63,18 +66,34 @@ class GemmaTransformerDecoder(nn.Module):
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
 
-    def forward(
-        self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = None
-    ) -> Tensor:
+    def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
+        for layer in self.layers:
+            layer.attn.kv_cache = KVCache(
+                max_batch_size=max_batch_size,
+                max_seq_len=self.max_seq_len,
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                dtype=dtype,
+            )
+
+        # causal_mask is used during inference to ensure we're attending
+        # to the right tokens
+        self.causal_mask = torch.tril(
+            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
+        )
+
+    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): attention mask tensor, defaults to None.
-            curr_pos (int): current position in the seq, defaults to 0.
-                Only relevant when incrementally decoding.
+            input_pos (Optional[Tensor]): Optional tensor which contains the position
+                of the current token. This is only used during inference. Default is None
 
         Returns:
             Tensor: output tensor with shape [b x s x v]
+
+        Raises:
+            ValueError: if causal_mask is set but input_pos is None
 
         Notation used for tensor shapes:
             - b: batch size
@@ -88,12 +107,15 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        # TODO: Fix the masking logic to not rely on checking kv_cache
-        if seq_len > 1 and self.layers[0].attn.kv_cache is not None:
-            mask = torch.full(
-                (1, 1, seq_len, seq_len), float("-inf"), device=tokens.device
-            )
-            mask = torch.triu(mask, diagonal=curr_pos + 1)
+        mask = None
+        if self.causal_mask is not None:
+            if input_pos is None:
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
+            # shape: [1, input_pos_len, m_s]
+            # in most cases input_pos_len should be 1
+            mask = self.causal_mask[None, None, input_pos]
 
         if self.norm_embeddings:
             hidden_dim = h.size(-1)
