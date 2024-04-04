@@ -14,10 +14,10 @@ from torchtune.modules import (
     FeedForward,
     KVCache,
     RotaryPositionalEmbeddings,
-    TransformerDecoder,
     TransformerDecoderLayer,
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
+from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
@@ -46,8 +46,8 @@ def gemma(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-6,
     rope_base: int = 10_000,
-    norm_before: bool = True,
-) -> TransformerDecoder:
+    norm_embeddings: bool = True,
+) -> GemmaTransformerDecoder:
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
@@ -72,11 +72,11 @@ def gemma(
             Default: 0.0
         norm_eps (float): epsilon in RMS norms Default: 1e-6
         rope_base (int): base for the rotary positional embeddings. Default: 10_000
-        norm_before (bool): whether to apply layer norm before the self-attention
+        norm_embeddings (bool): whether to apply layer norm before the self-attention
             and mlp layers. Default: True
 
     Returns:
-        TransformerDecoder: Instantiation of gemma model.
+        GemmaTransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_att = CausalSelfAttention(
@@ -102,7 +102,7 @@ def gemma(
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-    model = TransformerDecoder(
+    model = GemmaTransformerDecoder(
         tok_embeddings=tok_embeddings,
         layer=layer,
         num_layers=num_layers,
@@ -111,7 +111,7 @@ def gemma(
         head_dim=head_dim,
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
-        norm_before=norm_before,
+        norm_embeddings=norm_embeddings,
     )
     return model
 
