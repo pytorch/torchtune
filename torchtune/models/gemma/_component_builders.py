@@ -80,10 +80,10 @@ def gemma(
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_att = CausalSelfAttention(
-        embed_dim=embed_dim,    # 2048
-        num_heads=num_heads,    # 8
-        num_kv_heads=num_kv_heads,  # 1
-        head_dim=head_dim,  # 256
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        head_dim=head_dim,
         q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
         k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
