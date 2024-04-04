@@ -6,7 +6,6 @@
 
 import sys
 import time
-from dataclasses import dataclass, field
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -35,12 +34,6 @@ from tqdm import tqdm
 
 
 log = utils.get_logger("DEBUG")
-
-
-@dataclass
-class ShareWeightsConfig:
-    name: str
-    weight_tying_config: Dict[str, str] = field(default_factory=dict)
 
 
 class FullFinetuneRecipeDistributed(FTRecipeInterface):
@@ -159,12 +152,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # TODO: This is a temporary fix to handle the model tie for GEMMA models.
         if cfg.checkpointer.model_type == "GEMMA":
-            shared = ShareWeightsConfig(
-                name="shared",
-                weight_tying_config={
-                    "output": "tok_embeddings",
-                },
-            )
+            shared = cfg.share_weights
         else:
             shared = None
 
