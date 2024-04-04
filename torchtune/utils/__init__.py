@@ -23,6 +23,7 @@ from ._distributed import (  # noqa
     wrap_fsdp,
 )
 from ._generation import generate  # noqa
+from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
@@ -80,4 +81,5 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
+    "profiler",
 ]
