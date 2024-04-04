@@ -336,17 +336,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
-    def _should_update_weights(self, current_iteration: int) -> bool:
-        """
-        Determines whether the weights should be updated on the current iteration or not.
-        True is returned either if we've accumulated gradients for enough steps or if this
-        is the last step in the epoch.
-        """
-        should_update_weights = (
-            current_iteration + 1
-        ) % self._gradient_accumulation_steps == 0
-        return should_update_weights
-
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
@@ -400,7 +389,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                if not self._optimizer_in_bwd and self._should_update_weights(idx):
+                if (
+                    not self._optimizer_in_bwd
+                    and (idx + 1) % self._gradient_accumulation_steps == 0
+                ):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
