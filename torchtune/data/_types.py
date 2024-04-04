@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Literal, TypedDict
+from dataclasses import dataclass
+from typing import Literal
 
 Role = Literal["system", "user", "assistant"]
 
 
-class Message(TypedDict):
+@dataclass
+class Message:
     role: Role
     content: str
-
-
-Dialogue = List[Message]
+    masked: bool = False

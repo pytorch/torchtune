@@ -38,18 +38,29 @@ class TestTuneDownloadCommand:
         # Call the first time and get GatedRepoError
         with pytest.raises(SystemExit, match="2"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-        err = capsys.readouterr().err
-        assert "It looks like you are trying to access a gated repository." in err
+        out_err = capsys.readouterr()
+        assert (
+            "Ignoring files matching the following patterns: *.safetensors"
+            in out_err.out
+        )
+        assert (
+            "It looks like you are trying to access a gated repository." in out_err.err
+        )
 
         # Call the second time and get RepositoryNotFoundError
         with pytest.raises(SystemExit, match="2"):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-        err = capsys.readouterr().err
-        assert "not found on the Hugging Face Hub" in err
+        out_err = capsys.readouterr()
+        assert (
+            "Ignoring files matching the following patterns: *.safetensors"
+            in out_err.out
+        )
+        assert "not found on the Hugging Face Hub" in out_err.err
 
         # Call the third time and get the expected output
         runpy.run_path(TUNE_PATH, run_name="__main__")
         output = capsys.readouterr().out
+        assert "Ignoring files matching the following patterns: *.safetensors" in output
         assert "Successfully downloaded model repo" in output
 
         # Make sure it was called twice

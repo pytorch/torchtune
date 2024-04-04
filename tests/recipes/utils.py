@@ -48,7 +48,6 @@ def llama2_test_config(max_batch_size: Optional[int] = None) -> List[str]:
         "model.max_seq_len=2048",
         "model.norm_eps=1e-5",
         "model.num_kv_heads=8",
-        f"model.max_batch_size={max_batch_size if max_batch_size else 'null'}",
     ]
 
 
@@ -75,7 +74,6 @@ def lora_llama2_test_config(
         "model.max_seq_len=2048",
         "model.norm_eps=1e-5",
         "model.num_kv_heads=8",
-        f"model.max_batch_size={max_batch_size if max_batch_size else 'null'}",
         f"model.lora_rank={lora_rank}",
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",

@@ -8,12 +8,9 @@ from unittest.mock import patch
 import pytest
 
 from tests.test_utils import get_assets_path
-from torchtune.data import Llama2ChatTemplate
 
 from torchtune.datasets import slimorca_dataset
 from torchtune.modules.tokenizer import Tokenizer
-
-LLAMA_TEMPLATE = Llama2ChatTemplate()
 
 
 class TestSlimOrcaDataset:
@@ -51,7 +48,11 @@ class TestSlimOrcaDataset:
                 ]
             }
         ]
-        ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=max_seq_len)
+        ds = slimorca_dataset(
+            tokenizer=tokenizer,
+            max_seq_len=max_seq_len,
+            train_on_input=(max_seq_len == 128),
+        )
         input, label = ds[0]
         assert len(input) <= max_seq_len
         assert len(label) <= max_seq_len

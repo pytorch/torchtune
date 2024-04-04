@@ -9,4 +9,4 @@ tqdm
 omegaconf
 
 # Quantization
-torchao-nightly==2024.3.25
+torchao-nightly==2024.3.29

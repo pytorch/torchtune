@@ -292,3 +292,31 @@ class TestHFLlama2FullModelCheckpointer:
 
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
         assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
+
+
+class TestCheckpointerUtils:
+    @pytest.fixture
+    def model_checkpoint(self, tmp_path):
+        """
+        Fixture which creates a checkpoint file for testing checkpointer utils.
+        """
+        checkpoint_file = tmp_path / "model_checkpoint_01.pt"
+
+        state_dict = {
+            "token_embeddings.weight": torch.ones(1, 10),
+            "output.weight": torch.ones(1, 10),
+        }
+
+        torch.save(state_dict, checkpoint_file)
+
+        return checkpoint_file
+
+    @pytest.mark.parametrize("weights_only", [True, False])
+    def test_safe_torch_load(self, model_checkpoint, weights_only):
+        state_dict = safe_torch_load(Path(model_checkpoint), weights_only)
+
+        assert "token_embeddings.weight" in state_dict
+        assert "output.weight" in state_dict
+
+        assert state_dict["token_embeddings.weight"].shape[1] == 10
+        assert state_dict["output.weight"].shape[0] == 1

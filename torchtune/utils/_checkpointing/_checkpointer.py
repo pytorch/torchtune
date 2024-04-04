@@ -150,7 +150,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 )
             self._recipe_checkpoint = get_path(self._checkpoint_dir, recipe_checkpoint)
 
-    def load_checkpoint(self) -> Dict[str, Any]:
+    def load_checkpoint(self, weights_only: bool = True) -> Dict[str, Any]:
         """
         Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
 
@@ -164,9 +164,18 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 "optimizer": ...,
                 ...
             }
+
+        Args:
+            weights_only (bool): flag passed down to torch.load. We expose this, because quantized models
+                cannot be loaded with weights_only=True
+
+        Returns:
+            Dict[str, Any]: state_dict from the input checkpoint
         """
         state_dict: Dict[str:Any] = {}
-        state_dict[utils.MODEL_KEY] = safe_torch_load(self._checkpoint_path)
+        state_dict[utils.MODEL_KEY] = safe_torch_load(
+            self._checkpoint_path, weights_only=weights_only
+        )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)

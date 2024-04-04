@@ -35,6 +35,10 @@ _ALL_RECIPES = [
                 name="llama2/7B_full_single_device_low_memory",
                 file_path="llama2/7B_full_single_device_low_memory.yaml",
             ),
+            Config(
+                name="mistral/7B_full",
+                file_path="mistral/7B_full.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -44,6 +48,7 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
+            Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
         ],
         supports_distributed=True,
     ),
@@ -59,6 +64,10 @@ _ALL_RECIPES = [
                 name="llama2/7B_qlora_single_device",
                 file_path="llama2/7B_qlora_single_device.yaml",
             ),
+            Config(
+                name="mistral/7B_lora",
+                file_path="mistral/7B_lora.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -68,14 +77,15 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
+            Config(name="mistral/7B_lora", file_path="mistral/7B_lora.yaml"),
         ],
         supports_distributed=True,
     ),
     Recipe(
-        name="alpaca_generate",
-        file_path="alpaca_generate.py",
+        name="generate",
+        file_path="generate.py",
         configs=[
-            Config(name="alpaca_generate", file_path="alpaca_generate.yaml"),
+            Config(name="generate", file_path="generate.yaml"),
         ],
         supports_distributed=False,
     ),

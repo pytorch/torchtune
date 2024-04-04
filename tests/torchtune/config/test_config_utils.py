@@ -8,12 +8,14 @@ from unittest import mock
 
 import pytest
 from torchtune.config._utils import (
+    _get_chat_format,
     _get_component_from_path,
-    _get_template,
+    _get_instruct_template,
     _merge_yaml_and_cli_args,
+    _try_get_component,
     InstantiationError,
 )
-from torchtune.data import AlpacaInstructTemplate
+from torchtune.data import AlpacaInstructTemplate, Llama2ChatFormat
 from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
@@ -110,32 +112,30 @@ class TestUtils:
         ):
             _ = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
-    def test_get_template(self):
-        # Test valid template class
-        template = _get_template("AlpacaInstructTemplate")
-        assert isinstance(template, AlpacaInstructTemplate)
+    def test_try_get_component(self):
+        # Test a valid classname
+        template = _try_get_component(
+            module_path="torchtune.data._instruct_templates",
+            component_name="AlpacaInstructTemplate",
+            class_type="InstructTemplate",
+        )
+        assert template == AlpacaInstructTemplate
 
-        # Test invalid template class
+        # Test an invalid class
         with pytest.raises(
             ValueError,
-            match="Must be a PromptTemplate class or a string with placeholders.",
+            match="Invalid InstructTemplate class",
         ):
-            _ = _get_template("InvalidTemplate")
+            _ = _try_get_component(
+                module_path="torchtune.data._instruct_templates",
+                component_name="InvalidTemplate",
+                class_type="InstructTemplate",
+            )
 
-        # Test valid template strings
-        valid_templates = [
-            "Instruction: {instruction}\nInput: {input}",
-            "Instruction: {instruction}",
-            "{a}",
-        ]
-        for template in valid_templates:
-            assert _get_template(template) == template
+    def test_get_instruct_template(self):
+        assert (
+            _get_instruct_template("AlpacaInstructTemplate") == AlpacaInstructTemplate
+        )
 
-        # Test invalid template strings
-        invalid_templates = ["hello", "{}", "a}{b"]
-        for template in invalid_templates:
-            with pytest.raises(
-                ValueError,
-                match="Must be a PromptTemplate class or a string with placeholders.",
-            ):
-                _ = _get_template(template)
+    def test_get_chat_format(self):
+        assert _get_chat_format("Llama2ChatFormat") == Llama2ChatFormat

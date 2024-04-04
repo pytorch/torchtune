@@ -119,7 +119,7 @@ keyword arguments not specified in the config if we'd like:
     def alpaca_dataset(
         tokenizer: Tokenizer,
         train_on_input: bool = True,
-        use_clean: bool = False,
+        max_seq_len: int = 512,
     ) -> InstructDataset:
 
     from torchtune import config
@@ -132,7 +132,7 @@ keyword arguments not specified in the config if we'd like:
     dataset = config.instantiate(
         cfg.dataset,
         tokenizer,
-        use_clean=True,
+        train_on_input=False,
     )
 
 Note that additional keyword arguments will overwrite any duplicated keys in the
