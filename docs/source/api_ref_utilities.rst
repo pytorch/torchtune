@@ -67,16 +67,6 @@ Data
 
 .. _gen_label:
 
-Generation
-----------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    generation.GenerationUtils
-    generation.generate_from_prompt
-
 
 Miscellaneous
 -------------
@@ -85,7 +75,7 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
-    argparse.TuneArgumentParser
+    argparse.TuneRecipeArgumentParser
     logging.get_logger
     get_device
     seed.set_seed

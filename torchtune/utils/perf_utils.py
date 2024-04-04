@@ -1,9 +1,15 @@
-from dataclasses import dataclass
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
-import torch
+from dataclasses import dataclass
 
 from enum import Enum
 from typing import Dict
+
+import torch
 
 
 # Only mean metric reduction supported right now
@@ -19,6 +25,7 @@ import defaultdict
 # 2) Only mean reduction is supported, and mean is computed on the fly.
 # 3) Multiple reductions for a specific metric are not supported.
 # 4) No multi-threaded support.
+
 
 @dataclass
 class _MetricTacker:
@@ -38,7 +45,9 @@ class TunePerfMonitor:
         self._metric_dict: Dict[str, _MetricTacker] = defaultdict(_MetricTacker)
         self._inflight: Dict[str, float] = {}
 
-    def _run_rolling_average_reduction(self, metric_name: str, metric_val: float) -> float:
+    def _run_rolling_average_reduction(
+        self, metric_name: str, metric_val: float
+    ) -> float:
         # Rolling average
         metric_info = self._metric_dict[metric_name]
         count, prev_avg = metric_info.count + 1, metric_info.val
@@ -59,7 +68,6 @@ class TunePerfMonitor:
                 )
 
         raise RuntimeError(f"Reduction type {reduction_type} not supported!")
-
 
     def _record_metric(slef, metric_name, metric_val):
         """
@@ -105,13 +113,17 @@ class TunePerfMonitor:
         a start/end (like QPS does), but instead to record a value at a specific point in time
         (like torch.cuda.max_memory_allocated())
         """
-        reduced_metric = self._run_reduction(metric_name, metric_val, reduction_type=_ReductionType.MEAN)
+        reduced_metric = self._run_reduction(
+            metric_name, metric_val, reduction_type=_ReductionType.MEAN
+        )
         self._record_metric(metric_name, reduced_metric)
 
-    def get_metric_val(metric_name) -> float:
+    def get_metric_val(metric_name, default: float) -> float:
         """
         Get the current value of metric given by metric_name. Note that the metric is already reduced with the reduction
         specified in ``end_record``.
         """
         # TODO: its pretty limiting to only specify the reduction in end_record.
+        if metric_name not in self.metric_dict:
+            return default
         return self.metric_dict[metric_name].val

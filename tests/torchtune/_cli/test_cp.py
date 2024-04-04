@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 # All rights reserved.
 #
@@ -10,11 +9,12 @@ import sys
 from pathlib import Path
 
 import pytest
-
 from tests.common import TUNE_PATH
 
 
 class TestTuneCLIWithCopyScript:
+    """This class tests the `tune cp` command."""
+
     @pytest.mark.parametrize("already_exists", (True, False))
     def test_copy_successful(self, capsys, monkeypatch, tmpdir, already_exists):
         tmpdir_path = Path(tmpdir)
@@ -23,7 +23,7 @@ class TestTuneCLIWithCopyScript:
         if already_exists:
             dest.touch()
 
-        args = f"tune cp llama2/7B_full.yaml {dest}".split()
+        args = f"tune cp llama2/7B_full {dest}".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -32,7 +32,28 @@ class TestTuneCLIWithCopyScript:
         out = captured.out.rstrip("\n")
 
         assert dest.exists(), f"Expected {dest} to exist"
-        assert out == ""
+        assert f"Copied file to {dest}" in out
+
+    def test_copy_successful_with_cwd_as_path(self, capsys, monkeypatch, tmpdir):
+        tmpdir_path = Path(tmpdir)
+
+        # Needed so we can run test from tmpdir
+        tune_path_as_absolute = Path(TUNE_PATH).absolute()
+
+        # Change cwd to tmpdir
+        monkeypatch.chdir(tmpdir_path)
+
+        args = "tune cp llama2/7B_full .".split()
+        monkeypatch.setattr(sys, "argv", args)
+        runpy.run_path(str(tune_path_as_absolute), run_name="__main__")
+
+        captured = capsys.readouterr()
+        out = captured.out.rstrip("\n")
+
+        dest = tmpdir_path / "7B_full.yaml"
+
+        assert dest.exists()
+        assert "Copied file to ./7B_full.yaml" in out
 
     def test_copy_skips_when_dest_already_exists_and_no_clobber_is_true(
         self, capsys, monkeypatch, tmpdir
@@ -41,7 +62,7 @@ class TestTuneCLIWithCopyScript:
         existing_file = tmpdir_path / "existing_file.yaml"
         existing_file.touch()
 
-        args = f"tune cp llama2/7B_full_single_device.yaml {existing_file} -n".split()
+        args = f"tune cp llama2/7B_full_single_device {existing_file} -n".split()
 
         monkeypatch.setattr(sys, "argv", args)
         runpy.run_path(TUNE_PATH, run_name="__main__")
@@ -51,23 +72,38 @@ class TestTuneCLIWithCopyScript:
         err = captured.err.rstrip("\n")
 
         assert err == ""
-        assert (
-            "not overwriting" in out
-        ), f"Expected 'not overwriting' message, got '{out}'"
+        assert "not overwriting" in out
+
+    def test_adds_correct_suffix_to_dest_when_no_suffix_is_provided(
+        self, capsys, monkeypatch, tmpdir
+    ):
+        tmpdir_path = Path(tmpdir)
+        dest = tmpdir_path / "my_custom_finetune"
+
+        args = f"tune cp llama2/7B_full_single_device {dest}".split()
+
+        monkeypatch.setattr(sys, "argv", args)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        captured = capsys.readouterr()
+        out = captured.out.rstrip("\n")
+
+        assert dest.with_suffix(".yaml").exists(), f"Expected {dest} to exist"
+        assert f"Copied file to {dest}.yaml" in out
 
     @pytest.mark.parametrize(
         "tune_command,expected_error_message",
         [
             (
-                "tune cp non_existent_recipe.py .",
-                "error: Invalid file name: non_existent_recipe.py. Try `tune ls` to see all available files to copy.",
+                "tune cp non_existent_recipe .",
+                "error: Invalid file name: non_existent_recipe. Try `tune ls` to see all available files to copy.",
             ),
             (
-                "tune cp non_existent_config.yaml .",
-                "error: Invalid file name: non_existent_config.yaml. Try `tune ls` to see all available files to copy.",
+                "tune cp non_existent_config .",
+                "error: Invalid file name: non_existent_config. Try `tune ls` to see all available files to copy.",
             ),
             (
-                "tune cp full_finetune_single_device.py /home/mr_bean/full_finetune_single_device.py",
+                "tune cp full_finetune_single_device /home/mr_bean/full_finetune_single_device.py",
                 "error: Cannot create regular file: '/home/mr_bean/full_finetune_single_device.py'. No such file or directory.",
             ),
             (

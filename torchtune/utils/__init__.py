@@ -22,7 +22,8 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
     wrap_fsdp,
 )
-from .argparse import TuneArgumentParser
+from ._generation import generate  # noqa
+from .argparse import TuneRecipeArgumentParser
 from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .constants import (  # noqa
@@ -37,7 +38,10 @@ from .constants import (  # noqa
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
+    create_optim_in_bwd_wrapper,
     memory_stats_log,
+    OptimizerInBackwardWrapper,
+    register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
 from .precision import (
@@ -71,6 +75,9 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
-    "TuneArgumentParser",
+    "TuneRecipeArgumentParser",
     "CheckpointableDataLoader",
+    "OptimizerInBackwardWrapper",
+    "create_optim_in_bwd_wrapper",
+    "register_optim_in_bwd_hooks",
 ]

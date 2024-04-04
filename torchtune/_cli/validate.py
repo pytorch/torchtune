@@ -6,33 +6,54 @@
 
 import argparse
 import textwrap
+from pathlib import Path
 
-from omegaconf import DictConfig
+from omegaconf import OmegaConf
+
 from torchtune import config
-from torchtune.config._utils import _merge_yaml_and_cli_args
-from torchtune.utils import TuneArgumentParser
+from torchtune._cli.subcommand import Subcommand
+from torchtune.config._errors import ConfigError
 
 
-def main(cfg: DictConfig):
-    config.validate(cfg)
-    print("Config is well-formed!")
+class Validate(Subcommand):
+    """Holds all the logic for the `tune validate` subcommand."""
 
+    def __init__(self, subparsers: argparse._SubParsersAction):
+        super().__init__()
+        self._parser = subparsers.add_parser(
+            "validate",
+            prog="tune validate",
+            help="Validate a config and ensure that it is well-formed.",
+            description="Validate a config and ensure that it is well-formed.",
+            usage="tune validate <config>",
+            epilog=textwrap.dedent(
+                """\
+                examples:
 
-if __name__ == "__main__":
-    parser = TuneArgumentParser(
-        description="Validate a config and ensure that it is well-formed.",
-        usage="tune validate",
-        epilog=textwrap.dedent(
-            """\
-        examples:
-            $ tune validate --config recipes/configs/llama2/7B_lora.yaml
-            Config is well-formed!
-        """
-        ),
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
-    # Get user-specified args from config and CLI and create params for recipe
-    yaml_args, cli_args = parser.parse_known_args()
-    conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
+                    $ tune validate recipes/configs/full_finetune_distributed.yaml
+                    Config is well-formed!
+                """
+            ),
+            formatter_class=argparse.RawTextHelpFormatter,
+        )
+        self._add_arguments()
+        self._parser.set_defaults(func=self._validate_cmd)
 
-    main(conf)
+    def _add_arguments(self) -> None:
+        """Add arguments to the parser."""
+        self._parser.add_argument(
+            "config",
+            type=Path,
+            help="Path to a config to validate.",
+        )
+
+    def _validate_cmd(self, args: argparse.Namespace):
+        """Validate a config file."""
+        cfg = OmegaConf.load(args.config)
+
+        try:
+            config.validate(cfg)
+        except ConfigError as e:
+            self._parser.error(str(e))
+
+        print("Config is well-formed!")

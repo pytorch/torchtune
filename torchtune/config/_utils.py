@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import re
 from argparse import Namespace
 from importlib import import_module
 from types import ModuleType
@@ -13,7 +12,7 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.data._templates import PromptTemplate
+from torchtune.data import ChatFormat, InstructTemplate
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
@@ -152,35 +151,52 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     return OmegaConf.merge(yaml_conf, cli_conf)
 
 
-def _get_template(template: str) -> PromptTemplate:
+def _try_get_component(module_path: str, component_name: str, class_type: str) -> Any:
     """
-    Get the prompt template class from the template string.
+    Try-except wrapper around `_get_component_from_path`, used to quickly retrieve
+    a class from a name string with better error handling.
 
-    String should either be the PromptTemplate class name directly, or a raw
-    string with 1 or more placeholders. If none of these apply, then raise an
-    error.
+    Args:
+        module_path (str): path string of the file the class resides in
+        component_name (str): name of the class
+        class_type (str): type of the class, only used for more descriptive error message
+
+
+    Returns:
+        Any: the class
+
+    Raises:
+        ValueError: if the string is not a valid class
+    """
+    try:
+        return _get_component_from_path(module_path + "." + component_name)
+    except InstantiationError:
+        raise ValueError(f"Invalid {class_type} class: '{component_name}'") from None
+
+
+def _get_instruct_template(template: str) -> InstructTemplate:
+    """
+    Get the instruct template class from the template string.
 
     Args:
         template (str): class name of template, or string with placeholders
 
     Returns:
-        PromptTemplate: the prompt template class or the same verified string
-
-    Raises:
-        ValueError: if the template is not a PromptTemplate class or a proper
-            template string
+        InstructTemplate: the prompt template class or the same verified string
     """
-    path = "torchtune.data." + template
-    try:
-        template_class = _get_component_from_path(path)
-        return template_class()
-    except InstantiationError:
-        # Verify that string can be used as a template, should have variable
-        # placeholders
-        pattern = r"\{\w+\}"
-        if not re.search(pattern, template):
-            raise ValueError(
-                f"Invalid template '{template}': "
-                + "Must be a PromptTemplate class or a string with placeholders."
-            ) from None
-        return template
+    return _try_get_component(
+        "torchtune.data._instruct_templates", template, "InstructTemplate"
+    )
+
+
+def _get_chat_format(chat_format: str) -> ChatFormat:
+    """
+    Get the chat format class from a string.
+
+    Args:
+        chat_format (str): class name of the ChatFormat
+
+    Returns:
+        ChatFormat: the chat format class
+    """
+    return _try_get_component("torchtune.data._chat_formats", chat_format, "ChatFormat")

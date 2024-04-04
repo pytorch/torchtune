@@ -4,17 +4,13 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import pytest
 from torchtune.data import (
     AlpacaInstructTemplate,
-    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
-    Llama2ChatTemplate,
-    MistralChatTemplate,
     SummarizeTemplate,
 )
 
-# Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
+# Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
 CHAT_SAMPLE = {
     "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
@@ -156,99 +152,3 @@ class TestSummarizeTemplate:
             actual = self.template.format(modified_sample, column_map=column_map)
 
             assert actual == expected_prompt
-
-
-class TestLlama2ChatTemplate:
-    expected_prompt = (
-        "[INST] <<SYS>>\nYou are an AI assistant. User will you give you a task. "
-        "Your goal is to complete the task as faithfully as you can. While performing "
-        "the task think step-by-step and justify your steps.\n<</SYS>>\n\nPlease "
-        "briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old "
-        "Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? "
-        "How about on an icy road? Well one father in Russia did just that, and recorded "
-        "the entire thing. To her credit, the child seemed to be doing a great job. "
-        "(0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\n"
-        "Summary: [/INST] "
-    )
-
-    template = Llama2ChatTemplate()
-
-    def test_format(self):
-        actual = self.template.format(CHAT_SAMPLE)
-        assert actual == self.expected_prompt
-
-    def test_format_with_column_map(self):
-        column_map = {"system": "not_system"}
-        modified_sample = CHAT_SAMPLE.copy()
-        modified_sample["not_system"] = modified_sample["system"]
-        del modified_sample["system"]
-
-        actual = self.template.format(modified_sample, column_map=column_map)
-
-        assert actual == self.expected_prompt
-
-
-class TestMistralChatTemplate:
-    expected_prompt = (
-        "[INST] Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old "
-        "Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? "
-        "How about on an icy road? Well one father in Russia did just that, and recorded "
-        "the entire thing. To her credit, the child seemed to be doing a great job. "
-        "(0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\n"
-        "Summary: [/INST] "
-    )
-
-    template = MistralChatTemplate()
-
-    def test_format(self):
-        no_system_sample = CHAT_SAMPLE.copy()
-        del no_system_sample["system"]
-        actual = self.template.format(no_system_sample)
-        assert actual == self.expected_prompt
-
-    def test_format_with_system_prompt_raises(self):
-        with pytest.raises(
-            ValueError, match="System prompts are not supported in MistralChatTemplate"
-        ):
-            _ = self.template.format(CHAT_SAMPLE)
-
-    def test_format_with_column_map(self):
-        column_map = {"user": "not_user"}
-        modified_sample = CHAT_SAMPLE.copy()
-        modified_sample["not_user"] = modified_sample["user"]
-        del modified_sample["system"]
-        del modified_sample["user"]
-
-        actual = self.template.format(modified_sample, column_map=column_map)
-
-        assert actual == self.expected_prompt
-
-
-class TestChatMLTemplate:
-    expected_prompt = (
-        "<|im_start|>system\nYou are an AI assistant. User will you give you a task. "
-        "Your goal is to complete the task as faithfully as you can. While performing "
-        "the task think step-by-step and justify your steps.<|im_end|>\n<|im_start|>user\nPlease "
-        "briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old "
-        "Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? "
-        "How about on an icy road? Well one father in Russia did just that, and recorded "
-        "the entire thing. To her credit, the child seemed to be doing a great job. "
-        "(0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\n"
-        "Summary:<|im_end|>\n<|im_start|>assistant\n"
-    )
-
-    template = ChatMLTemplate()
-
-    def test_format(self):
-        actual = self.template.format(CHAT_SAMPLE)
-        assert actual == self.expected_prompt
-
-    def test_format_with_column_map(self):
-        column_map = {"system": "not_system"}
-        modified_sample = CHAT_SAMPLE.copy()
-        modified_sample["not_system"] = modified_sample["system"]
-        del modified_sample["system"]
-
-        actual = self.template.format(modified_sample, column_map=column_map)
-
-        assert actual == self.expected_prompt

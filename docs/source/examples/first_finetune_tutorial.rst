@@ -25,13 +25,13 @@ job using TorchTune.
 Downloading a model
 -------------------
 First, you need to download a model. TorchTune's supports an integration
-with the `HuggingFace Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
+with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
 meaning that you need to be granted access in order to download the weights. Follow `these instructions <https://huggingface.co/meta-llama>`_ on the official Meta page
-hosted on HuggingFace to complete this process. (This should take less than 5 minutes.)
+hosted on Hugging Face to complete this process. (This should take less than 5 minutes.) To verify that you have the access, go to the `model page <https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main>`_. You should be able to see the model files. If not, you may need to accept the agreement to complete the signup process.
 
-Once you have authorization, you will need to authenticate with HuggingFace Hub. The easiest way to do so is to provide an
+Once you have authorization, you will need to authenticate with Hugging Face Hub. The easiest way to do so is to provide an
 access token to the download script. You can find your token `here <https://huggingface.co/settings/tokens>`_.
 
 Then, it's as simple as:
@@ -39,7 +39,7 @@ Then, it's as simple as:
 .. code-block:: bash
 
   tune download \
-  --repo-id meta-llama/Llama-2-7b \
+  meta-llama/Llama-2-7b \
   --output-dir /tmp/llama2 \
   --hf-token <ACCESS TOKEN>
 
@@ -78,7 +78,7 @@ It looks like there's already a config called :code:`alpaca_llama_full_finetune`
 
 .. code-block:: bash
 
-  tune cp llama2/7B_full.yaml custom_config.yaml
+  tune cp llama2/7B_full custom_config.yaml
 
 Now you can update the custom YAML config to point to your model and tokenizer. While you're at it,
 you can make some other changes, like setting the random seed in order to make replication easier,
@@ -138,7 +138,7 @@ run using two GPUs, it's as easy as:
 
 .. code-block:: bash
 
-  tune --nnodes 1 --nproc_per_node 2 full_finetune_distributed.py --config custom_config.yaml
+  tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed --config custom_config.yaml
 
 You should see some immediate output and see the loss going down, indicating your model is training succesfully.
 
