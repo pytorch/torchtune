@@ -64,7 +64,7 @@ class GemmaTransformerDecoder(nn.Module):
         self.norm_embeddings = norm_embeddings
 
     def forward(
-        self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = 0
+        self, tokens: Tensor, mask: Optional[Tensor] = None, curr_pos: int = None
     ) -> Tensor:
         """
         Args:
