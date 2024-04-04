@@ -1,9 +1,0 @@
-# Add necessary recipe files (not as importable)
-recursive-include recipes *.py *.yaml
-
-# Add requirements
-include requirements.txt
-include dev-requirements.txt
-
-# Remove tests from packaging
-prune tests

@@ -1,3 +1,69 @@
+# ---- All project specifications ---- #
+[project]
+name = "torchtune"
+description = "A native-PyTorch library for LLM fine-tuning"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    { name = "PyTorch Team", email = "packages@pytorch.org" },
+]
+keywords = ["pytorch", "finetuning"]
+dependencies = [
+    # Hugging Face integrations
+    "datasets",
+    "huggingface_hub",
+    "safetensors",
+
+    # Miscellaneous
+    "sentencepiece",
+    "tqdm",
+    "omegaconf",
+
+    # Quantization
+    "torchao-nightly==2024.3.29",
+]
+dynamic = ["version"]
+
+[project.urls]
+GitHub = "https://github.com/pytorch/torchtune"
+Documentation = "https://pytorch.org/torchtune/main/index.html"
+Issues = "https://github.com/pytorch/torchtune/issues"
+
+[project.scripts]
+tune = "torchtune._cli.tune:main"
+
+[project.optional-dependencies]
+dev = [
+    "bitsandbytes",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-integration",
+    "tensorboard",
+    "transformers",
+    "wandb",
+]
+
+
+# ---- Explicit project build information ---- #
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["torchtune*"]
+exclude = ["recipes*"]
+
+[tool.setuptools.package-data]
+torchtune = [
+    "recipes/*",
+    "recipes/configs/*",
+]
+
+# ---- Tooling specifications ---- #
 [tool.usort]
 first_party_detection = false
 
