@@ -410,7 +410,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     loss = self._loss_fn(logits, labels)
 
                     if self.total_training_steps % self._log_every_n_steps == 0:
-                        pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
+                        )
                         self._metric_logger.log_dict(
                             {
                                 "loss": loss.item(),
@@ -428,7 +430,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # Update the number of steps when the weights are updated
                         self.total_training_steps += 1
                     # Log peak memory for iteration
-                    if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    if (
+                        self.total_training_steps % self._log_peak_memory_every_n_steps
+                        == 0
+                    ):
                         log.info(
                             utils.memory_stats_log("Memory Stats:", device=self._device)
                         )
