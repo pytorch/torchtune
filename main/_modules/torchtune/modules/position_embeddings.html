@@ -450,7 +450,7 @@
         <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="c1"># extract the values based on whether input_pos is set or not. When</span>
-        <span class="c1"># input_pos is provided, we&#39;re in infernce mode</span>
+        <span class="c1"># input_pos is provided, we&#39;re in inference mode</span>
         <span class="n">rope_cache</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]</span> <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">input_pos</span><span class="p">]</span>
         <span class="p">)</span>
