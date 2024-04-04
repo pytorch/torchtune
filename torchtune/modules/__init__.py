@@ -20,7 +20,6 @@ __all__ = [
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
-    "GemmaRMSNorm",
     "Tokenizer",
     "TransformerDecoder",
     "TransformerDecoderLayer",
