@@ -78,6 +78,43 @@ def padded_collate_dpo(
     padding_idx: int = 0,
     ignore_idx: int = -100,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Pad a batch of sequences for Direct Preference Optimization (DPO).
+
+    This function takes a batch of sequences, where each sequence is represented
+    as a dictionary with multiple key-value pairs. Each key corresponds to a different
+    sequence component, such as input_ids or labels. The function pads each sequence
+    component independently to the longest sequence length in the batch.
+
+    Args:
+        batch (List[TokenPair]): A list of dictionaries, where each dictionary
+            represents a sequence with multiple components including 'chosen_input_ids',
+            'chosen_labels', 'rejected_input_ids', and 'rejected_labels'.
+        padding_idx (int): Padding index for input ids. Defaults to 0.
+        ignore_idx (int): Padding index for labels. Defaults to -100.
+
+    Returns:
+        dict: A dictionary containing padded sequences for each component.
+
+    Example:
+        >>> token_pairs = [
+        >>>    {'chosen_input_ids': [1, 2, 3], 'chosen_labels': [4, 5, 6],
+        >>>     'rejected_input_ids': [7, 8], 'rejected_labels': [9, 10]},
+        >>>    {'chosen_input_ids': [11], 'chosen_labels': [12],
+        >>>     'rejected_input_ids': [13, 14, 15], 'rejected_labels': [16, 17, 18]},
+        >>> ]
+        >>> padded_data = padded_collate_dpo(
+        >>>    batch=token_pairs,
+        >>>    padding_idx=padding_idx,
+        >>>    ignore_idx=ignore_idx,
+        >>> )
+        >>> padded_data
+        >>> {
+        >>>     'chosen_input_ids': tensor([[ 1,  2,  3], [11,  0,  0]]),
+        >>>     'chosen_labels': tensor([[ 4,  5,  6], [12, -100, -100]]),
+        >>>     'rejected_input_ids': tensor([[ 7,  8,  0], [13, 14, 15]]),
+        >>>     'rejected_labels': tensor([[ 9, 10, -100], [16, 17, 18]]),
+        >>> }
+    """
     padded_batch = {} 
     for k in batch[0].keys():
         to_pad = [torch.LongTensor(ex[k]) for ex in batch]
