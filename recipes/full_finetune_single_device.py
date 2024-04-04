@@ -387,10 +387,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
-                            "avg_it_s": 1 / monitor.get_metric_val("avg_s_it", 1e9),
+                            "avg_it_s": 1 / monitor.get_metric_val("avg_s_it", default=1e9),
                             "max_mem_post_bwd": monitor.get_metric_val(
                                 "max_mem_post_bwd",
-                                torch.cuda.max_memory_allocated() / 1e9,
+                                default=torch.cuda.max_memory_allocated() / 1e9,
                             ),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
