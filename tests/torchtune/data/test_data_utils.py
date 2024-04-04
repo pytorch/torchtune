@@ -59,6 +59,14 @@ def test_validate_messages():
     with pytest.raises(ValueError, match="Message at index 1 in messages is empty"):
         validate_messages(messages)
 
+    # Test empty assistant message
+    messages = [
+        Message(role="system", content="hello"),
+        Message(role="user", content="world"),
+        Message(role="assistant", content=""),
+    ]
+    validate_messages(messages)
+
     # Test single message
     messages = [
         Message(role="user", content="hello"),
