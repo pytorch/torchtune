@@ -11,7 +11,7 @@ from torchtune.modules import Tokenizer
 
 def stack_exchanged_paired_dataset(
     tokenizer: Tokenizer,
-    max_seq_len: int = 512,
+    max_seq_len: int = 2048,
 ) -> PreferenceDataset:
     """
     Support for the Alpaca dataset and its variants from Hugging Face Datasets.

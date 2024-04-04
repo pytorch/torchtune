@@ -9,7 +9,8 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import InstructTemplate, tokenize_preference_sample
+from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data import InstructTemplate, Message, tokenize_preference_sample
 from torchtune.modules import Tokenizer
 
 
@@ -75,11 +76,31 @@ class PreferenceDataset(Dataset):
         transformed_sample = self._transform(sample) if self._transform else sample
         prompt, chosen, rejected = self.template.format(transformed_sample, self._column_map)
 
-        batch = tokenize_preference_sample(
-            tokenizer=self._tokenizer,
-            prompt=prompt,
-            chosen=chosen,
-            rejected=rejected,
-            max_length=self.max_seq_len,
+        chosen_message = [
+            Message(role="user", content=prompt, masked=True),
+            Message(role="assistant", content=chosen)
+            ]
+        
+        rejected_message = [
+            Message(role="user", content=prompt, masked=True),
+            Message(role="assistant", content=rejected)
+            ]
+        
+        # TODO: Trunction differs from original DPO repo
+        # in DPO: first trunctate prompts, then responses
+        chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(chosen_message, self.max_seq_len)
+        chosen_labels = chosen_input_ids[:]
+        chosen_labels[:sum(c_masks)] = [CROSS_ENTROPY_IGNORE_IDX ] * sum(c_masks)
+
+        rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(rejected_message, self.max_seq_len)
+        rejected_labels = rejected_input_ids[:]
+        rejected_labels[:sum(r_masks)] = [CROSS_ENTROPY_IGNORE_IDX ] * sum(r_masks)
+
+        batch = dict(
+            chosen_input_ids = chosen_input_ids,
+            chosen_labels = chosen_labels,
+            rejected_input_ids = rejected_input_ids,
+            rejected_labels = rejected_labels
         )
+       
         return batch
