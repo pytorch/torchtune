@@ -123,12 +123,24 @@ class LoRALinear(nn.Module, AdapterModule):
             Tensor: output tensor with shape ``(..., out_dim)``
 
         """
+
+        def pack_hook(x):
+            return x
+
+        def unpack_hook(x):
+            return x
+
         if self._quantize_base:
             out = linear_nf4(input=x, weight=self.weight)
         else:
             out = F.linear(x, self.weight, self.bias)
-        lora_out = self.lora_a(self.dropout(x))
-        lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
+        import torch
+
+        lora_out = self.dropout(x)
+        with torch.autograd.graph.saved_tensors_hooks(pack_hook, unpack_hook):
+            lora_out = self.lora_a(x)
+            lora_out = self.lora_b(lora_out)
+        lora_out = lora_out * (self.alpha / self.rank)
         return out + lora_out
 
 
