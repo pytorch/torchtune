@@ -70,11 +70,11 @@ class PreferenceDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+    def __getitem__(self, index: int) -> Dict[str, List[int]]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
         prompt = self.template.format(transformed_sample, self._column_map)
 

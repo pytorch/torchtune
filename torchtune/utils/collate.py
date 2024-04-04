@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 import torch
 
@@ -77,7 +77,7 @@ def padded_collate_dpo(
     batch: List[TokenPair],
     padding_idx: int = 0,
     ignore_idx: int = -100,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences for Direct Preference Optimization (DPO).
 
     This function takes a batch of sequences, where each sequence is represented
