@@ -96,9 +96,8 @@ class GemmaTransformerDecoder(nn.Module):
             mask = torch.triu(mask, diagonal=curr_pos + 1)
 
         if self.norm_embeddings:
-            hidden_size = h.size(-1)
-            normalizer = torch.tensor(hidden_size**0.5, dtype=h.dtype)
-            h = h * normalizer
+            hidden_dim = h.size(-1)
+            h = h * torch.tensor(hidden_dim**0.5, dtype=h.dtype)
 
         for layer in self.layers:
             # shape: [b, s, d]
