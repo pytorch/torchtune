@@ -152,14 +152,11 @@ class StackExchangedPairedTemplate(InstructTemplate):
     Prompt template for the StackExchangedPaired dataset. 
     """
 
-    template = {
-        "prompt": (
-            "Question: {question}\n\nAnswer: "
-        ),
-    }
-
+    template =  "Question: {question}\n\nAnswer: "
+    
+    @classmethod
     def format(
-        self, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
     ) -> str:
         """
         Generate prompt from instruction and input.
@@ -175,10 +172,6 @@ class StackExchangedPairedTemplate(InstructTemplate):
         """
         column_map = column_map or {}
         key_prompt = column_map.get("prompt", "prompt")
-        key_chosen = column_map.get("chosen", "chosen")
-        key_rejected = column_map.get("rejected", "rejected")
-        prompt = self.template['prompt'].format(question=sample[key_prompt])
-        chosen = sample[key_chosen]
-        regected = sample[key_rejected]
+        prompt = cls.template.format(question=sample[key_prompt])
 
-        return prompt, chosen, regected
+        return prompt

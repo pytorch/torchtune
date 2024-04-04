@@ -76,16 +76,19 @@ class PreferenceDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
-        prompt, chosen, rejected = self.template.format(transformed_sample, self._column_map)
+        prompt = self.template.format(transformed_sample, self._column_map)
+
+        key_chosen = self._column_map["chosen"]
+        key_rejected = self._column_map['rejected']
 
         chosen_message = [
             Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=chosen)
+            Message(role="assistant", content=transformed_sample[key_chosen])
             ]
         
         rejected_message = [
             Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=rejected)
+            Message(role="assistant", content=transformed_sample[key_rejected])
             ]
         
         # TODO: Trunction differs from original DPO repo
@@ -94,7 +97,6 @@ class PreferenceDataset(Dataset):
             chosen_message, self.max_seq_len
         )
         chosen_labels = list(np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids))
-
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
             rejected_message, self.max_seq_len
