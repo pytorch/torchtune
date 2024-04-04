@@ -17,7 +17,8 @@ class _ReductionType(Enum):
     MEAN = "mean"
 
 
-import defaultdict
+from collections import defaultdict
+import time
 
 
 # LIMITATIONS
@@ -55,11 +56,11 @@ class TunePerfMonitor:
         return avg
 
     def _run_reduction(
-        metric_name: str, metric_val: float, reduction_type: _ReductionType
+        self, metric_name: str, metric_val: float, reduction_type: _ReductionType
     ) -> float:
         # TODO: if/else on reduction_type is not scalable. Update to using a dispatch
         # when we have more reduction types.
-        if self.reduction_type == _ReductionType.MEAN:
+        if reduction_type == _ReductionType.MEAN:
             if metric_name not in self._metric_dict:
                 return metric_val
             else:
@@ -69,7 +70,7 @@ class TunePerfMonitor:
 
         raise RuntimeError(f"Reduction type {reduction_type} not supported!")
 
-    def _record_metric(slef, metric_name, metric_val):
+    def _record_metric(self, metric_name, metric_val):
         """
         Updates our metric tracking for metric_name with metric_val and bumps count by 1.
         """
@@ -79,7 +80,7 @@ class TunePerfMonitor:
             self._metric_dict[metric_name].count += 1
             self._metric_dict[metric_name].val = metric_val
 
-    def start_record(metric: str):
+    def start_record(self, metric: str):
         """
         Start tracking metric given by ``str``
         """
@@ -89,7 +90,7 @@ class TunePerfMonitor:
         self._inflight[metric] = time.perf_counter()
 
     def end_record(
-        metric_name: str, reduction_type: _ReductionType = _ReductionType.MEAN
+        self, metric_name: str, reduction_type: _ReductionType = _ReductionType.MEAN
     ):
         """
         End tracking metric given by ``str`` and compute and store the metric value.
@@ -105,7 +106,7 @@ class TunePerfMonitor:
 
         # Compute metric and add to metric_dict.
         reduced_metric = self._run_reduction(metric_name, cpu_elapsed_s, reduction_type)
-        self._record_metric(metric, reduced_metric)
+        self._record_metric(metric_name, reduced_metric)
 
     def log_metric(self, metric_name, metric_val):
         """
@@ -118,12 +119,12 @@ class TunePerfMonitor:
         )
         self._record_metric(metric_name, reduced_metric)
 
-    def get_metric_val(metric_name, default: float) -> float:
+    def get_metric_val(self, metric_name, default: float) -> float:
         """
         Get the current value of metric given by metric_name. Note that the metric is already reduced with the reduction
         specified in ``end_record``.
         """
         # TODO: its pretty limiting to only specify the reduction in end_record.
-        if metric_name not in self.metric_dict:
+        if metric_name not in self._metric_dict:
             return default
-        return self.metric_dict[metric_name].val
+        return self._metric_dict[metric_name].val

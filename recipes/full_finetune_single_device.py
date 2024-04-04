@@ -341,7 +341,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        monitor = utils.perf_utils.TunePerfMonitor()
+        monitor = utils.TunePerfMonitor()
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -384,8 +384,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
-                            "avg_s_it": monitor.get_metric_value("avg_s_it", 0),
-                            "max_mem_post_bwd": monitor.get_metric_val("max_mem_post_bwd", torch.cuda.max_memory_allocated() / 1e9),
+                            "avg_it_s": 1 / monitor.get_metric_val("avg_s_it", 1e9),
+                            "max_mem_post_bwd": monitor.get_metric_val(
+                                "max_mem_post_bwd",
+                                torch.cuda.max_memory_allocated() / 1e9,
+                            ),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,
@@ -393,7 +396,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
-                monitor.log_metric("max_mem_post_bwd", torch.cuda.max_memory_allocated() / 1e9)
+                monitor.log_metric(
+                    "max_mem_post_bwd", torch.cuda.max_memory_allocated() / 1e9
+                )
                 if (
                     not self._optimizer_in_bwd
                     and (idx + 1) % self._gradient_accumulation_steps == 0
