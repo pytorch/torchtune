@@ -250,15 +250,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
             # Ensure we broadcast params and buffers from rank 0
-            sync_module_states=True,
+            sync_module_states=False,
             # Initialize empty modules on all non-zero ranks
-            param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
-                )
-                if not self._is_rank_zero
-                else None
-            ),
+            param_init_fn=None,
         )
 
         # Ensure no params and buffers are on meta device
