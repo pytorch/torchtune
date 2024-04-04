@@ -4,17 +4,19 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import math
-from typing import List
+import torch
+from typing import Tuple, Dict, Any, Optional, Union, List
 
 import torch.nn.functional as F
 
 from torch import nn, Tensor
 
-from torchao.dtypes.nf4tensor import linear_nf4
+from torchao.dtypes.nf4tensor import linear_nf4, NF4Tensor
 from torchtune.modules.low_precision import (  # noqa: F401
     _register_nf4_dispatch_ops,
     FrozenNF4Linear,
 )
+from torchao.dtypes.nf4tensor import SubclassTensorArgs
 from torchtune.modules.peft.peft_utils import AdapterModule
 
 
@@ -130,6 +132,72 @@ class LoRALinear(nn.Module, AdapterModule):
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out
+
+    def fsdp_extensions(self) -> Dict[str, Any]:
+        if isinstance(self.weight._local_tensor, NF4Tensor):
+            from torch.distributed._composable.fsdp import FSDPTensorExtensions
+            weight_extensions = FSDPTensorExtensions(
+                self._fsdp_pre_all_gather, self._fsdp_post_all_gather
+            )
+            return {"weight": weight_extensions}
+        else:
+            return {}
+
+    def _fsdp_pre_all_gather(self, sharded_param: torch.Tensor):
+        return (
+            sharded_param.quantized_scalers,
+            sharded_param.quantization_factor,
+            sharded_param.quantized_data,
+        ), (
+            SubclassTensorArgs(
+                sharded_param.size(),
+                sharded_param.stride(),
+                sharded_param.storage_offset(),
+                sharded_param.dtype,
+                sharded_param.device,
+                sharded_param.requires_grad,
+            ),
+            sharded_param.block_size,
+            sharded_param.n_blocks,
+            sharded_param.scaler_block_size,
+            sharded_param.scaler_mean,
+            sharded_param.nf4,
+        )
+
+    def _fsdp_post_all_gather(
+        self,
+        all_gather_outputs: Tuple[torch.Tensor, ...],
+        metadata: Any,
+        param_dtype: torch.dtype,
+        *,
+        out: Optional[torch.Tensor] = None,
+    ) -> Union[Tuple[NF4Tensor, Tuple[torch.Tensor, ...]], None]:
+        (quantized_scalers, quantization_factor, quantized_data) = all_gather_outputs
+        (tensor_meta, block_size, n_blocks, scaler_block_size, scaler_mean, nf4)  = metadata
+        tensor_meta.original_shape = torch.Size([quantized_data.size(0) * 2])
+        if out is not None:
+            assert isinstance(out, NF4Tensor), f"{type(out)}"
+            assert (
+                quantized_scalers.untyped_storage().data_ptr()
+                == out.quantized_scalers.untyped_storage().data_ptr() and
+                quantization_factor.untyped_storage().data_ptr()
+                == out.quantization_factor.untyped_storage().data_ptr() and
+                quantized_data.untyped_storage().data_ptr()
+                == out.quantized_data.untyped_storage().data_ptr()
+            ), f"Expects out's data to be the all-gather output"
+            return
+
+        return NF4Tensor(
+            tensor_meta,
+            block_size,
+            n_blocks,
+            scaler_block_size,
+            quantized_scalers,
+            quantization_factor,
+            scaler_mean,
+            quantized_data,
+            nf4,
+        ), (quantized_scalers, quantization_factor, quantized_data)
 
 
 def _lora_a_init_params(x: nn.Linear) -> None:
