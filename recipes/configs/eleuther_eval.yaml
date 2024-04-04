@@ -10,7 +10,7 @@ model:
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer
   checkpoint_dir: /tmp/llama2/
-  checkpoint_files: [meta_model_0.4w.pt]
+  checkpoint_files: [meta_model_0.4w-gptq.pt]
   output_dir: /tmp/llama2/
   model_type: LLAMA2
 
@@ -25,9 +25,9 @@ dtype: bf16
 seed: 217
 
 # EleutherAI specific eval args
-tasks: ["truthfulqa_mc2", "hellaswag"]
+tasks: ["wikitext"]
 limit: null
 max_seq_length: 4096
 
 # Quantization
-quantization_mode: 4w
+quantization_mode: 4w-gptq

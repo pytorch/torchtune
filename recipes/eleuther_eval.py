@@ -154,10 +154,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         if self._quantization_mode is not None:
-            with torch.device("meta"):
-                model = config.instantiate(model_cfg)
-            quantizer = utils.get_quantizer(self._quantization_mode)
-            model = quantizer.quantize(model)
+            # with torch.device("meta"):
+            model = config.instantiate(model_cfg)
+            quantizer = utils.get_quantizer(self._quantization_mode, blocksize=128, percdamp=.01, groupsize=128)
+            model = quantizer._convert_for_runtime(model)
             model.load_state_dict(model_state_dict, assign=True)
             model = model.to(device=self._device, dtype=self._dtype)
         else:

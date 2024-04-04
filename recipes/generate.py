@@ -39,7 +39,7 @@ class InferenceRecipe:
 
     def setup(self, cfg: DictConfig) -> None:
         # weights_only needs to be False when loading a quantized model
-	weights_only = (self._quantization_mode is None)
+        weights_only = (self._quantization_mode is None)
         ckpt_dict = self.load_checkpoint(cfg.checkpointer, weights_only=weights_only)
         self._model = self._setup_model(
             model_cfg=cfg.model,

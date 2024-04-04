@@ -33,7 +33,7 @@ def get_quantizer(quantization_mode, *args, **kwargs):
         from torchao.quantization.quant_api import (
             Int8DynActInt4WeightQuantizer,
             Int8DynActInt4WeightGPTQQuantizer,
-            Int4WeightGPTQQuantizer,
+            Int4WeightOnlyGPTQQuantizer,
         )
 
         qmode_to_quantizer |= {
@@ -41,7 +41,7 @@ def get_quantizer(quantization_mode, *args, **kwargs):
             # TODO: merge into 8da4w
             "8da4w-gptq": Int8DynActInt4WeightGPTQQuantizer,
             # merge into 4w
-            "4w-gptq": Int4WeightGPTQQuantizer,
+            "4w-gptq": Int4WeightOnlyGPTQQuantizer,
         }
     if quantization_mode not in qmode_to_quantizer:
         raise ValueError(f"Unsupported quantization mode: {quantization_mode}, supported modes are: {qmode_to_quantizer.keys()}")

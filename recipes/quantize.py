@@ -70,9 +70,25 @@ class QuantizationRecipe:
 
     @torch.no_grad()
     def quantize(self, cfg: DictConfig):
-        quantizer = utils.get_quantizer(self._quantization_mode)
+        from torchao.quantization.GPTQ import InputRecorder
+        tokenizer = config.instantiate(cfg.tokenizer)
+        calibration_seq_length = 100
+        calibration_tasks = ['wikitext']
+        inputs = InputRecorder(
+            tokenizer,
+            calibration_seq_length,
+            vocab_size=self._model.tok_embeddings.weight.shape[0],
+            device="cpu",
+        ).record_inputs(
+            calibration_tasks,
+            5,
+        ).get_inputs()
+        # calib = 1, limit=1 [eleuther_eval.py:202] wikitext: {'word_perplexity,none': 6.282903500084389, 'word_perplexity_stderr,none': 'N/A', 'byte_perplexity,none': 1.4254172116452406, 'byte_perplexity_stderr,none': 'N/A', 'bits_per_byte,none': 0.5113842498565163, 'bits_per_byte_stderr,none': 'N/A', 'alias': 'wikitext'}
+        # calib = 1, limit=None [eleuther_eval.py:202] wikitext: {'word_perplexity,none': 9.4572063787555, 'word_perplexity_stderr,none': 'N/A', 'byte_perplexity,none': 1.5222028600938176, 'byte_perplexity_stderr,none': 'N/A', 'bits_per_byte,none': 0.6061606359433654, 'bits_per_byte_stderr,none': 'N/A', 'alias': 'wikitext'}
+        # calib = 5, limit=None [eleuther_eval.py:202] wikitext: {'word_perplexity,none': 9.181452425193726, 'word_perplexity_stderr,none': 'N/A', 'byte_perplexity,none': 1.513802586466077, 'byte_perplexity_stderr,none': 'N/A', 'bits_per_byte,none': 0.5981770771226372, 'bits_per_byte_stderr,none': 'N/A', 'alias': 'wikitext'}
+        quantizer = utils.get_quantizer(self._quantization_mode, blocksize=128, percdamp=.01, groupsize=128)
         t0 = time.perf_counter()
-        self._model = quantizer.quantize(self._model)
+        self._model = quantizer.quantize(self._model, inputs)
         t = time.perf_counter() - t0
         logger.info(
             f"Time for quantization: {t:.02f} sec"
