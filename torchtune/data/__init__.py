@@ -10,15 +10,15 @@ from torchtune.data._chat_formats import (
     Llama2ChatFormat,
     MistralChatFormat,
 )
+from torchtune.data._converters import sharegpt_to_llama2_messages
 from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
     InstructTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._transforms import sharegpt_to_llama2_messages
 from torchtune.data._types import Message
-from torchtune.data._utils import truncate
+from torchtune.data._utils import truncate, validate_messages
 
 __all__ = [
     "AlpacaInstructTemplate",
@@ -32,4 +32,5 @@ __all__ = [
     "sharegpt_to_llama2_messages",
     "truncate",
     "Message",
+    "validate_messages",
 ]
