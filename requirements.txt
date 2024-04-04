@@ -1,6 +1,7 @@
 # Hugging Face Integration Reqs
 datasets
 huggingface_hub
+safetensors
 
 # Misc
 sentencepiece
