@@ -29,7 +29,7 @@ with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a coll
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
 meaning that you need to be granted access in order to download the weights. Follow `these instructions <https://huggingface.co/meta-llama>`_ on the official Meta page
-hosted on Hugging Face to complete this process. (This should take less than 5 minutes.)
+hosted on Hugging Face to complete this process. (This should take less than 5 minutes.) To verify that you have the access, go to the `model page <https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main>`_. You should be able to see the model files. If not, you may need to accept the agreement to complete the signup process.
 
 Once you have authorization, you will need to authenticate with Hugging Face Hub. The easiest way to do so is to provide an
 access token to the download script. You can find your token `here <https://huggingface.co/settings/tokens>`_.
