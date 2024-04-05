@@ -17,11 +17,11 @@ class DPOLoss(nn.Module):
 
     def forward(
         self,
-        policy_chosen_logps,
-        policy_rejected_logps,
-        reference_chosen_logps,
-        reference_rejected_logps,
-    ):
+        policy_chosen_logps: torch.Tensor,
+        policy_rejected_logps: torch.Tensor,
+        reference_chosen_logps: torch.Tensor,
+        reference_rejected_logps: torch.Tensor,
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Compute the DPO loss for a batch of policy and reference model log probabilities.
 
         Args:
