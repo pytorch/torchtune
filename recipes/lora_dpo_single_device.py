@@ -162,7 +162,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
-        utils.disable_dropout(self._model)
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -220,7 +219,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
-
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
         self.adapter_params = get_adapter_params(model)

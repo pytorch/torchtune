@@ -57,7 +57,6 @@ from .precision import (
 )
 from .quantization import get_quantizer_mode
 from .seed import set_seed
-from .tensor_utils import disable_dropout, pad_to_length
 
 __all__ = [
     "save_checkpoint",
