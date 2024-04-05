@@ -21,6 +21,10 @@ defaults:
 jobs:
   recipe_test_multi_gpu:
     runs-on: linux.8xlarge.nvidia.gpu
+    include:
+      - runs-on: linux.8xlarge.nvidia.gpu
+        compiler: gcc
+        gcc: 11
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
