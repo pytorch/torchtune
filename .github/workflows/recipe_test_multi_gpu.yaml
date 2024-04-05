@@ -24,6 +24,9 @@ jobs:
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
+        include:
+          - compiler: gcc
+            gcc: 11
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
