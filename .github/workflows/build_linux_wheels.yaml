@@ -63,14 +63,14 @@ jobs:
           repository: pytorch/test-infra
           ref: main
           path: test-infra
-      - uses: pytorch/test-infra/.github/actions/set-channel
+      - uses: pytorch/test-infra/.github/actions/set-channel/action.yml@main
       - name: Set PYTORCH_VERSION
         if: ${{ env.CHANNEL == 'test' }}
         run: |
           # When building RC, set the version to be the current candidate version,
           # otherwise, leave it alone so nightly will pick up the latest
           echo "PYTORCH_VERSION=${{ matrix.stable_version }}" >> "${GITHUB_ENV}"
-      - uses: pytorch/test-infra/.github/actions/setup-binary-builds
+      - uses: pytorch/test-infra/.github/actions/setup-binary-builds/action.yml@main
         env:
           PLATFORM: ${{ env.ARCH == 'aarch64'  && 'linux-aarch64' || ''}}
         with:
@@ -139,7 +139,7 @@ jobs:
 
   upload:
     needs: build
-    uses: pytorch/test-infra/.github/workflows/_binary_upload.yml
+    uses: pytorch/test-infra/.github/workflows/_binary_upload.yml@main
     if: always()
     with:
       repository: pytorch.torchtune
