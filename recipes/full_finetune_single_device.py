@@ -368,10 +368,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                 if self.total_training_steps % self._log_every_n_steps == 0:
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
