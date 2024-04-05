@@ -368,7 +368,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
                 if self.total_training_steps % self._log_every_n_steps == 0:
