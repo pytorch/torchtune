@@ -20,6 +20,7 @@ from torchtune.utils._checkpointing._checkpointer_utils import (
     load_shared_weight_utils,
     ModelType,
     safe_torch_load,
+    save_config,
     save_shared_weight_utils,
 )
 from torchtune.utils.logging import get_logger
@@ -310,6 +311,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._config = json.loads(
             Path.joinpath(self._checkpoint_dir, "config.json").read_text()
         )
+
+        # save config.json to output_dir
+        save_config(self._output_dir, self._config)
 
         # recipe_checkpoint contains the recipe state. This should be available if
         # resume_from_checkpoint is True

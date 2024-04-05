@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict
@@ -114,3 +115,17 @@ def save_shared_weight_utils(weight_map, state_dict):
             state_dict["model.embed_tokens.weight"],
         ):
             del state_dict["lm_head.weight"]
+
+
+def save_config(path: Path, config: Dict[str, Any]) -> None:
+    """
+    Save a configuration dictionary to a file.
+
+    Args:
+        path (Path): Path to save the configuration file.
+        config (Dict[str, Any]): Configuration dictionary to save.
+    """
+    file_path = Path.joinpath(path, "config.json")
+    if not file_path.exists():
+        with open(file_path, "w") as f:
+            json.dump(config, f)
