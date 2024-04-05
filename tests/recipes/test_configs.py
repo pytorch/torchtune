@@ -6,9 +6,10 @@
 import os
 from pathlib import Path
 
+import torchtune
+
 from omegaconf import OmegaConf
 from torchtune import config
-import torchtune
 
 CONFIG_DIR = Path(torchtune.__file__).parent.parent / "recipes" / "configs"
 
