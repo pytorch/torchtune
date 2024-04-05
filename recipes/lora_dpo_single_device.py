@@ -164,11 +164,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
         utils.disable_dropout(self._model)
 
-        # TODO: move to config
-        self.beta = 0.1
-        self.label_smoothing = 0
-        self.loss_type = 'sigmoid'
-
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
 
@@ -323,7 +318,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             collate_fn=partial(
                 utils.padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
+                ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
         )
         log.info("Dataset and Sampler are initialized.")
@@ -425,84 +420,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         return (per_token_logps * loss_mask).sum(-1)
          
-
-    def dpo_loss(
-        self,
-        policy_chosen_logps: torch.FloatTensor,
-        policy_rejected_logps: torch.FloatTensor,
-        reference_chosen_logps: torch.FloatTensor,
-        reference_rejected_logps: torch.FloatTensor,
-    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
-        """Compute the DPO loss for a batch of policy and reference model log probabilities.
-
-        Args:
-            policy_chosen_logps: Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
-            policy_rejected_logps: Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
-            reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
-            reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
-
-        Returns:
-            A tuple of three tensors: (losses, chosen_rewards, rejected_rewards).
-            The losses tensor contains the DPO loss for each example in the batch.
-            The chosen_rewards and rejected_rewards tensors contain the rewards for the chosen and rejected responses, respectively.
-        """
-        pi_logratios = policy_chosen_logps - policy_rejected_logps
-        
-        ref_logratios = reference_chosen_logps - reference_rejected_logps
-
-        pi_logratios = pi_logratios.to(self._device)
-        ref_logratios = ref_logratios.to(self._device)
-        logits = pi_logratios - ref_logratios
-
-        # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5.
-        # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the labels and
-        # calculates a conservative DPO loss.
-        if self.loss_type == "sigmoid":
-            losses = (
-                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
-                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
-            )
-        elif self.loss_type == "hinge":
-            losses = torch.relu(1 - self.beta * logits)
-        elif self.loss_type == "ipo":
-            # eqn (17) of the paper where beta is the regularization parameter for the IPO loss, denoted by tau in the paper.
-            losses = (logits - 1 / (2 * self.beta)) ** 2
-        elif self.loss_type == "kto_pair":
-            # eqn (7) of the HALOs paper
-            chosen_KL = (policy_chosen_logps - reference_chosen_logps).mean().clamp(min=0)
-            rejected_KL = (policy_rejected_logps - reference_rejected_logps).mean().clamp(min=0)
-
-            chosen_logratios = policy_chosen_logps - reference_chosen_logps
-            rejected_logratios = policy_rejected_logps - reference_rejected_logps
-            # As described in the KTO report, the KL term for chosen (rejected) is estimated using the rejected (chosen) half.
-            losses = torch.cat(
-                (
-                    1 - F.sigmoid(self.beta * (chosen_logratios - rejected_KL)),
-                    1 - F.sigmoid(self.beta * (chosen_KL - rejected_logratios)),
-                ),
-                0,
-            )
-        else:
-            raise ValueError(
-                f"Unknown loss type: {self.loss_type}. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair']"
-            )
-
-        chosen_rewards = (
-            self.beta
-            * (
-                policy_chosen_logps.to(self._device) - reference_chosen_logps.to(self._device)
-            ).detach()
-        )
-        rejected_rewards = (
-            self.beta
-            * (
-                policy_rejected_logps.to(self._device)
-                - reference_rejected_logps.to(self._device)
-            ).detach()
-        )
-
-        return losses, chosen_rewards, rejected_rewards
-
     def train(self) -> None:
         """
         The core training loop.
@@ -538,7 +455,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     ) = self.concatenated_forward(self._model, batch)
                     disable_adapter(self._model, False)
                 
-                loss, chosen_rewards, rejected_rewards = self.dpo_loss(policy_chosen_logps, policy_rejected_logps, 
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(policy_chosen_logps, policy_rejected_logps, 
                                      reference_chosen_logps, reference_rejected_logps)
                 loss = loss.mean()
                 if self.total_training_steps % self._log_every_n_steps == 0:
