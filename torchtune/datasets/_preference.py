@@ -10,9 +10,8 @@ import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import InstructTemplate, Message
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
 
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
 
@@ -78,8 +77,9 @@ class PreferenceDataset(Dataset):
         transformed_sample = self._transform(sample) if self._transform else sample
         prompt = self.template.format(transformed_sample, self._column_map)
 
-        key_chosen = self._column_map["chosen"]
-        key_rejected = self._column_map['rejected']
+        column_map = self._column_map or {}
+        key_chosen = column_map.get("chosen", "chosen")
+        key_rejected = column_map.get("rejected", "rejected")
 
         chosen_message = [
             Message(role="user", content=prompt, masked=True),
@@ -92,7 +92,7 @@ class PreferenceDataset(Dataset):
             ]
         
         # TODO: Trunction differs from original DPO repo
-        # in DPO: first trunctate prompts, then responses
+        # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
             chosen_message, self.max_seq_len
         )

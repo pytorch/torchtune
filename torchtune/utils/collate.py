@@ -3,12 +3,14 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Tuple, Dict
+from typing import Any, List, Tuple, Dict
 
 import torch
 
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+
 
 # TokenPair is a pair (tuple) of two lists: tokenized text inputs and labels.
 TokenPair = Tuple[List[int], List[int]]
@@ -17,7 +19,7 @@ TokenPair = Tuple[List[int], List[int]]
 def padded_collate(
     batch: List[TokenPair],
     padding_idx: int = 0,
-    ignore_idx: int = -100,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
@@ -74,54 +76,55 @@ def padded_collate(
 
 
 def padded_collate_dpo(
-    batch: List[TokenPair],
+    batch: List[Dict[str, Any]],
     padding_idx: int = 0,
-    ignore_idx: int = -100,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences for Direct Preference Optimization (DPO).
-
     This function takes a batch of sequences, where each sequence is represented
     as a dictionary with multiple key-value pairs. Each key corresponds to a different
-    sequence component, such as input_ids or labels. The function pads each sequence
-    component independently to the longest sequence length in the batch.
+    sequence component, such as input_ids or labels. 
 
     Args:
-        batch (List[TokenPair]): A list of dictionaries, where each dictionary
-            represents a sequence with multiple components including 'chosen_input_ids',
-            'chosen_labels', 'rejected_input_ids', and 'rejected_labels'.
+        batch (List[Dict[str, Any]]): A list of dictionaries, where each dictionary
+            represents a sequence with multiple components, 'chosen_input_ids', 
+            'chosen_labels', 'rejected_input_ids', and 'rejected_labels' are required.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
     Returns:
-        dict: A dictionary containing padded sequences for each component.
+        Dict[str, torch.Tensor]: A dictionary containing concatenated and padded input ids
+        and labels.
 
     Example:
-        >>> token_pairs = [
-        >>>    {'chosen_input_ids': [1, 2, 3], 'chosen_labels': [4, 5, 6],
-        >>>     'rejected_input_ids': [7, 8], 'rejected_labels': [9, 10]},
-        >>>    {'chosen_input_ids': [11], 'chosen_labels': [12],
-        >>>     'rejected_input_ids': [13, 14, 15], 'rejected_labels': [16, 17, 18]},
+        >>> batch = [
+        >>>    {'chosen_input_ids': [1, 2, 3], 'rejected_input_ids': [4, 5], 
+        >>>      'chosen_labels': [6, 7, 8], 'rejected_labels': [9, 10]},
+        >>>    {'chosen_input_ids': [11, 12], 'rejected_input_ids': [13, 14, 15], 
+        >>>      'chosen_labels': [16, 17], 'rejected_labels': [18, 19, 20]},
         >>> ]
-        >>> padded_data = padded_collate_dpo(
-        >>>    batch=token_pairs,
-        >>>    padding_idx=padding_idx,
-        >>>    ignore_idx=ignore_idx,
-        >>> )
-        >>> padded_data
-        >>> {
-        >>>     'chosen_input_ids': tensor([[ 1,  2,  3], [11,  0,  0]]),
-        >>>     'chosen_labels': tensor([[ 4,  5,  6], [12, -100, -100]]),
-        >>>     'rejected_input_ids': tensor([[ 7,  8,  0], [13, 14, 15]]),
-        >>>     'rejected_labels': tensor([[ 9, 10, -100], [16, 17, 18]]),
-        >>> }
+        >>> padded_collate_dpo(batch)
+        >>> (tensor([[ 1,  2,  3],
+        >>>          [11, 12,  0],
+        >>>          [ 4,  5,  0],
+        >>>          [13, 14, 15]]), 
+        >>>  tensor([[ 6,  7,  8],
+        >>>          [16, 17, -100],
+        >>>          [ 9, 10, -100],
+        >>>          [18, 19, 20]]))
     """
-    padded_batch = {} 
-    for k in batch[0].keys():
-        to_pad = [torch.LongTensor(ex[k]) for ex in batch]
-        if k.endswith("_input_ids"):
-            padding_value = padding_idx
-        elif k.endswith("_labels"):
-            padding_value = ignore_idx
-        padded_batch[k] = pad_sequence(to_pad, batch_first=True, padding_value=padding_value)
+    chosen_input_ids = [torch.tensor(ex['chosen_input_ids']) for ex in batch]
+    rejected_input_ids = [torch.tensor(ex['rejected_input_ids']) for ex in batch]
+    chosen_labels = [torch.tensor(ex['chosen_labels']) for ex in batch]
+    rejected_labels = [torch.tensor(ex['rejected_labels']) for ex in batch]
 
-    return padded_batch
+    assert len(chosen_input_ids) == len(rejected_input_ids)
+    assert len(chosen_labels) == len(rejected_labels)
+
+    to_pad_input_ids = chosen_input_ids + rejected_input_ids
+    to_pad_labels = chosen_labels + rejected_labels
+    
+    concatenated_input_ids = pad_sequence(to_pad_input_ids,batch_first=True, padding_value=padding_idx)
+    concatenated_labels = pad_sequence(to_pad_labels,batch_first=True, padding_value=ignore_idx)
+
+    return concatenated_input_ids, concatenated_labels

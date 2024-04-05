@@ -18,6 +18,7 @@ import torch.nn.functional as F
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -31,7 +32,7 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
+class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
     LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
     single device training.
@@ -100,14 +101,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
         the adapter weights and recipe state
         """
         self._checkpointer = config.instantiate(
-            cfg,
+            cfg_checkpointer,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
@@ -117,7 +118,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
-            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
+            # _update_recipe_state will throw an exception if the recipe state is not correctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
@@ -149,7 +150,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
@@ -388,20 +389,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         return should_update_weights
 
     def concatenated_forward(self, model, batch):
-        concatenated_batch = self.concatenated_inputs(
-            batch,
-            label_pad_token_id=self._loss_fn.ignore_index,
-            padding_value=self._tokenizer.pad_id,
-            device=self._device,
-        )
-        len_chosen = batch["chosen_labels"].shape[0]
+        concatenated_input_ids, concatenated_labels = batch
+        concatenated_input_ids = concatenated_input_ids.to(self._device)
+        concatenated_labels = concatenated_labels.to(self._device)
 
-        all_logits = model(concatenated_batch['concatenated_input_ids'])
+        len_chosen = concatenated_input_ids.shape[0] // 2
 
-        all_logps = self.get_batch_logps(
-            all_logits,concatenated_batch["concatenated_labels"],self._loss_fn.ignore_index)
+        all_logits = model(concatenated_input_ids)
+
+        all_logps = self.get_batch_logps(all_logits,concatenated_labels)
         
-
         chosen_logps = all_logps[:len_chosen]
         rejected_logps = all_logps[len_chosen:]
 
@@ -409,48 +406,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         rejected_logits = all_logits[len_chosen:]
 
         return (chosen_logps, rejected_logps, chosen_logits, rejected_logits)
-    
-    @staticmethod
-    def concatenated_inputs(
-        batch: Dict[str, Union[List, torch.LongTensor]],
-        label_pad_token_id: int = -100,
-        padding_value: int = 0,
-        device: Optional[torch.device] = None,
-    ) -> Dict[str, torch.LongTensor]:
-        concatenated_batch = {}
-        max_length = max(batch["chosen_input_ids"].shape[1], batch["rejected_input_ids"].shape[1])
-
-        for k in batch:
-            if k.startswith("chosen") and isinstance(batch[k], torch.Tensor):
-                if "labels" in k:
-                    pad_value = label_pad_token_id
-                elif k.endswith("_input_ids"):
-                    pad_value = padding_value
-
-                concatenated_key = k.replace("chosen", "concatenated")
-                concatenated_batch[concatenated_key] = utils.pad_to_length(batch[k], max_length, pad_value=pad_value)
-        for k in batch:
-            if k.startswith("rejected") and isinstance(batch[k], torch.Tensor):
-                if "labels" in k:
-                    pad_value = label_pad_token_id
-                elif k.endswith("_input_ids"):
-                    pad_value = padding_value
-
-                concatenated_key = k.replace("rejected", "concatenated")
-                concatenated_batch[concatenated_key] = torch.cat(
-                    (
-                        concatenated_batch[concatenated_key],
-                        utils.pad_to_length(batch[k], max_length, pad_value=pad_value),
-                    ),
-                    dim=0,
-                ).to(device=device)
-        return concatenated_batch 
 
     @staticmethod
     def get_batch_logps(
         logits: torch.FloatTensor,
         labels: torch.LongTensor,
-        label_pad_token_id: int = -100,
+        label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
     ) -> torch.FloatTensor:
         if logits.shape[:-1] != labels.shape:
             raise ValueError("Logits (batch and sequence length dim) and labels must have the same shape.")
@@ -619,7 +580,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
+    recipe = LoRADPORecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
