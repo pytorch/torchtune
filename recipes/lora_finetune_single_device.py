@@ -145,7 +145,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
-        self._metric_logger = config.instantiate(cfg.metric_logger)
+        self._metric_logger = config.instantiate(cfg.metric_logger, **cfg)
+        print(f"#########\nConfig: \n{cfg}\n#########\n")
+        breakpoint()
 
         checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
 

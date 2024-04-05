@@ -21,6 +21,28 @@ the llama2_7b model builder uses the llama2 component builder to create the
 llama2 7B model.
 """
 
+def llama2_tiny(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+    """
+    Creates a very small Llama2 model for testing purposes.
+
+    Args:
+        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama2 7B model
+    """
+    return llama2(
+        vocab_size=32_000,
+        num_layers=2,
+        num_heads=4,
+        num_kv_heads=4,
+        embed_dim=128,
+        max_seq_len=4096,
+        max_batch_size=max_batch_size,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )
+
 
 def llama2_7b() -> TransformerDecoder:
     """
