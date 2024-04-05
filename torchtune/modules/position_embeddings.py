@@ -96,7 +96,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         seq_len = x.size(1)
 
         # extract the values based on whether input_pos is set or not. When
-        # input_pos is provided, we're in infernce mode
+        # input_pos is provided, we're in inference mode
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )

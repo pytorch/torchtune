@@ -11,7 +11,12 @@ import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_chat_format
-from torchtune.data import ChatFormat, Message, sharegpt_to_llama2_messages
+from torchtune.data import (
+    ChatFormat,
+    Message,
+    sharegpt_to_llama2_messages,
+    validate_messages,
+)
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
@@ -79,6 +84,7 @@ class ChatDataset(Dataset):
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
         messages = self.chat_format.format(messages)
+        validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
