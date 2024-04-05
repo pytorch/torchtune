@@ -18,7 +18,6 @@
 
 # TODO: Add proper link to pytorch.org/torchtune/... when the docs are live.
 raise ModuleNotFoundError(
-    "The TorchTune recipes folder isn't a package and you should not import anything from there. "
-    "Refer to our docs for detailed instructions on how to use the recipes!"
-    "This file only exists for testing reasons."
+    "The TorchTune recipes directory isn't a package and you should not import anything from here. "
+    "Refer to our docs for detailed instructions on how to use recipes!"
 )
