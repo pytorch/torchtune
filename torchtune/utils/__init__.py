@@ -53,6 +53,7 @@ from .precision import (
     set_default_dtype,
     validate_expected_param_dtype,
 )
+from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
@@ -82,4 +83,5 @@ __all__ = [
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
     "profiler",
+    "get_quantizer_mode",
 ]
