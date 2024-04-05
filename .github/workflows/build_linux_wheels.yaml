@@ -23,7 +23,6 @@ jobs:
       with-rocm: disable
   build:
     needs: generate-matrix
-    name: ${{ matrix.repository }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(matrix.outputs.matrix) }}
@@ -36,7 +35,6 @@ jobs:
       CU_VERSION: ${{ matrix.desired_cuda }}
       UPLOAD_TO_BASE_BUCKET: ${{ matrix.upload_to_base_bucket }}
       ARCH: x86_64
-
     name: ${{ matrix.build_name }}
     runs-on: ${{ matrix.validation_runner }}
     container:
