@@ -97,6 +97,22 @@ _ALL_RECIPES = [
         ],
         supports_distributed=False,
     ),
+    Recipe(
+        name="gemma_full_finetune_distributed",
+        file_path="gemma_full_finetune_distributed.py",
+        configs=[
+            Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
+        name="quantize",
+        file_path="quantize.py",
+        configs=[
+            Config(name="quantize", file_path="quantize.yaml"),
+        ],
+        supports_distributed=False,
+    ),
 ]
 
 

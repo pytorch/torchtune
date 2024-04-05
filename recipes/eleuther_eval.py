@@ -124,20 +124,25 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
         self._cfg = cfg
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
-        checkpointer = config.instantiate(checkpointer_cfg)
-        checkpoint_dict = checkpointer.load_checkpoint()
-        return checkpoint_dict
-
     def setup(self) -> None:
         self._device = utils.get_device(device=self._cfg.device)
         self._dtype = utils.get_dtype(dtype=self._cfg.dtype)
         self._limit = self._cfg.limit
         self._tasks = list(self._cfg.tasks)
+        self._quantizer = config.instantiate(self._cfg.quantizer)
+        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
 
         utils.set_seed(seed=self._cfg.seed)
 
-        ckpt_dict = self.load_checkpoint(self._cfg.checkpointer)
+        checkpointer = config.instantiate(self._cfg.checkpointer)
+        if self._quantization_mode is None:
+            ckpt_dict = checkpointer.load_checkpoint()
+        else:
+            # weights_only needs to be False when loading a quantized model
+            # currently loading a quantized model is only supported with the
+            # FullModelTorchTuneCheckpointer
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
+
         self._model = self._setup_model(
             model_cfg=self._cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -152,9 +157,11 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+        if self._quantization_mode is not None:
+            model = self._quantizer.quantize(model)
+            model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
-
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")

@@ -115,6 +115,7 @@ def hf_to_tune(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     """
     Convert a state dict from HF's format to TorchTune's format. State dicts
@@ -129,12 +130,15 @@ def hf_to_tune(
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
+        head_dim (int): Dimension of the head. If not provided, it will be calculated
+            as dim // num_heads.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in TorchTune's format.
     """
     converted_state_dict = {}
-    head_dim = dim // num_heads
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute(t, n_heads):
         return (

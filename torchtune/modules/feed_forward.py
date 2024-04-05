@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch.nn.functional as F
 from torch import nn, Tensor
 
 
@@ -17,6 +16,7 @@ class FeedForward(nn.Module):
         down_proj (nn.Module): Final projection to output dim.
         up_proj (nn.Module): Projection from input dim to hidden dim, multiplied by
             activation(gate_proj).
+        activation (nn.Module): Activation function to use. Default is nn.SiLU().
     """
 
     def __init__(
@@ -25,12 +25,13 @@ class FeedForward(nn.Module):
         gate_proj: nn.Module,
         down_proj: nn.Module,
         up_proj: nn.Module,
+        activation: nn.Module = nn.SiLU(),
     ):
         super().__init__()
         self.w1 = gate_proj
         self.w2 = down_proj
         self.w3 = up_proj
-        self.activation = F.silu
+        self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(self.activation(self.w1(x)) * self.w3(x))
