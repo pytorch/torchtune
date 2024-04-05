@@ -21,7 +21,7 @@ the llama2_7b model builder uses the llama2 component builder to create the
 llama2 7B model.
 """
 
-def llama2_tiny(max_batch_size: Optional[int] = None) -> TransformerDecoder:
+def llama2_tiny() -> TransformerDecoder:
     """
     Creates a very small Llama2 model for testing purposes.
 
@@ -38,7 +38,6 @@ def llama2_tiny(max_batch_size: Optional[int] = None) -> TransformerDecoder:
         num_kv_heads=4,
         embed_dim=128,
         max_seq_len=4096,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
     )
