@@ -25,7 +25,7 @@ jobs:
     needs: generate-matrix
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
     env:
       PYTHON_VERSION: ${{ matrix.python_version }}
       PACKAGE_TYPE: wheel
