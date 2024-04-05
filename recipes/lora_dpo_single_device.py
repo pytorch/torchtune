@@ -7,24 +7,24 @@
 import sys
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union, List
+from typing import Any, Dict, List, Optional, Tuple, Union
 from warnings import warn
 
 import torch
+import torch.nn.functional as F
 from omegaconf import DictConfig
 
 from torch import nn
-import torch.nn.functional as F
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.peft.peft_utils import (
+    disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
-    disable_adapter,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
@@ -390,8 +390,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         all_logits = model(concatenated_input_ids)
 
-        all_logps = self.get_batch_logps(all_logits,concatenated_labels)
-        
+        all_logps = self.get_batch_logps(all_logits, concatenated_labels)
+
         chosen_logps = all_logps[:len_chosen]
         rejected_logps = all_logps[len_chosen:]
 
@@ -407,17 +407,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
     ) -> torch.FloatTensor:
         if logits.shape[:-1] != labels.shape:
-            raise ValueError("Logits (batch and sequence length dim) and labels must have the same shape.")
-        
+            raise ValueError(
+                "Logits (batch and sequence length dim) and labels must have the same shape."
+            )
+
         labels = labels[:, 1:].clone()
         logits = logits[:, :-1, :]
         loss_mask = labels != label_pad_token_id
 
         labels[labels == label_pad_token_id] = 0
-        per_token_logps = torch.gather(logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)).squeeze(2)
+        per_token_logps = torch.gather(
+            logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)
+        ).squeeze(2)
 
         return (per_token_logps * loss_mask).sum(-1)
-         
+
     def train(self) -> None:
         """
         The core training loop.
@@ -435,7 +439,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-            
+
                 (
                     policy_chosen_logps,
                     policy_rejected_logps,
@@ -452,9 +456,13 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         _,
                     ) = self.concatenated_forward(self._model, batch)
                     disable_adapter(self._model, False)
-                
-                loss, chosen_rewards, rejected_rewards = self._loss_fn(policy_chosen_logps, policy_rejected_logps, 
-                                     reference_chosen_logps, reference_rejected_logps)
+
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                    policy_chosen_logps,
+                    policy_rejected_logps,
+                    reference_chosen_logps,
+                    reference_rejected_logps,
+                )
                 loss = loss.mean()
                 if self.total_training_steps % self._log_every_n_steps == 0:
                     pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")

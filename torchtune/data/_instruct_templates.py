@@ -149,11 +149,11 @@ class SummarizeTemplate(InstructTemplate):
 
 class StackExchangedPairedTemplate(InstructTemplate):
     """
-    Prompt template for the StackExchangedPaired dataset. 
+    Prompt template for the StackExchangedPaired dataset.
     """
 
-    template =  "Question: {question}\n\nAnswer: "
-    
+    template = "Question: {question}\n\nAnswer: "
+
     @classmethod
     def format(
         cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None

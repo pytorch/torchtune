@@ -14,7 +14,7 @@ from torchtune.config._utils import _get_chat_format
 from torchtune.data import (
     ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
-    Message,
+    Message, 
     sharegpt_to_llama2_messages,
     validate_messages,
 )

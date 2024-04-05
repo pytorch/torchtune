@@ -58,7 +58,11 @@ def stack_exchanged_paired_dataset(
         tokenizer=tokenizer,
         source="lvwerra/stack-exchange-paired",
         template=StackExchangedPairedTemplate(),
-        column_map={'prompt':'question','chosen':'response_j','rejected':'response_k'},
+        column_map={
+            "prompt": "question",
+            "chosen": "response_j",
+            "rejected": "response_k",
+        },
         max_seq_len=max_seq_len,
         split="train",
         data_dir="data/rl",

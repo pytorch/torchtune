@@ -16,8 +16,8 @@ from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
     InstructTemplate,
-    SummarizeTemplate,
     StackExchangedPairedTemplate,
+    SummarizeTemplate,
 )
 from torchtune.data._types import Message
 from torchtune.data._utils import truncate, validate_messages

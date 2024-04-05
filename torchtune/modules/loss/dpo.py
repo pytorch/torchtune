@@ -9,17 +9,19 @@ import torch.nn.functional as F
 
 
 class DPOLoss(nn.Module):
-    def __init__(self, beta=0.1, label_smoothing=0, loss_type='sigmoid'):
+    def __init__(self, beta=0.1, label_smoothing=0, loss_type="sigmoid"):
         super(DPOLoss, self).__init__()
         self.beta = beta
         self.label_smoothing = label_smoothing
         self.loss_type = loss_type
 
-    def forward(self, 
-                policy_chosen_logps, 
-                policy_rejected_logps, 
-                reference_chosen_logps, 
-                reference_rejected_logps):
+    def forward(
+        self,
+        policy_chosen_logps,
+        policy_rejected_logps,
+        reference_chosen_logps,
+        reference_rejected_logps,
+    ):
         """Compute the DPO loss for a batch of policy and reference model log probabilities.
 
         Args:
@@ -51,8 +53,12 @@ class DPOLoss(nn.Module):
         elif self.loss_type == "ipo":
             losses = (logits - 1 / (2 * self.beta)) ** 2
         elif self.loss_type == "kto_pair":
-            chosen_KL = (policy_chosen_logps - reference_chosen_logps).mean().clamp(min=0)
-            rejected_KL = (policy_rejected_logps - reference_rejected_logps).mean().clamp(min=0)
+            chosen_KL = (
+                (policy_chosen_logps - reference_chosen_logps).mean().clamp(min=0)
+            )
+            rejected_KL = (
+                (policy_rejected_logps - reference_rejected_logps).mean().clamp(min=0)
+            )
 
             chosen_logratios = policy_chosen_logps - reference_chosen_logps
             rejected_logratios = policy_rejected_logps - reference_rejected_logps
@@ -69,7 +75,11 @@ class DPOLoss(nn.Module):
                 f"Unknown loss type: {self.loss_type}. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair']"
             )
 
-        chosen_rewards = self.beta * (policy_chosen_logps - reference_chosen_logps).detach()
-        rejected_rewards = self.beta * (policy_rejected_logps - reference_rejected_logps).detach()
+        chosen_rewards = (
+            self.beta * (policy_chosen_logps - reference_chosen_logps).detach()
+        )
+        rejected_rewards = (
+            self.beta * (policy_rejected_logps - reference_rejected_logps).detach()
+        )
 
         return losses, chosen_rewards, rejected_rewards

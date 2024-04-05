@@ -57,9 +57,9 @@ class LoRALinear(nn.Module, AdapterModule):
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
-        # this can be used in DPO for treating the lora adapters as the policy model 
+        # this can be used in DPO for treating the lora adapters as the policy model
         # and disabling it to treat the base model as the reference model
-        self.disabled = False 
+        self.disabled = False
         self.register_parameter("weight", nn.Parameter(weight))
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
@@ -125,7 +125,7 @@ class LoRALinear(nn.Module, AdapterModule):
         else:
             out = F.linear(x, self.weight, self.bias)
         if self.disabled:
-            return out 
+            return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

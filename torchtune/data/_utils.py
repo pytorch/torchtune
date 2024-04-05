@@ -4,12 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import copy
-import numpy as np
-from typing import Dict, List, Any, List
-
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.modules import Tokenizer
+from typing import Any, List
 
 from torchtune.data._types import Message
 
@@ -69,44 +64,3 @@ def validate_messages(
         if not message.content and message.role != "assistant":
             raise ValueError(f"Message at index {i} in messages is empty")
         last_turn = message.role
-
-def build_tokenized_answer(tokenizer, prompt, answer):
-    """
-    Llama tokenizer does satisfy `enc(a + b) = enc(a) + enc(b)`.
-    It does ensure `enc(a + b) = enc(a) + enc(a + b)[len(enc(a)):]`.
-    Reference:
-        https://github.com/EleutherAI/lm-evaluation-harness/pull/531#issuecomment-1595586257
-    """
-    full_tokenized = tokenizer.encode(prompt + answer, add_bos=False, add_eos=False)
-    prompt_input_ids = tokenizer.encode(prompt, add_bos=False, add_eos=False)
-
-    answer_input_ids = full_tokenized[len(prompt_input_ids) :]
-
-    # Concat tokens to form `enc(a) + enc(a + b)[len(enc(a)):]`
-    full_concat_input_ids = np.concatenate([prompt_input_ids, answer_input_ids])
-
-    # Prepare input tokens for token by token comparison
-    full_input_ids = np.array(full_tokenized)
-
-    if len(full_input_ids) != len(full_concat_input_ids):
-        raise ValueError("Prompt input ids and answer input ids should have the same length.")
-
-    # On some tokenizers, like Llama-2 tokenizer, there are occasions where tokens
-    # can be merged together when tokenizing prompt+answer. This could result
-    # on the last token from the prompt being different when tokenized on its own
-    # vs when done as prompt+answer.
-    response_token_ids_start_idx = len(prompt_input_ids)
-
-    # If tokenized prompt is different than both prompt+answer, then it means the
-    # last token has changed due to merging.
-    if prompt_input_ids != full_tokenized[:response_token_ids_start_idx]:
-        response_token_ids_start_idx -= 1
-
-    prompt_input_ids = full_tokenized[:response_token_ids_start_idx]
-
-    answer_input_ids = full_tokenized[response_token_ids_start_idx:]
-
-    return dict(
-        prompt_input_ids=prompt_input_ids,
-        input_ids=answer_input_ids,
-    )

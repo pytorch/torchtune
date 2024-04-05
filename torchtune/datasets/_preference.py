@@ -83,34 +83,38 @@ class PreferenceDataset(Dataset):
 
         chosen_message = [
             Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_chosen])
-            ]
-        
+            Message(role="assistant", content=transformed_sample[key_chosen]),
+        ]
+
         rejected_message = [
             Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_rejected])
-            ]
-        
+            Message(role="assistant", content=transformed_sample[key_rejected]),
+        ]
+
         # TODO: Trunction differs from original DPO repo
         # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
             chosen_message, self.max_seq_len
         )
-        chosen_labels = list(np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids))
+        chosen_labels = list(
+            np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
+        )
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
             rejected_message, self.max_seq_len
         )
-        rejected_labels = list(np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids))
-        
+        rejected_labels = list(
+            np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
+        )
+
         assert len(chosen_input_ids) == len(chosen_labels)
         assert len(rejected_input_ids) == len(rejected_labels)
-        
+
         batch = dict(
-            chosen_input_ids = chosen_input_ids,
-            chosen_labels = chosen_labels,
-            rejected_input_ids = rejected_input_ids,
-            rejected_labels = rejected_labels
+            chosen_input_ids=chosen_input_ids,
+            chosen_labels=chosen_labels,
+            rejected_input_ids=rejected_input_ids,
+            rejected_labels=rejected_labels,
         )
-       
+
         return batch
