@@ -28,3 +28,6 @@ seed: 217
 tasks: ["truthfulqa_mc2"]
 limit: null
 max_seq_length: 4096
+
+# Quantization specific args
+quantizer: null
