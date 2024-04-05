@@ -6,6 +6,4 @@
 
 from ._state_dict_hooks import reparametrize_as_dtype_state_dict_post_hook
 
-from .nf4_linear import FrozenNF4Linear
-
-__all__ = ["FrozenNF4Linear", "reparametrize_as_dtype_state_dict_post_hook"]
+__all__ = ["reparametrize_as_dtype_state_dict_post_hook"]

@@ -10,11 +10,8 @@ import torch.nn.functional as F
 
 from torch import nn, Tensor
 
-from torchao.dtypes.nf4tensor import linear_nf4
-from torchtune.modules.low_precision import (  # noqa: F401
-    _register_nf4_dispatch_ops,
-    FrozenNF4Linear,
-)
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
+from torchtune.modules.low_precision import _register_nf4_dispatch_ops  # noqa: F401
 from torchtune.modules.peft.peft_utils import AdapterModule
 
 
@@ -89,12 +86,8 @@ class LoRALinear(nn.Module, AdapterModule):
         (indicated via quantize_base=True).
         """
         in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
-        linear = (
-            nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-            if not self._quantize_base
-            else FrozenNF4Linear(in_dim, out_dim, bias=False)
-        )
-        weight = linear.weight
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
         bias = None
         if self.use_bias:
             if self._quantize_base:
