@@ -7,3 +7,7 @@
 from torchtune import datasets, models, modules, utils
 
 __all__ = [datasets, models, modules, utils]
+
+# Import version from version.txt
+with open("../../version.txt", "r") as f:
+    __version__ = f.read().strip()

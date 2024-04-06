@@ -46,6 +46,9 @@ dev = [
     "wandb",
 ]
 
+[tool.setuptools.dynamic]
+version = {attr = "torchtune.__version__"}
+
 
 # ---- Explicit project build information ---- #
 [build-system]
