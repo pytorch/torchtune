@@ -136,17 +136,16 @@ jobs:
         with:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPOSITORY }}/dist/
-
   upload:
     needs: build
     uses: pytorch/test-infra/.github/workflows/_binary_upload.yml@main
     if: always()
     with:
-      repository: pytorch.torchtune
+      repository: pytorch/torchtune
       ref: ""
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
-      build-matrix: ${{ matrix.output.matrix }}
+      build-matrix: ${{ needs.build.needs.generate-matrix.outputs.matrix }}
       architecture: x86_64
       trigger-event: ${{ github.event_name }}
 
