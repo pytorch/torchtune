@@ -8,13 +8,13 @@
 #   --output-dir /tmp/llama2
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device \
+#   tune run lora_dpo_single_device \
 #   --config llama2/7B_lora_single_device \
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune --nnodes 1 --nproc_per_node 1 lora_finetune_single_device \
+#   tune --nnodes 1 --nproc_per_node 1 lora_dpo_single_device \
 #   --config 7B_lora_single_device \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
