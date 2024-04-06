@@ -13,8 +13,9 @@ from torchtune.config._utils import _get_instruct_template
 
 from torchtune.data import (
     CROSS_ENTROPY_IGNORE_IDX,
-    InstructTemplate, Message, 
-    validate_messages
+    InstructTemplate,
+    Message,
+    validate_messages,
 )
 
 from torchtune.modules import Tokenizer
