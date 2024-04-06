@@ -31,7 +31,7 @@ jobs:
       PACKAGE_TYPE: wheel
       REPOSITORY: pytorch/torchtune
       PACKAGE_NAME: torchtune
-      REF: ""
+      REF: pkg-for-wheel
       CU_VERSION: ${{ matrix.desired_cuda }}
       UPLOAD_TO_BASE_BUCKET: ${{ matrix.upload_to_base_bucket }}
       ARCH: x86_64
