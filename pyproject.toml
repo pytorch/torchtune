@@ -8,7 +8,7 @@ license = {file = "LICENSE"}
 authors = [
     { name = "PyTorch Team", email = "packages@pytorch.org" },
 ]
-keywords = ["pytorch", "finetuning"]
+keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
     # Hugging Face integrations
     "datasets",
