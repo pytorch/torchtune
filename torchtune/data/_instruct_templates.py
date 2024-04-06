@@ -168,7 +168,7 @@ class StackExchangedPairedTemplate(InstructTemplate):
                 If None, assume these are identical.
 
         Returns:
-            The formatted prompt, chosen, rejected
+            The formatted prompt
         """
         column_map = column_map or {}
         key_prompt = column_map.get("prompt", "prompt")

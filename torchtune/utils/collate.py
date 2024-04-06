@@ -79,8 +79,9 @@ def padded_collate_dpo(
     batch: List[Dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-) -> Dict[str, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor]:
     """Pad a batch of sequences for Direct Preference Optimization (DPO).
+
     This function takes a batch of sequences, where each sequence is represented
     as a dictionary with multiple key-value pairs. Each key corresponds to a different
     sequence component, such as input_ids or labels.
@@ -93,8 +94,8 @@ def padded_collate_dpo(
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
     Returns:
-        Dict[str, torch.Tensor]: A dictionary containing concatenated and padded input ids
-        and labels.
+        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
+        input ids and labels.
 
     Example:
         >>> batch = [

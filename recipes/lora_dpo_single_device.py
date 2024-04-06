@@ -7,11 +7,10 @@
 import sys
 
 from functools import partial
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-import torch.nn.functional as F
 from omegaconf import DictConfig
 
 from torch import nn
@@ -34,7 +33,7 @@ log = utils.get_logger("DEBUG")
 
 class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
+    LoRA DPO recipe for dense transformer-based LLMs such as Llama2 for
     single device training.
 
     This recipe supports:
@@ -55,8 +54,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_device     llama2/7B_lora_single_device
-                                        llama2/7B_qlora_single_device
+        lora_dpo_single_device          llama2/7B_lora_dpo_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -381,16 +379,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         ) % self._gradient_accumulation_steps == 0
         return should_update_weights
 
-    def concatenated_forward(self, model, batch):
+    def concatenated_forward(
+        self,
+        model: nn.Module,
+        batch: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
         concatenated_labels = concatenated_labels.to(self._device)
 
+        # formed by concatenating an equal number of "chosen" and "rejected".
         len_chosen = concatenated_input_ids.shape[0] // 2
 
         all_logits = model(concatenated_input_ids)
 
-        all_logps = self.get_batch_logps(all_logits, concatenated_labels)
+        all_logps = self.get_batch_log_probs(all_logits, concatenated_labels)
 
         chosen_logps = all_logps[:len_chosen]
         rejected_logps = all_logps[len_chosen:]
@@ -401,7 +404,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         return (chosen_logps, rejected_logps, chosen_logits, rejected_logits)
 
     @staticmethod
-    def get_batch_logps(
+    def get_batch_log_probs(
         logits: torch.FloatTensor,
         labels: torch.LongTensor,
         label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
@@ -447,15 +450,13 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
 
-                with torch.no_grad():
-                    disable_adapter(self._model, True)
+                with torch.no_grad(), disable_adapter(self._model):
                     (
                         reference_chosen_logps,
                         reference_rejected_logps,
                         _,
                         _,
                     ) = self.concatenated_forward(self._model, batch)
-                    disable_adapter(self._model, False)
 
                 loss, chosen_rewards, rejected_rewards = self._loss_fn(
                     policy_chosen_logps,
@@ -464,12 +465,21 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     reference_rejected_logps,
                 )
                 loss = loss.mean()
+                reward_accuracies = (chosen_rewards > rejected_rewards).float()
                 if self.total_training_steps % self._log_every_n_steps == 0:
                     pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
+                            "rewards/rejected": chosen_rewards.mean().cpu(),
+                            "rewards/rejected": rejected_rewards.mean().cpu(),
+                            "rewards/accuracies": reward_accuracies.mean().cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
+                            "logps/rejected": policy_rejected_logps.detach().mean().cpu(),
+                            "logps/chosen": policy_chosen_logps.detach().mean().cpu(),
+                            "logits/rejected": policy_rejected_logits.detach().mean().cpu(),
+                            "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
                         step=self.total_training_steps,  # Each step is unique, not limited to each epoch

@@ -26,12 +26,6 @@ class PreferenceDataset(Dataset):
     If the column/key names differ from the expected names in the `InstructTemplate`,
     then the `column_map` argument can be used to provide this mapping.
 
-    Masking of the prompt during training is controlled by the `train_on_input` flag, which is
-    set to `False` by default.
-    - If `train_on_input` is True, the prompt is used during training and
-    contributes to the loss.
-    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
-
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
