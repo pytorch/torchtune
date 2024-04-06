@@ -6,6 +6,4 @@
 
 from .dpo import DPOLoss
 
-__all__ = [
-    "DPOLoss",
-]
+__all__ = ["DPOLoss"]
