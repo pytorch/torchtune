@@ -137,7 +137,9 @@ jobs:
           name: ${{ env.ARTIFACT_NAME }}
           path: ${{ env.REPOSITORY }}/dist/
   upload:
-    needs: build
+    needs:
+      - build
+      - generate-matrix
     uses: pytorch/test-infra/.github/workflows/_binary_upload.yml@main
     if: always()
     with:
@@ -145,7 +147,7 @@ jobs:
       ref: pkg-for-wheel
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
-      build-matrix: ${{ needs.build.needs.generate-matrix.outputs.matrix }}
+      build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       architecture: x86_64
       trigger-event: ${{ github.event_name }}
 
