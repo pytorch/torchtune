@@ -11,7 +11,7 @@ from torchtune.modules import Tokenizer
 
 def stack_exchanged_paired_dataset(
     tokenizer: Tokenizer,
-    max_seq_len: int = 2048,
+    max_seq_len: int = 1024,
 ) -> PreferenceDataset:
     """
     Build a preference dataset from StackExchange paired data.

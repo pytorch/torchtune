@@ -48,15 +48,16 @@ tokenizer:
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.stack_exchanged_paired_dataset
+  max_seq_len: 1024
 seed: null
 shuffle: True
-batch_size: 2
+batch_size: 4
 
 # Optimizer and Scheduler
 optimizer:
   _component_: torch.optim.AdamW
-  weight_decay: 0.01
-  lr: 3e-4
+  weight_decay: 0.05
+  lr: 5e-4
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
@@ -70,7 +71,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: 1000
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 4
 
 # Logging
 output_dir: /tmp/lora_dpo_output/
