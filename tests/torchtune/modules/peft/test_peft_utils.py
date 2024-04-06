@@ -6,7 +6,6 @@
 
 from copy import deepcopy
 
-from typing import Tuple
 import pytest
 import torch
 
@@ -477,7 +476,6 @@ class TestDisableAdapter:
         init_weights_with_constant(model_ori)
         init_weights_with_constant(model_lora)
         return model_ori, model_lora
-    
 
     def test_disable_adapter(self):
         model_ori, model_lora = self.dummy_model()
