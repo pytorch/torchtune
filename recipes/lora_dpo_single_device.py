@@ -380,9 +380,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         return should_update_weights
 
     def concatenated_forward(
-        self,
-        model: nn.Module,
-        batch: Tuple[torch.Tensor, torch.Tensor]
+        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
@@ -476,10 +474,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "rewards/rejected": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
-                            "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach().mean().cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach().mean().cpu(),
-                            "logits/rejected": policy_rejected_logits.detach().mean().cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards)
+                            .mean()
+                            .cpu(),
+                            "log_probs/rejected": policy_rejected_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "log_probs/chosen": policy_chosen_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "logits/rejected": policy_rejected_logits.detach()
+                            .mean()
+                            .cpu(),
                             "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },

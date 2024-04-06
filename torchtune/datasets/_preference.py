@@ -30,7 +30,7 @@ class PreferenceDataset(Dataset):
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        template (PromptTemplate): template used to format the prompt. If the placeholder variable
+        template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         transform (Optional[Callable]): transform to apply to the sample before formatting to the template.
             Default is None.

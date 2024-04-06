@@ -332,3 +332,20 @@ def validate_missing_and_unexpected_for_lora(
                 raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
     if lora_unexpected:
         raise AssertionError("Unexpected key loading adapter")
+    for k, v in model.named_modules():
+        if (
+            hasattr(v, "adapter_params")
+            and callable(v.adapter_params)
+            and hasattr(v, "disabled")
+        ):
+            v.disabled = True
+    try:
+        yield
+    finally:
+        for k, v in model.named_modules():
+            if (
+                hasattr(v, "adapter_params")
+                and callable(v.adapter_params)
+                and hasattr(v, "disabled")
+            ):
+                v.disabled = False

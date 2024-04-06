@@ -22,18 +22,22 @@ class DPOLoss(nn.Module):
         reference_chosen_logps: torch.Tensor,
         reference_rejected_logps: torch.Tensor,
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Compute the DPO loss for a batch of policy and reference model log probabilities.
+        """
+        Compute the DPO loss for a batch of policy and reference model log probabilities.
 
         Args:
-            policy_chosen_logps: Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
-            policy_rejected_logps: Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
-            reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
-            reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
+            policy_chosen_logps (torch.Tensor): Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
+            policy_rejected_logps (torch.Tensor): Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
+            reference_chosen_logps (torch.Tensor): Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
+            reference_rejected_logps (torch.Tensor): Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
 
         Returns:
-            A tuple of three tensors: (losses, chosen_rewards, rejected_rewards).
-            The losses tensor contains the DPO loss for each example in the batch.
-            The chosen_rewards and rejected_rewards tensors contain the rewards for the chosen and rejected responses, respectively.
+            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+                - losses: The DPO loss for each example in the batch.
+                - chosen_rewards: Rewards for the chosen responses.
+                - rejected_rewards: Rewards for the rejected responses.
+        Raises:
+            ValueError: If an unknown loss type is specified.
         """
         pi_logratios = policy_chosen_logps - policy_rejected_logps
         ref_logratios = reference_chosen_logps - reference_rejected_logps
