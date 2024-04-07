@@ -58,6 +58,10 @@ class PreferenceDataset(Dataset):
         self._transform = transform
         self._column_map = column_map
         self.max_seq_len = max_seq_len
+        self._data = self._data.filter(
+            lambda x: len(x[column_map["prompt"]]) + len(x[column_map["chosen"]]) <= max_seq_len
+            and len(x[column_map["prompt"]]) + len(x[column_map["rejected"]])  <= max_seq_len
+        )
 
     def __len__(self):
         return len(self._data)
