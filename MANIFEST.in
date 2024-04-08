@@ -1,0 +1,1 @@
+prune tests  # Remove all testing files from final dist/

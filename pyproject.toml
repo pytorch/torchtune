@@ -58,7 +58,6 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = [""]
 include = ["torchtune*", "recipes*"]
-exclude = ["tests*", "tests/*.py"]
 
 [tool.setuptools.package-data]
 recipes = ["configs/*.yaml", "configs/*/*.yaml"]

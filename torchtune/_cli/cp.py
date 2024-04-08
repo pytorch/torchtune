@@ -93,8 +93,6 @@ class Copy(Subcommand):
                 f"Invalid file name: {args.file}. Try `tune ls` to see all available files to copy."
             )
 
-        print(f"Attempting to copy file from {src}")
-
         # Attach proper suffix if needed
         if destination.name != "" and destination.suffix != proper_suffix:
             destination = destination.with_suffix(proper_suffix)
