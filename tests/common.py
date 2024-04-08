@@ -4,4 +4,4 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-TUNE_PATH = "src/torchtune/_cli/tune.py"
+TUNE_PATH = "torchtune/_cli/tune.py"
