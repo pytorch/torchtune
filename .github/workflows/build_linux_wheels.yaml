@@ -33,6 +33,8 @@ jobs:
       PACKAGE_NAME: torchtune
       PACKAGE_TYPE: wheel
       ARCH: x86_64
+    steps:
+      - run: echo "Exposing env vars"
   generate-matrix:
     needs:
       - setup-variables
