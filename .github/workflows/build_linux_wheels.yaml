@@ -36,7 +36,7 @@ jobs:
     with:
       package-type: $PACKAGE_TYPE
       os: linux
-      test-infra-repository: ${{ TEST_INFRA_REPOSITORY }}
+      test-infra-repository: ${{ env.TEST_INFRA_REPOSITORY }}
       test-infra-ref: $TEST_INFRA_REF
       with-cuda: disable
       with-rocm: disable
