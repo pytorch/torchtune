@@ -34,8 +34,9 @@ jobs:
       PACKAGE_NAME: torchtune
       PACKAGE_TYPE: wheel
       ARCH: x86_64
+      SMOKE_TEST_SCRIPT: ""
     steps:
-      - run: echo "Exposing env vars"
+      - run: echo "Exposing env vars to all jobs"
   generate-matrix:
     needs:
       - setup-variables
@@ -112,7 +113,7 @@ jobs:
           # shellcheck disable=SC2086
           ${CONDA_RUN} python -m pip install build
       - name: Build the wheel (bdist_wheel)
-        working-directory: ${{ env.REPOSITORY }}
+        working-directory: ${{ needs.setup-variables.outputs.REPOSITORY }}
         shell: bash -l {0}
         run: |
           set -euxo pipefail
@@ -122,8 +123,9 @@ jobs:
       - name: Smoke Test
         shell: bash -l {0}
         env:
-          PACKAGE_NAME: ${{ env.PACKAGE_NAME }}
-          SMOKE_TEST_SCRIPT: ""
+          REPOSITORY: ${{ needs.setup-variables.outputs.REPOSITORY }}
+          PACKAGE_NAME: ${{ needs.setup-variables.outputs.PACKAGE_NAME }}
+          SMOKE_TEST_SCRIPT: ${{ needs.setup-variables.outputs.SMOKE_TEST_SCRIPT }}
         run: |
           set -euxo pipefail
           source "${BUILD_ENV_FILE}"
