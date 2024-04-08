@@ -56,8 +56,9 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", ""]
 include = ["torchtune*", "recipes*"]
+exclude = ["tests/*.py"]
 
 [tool.setuptools.package-data]
 recipes = ["configs/*.yaml", "configs/*/*.yaml"]
