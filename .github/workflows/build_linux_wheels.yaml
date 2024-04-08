@@ -41,10 +41,10 @@ jobs:
       - setup-variables
     uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
     with:
-      package-type: $PACKAGE_TYPE
+      package-type: ${{ needs.setup-variables.outputs.PACKAGE_TYPE }}
       os: linux
       test-infra-repository: ${{ needs.setup-variables.outputs.TEST_INFRA_REPOSITORY }}
-      test-infra-ref: $TEST_INFRA_REF
+      test-infra-ref: ${{ needs.setup-variables.outputs.TEST_INFRA_REF }}
       with-cuda: disable
       with-rocm: disable
   build:
@@ -74,16 +74,11 @@ jobs:
           echo "::group::Cleanup debug output"
           rm -rf "${GITHUB_WORKSPACE}"
           mkdir -p "${GITHUB_WORKSPACE}"
-
-          if [[ "${{ env.ARCH }}" = "aarch64" ]]; then
-            rm -rf "${RUNNER_TEMP}/*"
-          fi
-
           echo "::endgroup::"
       - uses: actions/checkout@v3
         with:
-          repository: $TEST_INFRA_REPOSITORY
-          ref: $TEST_INFRA_REF
+          repository: ${{ needs.setup-variables.outputs.TEST_INFRA_REPOSITORY }}
+          ref: ${{ needs.setup-variables.outputs.TEST_INFRA_REF }}
           path: test-infra
       - uses: pytorch/test-infra/.github/actions/set-channel@main
       - name: Set PYTORCH_VERSION
@@ -96,12 +91,12 @@ jobs:
         env:
           PLATFORM: ${{ env.ARCH == 'aarch64'  && 'linux-aarch64' || ''}}
         with:
-          repository: $REPOSITORY
-          ref: $REF
+          repository: ${{ needs.setup-variables.outputs.REPOSITORY }}
+          ref: ${{ needs.setup-variables.outputs.REF }}
           setup-miniconda: true
-          python-version: $PYTHON_VERSION
-          cuda-version: $CU_VERSION
-          arch: $ARCH
+          python-version: ${{ env.PYTHON_VERSION }}
+          cuda-version: ${{ env.CU_VERSION }}
+          arch: ${{ needs.setup-variables.outputs.ARCH }}
       - name: Install torch dependency
         run: |
           set -euxo pipefail
