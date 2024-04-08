@@ -25,6 +25,7 @@ permissions:
 
 jobs:
   setup-variables:
+    runs-on: ubuntu-latest
     outputs:
       TEST_INFRA_REPOSITORY: pytorch/test-infra
       TEST_INFRA_REF: main
