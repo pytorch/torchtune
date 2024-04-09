@@ -306,13 +306,15 @@ def validate_missing_and_unexpected_for_lora(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
     is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
-    for k in base_missing:
-        if not is_lora_param(k):
-            raise AssertionError(f"Missing non-LoRA key {k} from base model dict")
+    if base_missing:
+        for k in base_missing:
+            if not is_lora_param(k):
+                raise AssertionError(f"Missing non-LoRA key {k} from base model dict")
     if base_unexpected:
         raise AssertionError("Unexpected key loading base model")
-    for k in lora_missing:
-        if is_lora_param(k):
-            raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
+    if lora_missing:
+        for k in lora_missing:
+            if is_lora_param(k):
+                raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
     if lora_unexpected:
         raise AssertionError("Unexpected key loading adapter")
