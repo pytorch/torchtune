@@ -9,6 +9,7 @@ from torchtune.models.mistral._component_builders import mistral, lora_mistral
 
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from functools import partial
 
 
 """
