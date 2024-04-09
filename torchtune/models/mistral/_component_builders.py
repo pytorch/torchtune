@@ -6,14 +6,13 @@
 
 from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-from typing import List, Literal, Optional
+from typing import List
 
 from torch import nn
 
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
-    KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,

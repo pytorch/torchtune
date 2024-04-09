@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List, Literal, Optional
+from typing import List, Optional
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
@@ -15,7 +15,6 @@ from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
-    KVCache,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,

@@ -8,6 +8,7 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 from torchtune.modules import KVCache
 
@@ -52,14 +53,12 @@ class GemmaTransformerDecoder(nn.Module):
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
-        output: nn.Linear,
         norm_embeddings: bool = False,
     ) -> None:
         super().__init__()
         self.tok_embeddings = tok_embeddings
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
-        self.output = output
         self.max_seq_len = max_seq_len
         self.num_heads = num_heads
         self.head_dim = head_dim
@@ -129,5 +128,5 @@ class GemmaTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         # shape: [b, s, v]
-        output = self.output(h).float()
+        output = F.linear(h, self.tok_embeddings.weight).float()
         return output
