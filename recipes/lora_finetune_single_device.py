@@ -21,7 +21,7 @@ from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
-    validate_state_dict_for_lora,
+    validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
@@ -232,23 +232,25 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        validate_state_dict_for_lora(
+        base_missing, base_unexpected = model.load_state_dict(
+            base_model_state_dict, strict=False
+        )
+        if lora_weights_state_dict:
+            lora_missing, lora_unexpected = model.load_state_dict(
+                lora_weights_state_dict, strict=False
+            )
+        else:
+            lora_missing, lora_unexpected = None, None
+
+        validate_missing_and_unexpected_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
             apply_lora_to_output=cfg_model.apply_lora_to_output,
-            full_model_state_dict_keys=model.state_dict().keys(),
-            lora_state_dict_keys=(
-                lora_weights_state_dict.keys()
-                if lora_weights_state_dict is not None
-                else None
-            ),
-            base_model_state_dict_keys=base_model_state_dict.keys(),
+            base_missing=base_missing,
+            base_unexpected=base_unexpected,
+            lora_missing=lora_missing,
+            lora_unexpected=lora_unexpected,
         )
-
-        model.load_state_dict(base_model_state_dict, strict=False)
-        if lora_weights_state_dict:
-            model.load_state_dict(lora_weights_state_dict, strict=False)
-
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
