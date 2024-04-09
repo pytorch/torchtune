@@ -6,6 +6,8 @@
 import os
 import sys
 import time
+from shutil import copyfile
+from tempfile import NamedTemporaryFile
 from pathlib import Path
 
 from typing import Mapping, Optional, Union
@@ -17,7 +19,6 @@ from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
-
 
 class MetricLoggerInterface(Protocol):
     """Abstract metric logger."""
@@ -169,6 +170,39 @@ class WandBLogger(MetricLoggerInterface):
             config=kwargs,
         )
 
+        # Save the config used with `tune` to wandb/Files
+        yaml_configs = self._grab_yaml_configs()
+        for yaml_file in yaml_configs:
+            self._log_yaml_config(yaml_file)
+
+    def _log_yaml_config(self, config_file: str) -> None:
+        """Log the yaml config file to wandb in files."""
+        try:
+            with NamedTemporaryFile(
+                mode="w", suffix=".yaml", delete=False, prefix="torchtune_config_"
+            ) as temp_file:
+                copyfile(config_file, temp_file.name)
+                print(f"Logging {temp_file.name} to wandb under Files")
+                temp_config = Path(temp_file.name)
+                self._wandb.save(temp_config, base_path=temp_config.parent)
+        except Exception as e:
+            print(f"Error saving {config_file} to wandb: {e}")
+
+    def _grab_yaml_configs(self, extensions: tuple[str, ...] = (".yaml", ".yml")) -> list[str]:
+        """Grab the yaml config files used with `tune` by inspecting the command line args."""
+        def _find_yaml_files(args: list[str]) -> list[str]:
+            yaml_files = []
+            for arg in args:
+                if arg.lower().endswith(extensions):
+                    yaml_files.append(arg)
+            return yaml_files
+        
+        # We could have more than one yaml config in the future...
+        command_line_args = sys.argv[1:]
+        yaml_files = _find_yaml_files(command_line_args)
+
+        return yaml_files
+
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._wandb.log({name: data}, step=step)
 
@@ -243,3 +277,4 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
+
