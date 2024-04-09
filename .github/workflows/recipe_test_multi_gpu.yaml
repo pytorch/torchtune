@@ -58,7 +58,7 @@ jobs:
           python -m pip install lm-eval==0.4.*
       - name: Upgrade gcc
         run: |
-          sudo apt install gcc-11 g++-11
+          sudo apt-get install gcc-11 g++-11
       - name: Run recipe tests with coverage
         run: pytest tests -m integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
