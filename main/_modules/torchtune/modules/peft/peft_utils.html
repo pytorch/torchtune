@@ -610,6 +610,68 @@
         <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_a.weight&quot;</span><span class="p">]</span>
         <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">module</span><span class="si">}</span><span class="s2">.lora_b.weight&quot;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">state_dict</span>
+
+
+<span class="k">def</span> <span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">base_missing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">base_unexpected</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lora_missing</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">lora_unexpected</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A more memory-efficient way to validate that LoRA state dict loading was done properly.</span>
+
+<span class="sd">    Similar to validate_state_dict_for_lora, this function uses a model&#39;s LoRA config to</span>
+<span class="sd">    check that LoRA and/or base model weights are loaded into the full model correctly.</span>
+<span class="sd">    Unlike that function, this method relies only on the values of missing and unexpected</span>
+<span class="sd">    as returned by the load_state_dict API with strict=False. This allows us to do the</span>
+<span class="sd">    validation without any additional calls to .state_dict(), which use additional memory.</span>
+<span class="sd">    This API should only be used for single-device recipes, or on multi-device after</span>
+<span class="sd">    https://github.com/pytorch/pytorch/pull/120600.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers</span>
+<span class="sd">            LoRA should be applied to in each self-attention block. Options are</span>
+<span class="sd">            ``{&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, &quot;output_proj&quot;}``.</span>
+<span class="sd">        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.</span>
+<span class="sd">        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.</span>
+<span class="sd">        base_missing (Optional[List[str]]): List of missing keys when loading base model weights.</span>
+<span class="sd">            Default: None</span>
+<span class="sd">        base_unexpected (Optional[List[str]]): List of unexpected keys when loading base model weights.</span>
+<span class="sd">            Default: None</span>
+<span class="sd">        lora_missing (Optional[List[str]]): List of missing keys when loading LoRA weights.</span>
+<span class="sd">            Default: None</span>
+<span class="sd">        lora_unexpected (Optional[List[str]]): List of unexpected keys when loading LoRA weights.</span>
+<span class="sd">            Default: None</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: if base_missing contains any base model keys.</span>
+<span class="sd">        AssertionError: if base_unexpect is nonempty.</span>
+<span class="sd">        AssertionError: if lora_missing contains any LoRA keys.</span>
+<span class="sd">        AssertionError: if lora_unexpected is nonempty.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">lora_modules</span> <span class="o">=</span> <span class="n">get_lora_module_names</span><span class="p">(</span>
+        <span class="n">lora_attn_modules</span><span class="p">,</span> <span class="n">apply_lora_to_mlp</span><span class="p">,</span> <span class="n">apply_lora_to_output</span>
+    <span class="p">)</span>
+    <span class="n">is_lora_param</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">any</span><span class="p">([</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">k</span><span class="p">,</span> <span class="s2">&quot;lora&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">x</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_modules</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">base_missing</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">base_missing</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing non-LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> from base model dict&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">base_unexpected</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected key loading base model&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lora_missing</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">lora_missing</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> from adapter state dict&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lora_unexpected</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected key loading adapter&quot;</span><span class="p">)</span>
 </pre></div>
 
              </article>
