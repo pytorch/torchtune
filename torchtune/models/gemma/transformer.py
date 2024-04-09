@@ -17,11 +17,15 @@ from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
 class GemmaTransformerDecoder(nn.Module):
     """
-    Transformer Decoder derived from the Llama2 architecture.
+    Transformer Decoder derived from the Gemma architecture. A key difference between
+    the Gemma transformer decoder and :class:`~torchtune.modules.TransformerDecoder`
+    is that the output projection is replaced instead with a reverse projection
+    using the transposed token embedding weights from output dim to input dim
+    (see https://github.com/keras-team/keras-nlp/blob/a2a9602ed2a668df58e636d66bbb6fd567a807c2/keras_nlp/layers/modeling/reversible_embedding.py#L23).
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
-            tokens to an embedding space.
+            tokens to an embedding space and as the output projection.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
