@@ -26,8 +26,7 @@ jobs:
         python-version: ['3.8', '3.9', '3.10', '3.11']
         torch-version: ["nightly", "stable"]
         include:
-          - compiler: gcc
-            gcc: 11
+          - gcc: 11
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
