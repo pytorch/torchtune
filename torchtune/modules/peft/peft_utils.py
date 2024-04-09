@@ -256,3 +256,25 @@ def get_merged_lora_ckpt(
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
     return state_dict
+
+
+def validate_missing_and_unexpected_for_lora(
+    base_missing: Optional[Set[str]] = None,
+    base_unexpected: Optional[Set[str]] = None,
+    lora_missing: Optional[Set[str]] = None,
+    lora_unexpected: Optional[Set[str]] = None,
+):
+    lora_modules = get_lora_module_names(
+        lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
+    )
+    is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
+    for k in base_missing:
+        if not is_lora_param(k):
+            raise AssertionError(f"Missing non-LoRA key {k} from base model")
+    if base_unexpected is not None:
+        raise ValueError("Unexpected key when loading base model state dict")
+    for k in lora_missing:
+        if is_lora_param(k):
+            raise AssertionError(f"Missing LoRA key {k} from adapter")
+    if lora_unexpected is not None:
+        raise ValueError("Unexpected key when loading adapter state dict")
