@@ -253,7 +253,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed
+    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed
 
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
@@ -288,7 +288,7 @@ Let's run this experiment. We can also increase alpha (in general it is good pra
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed \
+    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed \
     lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
     lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
 
