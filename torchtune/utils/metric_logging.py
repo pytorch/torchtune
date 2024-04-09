@@ -6,6 +6,7 @@
 import os
 import sys
 import time
+import yaml
 from shutil import copyfile
 from tempfile import NamedTemporaryFile
 from pathlib import Path
@@ -171,9 +172,18 @@ class WandBLogger(MetricLoggerInterface):
         )
 
         # Save the config used with `tune` to wandb/Files
-        yaml_configs = self._grab_yaml_configs()
-        for yaml_file in yaml_configs:
-            self._log_yaml_config(yaml_file)
+        yaml_config = self._grab_yaml_config()
+        self._log_yaml_config(yaml_config) # only the first file
+        
+        # not ideal, we re-load the configs into a dict and then log them
+        try:
+            yaml_config = self._load_config(yaml_config)
+            self._wandb.config.update(yaml_config)
+        except Exception as e:
+            print(f"Error loading {yaml_config} into wandb: {e}")
+
+    def _load_config(self, config_file: Path) -> dict:
+        return yaml.safe_load(config_file.read_text())
 
     def _log_yaml_config(self, config_file: str) -> None:
         """Log the yaml config file to wandb in files."""
@@ -188,20 +198,18 @@ class WandBLogger(MetricLoggerInterface):
         except Exception as e:
             print(f"Error saving {config_file} to wandb: {e}")
 
-    def _grab_yaml_configs(self, extensions: tuple[str, ...] = (".yaml", ".yml")) -> list[str]:
-        """Grab the yaml config files used with `tune` by inspecting the command line args."""
-        def _find_yaml_files(args: list[str]) -> list[str]:
-            yaml_files = []
-            for arg in args:
-                if arg.lower().endswith(extensions):
-                    yaml_files.append(arg)
-            return yaml_files
+    def _grab_yaml_config(self, extensions: tuple[str, ...] = (".yaml", ".yml")) -> list[Path]:
+        """Grab the yaml config file passed to the --config arg."""
+        import argparse
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--config", type=str, required=True, help="Path to config file")
+        args, _ = parser.parse_known_args()
         
-        # We could have more than one yaml config in the future...
-        command_line_args = sys.argv[1:]
-        yaml_files = _find_yaml_files(command_line_args)
-
-        return yaml_files
+        config_file = Path(args.config)
+        if not config_file.is_file() or config_file.suffix not in extensions:
+            raise ValueError(f"Invalid config file: {config_file}")
+        
+        return config_file
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._wandb.log({name: data}, step=step)
