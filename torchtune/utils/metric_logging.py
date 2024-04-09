@@ -172,9 +172,7 @@ class WandBLogger(MetricLoggerInterface):
             config=kwargs,
         )
 
-        yaml_config = self._maybe_grab_yaml_config()
-
-        if yaml_config is not None:
+        if yaml_config := self._maybe_grab_yaml_config():
             # we log the config to wandb/Files
             self._log_yaml_config_to_files(yaml_config) 
 
@@ -201,7 +199,7 @@ class WandBLogger(MetricLoggerInterface):
                 temp_config = Path(temp_file.name)
                 self._wandb.save(temp_config, base_path=temp_config.parent)
         except Exception as e:
-            print(f"Error saving {config_file} to wandb: {e}")
+            print(f"Error saving {config_file} to wandb.\nError: \n{e}")
 
     def _maybe_grab_yaml_config(self) -> Optional[Path]:
         """Grab the yaml config file passed to the --config arg."""
