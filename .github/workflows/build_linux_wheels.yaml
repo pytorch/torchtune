@@ -1,8 +1,4 @@
-# Heavy inspiration taken from:
-# https://github.com/pytorch/test-infra/blob/main/.github/workflows/build_wheels_linux.yml
-
 name: Build Linux Wheels
-
 
 on:
   pull_request:
@@ -12,164 +8,39 @@ on:
       - main
       - release/*
     tags:
-        # NOTE: Binary build pipelines should only get triggered on release candidate builds
-        # Release candidate tags look like: v1.11.0-rc1
-        - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
+      # NOTE: Binary build pipelines should only get triggered on release candidate builds
+      # Release candidate tags look like: v1.11.0-rc1
+      - v[0-9]+.[0-9]+.[0-9]+-rc[0-9]+
   workflow_dispatch:
-
 
 permissions:
   id-token: write
   contents: read
 
-
 jobs:
-  setup-variables:
-    runs-on: ubuntu-latest
-    outputs:
-      TEST_INFRA_REPOSITORY: pytorch/test-infra
-      TEST_INFRA_REF: main
-      REPOSITORY: pytorch/torchtune
-      REF: pkg-for-wheel
-      PACKAGE_NAME: torchtune
-      PACKAGE_TYPE: wheel
-      ARCH: x86_64
-      SMOKE_TEST_SCRIPT: ""
-    steps:
-      - run: echo "Exposing env vars to all jobs"
   generate-matrix:
-    needs:
-      - setup-variables
     uses: pytorch/test-infra/.github/workflows/generate_binary_build_matrix.yml@main
     with:
-      package-type: ${{ needs.setup-variables.outputs.PACKAGE_TYPE }}
+      package-type: wheel
       os: linux
-      test-infra-repository: ${{ needs.setup-variables.outputs.TEST_INFRA_REPOSITORY }}
-      test-infra-ref: ${{ needs.setup-variables.outputs.TEST_INFRA_REF }}
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
       with-cuda: disable
       with-rocm: disable
   build:
-    needs:
-      - setup-variables
-      - generate-matrix
+    needs: generate-matrix
+    name: ${{ matrix.repository }}
+    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
-    env:
-      PYTHON_VERSION: ${{ matrix.python_version }}
-      CU_VERSION: ${{ matrix.desired_cuda }}
-      UPLOAD_TO_BASE_BUCKET: ${{ matrix.upload_to_base_bucket }}
-    name: ${{ matrix.build_name }}
-    runs-on: ${{ matrix.validation_runner }}
-    container:
-      image: ${{ matrix.container_image }}
-      options: ${{ matrix.gpu_arch_type == 'cuda' && '--gpus all' || ' ' }}
-    # If a build is taking longer than 60 minutes on these runners we need
-    # to have a conversation
-    timeout-minutes: 120
-    steps:
-      - name: Clean workspace
-        shell: bash -l {0}
-        run: |
-          set -euxo pipefail
-          echo "::group::Cleanup debug output"
-          rm -rf "${GITHUB_WORKSPACE}"
-          mkdir -p "${GITHUB_WORKSPACE}"
-          echo "::endgroup::"
-      - uses: actions/checkout@v3
-        with:
-          repository: ${{ needs.setup-variables.outputs.TEST_INFRA_REPOSITORY }}
-          ref: ${{ needs.setup-variables.outputs.TEST_INFRA_REF }}
-          path: test-infra
-      - uses: pytorch/test-infra/.github/actions/set-channel@main
-      - name: Set PYTORCH_VERSION
-        if: ${{ env.CHANNEL == 'test' }}
-        run: |
-          # When building RC, set the version to be the current candidate version,
-          # otherwise, leave it alone so nightly will pick up the latest
-          echo "PYTORCH_VERSION=${{ matrix.stable_version }}" >> "${GITHUB_ENV}"
-      - uses: pytorch/test-infra/.github/actions/setup-binary-builds@main
-        env:
-          PLATFORM: ${{ env.ARCH == 'aarch64'  && 'linux-aarch64' || ''}}
-        with:
-          repository: ${{ needs.setup-variables.outputs.REPOSITORY }}
-          ref: ${{ needs.setup-variables.outputs.REF }}
-          setup-miniconda: true
-          python-version: ${{ env.PYTHON_VERSION }}
-          cuda-version: ${{ env.CU_VERSION }}
-          arch: ${{ needs.setup-variables.outputs.ARCH }}
-      - name: Install torch dependency
-        run: |
-          set -euxo pipefail
-          # shellcheck disable=SC1090
-          source "${BUILD_ENV_FILE}"
-          # shellcheck disable=SC2086
-          ${CONDA_RUN} ${PIP_INSTALL_TORCH}
-      - name: Install python build dependency
-        run: |
-          set -euxo pipefail
-          # shellcheck disable=SC1090
-          source "${BUILD_ENV_FILE}"
-          # shellcheck disable=SC2086
-          ${CONDA_RUN} python -m pip install build
-      - name: Build the wheel (bdist_wheel)
-        working-directory: ${{ needs.setup-variables.outputs.REPOSITORY }}
-        shell: bash -l {0}
-        run: |
-          set -euxo pipefail
-          source "${BUILD_ENV_FILE}"
-          export PYTORCH_VERSION="$(${CONDA_RUN} pip show torch | grep ^Version: | sed 's/Version:  *//' | sed 's/+.\+//')"
-          ${CONDA_RUN} python -m build --wheel
-      - name: Smoke Test
-        shell: bash -l {0}
-        env:
-          REPOSITORY: ${{ needs.setup-variables.outputs.REPOSITORY }}
-          PACKAGE_NAME: ${{ needs.setup-variables.outputs.PACKAGE_NAME }}
-          SMOKE_TEST_SCRIPT: ${{ needs.setup-variables.outputs.SMOKE_TEST_SCRIPT }}
-        run: |
-          set -euxo pipefail
-          source "${BUILD_ENV_FILE}"
-          WHEEL_NAME=$(ls "${{ env.REPOSITORY }}/dist/")
-          echo "$WHEEL_NAME"
-
-          ${CONDA_RUN} pip install "$REPOSITORY/dist/$WHEEL_NAME"
-          # Checking that we have a pinned version of torch in our dependency tree
-          (
-            pushd "${RUNNER_TEMP}"
-            unzip -o "${GITHUB_WORKSPACE}/$REPOSITORY/dist/$WHEEL_NAME"
-            # Ensure that pytorch version is pinned, should output file where it was found
-            grep "Requires-Dist: torch (==.*)" -r .
-          )
-
-          if [[ (! -f "$REPOSITORY/${SMOKE_TEST_SCRIPT}) ]]; then
-            echo "$REPOSITORY/${SMOKE_TEST_SCRIPT} not found"
-            ${CONDA_RUN} python -c "import ${PACKAGE_NAME}; print('package version is ', ${PACKAGE_NAME}.__version__)"
-          else
-            echo "$REPOSITORY/${SMOKE_TEST_SCRIPT} found"
-            ${CONDA_RUN} python "$REPOSITORY/${SMOKE_TEST_SCRIPT}"
-          fi
-      - name: Upload wheel to GitHub
-        continue-on-error: true
-        uses: actions/upload-artifact@v3
-        with:
-          name: ${{ env.ARTIFACT_NAME }}
-          path: $REPOSITORY/dist/
-  upload:
-    needs:
-      - setup-variables
-      - build
-      - generate-matrix
-    uses: pytorch/test-infra/.github/workflows/_binary_upload.yml@main
-    if: always()
     with:
-      repository: $REPOSITORY
-      ref: $REF
-      test-infra-repository: $TEST_INFRA_REPOSITORY
-      test-infra-ref: $TEST_INFRA_REF
+      repository: pytorch/torchtune
+      ref: ""
+      pre-script: ""
+      post-script: ""
+      smoke-test-script: ""
+      package-name: torchtune
+      test-infra-repository: pytorch/test-infra
+      test-infra-ref: main
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
-      architecture: $ARCH
       trigger-event: ${{ github.event_name }}
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}-$REPOSITORY-${{ github.event_name == 'workflow_dispatch' }}
-  cancel-in-progress: true
