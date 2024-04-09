@@ -150,7 +150,7 @@ checkpointer:
 # make sure to change the checkpointer component
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer
-  checkpoint_files: [meta_model_0.4w.pt]
+  checkpoint_files: [meta_model_0-4w.pt]
 
 # Quantization Arguments
 quantizer:

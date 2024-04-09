@@ -19,7 +19,7 @@
 # to override the checkpointer directory while launching training
 # you can run:
 #   tune run full_finetune_single_device \
-#   --config mistral/7B_full_single_device \
+#   --config llama2/7B_full_single_device \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
