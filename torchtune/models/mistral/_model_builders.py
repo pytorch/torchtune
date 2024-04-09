@@ -55,7 +55,7 @@ def lora_mistral_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    quantize_base: bool = True,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Mistral 7B model with LoRA enabled.
