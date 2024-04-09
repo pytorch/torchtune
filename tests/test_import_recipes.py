@@ -8,5 +8,7 @@ import pytest
 
 
 def test_import_recipes():
-    with pytest.raises(ModuleNotFoundError, match="recipes folder isn't a package"):
+    with pytest.raises(
+        ModuleNotFoundError, match="The TorchTune recipes directory isn't a package"
+    ):
         import recipes  # noqa
