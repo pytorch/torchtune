@@ -56,13 +56,13 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 3
 optimizer:
-  _component_: torch.optim.SGD
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-optimizer_in_bwd: False
+optimizer_in_bwd: True
 
 # Training env
 device: cuda
