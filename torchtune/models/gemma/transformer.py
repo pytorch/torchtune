@@ -33,8 +33,6 @@ class GemmaTransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
-        output (nn.Linear): Callable that applies a linear transformation to the output of
-            the decoder.
         norm_embeddings (bool): Whether to normalize the embeddings before passing them
             through the decoder layers. Defaults to False.
 
