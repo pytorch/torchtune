@@ -98,14 +98,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. This includes the
         base model weights. If resume_from_checkpoint is True, this also includes
         the adapter weights and recipe state
         """
         self._checkpointer = config.instantiate(
-            cfg,
+            cfg_checkpointer,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
@@ -147,7 +147,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
         self._model_compile = cfg.compile
-        checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
