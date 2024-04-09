@@ -65,7 +65,7 @@ TorchTune tutorials.
    :tags: finetuning
 
 .. customcarditem::
-   :header: Checkpointing Deep-dive
+   :header: Understanding the Checkpointer
    :card_description: Dive into TorchTune's Checkpointers
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/checkpointer.html
