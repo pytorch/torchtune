@@ -259,22 +259,60 @@ def get_merged_lora_ckpt(
 
 
 def validate_missing_and_unexpected_for_lora(
-    base_missing: Optional[Set[str]] = None,
-    base_unexpected: Optional[Set[str]] = None,
-    lora_missing: Optional[Set[str]] = None,
-    lora_unexpected: Optional[Set[str]] = None,
-):
+    lora_attn_modules: List[LORA_ATTN_MODULES],
+    apply_lora_to_mlp: bool,
+    apply_lora_to_output: bool,
+    base_missing: Optional[List[str]] = None,
+    base_unexpected: Optional[List[str]] = None,
+    lora_missing: Optional[List[str]] = None,
+    lora_unexpected: Optional[List[str]] = None,
+) -> None:
+    """
+    A more memory-efficient way to validate that LoRA state dict loading was done properly.
+
+    Similar to validate_state_dict_for_lora, this function uses a model's LoRA config to
+    check that LoRA and/or base model weights are loaded into the full model correctly.
+    Unlike that function, this method relies only on the values of missing and unexpected
+    as returned by the load_state_dict API with strict=False. This allows us to do the
+    validation without any additional calls to .state_dict(), which use additional memory.
+    This API should only be used for single-device recipes, or on multi-device after
+    https://github.com/pytorch/pytorch/pull/120600.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether LoRA is applied to each MLP linear.
+        apply_lora_to_output (bool): whether LoRA is applied to the final output projection.
+        base_missing (Optional[List[str]]): List of missing keys when loading base model weights.
+            Default: None
+        base_unexpected (Optional[List[str]]): List of unexpected keys when loading base model weights.
+            Default: None
+        lora_missing (Optional[List[str]]): List of missing keys when loading LoRA weights.
+            Default: None
+        lora_unexpected (Optional[List[str]]): List of unexpected keys when loading LoRA weights.
+            Default: None
+
+    Returns:
+        None
+
+    Raises:
+        AssertionError: if base_missing contains any base model keys.
+        AssertionError: if base_unexpect is nonempty.
+        AssertionError: if lora_missing contains any LoRA keys.
+        AssertionError: if lora_unexpected is nonempty.
+    """
     lora_modules = get_lora_module_names(
         lora_attn_modules, apply_lora_to_mlp, apply_lora_to_output
     )
     is_lora_param = lambda x: any([".".join([k, "lora"]) in x for k in lora_modules])
     for k in base_missing:
         if not is_lora_param(k):
-            raise AssertionError(f"Missing non-LoRA key {k} from base model")
-    if base_unexpected is not None:
-        raise ValueError("Unexpected key when loading base model state dict")
+            raise AssertionError(f"Missing non-LoRA key {k} from base model dict")
+    if base_unexpected:
+        raise AssertionError("Unexpected key loading base model")
     for k in lora_missing:
         if is_lora_param(k):
-            raise AssertionError(f"Missing LoRA key {k} from adapter")
-    if lora_unexpected is not None:
-        raise ValueError("Unexpected key when loading adapter state dict")
+            raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
+    if lora_unexpected:
+        raise AssertionError("Unexpected key loading adapter")

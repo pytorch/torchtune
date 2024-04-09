@@ -238,10 +238,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             lora_missing, lora_unexpected = None, None
 
         validate_missing_and_unexpected_for_lora(
-            base_missing,
-            base_unexpected,
-            lora_missing,
-            lora_unexpected,
+            lora_attn_modules=cfg_model.lora_attn_modules,
+            apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+            apply_lora_to_output=cfg_model.apply_lora_to_output,
+            base_missing=base_missing,
+            base_unexpected=base_unexpected,
+            lora_missing=lora_missing,
+            lora_unexpected=lora_unexpected,
         )
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
