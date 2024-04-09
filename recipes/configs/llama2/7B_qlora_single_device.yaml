@@ -47,9 +47,8 @@ tokenizer:
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   train_on_input: True
-  use_clean: True
 seed: null
 shuffle: True
 batch_size: 2
@@ -82,3 +81,10 @@ log_every_n_steps: 1
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
+  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json

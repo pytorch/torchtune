@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict
@@ -11,6 +12,7 @@ from typing import Any, Dict
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from safetensors import safe_open
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torchtune.utils._distributed import contains_fsdp
@@ -19,6 +21,7 @@ from torchtune.utils._distributed import contains_fsdp
 class ModelType(Enum):
     LLAMA2 = "llama2"
     MISTRAL = "mistral"
+    GEMMA = "gemma"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
@@ -47,16 +50,26 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     return file_path
 
 
-def safe_torch_load(checkpoint_path: Path) -> Dict[str, Any]:
+def safe_torch_load(checkpoint_path: Path, weights_only: bool = True) -> Dict[str, Any]:
     """
     Utility to load a checkpoint file in a safe manner.
     """
     try:
         # convert the path into a string since pathlib Path and mmap don't work
         # well together
-        state_dict = torch.load(
-            str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
+        is_safetensors_file = (
+            True if str(checkpoint_path).endswith(".safetensors") else False
         )
+        if is_safetensors_file:
+            result = {}
+            with safe_open(checkpoint_path, framework="pt", device="cpu") as f:
+                for k in f.keys():
+                    result[k] = f.get_tensor(k)
+            state_dict = result
+        else:
+            state_dict = torch.load(
+                str(checkpoint_path), map_location="cpu", mmap=True, weights_only=True
+            )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
@@ -84,3 +97,37 @@ def transform_opt_state_dict(
     )
 
     return optim_state_dict_to_load
+
+
+def load_shared_weight_utils(state_dict):
+    if "output.weight" not in state_dict.keys():
+        state_dict["output.weight"] = state_dict["tok_embeddings.weight"]
+    return state_dict
+
+
+def save_shared_weight_utils(weight_map, state_dict):
+    if (
+        "lm_head.weight" not in weight_map.keys()
+        and "lm_head.weight" in state_dict.keys()
+    ):
+        if torch.equal(
+            state_dict["lm_head.weight"],
+            state_dict["model.embed_tokens.weight"],
+        ):
+            del state_dict["lm_head.weight"]
+
+
+def save_config(path: Path, config: Dict[str, Any]) -> None:
+    """
+    Save a configuration dictionary to a file.
+
+    Args:
+        path (Path): Path to save the configuration file.
+        config (Dict[str, Any]): Configuration dictionary to save.
+    """
+    if not path.is_dir():
+        path.mkdir(exist_ok=True)
+    file_path = Path.joinpath(path, "config.json")
+    if not file_path.exists():
+        with open(file_path, "w") as f:
+            json.dump(config, f)

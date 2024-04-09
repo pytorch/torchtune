@@ -30,4 +30,5 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/pytorch/torchtune",
     extras_require={"dev": read_requirements("dev-requirements.txt")},
+    include_package_data=True,
 )

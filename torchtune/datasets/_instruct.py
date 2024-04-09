@@ -9,8 +9,9 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
+from torchtune.config._utils import _get_instruct_template
 
-from torchtune.data import InstructTemplate, Message
+from torchtune.data import InstructTemplate, Message, validate_messages
 
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
@@ -90,6 +91,8 @@ class InstructDataset(Dataset):
             Message(role="assistant", content=transformed_sample[key_output]),
         ]
 
+        validate_messages(messages)
+
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
@@ -104,7 +107,7 @@ class InstructDataset(Dataset):
 def instruct_dataset(
     tokenizer: Tokenizer,
     source: str,
-    template: InstructTemplate,
+    template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
     max_seq_len: Optional[int] = None,
@@ -119,7 +122,7 @@ def instruct_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        template (InstructTemplate): class used to format the prompt. If the placeholder variable
+        template (str): class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
@@ -135,7 +138,7 @@ def instruct_dataset(
     return InstructDataset(
         tokenizer=tokenizer,
         source=source,
-        template=template,
+        template=_get_instruct_template(template),
         column_map=column_map,
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,

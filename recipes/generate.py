@@ -28,16 +28,21 @@ class InferenceRecipe:
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self._quantizer = config.instantiate(cfg.quantizer)
+        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
 
         utils.set_seed(seed=cfg.seed)
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
-        checkpointer = config.instantiate(checkpointer_cfg)
-        checkpoint_dict = checkpointer.load_checkpoint()
-        return checkpoint_dict
-
     def setup(self, cfg: DictConfig) -> None:
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        checkpointer = config.instantiate(cfg.checkpointer)
+        if self._quantization_mode is None:
+            ckpt_dict = checkpointer.load_checkpoint()
+        else:
+            # weights_only needs to be False when loading a quantized model
+            # currently loading a quantized model is only supported with the
+            # FullModelTorchTuneCheckpointer
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
+
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -51,6 +56,10 @@ class InferenceRecipe:
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+
+        if self._quantization_mode is not None:
+            model = self._quantizer.quantize(model)
+            model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
 

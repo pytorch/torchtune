@@ -17,8 +17,11 @@ from torchtune import utils
 from torchtune.models import convert_weights
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
+    load_shared_weight_utils,
     ModelType,
     safe_torch_load,
+    save_config,
+    save_shared_weight_utils,
 )
 from torchtune.utils.logging import get_logger
 
@@ -148,7 +151,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 )
             self._recipe_checkpoint = get_path(self._checkpoint_dir, recipe_checkpoint)
 
-    def load_checkpoint(self) -> Dict[str, Any]:
+    def load_checkpoint(self, weights_only: bool = True) -> Dict[str, Any]:
         """
         Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
 
@@ -162,9 +165,18 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 "optimizer": ...,
                 ...
             }
+
+        Args:
+            weights_only (bool): flag passed down to torch.load. We expose this, because quantized models
+                cannot be loaded with weights_only=True
+
+        Returns:
+            Dict[str, Any]: state_dict from the input checkpoint
         """
         state_dict: Dict[str:Any] = {}
-        state_dict[utils.MODEL_KEY] = safe_torch_load(self._checkpoint_path)
+        state_dict[utils.MODEL_KEY] = safe_torch_load(
+            self._checkpoint_path, weights_only=weights_only
+        )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -300,6 +312,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             Path.joinpath(self._checkpoint_dir, "config.json").read_text()
         )
 
+        # save config.json to output_dir
+        save_config(self._output_dir, self._config)
+
         # recipe_checkpoint contains the recipe state. This should be available if
         # resume_from_checkpoint is True
         self._recipe_checkpoint = None
@@ -383,6 +398,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             dim=self._config["hidden_size"],
         )
 
+        if self._model_type == "GEMMA":
+            converted_state_dict[utils.MODEL_KEY] = load_shared_weight_utils(
+                converted_state_dict[utils.MODEL_KEY]
+            )
+
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
             converted_state_dict[utils.ADAPTER_KEY] = adapter_state_dict
@@ -430,6 +450,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             num_kv_heads=self._config["num_key_value_heads"],
             dim=self._config["hidden_size"],
         )
+
+        if self._model_type == "GEMMA":
+            save_shared_weight_utils(
+                weight_map=self._weight_map, state_dict=state_dict[utils.MODEL_KEY]
+            )
 
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}

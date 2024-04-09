@@ -10,7 +10,13 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import ChatFormat, Message, sharegpt_to_llama2_messages
+from torchtune.config._utils import _get_chat_format
+from torchtune.data import (
+    ChatFormat,
+    Message,
+    sharegpt_to_llama2_messages,
+    validate_messages,
+)
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
@@ -78,6 +84,7 @@ class ChatDataset(Dataset):
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
         messages = self.chat_format.format(messages)
+        validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
@@ -91,8 +98,8 @@ class ChatDataset(Dataset):
 def chat_dataset(
     tokenizer: Tokenizer,
     source: str,
-    conversation_format: str,
-    chat_format: ChatFormat,
+    conversation_style: str,
+    chat_format: str,
     max_seq_len: int,
     train_on_input: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
@@ -106,9 +113,9 @@ def chat_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        conversation_format (str): string specifying expected format of conversations in the dataset
-            for automatic conversion to the llama format. Supported formats are: "sharegpt"
-        chat_format (ChatFormat): Template class used to format the chat.
+        conversation_style (str): string specifying expected style of conversations in the dataset
+            for automatic conversion to the llama style. Supported styles are: "sharegpt"
+        chat_format (str): name of ChatFormat class used to format the messages.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -119,16 +126,16 @@ def chat_dataset(
     Raises:
         ValueError: if the conversation format is not supported
     """
-    if conversation_format == "sharegpt":
+    if conversation_style == "sharegpt":
         convert_to_messages = sharegpt_to_llama2_messages
     else:
-        raise ValueError(f"Unsupported conversation format: {conversation_format}")
+        raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
     return ChatDataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
-        chat_format=chat_format,
+        chat_format=_get_chat_format(chat_format),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,
