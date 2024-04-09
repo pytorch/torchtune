@@ -147,7 +147,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
-        checkpoint_dict = self.load_checkpoint(cfg=cfg.checkpointer)
+        checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
