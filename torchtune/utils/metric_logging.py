@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import argparse
 import os
 import sys
 import time
@@ -171,22 +172,26 @@ class WandBLogger(MetricLoggerInterface):
             config=kwargs,
         )
 
-        # Save the config used with `tune` to wandb/Files
-        yaml_config = self._grab_yaml_config()
-        self._log_yaml_config(yaml_config) # only the first file
-        
-        # not ideal, we re-load the configs into a dict and then log them
+        yaml_config = self._maybe_grab_yaml_config()
+
+        if yaml_config is not None:
+            # we log the config to wandb/Files
+            self._log_yaml_config_to_files(yaml_config) 
+
+            # update the wandb config with the yaml config
+            self._update_wandb_config(yaml_config)
+
+    def _update_wandb_config(self, config_file: Path) -> None:
         try:
-            yaml_config = self._load_config(yaml_config)
+            yaml_config = yaml.safe_load(config_file.read_text())
             self._wandb.config.update(yaml_config)
         except Exception as e:
-            print(f"Error loading {yaml_config} into wandb: {e}")
+            print(f"Error loading {config_file} into wandb: {e}")
 
-    def _load_config(self, config_file: Path) -> dict:
-        return yaml.safe_load(config_file.read_text())
 
-    def _log_yaml_config(self, config_file: str) -> None:
-        """Log the yaml config file to wandb in files."""
+    def _log_yaml_config_to_files(self, config_file: str) -> None:
+        """Log the yaml config file to wandb in files. We copy the original config to avoid 
+        conflicting with the wandb config."""
         try:
             with NamedTemporaryFile(
                 mode="w", suffix=".yaml", delete=False, prefix="torchtune_config_"
@@ -198,18 +203,16 @@ class WandBLogger(MetricLoggerInterface):
         except Exception as e:
             print(f"Error saving {config_file} to wandb: {e}")
 
-    def _grab_yaml_config(self, extensions: tuple[str, ...] = (".yaml", ".yml")) -> list[Path]:
+    def _maybe_grab_yaml_config(self) -> Optional[Path]:
         """Grab the yaml config file passed to the --config arg."""
-        import argparse
         parser = argparse.ArgumentParser()
-        parser.add_argument("--config", type=str, required=True, help="Path to config file")
+        parser.add_argument("--config", type=str)
         args, _ = parser.parse_known_args()
         
-        config_file = Path(args.config)
-        if not config_file.is_file() or config_file.suffix not in extensions:
-            raise ValueError(f"Invalid config file: {config_file}")
-        
-        return config_file
+        config_file = getattr(args, "config", None)
+        if config_file is None:
+            return None
+        return Path(config_file)
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._wandb.log({name: data}, step=step)
@@ -222,7 +225,6 @@ class WandBLogger(MetricLoggerInterface):
 
     def close(self) -> None:
         self._wandb.finish()
-
 
 class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
