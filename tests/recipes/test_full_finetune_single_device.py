@@ -43,14 +43,14 @@ class TestFullFinetuneSingleDeviceRecipe:
             "log_every_n_steps=1",
         ]
 
-    def _fetch_expected_loss_values(self):
+    def _fetch_llama_expected_loss_values(self):
         return [10.5074, 10.5563, 10.5152, 10.4851]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize(
         "config", ["full_single_device_low_memory", "full_single_device"]
     )
-    def test_loss(self, config, tmpdir, monkeypatch):
+    def test_loss_llama(self, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -76,7 +76,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values()
+        expected_loss_values = self._fetch_llama_expected_loss_values()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
@@ -141,7 +141,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values()[2:]
+        expected_loss_values = self._fetch_llama_expected_loss_values()[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
