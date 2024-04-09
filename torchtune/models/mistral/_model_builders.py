@@ -96,9 +96,9 @@ def lora_mistral_7b(
         quantize_base=quantize_base,
     )
 
-qlora_llama2_7b = partial(lora_llama2_7b, quantize_base=True)
+qlora_mistral_7b = partial(lora_mistral_7b, quantize_base=True)
 
-qlora_llama2_7b.__doc__ = """
+qlora_mistral_7b.__doc__ = """
 Builder for creating a Mistral model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_mistral_7b` for full API arguments.
