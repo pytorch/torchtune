@@ -1,0 +1,28 @@
+Expected artifacts for test run are:
+small-ckpt-01242024
+small-ckpt-tune-03082024.pt
+small-ckpt-meta-03082024.pt
+small-ckpt-hf-03082024.pt
+tokenizer.model
+File already exists locally: /tmp/test-artifacts/small-ckpt-01242024
+File already exists locally: /tmp/test-artifacts/small-ckpt-tune-03082024.pt
+File already exists locally: /tmp/test-artifacts/small-ckpt-meta-03082024.pt
+File already exists locally: /tmp/test-artifacts/small-ckpt-hf-03082024.pt
+File already exists locally: /tmp/test-artifacts/tokenizer.model
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0 -- /home/rvarm1/.conda/envs/tune_nightly/bin/python
+cachedir: .pytest_cache
+rootdir: /data/users/rvarm1/dev/torchtune
+configfile: pyproject.toml
+plugins: integration-0.2.3, mock-3.14.0, cov-5.0.0
+collecting ... ERROR: file or directory not found: tests/recipes/test_lora_finetune_single_device.py
+
+collected 0 items
+
+=============================== warnings summary ===============================
+../../../torchtune/utils/precision.py:21
+  /data/users/rvarm1/dev/torchtune/torchtune/utils/precision.py:21: DeprecationWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html
+    from pkg_resources import packaging
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+============================== 1 warning in 0.00s ==============================

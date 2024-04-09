@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 _TORCH_COMPILE_WRAPPER_PREFIX = "_orig_mod."

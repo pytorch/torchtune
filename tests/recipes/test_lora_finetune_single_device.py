@@ -22,6 +22,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    torch_version_ge,
 )
 from torchtune import config
 
@@ -94,6 +95,10 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     @pytest.mark.integration_test
     @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
     @pytest.mark.parametrize("compile", [True, False])
+    @pytest.mark.skipif(
+        not torch_version_ge("2.4.0"),
+        reason="Please install a nightly build of torch to run this test.",
+    )
     def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
