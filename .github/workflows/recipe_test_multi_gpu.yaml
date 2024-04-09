@@ -51,7 +51,8 @@ jobs:
           python -m pip install awscli==1.32.6
       - name: Install dependencies
         run: |
-          if [ "$(matrix.torch-version)" == "nightly" ]; then
+          # if ${{ matrix.torch-version == "nightly" }}
+          if [ ${{ matrix.torch-version }} == "nightly" ]; then
             echo "Installing pytorch nightly"
             python -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
           else
