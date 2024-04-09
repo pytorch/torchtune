@@ -17,6 +17,7 @@ from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
 
@@ -357,6 +358,64 @@ class TestPeftUtils:
                 full_model_state_dict_keys=full_model_state_dict_keys,
                 lora_state_dict_keys=lora_state_dict_keys,
                 base_model_state_dict_keys=base_model_state_dict_keys,
+            )
+
+    @pytest.mark.parametrize(
+        (
+            """
+            base_missing,
+            base_unexpected,
+            lora_missing,
+            lora_unexpected,
+            expected
+            """
+        ),
+        [
+            (["k_proj.lora"], [], ["q_proj.lora"], [], "Missing LoRA"),
+            (["output_proj.lora"], [], ["q_proj.lora"], [], "Missing non-LoRA"),
+            (
+                ["k_proj.lora"],
+                ["output.weight"],
+                ["q_proj.base_weight"],
+                [],
+                "loading base model",
+            ),
+            (
+                ["k_proj.lora"],
+                [],
+                ["q_proj.base_weight"],
+                ["output.weight"],
+                "loading adapter",
+            ),
+            (["k_proj.lora"], [], ["q_proj.base_weight"], [], ""),
+        ],
+    )
+    def test_validate_missing_and_unexpected_for_lora(
+        self, base_missing, base_unexpected, lora_missing, lora_unexpected, expected
+    ):
+        lora_attn_modules = ["q_proj", "k_proj"]
+        apply_lora_to_mlp = True
+        apply_lora_to_output = False
+        if expected:
+            with pytest.raises(AssertionError, match=expected):
+                validate_missing_and_unexpected_for_lora(
+                    lora_attn_modules,
+                    apply_lora_to_mlp,
+                    apply_lora_to_output,
+                    base_missing,
+                    base_unexpected,
+                    lora_missing,
+                    lora_unexpected,
+                )
+        else:
+            validate_missing_and_unexpected_for_lora(
+                lora_attn_modules,
+                apply_lora_to_mlp,
+                apply_lora_to_output,
+                base_missing,
+                base_unexpected,
+                lora_missing,
+                lora_unexpected,
             )
 
 
