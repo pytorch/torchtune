@@ -3,8 +3,10 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import os
 import sys
 import time
+from pathlib import Path
 from typing import Any, Dict
 
 import torch
@@ -69,15 +71,19 @@ class QuantizationRecipe:
     def save_checkpoint(self, cfg: DictConfig):
         ckpt_dict = self._model.state_dict()
         file_name = cfg.checkpointer.checkpoint_files[0].split(".")[0]
-        quantized_file_name = (
-            cfg.checkpointer.output_dir
-            + file_name
-            + "."
-            + self._quantization_mode
-            + ".pt"
+
+        output_dir = Path(cfg.checkpointer.output_dir)
+        output_dir.mkdir(exist_ok=True)
+        checkpoint_file = Path.joinpath(
+            output_dir, f"{file_name}-{self._quantization_mode}"
+        ).with_suffix(".pt")
+
+        torch.save(ckpt_dict, checkpoint_file)
+        logger.info(
+            "Model checkpoint of size "
+            f"{os.path.getsize(checkpoint_file) / 1000**3:.2f} GB "
+            f"saved to {checkpoint_file}"
         )
-        torch.save(ckpt_dict, quantized_file_name)
-        logger.info(f"Saved quantized model to {quantized_file_name}")
 
 
 @config.parse
