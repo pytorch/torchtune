@@ -35,7 +35,7 @@ jobs:
       fail-fast: false
     with:
       repository: pytorch/torchtune
-      ref: pkg-for-wheel
+      ref: ""
       pre-script: ""
       post-script: ""
       smoke-test-script: ""
