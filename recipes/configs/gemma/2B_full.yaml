@@ -47,12 +47,7 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: /tmp/gemma
   model_type: GEMMA
-share_weights:
-  share_weights: True
-  weight_tying_config: {
-    "output": "tok_embeddings"
-  }
-resume_from_checkpoint: False
+  resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
