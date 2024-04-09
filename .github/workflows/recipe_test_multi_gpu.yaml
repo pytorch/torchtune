@@ -25,10 +25,6 @@ jobs:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
         torch-version: ["nightly", "stable"]
-        include:
-          - runs-on: linux.8xlarge.nvidia.gpu
-            compiler: gcc
-            gcc: 11
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
@@ -60,6 +56,9 @@ jobs:
         run: |
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval==0.4.*
+      - name: Upgrade gcc
+        run: |
+          sudo apt install gcc-11 g++-11
       - name: Run recipe tests with coverage
         run: pytest tests -m integration_test --silence-s3-logs --cov=. --cov-report=xml --durations=20 -vv
       - name: Upload Coverage to Codecov
