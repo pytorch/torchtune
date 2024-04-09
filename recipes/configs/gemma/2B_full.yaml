@@ -47,7 +47,7 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: /tmp/gemma
   model_type: GEMMA
-  resume_from_checkpoint: False
+resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
