@@ -413,7 +413,7 @@ can result in a higher quality model.</p>
 </pre></div>
 </div>
 <p>To run the recipe without any changes on 4 GPUs, launch a training run using TuneCLI:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>full_finetune_distributed
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>full_finetune_distributed
 </pre></div>
 </div>
 <section id="dataset">

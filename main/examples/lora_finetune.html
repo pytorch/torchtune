@@ -594,7 +594,7 @@ of in the recipe.</p>
 <p>Finally, we can put it all together and finetune a model using TorchTune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">these instructions</span></a>.
 You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed
 </pre></div>
 </div>
 <div class="admonition note">
@@ -626,7 +626,7 @@ Some experiments with LoRA have found that it can be beneficial to apply LoRA to
 the self-attention, and to increase the rank to 16 or 32. Note that this is likely to increase our max memory,
 but as long as we keep <code class="code docutils literal notranslate"><span class="pre">rank&lt;&lt;embed_dim</span></code>, the impact should be relatively minor.</p>
 <p>Let’s run this experiment. We can also increase alpha (in general it is good practice to scale alpha and rank together).</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed<span class="w"> </span><span class="se">\</span>
 <span class="nv">lora_attn_modules</span><span class="o">=</span><span class="s1">&#39;[q_proj, k_proj, v_proj, output_proj]&#39;</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">lora_rank</span><span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="nv">lora_alpha</span><span class="o">=</span><span class="m">64</span><span class="w"> </span><span class="nv">output_dir</span><span class="o">=</span>./lora_experiment_1
 </pre></div>
