@@ -93,7 +93,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    def test_loss_qlora(self, dtype, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -109,6 +110,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(
