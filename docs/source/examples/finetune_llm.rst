@@ -70,7 +70,7 @@ To run the recipe without any changes on 4 GPUs, launch a training run using Tun
 
 .. code-block:: bash
 
-    tune --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config full_finetune_distributed
+    tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config full_finetune_distributed
 
 Dataset
 -------
