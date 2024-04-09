@@ -19,7 +19,7 @@
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device lora finetuning please use 7B_lora_single_device.yaml
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
 # or 7B_qlora_single_device.yaml and update the model and checkpoints to
 # the 13B model.
 

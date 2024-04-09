@@ -14,7 +14,6 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import (
-    CPUOffload,
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
     ShardingStrategy,
@@ -148,7 +147,6 @@ def wrap_fsdp(
     dtype: torch.dtype,
     strategy: Optional[str] = None,
     auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
-    cpu_offload: bool = False,
     use_meta_device: bool = False,
     **kwargs,
 ) -> nn.Module:
@@ -185,7 +183,6 @@ def wrap_fsdp(
             Default: None. In this case, FSDP is only applied to the top level module. In this
             case, entire model is unsharded during computation and memory is only saved due to
             sharding optimizer states.
-        cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False
         use_meta_device (bool): Set this to True if the input model has been initialized on meta device.
             If so, we will define the `reset_parameters()` method on all submodules
             to ensure FSDP properly initializes all modules on device given by `device`. Default: False
@@ -197,9 +194,6 @@ def wrap_fsdp(
     Raises:
         RuntimeError: If environment not setup for distributed training.
 
-    NOTE:
-        Please use caution if running with cpu_offload=True, as this is known to have
-        significant training performance issues at the moment.
     """
     if dist.is_available() and dist.is_initialized():
         if use_meta_device:
@@ -213,17 +207,13 @@ def wrap_fsdp(
             else auto_wrap_policy
         )
         mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
-        if cpu_offload:
-            _log.warning(
-                "CPU offload will significantly reduce performance. Use with caution."
-            )
         return FSDP(
             model,
             auto_wrap_policy=wrap_policy,
             device_id=device,
             mixed_precision=None,
             sharding_strategy=_get_sharding_strategy(strategy),
-            cpu_offload=CPUOffload(offload_params=True) if cpu_offload else None,
+            cpu_offload=None,
             **kwargs,
         )
     else:

@@ -36,8 +36,8 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_full_single_device_low_memory.yaml",
             ),
             Config(
-                name="mistral/7B_full",
-                file_path="mistral/7B_full.yaml",
+                name="mistral/7B_full_single_device",
+                file_path="mistral/7B_full_single_device.yaml",
             ),
         ],
         supports_distributed=False,
@@ -65,8 +65,12 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_qlora_single_device.yaml",
             ),
             Config(
-                name="mistral/7B_lora",
-                file_path="mistral/7B_lora.yaml",
+                name="mistral/7B_lora_single_device",
+                file_path="mistral/7B_lora_single_device.yaml",
+            ),
+            Config(
+                name="mistral/7B_qlora_single_device",
+                file_path="mistral/7B_qlora_single_device.yaml",
             ),
         ],
         supports_distributed=False,

@@ -69,9 +69,6 @@ gradient_accumulation_steps: 1
 # Training env
 device: cuda
 
-# Distributed
-cpu_offload: False
-
 # Memory management
 enable_activation_checkpointing: True
 
