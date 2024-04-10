@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
+
 import torch
 from torch import nn
-
 
 _TORCH_COMPILE_WRAPPER_PREFIX = "_orig_mod."
 
@@ -25,7 +26,10 @@ def wrap_compile(model: nn.Module) -> None:
         Returns:
             None
     """
-    model = torch.compile(model)
+    # TORCH_COMPILE_BACKEND can be set as an env var to override default torch.compile backend.
+    # Currently only used in unittesting to work around https://github.com/pytorch/torchtune/issues/676
+    backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+    model = torch.compile(model, backend=backend)
     model._register_state_dict_hook(_remove_torch_compile_prefix)
     return model
 
