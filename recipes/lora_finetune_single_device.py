@@ -374,6 +374,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             epoch=epoch,
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
+        log.info(
+            utils.memory_stats_log(
+                "Memory Stats during checkpoint save:", device=self._device
+            )
+        )
 
     def train(self) -> None:
         """
