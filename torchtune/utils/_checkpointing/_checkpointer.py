@@ -265,7 +265,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     the following flow:
 
         1. Download the model from the HF repo using tune download
-        tune download --repo-id meta-llama/Llama-2-7b-hf \
+        tune download meta-llama/Llama-2-7b-hf \
         --output-dir <checkpoint_dir> \
         --hf-token <hf-token>
 
@@ -511,7 +511,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
     the following flow:
 
         1. Download the model from the HF repo using tune download
-        tune download --repo-id meta-llama/Llama-2-7b \
+        tune download meta-llama/Llama-2-7b \
         --output-dir <checkpoint_dir> \
         --hf-token <hf-token>
 
