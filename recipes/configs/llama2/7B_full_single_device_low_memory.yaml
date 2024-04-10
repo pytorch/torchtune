@@ -68,6 +68,9 @@ enable_activation_checkpointing: True
 # Reduced precision
 dtype: bf16
 
+# Model compilation
+compile: False
+
 # Logging
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
