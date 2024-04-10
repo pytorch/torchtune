@@ -44,4 +44,4 @@ jobs:
       test-infra-ref: main
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       trigger-event: ${{ github.event_name }}
-      build-command: "python -m build --wheel"
+      use-python-build-package: true
