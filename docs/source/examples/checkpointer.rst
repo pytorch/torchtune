@@ -34,7 +34,8 @@ In this tutorial, we'll talk about different checkpoint formats and how TorchTun
 Let's take a close look at these different formats.
 
 Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
-in files on disk. If the string identifer of the keys in the stored checkpoints don't match up
+in files on disk. Each weight is associated with a string key that identifies it in the state dict.
+If the string identifer of the keys in the stored checkpoints don't match up
 exactly with those in the model definition, you'll either run into explicit errors (loading the
 state dict will raise an exception) or worse - silent errors (loading will succeed but training or
 inference will not work as expected). In addition to the keys lining up, you also need the shapes
@@ -47,7 +48,7 @@ Let's look at the two popular formats for Llama2.
 
 This is the format supported by the official Llama2 implementation. When you download the llama2 7B model
 from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll get access to a single
-``.pt`` checkpoint file. You can inspect the contents of this checkpoint easily with ``torch.load``
+``.pth`` checkpoint file. You can inspect the contents of this checkpoint easily with ``torch.load``
 
 .. code-block:: python
 
@@ -63,9 +64,9 @@ from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll 
     >>> print(len(state_dict.keys()))
     292
 
-The state_dict contains 292 keys, including an input embedding table called ``tok_embeddings``. the
-model definition for this state_dict expects and embedding layer with 32000 items each having a
-dim of 4096.
+The state_dict contains 292 keys, including an input embedding table called ``tok_embeddings``. The
+model definition for this state_dict expects an embedding layer with ``32000`` tokens each having a
+embedding with dim of ``4096``.
 
 
 **HF Format**
@@ -91,19 +92,21 @@ load the checkpoint, you'll need to piece these files together. Let's inspect on
     >>> print(len(state_dict.keys()))
     241
 
-Not only does the state_dict contains fewer keys, (expected since this is one of two files),
-the embedding table is called model.embed_tokens. The size of this layer is the same as expected.
+Not only does the state_dict contain fewer keys (expected since this is one of two files), but
+the embedding table is called ``model.embed_tokens`` instead of ``tok_embeddings``. This mismatch
+in names will cause an exception when you try to load the state_dict. The size of this layer is the
+same between the two, which is as expected.
 
 |
 
 As you can see, if you're not careful you'll likely end up making a number of errors just during
-checkpoint load and save. The TorchTune checkpointer tries to make this easy by abstracting this
-complexity away from you. TorchTune is designed to be "state-dict invariant".
+checkpoint load and save.The TorchTune checkpointer makes this less error-prone by managing state dicts
+for you. TorchTune is designed to be "state-dict invariant".
 
-- At the input, TorchTune accepts checkpoints from multiple sources in multiple formats.
+- When loading,, TorchTune accepts checkpoints from multiple sources in multiple formats.
   You don't have to worry about explicitly converting checkpoints every time they run a recipe.
 
-- At the output, TorchTune produces checkpoints in the same format as the source. This includes
+- When saving, TorchTune produces checkpoints in the same format as the source. This includes
   converting the state_dict back into the original form and splitting the keys and weights
   across the same number of files.
 
@@ -275,7 +278,7 @@ TorchTune Checkpointers support two checkpointing scenarios:
 The model weights at the end of a completed training
 run are written out to file. The checkpointer ensures that the output checkpoint
 files have the same keys as the input checkpoint file used to begin training. The
-checkpointer also ensures that the keys are paritioned across the same number of
+checkpointer also ensures that the keys are partitioned across the same number of
 files as the original checkpoint. The output state dict has the following
 standard format:
 
@@ -327,12 +330,10 @@ to the config file
         # checkpointer to use
         _component_: torchtune.utils.FullModelHFCheckpointer
 
-        # directory with the checkpoint files
-        # this should match the output_dir above
         checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files. These refer to intermediate checkpoints
-        # and will always have a ".pt" extensions
+        # checkpoint files. Note that you will need to update this
+        # section of the config with the intermediate checkpoint files
         checkpoint_files: [
             hf_model_0001_0.pt,
             hf_model_0002_0.pt,
@@ -359,7 +360,8 @@ Checkpointing for LoRA
 
 In TorchTune, we output both the adapter weights and the full model "merged" weights
 for LoRA. The "merged" checkpoint can be used just like you would use the source
-checkpoint with any post-training tools.
+checkpoint with any post-training tools. For more details, take a look at our
+:ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
 
 The primary difference between the two use cases is when you want to resume training
 from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
