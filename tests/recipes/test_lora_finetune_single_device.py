@@ -22,6 +22,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    torch_version_ge,
 )
 from torchtune import config
 
@@ -52,11 +53,16 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         return [10.5059, 10.5571, 10.5181, 10.4897]
 
     @pytest.mark.integration_test
-    def test_loss(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss(self, compile, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
 
         cmd = f"""
         tune run lora_finetune_single_device \
@@ -68,6 +74,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(
@@ -91,11 +98,20 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    def test_loss_qlora(self, dtype, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    @pytest.mark.skipif(
+        not torch_version_ge("2.4.0"),
+        reason="Please install a nightly build of torch to run this test.",
+    )
+    def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
 
         cmd = f"""
         tune run lora_finetune_single_device
@@ -107,6 +123,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(

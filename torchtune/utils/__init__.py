@@ -11,6 +11,8 @@ from ._checkpointing import (  # noqa
     ModelType,
     transform_opt_state_dict,
 )
+
+from ._compile_utils import wrap_compile
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
@@ -77,6 +79,7 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
+    "wrap_compile",
     "TuneRecipeArgumentParser",
     "CheckpointableDataLoader",
     "OptimizerInBackwardWrapper",

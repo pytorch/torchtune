@@ -146,12 +146,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-
+        self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[utils.ADAPTER_KEY]
@@ -214,6 +215,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
@@ -257,6 +259,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
+        # Compile model, if enabled.
+        if compile_model:
+            log.info("Compiling model with torch.compile...")
+            model = utils.wrap_compile(model)
         log.info(
             utils.memory_stats_log(
                 "Memory Stats after model init:", device=self._device
@@ -379,6 +385,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop.
         """
+
+        if self._model_compile:
+            log.info(
+                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
+            )
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):

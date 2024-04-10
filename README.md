@@ -176,6 +176,13 @@ Check out `tune --help` for all possible CLI commands and options.
 
 ---
 
+#### Support for torch.compile
+
+Note that support for ``torch.compile`` is currently in progress and only enabled for a couple of recipes. In particular, ``torch.compile`` support is
+enabled for [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_single_device.py) and [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and validated on Llama2-7b. Other recipes and models are currently not tested, though we welcome contributions from the community.
+
+---
+
 ## Design Principles
 
 TorchTune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
