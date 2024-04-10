@@ -204,7 +204,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.lr_scheduler,
-            num_training_steps=self.total_epochs * steps_per_epoch,
+            num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.total_training_steps - 1,
         )
 
