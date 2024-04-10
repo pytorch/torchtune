@@ -30,7 +30,7 @@ jobs:
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
-    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@default-build-command
+    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
     strategy:
       fail-fast: false
     with:
