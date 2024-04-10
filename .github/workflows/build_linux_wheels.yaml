@@ -41,6 +41,7 @@ jobs:
       smoke-test-script: ""
       package-name: torchtune
       test-infra-repository: pytorch/test-infra
-      test-infra-ref: main
+      test-infra-ref: default-build-command
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       trigger-event: ${{ github.event_name }}
+      build-command: "python -m build --wheel"
