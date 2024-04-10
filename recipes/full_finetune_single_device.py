@@ -230,7 +230,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             log.info("Compiling model with torch.compile...")
-            print("RV: COMPILING", flush=True)
             model = utils.wrap_compile(model)
         log.info(
             utils.memory_stats_log(
