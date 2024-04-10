@@ -30,7 +30,7 @@ jobs:
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
-    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@main
+    uses: pytorch/test-infra/.github/workflows/build_wheels_linux.yml@default-build-command
     strategy:
       fail-fast: false
     with:
@@ -41,7 +41,7 @@ jobs:
       smoke-test-script: ""
       package-name: torchtune
       test-infra-repository: pytorch/test-infra
-      test-infra-ref: default-build-command
+      test-infra-ref: main
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
       trigger-event: ${{ github.event_name }}
       build-command: "python -m build --wheel"
