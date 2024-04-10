@@ -9,29 +9,30 @@ import torch.nn.functional as F
 
 
 class DPOLoss(nn.Module):
+    """
+    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
+
+    Args:
+        beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
+        label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
+        loss_type (str): Type of loss function to be used. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair'].
+
+    Raises:
+        ValueError: If an unknown loss type is specified.
+
+    Attributes:
+        beta (float): Temperature parameter for the DPO loss.
+        label_smoothing (float): Parameter encoding uncertainty about the labels.
+        loss_type (str): Type of loss function used.
+
+    Returns:
+        tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
+            - losses: The DPO loss for each example in the batch.
+            - chosen_rewards: Rewards for the chosen responses.
+            - rejected_rewards: Rewards for the rejected responses.
+    """
+
     def __init__(self, beta=0.1, label_smoothing=0, loss_type="sigmoid"):
-        """
-        Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
-
-        Args:
-            beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
-            label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
-            loss_type (str): Type of loss function to be used. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair'].
-
-        Raises:
-            ValueError: If an unknown loss type is specified.
-
-        Attributes:
-            beta (float): Temperature parameter for the DPO loss.
-            label_smoothing (float): Parameter encoding uncertainty about the labels.
-            loss_type (str): Type of loss function used.
-
-        Returns:
-            tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors:
-                - losses: The DPO loss for each example in the batch.
-                - chosen_rewards: Rewards for the chosen responses.
-                - rejected_rewards: Rewards for the rejected responses.
-        """
         super(DPOLoss, self).__init__()
         self.beta = beta
         self.label_smoothing = label_smoothing
