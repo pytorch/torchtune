@@ -1,11 +1,19 @@
 .. _understand_checkpointer:
 
-==============================
-Understanding the Checkpointer
-==============================
+==========================
+Checkpointing in TorchTune
+==========================
 
 This tutorial will walk you through the design and behavior of the checkpointer and associated
 utilities.
+
+.. grid:: 1
+
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What this tutorial will cover:
+
+      * Deep-dive into the checkpointer design for TorchTune
+      * Checkpoint formats and how we handle them
+      * Checkpointing scenarios: Intermediate vs Final and LoRA vs Full-finetune
 
 
 Overview
@@ -15,27 +23,103 @@ TorchTune checkpointers are designed to be composable components which can be pl
 into any recipe - training, evaluation or generation. Each checkpointer supports a
 set of models and scenarios making these easy to understand, debug and extend.
 
-TorchTune is designed to be "state-dict invariant".
+Before we dive into the checkpointer in TorchTune, let's define some concepts.
+
+|
+
+Checkpoint Format
+^^^^^^^^^^^^^^^^^
+
+In this tutorial, we'll talk about different checkpoint formats and how TorchTune handles them.
+Let's take a close look at these different formats.
+
+Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
+in files on disk. If the string identifer of the keys in the stored checkpoints don't match up
+exactly with those in the model definition, you'll either run into explicit errors (loading the
+state dict will raise an exception) or worse - silent errors (loading will succeed but training or
+inference will not work as expected). In addition to the keys lining up, you also need the shapes
+of the weights (values in the state_dict) to match up exactly with those expected by the model
+definition.
+
+Let's look at the two popular formats for Llama2.
+
+**Meta Format**
+
+This is the format supported by the official Llama2 implementation. When you download the llama2 7B model
+from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll get access to a single
+``.pt`` checkpoint file. You can inspect the contents of this checkpoint easily with ``torch.load``
+
+.. code-block:: python
+
+    >>> import torch
+    >>> state_dict = torch.load('consolidated.00.pth', mmap=True, weights_only=True, map_location='cpu')
+    >>> # inspect the keys and the shapes of the associated tensors
+    >>> for key, value in state_dict.items():
+    >>>    print(f'{key}: {value.shape}')
+
+    tok_embeddings.weight: torch.Size([32000, 4096])
+    ...
+    ...
+    >>> print(len(state_dict.keys()))
+    292
+
+The state_dict contains 292 keys, including an input embedding table called ``tok_embeddings``. the
+model definition for this state_dict expects and embedding layer with 32000 items each having a
+dim of 4096.
+
+
+**HF Format**
+
+This is the most popular format within the Hugging Face Model Hub and is
+the default format in every TorchTune config. This is also the format you get when you download the
+llama2 model from the `Llama-2-7b-hf <https://huggingface.co/meta-llama/Llama-2-7b-hf>`_ repo.
+
+The first big difference is that the state_dict is split across two ``.bin`` files. To correctly
+load the checkpoint, you'll need to piece these files together. Let's inspect one of the files.
+
+.. code-block:: python
+
+    >>> import torch
+    >>> state_dict = torch.load('pytorch_model-00001-of-00002.bin', mmap=True, weights_only=True, map_location='cpu')
+    >>> # inspect the keys and the shapes of the associated tensors
+    >>> for key, value in state_dict.items():
+    >>>     print(f'{key}: {value.shape}')
+
+    model.embed_tokens.weight: torch.Size([32000, 4096])
+    ...
+    ...
+    >>> print(len(state_dict.keys()))
+    241
+
+Not only does the state_dict contains fewer keys, (expected since this is one of two files),
+the embedding table is called model.embed_tokens. The size of this layer is the same as expected.
+
+|
+
+As you can see, if you're not careful you'll likely end up making a number of errors just during
+checkpoint load and save. The TorchTune checkpointer tries to make this easy by abstracting this
+complexity away from you. TorchTune is designed to be "state-dict invariant".
 
 - At the input, TorchTune accepts checkpoints from multiple sources in multiple formats.
-  For Llama2 this includes both the HF Hub and the Meta Llama website. Model users don't
-  have to worry about explicitly converting checkpoints every time they run a recipe.
+  You don't have to worry about explicitly converting checkpoints every time they run a recipe.
 
 - At the output, TorchTune produces checkpoints in the same format as the source. This includes
   converting the state_dict back into the original form and splitting the keys and weights
-  across the same number of files. As a result, users should be able to use these fine-tuned
-  checkpoints with any post-training tool (quantization, eval, inference) which supports the
-  source format.
+  across the same number of files.
+
+One big advantage of being "state-dict invariant" is that you should be able to use
+fine-tuned checkpoints from TorchTune with any post-training tool (quantization, eval, inference)
+which supports the source format, without any code changes OR conversion scripts. This is one of the
+ways in which TorchTune interoperates with the surrounding ecosystem.
 
 To be "state-dict invariant", the ``load_checkpoint`` and
 ``save_checkpoint`` methods make use of the weight convertors available
 `here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
 
-
 |
 
-Checkpoint Formats
-------------------
+Handling different Checkpoint Formats
+-------------------------------------
 
 TorchTune supports three different
 `checkpointers <https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py>`_,
@@ -45,9 +129,8 @@ each of which supports a different checkpoint format.
 **HFCheckpointer**
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
-framwork from Hugging Face. This is the most popular format within the Hugging Face Model Hub and is
-the default format in every TorchTune config. Examples include the llama2 models with the "hf" suffix
-in the repo-id, such as `Llama-2-7b-hf <https://huggingface.co/meta-llama/Llama-2-7b-hf>`_.
+framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
+Model Hub and is the default format in every TorchTune config.
 
 For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
@@ -109,14 +192,15 @@ The following snippet explains how the HFCheckpointer is setup in TorchTune conf
     read directly from the "config.json" file. This helps ensure we either load the weights
     correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
+    More details on how these are used during conversion can be found
+    `here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
 
 |
 
 **MetaCheckpointer**
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the original meta-llama
-github repository. Examples include the llama2 models without the "hf" suffix in the repo-id,
-such as `Llama-2-7b <https://huggingface.co/meta-llama/Llama-2-7b>`_.
+github repository.
 
 
 For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary checkpoint
@@ -317,3 +401,51 @@ looks something like this:
 
     # set to True if restarting training
     resume_from_checkpoint: True
+
+
+Putting it all Together
+-----------------------
+
+Let's now take the concepts above and see how we can use an input checkpoint, run
+finetuning and then inspect model quality by running some generations.
+
+1. Run LoRA finetuning on a single GPU using the default config
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device \
+    --config llama2/7B_lora_single_device
+
+    # output at the end of the training
+    [_checkpointer.py:456] Model checkpoint of size 9.98 GB saved to /tmp/Llama-2-7b-hf/hf_model_0001_0.pt
+    [_checkpointer.py:456] Model checkpoint of size 3.50 GB saved to /tmp/Llama-2-7b-hf/hf_model_0002_0.pt
+    [_checkpointer.py:467] Adapter checkpoint of size 0.01 GB saved to /tmp/Llama-2-7b-hf/adapter_0.pt
+
+
+2. Update the generation recipe with these checkpoints. The new config has the following changes to
+``generate.yaml``
+
+.. code-block:: yaml
+
+    checkpointer:
+        _component_: torchtune.utils.FullModelHFCheckpointer
+        checkpoint_dir: /tmp/Llama-2-7b-hf/
+        checkpoint_files: [
+            hf_model_0001_0.pt,
+            hf_model_0002_0.pt
+        ]
+        output_dir: /tmp/Llama-2-7b-hf/
+        model_type: LLAMA2
+
+3. Run the generation recipe with the new config
+
+.. code-block:: bash
+
+    tune run generate --config generate
+
+    # output from the generation
+    [generate.py:68] Model is initialized with precision torch.bfloat16.
+    [generate.py:92] Welcome to the 'Alternative' Treatments and Therapies Forum
+
+    [generate.py:96] Time for inference: 1.86 sec total, 8.08 tokens/sec
+    [generate.py:99] Memory used: 15.72 GB
