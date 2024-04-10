@@ -261,7 +261,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
     A few notes about the checkpoint reading logic:
-    - HF checkpoint names usually oredered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure
+    - HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure
     we read the files in the right order, we sort the checkpoint file names before reading
     - Checkpoint conversion to and from HF's format requires access to model params which are
     read directly from the "config.json" file. This helps ensure we either load the weights
@@ -574,7 +574,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
-        state. The output state dicts have the following formats:
+        state.
 
         Args:
             state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
