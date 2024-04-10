@@ -130,7 +130,7 @@ class TestHFLlama2FullModelCheckpointer:
 
         The model corresponds to the following config:
             * vocab_size: 100
-            * num_layers: 1 for single checkpoint and 2 for multiple checkpoint
+            * num_layers: 1 for single checkpoint and 2 for multiple checkpoints
             * num_heads: 4
             * num_kv_heads: 4
             * embed_dim: 64
