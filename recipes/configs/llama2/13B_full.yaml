@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download --repo-id meta-llama/Llama-2-13b-hf \
+#   tune download meta-llama/Llama-2-13b-hf \
 #   --hf-token <HF_TOKEN> \
 #   --output-dir /tmp/llama2-13b-hf
 #
