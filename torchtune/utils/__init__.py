@@ -27,7 +27,6 @@ from ._distributed import (  # noqa
 from ._generation import generate  # noqa
 from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
-from .checkpointable_dataloader import CheckpointableDataLoader
 from .collate import padded_collate
 from .constants import (  # noqa
     ADAPTER_KEY,
