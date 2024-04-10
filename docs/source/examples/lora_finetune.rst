@@ -145,7 +145,9 @@ Let's take a look at how to construct Llama2 models in TorchTune with and withou
 
   # The default settings for lora_llama2_7b will match those for llama2_7b
   # We just need to define which layers we want LoRA applied to.
-  # We can choose from ["q_proj", "k_proj", "v_proj", and "output_proj"]
+  # Within each self-attention, we can choose from ["q_proj", "k_proj", "v_proj", and "output_proj"].
+  # We can also set apply_lora_to_mlp=True or apply_lora_to_output=True to apply LoRA to other linear
+  # layers outside of the self-attention.
   lora_model = lora_llama2_7b(lora_attn_modules=["q_proj", "v_proj"])
 
 .. note::
@@ -204,7 +206,7 @@ model without any wrappers or custom checkpoint conversion logic.
 
 .. note::
     Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
-    the loaded :code:`state_dict` are as expected. TorchTune's LoRA recipe does this by default via
+    the loaded :code:`state_dict` are as expected. TorchTune's LoRA recipes do this by default via e.g.
     :func:`torchtune.modules.peft.validate_state_dict_for_lora`.
 
 Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.
@@ -222,7 +224,7 @@ Once we've loaded the base model weights, we also want to set only LoRA paramete
   set_trainable_params(lora_model, lora_params)
 
   # Print the total number of parameters
-  total_params = sum([p.numel() for p in lora_model.params()])
+  total_params = sum([p.numel() for p in lora_model.parameters()])
   trainable_params = sum([p.numel() for p in lora_model.parameters() if p.requires_grad])
   print(
     f"""
@@ -249,7 +251,7 @@ LoRA finetuning recipe in TorchTune
 
 Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
+You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 16GB):
 
 .. code-block:: bash
 
