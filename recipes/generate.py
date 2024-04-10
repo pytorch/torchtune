@@ -78,6 +78,31 @@ class InferenceRecipe:
         tokens = self._tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
+        custom_generate_next_token = None
+
+        # since quantized model uses torch.compile to get speedup, it needs a warm up / prefill run
+        # to get the accurate performance measurement
+        if self._quantization_mode is not None:
+            logger.info("Starting compilation to improve generation performance ...")
+            t0 = time.perf_counter()
+            custom_generate_next_token = torch.compile(
+                utils.generate_next_token, mode="max-autotune", fullgraph=True
+            )
+            t = time.perf_counter() - t0
+            logger.info(f"Compilation for generate_next_token takes: {t:.02f} sec")
+            t0 = time.perf_counter()
+            _ = utils.generate(
+                model=self._model,
+                prompt=prompt,
+                max_generated_tokens=2,
+                temperature=cfg.temperature,
+                top_k=cfg.top_k,
+                eos_id=self._tokenizer.eos_id,
+                custom_generate_next_token=custom_generate_next_token,
+            )
+            t = time.perf_counter() - t0
+            logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
+
         t0 = time.perf_counter()
         generated_tokens = utils.generate(
             model=self._model,
@@ -86,6 +111,7 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             eos_id=self._tokenizer.eos_id,
+            custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0
 

@@ -24,7 +24,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
     wrap_fsdp,
 )
-from ._generation import generate  # noqa
+from ._generation import generate, generate_next_token  # noqa
 from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate
