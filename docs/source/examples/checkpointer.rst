@@ -46,7 +46,7 @@ Let's look at the two popular formats for Llama2.
 
 **Meta Format**
 
-This is the format supported by the official Llama2 implementation. When you download the llama2 7B model
+This is the format supported by the official Llama2 implementation. When you download the Llama2 7B model
 from the `meta-llama website <https://llama.meta.com/llama-downloads>`_, you'll get access to a single
 ``.pth`` checkpoint file. You can inspect the contents of this checkpoint easily with ``torch.load``
 
@@ -100,11 +100,11 @@ same between the two, which is as expected.
 |
 
 As you can see, if you're not careful you'll likely end up making a number of errors just during
-checkpoint load and save.The TorchTune checkpointer makes this less error-prone by managing state dicts
+checkpoint load and save. The TorchTune checkpointer makes this less error-prone by managing state dicts
 for you. TorchTune is designed to be "state-dict invariant".
 
-- When loading,, TorchTune accepts checkpoints from multiple sources in multiple formats.
-  You don't have to worry about explicitly converting checkpoints every time they run a recipe.
+- When loading, TorchTune accepts checkpoints from multiple sources in multiple formats.
+  You don't have to worry about explicitly converting checkpoints every time you run a recipe.
 
 - When saving, TorchTune produces checkpoints in the same format as the source. This includes
   converting the state_dict back into the original form and splitting the keys and weights
@@ -135,7 +135,7 @@ This checkpointer reads and writes checkpoints in a format which is compatible w
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
 Model Hub and is the default format in every TorchTune config.
 
-For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary checkpoint
+For this checkpointer to work correctly, we assume that ``checkpoint_dir`` contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
 
 - Download the model from the HF repo using tune download. By default, this will ignore the "safetensors"
@@ -149,7 +149,7 @@ and json files. The easiest way to make sure everything works correctly is to us
         --output-dir <checkpoint_dir>
         --hf-token <hf-token>
 
-- Use ``output_dir`` above as the ``checkpoint_dir`` for the checkpointer.
+- Use ``output_dir`` specified here as the ``checkpoint_dir`` argument for the checkpointer.
 
 |
 
@@ -192,7 +192,7 @@ The following snippet explains how the HFCheckpointer is setup in TorchTune conf
 
 .. note::
     Checkpoint conversion to and from HF's format requires access to model params which are
-    read directly from the "config.json" file. This helps ensure we either load the weights
+    read directly from the ``config.json`` file. This helps ensure we either load the weights
     correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
     More details on how these are used during conversion can be found
@@ -206,7 +206,7 @@ This checkpointer reads and writes checkpoints in a format which is compatible w
 github repository.
 
 
-For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary checkpoint
+For this checkpointer to work correctly, we assume that ``checkpoint_dir`` contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
 
 - Download the model from the HF repo using tune download. By default, this will ignore the "safetensors"
@@ -404,50 +404,80 @@ looks something like this:
     # set to True if restarting training
     resume_from_checkpoint: True
 
+|
 
-Putting it all Together
------------------------
+Using TorchTune Checkpoints with other libraries
+------------------------------------------------
 
-Let's now take the concepts above and see how we can use an input checkpoint, run
-finetuning and then inspect model quality by running some generations.
+As we mentioned above, one of the benefits of handling of the checkpoint
+conversion is that users can directly work with standard formats. This helps
+with interoperability with other libraries since TorchTune doesn't add yet
+another format to the mix.
 
-1. Run LoRA finetuning on a single GPU using the default config
+Let's take a look at an example of how this would work with a popular codebase
+used for running performant inference with LLMs -
+`gpt-fast <https://github.com/pytorch-labs/gpt-fast/tree/main>`_. This section
+assumes that you've cloned the repository on your machine.
+
+``gpt-fast`` makes some assumptions about the checkpoint and the availability of
+the key-to-file mapping. Let's satisfy these assumptions, by creating this mapping
+file. Let's assume we'll be using ``<new_dir>/Llama-2-7B-hf`` as the directory
+for this. ``gpt-fast`` assumes that the directory with checkpoints has the
+same format at the HF repo-id.
+
+.. code-block:: python
+
+    >>> import torch
+    >>>
+    >>> # create the output dictionary
+    >>> output_dict = {"weight_map": {}}
+    >>>
+    >>> # Load the checkpoints
+    >>> sd_1 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
+    >>> sd_2 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0002_0.pt', mmap=True, map_location='cpu')
+    >>>
+    >>> # create the weight map
+    >>> for key in sd_1.keys():
+    >>>    output_dict['weight_map'][key] =  "hf_model_0001_0.pt"
+    >>> for key in sd_2.keys():
+    >>>    output_dict['weight_map'][key] =  "hf_model_0002_0.pt"
+    >>>
+    >>> with open('<new_dir>/Llama-2-7B-hf/pytorch_model.bin.index.json', 'w') as f:
+    >>>     json.dump(output_dict, f)
+
+
+Now that we've created the weight_map, let's copy over our checkpoints.
 
 .. code-block:: bash
 
-    tune run lora_finetune_single_device \
-    --config llama2/7B_lora_single_device
+    cp  <checkpoint_dir>/hf_model_0001_0.pt  <new_dir>/Llama-2-7B-hf/
+    cp  <checkpoint_dir>/hf_model_0002_0.pt  <new_dir>/Llama-2-7B-hf/
+    cp  <checkpoint_dir>/tokenizer.model     <new_dir>/Llama-2-7B-hf/
 
-    # output at the end of the training
-    [_checkpointer.py:456] Model checkpoint of size 9.98 GB saved to /tmp/Llama-2-7b-hf/hf_model_0001_0.pt
-    [_checkpointer.py:456] Model checkpoint of size 3.50 GB saved to /tmp/Llama-2-7b-hf/hf_model_0002_0.pt
-    [_checkpointer.py:467] Adapter checkpoint of size 0.01 GB saved to /tmp/Llama-2-7b-hf/adapter_0.pt
-
-
-2. Update the generation recipe with these checkpoints. The new config has the following changes to
-``generate.yaml``
-
-.. code-block:: yaml
-
-    checkpointer:
-        _component_: torchtune.utils.FullModelHFCheckpointer
-        checkpoint_dir: /tmp/Llama-2-7b-hf/
-        checkpoint_files: [
-            hf_model_0001_0.pt,
-            hf_model_0002_0.pt
-        ]
-        output_dir: /tmp/Llama-2-7b-hf/
-        model_type: LLAMA2
-
-3. Run the generation recipe with the new config
+Once the directory structure is setup, let's convert the checkpoints and run inference!
 
 .. code-block:: bash
 
-    tune run generate --config generate
+    cd gpt-fast/
 
-    # output from the generation
-    [generate.py:68] Model is initialized with precision torch.bfloat16.
-    [generate.py:92] Welcome to the 'Alternative' Treatments and Therapies Forum
+    python scripts/convert_hf_checkpoint.py \
+    --checkpoint_dir <new_dir>/Llama-2-7B-hf/ \
+    --model 7B
 
-    [generate.py:96] Time for inference: 1.86 sec total, 8.08 tokens/sec
-    [generate.py:99] Memory used: 15.72 GB
+    python generate.py \
+    --compile \
+    --checkpoint_path <new_dir>/Llama-2-7B-hf/model.pth \
+    --device cuda
+
+The output should look something like this:
+
+.. code-block:: bash
+
+    Hello, my name is Justin. I am a middle school math teacher
+    at WS Middle School ...
+
+    Time for inference 5: 1.94 sec total, 103.28 tokens/sec
+    Bandwidth achieved: 1391.84 GB/
+
+
+And thats it! Try your own prompt!
