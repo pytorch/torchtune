@@ -1,4 +1,4 @@
-# Config for multi-device full finetuning in full_finetune_distributed.py
+# Config for single device QLoRA finetuning in lora_finetune_single_device.py
 # using a Mistral 7B model
 #
 # This config uses hyperparameters based on small set of experiments and information
@@ -11,19 +11,19 @@
 #   --hf-token <HF_TOKEN> \
 #   --output-dir /tmp/Mistral-7B-v0.1
 #
-# Run this config on 4 GPUs using the following:
-# tune run --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
+# To launch on a single device, run the following command from root:
+#   tune run lora_finetune_single_device \
+#   --config mistral/7B_qlora_single_device \
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed \
-#   --config mistral/7B_full \
+#   tune run lora_finetune_single_device \
+#   --config mistral/7B_qlora_single_device \
 #   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 7B_full_single_device.yaml for those cases
+# This config works only for training on single device.
+
 
 # Tokenizer
 tokenizer:
@@ -39,7 +39,12 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.mistral.mistral_7b
+  _component_: torchtune.models.mistral.qlora_mistral_7b
+  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: False
+  lora_rank: 64
+  lora_alpha: 16
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
@@ -49,21 +54,26 @@ checkpointer:
     pytorch_model-00002-of-00002.bin
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Mistral-7B-v0.1/
+  output_dir: /tmp/Mistral-7B-v0.1
   model_type: MISTRAL
 resume_from_checkpoint: False
 
-# Fine-tuning arguments
-batch_size: 2
-epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 5e-6
+  lr: 2e-5
+
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
 loss:
   _component_: torch.nn.CrossEntropyLoss
+
+# Fine-tuning arguments
+batch_size: 4
+epochs: 3
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
 
 # Training env
 device: cuda
@@ -78,5 +88,12 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/Mistral-7B-v0.1/
+output_dir: /tmp/Mistral-7B-v0.1
 log_every_n_steps: null
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
+  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json

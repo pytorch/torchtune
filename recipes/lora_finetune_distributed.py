@@ -95,7 +95,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
-        # These attributes constiute the recipe state and are updated by ``load_checkpoint``
+        # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
         self.seed = utils.set_seed(seed=cfg.seed)
         self.epochs_run = 0

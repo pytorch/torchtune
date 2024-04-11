@@ -47,11 +47,8 @@ class TestFullFinetuneSingleDeviceRecipe:
         return [10.5074, 10.5563, 10.5152, 10.4851]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize(
-        "config", ["full_single_device_low_memory", "full_single_device"]
-    )
     @pytest.mark.parametrize("compile", [True, False])
-    def test_loss(self, compile, config, tmpdir, monkeypatch):
+    def test_loss(self, compile, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -62,7 +59,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_{config} \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -109,7 +106,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -128,7 +125,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -169,6 +166,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "optimizer_in_bwd=False",
         ]
 
     @pytest.mark.integration_test
@@ -191,7 +189,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -217,7 +215,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
