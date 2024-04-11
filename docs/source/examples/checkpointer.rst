@@ -457,3 +457,11 @@ For this section we'll use the Llama2 13B model in HF format.
         [ -7.7808,  -8.2322,   2.8850,  ...,  -1.9604,  -4.7624,  -1.6040],
         [ -7.3159,  -8.5849,   1.8039,  ...,  -0.9322,  -5.2010,  -1.6824],
         [ -7.8929,  -8.8465,   3.3794,  ...,  -1.3500,  -4.6145,  -2.5931]]])
+
+
+You can do this with any model supported by TorchTune. You can find a full list
+of models and model builders
+`here <https://github.com/pytorch/torchtune/tree/main/torchtune/models>`_.
+
+We hope this tutorial provided a deeper insight into the checkpointer and
+associated utilities in TorchTune. Happy fine-tuning!
