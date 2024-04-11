@@ -62,7 +62,6 @@ Data
     :toctree: generated/
     :nosignatures:
 
-    checkpointable_dataloader.CheckpointableDataLoader
     collate.padded_collate
 
 .. _gen_label:
