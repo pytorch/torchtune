@@ -39,7 +39,7 @@ might have can look something like this:
 - Quantize the model for efficient inference followed by exporting it for specific
   environments such as inference on a mobile phone
 
-In this tutorial we'll cover each of these items and give examples of how you can do this using
+In this tutorial, we'll cover each of these items and give examples of how you can do this using
 TorchTune, and how TorchTune makes it easy to use popular tools and libraries from the ecosystem.
 
 We'll use the Llama2 7B model for this tutorial. You can find a complete set of models supported
@@ -50,7 +50,7 @@ by TorchTune `here <https://github.com/pytorch/torchtune/blob/main/README.md#int
 Download Llama2 7B
 ------------------
 
-In this tutorial we'll use the HF-Format for the Llama2 7B model. For more information on checkpoint
+In this tutorial, we'll use the HF-Format for the Llama2 7B model. For more information on checkpoint
 formats and how these are handled in TorchTune, take a look at this tutorial on checkpointing.
 
 To download the HF format Llama2 7B model, we'll use the tune CLI.
@@ -62,7 +62,7 @@ To download the HF format Llama2 7B model, we'll use the tune CLI.
   --output-dir <checkpoint_dir> \
   --hf-token <ACCESS TOKEN>
 
-Make a note of <checkpoint_dir>, we'll use this many times in this tutorial.
+Make a note of ``<checkpoint_dir>``, we'll use this many times in this tutorial.
 
 |
 
@@ -85,7 +85,7 @@ and use the standard settings from the
 This will fine-tune our model on the
 `Alpaca Dataset <https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py>`_
 using a ``batch_size=2`` and ``dtype=bfloat16``. With these settings the model
-should have a peak memory usage of ~16GB and total training time of around 2hours for each epoch.
+should have a peak memory usage of ~16GB and total training time of around two hours for each epoch.
 We'll need to make some changes to the config to make sure our recipe can access the
 right checkpoints.
 
@@ -151,7 +151,8 @@ Run Evaluation using EleutherAI's Eval Harness
 We've fine-tuned a model. But how well does this model really do? Let's run some Evaluations!
 
 Instead of re-inventing the wheel on Evals, TorchTune integrates with
-EleutherAI's evaluation harness. An example of this is available through the
+`EleutherAI's evaluation harness <https://github.com/EleutherAI/lm-evaluation-harness>`_.
+An example of this is available through the
 ``eleuther_eval`` recipe. In this tutorial, we're going to directly use this recipe by
 modifying it's associated config ``eleuther_evaluation.yaml``.
 
@@ -277,8 +278,12 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
 
 Once the config is updated, let's kick off generation! We'll use the
-default settings for sampling with ``top_k`` set to ``300`` and a
-temperature of ``0.8``. These are standard settings for Llama2 7B and
+default settings for sampling with ``top_k=`300`` and a
+``temperature=0.8``. These parameters control how the probabilities for
+sampling are computed. ``top_k`` restricts the space of samples to the tokens
+with the top k probabilities.
+
+These are standard settings for Llama2 7B and
 we recommend inspecting the model with these before playing around with
 these parameters.
 
