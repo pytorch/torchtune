@@ -97,6 +97,7 @@ TorchTune tutorials.
 
    examples/finetune_llm
    examples/lora_finetune
+   examples/qlora_finetune
    examples/recipe_deepdive
    examples/configs
 

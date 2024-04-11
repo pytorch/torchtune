@@ -4,87 +4,83 @@
 Finetuning Llama2 with QLoRA
 =============================
 
-This guide will teach you about `LoRA <https://arxiv.org/abs/2106.09685>`_, a parameter-efficient finetuning technique,
-and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
-If you already know what LoRA is and want to get straight to running
-your own LoRA finetune in TorchTune, you can jump to :ref:`LoRA finetuning recipe in TorchTune<lora_recipe_label>`.
+In this tutorial, we'll learn about `QLoRA <https://arxiv.org/abs/2305.14314>`_, an enhancement on top of
+`LoRA <https://arxiv.org/abs/2106.09685>`_ that maintains frozen model parameters in 4-bit quantized precision, thereby reducing memory usage. We'll
+walk through how QLoRA can be utilized within TorchTune to finetune a Llama2-7b model in < 10 GB of memory.
+It is highly recommended to first develop an understanding of :ref:`LoRA finetuning in TorchTune<lora_finetune_label>`.
+
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
-      * What LoRA is and how it saves memory during finetuning
-      * An overview of LoRA components in TorchTune
-      * How to run a LoRA finetune using TorchTune
-      * How to experiment with different LoRA configurations
+      * How QLoRA saves memory over LoRA finetuning
+      * An overview of QLoRA in TorchTune
+      * How to run a QLoRA finetune in TorchTune
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
       * Be familiar with :ref:`TorchTune<overview_label>`
       * Make sure to :ref:`install TorchTune<install_label>`
       * Make sure you have downloaded the :ref:`Llama2-7B model weights<download_llama_label>`
+      * Be familiar with :ref:`LoRA in torchtune<lora_finetune_label>`
 
-What is LoRA?
--------------
+What is QLoRA?
+---------------
 
-`LoRA <https://arxiv.org/abs/2106.09685>`_ is an adapter-based method for
-parameter-efficient finetuning that adds trainable low-rank decomposition matrices to different layers of a neural network,
-then freezes the network's remaining parameters. LoRA is most commonly applied to
-transformer models, in which case it is common to add the low-rank matrices
-to some of the linear projections in each transformer layer's self-attention.
+`QLoRA <https://arxiv.org/abs/2305.14314>`_ builds on top of `LoRA <https://arxiv.org/abs/2106.09685>`_ to enable additional
+memory efficiency on top of LoRA. In LoRA, model parameters can be thought of as existing in two partitions: adapters, which are
+low-rank matrices added to different layers of a neural network, and base model parameters, which are parameters that are part of
+the original model. In vanilla LoRA style training, both these parameters are held in the same precision (typically fp32 or bf16), and
+therefore activations and intermediate gradients computed are in fp32/bf16.
 
-.. note::
+QLoRA further quantizes the base model parameters into a bespoke 4-bit NormalFloat (NF4) data type, resulting in 4x less parameter memory usage while
+largely retaining model accuracy. As a result, the vast majority of parameters only take up 4 bits (as opposed to 16 or 32 bits by bf16/fp32 dtypes). Adapter
+parameters are still held in the original precision, and activations, gradients, and optimizer states still exist in the higher precision to preserve
+accuracy.
 
-    If you're unfamiliar, check out these references for the `definition of rank <https://en.wikipedia.org/wiki/Rank_(linear_algebra)>`_
-    and discussion of `low-rank approximations <https://en.wikipedia.org/wiki/Low-rank_approximation>`_.
+The `QLoRA paper <https://arxiv.org/abs/2305.14314>`_ introduces two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
+type, and a double quantization method that quantizes the quantization parameters themselves to save even more memory. TorchTune uses
+the `NF4Tensor` abstraction from the `TorchAO library <https://github.com/pytorch-labs/ao>`_ to build QLoRA components as specified in the paper.
 
-By finetuning with LoRA (as opposed to :ref:`finetuning all model parameters<finetune_llama_label>` ),
-you can expect to see memory savings due to a substantial reduction in the
-number of parameters with gradients. When using an optimizer with momentum,
-like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_,
-you can expect to see further memory savings from the optimizer state.
 
-.. note::
+QLoRA Core Abstractions and Usage
+----------------------------------------
 
-    LoRA memory savings come primarily from gradient and optimizer states,
-    and so if your model's peak memory comes in its :code:`forward()`, then LoRA
-    may not reduce peak memory.
+In this section, we'll first overview how to apply QLoRA to a `LoRALinear` layer in TorchTune, and then learn about how it works under the hood.
 
-How does LoRA work?
--------------------
+To quantize a `LoRALinear` layer in the QLoRA style, simply pass in the `quantize_base` flag as ``True`` into :class:`~torchtune.modules.peft.LoRALinear`. This flag
+will result in base model weights being quantized and backed by the ``NF4Tensor`` dtype. Forward passes will also be automatically handled to work with the ``NF4Tensor`` dtype,
+specifically, the ``NF4`` base weight will be de-quantized to bf16, activation will be computed, and only the 4-bit parameter will be stored for gradient computation
+in the backward pass, avoiding extra memory usage that would be incurred by storing the full bf16 dtype.
 
-LoRA replaces weight update matrices with a low-rank approximation. In general, weight updates
-for an arbitrary :code:`nn.Linear(in_dim,out_dim)` layer could have rank as high as
-:code:`min(in_dim,out_dim)`. LoRA (and other related papers such as `Aghajanyan et al. <https://arxiv.org/abs/2012.13255>`_)
-hypothesize that the `intrinsic dimension <https://en.wikipedia.org/wiki/Intrinsic_dimension>`_
-of these updates during LLM fine-tuning can in fact be much lower.
-To take advantage of this property, LoRA finetuning will freeze the original model,
-then add a trainable weight update from a low-rank projection. More explicitly, LoRA trains two
-matrices :code:`A` and :code:`B`. :code:`A` projects the inputs down to a much smaller rank (often four or eight in practice), and
-:code:`B` projects back up to the dimension output by the original linear layer.
+Here's an example of creating a quantized `LoRALinear` layer in comparison to an unquantized `LoRALinear` layer. As we can see, the quantized layer consumes
+~8x less memory than the unquantized counterpart.
 
-The image below gives a simplified representation of a single weight update step from a full finetune
-(on the left) compared to a weight update step with LoRA (on the right). The LoRA matrices :code:`A` and :code:`B`
-serve as an approximation to the full rank weight update in blue.
+.. code-block:: python
 
-.. image:: /_static/img/lora_diagram.png
+  import torch
+  from torchtune.modules.peft import LoRALinear
 
-Although LoRA introduces a few extra parameters in the model :code:`forward()`, only the :code:`A` and :code:`B` matrices are trainable.
-This means that with a rank :code:`r` LoRA decomposition, the number of gradients we need to store reduces
-from :code:`in_dim*out_dim` to :code:`r*(in_dim+out_dim)`. (Remember that in general :code:`r`
-is much smaller than :code:`in_dim` and :code:`out_dim`.)
+  torch.set_default_device("cuda")
+  qlora_linear = LoRALinear(512, 512, rank=8, alpha=0.1, quantize_base=True)
+  print(torch.cuda.memory_allocated())  # 177,152 bytes
+  del qlora_linear
+  torch.cuda.empty_cache()
+  lora_linear = LoRALinear(512, 512, rank=8, alpha=0.1, quantize_base=False)
+  print(torch.cuda.memory_allocated()) # 1,081,344 bytes
 
-For example, in the 7B Llama2's self-attention, :code:`in_dim=out_dim=4096` for the Q, K,
-and V projections. This means a LoRA decomposition of rank :code:`r=8` will reduce the number of trainable
-parameters for a given projection from :math:`4096 * 4096 \approx 15M` to :math:`8 * 8192 \approx 65K`, a
-reduction of over 99%.
 
-Let's take a look at a minimal implementation of LoRA in native PyTorch.
+Now, we'll peel this back to understand how quantization is done with ``NF4Tensor`` and handled appropriately in the forward pass.
 
+First, we'll begin with
+a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_label>` and augmented to support quantization:
 
 .. code-block:: python
 
   from torch import nn, Tensor
+  import torch.nn.functional as F
+  from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 
   class LoRALinear(nn.Module):
     def __init__(
@@ -93,11 +89,15 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
       out_dim: int,
       rank: int,
       alpha: float,
-      dropout: float
+      dropout: float,
+      quantize_base: bool
     ):
       # These are the weights from the original pretrained model
       self.linear = nn.Linear(in_dim, out_dim, bias=False)
-
+      self.linear_weight = self.linear.weight
+      # Use TorchAO's to_nf4 API to quantize the base weight if needed.
+      if quantize_base:
+        self.linear_weight = to_nf4(self.linear_weight)
       # These are the new LoRA params. In general rank << in_dim, out_dim
       self.lora_a = nn.Linear(in_dim, rank, bias=False)
       self.lora_b = nn.Linear(rank, out_dim, bias=False)
@@ -116,7 +116,11 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
 
     def forward(self, x: Tensor) -> Tensor:
       # This would be the output of the original model
-      frozen_out = self.linear(x)
+      if quantize_base:
+        # Call into TorchAO's linear_nf4 to run linear forward pass w/quantized weight.
+        frozen_out  = linear_nf4(x, self.weight)
+      else:
+        frozen_out = F.linear(x, self.weight)
 
       # lora_a projects inputs down to the much smaller self.rank,
       # then lora_b projects back up to the output dimension
@@ -126,181 +130,26 @@ Let's take a look at a minimal implementation of LoRA in native PyTorch.
       # and add to the original model's outputs
       return frozen_out + (self.alpha / self.rank) * lora_out
 
-There are some other details around initialization which we omit here, but if you'd like to know more
-you can see our implementation in :class:`~torchtune.modules.peft.LoRALinear`.
-Now that we understand what LoRA is doing, let's look at how we can apply it to our favorite models.
+As mentioned above, TorchTune takes a dependency on `TorchAO library <https://github.com/pytorch-labs/ao>`_ for some of the core components required for QLoRA. This includes the
+`NF4Tensor`, as well as helpful utilities including ``to_nf4`` and ``linear_nf4``.
 
-Applying LoRA to Llama2 models
-------------------------------
+``to_nf4`` accepts an unquantized (bf16 or fp32) tensor and produces an ``NF4`` representation of the weight. See the `implementation <https://github.com/pytorch-labs/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587>`_ of ``to_nf4`` for more details.
+``linear_nf4`` handles the forward pass and autograd when running with quantized base model weights. It computes the forward pass as a regular
+``F.linear`` with the incoming activation and unquantized weight. The quantized weight is saved for backward, as opposed to the unquantized version of the weight, to avoid extra
+memory usage due to storing higher precision variables to compute gradients in the backward pass. See `linear_nf4 <https://github.com/pytorch-labs/ao/blob/main/torchao/dtypes/nf4tensor.py#L577>`_ for more details.
 
-With TorchTune, we can easily apply LoRA to Llama2 with a variety of different configurations.
-Let's take a look at how to construct Llama2 models in TorchTune with and without LoRA.
-
-.. code-block:: python
-
-  from torchtune.models.llama2 import llama2_7b, lora_llama2_7b
-
-  # Build Llama2 without any LoRA layers
-  base_model = llama2_7b()
-
-  # The default settings for lora_llama2_7b will match those for llama2_7b
-  # We just need to define which layers we want LoRA applied to.
-  # We can choose from ["q_proj", "k_proj", "v_proj", and "output_proj"]
-  lora_model = lora_llama2_7b(lora_attn_modules=["q_proj", "v_proj"])
-
-.. note::
-
-    Calling :code:`lora_llama_2_7b` alone will not handle the definition of which parameters are trainable.
-    See :ref:`below<setting_trainable_params>` for how to do this.
-
-Let's inspect each of these models a bit more closely.
-
-.. code-block:: python
-
-  # Print the first layer's self-attention in the usual Llama2 model
-  print(base_model.layers[0].attn)
-
-  CausalSelfAttention(
-    (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (v_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (output_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (pos_embeddings): RotaryPositionalEmbeddings()
-  )
-
-  # Print the same for Llama2 with LoRA weights
-  print(lora_model.layers[0].attn)
-
-  CausalSelfAttention(
-    (q_proj): LoRALinear(
-      (dropout): Dropout(p=0.0, inplace=False)
-      (lora_a): Linear(in_features=4096, out_features=8, bias=False)
-      (lora_b): Linear(in_features=8, out_features=4096, bias=False)
-    )
-    (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (v_proj): LoRALinear(
-      (dropout): Dropout(p=0.0, inplace=False)
-      (lora_a): Linear(in_features=4096, out_features=8, bias=False)
-      (lora_b): Linear(in_features=8, out_features=4096, bias=False)
-    )
-    (output_proj): Linear(in_features=4096, out_features=4096, bias=False)
-    (pos_embeddings): RotaryPositionalEmbeddings()
-  )
+In the next section, we'll learn about how to use QLoRA in TorchTune to build a QLoRA quantized Llama2-7b model, as well as some nuances around
+checkpointing that are important to be aware of to avoid spiking memory usage.
 
 
-Notice that our LoRA model's layer contains additional weights in the Q and V projections,
-as expected. Additionally, inspecting the type of :code:`lora_model` and
-:code:`base_model`, would show that they are both instances of the same :class:`~torchtune.modules.TransformerDecoder`.
-(Feel free to verify this for yourself.)
+Using QLoRA in TorchTune
+----------------------------
 
-Why does this matter? TorchTune makes it easy to load checkpoints for LoRA directly from our Llama2
-model without any wrappers or custom checkpoint conversion logic.
-
-.. code-block:: python
-
-  # Assuming that base_model already has the pretrained Llama2 weights,
-  # this will directly load them into your LoRA model without any conversion necessary.
-  lora_model.load_state_dict(base_model.state_dict(), strict=False)
-
-.. note::
-    Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
-    the loaded :code:`state_dict` are as expected. TorchTune's LoRA recipe does this by default via
-    :func:`torchtune.modules.peft.validate_state_dict_for_lora`.
-
-Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.
-
-.. _setting_trainable_params:
-
-.. code-block:: python
-
-  from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
-
-  # Fetch all params from the model that are associated with LoRA.
-  lora_params = get_adapter_params(lora_model)
-
-  # Set requires_grad=True on lora_params, and requires_grad=False on all others.
-  set_trainable_params(lora_model, lora_params)
-
-  # Print the total number of parameters
-  total_params = sum([p.numel() for p in lora_model.params()])
-  trainable_params = sum([p.numel() for p in lora_model.parameters() if p.requires_grad])
-  print(
-    f"""
-    {total_params} total params,
-    {trainable_params}" trainable params,
-    {(100.0 * trainable_params / total_params):.2f}% of all params are trainable.
-    """
-  )
-
-  6742609920 total params,
-  4194304 trainable params,
-  0.06% of all params are trainable.
-
-.. note::
-    If you are directly using the LoRA recipe (as detailed :ref:`here<lora_recipe_label>`), you need only pass the
-    relevant checkpoint path. Loading model weights and setting trainable parameters will be taken care
-    of in the recipe.
+TODO this section
 
 
-.. _lora_recipe_label:
 
-LoRA finetuning recipe in TorchTune
------------------------------------
+Putting it all together: QLoRA finetune
+-----------------------------------------
 
-Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
-Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
-
-.. code-block:: bash
-
-    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed
-
-.. note::
-    Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
-    either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
-    or by directly modifying the :code:`7B_lora.yaml` file. See our :ref:`config_tutorial_label`
-    for more details on how you can easily clone and modify TorchTune configs.
-
-.. note::
-    You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
-    and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
-    for peak memory of LoRA finetuning in a couple of common hardware setups.
-
-The preceding command will run a LoRA finetune with TorchTune's factory settings, but we may want to experiment a bit.
-Let's take a closer look at some of the :code:`lora_finetune_distributed` config.
-
-.. code-block:: yaml
-
-  # Model Arguments
-  model:
-    _component_: lora_llama2_7b
-    lora_attn_modules: ['q_proj', 'v_proj']
-    lora_rank: 8
-    lora_alpha: 16
-  ...
-
-We see that the default is to apply LoRA to Q and V projections with a rank of 8.
-Some experiments with LoRA have found that it can be beneficial to apply LoRA to all linear layers in
-the self-attention, and to increase the rank to 16 or 32. Note that this is likely to increase our max memory,
-but as long as we keep :code:`rank<<embed_dim`, the impact should be relatively minor.
-
-Let's run this experiment. We can also increase alpha (in general it is good practice to scale alpha and rank together).
-
-.. code-block:: bash
-
-    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed \
-    lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
-    lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
-
-A comparison of the (smoothed) loss curves between this run and our baseline over the first 500 steps can be seen below.
-
-.. image:: /_static/img/lora_experiment_loss_curves.png
-
-.. note::
-    The above figure was generated with W&B. You can use TorchTune's :class:`~torchtune.utils.metric_logging.WandBLogger`
-    to generate similar loss curves, but you will need to install W&B and setup an account separately.
-
-As an exercise, you can also try running some evaluation tasks or manually inspecting generations
-output by your saved checkpoints (which can be found in :code:`output_dir`).
-You may want to train the model for longer first, as here we only looked at 500 steps
-(which corresponds to about 2% of one epoch of the Alpaca dataset).
+Stuff about how to actually use QLoRA, look at the memory usage etc.
