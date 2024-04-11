@@ -322,9 +322,7 @@ an integration with the TorchAO quantization APIs. Let's first quantize the mode
 
 
 For this, we'll use the
-`quantization recipe <https://github.com/pytorch/torchtune/blob/main/recipes/quantize.py>`_
-and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/quantize.yaml>`_.
+`quantization recipe <https://github.com/pytorch/torchtune/blob/main/recipes/quantize.py>`_.
 
 
 Let's first copy over the config to our local working director so we can make changes.
@@ -368,8 +366,8 @@ Once quantization is complete, you'll see the following in the logs.
 
 .. code-block:: bash
 
-    [quantize.py:68] Time for quantization: 19.76 sec                                                                                                                                  │0
-    [quantize.py:69] Memory used: 13.95 GB                                                                                                                                             │
+    [quantize.py:68] Time for quantization: 19.76 sec
+    [quantize.py:69] Memory used: 13.95 GB
     [quantize.py:82] Model checkpoint of size 3.67 GB saved to <checkpoint_dir>/hf_model_0001_0-4w.pt
 
 
