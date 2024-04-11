@@ -18,7 +18,6 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: /tmp/Llama-2-13b-hf
   model_type: LLAMA2
-resume_from_checkpoint: False
 
 # Tokenizer
 tokenizer:
