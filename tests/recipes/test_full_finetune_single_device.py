@@ -59,7 +59,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -106,7 +106,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -125,7 +125,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -189,7 +189,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -215,7 +215,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
