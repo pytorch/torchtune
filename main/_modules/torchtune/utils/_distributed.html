@@ -368,7 +368,6 @@
 <span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">CPUOffload</span><span class="p">,</span>
     <span class="n">FullyShardedDataParallel</span> <span class="k">as</span> <span class="n">FSDP</span><span class="p">,</span>
     <span class="n">MixedPrecision</span><span class="p">,</span>
     <span class="n">ShardingStrategy</span><span class="p">,</span>
@@ -502,7 +501,6 @@
     <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
     <span class="n">strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="n">auto_wrap_policy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">FSDPPolicyType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">cpu_offload</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">use_meta_device</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
@@ -539,7 +537,6 @@
 <span class="sd">            Default: None. In this case, FSDP is only applied to the top level module. In this</span>
 <span class="sd">            case, entire model is unsharded during computation and memory is only saved due to</span>
 <span class="sd">            sharding optimizer states.</span>
-<span class="sd">        cpu_offload (bool): Whether to offload sharded parameters to CPU. Default: False</span>
 <span class="sd">        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.</span>
 <span class="sd">            If so, we will define the `reset_parameters()` method on all submodules</span>
 <span class="sd">            to ensure FSDP properly initializes all modules on device given by `device`. Default: False</span>
@@ -551,9 +548,6 @@
 <span class="sd">    Raises:</span>
 <span class="sd">        RuntimeError: If environment not setup for distributed training.</span>
 
-<span class="sd">    NOTE:</span>
-<span class="sd">        Please use caution if running with cpu_offload=True, as this is known to have</span>
-<span class="sd">        significant training performance issues at the moment.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">use_meta_device</span><span class="p">:</span>
@@ -567,17 +561,12 @@
             <span class="k">else</span> <span class="n">auto_wrap_policy</span>
         <span class="p">)</span>
         <span class="n">mp</span> <span class="o">=</span> <span class="n">MixedPrecision</span><span class="p">(</span><span class="n">param_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">reduce_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">buffer_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">cpu_offload</span><span class="p">:</span>
-            <span class="n">_log</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                <span class="s2">&quot;CPU offload will significantly reduce performance. Use with caution.&quot;</span>
-            <span class="p">)</span>
         <span class="k">return</span> <span class="n">FSDP</span><span class="p">(</span>
             <span class="n">model</span><span class="p">,</span>
             <span class="n">auto_wrap_policy</span><span class="o">=</span><span class="n">wrap_policy</span><span class="p">,</span>
             <span class="n">device_id</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
             <span class="n">mixed_precision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">sharding_strategy</span><span class="o">=</span><span class="n">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">),</span>
-            <span class="n">cpu_offload</span><span class="o">=</span><span class="n">CPUOffload</span><span class="p">(</span><span class="n">offload_params</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">cpu_offload</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
