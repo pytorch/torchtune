@@ -436,3 +436,81 @@ Once generation is complete, you'll see the following in the logs.
 
 With quantization (and torch compile under the hood), we've sped up generation
 by almost 3x!
+
+|
+
+Using TorchTune Checkpoints with other libraries
+------------------------------------------------
+
+As we mentioned above, one of the benefits of handling of the checkpoint
+conversion is that users can directly work with standard formats. This helps
+with interoperability with other libraries since TorchTune doesn't add yet
+another format to the mix.
+
+Let's take a look at an example of how this would work with a popular codebase
+used for running performant inference with LLMs -
+`gpt-fast <https://github.com/pytorch-labs/gpt-fast/tree/main>`_. This section
+assumes that you've cloned the repository on your machine.
+
+``gpt-fast`` makes some assumptions about the checkpoint and the availability of
+the key-to-file mapping. Let's satisfy these assumptions, by creating this mapping
+file. Let's assume we'll be using ``<new_dir>/Llama-2-7B-hf`` as the directory
+for this. ``gpt-fast`` assumes that the directory with checkpoints has the
+same format at the HF repo-id.
+
+.. code-block:: python
+
+    import torch
+
+    # create the output dictionary
+    output_dict = {"weight_map": {}}
+
+    # Load the checkpoints
+    sd_1 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
+    sd_2 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0002_0.pt', mmap=True, map_location='cpu')
+
+    # create the weight map
+    for key in sd_1.keys():
+        output_dict['weight_map'][key] =  "hf_model_0001_0.pt"
+    for key in sd_2.keys():
+        output_dict['weight_map'][key] =  "hf_model_0002_0.pt"
+
+    with open('<new_dir>/Llama-2-7B-hf/pytorch_model.bin.index.json', 'w') as f:
+        json.dump(output_dict, f)
+
+
+Now that we've created the weight_map, let's copy over our checkpoints.
+
+.. code-block:: bash
+
+    cp  <checkpoint_dir>/hf_model_0001_0.pt  <new_dir>/Llama-2-7B-hf/
+    cp  <checkpoint_dir>/hf_model_0002_0.pt  <new_dir>/Llama-2-7B-hf/
+    cp  <checkpoint_dir>/tokenizer.model     <new_dir>/Llama-2-7B-hf/
+
+Once the directory structure is setup, let's convert the checkpoints and run inference!
+
+.. code-block:: bash
+
+    cd gpt-fast/
+
+    python scripts/convert_hf_checkpoint.py \
+    --checkpoint_dir <new_dir>/Llama-2-7B-hf/ \
+    --model 7B
+
+    python generate.py \
+    --compile \
+    --checkpoint_path <new_dir>/Llama-2-7B-hf/model.pth \
+    --device cuda
+
+The output should look something like this:
+
+.. code-block:: bash
+
+    Hello, my name is Justin. I am a middle school math teacher
+    at WS Middle School ...
+
+    Time for inference 5: 1.94 sec total, 103.28 tokens/sec
+    Bandwidth achieved: 1391.84 GB/
+
+
+And thats it! Try your own prompt!
