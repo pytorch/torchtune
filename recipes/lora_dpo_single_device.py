@@ -464,10 +464,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
-                            "rewards/margins": (chosen_rewards - rejected_rewards).mean().cpu(),
-                            "log_probs/rejected": policy_rejected_log_probs.detach().mean().cpu(),
-                            "log_probs/chosen": policy_chosen_log_probs.detach().mean().cpu(),
-                            "logits/rejected": policy_rejected_logits.detach().mean().cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards)
+                            .mean()
+                            .cpu(),
+                            "log_probs/rejected": policy_rejected_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "log_probs/chosen": policy_chosen_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "logits/rejected": policy_rejected_logits.detach()
+                            .mean()
+                            .cpu(),
                             "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
                             "gpu_resources": torch.cuda.memory_allocated(),
                         },
