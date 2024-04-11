@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.position_embeddings &mdash; TorchTune  documentation</title>
+  <title>FullModelMetaCheckpointer &mdash; TorchTune  documentation</title>
   
 
   
@@ -26,20 +27,22 @@
 
   
 
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="init_distributed" href="torchtune.utils.init_distributed.html" />
+    <link rel="prev" title="FullModelHFCheckpointer" href="torchtune.utils.FullModelHFCheckpointer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -50,16 +53,16 @@
   
 
   
-  <script src="../../../_static/js/modernizr.min.js"></script>
+  <script src="../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -242,7 +245,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -259,28 +262,28 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">TorchTune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/checkpointer.html">Checkpointing in TorchTune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/configs.html">Configs Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models.llama2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models.llama2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -313,7 +316,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../../../index.html">
+        <a href="../index.html">
           
             Docs
           
@@ -321,12 +324,16 @@
       </li>
 
         
-          <li><a href="../../index.html">Module code</a> &gt;</li>
+          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>torchtune.modules.position_embeddings</li>
+      <li>FullModelMetaCheckpointer</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/generated/torchtune.utils.FullModelMetaCheckpointer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -355,139 +362,78 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.position_embeddings</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
-<span class="c1"># All rights reserved.</span>
-<span class="c1">#</span>
-<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
-<span class="c1"># LICENSE file in the root directory of this source tree.</span>
+  <section id="fullmodelmetacheckpointer">
+<h1>FullModelMetaCheckpointer<a class="headerlink" href="#fullmodelmetacheckpointer" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.utils.FullModelMetaCheckpointer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">FullModelMetaCheckpointer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">checkpoint_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">checkpoint_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ModelType</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">adapter_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">recipe_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">resume_from_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer.html#FullModelMetaCheckpointer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.FullModelMetaCheckpointer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checkpointer which reads and writes “full-model” checkpoints in Meta’s format. Example includes
+the Llama-2-7b model from the meta-llama repo (<a class="reference external" href="https://huggingface.co/meta-llama/Llama-2-7b">https://huggingface.co/meta-llama/Llama-2-7b</a>)</p>
+<p>Currently we support reading from a single checkpoint file only. Support for reading from
+sharded checkpoints is WIP.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>checkpoint_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Directory containing the checkpoint files</p></li>
+<li><p><strong>checkpoint_files</strong> (<em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – List of checkpoint files to load. Currently this checkpointer only
+supports loading a single checkpoint file.</p></li>
+<li><p><strong>model_type</strong> (<em>ModelType</em>) – Model type of the model for which the checkpointer is being loaded</p></li>
+<li><p><strong>output_dir</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Directory to save the checkpoint files</p></li>
+<li><p><strong>adapter_checkpoint</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – Path to the adapter weights. Default is None</p></li>
+<li><p><strong>recipe_checkpoint</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – Path to the recipe state checkpoint file. Default is None</p></li>
+<li><p><strong>resume_from_checkpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, the checkpointer will load the additional checkpoint files to
+resume training from a previous run. Default is False</p></li>
+</ul>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">checkpoint_files</span></code> is not a list of length 1</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If <code class="docutils literal notranslate"><span class="pre">resume_from_checkpoint</span></code> is True but <code class="docutils literal notranslate"><span class="pre">recipe_checkpoint</span></code> is None</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.utils.FullModelMetaCheckpointer.load_checkpoint">
+<span class="sig-name descname"><span class="pre">load_checkpoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer.html#FullModelMetaCheckpointer.load_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.FullModelMetaCheckpointer.load_checkpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load TorchTune checkpoint from file. Currently only loading from a single file is supported.</p>
+</dd></dl>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<dl class="py method">
+<dt class="sig sig-object py" id="torchtune.utils.FullModelMetaCheckpointer.save_checkpoint">
+<span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">intermediate_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer.html#FullModelMetaCheckpointer.save_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.FullModelMetaCheckpointer.save_checkpoint" title="Permalink to this definition">¶</a></dt>
+<dd><p>Save TorchTune checkpoint to file. If <code class="docutils literal notranslate"><span class="pre">intermediate_checkpoint</span></code> is True, an additional
+checkpoint file <code class="docutils literal notranslate"><span class="pre">recipe_state.pt</span></code> is created in <code class="docutils literal notranslate"><span class="pre">_output_dir</span></code> which contains the recipe
+state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>state_dict</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – Checkpoint state dict to be written out to file</p></li>
+<li><p><strong>epoch</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Epoch number. Used to create the checkpoint file name</p></li>
+<li><p><strong>intermediate_checkpoint</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, an additional checkpoint files for recipe state
+and (if applicable) adapter weights are created. Default is False</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+</dd></dl>
 
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+</section>
 
-
-<div class="viewcode-block" id="RotaryPositionalEmbeddings"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings">[docs]</a><span class="k">class</span> <span class="nc">RotaryPositionalEmbeddings</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    This class implements Rotary Positional Embeddings (RoPE)</span>
-<span class="sd">    proposed in https://arxiv.org/abs/2104.09864.</span>
-
-<span class="sd">    Reference implementation (used for correctness verfication)</span>
-<span class="sd">    can be found here:</span>
-<span class="sd">    https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450</span>
-
-<span class="sd">    In this implementation we cache the embeddings for each position upto</span>
-<span class="sd">    ``max_seq_len`` by computing this during init.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        dim (int): Embedding dimension. This is usually set to the dim of each</span>
-<span class="sd">            head in the attention module computed as ````embed_dim`` // ``num_heads````</span>
-<span class="sd">        max_seq_len (int): Maximum expected sequence length for the</span>
-<span class="sd">            model, if exceeded the cached freqs will be recomputed</span>
-<span class="sd">        base (int): The base for the geometric progression used to compute</span>
-<span class="sd">            the rotation angles</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">,</span>
-        <span class="n">base</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10_000</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">base</span> <span class="o">=</span> <span class="n">base</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_rope_init</span><span class="p">()</span>
-
-    <span class="c1"># We need to explicitly define reset_parameters for FSDP initialization, see</span>
-    <span class="c1"># https://github.com/pytorch/pytorch/blob/797d4fbdf423dd9320ebe383fb57ffb1135c4a99/torch/distributed/fsdp/_init_utils.py#L885</span>
-    <span class="k">def</span> <span class="nf">reset_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_rope_init</span><span class="p">()</span>
-
-    <span class="k">def</span> <span class="nf">_rope_init</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="n">theta</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">base</span>
-            <span class="o">**</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)]</span><span class="o">.</span><span class="n">float</span><span class="p">()</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;theta&quot;</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">build_rope_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4096</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="c1"># Create position indexes `[0, 1, ..., max_seq_len - 1]`</span>
-        <span class="n">seq_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
-            <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">)</span>
-
-        <span class="c1"># Outer product of theta and position index; output tensor has</span>
-        <span class="c1"># a shape of [max_seq_len, dim // 2]</span>
-        <span class="n">idx_theta</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;i, j -&gt; ij&quot;</span><span class="p">,</span> <span class="n">seq_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-
-        <span class="c1"># cache includes both the cos and sin components and so the output shape is</span>
-        <span class="c1"># [max_seq_len, dim // 2, 2]</span>
-        <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Args:</span>
-<span class="sd">            x (Tensor): input tensor with shape</span>
-<span class="sd">                [bsz, seq_len, num_heads, head_dim]</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position</span>
-<span class="sd">                of the current token. This is only used during inference. Default is None</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tensor: output tensor with RoPE applied</span>
-
-<span class="sd">        Notation used for tensor shapes:</span>
-<span class="sd">            - b: batch size</span>
-<span class="sd">            - s: sequence length</span>
-<span class="sd">            - n_h: num heads</span>
-<span class="sd">            - h_d: head dim</span>
-
-<span class="sd">        TODO: The implementation below can be made more efficient</span>
-<span class="sd">        for inference.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># input tensor has shape [b, s, n_h, n_d]</span>
-        <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="c1"># extract the values based on whether input_pos is set or not. When</span>
-        <span class="c1"># input_pos is provided, we&#39;re in inference mode</span>
-        <span class="n">rope_cache</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]</span> <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">input_pos</span><span class="p">]</span>
-        <span class="p">)</span>
-
-        <span class="c1"># reshape input; the last dimension is used for computing the output.</span>
-        <span class="c1"># Cast to float to match the reference implementation</span>
-        <span class="c1"># tensor has shape [b, s, n_h, n_d // 2, 2]</span>
-        <span class="n">xshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-
-        <span class="c1"># reshape the cache for broadcasting</span>
-        <span class="c1"># tensor has shape [1, s, 1, n_d // 2, 2]</span>
-        <span class="n">rope_cache</span> <span class="o">=</span> <span class="n">rope_cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-
-        <span class="c1"># tensor has shape [b, s, n_h, n_d // 2, 2]</span>
-        <span class="n">x_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
-            <span class="p">[</span>
-                <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-                <span class="o">-</span> <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-                <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-                <span class="o">+</span> <span class="n">xshaped</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">rope_cache</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="p">],</span>
-            <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># tensor has shape [b, s, n_h, n_d]</span>
-        <span class="n">x_out</span> <span class="o">=</span> <span class="n">x_out</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">x_out</span><span class="o">.</span><span class="n">type_as</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div></div>
-</pre></div>
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="torchtune.utils.init_distributed.html" class="btn btn-neutral float-right" title="init_distributed" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="torchtune.utils.FullModelHFCheckpointer.html" class="btn btn-neutral" title="FullModelHFCheckpointer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -516,7 +462,10 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">FullModelMetaCheckpointer</a></li>
+</ul>
+
             </div>
           </div>
         </div>
@@ -529,24 +478,23 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-         <script src="../../../_static/jquery.js"></script>
-         <script src="../../../_static/underscore.js"></script>
-         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../../../_static/doctools.js"></script>
-         <script src="../../../_static/clipboard.min.js"></script>
-         <script src="../../../_static/copybutton.js"></script>
-         <script src="../../../_static/tabs.js"></script>
-         <script src="../../../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -661,7 +609,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -797,7 +745,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

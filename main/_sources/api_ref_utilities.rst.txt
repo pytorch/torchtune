@@ -4,6 +4,19 @@ torchtune.utils
 
 .. currentmodule:: torchtune.utils
 
+
+.. _checkpointing_label:
+
+Checkpointing
+-------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    FullModelHFCheckpointer
+    FullModelMetaCheckpointer
+
 .. _dist_label:
 
 Distributed

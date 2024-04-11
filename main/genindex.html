@@ -267,8 +267,12 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in TorchTune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -454,6 +458,10 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.from_file">from_file() (torchtune.modules.Tokenizer class method)</a>
 </li>
+      <li><a href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">FullModelHFCheckpointer (class in torchtune.utils)</a>
+</li>
+      <li><a href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer">FullModelMetaCheckpointer (class in torchtune.utils)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -510,6 +518,12 @@
 </li>
       <li><a href="generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b">llama2_7b() (in module torchtune.models.llama2)</a>
 </li>
+      <li><a href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer.load_checkpoint">load_checkpoint() (torchtune.utils.FullModelHFCheckpointer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer.load_checkpoint">(torchtune.utils.FullModelMetaCheckpointer method)</a>
+</li>
+      </ul></li>
       <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.log">log() (torchtune.utils.metric_logging.DiskLogger method)</a>
 
       <ul>
@@ -570,12 +584,18 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset">samsum_dataset() (in module torchtune.datasets)</a>
 </li>
-      <li><a href="generated/torchtune.utils.memory.set_activation_checkpointing.html#torchtune.utils.memory.set_activation_checkpointing">set_activation_checkpointing() (in module torchtune.utils.memory)</a>
+      <li><a href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer.save_checkpoint">save_checkpoint() (torchtune.utils.FullModelHFCheckpointer method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer.save_checkpoint">(torchtune.utils.FullModelMetaCheckpointer method)</a>
 </li>
-      <li><a href="generated/torchtune.utils.seed.set_seed.html#torchtune.utils.seed.set_seed">set_seed() (in module torchtune.utils.seed)</a>
+      </ul></li>
+      <li><a href="generated/torchtune.utils.memory.set_activation_checkpointing.html#torchtune.utils.memory.set_activation_checkpointing">set_activation_checkpointing() (in module torchtune.utils.memory)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.utils.seed.set_seed.html#torchtune.utils.seed.set_seed">set_seed() (in module torchtune.utils.seed)</a>
+</li>
       <li><a href="generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">set_trainable_params() (in module torchtune.modules.peft)</a>
 </li>
       <li><a href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">slimorca_dataset() (in module torchtune.datasets)</a>

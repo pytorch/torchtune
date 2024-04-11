@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="init_distributed" href="generated/torchtune.utils.init_distributed.html" />
+    <link rel="next" title="FullModelHFCheckpointer" href="generated/torchtune.utils.FullModelHFCheckpointer.html" />
     <link rel="prev" title="set_trainable_params" href="generated/torchtune.modules.peft.set_trainable_params.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -270,8 +270,12 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in TorchTune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
@@ -358,6 +362,19 @@
               
   <section id="torchtune-utils">
 <h1>torchtune.utils<a class="headerlink" href="#torchtune-utils" title="Permalink to this heading">¶</a></h1>
+<section id="checkpointing">
+<span id="checkpointing-label"></span><h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelHFCheckpointer</span></code></a></p></td>
+<td><p>Checkpointer which reads and writes &quot;full-model&quot; checkpoints in HF's format.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer" title="torchtune.utils.FullModelMetaCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelMetaCheckpointer</span></code></a></p></td>
+<td><p>Checkpointer which reads and writes &quot;full-model&quot; checkpoints in Meta's format.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
 <section id="distributed">
 <span id="dist-label"></span><h2>Distributed<a class="headerlink" href="#distributed" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
@@ -458,7 +475,7 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.utils.init_distributed.html" class="btn btn-neutral float-right" title="init_distributed" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="generated/torchtune.utils.FullModelHFCheckpointer.html" class="btn btn-neutral float-right" title="FullModelHFCheckpointer" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="generated/torchtune.modules.peft.set_trainable_params.html" class="btn btn-neutral" title="set_trainable_params" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -494,6 +511,7 @@
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
 <li><a class="reference internal" href="#">torchtune.utils</a><ul>
+<li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li><a class="reference internal" href="#distributed">Distributed</a></li>
 <li><a class="reference internal" href="#mixed-precision">Mixed Precision</a></li>
 <li><a class="reference internal" href="#memory-management">Memory Management</a></li>
