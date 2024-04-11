@@ -27,7 +27,7 @@ class TestEleutherEval:
 
         cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_eval \
+            --config eleuther_evaluation \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -73,7 +73,7 @@ class TestEleutherEval:
 
         cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_eval \
+            --config eleuther_evalation \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
