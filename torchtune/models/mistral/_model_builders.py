@@ -55,6 +55,7 @@ def lora_mistral_7b(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Builder for creating a Mistral 7B model with LoRA enabled.
@@ -70,6 +71,7 @@ def lora_mistral_7b(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
+        quantize_base (bool): Whether to quantize base model weights
 
     Returns:
         TransformerDecoder: Instantiation of Mistral 7B model with LoRA applied
@@ -91,4 +93,13 @@ def lora_mistral_7b(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
+        quantize_base=quantize_base,
     )
+
+qlora_mistral_7b = partial(lora_mistral_7b, quantize_base=True)
+
+qlora_mistral_7b.__doc__ = """
+Builder for creating a Mistral model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_mistral_7b` for full API arguments.
+"""

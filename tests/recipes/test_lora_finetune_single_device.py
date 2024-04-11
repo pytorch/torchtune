@@ -132,6 +132,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             apply_lora_to_output=False,
             lora_rank=8,
             lora_alpha=16,
+            quantize_base=True,
         )
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
