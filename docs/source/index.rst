@@ -97,8 +97,15 @@ TorchTune tutorials.
 
    examples/finetune_llm
    examples/lora_finetune
-   examples/recipe_deepdive
    examples/configs
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Deep-Dives
+   :hidden:
+
+   examples/recipe_deepdive
    examples/checkpointer
 
 .. toctree::
