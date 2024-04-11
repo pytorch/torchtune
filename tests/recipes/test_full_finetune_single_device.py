@@ -50,12 +50,16 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config", ["full_single_device_low_memory", "full_single_device"]
     )
-    def test_loss(self, config, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss(self, compile, config, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
             --config llama2/7B_{config} \
@@ -66,6 +70,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = llama2_test_config()
