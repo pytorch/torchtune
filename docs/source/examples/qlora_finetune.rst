@@ -1,8 +1,8 @@
 .. _qlora_finetune_label:
 
-===========================
+=============================
 Finetuning Llama2 with QLoRA
-===========================
+=============================
 
 This guide will teach you about `LoRA <https://arxiv.org/abs/2106.09685>`_, a parameter-efficient finetuning technique,
 and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
