@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
 import functools
-from typing import Any, Dict, List, Literal, Optional, Protocol, Set
+from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 from torch import nn
 
@@ -256,6 +257,27 @@ def get_merged_lora_ckpt(
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
     return state_dict
+
+
+@contextlib.contextmanager
+def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
+    for _, v in model.named_modules():
+        if (
+            hasattr(v, "adapter_params")
+            and callable(v.adapter_params)
+            and hasattr(v, "disabled")
+        ):
+            v.disabled = True
+    try:
+        yield
+    finally:
+        for _, v in model.named_modules():
+            if (
+                hasattr(v, "adapter_params")
+                and callable(v.adapter_params)
+                and hasattr(v, "disabled")
+            ):
+                v.disabled = False
 
 
 def validate_missing_and_unexpected_for_lora(
