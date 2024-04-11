@@ -213,7 +213,6 @@ def wrap_fsdp(
             device_id=device,
             mixed_precision=None,
             sharding_strategy=_get_sharding_strategy(strategy),
-            cpu_offload=None,
             **kwargs,
         )
     else:
