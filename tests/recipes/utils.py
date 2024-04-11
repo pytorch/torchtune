@@ -58,6 +58,7 @@ def lora_llama2_test_config(
     lora_rank: int = 8,
     lora_alpha: float = 16,
     max_batch_size: Optional[int] = None,
+    quantize_base: bool = False,
 ) -> List[str]:
     lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
     return [
@@ -77,6 +78,7 @@ def lora_llama2_test_config(
         f"model.lora_rank={lora_rank}",
         f"model.lora_alpha={lora_alpha}",
         "model.lora_dropout=0.0",
+        f"model.quantize_base={quantize_base}",
     ]
 
 

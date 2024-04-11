@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download --repo-id meta-llama/Llama-2-7b \
+#   tune download meta-llama/Llama-2-7b \
 #   --hf-token <HF_TOKEN> \
 #   --output-dir /tmp/llama2
 #
@@ -28,7 +28,6 @@ model:
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
-  quantize_base: True
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
