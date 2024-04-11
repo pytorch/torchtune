@@ -406,78 +406,54 @@ looks something like this:
 
 |
 
-Using TorchTune Checkpoints with other libraries
-------------------------------------------------
+Putting this all together
+-------------------------
 
-As we mentioned above, one of the benefits of handling of the checkpoint
-conversion is that users can directly work with standard formats. This helps
-with interoperability with other libraries since TorchTune doesn't add yet
-another format to the mix.
+Let's now put all of this knowledge together! We'll load some checkpoints,
+create some models and run a simple forward.
 
-Let's take a look at an example of how this would work with a popular codebase
-used for running performant inference with LLMs -
-`gpt-fast <https://github.com/pytorch-labs/gpt-fast/tree/main>`_. This section
-assumes that you've cloned the repository on your machine.
-
-``gpt-fast`` makes some assumptions about the checkpoint and the availability of
-the key-to-file mapping. Let's satisfy these assumptions, by creating this mapping
-file. Let's assume we'll be using ``<new_dir>/Llama-2-7B-hf`` as the directory
-for this. ``gpt-fast`` assumes that the directory with checkpoints has the
-same format at the HF repo-id.
+For this section we'll use the Llama2 13B model in HF format.
 
 .. code-block:: python
 
-    >>> import torch
-    >>>
-    >>> # create the output dictionary
-    >>> output_dict = {"weight_map": {}}
-    >>>
-    >>> # Load the checkpoints
-    >>> sd_1 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
-    >>> sd_2 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0002_0.pt', mmap=True, map_location='cpu')
-    >>>
-    >>> # create the weight map
-    >>> for key in sd_1.keys():
-    >>>    output_dict['weight_map'][key] =  "hf_model_0001_0.pt"
-    >>> for key in sd_2.keys():
-    >>>    output_dict['weight_map'][key] =  "hf_model_0002_0.pt"
-    >>>
-    >>> with open('<new_dir>/Llama-2-7B-hf/pytorch_model.bin.index.json', 'w') as f:
-    >>>     json.dump(output_dict, f)
+    import torch
+    from torchtune.utils import FullModelHFCheckpointer, ModelType
+    from torchtune.models.llama2 import llama2_13b
 
+    # Set the right directory and files
+    checkpoint_dir = 'Llama-2-13b-hf/'
+    pytorch_files = [
+        'pytorch_model-00001-of-00003.bin',
+        'pytorch_model-00002-of-00003.bin',
+        'pytorch_model-00003-of-00003.bin'
+    ]
 
-Now that we've created the weight_map, let's copy over our checkpoints.
+    # Set up the checkpointer and load state dict
+    checkpointer = FullModelHFCheckpointer(
+        checkpoint_dir=checkpoint_dir,
+        checkpoint_files=pytorch_files,
+        output_dir=checkpoint_dir,
+        model_type=ModelType.LLAMA2
+    )
+    torchtune_sd = checkpointer.load_checkpoint()
 
-.. code-block:: bash
+    # Setup the model and the input
+    model = llama2_13b()
 
-    cp  <checkpoint_dir>/hf_model_0001_0.pt  <new_dir>/Llama-2-7B-hf/
-    cp  <checkpoint_dir>/hf_model_0002_0.pt  <new_dir>/Llama-2-7B-hf/
-    cp  <checkpoint_dir>/tokenizer.model     <new_dir>/Llama-2-7B-hf/
+    # Model weights are stored with the key="model"
+    model.load_state_dict(torchtune_sd["model"])
+    <All keys matched successfully>
 
-Once the directory structure is setup, let's convert the checkpoints and run inference!
+    # We have 32000 vocab tokens; lets generate an input with 70 tokens
+    x = torch.randint(0, 32000, (1, 70))
 
-.. code-block:: bash
+    with torch.no_grad():
+        model(x)
 
-    cd gpt-fast/
-
-    python scripts/convert_hf_checkpoint.py \
-    --checkpoint_dir <new_dir>/Llama-2-7B-hf/ \
-    --model 7B
-
-    python generate.py \
-    --compile \
-    --checkpoint_path <new_dir>/Llama-2-7B-hf/model.pth \
-    --device cuda
-
-The output should look something like this:
-
-.. code-block:: bash
-
-    Hello, my name is Justin. I am a middle school math teacher
-    at WS Middle School ...
-
-    Time for inference 5: 1.94 sec total, 103.28 tokens/sec
-    Bandwidth achieved: 1391.84 GB/
-
-
-And thats it! Try your own prompt!
+    tensor([[[ -6.3989,  -9.0531,   3.2375,  ...,  -5.2822,  -4.4872,  -5.7469],
+        [ -8.6737, -11.0023,   6.8235,  ...,  -2.6819,  -4.2424,  -4.0109],
+        [ -4.6915,  -7.3618,   4.1628,  ...,  -2.8594,  -2.5857,  -3.1151],
+        ...,
+        [ -7.7808,  -8.2322,   2.8850,  ...,  -1.9604,  -4.7624,  -1.6040],
+        [ -7.3159,  -8.5849,   1.8039,  ...,  -0.9322,  -5.2010,  -1.6824],
+        [ -7.8929,  -8.8465,   3.3794,  ...,  -1.3500,  -4.6145,  -2.5931]]])
