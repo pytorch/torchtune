@@ -97,7 +97,6 @@ TorchTune tutorials.
 
    examples/finetune_llm
    examples/lora_finetune
-   examples/configs
 
 .. toctree::
    :glob:
@@ -105,8 +104,9 @@ TorchTune tutorials.
    :caption: Deep-Dives
    :hidden:
 
-   examples/recipe_deepdive
    examples/checkpointer
+   examples/configs
+   examples/recipe_deepdive
 
 .. toctree::
    :glob:
