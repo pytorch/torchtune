@@ -101,6 +101,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         print('hi')
+        print('hi again')
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.total_training_steps = 0
 
