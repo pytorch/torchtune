@@ -77,11 +77,6 @@ The only change you need to make is to add the metric logger to your config. Wei
       _component_: torchtune.utils.metric_logging.WandBLogger
       # the W&B project to log to
       project: torchtune
-      # How often to log the model. Options are "null", "checkpoint" and "end"
-      # "null" means no logging
-      # "checkpoint" means log the model at each checkpoint (managed by the checkpointer)
-      # "end" means log the model at the end of the run
-      log_model: checkpoint
 
 We automatically grab the config from the recipe you are running and log it to W&B. You can find it in the W&B overview tab and the actual file in the `Files` tab.
 
@@ -89,4 +84,54 @@ We automatically grab the config from the recipe you are running and log it to W
 
   Click on this sample [project to see the W&B workspace](https://wandb.ai/capecape/torchtune)
   The config used to train the models can be found [here](https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml)
+
+Logging Model Checkpoints to W&B
+-------------------------------
+
+You can also log the model checkpoints to W&B by modifying the desired script `save_checkpoint` method. 
+
+A suggested approach would be something like this:
+
+.. code-block:: python
+
+      def save_checkpoint(self, epoch: int) -> None:
+        ckpt_dict = {utils.MODEL_KEY: self._model.state_dict()}
+        # if training is in-progress, checkpoint the optimizer state as well
+        if epoch + 1 < self.total_epochs:
+            ckpt_dict.update(
+                {
+                    utils.SEED_KEY: self.seed,
+                    utils.EPOCHS_KEY: self.epochs_run,
+                    utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                    utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                }
+            )
+            if not self._optimizer_in_bwd:
+                ckpt_dict[utils.OPT_KEY] = self._optimizer.state_dict()
+            else:
+                ckpt_dict[utils.OPT_KEY] = self._optim_ckpt_wrapper.state_dict()
+        self._checkpointer.save_checkpoint(
+            ckpt_dict,
+            epoch=epoch,
+            intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+        )
+        ## Let's save the checkpoint to W&B
+        ## depending on the Checkpointer Class the file will be named differently
+        ## Here it is an example for the full_finetune case
+        checkpoint_file = Path.joinpath(
+            self._checkpointer._output_dir, f"torchtune_model_{epoch}"
+        ).with_suffix(".pt")
+        wandb_at = wandb.Artifact(
+          name=f"torchtune_model_{epoch}",
+          type="model",
+          description="Model checkpoint",
+          metadata={
+            utils.SEED_KEY: self.seed,
+            utils.EPOCHS_KEY: self.epochs_run,
+            utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+            utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            }
+        )
+        wandb_at.add_file(checkpoint_file)
+        wandb.log_artifact(wandb_at)
 
