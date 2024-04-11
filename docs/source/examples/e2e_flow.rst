@@ -6,7 +6,7 @@ End-to-End Workflow with TorchTune
 
 In this tutorial, we'll walk through an end-to-end example of how you can fine-tune,
 evaluate, optionally quantize and then run generation with your favorite LLM using
-TorchTune. We'll also go over how you can use some of your favorite tools and libraries
+TorchTune. We'll also go over how you can use some popular tools and libraries
 from the community seemlessly with TorchTune.
 
 .. grid:: 2
@@ -27,16 +27,16 @@ from the community seemlessly with TorchTune.
 Overview
 --------
 
-Fine-tuning an LLM is almost never itself the end goal. Usually this is one step in a much
-larger worfklow. An example workflow might look something like this:
+Fine-tuning an LLM is usually only one step in a larger workflow. An example workflow that you
+might have can look something like this:
 
-- Download a popular model from HF Hub
+- Download a popular model from `HF Hub <https://huggingface.co/docs/hub/en/index>`_
 - Fine-tune the model using a relevant fine-tuning technique. The exact technique used
   will depend on factors such as the model, amount and nature of training data, your hardware
   setup and the end task for which the model will be used
 - Evaluate the model on some benchmarks to validate model quality
 - Run some generations to make sure the model output looks reasonable
-- Quantize the model for efficient inference followed by optionally exporting it for specific
+- Quantize the model for efficient inference followed by exporting it for specific
   environments such as inference on a mobile phone
 
 In this tutorial we'll cover each of these items and give examples of how you can do this using
@@ -84,66 +84,44 @@ and use the standard settings from the
 
 This will fine-tune our model on the
 `Alpaca Dataset <https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py>`_
-using a ``batch_size`` of ``2`` and ``dtype`` of ``bfloat16``. With these settings the model
+using a ``batch_size=2`` and ``dtype=bfloat16``. With these settings the model
 should have a peak memory usage of ~16GB and total training time of around 2hours for each epoch.
 We'll need to make some changes to the config to make sure our recipe can access the
 right checkpoints.
 
-Let's first copy over the config to our local working director so we can make changes.
-
+Let's look for the right config for this use case by using the tune CLI.
 
 .. code-block:: bash
 
-    tune cp llama2/7B_lora_single_device ./custom_lora_config.yaml
+    tune ls
+
+    RECIPE                                   CONFIG
+    full_finetune_single_device              llama2/7B_full_single_device
+                                             llama2/7B_full_single_device_low_memory
+                                             mistral/7B_full
+    full_finetune_distributed                llama2/7B_full
+                                             llama2/13B_full
+                                             mistral/7B_full
+    lora_finetune_single_device              llama2/7B_lora_single_device
+                                             llama2/7B_qlora_single_device
+                                             mistral/7B_lora
+    ...
 
 
-Let's modify ``custom_lora_config.yaml`` to include the following changes.
+For this tutorial we'll use the ``llama2/7B_lora_single_device`` config.
 
-.. code-block:: yaml
-
-    checkpointer:
-        # checkpointer to use
-        _component_: torchtune.utils.FullModelHFCheckpointer
-
-        # directory with the checkpoint files
-        # this should match the output_dir above
-        checkpoint_dir: <checkpoint_dir>
-
-        # checkpoint files. For the llama2-7b-hf model we have
-        # 2 .bin files
-        checkpoint_files: [
-            pytorch_model-00001-of-00002.bin,
-            pytorch_model-00002-of-00002.bin,
-        ]
-
-        # since we're starting a new training run, there's no
-        # recipe state and so set this to null
-        recipe_checkpoint: null
-
-        # dir for saving the output checkpoints. Usually set
-        # to be the same as checkpoint_dir
-        output_dir: <checkpoint_dir>
-
-        # model_type which specifies how to convert the state_dict
-        # into a format which TorchTune understands
-        model_type: LLAMA2
-
-    resume_from_checkpoint: False
-
-    # Make sure to update the tokenizer path to the right
-    # checkpoint directory as well
-    tokenizer:
-        _component_: torchtune.models.llama2.llama2_tokenizer
-        path: <checkpoint_dir>/tokenizer.model
-
-
-Once the config is updated, let's kick off training!
+The config already points to the HF Checkpointer and the right checkpoint files.
+All we need to do is update the checkpoint directory for both the model and the
+tokenizer. Let's do this using the overrides in the tune CLI while starting training!
 
 
 .. code-block:: bash
 
     tune run lora_finetune_single_device \
-    --config ./custom_lora_config.yaml
+    --config llama2/7B_lora_single_device \
+    checkpointer.checkpoint_dir=/tmp/Llama-2-7b-hf \
+    tokenizer.path=/tmp/Llama-2-7b-hf/tokenizer.model \
+    checkpointer.output_dir=/tmp/Llama-2-7b-hf
 
 
 Once training is complete, you'll see the following in the logs.
@@ -157,10 +135,11 @@ Once training is complete, you'll see the following in the logs.
     [_checkpointer.py:484] Adapter checkpoint of size 0.01 GB saved to <checkpoint_dir>/adapter_0.pt
 
 
-The "merged weights" (see the :ref:`LoRA Tutorial <lora_finetune_label>` for more details)
-are split across two checkpoint files similar to the source checkpoints from the HF Hub.
-In fact the keys would be identical between these checkpoints. For more details see the
-checkpointing tutorial. We also have a third checkpoint file which is much smaller in size
+The final trained weights are merged with the original model and split across two checkpoint files
+similar to the source checkpoints from the HF Hub
+(see the :ref:`LoRA Tutorial <lora_finetune_label>` for more details).
+In fact the keys will be identical between these checkpoints.
+We also have a third checkpoint file which is much smaller in size
 and contains the learnt LoRA adapter weights. For this tutorial, we'll only use the model
 checkpoints and not the adapter weights.
 
@@ -171,18 +150,37 @@ Run Evaluation using EleutherAI's Eval Harness
 
 We've fine-tuned a model. But how well does this model really do? Let's run some Evaluations!
 
-Evaluation is a hard problem. Instead of re-inventing the wheel, TorchTune integrates with
+Instead of re-inventing the wheel on Evals, TorchTune integrates with
 EleutherAI's evaluation harness. An example of this is available through the
 ``eleuther_eval`` recipe. In this tutorial, we're going to directly use this recipe by
-modifying it's associated config ``eleuther_eval.yaml``.
+modifying it's associated config ``eleuther_evaluation.yaml``.
 
-Let's first copy over the config to our local working director so we can make changes.
+Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
+let's first copy over the config to our local working directory so we can make changes. This
+will be easier than overriding all of these elements through the CLI.
 
 .. code-block:: bash
 
-    tune cp eleuther_eval ./custom_eval_config.yaml
+    tune cp eleuther_evaluation ./custom_eval_config.yaml
 
-Let's modify ``custom_eval_config.yaml`` to include the following changes.
+For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
+The Truthful QA dataset measures a model's propensity to be truthful when answering questions.
+This task measures the model's zero-shot accuracy on a question followed by one or more true
+responses and one or more false responses. Let's first run a baseline without fine-tuning.
+
+
+.. code-block:: bash
+
+    tune run eleuther_eval --config ./custom_eval_config.yaml
+
+    [evaluator.py:324] Running loglikelihood requests
+    [eleuther_eval.py:195] Eval completed in 121.27 seconds.
+    [eleuther_eval.py:197] truthfulqa_mc2: {'acc,none': 0.388...
+
+The model has an accuracy around 38.8%. Let's compare this with the fine-tuned model.
+
+
+First, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoints.
 
 .. code-block:: yaml
 
@@ -211,45 +209,43 @@ Let's modify ``custom_eval_config.yaml`` to include the following changes.
         path: <checkpoint_dir>/tokenizer.model
 
 
-Once the config is updated, let's kick off evaluation! We'll use the
-``truthfulqa_mc2`` task which is also the default in the config.
+Now, let's run the recipe.
 
 .. code-block:: bash
 
     tune run eleuther_eval --config ./custom_eval_config.yaml
 
 
-Once evaluation is complete, you'll see the following in the logs.
+The results should look something like this.
 
 .. code-block:: bash
 
     [evaluator.py:324] Running loglikelihood requests
     [eleuther_eval.py:195] Eval completed in 121.27 seconds.
-    [eleuther_eval.py:197] truthfulqa_mc2: {'acc,none': 0.48919958543950917 ...}
+    [eleuther_eval.py:197] truthfulqa_mc2: {'acc,none': 0.489 ...
 
-So seems like our fine-tuned model gets ~48% on this task. Which is pretty good.
-An exercise for you to do is to modify the config and run this eval using the
-original model from HF. You should get somewhere around 39-40%.
+So seems like our fine-tuned model gets ~48% on this task, which is ~10 points
+better than the baseline. Great! Seems like our fine-tuning helped.
 
 |
 
-Generation!
+Generation
 -----------
 
-We've run some evaluations and the model seems to be doing well. But does is really
+We've run some evaluations and the model seems to be doing well. But does it really
 generate meaningful text for the prompts you care about? Let's find out!
 
 For this, we'll use the
 `generate recipe <https://github.com/pytorch/torchtune/blob/main/recipes/generate.py>`_
 and the associated
-`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/generate.yaml>`_.
+`config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/generation.yaml>`_.
 
 
-Let's first copy over the config to our local working director so we can make changes.
+Let's first copy over the config to our local working directory so we can make changes.
 
 .. code-block:: bash
 
-    tune cp generate ./custom_generation_config.yaml
+    tune cp generation ./custom_generation_config.yaml
 
 Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
@@ -290,9 +286,8 @@ We'll use a different prompt from the one in the config
 
 .. code-block:: bash
 
-    tune run generate \
-    --config generate \
-    prompt="What are some interesting sites to visit in th Bay Area?"
+    tune run generate --config ./custom_generation_config.yaml \
+    prompt="What are some interesting sites to visit in the Bay Area?"
 
 
 Once generation is complete, you'll see the following in the logs.
@@ -307,8 +302,8 @@ Once generation is complete, you'll see the following in the logs.
     [generate.py:99] Memory used: 15.72 GB
 
 
-Indeed, the bridge is pretty cool! Seems like our LLM knows what it's talking
-about.
+Indeed, the bridge is pretty cool! Seems like our LLM knows a little something about the
+Bay Area!
 
 |
 
@@ -317,19 +312,20 @@ Speeding up Generation using Quantization
 
 We saw that the generation recipe took around 11.6 seconds to generate 300 tokens.
 One technique commonly used to speed up inference is quantization. TorchTune provides
-an integration with the TorchAO quantization APIs. Let's first quantize the model using
-4-bit weights-only quantization and see if this improves generation.
+an integration with the `TorchAO <https://github.com/pytorch-labs/ao>`_
+quantization APIs. Let's first quantize the model using 4-bit weights-only quantization
+and see if this improves generation speed.
 
 
 For this, we'll use the
 `quantization recipe <https://github.com/pytorch/torchtune/blob/main/recipes/quantize.py>`_.
 
 
-Let's first copy over the config to our local working director so we can make changes.
+Let's first copy over the config to our local working directory so we can make changes.
 
 .. code-block:: bash
 
-    tune cp quantize ./custom_quantization_config.yaml
+    tune cp quantization ./custom_quantization_config.yaml
 
 Let's modify ``custom_quantization_config.yaml`` to include the following changes.
 
@@ -360,7 +356,7 @@ quantization method from the config.
 
 .. code-block:: bash
 
-    tune run quantize --config quantize
+    tune run quantize --config /custom_quantization_config.yaml
 
 Once quantization is complete, you'll see the following in the logs.
 
@@ -372,16 +368,16 @@ Once quantization is complete, you'll see the following in the logs.
 
 
 .. note::
-    Unlike the fine-tuned checkpoints, this output a single checkpoint file. This is
+    Unlike the fine-tuned checkpoints, this outputs a single checkpoint file. This is
     because our quantization APIs currently don't support any conversion across formats.
     As a result you won't be able to use these quantized models outside of TorchTune.
     But you should be able to use these with the generation and evaluation recipes within
     TorchTune. These results will help inform which quantization methods you should use
     with your favorite inference engine.
 
-Now that we have the quantized model. Let's rerun generation.
+Now that we have the quantized model, let's re-run generation.
 
-Let's modify ``custom_generation_config.yaml`` to include the following changes.
+Modify ``custom_generation_config.yaml`` to include the following changes.
 
 .. code-block:: yaml
 
@@ -418,9 +414,8 @@ We'll use a different prompt from the one in the config
 
 .. code-block:: bash
 
-    tune run generate \
-    --config generate \
-    prompt="What are some interesting sites to visit in th Bay Area?"
+    tune run generate --config ./custom_generation_config.yaml \
+    prompt="What are some interesting sites to visit in the Bay Area?"
 
 
 Once generation is complete, you'll see the following in the logs.
@@ -510,7 +505,10 @@ The output should look something like this:
     at WS Middle School ...
 
     Time for inference 5: 1.94 sec total, 103.28 tokens/sec
-    Bandwidth achieved: 1391.84 GB/
+    Bandwidth achieved: 1391.84 GB/sec
 
 
 And thats it! Try your own prompt!
+
+Hope this tutorial gave you some insights into how you can use TorchTune for
+your own workflows. Happy Tuning!

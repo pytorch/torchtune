@@ -34,18 +34,17 @@
 #
 # Model arguments
 model:
-  _component_: torchtune.models.llama2.llama2_13b
+  _component_: torchtune.models.llama2.llama2_7b
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-2-13b-hf
+  checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
-    pytorch_model-00001-of-00003.bin,
-    pytorch_model-00002-of-00003.bin,
-    pytorch_model-00003-of-00003.bin
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-2-13b-hf
+  output_dir: /tmp/Llama-2-7b-hf
   model_type: LLAMA2
 
 device: cuda
