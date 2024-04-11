@@ -42,7 +42,6 @@ dev = [
     "pytest-mock",
     "pytest-integration",
     "tensorboard",
-    "transformers",
     "wandb",
 ]
 

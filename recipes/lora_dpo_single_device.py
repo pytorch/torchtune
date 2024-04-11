@@ -17,11 +17,13 @@ from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules.peft.peft_utils import (
+    disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
-    validate_missing_and_unexpected_for_lora,
+    validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
@@ -29,9 +31,9 @@ from tqdm import tqdm
 log = utils.get_logger("DEBUG")
 
 
-class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
+class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
+    LoRA DPO recipe for dense transformer-based LLMs such as Llama2 for
     single device training.
 
     This recipe supports:
@@ -52,8 +54,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     The following configs can be used to run this recipe:
         >>> tune ls
         RECIPE                          CONFIG
-        lora_finetune_single_device     llama2/7B_lora_single_device
-                                        llama2/7B_qlora_single_device
+        lora_dpo_single_device          llama2/7B_lora_dpo_single_device
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -115,7 +116,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
-            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
+            # _update_recipe_state will throw an exception if the recipe state is not correctly loaded
             # no need to check here
             self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
@@ -146,13 +147,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
-        self._model_compile = cfg.compile
+
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            compile_model=cfg.compile,
             base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
             lora_weights_state_dict=(
                 checkpoint_dict[utils.ADAPTER_KEY]
@@ -208,20 +208,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.total_training_steps - 1,
         )
 
-        self._profiler_enabled = cfg.profiler.enabled
-        self._profiler = config.instantiate(cfg.profiler)
-
     def _setup_model(
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        compile_model: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
-
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
         self.adapter_params = get_adapter_params(model)
@@ -232,25 +227,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        base_missing, base_unexpected = model.load_state_dict(
-            base_model_state_dict, strict=False
-        )
-        if lora_weights_state_dict:
-            lora_missing, lora_unexpected = model.load_state_dict(
-                lora_weights_state_dict, strict=False
-            )
-        else:
-            lora_missing, lora_unexpected = None, None
-
-        validate_missing_and_unexpected_for_lora(
+        validate_state_dict_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
             apply_lora_to_output=cfg_model.apply_lora_to_output,
-            base_missing=base_missing,
-            base_unexpected=base_unexpected,
-            lora_missing=lora_missing,
-            lora_unexpected=lora_unexpected,
+            full_model_state_dict_keys=model.state_dict().keys(),
+            lora_state_dict_keys=(
+                lora_weights_state_dict.keys()
+                if lora_weights_state_dict is not None
+                else None
+            ),
+            base_model_state_dict_keys=base_model_state_dict.keys(),
         )
+
+        model.load_state_dict(base_model_state_dict, strict=False)
+        if lora_weights_state_dict:
+            model.load_state_dict(lora_weights_state_dict, strict=False)
+
         # Validate model adapter params were loaded in with the expected dtype
         # TODO (rohan-varma): Further validation to ensure the appropriate base params
         # are NF4 vs bf16 based on the quantization config.
@@ -259,10 +252,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        # Compile model, if enabled.
-        if compile_model:
-            log.info("Compiling model with torch.compile...")
-            model = utils.wrap_compile(model)
         log.info(
             utils.memory_stats_log(
                 "Memory Stats after model init:", device=self._device
@@ -323,12 +312,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
-                utils.padded_collate,
+                utils.padded_collate_dpo,
                 padding_idx=self._tokenizer.pad_id,
-                ignore_idx=self._loss_fn.ignore_index,
+                ignore_idx=CROSS_ENTROPY_IGNORE_IDX,
             ),
         )
-
         log.info("Dataset and Sampler are initialized.")
 
         return sampler, dataloader
@@ -381,75 +369,131 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
+    def concatenated_forward(
+        self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        concatenated_input_ids, concatenated_labels = batch
+        concatenated_input_ids = concatenated_input_ids.to(self._device)
+        concatenated_labels = concatenated_labels.to(self._device)
+
+        # formed by concatenating an equal number of "chosen" and "rejected".
+        len_chosen = concatenated_input_ids.shape[0] // 2
+
+        all_logits = model(concatenated_input_ids)
+
+        all_log_probs = self.get_batch_log_probs(all_logits, concatenated_labels)
+
+        chosen_log_probs = all_log_probs[:len_chosen]
+        rejected_log_probs = all_log_probs[len_chosen:]
+
+        chosen_logits = all_logits[:len_chosen]
+        rejected_logits = all_logits[len_chosen:]
+
+        return (chosen_log_probs, rejected_log_probs, chosen_logits, rejected_logits)
+
+    @staticmethod
+    def get_batch_log_probs(
+        logits: torch.FloatTensor,
+        labels: torch.LongTensor,
+        label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
+    ) -> torch.FloatTensor:
+        if logits.shape[:-1] != labels.shape:
+            raise ValueError(
+                "Logits (batch and sequence length dim) and labels must have the same shape."
+            )
+
+        labels = labels[:, 1:].clone()
+        logits = logits[:, :-1, :]
+        loss_mask = labels != label_pad_token_id
+
+        labels[labels == label_pad_token_id] = 0
+        # take log-likelihood of the labels given our model
+        per_token_log_probs = torch.gather(
+            logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)
+        ).squeeze(2)
+
+        return (per_token_log_probs * loss_mask).sum(-1)
+
     def train(self) -> None:
         """
         The core training loop.
         """
-
-        if self._model_compile:
-            log.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
+            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                if (
+                    self.max_steps_per_epoch is not None
+                    and (idx // self._gradient_accumulation_steps)
+                    == self.max_steps_per_epoch
+                ):
+                    break
 
-            # Optionally profile the training loop
-            with self._profiler:
-                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
-                    if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
-                    ):
-                        break
+                (
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    policy_chosen_logits,
+                    policy_rejected_logits,
+                ) = self.concatenated_forward(self._model, batch)
 
-                    if self._profiler_enabled:
-                        self._profiler.step()
+                with torch.no_grad(), disable_adapter(self._model):
+                    (
+                        reference_chosen_log_probs,
+                        reference_rejected_log_probs,
+                        _,
+                        _,
+                    ) = self.concatenated_forward(self._model, batch)
 
-                    input_ids, labels = batch
-                    input_ids = input_ids.to(self._device)
-                    labels = labels.to(self._device)
-
-                    logits = self._model(input_ids)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
-
-                    if self.total_training_steps % self._log_every_n_steps == 0:
-                        pbar.set_description(
-                            f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
-                        )
-                        self._metric_logger.log_dict(
-                            {
-                                "loss": loss.item(),
-                                "lr": self._optimizer.param_groups[0]["lr"],
-                                "gpu_resources": torch.cuda.memory_allocated(),
-                            },
-                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                        )
-                    loss = loss / self._gradient_accumulation_steps
-                    loss.backward()
-                    if (idx + 1) % self._gradient_accumulation_steps == 0:
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-                        self._lr_scheduler.step()
-                        # Update the number of steps when the weights are updated
-                        self.total_training_steps += 1
-                    # Log peak memory for iteration
-                    if (
-                        self.total_training_steps % self._log_peak_memory_every_n_steps
-                        == 0
-                    ):
-                        log.info(
-                            utils.memory_stats_log("Memory Stats:", device=self._device)
-                        )
+                loss, chosen_rewards, rejected_rewards = self._loss_fn(
+                    policy_chosen_log_probs,
+                    policy_rejected_log_probs,
+                    reference_chosen_log_probs,
+                    reference_rejected_log_probs,
+                )
+                loss = loss.mean()
+                reward_accuracies = (chosen_rewards > rejected_rewards).float()
+                if self.total_training_steps % self._log_every_n_steps == 0:
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
+                    self._metric_logger.log_dict(
+                        {
+                            "loss": loss.item(),
+                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "rewards/chosen": chosen_rewards.mean().cpu(),
+                            "rewards/rejected": rejected_rewards.mean().cpu(),
+                            "rewards/accuracies": reward_accuracies.mean().cpu(),
+                            "rewards/margins": (chosen_rewards - rejected_rewards)
+                            .mean()
+                            .cpu(),
+                            "log_probs/rejected": policy_rejected_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "log_probs/chosen": policy_chosen_log_probs.detach()
+                            .mean()
+                            .cpu(),
+                            "logits/rejected": policy_rejected_logits.detach()
+                            .mean()
+                            .cpu(),
+                            "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
+                            "gpu_resources": torch.cuda.memory_allocated(),
+                        },
+                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
+                    )
+                loss = loss / self._gradient_accumulation_steps
+                loss.backward()
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+                # Log peak memory for iteration
+                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
+                    log.info(
+                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -466,7 +510,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
-    recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
+    recipe = LoRADPORecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
