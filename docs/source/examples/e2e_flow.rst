@@ -378,8 +378,8 @@ Once quantization is complete, you'll see the following in the logs.
     because our quantization APIs currently don't support any conversion across formats.
     As a result you won't be able to use these quantized models outside of TorchTune.
     But you should be able to use these with the generation and evaluation recipes within
-    TorchTune and use the results to inform which quantization APIs you should use with your
-    favorite inference engine.
+    TorchTune. These results will help inform which quantization methods you should use
+    with your favorite inference engine.
 
 Now that we have the quantized model. Let's rerun generation.
 
@@ -411,3 +411,30 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
     quantizer:
         _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
         groupsize: 256
+
+
+Once the config is updated, let's kick off generation! We'll use the
+same sampling parameters as before.
+
+We'll use a different prompt from the one in the config
+
+.. code-block:: bash
+
+    tune run generate \
+    --config generate \
+    prompt="What are some interesting sites to visit in th Bay Area?"
+
+
+Once generation is complete, you'll see the following in the logs.
+
+
+.. code-block:: bash
+
+    [generate.py:92] A park in San Francisco that sits at the top of a big hill.
+                     There are lots of trees and a beautiful view of San Francisco...
+
+    [generate.py:96] Time for inference: 4.13 sec total, 72.62 tokens/sec
+    [generate.py:99] Memory used: 17.85 GB
+
+With quantization (and torch compile under the hood), we've sped up generation
+by almost 3x!
