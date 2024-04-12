@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -36,6 +37,22 @@ class DummyDataset(Dataset):
 
     def __len__(self):
         return len(self._data)
+
+
+def get_assets_path():
+    return Path(__file__).parent.parent / "assets"
+
+
+def dummy_alpaca_dataset_config():
+    data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
+    out = [
+        "dataset._component_=torchtune.datasets.instruct_dataset",
+        "dataset.source='json'",
+        f"dataset.data_files={data_files}",
+        "dataset.template=AlpacaInstructTemplate",
+        "dataset.split='train'",
+    ]
+    return out
 
 
 def llama2_test_config(max_batch_size: Optional[int] = None) -> List[str]:
