@@ -236,6 +236,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             model = utils.wrap_compile(model)
         memory_stats = utils.memory_stats_log(device=self._device)
         log.info(f"Memory Stats:\n{memory_stats}")
+        log.info(f"Model trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad)/1e6:,.2f}M")
         return model
 
     def _setup_optimizer(
