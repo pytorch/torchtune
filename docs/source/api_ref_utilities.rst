@@ -37,7 +37,7 @@ Utilities for enabling and working with distributed training.
 .. _mp_label:
 
 Reduced Precision
----------------
+------------------
 
 Utilities for working in a reduced precision setting.
 
@@ -68,7 +68,7 @@ Utilities to reduce memory consumption during training.
 Metric Logging
 --------------
 
-Various logging utilities. 
+Various logging utilities.
 
 .. autosummary::
     :toctree: generated/
