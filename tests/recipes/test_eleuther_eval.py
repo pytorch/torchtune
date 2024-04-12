@@ -20,7 +20,7 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 class TestEleutherEval:
     @pytest.mark.integration_test
-    def test_torchune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
+    def test_torchtune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
