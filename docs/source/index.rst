@@ -61,7 +61,6 @@ TorchTune tutorials.
    :header: Understanding QLoRA in TorchTune
    :card_description: Using QLoRA to quantize base model weights and maximize memory savings
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/qlora_finetune.html
    :tags: finetuning,llama2
 
 .. customcarditem::
@@ -104,7 +103,6 @@ TorchTune tutorials.
 
    examples/finetune_llm
    examples/lora_finetune
-   examples/qlora_finetune
 
 .. toctree::
    :glob:
