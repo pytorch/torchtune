@@ -150,6 +150,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
+
+
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
@@ -231,11 +233,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
-        log.info(
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
-            )
-        )
+        memory_stats = utils.memory_stats_log(device=self._device)
+        log.info(f"Memory Stats:\n{memory_stats}")
         return model
 
     def _setup_optimizer(
@@ -415,11 +414,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Log peak memory for iteration
                 if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    memory_stats = utils.memory_stats_log("Memory Stats:", device=self._device)
+                    memory_stats = utils.memory_stats_log(device=self._device)
                     self._metric_logger.log_dict(memory_stats, step=self.total_training_steps)
-                    log.info(
-                        utils.print_memory_stats_log("Memory Stats:", memory_stats)
-                    )
+                    log.info(f"Memory Stats:\n{memory_stats}")
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
