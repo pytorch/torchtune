@@ -42,7 +42,6 @@ Mixed Precision
     precision.get_gradient_scaler
     precision.get_dtype
     precision.list_dtypes
-    precision.reparametrize_as_dtype_state_dict_post_hook
 
 .. _ac_label:
 
