@@ -448,9 +448,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.total_training_steps % self._log_peak_memory_every_n_steps
                         == 0
                     ):
-                    # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
-                    self._metric_logger.log_dict(memory_stats, step=self.total_training_steps)
+                        # Log peak memory for iteration
+                        memory_stats = utils.memory_stats_log(device=self._device)
+                        self._metric_logger.log_dict(memory_stats, step=self.total_training_steps)
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
