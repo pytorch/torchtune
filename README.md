@@ -117,7 +117,7 @@ You can find your token at https://huggingface.co/settings/tokens
 
 ```
 tune download meta-llama/Llama-2-7b-hf \
---output-dir /tmp/llama2 \
+--output-dir /tmp/Llama-2-7b-hf \
 --hf-token <HF_TOKEN> \
 ```
 
