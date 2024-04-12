@@ -10,7 +10,7 @@ torchtune.utils
 Checkpointing
 -------------
 
-TorchTune offers checkpointers to allow users to seamlessly transition between checkpoint formats for training and interoperate with the rest of the ecosystem. For a comprehensive overview of
+TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
 checkpointing, please see the :ref:`checkpointing tutorial <understand_checkpointer>`.
 
 .. autosummary::
