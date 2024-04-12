@@ -4,6 +4,14 @@
 Logging to Weights & Biases
 ===========================
 
+.. customcarditem::
+   :header: Logging to Weights & Biases
+   :card_description: Log metrics and model checkpoints to W&B
+   :image: _static/img/torchtune_workspace.png
+   :link: examples/wandb_logging.html
+   :tags: logging,wandb
+
+
 Torchtune supports logging your training runs to [Weights & Biases](https://wandb.ai).
 
 .. note::
@@ -27,6 +35,7 @@ The only change you need to make is to add the metric logger to your config. Wei
       _component_: torchtune.utils.metric_logging.WandBLogger
       # the W&B project to log to
       project: torchtune
+
 
 We automatically grab the config from the recipe you are running and log it to W&B. You can find it in the W&B overview tab and the actual file in the `Files` tab.
 
