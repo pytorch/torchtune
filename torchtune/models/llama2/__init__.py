@@ -10,7 +10,6 @@ from ._component_builders import llama2, lora_llama2
 from ._model_builders import (  # noqa
     llama2_13b,
     llama2_7b,
-    llama2_tiny,
     llama2_tokenizer,
     lora_llama2_13b,
     lora_llama2_7b,
@@ -21,7 +20,6 @@ from ._model_utils import scale_hidden_dim_for_mlp
 __all__ = [
     "convert_llama2_fair_format",
     "llama2",
-    "llama2_tiny",
     "llama2_7b",
     "llama2_tokenizer",
     "lora_llama2",
