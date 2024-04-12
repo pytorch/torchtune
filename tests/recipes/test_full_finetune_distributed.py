@@ -13,7 +13,11 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
+    llama2_test_config,
+    write_hf_ckpt_config,
+)
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
@@ -36,10 +40,10 @@ class TestFullFinetuneDistributedRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self, ckpt):
-        return [10.4574, 10.5872, 10.5092, 10.4756]
+        return [10.5136, 10.4813, 10.5088, 10.5250]
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
