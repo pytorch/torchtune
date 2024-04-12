@@ -30,7 +30,7 @@ EVAL_CONFIG_PATH = Path.joinpath(
 )
 
 
-@gpu_test(gpu_count=2)
+@gpu_test(gpu_count=4)
 class TestFullFinetuneDistributed7BLoss:
     def _get_test_config_overrides(self):
         return [
@@ -46,7 +46,7 @@ class TestFullFinetuneDistributed7BLoss:
         ]
 
     def _fetch_expected_loss_values(self):
-        return [1.1313, 1.7281, 1.1477, 0.7763]
+        return [1.1313, 5.1035, 1.1989, 1.5161]
 
     @pytest.mark.slow_integration_test
     def test_loss(self, tmpdir, monkeypatch):
@@ -55,7 +55,7 @@ class TestFullFinetuneDistributed7BLoss:
         log_file = gen_log_file_name(tmpdir)
 
         cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed
+        tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed
             --config llama2/7B_full \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
@@ -71,9 +71,6 @@ class TestFullFinetuneDistributed7BLoss:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
-        import pdb
-
-        pdb.set_trace()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
