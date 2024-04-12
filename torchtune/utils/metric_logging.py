@@ -16,12 +16,14 @@ from numpy import ndarray
 from torch import Tensor
 from omegaconf import OmegaConf, DictConfig
 
+from torchtune.utils import get_logger
 from torchtune.utils._device import _get_local_rank
 from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
 
+log = get_logger("DEBUG")
 class MetricLoggerInterface(Protocol):
     """Abstract metric logger."""
 
@@ -179,9 +181,10 @@ class WandBLogger(MetricLoggerInterface):
         self.local_rank = _get_local_rank()
         self.local_rank = 0 if self.local_rank is None else self.local_rank
         
-        if ((self.log_strategy == "main" and self.rank == 0) 
-            or self.log_strategy == "all" 
-            or (self.log_strategy == "node" and self.local_rank == 0)
+        if (
+                (self.log_strategy == "main" and self.rank == 0) 
+                or (self.log_strategy == "node" and self.local_rank == 0)
+                or self.log_strategy == "all"
             ): 
             self._wandb.init(
                 project=project,
@@ -207,11 +210,11 @@ class WandBLogger(MetricLoggerInterface):
             OmegaConf.save(config, output_config_fname)
             try:
                 
-                print(f"Logging {output_config_fname} to W&B under Files")
+                log.info(f"Logging {output_config_fname} to W&B under Files")
                 self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
 
             except Exception as e:
-                print(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
+                log.warning(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         if self._wandb.run:
