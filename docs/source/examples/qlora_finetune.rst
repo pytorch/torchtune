@@ -35,7 +35,8 @@ the original model. In vanilla LoRA style training, both these parameters are he
 therefore activations and intermediate gradients computed are in fp32/bf16.
 
 QLoRA further quantizes the base model parameters into a bespoke 4-bit NormalFloat (NF4) data type, resulting in 4x less parameter memory usage while
-largely retaining model accuracy. As a result, the vast majority of parameters only take up 4 bits (as opposed to 16 or 32 bits by bf16/fp32 dtypes). Adapter
+largely retaining model accuracy. As a result, the vast majority of parameters only take up 4 bits (as opposed to 16 or 32 bits by bf16/fp32 dtypes). This
+quantization is done through the method highlighted in the original `QLoRA paper <https://arxiv.org/abs/2305.14314>`_. Adapter
 parameters are still held in the original precision, and activations, gradients, and optimizer states still exist in the higher precision to preserve
 accuracy.
 
@@ -51,8 +52,8 @@ In this section, we'll first overview how to apply QLoRA to a `LoRALinear` layer
 
 To quantize a `LoRALinear` layer in the QLoRA style, simply pass in the `quantize_base` flag as ``True`` into :class:`~torchtune.modules.peft.LoRALinear`. This flag
 will result in base model weights being quantized and backed by the ``NF4Tensor`` dtype. Forward passes will also be automatically handled to work with the ``NF4Tensor`` dtype,
-specifically, the ``NF4`` base weight will be de-quantized to bf16, activation will be computed, and only the 4-bit parameter will be stored for gradient computation
-in the backward pass, avoiding extra memory usage that would be incurred by storing the full bf16 dtype.
+specifically, the ``NF4`` base weight will be de-quantized to the original precision, activation will be computed, and only the 4-bit parameter will be stored for gradient computation
+in the backward pass, avoiding extra memory usage that would be incurred by storing the full higher precision dtype.
 
 Here's an example of creating a quantized `LoRALinear` layer in comparison to an unquantized `LoRALinear` layer. As we can see, the quantized layer consumes
 ~8x less memory than the unquantized counterpart.
@@ -133,6 +134,8 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
 As mentioned above, TorchTune takes a dependency on `TorchAO library <https://github.com/pytorch-labs/ao>`_ for some of the core components required for QLoRA. This includes the
 `NF4Tensor`, as well as helpful utilities including ``to_nf4`` and ``linear_nf4``.
 
+The key changes on top of the LoRA layer are the usage of the ``to_nf4`` and ``linear_nf4`` APIs.
+
 ``to_nf4`` accepts an unquantized (bf16 or fp32) tensor and produces an ``NF4`` representation of the weight. See the `implementation <https://github.com/pytorch-labs/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587>`_ of ``to_nf4`` for more details.
 ``linear_nf4`` handles the forward pass and autograd when running with quantized base model weights. It computes the forward pass as a regular
 ``F.linear`` with the incoming activation and unquantized weight. The quantized weight is saved for backward, as opposed to the unquantized version of the weight, to avoid extra
@@ -145,11 +148,116 @@ checkpointing that are important to be aware of to avoid spiking memory usage.
 Using QLoRA in TorchTune
 ----------------------------
 
-TODO this section
+We'll now cover how you can initialize a QLoRA-enabled Llama2-7b model as well as some details around
+checkpointing with QLoRA.
+
+With TorchTune, users can use a simple builder similar to the LoRA builder (:code:`lora_llama_2_7b`) to apply QLoRA to Llama2 models. Here's a simple example of
+initializing a Llama2-7b model with QLoRA enabled:
+
+.. code-block:: python
+
+  from torchtune.models.llama2 import qlora_llama2_7b
+
+  qlora_model = qlora_llama2_7b(lora_attn_modules=["q_proj", "v_proj"])
+
+Under the hood, this will apply LoRA to the `q_proj` and `v_proj` matrices in all attention layers, and further quantize the base parameters
+in these matrices to the ``NF4`` dtype. Note that quantization of base model parameters is only applied to layers that are configured to have
+LoRA adapters added. For example, in this case, ``k_proj`` and ``output_proj`` in the attention layers don't have LoRA applied to them, so their
+base model parameters are _not_ quantized. We can see this by printing the base model parameter dtypes for a particular attention layer:
+
+Next, there are a couple of details essential to checkpointing (i.e. `state_dict`) of QLoRA-enabled models.
+To interoperate well with TorchTune's :ref:`checkpointing <checkpointing_label>`, we need to convert NF4Tensors back to their
+original precision (generally fp32/bf16). This allows QLoRA-trained checkpoints to interoperate well with the rest of the ecosystem, within
+TorchTune and beyond (i.e. checkpoint conversion, post-training quantization, evaluation, inference). This conversion process also allows LoRA adapter weights to be merged back into the base model as done
+in a typical LoRA training flow.
+
+To achieve this, when using TorchTune's ``qlora_llama2_7b`` builder, we automatically register a hook, ``reparametrize_as_dtype_state_dict_post_hook``,
+that runs after calling ``.state_dict()`` on the top level model. This hook converts NF4Tensors back to their original precision, while also offloading these
+converted tensors to the CPU. This offloading is to avoid peaking memory by maintaining an entire bf16/fp32 copy of the ``state_dict``
+on GPU, which could lead to potential OOMs during checkpoint save, even if memory is appropriately managed during
+training.
 
 
 
 Putting it all together: QLoRA finetune
 -----------------------------------------
 
-Stuff about how to actually use QLoRA, look at the memory usage etc.
+Putting it all together, we can now finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_,
+with a `<QLoRA configuration https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml>`_.
+
+Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
+You can then run the following command to perform a QLoRA finetune of Llama2-7B using the Alpaca dataset on a single GPU.
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config recipes/configs/llama2/7B_qlora_single_device.yaml
+
+.. note::
+    Make sure to correctly point to the location of your Llama2 weights and tokenizer. This can be done
+    either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
+    or by directly modifying the :code:`7B_qlora_single_device.yaml` file. See our :ref:`config_tutorial_label`
+    for more details on how you can easily clone and modify TorchTune configs.
+
+By default, this run should log peak memory stats at model initialization time and every 100
+iterations during training. Let's understand the memory savings enabled by QLoRA on top of LoRA training. LoRA training
+can be run as follows:
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config recipes/configs/llama2/7B_lora_single_device.yaml
+
+You should see the memory usage printed out during model initialization:
+
+.. code-block:: python
+
+  Memory Stats after model init::
+  GPU peak memory allocation: 13.96 GB
+  GPU peak memory reserved: 13.98 GB
+  GPU peak memory active: 13.96 GB
+
+
+As well as during training:
+
+.. code-block:: python
+
+  Memory Stats::
+  GPU peak memory allocation: 14.40 GB
+  GPU peak memory reserved: 15.57 GB
+  GPU peak memory active: 14.40 GB
+
+
+Comparing to the memory usage during model initialization for QLoRA, we see about a 35% decrease in peak memory reserved:
+
+.. code-block:: python
+
+  Memory Stats after model init::
+  GPU peak memory allocation: 7.36 GB
+  GPU peak memory reserved: 9.13 GB
+  GPU peak memory active: 7.36 GB
+
+As well as a 40% decrease in peak memory reserved during training:
+
+.. code-block:: python
+
+  Memory Stats::
+  GPU peak memory allocation: 5.54 GB
+  GPU peak memory reserved: 9.29 GB
+  GPU peak memory active: 5.54 GB
+
+From the logs, one can see that the out-of-the-box training performance is quite slow, slower than 1 iteration per
+second:
+
+.. code-block:: python
+
+  1|149|Loss: 0.9157477021217346:   1%|          | 149/25880 [02:08<6:14:19,  1.15it/s
+
+To speed things up, we can leverage ``torch.compile`` to compile our model and run the compiled result. To work with
+QLoRA training, a nightly build of PyTorch must be used. To update PyTorch to the latest nightly,
+please see `the installation instructions <https://pytorch.org/get-started/locally/>`_. Once updated,
+users can specify the compile flag as ``True`` via a config override:
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config recipes/configs/llama2/7B_lora_single_device.yaml compile=True
+
+From the logs, we can see about a 200% speed up (after a few hundred iterations once the training has stabilized):
