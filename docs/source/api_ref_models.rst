@@ -11,6 +11,10 @@ torchtune.models.llama2
     llama2_7b
     lora_llama2
 
+==============================
+torchtune.models.common_utils
+==============================
+
 .. currentmodule: torchtune.models.common_utils
 
 .. autosummary::
