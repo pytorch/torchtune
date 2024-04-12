@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
+from torchtune.models.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List, Literal, Optional
 
 from torch import nn
@@ -237,7 +238,6 @@ def lora_mistral(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
-        from torchtune.models.common_utils import reparametrize_as_dtype_state_dict_post_hook
         model._register_state_dict_hook(
             partial(
                 reparametrize_as_dtype_state_dict_post_hook,
