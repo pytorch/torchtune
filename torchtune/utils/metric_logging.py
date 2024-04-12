@@ -45,7 +45,7 @@ class MetricLoggerInterface(Protocol):
         """Logs the config
         
         Args:
-            config (OmegaConf): config to log
+            config (DictConfig): config to log
         """
         pass
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
