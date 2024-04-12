@@ -180,7 +180,7 @@ class WandBLogger(MetricLoggerInterface):
         self.log_strategy = log_strategy
         self.world_size, self.rank = get_world_size_and_rank()
         self.local_rank = _get_local_rank()
-        self.local_rank = 0 if self.local_rank is None else self.local_rank
+        self.local_rank = self.local_rank or 0
         
         if (
                 (self.log_strategy == "main" and self.rank == 0) 
