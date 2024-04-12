@@ -135,11 +135,6 @@ class WandBLogger(MetricLoggerInterface):
         project (str): WandB project name
         entity (Optional[str]): WandB entity name
         group (Optional[str]): WandB group name
-        log_strategy (Optional[str]): Strategy to use for logging. Options are "main", "node", "all". In case of "main"
-            only the main process will log to W&B. In case of "node" only the node's main process will log to W&B. In 
-            case of "all" all processes will log to W&B. If you only have one node, "node" and "all" will have the same
-            effect.
-            Default: "main"
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
@@ -164,7 +159,6 @@ class WandBLogger(MetricLoggerInterface):
         project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
-        log_strategy: Literal["main", "node", "all"] = "main",
         **kwargs,
     ):
         try:
@@ -176,17 +170,9 @@ class WandBLogger(MetricLoggerInterface):
             ) from e
         self._wandb = wandb
 
-        # logging strategy options are "main", "node", "all"
-        self.log_strategy = log_strategy
-        self.world_size, self.rank = get_world_size_and_rank()
-        self.local_rank = _get_local_rank()
-        self.local_rank = 0 if self.local_rank is None else self.local_rank
+        _, self.rank = get_world_size_and_rank()
         
-        if (
-                (self.log_strategy == "main" and self.rank == 0) 
-                or (self.log_strategy == "node" and self.local_rank == 0)
-                or self.log_strategy == "all"
-            ): 
+        if self.rank == 0:
             self._wandb.init(
                 project=project,
                 entity=entity,
@@ -196,7 +182,7 @@ class WandBLogger(MetricLoggerInterface):
                 **kwargs,
             
             )
-
+        
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
         stored in the same directory as the checkpoint. You can
