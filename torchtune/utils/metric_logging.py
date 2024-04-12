@@ -16,6 +16,7 @@ from typing import Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
+from omegaconf import OmegaConf
 
 from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
@@ -169,48 +170,32 @@ class WandBLogger(MetricLoggerInterface):
             group=group,
             reinit=True,
             resume="allow",
-            config=kwargs,
+            **kwargs,
         )
 
-        if yaml_config := self._maybe_grab_yaml_config():
-            # we log the config to wandb/Files
-            self._log_yaml_config_to_files(yaml_config) 
+    def save_config(self, config: OmegaConf) -> None:
+        "Logs the config to W&B. Also updates config on overview tab."
+        resolved = OmegaConf.to_container(config, resolve=True)
+        self._wandb.config.update(resolved)
+        self._log_yaml_config_to_files(config)
 
-            # update the wandb config with the yaml config
-            self._update_wandb_config(yaml_config)
-
-    def _update_wandb_config(self, config_file: Path) -> None:
-        try:
-            yaml_config = yaml.safe_load(config_file.read_text())
-            self._wandb.config.update(yaml_config)
-        except Exception as e:
-            print(f"Error loading {config_file} into wandb: {e}")
-
-
-    def _log_yaml_config_to_files(self, config_file: str) -> None:
+    def _log_yaml_config_to_files(self, config: OmegaConf) -> None:
         """Log the yaml config file to wandb in files. We copy the original config to avoid 
         conflicting with the wandb config."""
-        try:
-            with NamedTemporaryFile(
-                mode="w", suffix=".yaml", delete=False, prefix="torchtune_config_"
-            ) as temp_file:
-                copyfile(config_file, temp_file.name)
-                print(f"Logging {temp_file.name} to wandb under Files")
-                temp_config = Path(temp_file.name)
-                self._wandb.save(temp_config, base_path=temp_config.parent)
-        except Exception as e:
-            print(f"Error saving {config_file} to wandb.\nError: \n{e}")
 
-    def _maybe_grab_yaml_config(self) -> Optional[Path]:
-        """Grab the yaml config file passed to the --config arg."""
-        parser = argparse.ArgumentParser()
-        parser.add_argument("--config", type=str)
-        args, _ = parser.parse_known_args()
+        output_config_fname = Path(os.path.join(
+            config.checkpointer.checkpoint_dir, 
+            f"torchtune_config_{self._wandb.run.id}.yaml"
+            )
+        )
         
-        config_file = getattr(args, "config", None)
-        if config_file is None:
-            return None
-        return Path(config_file)
+        try:
+            OmegaConf.save(config, output_config_fname)
+            print(f"Logging {output_config_fname} to W&B under Files")
+            self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
+
+        except Exception as e:
+            print(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._wandb.log({name: data}, step=step)
