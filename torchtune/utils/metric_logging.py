@@ -8,7 +8,7 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Mapping, Optional, Union
+from typing import Mapping, Optional, Union, Literal
 
 from numpy import ndarray
 from torch import Tensor
@@ -164,7 +164,7 @@ class WandBLogger(MetricLoggerInterface):
         project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
-        log_strategy: Optional[str] = "main",
+        log_strategy: Literal["main", "node", "all"] = "main",
         **kwargs,
     ):
         try:
