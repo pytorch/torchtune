@@ -8,16 +8,15 @@ import os
 import sys
 import time
 import yaml
-from shutil import copyfile
-from tempfile import NamedTemporaryFile
 from pathlib import Path
 
 from typing import Mapping, Optional, Union
 
 from numpy import ndarray
 from torch import Tensor
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
+from torchtune.utils._device import _get_local_rank
 from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
@@ -40,7 +39,7 @@ class MetricLoggerInterface(Protocol):
             step (int): step value to record
         """
         pass
-    def log_config(self, config: OmegaConf) -> None:
+    def log_config(self, config: DictConfig) -> None:
         """Logs the config
         
         Args:
@@ -136,6 +135,8 @@ class WandBLogger(MetricLoggerInterface):
         project (str): WandB project name
         entity (Optional[str]): WandB entity name
         group (Optional[str]): WandB group name
+        log_strategy (Optional[str]): Strategy to use for logging. Options are "main", "node", "all".
+            Default: "main"
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
@@ -160,6 +161,7 @@ class WandBLogger(MetricLoggerInterface):
         project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
+        log_strategy: Optional[str] = "main",
         **kwargs,
     ):
         try:
@@ -170,46 +172,62 @@ class WandBLogger(MetricLoggerInterface):
                 "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
             ) from e
         self._wandb = wandb
-        self._wandb.init(
-            project=project,
-            entity=entity,
-            group=group,
-            reinit=True,
-            resume="allow",
-            **kwargs,
-        )
 
-    def log_config(self, config: OmegaConf) -> None:
-        "Logs the config to W&B. Also updates config on overview tab."
-
-        resolved = OmegaConf.to_container(config, resolve=True)
-        self._wandb.config.update(resolved)
+        # logging strategy options are "main", "node", "all"
+        self.log_strategy = log_strategy
+        self.world_size, self.rank = get_world_size_and_rank()
+        self.local_rank = _get_local_rank()
+        self.local_rank = 0 if self.local_rank is None else self.local_rank
         
-        output_config_fname = Path(os.path.join(
-            config.checkpointer.checkpoint_dir, 
-            f"torchtune_config_{self._wandb.run.id}.yaml"
-            )
-        )
-        OmegaConf.save(config, output_config_fname)
-        try:
+        if ((self.log_strategy == "main" and self.rank == 0) 
+            or self.log_strategy == "all" 
+            or (self.log_strategy == "node" and self.local_rank == 0)
+            ): 
+            self._wandb.init(
+                project=project,
+                entity=entity,
+                group=group,
+                reinit=True,
+                resume="allow",
+                **kwargs,
             
-            print(f"Logging {output_config_fname} to W&B under Files")
-            self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
+            )
 
-        except Exception as e:
-            print(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
+    def log_config(self, config: DictConfig) -> None:
+        "Logs the config to W&B. Also updates config on overview tab."
+        if self._wandb.run:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            self._wandb.config.update(resolved)
+            
+            output_config_fname = Path(os.path.join(
+                config.checkpointer.checkpoint_dir, 
+                f"torchtune_config_{self._wandb.run.id}.yaml"
+                )
+            )
+            OmegaConf.save(config, output_config_fname)
+            try:
+                
+                print(f"Logging {output_config_fname} to W&B under Files")
+                self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
+
+            except Exception as e:
+                print(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
 
     def log(self, name: str, data: Scalar, step: int) -> None:
-        self._wandb.log({name: data}, step=step)
+        if self._wandb.run:
+            self._wandb.log({name: data}, step=step)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        self._wandb.log(payload, step=step)
+        if self._wandb.run:
+            self._wandb.log(payload, step=step)
 
     def __del__(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
     def close(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
 class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
