@@ -82,4 +82,4 @@ class TestLoRA7BDistributedFinetuneEval:
         log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
         assert log_search_results is not None
         acc_result = float(log_search_results.group(1))
-        assert acc >= 0.4
+        assert acc_result >= 0.4
