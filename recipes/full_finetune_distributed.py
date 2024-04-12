@@ -460,7 +460,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
-        self._metric_logger.close()
+        if self._is_rank_zero:
+            self._metric_logger.close()
         torch.distributed.destroy_process_group()
 
 
