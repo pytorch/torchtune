@@ -146,6 +146,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
+        
+        # log config with parameter override
+        self._metric_logger.log_config(cfg)
+
         self._model_compile = cfg.compile
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -263,11 +267,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
-        log.info(
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
-            )
-        )
+        memory_stats = utils.memory_stats_log(device=self._device)
+        log.info(f"Memory Stats after model init:\n{memory_stats}")
         return model
 
     def _setup_optimizer(
@@ -447,9 +448,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.total_training_steps % self._log_peak_memory_every_n_steps
                         == 0
                     ):
-                        log.info(
-                            utils.memory_stats_log("Memory Stats:", device=self._device)
-                        )
+                    # Log peak memory for iteration
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(memory_stats, step=self.total_training_steps)
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
