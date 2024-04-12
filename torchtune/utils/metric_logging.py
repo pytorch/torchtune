@@ -135,7 +135,10 @@ class WandBLogger(MetricLoggerInterface):
         project (str): WandB project name
         entity (Optional[str]): WandB entity name
         group (Optional[str]): WandB group name
-        log_strategy (Optional[str]): Strategy to use for logging. Options are "main", "node", "all".
+        log_strategy (Optional[str]): Strategy to use for logging. Options are "main", "node", "all". In case of "main"
+            only the main process will log to W&B. In case of "node" only the node's main process will log to W&B. In 
+            case of "all" all processes will log to W&B. If you only have one node, "node" and "all" will have the same
+            effect.
             Default: "main"
         **kwargs: additional arguments to pass to wandb.init
 
@@ -195,7 +198,13 @@ class WandBLogger(MetricLoggerInterface):
             )
 
     def log_config(self, config: DictConfig) -> None:
-        "Logs the config to W&B. Also updates config on overview tab."
+        """Saves the config locally and also logs the config to W&B. The config is
+        stored in the same directory as the checkpoint. You can
+        see an example of the logged config to W&B in the following link:
+          https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
+        Raises:
+            RuntimeError: If W&B run is not initialized.
+        """
         if self._wandb.run:
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(resolved)
