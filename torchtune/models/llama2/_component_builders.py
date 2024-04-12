@@ -21,7 +21,7 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.modules.low_precision import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 

@@ -51,6 +51,7 @@ from .precision import (
     get_dtype,
     get_gradient_scaler,
     list_dtypes,
+    reparametrize_as_dtype_state_dict_post_hook,
     set_default_dtype,
     validate_expected_param_dtype,
 )
@@ -61,6 +62,7 @@ __all__ = [
     "save_checkpoint",
     "transform_opt_state_dict",
     "validate_checkpoint",
+    "reparametrize_as_dtype_state_dict_post_hook",
     "get_autocast",
     "memory_stats_log",
     "get_device",
