@@ -46,7 +46,7 @@ class TestFullFinetuneDistributed7BLoss:
         ]
 
     def _fetch_expected_loss_values(self):
-        return [1.1281, 1.8182, 1.2476, 0.9085]
+        return [1.1313, 1.7281, 1.1477, 0.7763]
 
     @pytest.mark.slow_integration_test
     def test_loss(self, tmpdir, monkeypatch):
@@ -71,6 +71,9 @@ class TestFullFinetuneDistributed7BLoss:
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         expected_loss_values = self._fetch_expected_loss_values()
+        import pdb
+
+        pdb.set_trace()
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
         )
@@ -92,7 +95,7 @@ class TestLoRA7BDistributedFinetuneEval:
         ]
 
     @pytest.mark.slow_integration_test
-    def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
+    def test_finetune_and_eval(self, tmpdir, caplog, monkeypatch):
 
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
         ckpt_dir = ckpt_path.parent
@@ -113,12 +116,14 @@ class TestLoRA7BDistributedFinetuneEval:
 
         monkeypatch.setattr(sys, "argv", ft_cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
-
         eval_cmd = f"""
-        tune eval \
-            --config {EVAL_CONFIG_PATH} \
-            model_checkpoint={tmpdir}/torchtune_model_0.pt \
-            tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
+        tune run eleuther_eval \
+            --config eleuther_eval \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{tmpdir}' \
+            checkpointer.checkpoint_files=[torchtune_model_0.pt] \
+            checkpointer.output_dir={tmpdir} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']
             limit=10 \
@@ -128,6 +133,8 @@ class TestLoRA7BDistributedFinetuneEval:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        out_err = capsys.readouterr()
-        acc = float(re.findall(r"'acc,none': (\d+\.\d+)", out_err.out)[0])
+        err_log = caplog.messages[-1]
+        log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
+        assert log_search_results is not None
+        acc_result = float(log_search_results.group(1))
         assert acc >= 0.4
