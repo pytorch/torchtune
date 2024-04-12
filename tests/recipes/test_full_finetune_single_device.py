@@ -18,7 +18,11 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
+    llama2_test_config,
+    write_hf_ckpt_config,
+)
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
@@ -41,10 +45,10 @@ class TestFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self):
-        return [10.5074, 10.5563, 10.5152, 10.4851]
+        return [10.5201, 10.5217, 10.4945, 10.5136]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])

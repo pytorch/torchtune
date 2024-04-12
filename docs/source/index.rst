@@ -71,6 +71,13 @@ TorchTune tutorials.
    :link: examples/recipe_deepdive.html
    :tags: finetuning
 
+.. customcarditem::
+   :header: Understanding the Checkpointer
+   :card_description: Dive into TorchTune's Checkpointers
+   :image: _static/img/generic-pytorch-logo.png
+   :link: examples/checkpointer.html
+   :tags: checkpointing
+
 .. customcardend::
 
 
@@ -98,8 +105,16 @@ TorchTune tutorials.
    examples/finetune_llm
    examples/lora_finetune
    examples/qlora_finetune
-   examples/recipe_deepdive
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Deep-Dives
+   :hidden:
+
+   examples/checkpointer
    examples/configs
+   examples/recipe_deepdive
 
 .. toctree::
    :glob:

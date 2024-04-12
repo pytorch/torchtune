@@ -14,6 +14,7 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
     llama2_test_config,
     lora_llama2_test_config,
     write_hf_ckpt_config,
@@ -33,7 +34,6 @@ class TestLoRAFinetuneDistributedRecipe:
             "batch_size=4",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset=torchtune.datasets.alpaca_dataset",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -41,12 +41,12 @@ class TestLoRAFinetuneDistributedRecipe:
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self):
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
-        return [10.4574, 10.5912, 10.5141, 10.4833]
+        return [10.5136, 10.4857, 10.5292, 10.5345]
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
