@@ -5,4 +5,4 @@
 # LICENSE file in the root directory of this source tree.
 
 from .common_utils import reparametrize_as_dtype_state_dict_post_hook  # noqa
-from .models import convert_weights, gemma, llama2, mistral  # noqa
+from torchtune.models import convert_weights, gemma, llama2, mistral  # noqa

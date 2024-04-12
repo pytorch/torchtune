@@ -15,7 +15,7 @@ torchtune.models.llama2
 torchtune.models.common_utils
 ==============================
 
-.. currentmodule: torchtune.models.common_utils
+.. currentmodule:: torchtune.models.common_utils
 
 .. autosummary::
    :toctree: generated/
