@@ -160,7 +160,7 @@ def register_optim_in_bwd_hooks(
         p.register_post_accumulate_grad_hook(optim_step)
 
 
-def memory_stats_log(device: torch.device, reset_stats: bool = True) -> None:
+def memory_stats_log(device: torch.device, reset_stats: bool = True) -> dict:
     """
     Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
     also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
