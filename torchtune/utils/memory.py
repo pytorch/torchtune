@@ -190,30 +190,3 @@ def memory_stats_log(device: torch.device, reset_stats: bool = True) -> None:
         "peak_memory_reserved": peak_mem_reserved,
     }
     return memory_stats
-
-def print_memory_stats_log(
-    prefix: str, memory_stats: dict
-) -> str:
-    """
-    Print a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
-    also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
-    memory (i.e. peak memory during model init, during forward, etc) and optimize memory for
-    individual sections of training.
-
-    Args:
-        prefix (str): Prefix to prepend to the printed summary.
-        memory_stats (dict): A dictionary containing the peak memory active, peak memory allocated, 
-        and peak memory reserved.
-    
-    Returns:
-        str: A string containing the memory summary.
-    """
-
-    ret = f"""
-    {prefix}:
-    GPU peak memory allocation: {memory_stats["peak_memory_alloc"]:.2f} GB
-    GPU peak memory reserved: {memory_stats["peak_memory_reserved"]:.2f} GB
-    GPU peak memory active: {memory_stats["peak_memory_active"]:.2f} GB
-    """
-    
-    return ret
