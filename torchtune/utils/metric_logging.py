@@ -40,7 +40,13 @@ class MetricLoggerInterface(Protocol):
             step (int): step value to record
         """
         pass
-
+    def log_config(self, config: OmegaConf) -> None:
+        """Logs the config
+        
+        Args:
+            config (OmegaConf): config to log
+        """
+        pass
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         """Log multiple scalar values.
 
@@ -83,10 +89,10 @@ class DiskLogger(MetricLoggerInterface):
         self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
-
+    
     def path_to_log_file(self) -> Path:
         return self._file_name
-
+    
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
 
@@ -173,24 +179,20 @@ class WandBLogger(MetricLoggerInterface):
             **kwargs,
         )
 
-    def save_config(self, config: OmegaConf) -> None:
+    def log_config(self, config: OmegaConf) -> None:
         "Logs the config to W&B. Also updates config on overview tab."
+
         resolved = OmegaConf.to_container(config, resolve=True)
         self._wandb.config.update(resolved)
-        self._log_yaml_config_to_files(config)
-
-    def _log_yaml_config_to_files(self, config: OmegaConf) -> None:
-        """Log the yaml config file to wandb in files. We copy the original config to avoid 
-        conflicting with the wandb config."""
-
+        
         output_config_fname = Path(os.path.join(
             config.checkpointer.checkpoint_dir, 
             f"torchtune_config_{self._wandb.run.id}.yaml"
             )
         )
-        
+        OmegaConf.save(config, output_config_fname)
         try:
-            OmegaConf.save(config, output_config_fname)
+            
             print(f"Logging {output_config_fname} to W&B under Files")
             self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
 

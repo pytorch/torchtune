@@ -151,7 +151,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
         # log config with parameter override
-        self._metric_logger.save_config(cfg)
+        self._metric_logger.log_config(cfg)
 
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
