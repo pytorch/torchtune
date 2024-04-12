@@ -7,8 +7,9 @@
 import argparse
 import os
 from typing import Any, List
+import warnings
 
-from huggingface_hub import HfApi, Repository
+from huggingface_hub import HfApi, CommitOperationAdd
 
 
 def add_files_to_repo(
@@ -57,25 +58,21 @@ def upload_to_hf_hub(args: Any):
         )
 
     # Initialize Hugging Face API
-    api = HfApi()
+    api = HfApi(token=args.hf_token)
 
-    # Create a new private repository on the Hub
-    repo_url = api.create_repo(
-        args.repo_name, private=args.private, token=args.hf_token, exist_ok=True
+    # Create a new repository on the Hub
+    repo_url = api.create_repo(args.repo_id, private=args.private, exist_ok=True)
+
+    # Upload readme, license and weights
+    api.create_commit(
+        repo_id=repo_url.repo_id,
+        operations=[
+            CommitOperationAdd(path_in_repo=os.path.basename(file_path), path_or_fileobj=file_path)
+            for file_path in [args.model_path, args.readme_path, args.license_path]
+            if file_path and os.path.exists(file_path)
+        ],
+        commit_message="Initial commit with model, README, and License"
     )
-
-    # Clone the repository
-    repo = Repository(args.repo_name, clone_from=repo_url, use_auth_token=args.hf_token)
-    repo.git_pull()
-
-    # Copy files to the repository
-    file_paths = [args.model_path, args.readme_path, args.license_path]
-    add_files_to_repo(api, args.hf_token, args.hf_username, args.repo_name, file_paths)
-
-    # Commit and push the files to the repository
-    repo.commit("Initial commit with model, README, and License")
-    repo.push_to_hub()
-
 
 if __name__ == "__main__":
     # Create argument parser
@@ -85,19 +82,16 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument(
-        "--repo_name",
+        "--repo_id",
         type=str,
         required=True,
-        help="Name of the repository on Hugging Face Hub.",
+        help="ID of the repository on Hugging Face Hub either as `'repo_name'` or `'username/repo_name'`.",
     )
     parser.add_argument(
         "--model_path", type=str, required=True, help="Path to the PyTorch model file."
     )
     parser.add_argument(
         "--readme_path", type=str, required=False, help="Path to the README file."
-    )
-    parser.add_argument(
-        "--hf_username", type=str, required=True, help="Hugging Face username."
     )
     parser.add_argument(
         "--hf_token", type=str, required=False, help="Hugging Face API token."
