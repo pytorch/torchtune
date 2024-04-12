@@ -57,7 +57,7 @@ A suggested approach would be something like this:
         ...
         ## Let's save the checkpoint to W&B
         ## depending on the Checkpointer Class the file will be named differently
-        ## Here it is an example for the full_finetune case
+        ## Here is an example for the full_finetune case
         checkpoint_file = Path.joinpath(
             self._checkpointer._output_dir, f"torchtune_model_{epoch}"
         ).with_suffix(".pt")
