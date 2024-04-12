@@ -363,6 +363,8 @@
 <h1>torchtune.utils<a class="headerlink" href="#torchtune-utils" title="Permalink to this heading">¶</a></h1>
 <section id="checkpointing">
 <span id="checkpointing-label"></span><h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this heading">¶</a></h2>
+<p>TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
+checkpointing, please see the <a class="reference internal" href="examples/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing tutorial</span></a>.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelHFCheckpointer</span></code></a></p></td>
@@ -376,6 +378,7 @@
 </section>
 <section id="distributed">
 <span id="dist-label"></span><h2>Distributed<a class="headerlink" href="#distributed" title="Permalink to this heading">¶</a></h2>
+<p>Utilities for enabling and working with distributed training.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed" title="torchtune.utils.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
@@ -387,8 +390,9 @@
 </tbody>
 </table>
 </section>
-<section id="mixed-precision">
-<span id="mp-label"></span><h2>Mixed Precision<a class="headerlink" href="#mixed-precision" title="Permalink to this heading">¶</a></h2>
+<section id="reduced-precision">
+<span id="mp-label"></span><h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
+<p>Utilities for working in a reduced precision setting.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.precision.get_autocast.html#torchtune.utils.precision.get_autocast" title="torchtune.utils.precision.get_autocast"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.get_autocast</span></code></a></p></td>
@@ -408,6 +412,7 @@
 </section>
 <section id="memory-management">
 <span id="ac-label"></span><h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
+<p>Utilities to reduce memory consumption during training.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.memory.set_activation_checkpointing.html#torchtune.utils.memory.set_activation_checkpointing" title="torchtune.utils.memory.set_activation_checkpointing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">memory.set_activation_checkpointing</span></code></a></p></td>
@@ -418,6 +423,7 @@
 </section>
 <section id="metric-logging">
 <span id="metric-logging-label"></span><h2>Metric Logging<a class="headerlink" href="#metric-logging" title="Permalink to this heading">¶</a></h2>
+<p>Various logging utilities.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
@@ -437,6 +443,7 @@
 </section>
 <section id="data">
 <h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
+<p>Utilities for working with data and datasets.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.collate.padded_collate.html#torchtune.utils.collate.padded_collate" title="torchtune.utils.collate.padded_collate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">collate.padded_collate</span></code></a></p></td>
@@ -512,7 +519,7 @@
 <li><a class="reference internal" href="#">torchtune.utils</a><ul>
 <li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
 <li><a class="reference internal" href="#distributed">Distributed</a></li>
-<li><a class="reference internal" href="#mixed-precision">Mixed Precision</a></li>
+<li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
 <li><a class="reference internal" href="#memory-management">Memory Management</a></li>
 <li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
 <li><a class="reference internal" href="#data">Data</a></li>
