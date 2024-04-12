@@ -26,19 +26,6 @@ EVAL_CONFIG_PATH = Path.joinpath(
 
 @gpu_test(gpu_count=2)
 class TestLoRA7BDistributedFinetuneEval:
-    def _get_test_config_overrides(self):
-        return [
-            "batch_size=1",
-            "dtype=bf16",
-            "enable_activation_checkpointing=True",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset.train_on_input=False",
-            "seed=9",
-            "log_every_n_steps=1",
-            "optimizer=torch.optim.SGD",
-            "optimizer.lr=2e-5",
-        ]
-
     @pytest.mark.slow_integration_test
     def test_finetune_and_eval(self, tmpdir, caplog, monkeypatch):
 
