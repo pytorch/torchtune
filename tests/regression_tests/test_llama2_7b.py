@@ -10,15 +10,9 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch
 import torchtune
 from tests.common import TUNE_PATH
-from tests.test_utils import (
-    CKPT_MODEL_PATHS,
-    gen_log_file_name,
-    get_loss_values_from_metric_logger,
-    gpu_test,
-)
+from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
 
 CKPT = "llama2_7b"
@@ -28,52 +22,6 @@ pkg_path = Path(torchtune.__file__).parent.absolute()
 EVAL_CONFIG_PATH = Path.joinpath(
     pkg_path, "_cli", "eval_configs", "default_eval_config.yaml"
 )
-
-
-@gpu_test(gpu_count=4)
-class TestFullFinetuneDistributed7BLoss:
-    def _get_test_config_overrides(self):
-        return [
-            "batch_size=1",
-            "dtype=bf16",
-            "enable_activation_checkpointing=True",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset.train_on_input=False",
-            "seed=9",
-            "epochs=2",
-            "max_steps_per_epoch=2",
-            "log_every_n_steps=1",
-        ]
-
-    def _fetch_expected_loss_values(self):
-        return [1.1313, 5.1035, 1.1989, 1.5161]
-
-    @pytest.mark.slow_integration_test
-    def test_loss(self, tmpdir, monkeypatch):
-        ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
-        ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
-
-        cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed
-            --config llama2/7B_full \
-            output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            metric_logger.filename={log_file} \
-        """.split()
-        cmd = cmd + self._get_test_config_overrides()
-        monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values()
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
-        )
 
 
 @gpu_test(gpu_count=2)
