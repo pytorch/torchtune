@@ -13,12 +13,12 @@
 # In all cases, if the files already exist locally they will not be downloaded from S3.
 
 SMALL_MODEL_URLS=(
-    "s3://pytorch-multimodal/small-ckpt-tune-03082024.pt"
-    "s3://pytorch-multimodal/small-ckpt-meta-03082024.pt"
-    "s3://pytorch-multimodal/small-ckpt-hf-03082024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-03082024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-03082024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-03082024.pt"
 )
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
-TOKENIZER_URL=("s3://pytorch-multimodal/llama2-7b/tokenizer.model")
+TOKENIZER_URL=("https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer.model")
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=()
@@ -75,13 +75,18 @@ for S3_URL in "${S3_URLS[@]}"; do
     if [ -e "$LOCAL_DIR/$FILE_NAME" ]; then
         echo "File already exists locally: $LOCAL_DIR/$FILE_NAME"
     else
-        # Download file from S3, optionally silencing progress bar
-        cp_cmd="aws s3 cp ${S3_URL} ${LOCAL_DIR}"
-        if ! [ -z "$S3_OPTS" ]; then
-            cp_cmd="${cp_cmd} ${S3_OPTS}"
+        # S3 files: use s3 cp
+        if [[ $S3_URL == s3* ]]; then
+            # Download file from S3, optionally silencing progress bar
+            cp_cmd="aws s3 cp ${S3_URL} ${LOCAL_DIR}"
+            if ! [ -z "$S3_OPTS" ]; then
+                cp_cmd="${cp_cmd} ${S3_OPTS}"
+            fi
+        # For https: download with curl
+        else
+            cp_cmd="curl -O --output-dir ${LOCAL_DIR} ${S3_URL}"
         fi
         bash -c "${cp_cmd}"
-
         # Check if download was successful
         if [ $? -eq 0 ]; then
             echo "File downloaded successfully: $LOCAL_DIR/$FILE_NAME"
