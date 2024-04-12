@@ -21,7 +21,6 @@ from torchtune.modules import (
     TransformerDecoderLayer,
 )
 
-from torchtune.utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
@@ -252,6 +251,8 @@ def lora_llama2(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
+        # TODO (rohan-varma): Fix circular import issues
+        from torchtune.utils import reparametrize_as_dtype_state_dict_post_hook
         model._register_state_dict_hook(
             partial(
                 reparametrize_as_dtype_state_dict_post_hook,

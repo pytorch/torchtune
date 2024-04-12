@@ -20,7 +20,6 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
-from torchtune.utils import reparametrize_as_dtype_state_dict_post_hook
 
 """
 Component builders for the Mistral 7B models and popular variants such as LoRA.
@@ -238,6 +237,7 @@ def lora_mistral(
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
         # so as to not increase peak memory
+        from torchtune.utils import reparametrize_as_dtype_state_dict_post_hook
         model._register_state_dict_hook(
             partial(
                 reparametrize_as_dtype_state_dict_post_hook,
