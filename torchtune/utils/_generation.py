@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional
+from typing import Callable, Optional
 
 import torch
 
@@ -68,6 +68,7 @@ def generate(
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     eos_id: Optional[int] = None,
+    custom_generate_next_token: Optional[Callable] = None,
 ) -> torch.Tensor:
     """
     Generate tokens from a model conditioned on a prompt.
@@ -83,6 +84,9 @@ def generate(
             the top_k probabilities. Default is None
         eos_id (Optional[int]): If specified, generation is stopped when the eos token is
             generated. Default is None
+        custom_generate_next_token (Optional[Callable]): If specified, we'll use the custom
+            generate_next_token function (e.g. compiled function) when generating the tokens,
+            otherwise we'll use the default `geenrate_next_token` function. Default is None
 
     Returns:
         List: list of generated tokens
@@ -99,6 +103,9 @@ def generate(
             f"Models maximum seq length {model.max_seq_len} should be >= "
             f"{(prompt_length + max_generated_tokens)} - 1"
         )
+
+    if custom_generate_next_token is None:
+        custom_generate_next_token = generate_next_token
 
     # generated_tokens is a list of tensors where each tensor contains tokens
     # needed for the output
@@ -120,7 +127,7 @@ def generate(
     # we get the requested number of tokens or we hit eos_id
     input_pos = torch.tensor([prompt_length], device=prompt.device)
     for _ in range(max_generated_tokens - 1):
-        token = generate_next_token(
+        token = custom_generate_next_token(
             model=model,
             input_pos=input_pos,
             x=token.view(1, -1),

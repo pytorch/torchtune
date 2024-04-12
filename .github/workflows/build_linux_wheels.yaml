@@ -25,8 +25,9 @@ jobs:
       os: linux
       test-infra-repository: pytorch/test-infra
       test-infra-ref: main
-      with-cuda: disable
+      with-cuda: enable
       with-rocm: disable
+      build-python-only: enable
   build:
     needs: generate-matrix
     name: ${{ matrix.repository }}
@@ -36,12 +37,8 @@ jobs:
     with:
       repository: pytorch/torchtune
       ref: ""
-      pre-script: ""
-      post-script: ""
-      smoke-test-script: ""
       package-name: torchtune
-      test-infra-repository: pytorch/test-infra
-      test-infra-ref: main
       build-matrix: ${{ needs.generate-matrix.outputs.matrix }}
+      pre-script: .github/scripts/pre_build_script.sh
       trigger-event: ${{ github.event_name }}
       build-platform: 'python-build-package'

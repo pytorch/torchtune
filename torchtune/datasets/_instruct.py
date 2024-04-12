@@ -11,9 +11,13 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_instruct_template
 
-from torchtune.data import InstructTemplate, Message, validate_messages
+from torchtune.data import (
+    CROSS_ENTROPY_IGNORE_IDX,
+    InstructTemplate,
+    Message,
+    validate_messages,
+)
 
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.modules import Tokenizer
 
 

@@ -14,6 +14,7 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
     llama2_test_config,
     lora_llama2_test_config,
     write_hf_ckpt_config,
@@ -35,22 +36,21 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             f"dtype={dtype_str}",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset=torchtune.datasets.alpaca_dataset",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self):
-        return [10.5074, 10.5614, 10.5205, 10.4918]
+        return [10.5209, 10.5269, 10.5130, 10.5242]
 
     def _fetch_qlora_expected_loss_values(self, dtype):
         if dtype == "bf16":
-            return [10.5057, 10.5575, 10.5179, 10.4898]
-        return [10.5059, 10.5571, 10.5181, 10.4897]
+            return [10.5197, 10.5272, 10.5129, 10.5243]
+        return [10.5198, 10.5271, 10.5131, 10.5244]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
@@ -132,6 +132,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             apply_lora_to_output=False,
             lora_rank=8,
             lora_alpha=16,
+            quantize_base=True,
         )
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
