@@ -43,49 +43,6 @@ def get_assets_path():
     return Path(__file__).parent.parent / "assets"
 
 
-# class DummyInstructDataset(InstructDataset):
-#     def __init__(
-#         self,
-#         tokenizer: Tokenizer,
-#         source: str,
-#         template: InstructTemplate,
-#         transform: Optional[Callable] = None,
-#         column_map: Optional[Dict[str, str]] = None,
-#         train_on_input: bool = False,
-#         max_seq_len: Optional[int] = None,
-#         **load_dataset_kwargs: Dict[str, Any],
-#     ):
-#         source = "text"
-#         load_dataset_kwargs = {
-#             "data_files": {"train": [get_assets_path() / "alpaca_tiny.txt]}
-#         }
-#         super().__init__(
-#         tokenizer: Tokenizer,
-#         source: str,
-#         template: InstructTemplate,
-#         transform: Optional[Callable] = None,
-#         column_map: Optional[Dict[str, str]] = None,
-#         train_on_input: bool = False,
-#         max_seq_len: Optional[int] = None,
-#         **load_dataset_kwargs: Dict[str, Any],
-#     )
-
-# def dummy_alpaca_dataset(
-#     tokenizer: Tokenizer,
-#     train_on_input: bool = True,
-#     max_seq_len: int = 512,
-# ):
-#     return InstructDataset(
-#         tokenizer=tokenizer,
-#         source="text",
-#         template=AlpacaInstructTemplate,
-#         train_on_input=train_on_input,
-#         max_seq_len=max_seq_len,
-#         split="train",
-#         data_files=,
-#     )
-
-
 def dummy_alpaca_dataset_config():
     data_files = os.path.join(get_assets_path(), "alpaca_tiny.json")
     out = [
