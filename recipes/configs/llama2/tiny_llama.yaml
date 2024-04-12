@@ -5,6 +5,8 @@
 # You can gran the model checkpoint using
 #   wget https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-03082024.pt 
 # place it in the tiny_llama directory.
+# The tokenizer can be downloaded from:
+#   wget https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer.model
 #
 # and use the same tokenizer as llama2
 #
