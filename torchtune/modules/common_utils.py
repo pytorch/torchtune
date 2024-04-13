@@ -25,6 +25,7 @@ def reparametrize_as_dtype_state_dict_post_hook(
     higher-precision weight and optionally offloads the restored weight to CPU.
 
     This function is meant to be used with PyTorch's ``nn.Module._register_state_dict_hook``, i.e.
+
     >>> m = MyModule()
     >>> m._register_state_dict_hook(reparametrize_as_dtype_state_dict_post_hook)
 

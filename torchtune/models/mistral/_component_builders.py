@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List, Literal, Optional
 
 from torch import nn
@@ -20,7 +21,6 @@ from torchtune.modules import (
 )
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
-from torchtune.modules.low_precision import reparametrize_as_dtype_state_dict_post_hook
 
 """
 Component builders for the Mistral 7B models and popular variants such as LoRA.
