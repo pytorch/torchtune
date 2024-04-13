@@ -25,7 +25,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma/tokenizer.model
+  path: /tmp/gemma2b/tokenizer.model
 
 # Dataset
 dataset:
@@ -40,13 +40,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma/
+  checkpoint_dir: /tmp/gemma2b/
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma
+  output_dir: /tmp/gemma2b/
   model_type: GEMMA
 resume_from_checkpoint: False
 
@@ -75,5 +75,5 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-gemma-finetune
+output_dir: /tmp/alpaca-gemma2b-finetune
 log_every_n_steps: null

@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from omegaconf import DictConfig
 from torchtune.config._utils import _merge_yaml_and_cli_args
+from torchtune.utils import get_world_size_and_rank
 from torchtune.utils.argparse import TuneRecipeArgumentParser
 from torchtune.utils.logging import get_logger
 
@@ -48,8 +49,11 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
         yaml_args, cli_args = parser.parse_known_args()
         conf = _merge_yaml_and_cli_args(yaml_args, cli_args)
 
-        logger = get_logger("DEBUG")
-        logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
+        # Log the config only on rank 0
+        _, rank = get_world_size_and_rank()
+        if rank == 0:
+            logger = get_logger("DEBUG")
+            logger.info(msg=f"Running {recipe_main.__name__} with parameters {conf}")
 
         sys.exit(recipe_main(conf))
 
