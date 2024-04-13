@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import utils
-from torchtune.models.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from torchtune.models.common_utils import reparametrize_as_dtype_state_dict_post_hook
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List, Literal, Optional
 
 from torch import nn
