@@ -6,7 +6,7 @@
 #   tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN> --output-dir /tmp/llama2-13b-hf
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 lora_finetune_distributed --config llama2/13B_lora \
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config llama2/13B_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
