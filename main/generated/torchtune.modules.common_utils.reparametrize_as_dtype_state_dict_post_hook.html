@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>set_trainable_params &mdash; TorchTune  documentation</title>
+  <title>reparametrize_as_dtype_state_dict_post_hook &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="reparametrize_as_dtype_state_dict_post_hook" href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
-    <link rel="prev" title="get_adapter_params" href="torchtune.modules.peft.get_adapter_params.html" />
+    <link rel="next" title="torchtune.utils" href="../api_ref_utilities.html" />
+    <link rel="prev" title="set_trainable_params" href="torchtune.modules.peft.set_trainable_params.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -325,13 +325,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>set_trainable_params</li>
+      <li>reparametrize_as_dtype_state_dict_post_hook</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.peft.set_trainable_params.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -361,22 +361,31 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="set-trainable-params">
-<h1>set_trainable_params<a class="headerlink" href="#set-trainable-params" title="Permalink to this heading">¶</a></h1>
+  <section id="reparametrize-as-dtype-state-dict-post-hook">
+<h1>reparametrize_as_dtype_state_dict_post_hook<a class="headerlink" href="#reparametrize-as-dtype-state-dict-post-hook" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.modules.peft.set_trainable_params">
-<span class="sig-prename descclassname"><span class="pre">torchtune.modules.peft.</span></span><span class="sig-name descname"><span class="pre">set_trainable_params</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">adapter_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/peft/peft_utils.html#set_trainable_params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.peft.set_trainable_params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Set trainable parameters for an nn.Module based on a state dict of adapter parameters.</p>
+<dt class="sig sig-object py" id="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.common_utils.</span></span><span class="sig-name descname"><span class="pre">reparametrize_as_dtype_state_dict_post_hook</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="p"><span class="pre">...</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.2)"><span class="pre">dtype</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">torch.bfloat16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offload_to_cpu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/common_utils.html#reparametrize_as_dtype_state_dict_post_hook"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook" title="Permalink to this definition">¶</a></dt>
+<dd><p>A state_dict hook that replaces nf4 tensors with their restored
+higher-precision weight and optionally offloads the restored weight to CPU.</p>
+<p>This function is meant to be used with PyTorch’s <code class="docutils literal notranslate"><span class="pre">nn.Module._register_state_dict_hook</span></code>, i.e.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">m</span> <span class="o">=</span> <span class="n">MyModule</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">m</span><span class="o">.</span><span class="n">_register_state_dict_hook</span><span class="p">(</span><span class="n">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the hook is registered per the above process, this hook will be called _after_ the module’s
+<code class="docutils literal notranslate"><span class="pre">state_dict</span></code> method is called. The hook will replace all <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code> instances by unquantizing
+them to the original dtype, and optionally offload the restored weight to CPU.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>nn.Module</em>) – Instance of model class containing some adapter params.</p></li>
-<li><p><strong>adapter_params</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – State dict mapping adapter key names to their
-respective nn.Parameters (i.e. outputs of <a class="reference internal" href="torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params" title="torchtune.modules.peft.get_adapter_params"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_adapter_params()</span></code></a>.)</p></li>
+<li><p><strong>model</strong> (<em>nn.Module</em>) – the model to take <code class="docutils literal notranslate"><span class="pre">state_dict()</span></code> on</p></li>
+<li><p><strong>state_dict</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – the state dict to modify</p></li>
+<li><p><strong>*args</strong> (<em>Tuple</em><em>[</em><em>Any</em><em>, </em><em>...</em><em>]</em>) – Unused args passed when running this as a state_dict hook.</p></li>
+<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – the dtype to restore the weight to. Default is <code class="docutils literal notranslate"><span class="pre">torch.bfloat16</span></code>.</p></li>
+<li><p><strong>offload_to_cpu</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether to offload the restored weight to CPU. Default is <code class="docutils literal notranslate"><span class="pre">True</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> (<em>Dict</em><em>[</em><em>Any</em><em>, </em><em>Any</em><em>]</em>) – Unused keyword args passed when running this as a state_dict hook.</p></li>
 </ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>None</p>
 </dd>
 </dl>
 </dd></dl>
@@ -391,10 +400,10 @@ respective nn.Parameters (i.e. outputs of <a class="reference internal" href="to
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral float-right" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../api_ref_utilities.html" class="btn btn-neutral float-right" title="torchtune.utils" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.peft.get_adapter_params.html" class="btn btn-neutral" title="get_adapter_params" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.peft.set_trainable_params.html" class="btn btn-neutral" title="set_trainable_params" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -426,7 +435,7 @@ respective nn.Parameters (i.e. outputs of <a class="reference internal" href="to
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">set_trainable_params</a></li>
+<li><a class="reference internal" href="#">reparametrize_as_dtype_state_dict_post_hook</a></li>
 </ul>
 
             </div>
