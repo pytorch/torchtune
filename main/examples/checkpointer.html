@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Checkpointing in TorchTune &mdash; TorchTune  documentation</title>
+  <title>Checkpointing in torchtune &mdash; TorchTune  documentation</title>
   
 
   
@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -323,7 +324,7 @@
       </li>
 
         
-      <li>Checkpointing in TorchTune</li>
+      <li>Checkpointing in torchtune</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -360,7 +361,7 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <section id="checkpointing-in-torchtune">
-<span id="understand-checkpointer"></span><h1>Checkpointing in TorchTune<a class="headerlink" href="#checkpointing-in-torchtune" title="Permalink to this heading">¶</a></h1>
+<span id="understand-checkpointer"></span><h1>Checkpointing in torchtune<a class="headerlink" href="#checkpointing-in-torchtune" title="Permalink to this heading">¶</a></h1>
 <p>This tutorial will walk you through the design and behavior of the checkpointer and associated
 utilities.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
@@ -371,7 +372,7 @@ utilities.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What this tutorial will cover:</div>
 <ul class="simple">
-<li><p class="sd-card-text">Deep-dive into the checkpointer design for TorchTune</p></li>
+<li><p class="sd-card-text">Deep-dive into the checkpointer design for torchtune</p></li>
 <li><p class="sd-card-text">Checkpoint formats and how we handle them</p></li>
 <li><p class="sd-card-text">Checkpointing scenarios: Intermediate vs Final and LoRA vs Full-finetune</p></li>
 </ul>
@@ -382,16 +383,16 @@ utilities.</p>
 </div>
 <section id="overview">
 <h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune checkpointers are designed to be composable components which can be plugged
+<p>torchtune checkpointers are designed to be composable components which can be plugged
 into any recipe - training, evaluation or generation. Each checkpointer supports a
 set of models and scenarios making these easy to understand, debug and extend.</p>
-<p>Before we dive into the checkpointer in TorchTune, let’s define some concepts.</p>
+<p>Before we dive into the checkpointer in torchtune, let’s define some concepts.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
 <section id="checkpoint-format">
 <h3>Checkpoint Format<a class="headerlink" href="#checkpoint-format" title="Permalink to this heading">¶</a></h3>
-<p>In this tutorial, we’ll talk about different checkpoint formats and how TorchTune handles them.
+<p>In this tutorial, we’ll talk about different checkpoint formats and how torchtune handles them.
 Let’s take a close look at these different formats.</p>
 <p>Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
 in files on disk. Each weight is associated with a string key that identifies it in the state dict.
@@ -424,7 +425,7 @@ model definition for this state_dict expects an embedding layer with <code class
 embedding with dim of <code class="docutils literal notranslate"><span class="pre">4096</span></code>.</p>
 <p><strong>HF Format</strong></p>
 <p>This is the most popular format within the Hugging Face Model Hub and is
-the default format in every TorchTune config. This is also the format you get when you download the
+the default format in every torchtune config. This is also the format you get when you download the
 llama2 model from the <a class="reference external" href="https://huggingface.co/meta-llama/Llama-2-7b-hf">Llama-2-7b-hf</a> repo.</p>
 <p>The first big difference is that the state_dict is split across two <code class="docutils literal notranslate"><span class="pre">.bin</span></code> files. To correctly
 load the checkpoint, you’ll need to piece these files together. Let’s inspect one of the files.</p>
@@ -449,19 +450,19 @@ same between the two, which is as expected.</p>
 <div class="line"><br /></div>
 </div>
 <p>As you can see, if you’re not careful you’ll likely end up making a number of errors just during
-checkpoint load and save. The TorchTune checkpointer makes this less error-prone by managing state dicts
-for you. TorchTune is designed to be “state-dict invariant”.</p>
+checkpoint load and save. The torchtune checkpointer makes this less error-prone by managing state dicts
+for you. torchtune is designed to be “state-dict invariant”.</p>
 <ul class="simple">
-<li><p>When loading, TorchTune accepts checkpoints from multiple sources in multiple formats.
+<li><p>When loading, torchtune accepts checkpoints from multiple sources in multiple formats.
 You don’t have to worry about explicitly converting checkpoints every time you run a recipe.</p></li>
-<li><p>When saving, TorchTune produces checkpoints in the same format as the source. This includes
+<li><p>When saving, torchtune produces checkpoints in the same format as the source. This includes
 converting the state_dict back into the original form and splitting the keys and weights
 across the same number of files.</p></li>
 </ul>
 <p>One big advantage of being “state-dict invariant” is that you should be able to use
-fine-tuned checkpoints from TorchTune with any post-training tool (quantization, eval, inference)
+fine-tuned checkpoints from torchtune with any post-training tool (quantization, eval, inference)
 which supports the source format, without any code changes OR conversion scripts. This is one of the
-ways in which TorchTune interoperates with the surrounding ecosystem.</p>
+ways in which torchtune interoperates with the surrounding ecosystem.</p>
 <p>To be “state-dict invariant”, the <code class="docutils literal notranslate"><span class="pre">load_checkpoint</span></code> and
 <code class="docutils literal notranslate"><span class="pre">save_checkpoint</span></code> methods make use of the weight convertors available
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py">here</a>.</p>
@@ -472,13 +473,13 @@ ways in which TorchTune interoperates with the surrounding ecosystem.</p>
 </section>
 <section id="handling-different-checkpoint-formats">
 <h2>Handling different Checkpoint Formats<a class="headerlink" href="#handling-different-checkpoint-formats" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune supports three different
+<p>torchtune supports three different
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py">checkpointers</a>,
 each of which supports a different checkpoint format.</p>
 <p><strong>HFCheckpointer</strong></p>
 <p>This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
-Model Hub and is the default format in every TorchTune config.</p>
+Model Hub and is the default format in every torchtune config.</p>
 <p>For this checkpointer to work correctly, we assume that <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:</p>
 <ul>
@@ -500,7 +501,7 @@ files.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p>The following snippet explains how the HFCheckpointer is setup in TorchTune config files.</p>
+<p>The following snippet explains how the HFCheckpointer is setup in torchtune config files.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
@@ -528,7 +529,7 @@ files.</p>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which TorchTune understands</span>
+<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
 
 <span class="c1"># set to True if restarting training</span>
@@ -539,7 +540,7 @@ files.</p>
 <p class="admonition-title">Note</p>
 <p>Checkpoint conversion to and from HF’s format requires access to model params which are
 read directly from the <code class="docutils literal notranslate"><span class="pre">config.json</span></code> file. This helps ensure we either load the weights
-correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune’s
+correctly or error out in case of discrepancy between the HF checkpoint file and torchtune’s
 model implementations. This json file is downloaded from the hub along with the model checkpoints.
 More details on how these are used during conversion can be found
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py">here</a>.</p>
@@ -571,7 +572,7 @@ files.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p>The following snippet explains how the MetaCheckpointer is setup in TorchTune config files.</p>
+<p>The following snippet explains how the MetaCheckpointer is setup in torchtune config files.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
 
 <span class="w">    </span><span class="c1"># checkpointer to use</span>
@@ -595,7 +596,7 @@ files.</p>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which TorchTune understands</span>
+<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
 
 <span class="c1"># set to True if restarting training</span>
@@ -605,8 +606,8 @@ files.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
-<p><strong>TorchTuneCheckpointer</strong></p>
-<p>This checkpointer reads and writes checkpoints in a format that is compatible with TorchTune’s
+<p><strong>torchtuneCheckpointer</strong></p>
+<p>This checkpointer reads and writes checkpoints in a format that is compatible with torchtune’s
 model definition. This does not perform any state_dict conversions and is currently used either
 for testing or for loading quantized models for generation.</p>
 <div class="line-block">
@@ -615,7 +616,7 @@ for testing or for loading quantized models for generation.</p>
 </section>
 <section id="intermediate-vs-final-checkpoints">
 <h2>Intermediate vs Final Checkpoints<a class="headerlink" href="#intermediate-vs-final-checkpoints" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune Checkpointers support two checkpointing scenarios:</p>
+<p>torchtune Checkpointers support two checkpointing scenarios:</p>
 <p><strong>End-of-training Checkpointing</strong></p>
 <p>The model weights at the end of a completed training
 run are written out to file. The checkpointer ensures that the output checkpoint
@@ -683,7 +684,7 @@ to the config file</p>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which TorchTune understands</span>
+<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
 
 <span class="c1"># set to True if restarting training</span>
@@ -693,7 +694,7 @@ to the config file</p>
 </section>
 <section id="checkpointing-for-lora">
 <h2>Checkpointing for LoRA<a class="headerlink" href="#checkpointing-for-lora" title="Permalink to this heading">¶</a></h2>
-<p>In TorchTune, we output both the adapter weights and the full model “merged” weights
+<p>In torchtune, we output both the adapter weights and the full model “merged” weights
 for LoRA. The “merged” checkpoint can be used just like you would use the source
 checkpoint with any post-training tools. For more details, take a look at our
 <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Finetuning Tutorial</span></a>.</p>
@@ -728,7 +729,7 @@ looks something like this:</p>
 <span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
 <span class="w">    </span><span class="c1"># model_type which specifies how to convert the state_dict</span>
-<span class="w">    </span><span class="c1"># into a format which TorchTune understands</span>
+<span class="w">    </span><span class="c1"># into a format which torchtune understands</span>
 <span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
 
 <span class="c1"># set to True if restarting training</span>
@@ -787,11 +788,11 @@ create some models and run a simple forward.</p>
     <span class="p">[</span> <span class="o">-</span><span class="mf">7.8929</span><span class="p">,</span>  <span class="o">-</span><span class="mf">8.8465</span><span class="p">,</span>   <span class="mf">3.3794</span><span class="p">,</span>  <span class="o">...</span><span class="p">,</span>  <span class="o">-</span><span class="mf">1.3500</span><span class="p">,</span>  <span class="o">-</span><span class="mf">4.6145</span><span class="p">,</span>  <span class="o">-</span><span class="mf">2.5931</span><span class="p">]]])</span>
 </pre></div>
 </div>
-<p>You can do this with any model supported by TorchTune. You can find a full list
+<p>You can do this with any model supported by torchtune. You can find a full list
 of models and model builders
 <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/torchtune/models">here</a>.</p>
 <p>We hope this tutorial provided a deeper insight into the checkpointer and
-associated utilities in TorchTune. Happy fine-tuning!</p>
+associated utilities in torchtune. Happy fine-tuning!</p>
 </section>
 </section>
 
@@ -838,7 +839,7 @@ associated utilities in TorchTune. Happy fine-tuning!</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Checkpointing in TorchTune</a><ul>
+<li><a class="reference internal" href="#">Checkpointing in torchtune</a><ul>
 <li><a class="reference internal" href="#overview">Overview</a><ul>
 <li><a class="reference internal" href="#checkpoint-format">Checkpoint Format</a></li>
 </ul>

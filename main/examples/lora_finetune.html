@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Checkpointing in TorchTune" href="checkpointer.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="checkpointer.html" />
     <link rel="prev" title="LLM Full Finetuning Recipe" href="finetune_llm.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -362,9 +363,9 @@
   <section id="finetuning-llama2-with-lora">
 <span id="lora-finetune-label"></span><h1>Finetuning Llama2 with LoRA<a class="headerlink" href="#finetuning-llama2-with-lora" title="Permalink to this heading">¶</a></h1>
 <p>This guide will teach you about <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, a parameter-efficient finetuning technique,
-and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
+and show you how you can use torchtune to finetune a Llama2 model with LoRA.
 If you already know what LoRA is and want to get straight to running
-your own LoRA finetune in TorchTune, you can jump to <a class="reference internal" href="#lora-recipe-label"><span class="std std-ref">LoRA finetuning recipe in TorchTune</span></a>.</p>
+your own LoRA finetune in torchtune, you can jump to <a class="reference internal" href="#lora-recipe-label"><span class="std std-ref">LoRA finetuning recipe in torchtune</span></a>.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -374,8 +375,8 @@ your own LoRA finetune in TorchTune, you can jump to <a class="reference interna
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What you will learn</div>
 <ul class="simple">
 <li><p class="sd-card-text">What LoRA is and how it saves memory during finetuning</p></li>
-<li><p class="sd-card-text">An overview of LoRA components in TorchTune</p></li>
-<li><p class="sd-card-text">How to run a LoRA finetune using TorchTune</p></li>
+<li><p class="sd-card-text">An overview of LoRA components in torchtune</p></li>
+<li><p class="sd-card-text">How to run a LoRA finetune using torchtune</p></li>
 <li><p class="sd-card-text">How to experiment with different LoRA configurations</p></li>
 </ul>
 </div>
@@ -387,8 +388,8 @@ your own LoRA finetune in TorchTune, you can jump to <a class="reference interna
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
 <ul class="simple">
-<li><p class="sd-card-text">Be familiar with <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">TorchTune</span></a></p></li>
-<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install TorchTune</span></a></p></li>
+<li><p class="sd-card-text">Be familiar with <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">torchtune</span></a></p></li>
+<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
 <li><p class="sd-card-text">Make sure you have downloaded the <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">Llama2-7B model weights</span></a></p></li>
 </ul>
 </div>
@@ -493,8 +494,8 @@ Now that we understand what LoRA is doing, let’s look at how we can apply it t
 </section>
 <section id="applying-lora-to-llama2-models">
 <h2>Applying LoRA to Llama2 models<a class="headerlink" href="#applying-lora-to-llama2-models" title="Permalink to this heading">¶</a></h2>
-<p>With TorchTune, we can easily apply LoRA to Llama2 with a variety of different configurations.
-Let’s take a look at how to construct Llama2 models in TorchTune with and without LoRA.</p>
+<p>With torchtune, we can easily apply LoRA to Llama2 with a variety of different configurations.
+Let’s take a look at how to construct Llama2 models in torchtune with and without LoRA.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_7b</span><span class="p">,</span> <span class="n">lora_llama2_7b</span>
 
 <span class="c1"># Build Llama2 without any LoRA layers</span>
@@ -547,7 +548,7 @@ See <a class="reference internal" href="#setting-trainable-params"><span class="
 as expected. Additionally, inspecting the type of <code class="code docutils literal notranslate"><span class="pre">lora_model</span></code> and
 <code class="code docutils literal notranslate"><span class="pre">base_model</span></code>, would show that they are both instances of the same <a class="reference internal" href="../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a>.
 (Feel free to verify this for yourself.)</p>
-<p>Why does this matter? TorchTune makes it easy to load checkpoints for LoRA directly from our Llama2
+<p>Why does this matter? torchtune makes it easy to load checkpoints for LoRA directly from our Llama2
 model without any wrappers or custom checkpoint conversion logic.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Assuming that base_model already has the pretrained Llama2 weights,</span>
 <span class="c1"># this will directly load them into your LoRA model without any conversion necessary.</span>
@@ -557,7 +558,7 @@ model without any wrappers or custom checkpoint conversion logic.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Whenever loading weights with <code class="code docutils literal notranslate"><span class="pre">strict=False</span></code>, you should verify that any missing or extra keys in
-the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. TorchTune’s LoRA recipe does this by default via
+the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipe does this by default via
 <code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.modules.peft.validate_state_dict_for_lora()</span></code>.</p>
 </div>
 <p>Once we’ve loaded the base model weights, we also want to set only LoRA parameters to trainable.</p>
@@ -593,8 +594,8 @@ of in the recipe.</p>
 </div>
 </section>
 <section id="lora-finetuning-recipe-in-torchtune">
-<span id="lora-recipe-label"></span><h2>LoRA finetuning recipe in TorchTune<a class="headerlink" href="#lora-finetuning-recipe-in-torchtune" title="Permalink to this heading">¶</a></h2>
-<p>Finally, we can put it all together and finetune a model using TorchTune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>.
+<span id="lora-recipe-label"></span><h2>LoRA finetuning recipe in torchtune<a class="headerlink" href="#lora-finetuning-recipe-in-torchtune" title="Permalink to this heading">¶</a></h2>
+<p>Finally, we can put it all together and finetune a model using torchtune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">these instructions</span></a>.
 You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed
@@ -605,7 +606,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 <p>Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
 either by adding <code class="code docutils literal notranslate"><span class="pre">checkpointer.checkpoint_files=[my_model_checkpoint_path]</span> <span class="pre">tokenizer_checkpoint=my_tokenizer_checkpoint_path</span></code>
 or by directly modifying the <code class="code docutils literal notranslate"><span class="pre">7B_lora.yaml</span></code> file. See our <a class="reference internal" href="configs.html#config-tutorial-label"><span class="std std-ref">Configs Deep-Dive</span></a>
-for more details on how you can easily clone and modify TorchTune configs.</p>
+for more details on how you can easily clone and modify torchtune configs.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -613,7 +614,7 @@ for more details on how you can easily clone and modify TorchTune configs.</p>
 and (b) the memory constraints of your hardware. See <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements">this table</a>
 for peak memory of LoRA finetuning in a couple of common hardware setups.</p>
 </div>
-<p>The preceding command will run a LoRA finetune with TorchTune’s factory settings, but we may want to experiment a bit.
+<p>The preceding command will run a LoRA finetune with torchtune’s factory settings, but we may want to experiment a bit.
 Let’s take a closer look at some of the <code class="code docutils literal notranslate"><span class="pre">lora_finetune_distributed</span></code> config.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Model Arguments</span>
 <span class="nt">model</span><span class="p">:</span>
@@ -638,7 +639,7 @@ but as long as we keep <code class="code docutils literal notranslate"><span cla
 <img alt="../_images/lora_experiment_loss_curves.png" src="../_images/lora_experiment_loss_curves.png" />
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>The above figure was generated with W&amp;B. You can use TorchTune’s <a class="reference internal" href="../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">WandBLogger</span></code></a>
+<p>The above figure was generated with W&amp;B. You can use torchtune’s <a class="reference internal" href="../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">WandBLogger</span></code></a>
 to generate similar loss curves, but you will need to install W&amp;B and setup an account separately.</p>
 </div>
 <p>As an exercise, you can also try running some evaluation tasks or manually inspecting generations
@@ -656,7 +657,7 @@ You may want to train the model for longer first, as here we only looked at 500 
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in TorchTune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="finetune_llm.html" class="btn btn-neutral" title="LLM Full Finetuning Recipe" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -695,7 +696,7 @@ You may want to train the model for longer first, as here we only looked at 500 
 <li><a class="reference internal" href="#what-is-lora">What is LoRA?</a></li>
 <li><a class="reference internal" href="#how-does-lora-work">How does LoRA work?</a></li>
 <li><a class="reference internal" href="#applying-lora-to-llama2-models">Applying LoRA to Llama2 models</a></li>
-<li><a class="reference internal" href="#lora-finetuning-recipe-in-torchtune">LoRA finetuning recipe in TorchTune</a></li>
+<li><a class="reference internal" href="#lora-finetuning-recipe-in-torchtune">LoRA finetuning recipe in torchtune</a></li>
 </ul>
 </li>
 </ul>

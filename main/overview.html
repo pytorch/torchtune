@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>TorchTune Overview &mdash; TorchTune  documentation</title>
+  <title>torchtune Overview &mdash; TorchTune  documentation</title>
   
 
   
@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Install Instructions" href="install.html" />
-    <link rel="prev" title="Welcome to the TorchTune Documentation" href="index.html" />
+    <link rel="prev" title="Welcome to the torchtune Documentation" href="index.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">TorchTune Overview</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -323,7 +324,7 @@
       </li>
 
         
-      <li>TorchTune Overview</li>
+      <li>torchtune Overview</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -360,18 +361,18 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <section id="torchtune-overview">
-<span id="overview-label"></span><h1>TorchTune Overview<a class="headerlink" href="#torchtune-overview" title="Permalink to this heading">¶</a></h1>
-<p>On this page, we’ll walk through an overview of TorchTune, including features, key concepts and additional pointers.</p>
+<span id="overview-label"></span><h1>torchtune Overview<a class="headerlink" href="#torchtune-overview" title="Permalink to this heading">¶</a></h1>
+<p>On this page, we’ll walk through an overview of torchtune, including features, key concepts and additional pointers.</p>
 <section id="what-is-torchtune">
-<h2>What is TorchTune?<a class="headerlink" href="#what-is-torchtune" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:</p>
+<h2>What is torchtune?<a class="headerlink" href="#what-is-torchtune" title="Permalink to this heading">¶</a></h2>
+<p>torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:</p>
 <ul class="simple">
 <li><p><strong>Simplicity and Extensibility</strong>. Native-PyTorch, componentized design and easy-to-reuse abstractions</p></li>
 <li><p><strong>Correctness</strong>. High-bar on proving the correctness of components and recipes</p></li>
-<li><p><strong>Stability</strong>. PyTorch just works. So should TorchTune</p></li>
+<li><p><strong>Stability</strong>. PyTorch just works. So should torchtune</p></li>
 <li><p><strong>Democratizing LLM fine-tuning</strong>. Works out-of-the-box on different hardware</p></li>
 </ul>
-<p>TorchTune provides:</p>
+<p>torchtune provides:</p>
 <ul class="simple">
 <li><p>Modular native-PyTorch implementations of popular LLMs</p></li>
 <li><p>Interoperability with popular model zoos through checkpoint-conversion utilities</p></li>
@@ -382,13 +383,13 @@
 </ul>
 <p>Excited? To get started, checkout some of our tutorials, including:</p>
 <ul class="simple">
-<li><p>our <a class="reference internal" href="examples/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">full finetuning tutorial</span></a> to get started and finetune your first LLM using TorchTune.</p></li>
-<li><p>our <a class="reference internal" href="examples/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with TorchTune.</p></li>
+<li><p>our <a class="reference internal" href="examples/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">full finetuning tutorial</span></a> to get started and finetune your first LLM using torchtune.</p></li>
+<li><p>our <a class="reference internal" href="examples/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with torchtune.</p></li>
 </ul>
 </section>
 <section id="key-concepts">
 <h2>Key Concepts<a class="headerlink" href="#key-concepts" title="Permalink to this heading">¶</a></h2>
-<p>As you go through the tutorials and code, there are two concepts which will help you better understand and use TorchTune.</p>
+<p>As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.</p>
 <p><strong>Configs.</strong> Yaml files which help you configure training settings (dataset, model, chekckpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
 See the “Getting Started with Configs” tutorial for more information.</p>
@@ -403,11 +404,11 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
 </section>
 <section id="design-principles">
 <h2>Design Principles<a class="headerlink" href="#design-principles" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune embodies <a class="reference external" href="https://pytorch.org/docs/stable/community/design.html">PyTorch’s design philosophy</a>, especially “usability over everything else”.</p>
+<p>torchtune embodies <a class="reference external" href="https://pytorch.org/docs/stable/community/design.html">PyTorch’s design philosophy</a>, especially “usability over everything else”.</p>
 <p><strong>Native PyTorch</strong></p>
-<p>TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.</p>
+<p>torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.</p>
 <p><strong>Simplicity and Extensibility</strong></p>
-<p>TorchTune is designed to be easy to understand, use and extend.</p>
+<p>torchtune is designed to be easy to understand, use and extend.</p>
 <ul class="simple">
 <li><p>Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend</p></li>
 <li><p>No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases</p></li>
@@ -415,7 +416,7 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
 <li><p>Modular building blocks over monolithic components</p></li>
 </ul>
 <p><strong>Correctness</strong></p>
-<p>TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide</p>
+<p>torchtune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide</p>
 <ul class="simple">
 <li><p>Extensive unit-tests to ensure component-level numerical parity with reference implementations</p></li>
 <li><p>Checkpoint-tests to ensure model-level numerical parity with reference implementations</p></li>
@@ -435,7 +436,7 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
         <a href="install.html" class="btn btn-neutral float-right" title="Install Instructions" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="index.html" class="btn btn-neutral" title="Welcome to the TorchTune Documentation" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Welcome to the torchtune Documentation" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -467,8 +468,8 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">TorchTune Overview</a><ul>
-<li><a class="reference internal" href="#what-is-torchtune">What is TorchTune?</a></li>
+<li><a class="reference internal" href="#">torchtune Overview</a><ul>
+<li><a class="reference internal" href="#what-is-torchtune">What is torchtune?</a></li>
 <li><a class="reference internal" href="#key-concepts">Key Concepts</a></li>
 <li><a class="reference internal" href="#design-principles">Design Principles</a></li>
 </ul>

@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Training Recipe Deep-Dive" href="recipe_deepdive.html" />
-    <link rel="prev" title="Checkpointing in TorchTune" href="checkpointer.html" />
+    <link rel="prev" title="Checkpointing in torchtune" href="checkpointer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -383,8 +384,8 @@
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
 <ul class="simple">
-<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of TorchTune</span></a></p></li>
-<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install TorchTune</span></a></p></li>
+<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of torchtune</span></a></p></li>
+<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
 <li><p class="sd-card-text">Understand the <a class="reference internal" href="recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">fundamentals of recipes</span></a></p></li>
 </ul>
 </div>
@@ -403,7 +404,7 @@ modifying the config.</p>
 </section>
 <section id="writing-configs">
 <h2>Writing configs<a class="headerlink" href="#writing-configs" title="Permalink to this heading">¶</a></h2>
-<p>Configs serve as the primary entry point for running recipes in TorchTune. They are
+<p>Configs serve as the primary entry point for running recipes in torchtune. They are
 expected to be YAML files and they simply list out values for parameters you want to define
 for a particular run.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
@@ -416,7 +417,7 @@ for a particular run.</p>
 </div>
 <section id="configuring-components-using-instantiate">
 <h3>Configuring components using <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code><a class="headerlink" href="#configuring-components-using-instantiate" title="Permalink to this heading">¶</a></h3>
-<p>Many fields will require specifying TorchTune objects with associated keyword
+<p>Many fields will require specifying torchtune objects with associated keyword
 arguments as parameters. Models, datasets, optimizers, and loss functions are
 common examples of this. You can easily do this using the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code>
 subfield. In <code class="code docutils literal notranslate"><span class="pre">_component_</span></code>, you need to specify the dotpath of the object
@@ -443,7 +444,7 @@ instance of the specified object in your recipe’s setup like so:</p>
 <code class="code docutils literal notranslate"><span class="pre">dataset</span></code>.</p>
 <p>As written, the preceding example will actually throw an error. If you look at the method for <code class="xref py py-class docutils literal notranslate"><span class="pre">alpaca_dataset</span></code>,
 you’ll notice that we’re missing a required positional argument, the tokenizer.
-Since this is another configurable TorchTune object, let’s understand how to handle
+Since this is another configurable torchtune object, let’s understand how to handle
 this by taking a look at the <code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code> API.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">instantiate</span><span class="p">(</span>
     <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span>
@@ -607,7 +608,7 @@ tune<span class="w"> </span>full_finetune<span class="w"> </span>--config<span c
         <a href="recipe_deepdive.html" class="btn btn-neutral float-right" title="Training Recipe Deep-Dive" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="checkpointer.html" class="btn btn-neutral" title="Checkpointing in TorchTune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="checkpointer.html" class="btn btn-neutral" title="Checkpointing in torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

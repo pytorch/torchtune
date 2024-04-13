@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
 <li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -361,7 +362,7 @@
               
   <section id="training-recipe-deep-dive">
 <span id="recipe-deepdive"></span><h1>Training Recipe Deep-Dive<a class="headerlink" href="#training-recipe-deep-dive" title="Permalink to this heading">¶</a></h1>
-<p>This tutorial will walk you through the design of training-recipes in TorchTune.</p>
+<p>This tutorial will walk you through the design of training-recipes in torchtune.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -381,7 +382,7 @@
 </div>
 <section id="what-are-recipes">
 <h2>What are Recipes?<a class="headerlink" href="#what-are-recipes" title="Permalink to this heading">¶</a></h2>
-<p>Recipes are the primary entry points for TorchTune users. These can be thought of
+<p>Recipes are the primary entry points for torchtune users. These can be thought of
 as “targeted” end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training)
@@ -392,7 +393,7 @@ We believe a) users are best suited to make trade-offs specific to
 their use cases and b) there’s no one-size-fits-all solution. As a result, recipes are meant to be easy
 to understand, extend and debug, <em>and not</em> generalized entry points for all possible settings.</p>
 <p>Depending on your use case and level of expertise, you will routinely find yourself modifying existing
-recipes (eg: adding new features) or writing new ones. TorchTune makes writing recipes easy by providing
+recipes (eg: adding new features) or writing new ones. torchtune makes writing recipes easy by providing
 well-tested modular components/building-blocks and general utilities
 (eg: <a class="reference internal" href="../api_ref_utilities.html#metric-logging-label"><span class="std std-ref">WandB Logging</span></a> and <a class="reference internal" href="../api_ref_utilities.html#dist-label"><span class="std std-ref">FSDP Wrapping</span></a>).</p>
 <p>Each recipe consists of three components:</p>
@@ -402,7 +403,7 @@ well-tested modular components/building-blocks and general utilities
 <li><p><strong>Recipe Class</strong>, core logic needed for training, exposed to users through a set of APIs</p></li>
 </ul>
 <p>In the following sections, we’ll take a closer look at each of these components. For a complete working example, refer to the
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py">full finetuning recipe</a> in TorchTune and the associated
+<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py">full finetuning recipe</a> in torchtune and the associated
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml">config</a>.</p>
 </section>
 <section id="what-recipes-are-not">
@@ -410,7 +411,7 @@ well-tested modular components/building-blocks and general utilities
 <ul class="simple">
 <li><p><strong>Monolithic Trainers.</strong> A recipe is <strong>not</strong> a monolithic trainer meant to support every possible feature through 100s of flags.</p></li>
 <li><p><strong>Generalized entry-points.</strong> A recipe is <strong>not</strong> meant to support every possible model architecture or fine-tuning method.</p></li>
-<li><p><strong>Wrappers around external frameworks.</strong> A recipe is <strong>not</strong> meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI’s evaluation harness).</p></li>
+<li><p><strong>Wrappers around external frameworks.</strong> A recipe is <strong>not</strong> meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using torchtune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI’s evaluation harness).</p></li>
 </ul>
 </section>
 <section id="recipe-script">

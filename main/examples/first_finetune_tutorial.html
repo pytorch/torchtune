@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="LLM Full Finetuning Recipe" href="finetune_llm.html" />
+    <link rel="next" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
     <link rel="prev" title="Install Instructions" href="../install.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -261,9 +261,10 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">TorchTune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
@@ -272,7 +273,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in TorchTune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
 </ul>
@@ -362,7 +363,7 @@
   <section id="finetune-your-first-llm">
 <span id="finetune-llama-label"></span><h1>Finetune your First LLM<a class="headerlink" href="#finetune-your-first-llm" title="Permalink to this heading">¶</a></h1>
 <p>This guide will walk you through the process of launching your first finetuning
-job using TorchTune.</p>
+job using torchtune.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -371,7 +372,7 @@ job using TorchTune.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What you will learn</div>
 <ul class="simple">
-<li><p class="sd-card-text">How to download a model and convert it to a format compatible with Torchtune</p></li>
+<li><p class="sd-card-text">How to download a model and convert it to a format compatible with torchtune</p></li>
 <li><p class="sd-card-text">How to modify a recipe’s parameters</p></li>
 <li><p class="sd-card-text">How to finetune a model</p></li>
 </ul>
@@ -384,8 +385,8 @@ job using TorchTune.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
 <ul class="simple">
-<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of TorchTune</span></a></p></li>
-<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install TorchTune</span></a></p></li>
+<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of torchtune</span></a></p></li>
+<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -394,7 +395,7 @@ job using TorchTune.</p>
 </div>
 <section id="downloading-a-model">
 <span id="download-llama-label"></span><h2>Downloading a model<a class="headerlink" href="#downloading-a-model" title="Permalink to this heading">¶</a></h2>
-<p>First, you need to download a model. TorchTune’s supports an integration
+<p>First, you need to download a model. torchtune’s supports an integration
 with the <a class="reference external" href="https://huggingface.co/docs/hub/en/index">Hugging Face Hub</a> - a collection of the latest and greatest model weights.</p>
 <p>For this tutorial, you’re going to use the <a class="reference external" href="https://llama.meta.com/">Llama2 model from Meta</a>. Llama2 is a “gated model”,
 meaning that you need to be granted access in order to download the weights. Follow <a class="reference external" href="https://huggingface.co/meta-llama">these instructions</a> on the official Meta page
@@ -417,7 +418,7 @@ See <a class="reference external" href="https://llama.meta.com/get-started#getti
 </section>
 <section id="selecting-a-recipe">
 <h2>Selecting a recipe<a class="headerlink" href="#selecting-a-recipe" title="Permalink to this heading">¶</a></h2>
-<p>Recipes are the primary entry points for TorchTune users.
+<p>Recipes are the primary entry points for torchtune users.
 These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs.</p>
 <p>Each recipe consists of three components:</p>
 <ul class="simple">
@@ -489,7 +490,7 @@ lowering the epochs to 1 so you can see results sooner, and updating the learnin
 <h2>Training a model<a class="headerlink" href="#training-a-model" title="Permalink to this heading">¶</a></h2>
 <p>Now that you have a model in the proper format and a config that suits your needs, let’s get training!</p>
 <p>Just like all the other steps, you will be using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI tool to launch your finetuning run.
-To make it easier for users already familiar with the PyTorch ecosystem, TorchTune integrates with
+To make it easier for users already familiar with the PyTorch ecosystem, torchtune integrates with
 <a class="reference external" href="https://pytorch.org/docs/stable/elastic/run.html">torchrun</a>. Therefore, in order to launch a distributed
 run using two GPUs, it’s as easy as:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>custom_config.yaml
@@ -522,7 +523,7 @@ at the full fine-tuning recipe and understand the config better.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="finetune_llm.html" class="btn btn-neutral float-right" title="LLM Full Finetuning Recipe" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="e2e_flow.html" class="btn btn-neutral float-right" title="End-to-End Workflow with torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="../install.html" class="btn btn-neutral" title="Install Instructions" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
