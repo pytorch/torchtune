@@ -96,7 +96,7 @@ _ALL_RECIPES = [
         name="generate",
         file_path="generate.py",
         configs=[
-            Config(name="generate", file_path="generate.yaml"),
+            Config(name="generation", file_path="generation.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -104,7 +104,7 @@ _ALL_RECIPES = [
         name="eleuther_eval",
         file_path="eleuther_eval.py",
         configs=[
-            Config(name="eleuther_eval", file_path="eleuther_eval.yaml"),
+            Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -120,7 +120,7 @@ _ALL_RECIPES = [
         name="quantize",
         file_path="quantize.py",
         configs=[
-            Config(name="quantize", file_path="quantize.yaml"),
+            Config(name="quantization", file_path="quantization.yaml"),
         ],
         supports_distributed=False,
     ),

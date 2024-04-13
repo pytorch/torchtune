@@ -53,7 +53,7 @@ class QuantizationRecipe:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
-        model.load_state_dict(model_state_dict, assign=True)
+        model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
