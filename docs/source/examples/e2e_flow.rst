@@ -1,27 +1,28 @@
 .. _e2e_flow:
 
 ==================================
-End-to-End Workflow with TorchTune
+End-to-End Workflow with torchtune
 ==================================
 
 In this tutorial, we'll walk through an end-to-end example of how you can fine-tune,
 evaluate, optionally quantize and then run generation with your favorite LLM using
-TorchTune. We'll also go over how you can use some popular tools and libraries
-from the community seemlessly with TorchTune.
+torchtune. We'll also go over how you can use some popular tools and libraries
+from the community seemlessly with torchtune.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this tutorial will cover:
 
-      * Different type of recipes available in TorchTune beyond fine-tuning
+      * Different type of recipes available in torchtune beyond fine-tuning
       * End-to-end example connecting all of these recipes
-      * Different tools and libraries you can use with TorchTune
+      * Different tools and libraries you can use with torchtune
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
-      * Make sure to :ref:`install TorchTune<install_label>`
-      * Concepts such as :ref:`configs <config_tutorial_label>` and checkpoints
+      * Be familiar with the :ref:`overview of torchtune<overview_label>`
+      * Make sure to :ref:`install torchtune<install_label>`
+      * Concepts such as :ref:`configs <config_tutorial_label>` and
+        :ref:`checkpoints <understand_checkpointer>`
 
 
 Overview
@@ -36,29 +37,30 @@ might have can look something like this:
   setup and the end task for which the model will be used
 - Evaluate the model on some benchmarks to validate model quality
 - Run some generations to make sure the model output looks reasonable
-- Quantize the model for efficient inference followed by exporting it for specific
-  environments such as inference on a mobile phone
+- Quantize the model for efficient inference
+- [Optional] Export the model for specific environments such as inference on a mobile phone
 
-In this tutorial, we'll cover each of these items and give examples of how you can do this using
-TorchTune, and how TorchTune makes it easy to use popular tools and libraries from the ecosystem.
+In this tutorial, we'll cover how you can use torchtune for all of the above, leveraging
+integrations with popular tools and libraries from the ecosystem.
 
 We'll use the Llama2 7B model for this tutorial. You can find a complete set of models supported
-by TorchTune `here <https://github.com/pytorch/torchtune/blob/main/README.md#introduction>`_.
+by torchtune `here <https://github.com/pytorch/torchtune/blob/main/README.md#introduction>`_.
 
 |
 
 Download Llama2 7B
 ------------------
 
-In this tutorial, we'll use the HF-Format for the Llama2 7B model. For more information on checkpoint
-formats and how these are handled in TorchTune, take a look at this tutorial on checkpointing.
+In this tutorial, we'll use the Hugging Face model weights for the Llama2 7B mode.
+For more information on checkpoint formats and how these are handled in torchtune, take a look at
+this tutorial on :ref:`checkpoints <understand_checkpointer>`.
 
 To download the HF format Llama2 7B model, we'll use the tune CLI.
 
 .. code-block:: bash
 
   tune download \
-  meta-llama/Llama-2-7b \
+  meta-llama/Llama-2-7b-hf \
   --output-dir <checkpoint_dir> \
   --hf-token <ACCESS TOKEN>
 
@@ -72,7 +74,7 @@ Finetune the model using LoRA
 For this tutorial, we'll fine-tune the model using LoRA. LoRA is a parameter efficient fine-tuning
 technique which is especially helpful when you don't have a lot of GPU memory to play with. LoRA
 freezes the base LLM and adds a very small percentage of learnable parameters. This helps keep
-memory associated with gradients and optimizer state low. Using TorchTune, you should be able to
+memory associated with gradients and optimizer state low. Using torchtune, you should be able to
 fine-tune a Llama2 7B model with LoRA in less than 16GB of GPU memory using bfloat16 on a
 RTX 3090/4090. For more information on how to use LoRA, take a look at our
 :ref:`LoRA Tutorial <lora_finetune_label>`.
@@ -150,11 +152,11 @@ Run Evaluation using EleutherAI's Eval Harness
 
 We've fine-tuned a model. But how well does this model really do? Let's run some Evaluations!
 
-Instead of re-inventing the wheel on Evals, TorchTune integrates with
+torchtune integrates with
 `EleutherAI's evaluation harness <https://github.com/EleutherAI/lm-evaluation-harness>`_.
 An example of this is available through the
 ``eleuther_eval`` recipe. In this tutorial, we're going to directly use this recipe by
-modifying it's associated config ``eleuther_evaluation.yaml``.
+modifying its associated config ``eleuther_evaluation.yaml``.
 
 Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
 let's first copy over the config to our local working directory so we can make changes. This
@@ -225,7 +227,7 @@ The results should look something like this.
     [eleuther_eval.py:195] Eval completed in 121.27 seconds.
     [eleuther_eval.py:197] truthfulqa_mc2: {'acc,none': 0.489 ...
 
-So seems like our fine-tuned model gets ~48% on this task, which is ~10 points
+Our fine-tuned model gets ~48% on this task, which is ~10 points
 better than the baseline. Great! Seems like our fine-tuning helped.
 
 |
@@ -278,12 +280,9 @@ Let's modify ``custom_generation_config.yaml`` to include the following changes.
 
 
 Once the config is updated, let's kick off generation! We'll use the
-default settings for sampling with ``top_k=`300`` and a
+default settings for sampling with ``top_k=300`` and a
 ``temperature=0.8``. These parameters control how the probabilities for
-sampling are computed. ``top_k`` restricts the space of samples to the tokens
-with the top k probabilities.
-
-These are standard settings for Llama2 7B and
+sampling are computed. These are standard settings for Llama2 7B and
 we recommend inspecting the model with these before playing around with
 these parameters.
 
@@ -316,7 +315,7 @@ Speeding up Generation using Quantization
 -----------------------------------------
 
 We saw that the generation recipe took around 11.6 seconds to generate 300 tokens.
-One technique commonly used to speed up inference is quantization. TorchTune provides
+One technique commonly used to speed up inference is quantization. torchtune provides
 an integration with the `TorchAO <https://github.com/pytorch-labs/ao>`_
 quantization APIs. Let's first quantize the model using 4-bit weights-only quantization
 and see if this improves generation speed.
@@ -375,9 +374,9 @@ Once quantization is complete, you'll see the following in the logs.
 .. note::
     Unlike the fine-tuned checkpoints, this outputs a single checkpoint file. This is
     because our quantization APIs currently don't support any conversion across formats.
-    As a result you won't be able to use these quantized models outside of TorchTune.
+    As a result you won't be able to use these quantized models outside of torchtune.
     But you should be able to use these with the generation and evaluation recipes within
-    TorchTune. These results will help inform which quantization methods you should use
+    torchtune. These results will help inform which quantization methods you should use
     with your favorite inference engine.
 
 Now that we have the quantized model, let's re-run generation.
@@ -413,9 +412,8 @@ Modify ``custom_generation_config.yaml`` to include the following changes.
 
 
 Once the config is updated, let's kick off generation! We'll use the
-same sampling parameters as before.
-
-We'll use a different prompt from the one in the config
+same sampling parameters as before. We'll also use the same prompt we did with the
+unquantized model.
 
 .. code-block:: bash
 
@@ -439,21 +437,22 @@ by almost 3x!
 
 |
 
-Using TorchTune Checkpoints with other libraries
+Using torchtune checkpoints with other libraries
 ------------------------------------------------
 
 As we mentioned above, one of the benefits of handling of the checkpoint
-conversion is that users can directly work with standard formats. This helps
-with interoperability with other libraries since TorchTune doesn't add yet
+conversion is that you can directly work with standard formats. This helps
+with interoperability with other libraries since torchtune doesn't add yet
 another format to the mix.
 
 Let's take a look at an example of how this would work with a popular codebase
 used for running performant inference with LLMs -
 `gpt-fast <https://github.com/pytorch-labs/gpt-fast/tree/main>`_. This section
-assumes that you've cloned the repository on your machine.
+assumes that you've cloned that repository on your machine.
 
 ``gpt-fast`` makes some assumptions about the checkpoint and the availability of
-the key-to-file mapping. Let's satisfy these assumptions, by creating this mapping
+the key-to-file mapping i.e. a file mapping parameter names to the files containing them.
+Let's satisfy these assumptions, by creating this mapping
 file. Let's assume we'll be using ``<new_dir>/Llama-2-7B-hf`` as the directory
 for this. ``gpt-fast`` assumes that the directory with checkpoints has the
 same format at the HF repo-id.
@@ -466,8 +465,8 @@ same format at the HF repo-id.
     output_dict = {"weight_map": {}}
 
     # Load the checkpoints
-    sd_1 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
-    sd_2 = torch.load('/tmp/Llama-2-7b-hf/hf_model_0002_0.pt', mmap=True, map_location='cpu')
+    sd_1 = torch.load('<checkpoint_dir>/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
+    sd_2 = torch.load('<checkpoint_dir>/hf_model_0002_0.pt', mmap=True, map_location='cpu')
 
     # create the weight map
     for key in sd_1.keys():
@@ -493,10 +492,12 @@ Once the directory structure is setup, let's convert the checkpoints and run inf
 
     cd gpt-fast/
 
+    # convert the checkpoints into a format readable by gpt-fast
     python scripts/convert_hf_checkpoint.py \
     --checkpoint_dir <new_dir>/Llama-2-7B-hf/ \
     --model 7B
 
+    # run inference using the converted model
     python generate.py \
     --compile \
     --checkpoint_path <new_dir>/Llama-2-7B-hf/model.pth \
@@ -515,5 +516,5 @@ The output should look something like this:
 
 And thats it! Try your own prompt!
 
-Hope this tutorial gave you some insights into how you can use TorchTune for
+Hopefully this tutorial gave you some insights into how you can use torchtune for
 your own workflows. Happy Tuning!

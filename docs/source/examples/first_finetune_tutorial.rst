@@ -5,26 +5,26 @@ Finetune your First LLM
 =======================
 
 This guide will walk you through the process of launching your first finetuning
-job using TorchTune.
+job using torchtune.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
-      * How to download a model and convert it to a format compatible with Torchtune
+      * How to download a model and convert it to a format compatible with torchtune
       * How to modify a recipe's parameters
       * How to finetune a model
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
-      * Make sure to :ref:`install TorchTune<install_label>`
+      * Be familiar with the :ref:`overview of torchtune<overview_label>`
+      * Make sure to :ref:`install torchtune<install_label>`
 
 .. _download_llama_label:
 
 Downloading a model
 -------------------
-First, you need to download a model. TorchTune's supports an integration
+First, you need to download a model. torchtune's supports an integration
 with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
@@ -53,7 +53,7 @@ This command will also download the model tokenizer and some other helpful files
 
 Selecting a recipe
 ------------------
-Recipes are the primary entry points for TorchTune users.
+Recipes are the primary entry points for torchtune users.
 These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs.
 
 Each recipe consists of three components:
@@ -132,7 +132,7 @@ Training a model
 Now that you have a model in the proper format and a config that suits your needs, let's get training!
 
 Just like all the other steps, you will be using the :code:`tune` CLI tool to launch your finetuning run.
-To make it easier for users already familiar with the PyTorch ecosystem, TorchTune integrates with
+To make it easier for users already familiar with the PyTorch ecosystem, torchtune integrates with
 `torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_. Therefore, in order to launch a distributed
 run using two GPUs, it's as easy as:
 

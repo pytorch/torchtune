@@ -4,7 +4,7 @@
 Training Recipe Deep-Dive
 =========================
 
-This tutorial will walk you through the design of training-recipes in TorchTune.
+This tutorial will walk you through the design of training-recipes in torchtune.
 
 .. grid:: 1
 
@@ -17,7 +17,7 @@ This tutorial will walk you through the design of training-recipes in TorchTune.
 
 What are Recipes?
 -----------------
-Recipes are the primary entry points for TorchTune users. These can be thought of
+Recipes are the primary entry points for torchtune users. These can be thought of
 as "targeted" end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training)
@@ -30,7 +30,7 @@ their use cases and b) there's no one-size-fits-all solution. As a result, recip
 to understand, extend and debug, *and not* generalized entry points for all possible settings.
 
 Depending on your use case and level of expertise, you will routinely find yourself modifying existing
-recipes (eg: adding new features) or writing new ones. TorchTune makes writing recipes easy by providing
+recipes (eg: adding new features) or writing new ones. torchtune makes writing recipes easy by providing
 well-tested modular components/building-blocks and general utilities
 (eg: :ref:`WandB Logging<metric_logging_label>` and :ref:`FSDP Wrapping <dist_label>`).
 
@@ -42,7 +42,7 @@ Each recipe consists of three components:
 - **Recipe Class**, core logic needed for training, exposed to users through a set of APIs
 
 In the following sections, we'll take a closer look at each of these components. For a complete working example, refer to the
-`full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_ in TorchTune and the associated
+`full finetuning recipe <https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py>`_ in torchtune and the associated
 `config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml>`_.
 
 
@@ -51,7 +51,7 @@ What Recipes are not?
 
 - **Monolithic Trainers.** A recipe is **not** a monolithic trainer meant to support every possible feature through 100s of flags.
 - **Generalized entry-points.** A recipe is **not** meant to support every possible model architecture or fine-tuning method.
-- **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using TorchTune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI's evaluation harness).
+- **Wrappers around external frameworks.** A recipe is **not** meant to be a wrapper around external frameworks. These are fully written in native-PyTorch using torchtune building blocks. Dependencies are primarily in the form of additional utilities or interoperability with the surrounding ecosystem (eg: EleutherAI's evaluation harness).
 
 
 Recipe Script
