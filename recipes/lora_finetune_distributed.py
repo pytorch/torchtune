@@ -601,6 +601,8 @@ def recipe_main(cfg: DictConfig) -> None:
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
+    config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
+
     recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
