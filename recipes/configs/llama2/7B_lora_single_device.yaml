@@ -71,13 +71,13 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-compile: True
+compile: False
 
 # Logging
 output_dir: /tmp/lora_finetune_output
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
-  project: foo
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
 log_every_n_steps: null
 
 # Environment

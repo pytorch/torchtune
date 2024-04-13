@@ -36,9 +36,11 @@ PEFT Components
 
 
 Module Utilities
------------------
+------------------
 These are utilities that are common to and can be used by all modules.
 
 .. autosummary::
    :toctree: generated/
+   :nosignatures:
+
    common_utils.reparametrize_as_dtype_state_dict_post_hook
