@@ -1,7 +1,7 @@
 # Config for QuantizationRecipe in quantize.py
 #
 # To launch, run the following command from root torchtune directory:
-#    tune quantize --config quantize
+#    tune run quantize --config quantize
 #
 # Supported quantization modes are:
 #      8w:
