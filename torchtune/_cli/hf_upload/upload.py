@@ -7,9 +7,8 @@
 import argparse
 import os
 from typing import Any, List
-import warnings
 
-from huggingface_hub import HfApi, CommitOperationAdd
+from huggingface_hub import CommitOperationAdd, HfApi
 
 
 def add_files_to_repo(
@@ -67,12 +66,15 @@ def upload_to_hf_hub(args: Any):
     api.create_commit(
         repo_id=repo_url.repo_id,
         operations=[
-            CommitOperationAdd(path_in_repo=os.path.basename(file_path), path_or_fileobj=file_path)
+            CommitOperationAdd(
+                path_in_repo=os.path.basename(file_path), path_or_fileobj=file_path
+            )
             for file_path in [args.model_path, args.readme_path, args.license_path]
             if file_path and os.path.exists(file_path)
         ],
-        commit_message="Initial commit with model, README, and License"
+        commit_message="Initial commit with model, README, and License",
     )
+
 
 if __name__ == "__main__":
     # Create argument parser
@@ -94,7 +96,11 @@ if __name__ == "__main__":
         "--readme_path", type=str, required=False, help="Path to the README file."
     )
     parser.add_argument(
-        "--hf_token", type=str, required=False, help="Hugging Face API token."
+        "--hf_token",
+        type=str,
+        required=False,
+        help="Hugging Face API token.",
+        default=os.getenv("HF_TOKEN", None),
     )
     parser.add_argument(
         "--license_path",
