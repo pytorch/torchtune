@@ -20,14 +20,14 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 class TestEleutherEval:
     @pytest.mark.integration_test
-    def test_torchune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
+    def test_torchtune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
         cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_eval \
+            --config eleuther_evaluation \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -73,7 +73,7 @@ class TestEleutherEval:
 
         cmd = f"""
         tune run eleuther_eval \
-            --config eleuther_eval \
+            --config eleuther_evalation \
             output_dir={tmpdir} \
             checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \

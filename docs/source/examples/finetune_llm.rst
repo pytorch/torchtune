@@ -80,7 +80,7 @@ from Stanford. The following parameters are related to the data:
 
 .. code-block:: python
 
-    # Point the dataset to the Alpaca Dataset implementation in TorchTune
+    # Point the dataset to the Alpaca Dataset implementation in torchtune
     # This is set in the config
     dataset: alpaca_dataset
 

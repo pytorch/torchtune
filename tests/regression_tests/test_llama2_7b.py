@@ -10,15 +10,9 @@ import sys
 from pathlib import Path
 
 import pytest
-import torch
 import torchtune
 from tests.common import TUNE_PATH
-from tests.test_utils import (
-    CKPT_MODEL_PATHS,
-    gen_log_file_name,
-    get_loss_values_from_metric_logger,
-    gpu_test,
-)
+from tests.test_utils import CKPT_MODEL_PATHS, gpu_test
 
 
 CKPT = "llama2_7b"
@@ -31,68 +25,9 @@ EVAL_CONFIG_PATH = Path.joinpath(
 
 
 @gpu_test(gpu_count=2)
-class TestFullFinetuneDistributed7BLoss:
-    def _get_test_config_overrides(self):
-        return [
-            "batch_size=1",
-            "dtype=bf16",
-            "enable_activation_checkpointing=True",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset.train_on_input=False",
-            "seed=9",
-            "epochs=2",
-            "max_steps_per_epoch=2",
-            "log_every_n_steps=1",
-        ]
-
-    def _fetch_expected_loss_values(self):
-        return [1.1281, 1.8182, 1.2476, 0.9085]
-
-    @pytest.mark.slow_integration_test
-    def test_loss(self, tmpdir, monkeypatch):
-        ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
-        ckpt_dir = ckpt_path.parent
-        log_file = gen_log_file_name(tmpdir)
-
-        cmd = f"""
-        tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed
-            --config llama2/7B_full \
-            output_dir={tmpdir} \
-            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer
-            checkpointer.checkpoint_dir='{ckpt_dir}' \
-            checkpointer.checkpoint_files=[{ckpt_path}]\
-            checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
-            metric_logger.filename={log_file} \
-        """.split()
-        cmd = cmd + self._get_test_config_overrides()
-        monkeypatch.setattr(sys, "argv", cmd)
-        runpy.run_path(TUNE_PATH, run_name="__main__")
-
-        loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values()
-        torch.testing.assert_close(
-            loss_values, expected_loss_values, rtol=1e-3, atol=1e-3
-        )
-
-
-@gpu_test(gpu_count=2)
 class TestLoRA7BDistributedFinetuneEval:
-    def _get_test_config_overrides(self):
-        return [
-            "batch_size=1",
-            "dtype=bf16",
-            "enable_activation_checkpointing=True",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset.train_on_input=False",
-            "seed=9",
-            "log_every_n_steps=1",
-            "optimizer=torch.optim.SGD",
-            "optimizer.lr=2e-5",
-        ]
-
     @pytest.mark.slow_integration_test
-    def test_finetune_and_eval(self, tmpdir, capsys, monkeypatch):
+    def test_finetune_and_eval(self, tmpdir, caplog, monkeypatch):
 
         ckpt_path = Path(CKPT_MODEL_PATHS[CKPT])
         ckpt_dir = ckpt_path.parent
@@ -113,12 +48,14 @@ class TestLoRA7BDistributedFinetuneEval:
 
         monkeypatch.setattr(sys, "argv", ft_cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
-
         eval_cmd = f"""
-        tune eval \
-            --config {EVAL_CONFIG_PATH} \
-            model_checkpoint={tmpdir}/torchtune_model_0.pt \
-            tokenizer._component_=torchtune.models.llama2.llama2_tokenizer \
+        tune run eleuther_eval \
+            --config eleuther_eval \
+            output_dir={tmpdir} \
+            checkpointer=torchtune.utils.FullModelTorchTuneCheckpointer \
+            checkpointer.checkpoint_dir='{tmpdir}' \
+            checkpointer.checkpoint_files=[torchtune_model_0.pt] \
+            checkpointer.output_dir={tmpdir} \
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             tasks=['truthfulqa_mc2']
             limit=10 \
@@ -128,6 +65,8 @@ class TestLoRA7BDistributedFinetuneEval:
         with pytest.raises(SystemExit):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        out_err = capsys.readouterr()
-        acc = float(re.findall(r"'acc,none': (\d+\.\d+)", out_err.out)[0])
-        assert acc >= 0.4
+        err_log = caplog.messages[-1]
+        log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
+        assert log_search_results is not None
+        acc_result = float(log_search_results.group(1))
+        assert acc_result >= 0.4

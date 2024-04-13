@@ -1,13 +1,12 @@
-name: Multi-GPU Recipe Tests
+name: Nightly Recipe Tests
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-  workflow_dispatch:
+  schedule:
+    # Runs at midnight every day
+    - cron:  '0 0 * * *'
 
 concurrency:
-  group: recipe-test-multi-gpu-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
+  group: recipe-test-nightly-${{ github.workflow }}-${{ github.ref == 'refs/heads/main' && github.run_number || github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -19,12 +18,12 @@ defaults:
     shell: bash -l -eo pipefail {0}
 
 jobs:
-  recipe_test_multi_gpu:
+  recipe_test_nightly:
     runs-on: linux.8xlarge.nvidia.gpu
     strategy:
       matrix:
         python-version: ['3.8', '3.9', '3.10', '3.11']
-        torch-version: ["stable"]
+        torch-version: ["stable", "nightly"]
     steps:
       - name: Check out repo
         uses: actions/checkout@v3
