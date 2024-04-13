@@ -54,14 +54,22 @@ class InferenceRecipe:
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
-        with utils.set_default_dtype(self._dtype), self._device:
+        with torch.device("meta"):
             model = config.instantiate(model_cfg)
+
+        model.load_state_dict(model_state_dict, assign=True)
+
+        # Initialize non-persistent buffers that are still on meta
+        # device at this point
+        def init_non_persistent_buffers(m):
+            if hasattr(m, "reset_non_persistent_buffers"):
+                m.reset_non_persistent_buffers()
+        model.apply(init_non_persistent_buffers)
 
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
-            model = model.to(device=self._device, dtype=self._dtype)
 
-        model.load_state_dict(model_state_dict)
+        model = model.to(device=self._device, dtype=self._dtype)
 
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
