@@ -34,6 +34,7 @@ class KVCache(nn.Module):
     ) -> None:
         super().__init__()
         cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
+        self.dtype = dtype
         self.register_buffer(
             "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
@@ -41,6 +42,11 @@ class KVCache(nn.Module):
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
         self.max_batch_size = max_batch_size
+
+    # Used when using meta device initialization
+    def reset_non_persistent_buffers(self):
+        self.k_cache = torch.zeros(self.k_cache.size(), dtype=self.dtype)
+        self.v_cache = torch.zeros(self.v_cache.size(), dtype=self.dtype)
 
     def update(self, input_pos, k_val, v_val) -> Tuple[Tensor, Tensor]:
         # input_pos: [S], k_val: [B, H, S, D]
