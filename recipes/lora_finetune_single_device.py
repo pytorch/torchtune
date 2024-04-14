@@ -31,29 +31,58 @@ log = utils.get_logger("DEBUG")
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
-    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2 for
-    single device training.
+    LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
+    for single GPU training. Training on CPU is not supported.
 
-    This recipe supports:
-        - Activation checkpointing. This is enabled by default but is configurable.
-        - Full bf16 training for supported HW architectures. We currently check bf16 support via
-        the `torch.cuda.is_bf16_supported` API. This is disabled by default but can be enabled via
-        setting `dtype=bf16` in configuration.
-        - Checkpointing: of LoRA adapter parameters and their optimizer states. When resuming
-            from a checkpoint, the adapter parameters are loaded from the checkpoint along
-            with the base model weights. Note that intra-epoch resumption is not supported.
-        - Logging to terminal, WandB, or TensorBoard.
+    Features:
+        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
+            activations in memory and recompute them during the backward pass. This is especially helpful
+            for larger batch sizes when you're memory constrained. But these savings in memory come at the
+            cost of training performance. In most cases training can slow-down quite a bit as a result of
+            this activation recomputation.
 
-    Assumptions:
-        - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
-            in ongoing epoch is lost.
-        - Datasets are Map-style and data fits in memory (not streamed).
+        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
+            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
+            most cases this should halve the memory footprint of full precision (fp32) training, without
+            loss in model quality (will depend on the model, training data and other settings). For
+            GPUs which do not support bfloat16, we fall back to fp32. This behavior may change in the future
+            where we explicitly cause this to fail. Mixed precision training and fp16 precision are
+            currently not supported.
 
-    The following configs can be used to run this recipe:
-        >>> tune ls
-        RECIPE                          CONFIG
-        lora_finetune_single_device     llama2/7B_lora_single_device
-                                        llama2/7B_qlora_single_device
+        - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
+            controlled using the ``gradient_accumulation_steps`` flag.
+
+                Total Batch Size = batch_size * gradient accumulation steps.
+
+            For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
+
+            Gradient accumulation is especially useful when you are memory constrained. In this case,
+            accumulation gradients might give you better training speed than enabling activation
+            checkpointing.
+
+        - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
+            library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
+            8-bit AdamW and Paged AdamW.
+
+        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
+            training. Currently we checkpoint both the adapter weights (trainable params only) and the
+            complete merged weights (adapter weights added back to the base model). For more details
+            please take a look at our LoRA tutorial
+            (https://pytorch.org/torchtune/main/examples/lora_finetune.html).
+
+            Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training. Resuming
+            training is ontrolled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            currently not supported.
+
+            For more details on the checkpointer, please take a look at
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
+
+        - Logging. Terminal, WandB and TensorBoard are all supported.
+
+    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
+    has example commands for how to kick-off training.
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file

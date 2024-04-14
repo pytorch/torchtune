@@ -38,29 +38,54 @@ log = utils.get_logger("DEBUG")
 
 class FullFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs).
 
-    This recipe supports:
-        - FSDP and activation checkpointing. AC is disabled by default but can be enabled using
-            the ``activation_checkpointing`` flag. DDP is not supported.
-        - Full fp32 and bf16 training are supported
-        - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
-        - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
-        - Logging to terminal. WandB and TensorBoard.
+    Features:
+        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Training on CPU
+            is not supported.
 
-    Assumptions:
-        - Training is launched with the Tune CLI (recommended) which uses TorchRun under the
-            hood. Setting up the env variables is handled by TorchRun.
-        - Training is on multiple GPUs (--nproc_per_node > 1). ``world_size=1`` is currently supported
-            on CPU for our unit tests. This will change soon
-        - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
-        - Datasets are Map-style and data fits in memory (not streamed)
+        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
+            activations in memory and recompute them during the backward pass. This is especially helpful
+            for larger batch sizes when you're memory constrained. But these savings in memory come at the
+            cost of training performance. In most cases training can slow-down quite a bit as a result of
+            this activation recomputation.
 
-    The following configs can be used to run this recipe:
-        >>> tune ls
-        RECIPE                           CONFIG
-        full_finetune_distributed        llama2/7B_full
-                                         llama2/13B_full
+        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
+            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
+            most cases this should halve the memory footprint of full precision (fp32) training, without
+            loss in model quality (will depend on the model, training data and other settings). For
+            GPUs which do not support bfloat16, we fall back to fp32. This behavior may change in the future
+            where we explicitly cause this to fail. Mixed precision training and fp16 precision are
+            currently not supported.
+
+        - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
+            controlled using the ``gradient_accumulation_steps`` flag.
+
+                Total Batch Size = batch_size * number of GPUs * gradient accumulation steps.
+
+            For example: with batch_size=1, nproc_per_node=2 and gradient_accumulation_steps=32 we get a
+            total batch size of 64.
+
+            Gradient accumulation is especially useful when you are memory constrained. In this case,
+            accumulation gradients might give you better training speed than enabling activation
+            checkpointing.
+
+        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
+            training. Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training.
+
+            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            currently not supported.
+
+            For more details on the checkpointer, please take a look at
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
+
+        - Logging. Terminal, WandB and TensorBoard are all supported.
+
+    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
+    has example commands for how to kick-off training.
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
