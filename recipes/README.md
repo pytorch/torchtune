@@ -38,13 +38,18 @@ tune run quantize --config quantization
 ```
 
 #### Eval
-To evaluate a quantized model, add the following to `recipes/configs/eleuther_eval.yaml`:
+To evaluate a quantized model, make the following changes to the default [evaluation config](configs/eleuther_evaluation.yaml)
 
 
-```
-# make sure to change the checkpointer component
+```yaml
+# Currently we only support torchtune checkpoints when
+# evaluating quantized models. For more details on checkpointing see
+# https://pytorch.org/torchtune/main/examples/checkpointer.html
+# Make sure to change the default checkpointer component
 checkpointer:
   _component_: torchtune.utils.FullModeltorchtuneCheckpointer
+  ..
+  checkpoint_files: [<quantized_model_checkpoint>]
 
 # Quantization specific args
 quantizer:
@@ -52,20 +57,24 @@ quantizer:
   groupsize: 256
 ```
 
-and run the eval command:
-```
+and run evaluation:
+```bash
 tune run eleuther_eval --config eleuther_evaluation
 ```
 
 #### Generate
-Changes in `recipes/configs/generation.yaml`
-```
-# Model arguments
-checkpointer:
-# make sure to change the checkpointer component
+To run inference using a quantized model, make the following changes to the default [generation config](configs/generation.yaml)
+
+
+```yaml
+# Currently we only support torchtune checkpoints when
+# evaluating quantized models. For more details on checkpointing see
+# https://pytorch.org/torchtune/main/examples/checkpointer.html
+# Make sure to change the default checkpointer component
 checkpointer:
   _component_: torchtune.utils.FullModeltorchtuneCheckpointer
-  checkpoint_files: [meta_model_0-4w.pt]
+  ..
+  checkpoint_files: [<quantized_model_checkpoint>]
 
 # Quantization Arguments
 quantizer:
@@ -73,71 +82,7 @@ quantizer:
   groupsize: 256
 ```
 
-and run generate command:
-```
+and run generation:
+```bash
 tune run generate --config generation
-```
-
-#### GPTQ
-
-GPTQ is an algorithm to improve the accuracy of quantized model through optimizing the loss of (activation * weight) together, here are the changes that's needed to use it for int4 weight only quantization
-
-`recipes/configs/quantization.yaml`
-
-We'll publish doc pages for different quantizers in torchao a bit later. Please check `recipes/configs/quantized.yaml for how to use them for now.
-
-```
-quantizer:
-  _component_: torchtune.utils.quantization.Int4WeightOnlyGPTQQuantizer
-  blocksize: 128
-  percdamp: 0.01
-  groupsize: 256
-
-tokenizer:
-  _component_: torchtune.models.llama2.llama2_tokenizer
-  path: /tmp/llama2/tokenizer.model
-```
-
-`recipes/quantize.py`
-
-```
-def quantize(self, cfg: DictConfig):
-    from torchao.quantization.GPTQ import InputRecorder
-    tokenizer = config.instantiate(cfg.tokenizer)
-    calibration_seq_length = 100
-    calibration_tasks = ['wikitext']
-    inputs = InputRecorder(
-        tokenizer,
-        calibration_seq_length,
-        vocab_size=self._model.tok_embeddings.weight.shape[0],
-        device="cpu",
-    ).record_inputs(
-        calibration_tasks,
-        5,  # calibration_limit
-    ).get_inputs()
-    t0 = time.perf_counter()
-    self._model = self._quantizer.quantize(self._model, inputs)
-    ....
-```
-
-Run quantize
-```
-tune run quantize --config quantization
-```
-
-`recipes/eleuther_eval.py`
-
-```
-# To skip running the full GPTQ quantization process that typically takes a long time,
-# change model = quantizer.quantize(model) to:
-model = quantizer._convert_for_runtime(model)
-```
-
-`recipes/configs/eleuther_eval.yaml`
-```
-quantizer:
-  _component_: torchtune.utils.quantization.Int4WeightOnlyGPTQQuantizer
-  blocksize: 128
-  percdamp: 0.01
-  groupsize: 256
 ```
