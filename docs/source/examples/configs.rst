@@ -4,11 +4,11 @@
 Configs Deep-Dive
 =================
 
-This tutorial will guide you through writing configs for running recipes.
+This deep-dive will guide you through writing configs for running recipes.
 
 .. grid:: 2
 
-    .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * How to write a YAML config and run a recipe with it
       * How to use :code:`instantiate` and :code:`parse` APIs
