@@ -35,6 +35,25 @@ existing recipes (eg: adding new features) or writing new ones. torchtune makes 
 easy by providing well-tested modular components/building-blocks and general utilities
 (eg: :ref:`WandB Logging<metric_logging_label>` and :ref:`Checkpointing <checkpointing_label>`).
 
+|
+
+**Recipe Design**
+
+Recipes in torchtune are designed to be:
+
+- **Simple**. Written fully in native-PyTorch.
+- **Correct**. Numerical parity verification for every component and extensive comparisons with
+  reference implementations and benchmarks.
+- **Easy to Understand**. Each recipe provides a limited set of meaningful features, instead of
+  every possible feature hidden behind 100s of flags. Code duplication is preferred over unnecessary
+  abstractions.
+- **Easy to Extend**. No dependency on training frameworks and no implementation inheritance. Users
+  don't need to go through layers-upon-layers of abstractions to figure out how to extend core
+  functionality.
+- **Accessible to a spectrum of Users**. Users can decide how they want to interact with torchtune recipes:
+    - Start training models by modifying existing configs
+    - Modify existing recipes for custom cases
+    - Directly use available building blocks to write completely new recipes/training paradigms
 
 Each recipe consists of three components:
 
@@ -49,6 +68,7 @@ For a complete working example, refer to the
 in torchtune and the associated
 `config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml>`_.
 
+|
 
 What Recipes are not?
 ---------------------
@@ -62,6 +82,7 @@ What Recipes are not?
   Dependencies are primarily in the form of additional utilities or interoperability with the
   surrounding ecosystem (eg: EleutherAI's evaluation harness).
 
+|
 
 Recipe Script
 -------------
@@ -176,6 +197,8 @@ Cleanup recipe state
 
         self.metric_loggers.close()
         ...
+
+
 
 Running Recipes with Configs
 ----------------------------
