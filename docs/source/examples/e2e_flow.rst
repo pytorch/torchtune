@@ -147,6 +147,8 @@ checkpoints and not the adapter weights.
 
 |
 
+.. _eval_harness_label:
+
 Run Evaluation using EleutherAI's Eval Harness
 ----------------------------------------------
 
