@@ -29,7 +29,7 @@ Recipes in torchtune are:
 
 ### Architecture Optimization
 
-torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see `recipes/configs/quantization.yaml` for more details.
+torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see the docstrings in the [quantization recipe](quantize.py) for more details.
 
 #### Quantize
 To quantize a model (default is int4 weight only quantization):
