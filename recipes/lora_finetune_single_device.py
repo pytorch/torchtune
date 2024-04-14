@@ -46,9 +46,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
             most cases this should halve the memory footprint of full precision (fp32) training, without
             loss in model quality (will depend on the model, training data and other settings). For
-            GPUs which do not support bfloat16, we fall back to fp32. This behavior may change in the future
-            where we explicitly cause this to fail. Mixed precision training and fp16 precision are
-            currently not supported.
+            GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
+            precision are currently not supported.
 
         - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
             controlled using the ``gradient_accumulation_steps`` flag.
