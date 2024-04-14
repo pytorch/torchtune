@@ -5,23 +5,23 @@ Finetuning Llama2 with LoRA
 ===========================
 
 This guide will teach you about `LoRA <https://arxiv.org/abs/2106.09685>`_, a parameter-efficient finetuning technique,
-and show you how you can use TorchTune to finetune a Llama2 model with LoRA.
+and show you how you can use torchtune to finetune a Llama2 model with LoRA.
 If you already know what LoRA is and want to get straight to running
-your own LoRA finetune in TorchTune, you can jump to :ref:`LoRA finetuning recipe in TorchTune<lora_recipe_label>`.
+your own LoRA finetune in torchtune, you can jump to :ref:`LoRA finetuning recipe in torchtune<lora_recipe_label>`.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
       * What LoRA is and how it saves memory during finetuning
-      * An overview of LoRA components in TorchTune
-      * How to run a LoRA finetune using TorchTune
+      * An overview of LoRA components in torchtune
+      * How to run a LoRA finetune using torchtune
       * How to experiment with different LoRA configurations
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with :ref:`TorchTune<overview_label>`
-      * Make sure to :ref:`install TorchTune<install_label>`
+      * Be familiar with :ref:`torchtune<overview_label>`
+      * Make sure to :ref:`install torchtune<install_label>`
       * Make sure you have downloaded the :ref:`Llama2-7B model weights<download_llama_label>`
 
 What is LoRA?
@@ -133,8 +133,8 @@ Now that we understand what LoRA is doing, let's look at how we can apply it to 
 Applying LoRA to Llama2 models
 ------------------------------
 
-With TorchTune, we can easily apply LoRA to Llama2 with a variety of different configurations.
-Let's take a look at how to construct Llama2 models in TorchTune with and without LoRA.
+With torchtune, we can easily apply LoRA to Llama2 with a variety of different configurations.
+Let's take a look at how to construct Llama2 models in torchtune with and without LoRA.
 
 .. code-block:: python
 
@@ -193,7 +193,7 @@ as expected. Additionally, inspecting the type of :code:`lora_model` and
 :code:`base_model`, would show that they are both instances of the same :class:`~torchtune.modules.TransformerDecoder`.
 (Feel free to verify this for yourself.)
 
-Why does this matter? TorchTune makes it easy to load checkpoints for LoRA directly from our Llama2
+Why does this matter? torchtune makes it easy to load checkpoints for LoRA directly from our Llama2
 model without any wrappers or custom checkpoint conversion logic.
 
 .. code-block:: python
@@ -204,7 +204,7 @@ model without any wrappers or custom checkpoint conversion logic.
 
 .. note::
     Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
-    the loaded :code:`state_dict` are as expected. TorchTune's LoRA recipe does this by default via
+    the loaded :code:`state_dict` are as expected. torchtune's LoRA recipe does this by default via
     :func:`torchtune.modules.peft.validate_state_dict_for_lora`.
 
 Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.
@@ -244,10 +244,10 @@ Once we've loaded the base model weights, we also want to set only LoRA paramete
 
 .. _lora_recipe_label:
 
-LoRA finetuning recipe in TorchTune
+LoRA finetuning recipe in torchtune
 -----------------------------------
 
-Finally, we can put it all together and finetune a model using TorchTune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
+Finally, we can put it all together and finetune a model using torchtune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
 You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
 
@@ -259,14 +259,14 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
     either by adding :code:`checkpointer.checkpoint_files=[my_model_checkpoint_path] tokenizer_checkpoint=my_tokenizer_checkpoint_path`
     or by directly modifying the :code:`7B_lora.yaml` file. See our :ref:`config_tutorial_label`
-    for more details on how you can easily clone and modify TorchTune configs.
+    for more details on how you can easily clone and modify torchtune configs.
 
 .. note::
     You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
     and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
     for peak memory of LoRA finetuning in a couple of common hardware setups.
 
-The preceding command will run a LoRA finetune with TorchTune's factory settings, but we may want to experiment a bit.
+The preceding command will run a LoRA finetune with torchtune's factory settings, but we may want to experiment a bit.
 Let's take a closer look at some of the :code:`lora_finetune_distributed` config.
 
 .. code-block:: yaml
@@ -297,7 +297,7 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
 .. image:: /_static/img/lora_experiment_loss_curves.png
 
 .. note::
-    The above figure was generated with W&B. You can use TorchTune's :class:`~torchtune.utils.metric_logging.WandBLogger`
+    The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately.
 
 As an exercise, you can also try running some evaluation tasks or manually inspecting generations

@@ -23,7 +23,7 @@ class QuantizationRecipe:
     """
     Recipe for quantizing a Transformer-based LLM.
     Uses quantizer classes from torchao to quantize a model.
-    Please refer to `receipes/configs/quantize.yaml` for supported quantizers and how to use them.
+    Please refer to `recipes/configs/quantize.yaml` for supported quantizers and how to use them.
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -53,7 +53,7 @@ class QuantizationRecipe:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
 
-        model.load_state_dict(model_state_dict, assign=True)
+        model.load_state_dict(model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)

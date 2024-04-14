@@ -7,19 +7,15 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download mistralai/Mistral-7B-v0.1 \
-#   --hf-token <HF_TOKEN> \
-#   --output-dir /tmp/Mistral-7B-v0.1
+#   tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN> --output-dir /tmp/Mistral-7B-v0.1
 #
 # Run this config on 4 GPUs using the following:
-# tune run --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed \
-#   --config mistral/7B_full \
-#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config mistral/7B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # Single device full finetuning requires more memory optimizations. It's

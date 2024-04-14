@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .attention import CausalSelfAttention  # noqa
+from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
@@ -23,4 +24,5 @@ __all__ = [
     "Tokenizer",
     "TransformerDecoder",
     "TransformerDecoderLayer",
+    "reparametrize_as_dtype_state_dict_post_hook",
 ]
