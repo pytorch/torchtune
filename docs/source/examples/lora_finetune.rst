@@ -306,14 +306,14 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
 Trading off memory and model performance with LoRA
 --------------------------------------------------
 
-In the preceding example, we ran LoRA on two devices. But with LoRA's memory efficiency it is possible
-to run on a single device as well. This can be done via the command:
+In the preceding example, we ran LoRA on two devices. But given LoRA's low memory footprint, we can run fine-tuning
+on a single device using most commodity GPUs which support bfloat16 floating-point format. This can be done via the command:
 
 .. code-block:: bash
 
     tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 
-On a single device, we may need to be more cognizant of our peak memory. Let's run a couple experiments
+On a single device, we may need to be more cognizant of our peak memory. Let's run a few experiments
 to see our peak memory during a finetune on the Alpaca dataset. We will experiment along two axes:
 first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
 alpha in parallel to LoRA rank, as discussed above.)
@@ -322,10 +322,10 @@ To compare the results of our experiments, we can evaluate our models on :code:`
 the `TruthfulQA <https://arxiv.org/abs/2109.07958>`_ benchmark for language models. For more details on how to run this and other evaluation tasks
 with torchtune's EleutherAI evaluation harness integration, see our :ref:`End-to-End Workflow Tutorial <eval_harness_label>`.
 
-Previously, we only enabled LoRA for the linear layers in each self-attention, but in fact there are other linear
+Previously, we only enabled LoRA for the linear layers in each self-attention module, but in fact there are other linear
 layers we can apply LoRA to: MLP layers and our model's final output projection. Note that for Llama-2-7B the final output
-projection maps to dimension 32000, so enabling LoRA for this layer will increase our peak memory a bit more
-than the other layers. We can make the following changes to our config:
+projection maps to dimension 32000 (instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
+our peak memory a bit more than the other layers. We can make the following changes to our config:
 
 .. code-block:: yaml
 
@@ -338,7 +338,7 @@ than the other layers. We can make the following changes to our config:
   ...
 
 .. note::
-    All the below finetunes use the `llama2/7B_lora_single_device <https://github.com/pytorch/torchtune/blob/ada52240514bb9fa07f91a50ad0a31063f13834c/recipes/configs/llama2/7B_lora_single_device.yaml>`_
+    All the finetuning runs below use the `llama2/7B_lora_single_device <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml>`_
     config, which has a default batch size of 2. Modifying the batch size (or other hyperparameters, e.g. the optimizer) will impact both peak memory
     and final evaluation results.
 
