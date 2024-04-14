@@ -4,7 +4,7 @@
 Install Instructions
 ====================
 
-There is currently only one way to download TorchTune, which is locally.
+There is currently only one way to download torchtune, which is locally.
 
 .. code-block:: bash
 

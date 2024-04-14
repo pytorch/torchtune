@@ -1,7 +1,7 @@
 .. _understand_checkpointer:
 
 ==========================
-Checkpointing in TorchTune
+Checkpointing in torchtune
 ==========================
 
 This tutorial will walk you through the design and behavior of the checkpointer and associated
@@ -11,7 +11,7 @@ utilities.
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this tutorial will cover:
 
-      * Deep-dive into the checkpointer design for TorchTune
+      * Deep-dive into the checkpointer design for torchtune
       * Checkpoint formats and how we handle them
       * Checkpointing scenarios: Intermediate vs Final and LoRA vs Full-finetune
 
@@ -19,18 +19,18 @@ utilities.
 Overview
 --------
 
-TorchTune checkpointers are designed to be composable components which can be plugged
+torchtune checkpointers are designed to be composable components which can be plugged
 into any recipe - training, evaluation or generation. Each checkpointer supports a
 set of models and scenarios making these easy to understand, debug and extend.
 
-Before we dive into the checkpointer in TorchTune, let's define some concepts.
+Before we dive into the checkpointer in torchtune, let's define some concepts.
 
 |
 
 Checkpoint Format
 ^^^^^^^^^^^^^^^^^
 
-In this tutorial, we'll talk about different checkpoint formats and how TorchTune handles them.
+In this tutorial, we'll talk about different checkpoint formats and how torchtune handles them.
 Let's take a close look at these different formats.
 
 Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
@@ -72,7 +72,7 @@ embedding with dim of ``4096``.
 **HF Format**
 
 This is the most popular format within the Hugging Face Model Hub and is
-the default format in every TorchTune config. This is also the format you get when you download the
+the default format in every torchtune config. This is also the format you get when you download the
 llama2 model from the `Llama-2-7b-hf <https://huggingface.co/meta-llama/Llama-2-7b-hf>`_ repo.
 
 The first big difference is that the state_dict is split across two ``.bin`` files. To correctly
@@ -100,20 +100,20 @@ same between the two, which is as expected.
 |
 
 As you can see, if you're not careful you'll likely end up making a number of errors just during
-checkpoint load and save. The TorchTune checkpointer makes this less error-prone by managing state dicts
-for you. TorchTune is designed to be "state-dict invariant".
+checkpoint load and save. The torchtune checkpointer makes this less error-prone by managing state dicts
+for you. torchtune is designed to be "state-dict invariant".
 
-- When loading, TorchTune accepts checkpoints from multiple sources in multiple formats.
+- When loading, torchtune accepts checkpoints from multiple sources in multiple formats.
   You don't have to worry about explicitly converting checkpoints every time you run a recipe.
 
-- When saving, TorchTune produces checkpoints in the same format as the source. This includes
+- When saving, torchtune produces checkpoints in the same format as the source. This includes
   converting the state_dict back into the original form and splitting the keys and weights
   across the same number of files.
 
 One big advantage of being "state-dict invariant" is that you should be able to use
-fine-tuned checkpoints from TorchTune with any post-training tool (quantization, eval, inference)
+fine-tuned checkpoints from torchtune with any post-training tool (quantization, eval, inference)
 which supports the source format, without any code changes OR conversion scripts. This is one of the
-ways in which TorchTune interoperates with the surrounding ecosystem.
+ways in which torchtune interoperates with the surrounding ecosystem.
 
 To be "state-dict invariant", the ``load_checkpoint`` and
 ``save_checkpoint`` methods make use of the weight convertors available
@@ -124,7 +124,7 @@ To be "state-dict invariant", the ``load_checkpoint`` and
 Handling different Checkpoint Formats
 -------------------------------------
 
-TorchTune supports three different
+torchtune supports three different
 `checkpointers <https://github.com/pytorch/torchtune/blob/main/torchtune/utils/_checkpointing/_checkpointer.py>`_,
 each of which supports a different checkpoint format.
 
@@ -133,7 +133,7 @@ each of which supports a different checkpoint format.
 
 This checkpointer reads and writes checkpoints in a format which is compatible with the transformers
 framework from Hugging Face. As mentioned above, this is the most popular format within the Hugging Face
-Model Hub and is the default format in every TorchTune config.
+Model Hub and is the default format in every torchtune config.
 
 For this checkpointer to work correctly, we assume that ``checkpoint_dir`` contains the necessary checkpoint
 and json files. The easiest way to make sure everything works correctly is to use the following flow:
@@ -153,7 +153,7 @@ and json files. The easiest way to make sure everything works correctly is to us
 
 |
 
-The following snippet explains how the HFCheckpointer is setup in TorchTune config files.
+The following snippet explains how the HFCheckpointer is setup in torchtune config files.
 
 .. code-block:: yaml
 
@@ -184,7 +184,7 @@ The following snippet explains how the HFCheckpointer is setup in TorchTune conf
         output_dir: <checkpoint_dir>
 
         # model_type which specifies how to convert the state_dict
-        # into a format which TorchTune understands
+        # into a format which torchtune understands
         model_type: LLAMA2
 
     # set to True if restarting training
@@ -193,7 +193,7 @@ The following snippet explains how the HFCheckpointer is setup in TorchTune conf
 .. note::
     Checkpoint conversion to and from HF's format requires access to model params which are
     read directly from the ``config.json`` file. This helps ensure we either load the weights
-    correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
+    correctly or error out in case of discrepancy between the HF checkpoint file and torchtune's
     model implementations. This json file is downloaded from the hub along with the model checkpoints.
     More details on how these are used during conversion can be found
     `here <https://github.com/pytorch/torchtune/blob/main/torchtune/models/convert_weights.py>`_.
@@ -224,7 +224,7 @@ and json files. The easiest way to make sure everything works correctly is to us
 
 |
 
-The following snippet explains how the MetaCheckpointer is setup in TorchTune config files.
+The following snippet explains how the MetaCheckpointer is setup in torchtune config files.
 
 .. code-block:: yaml
 
@@ -251,7 +251,7 @@ The following snippet explains how the MetaCheckpointer is setup in TorchTune co
         output_dir: <checkpoint_dir>
 
         # model_type which specifies how to convert the state_dict
-        # into a format which TorchTune understands
+        # into a format which torchtune understands
         model_type: LLAMA2
 
     # set to True if restarting training
@@ -259,9 +259,9 @@ The following snippet explains how the MetaCheckpointer is setup in TorchTune co
 
 |
 
-**TorchTuneCheckpointer**
+**torchtuneCheckpointer**
 
-This checkpointer reads and writes checkpoints in a format that is compatible with TorchTune's
+This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
 model definition. This does not perform any state_dict conversions and is currently used either
 for testing or for loading quantized models for generation.
 
@@ -271,7 +271,7 @@ for testing or for loading quantized models for generation.
 Intermediate vs Final Checkpoints
 ---------------------------------
 
-TorchTune Checkpointers support two checkpointing scenarios:
+torchtune Checkpointers support two checkpointing scenarios:
 
 **End-of-training Checkpointing**
 
@@ -348,7 +348,7 @@ to the config file
         output_dir: <checkpoint_dir>
 
         # model_type which specifies how to convert the state_dict
-        # into a format which TorchTune understands
+        # into a format which torchtune understands
         model_type: LLAMA2
 
     # set to True if restarting training
@@ -358,7 +358,7 @@ to the config file
 Checkpointing for LoRA
 ----------------------
 
-In TorchTune, we output both the adapter weights and the full model "merged" weights
+In torchtune, we output both the adapter weights and the full model "merged" weights
 for LoRA. The "merged" checkpoint can be used just like you would use the source
 checkpoint with any post-training tools. For more details, take a look at our
 :ref:`LoRA Finetuning Tutorial <lora_finetune_label>`.
@@ -398,7 +398,7 @@ looks something like this:
         output_dir: <checkpoint_dir>
 
         # model_type which specifies how to convert the state_dict
-        # into a format which TorchTune understands
+        # into a format which torchtune understands
         model_type: LLAMA2
 
     # set to True if restarting training
@@ -459,9 +459,9 @@ For this section we'll use the Llama2 13B model in HF format.
         [ -7.8929,  -8.8465,   3.3794,  ...,  -1.3500,  -4.6145,  -2.5931]]])
 
 
-You can do this with any model supported by TorchTune. You can find a full list
+You can do this with any model supported by torchtune. You can find a full list
 of models and model builders
 `here <https://github.com/pytorch/torchtune/tree/main/torchtune/models>`__.
 
 We hope this tutorial provided a deeper insight into the checkpointer and
-associated utilities in TorchTune. Happy fine-tuning!
+associated utilities in torchtune. Happy fine-tuning!

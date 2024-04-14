@@ -1,23 +1,23 @@
 .. _overview_label:
 
 ==================
-TorchTune Overview
+torchtune Overview
 ==================
 
-On this page, we'll walk through an overview of TorchTune, including features, key concepts and additional pointers.
+On this page, we'll walk through an overview of torchtune, including features, key concepts and additional pointers.
 
-What is TorchTune?
+What is torchtune?
 ------------------
 
-TorchTune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:
+torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:
 
 - **Simplicity and Extensibility**. Native-PyTorch, componentized design and easy-to-reuse abstractions
 - **Correctness**. High-bar on proving the correctness of components and recipes
-- **Stability**. PyTorch just works. So should TorchTune
+- **Stability**. PyTorch just works. So should torchtune
 - **Democratizing LLM fine-tuning**. Works out-of-the-box on different hardware
 
 
-TorchTune provides:
+torchtune provides:
 
 - Modular native-PyTorch implementations of popular LLMs
 - Interoperability with popular model zoos through checkpoint-conversion utilities
@@ -28,13 +28,13 @@ TorchTune provides:
 
 Excited? To get started, checkout some of our tutorials, including:
 
-- our :ref:`full finetuning tutorial <finetune_llama_label>` to get started and finetune your first LLM using TorchTune.
-- our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with TorchTune.
+- our :ref:`full finetuning tutorial <finetune_llama_label>` to get started and finetune your first LLM using torchtune.
+- our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with torchtune.
 
 Key Concepts
 ------------
 
-As you go through the tutorials and code, there are two concepts which will help you better understand and use TorchTune.
+As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.
 
 **Configs.** Yaml files which help you configure training settings (dataset, model, chekckpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
@@ -51,16 +51,16 @@ applied to a given model family (eg: Llama2). See the tutorial on :ref:`Training
 Design Principles
 -----------------
 
-TorchTune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stable/community/design.html>`_, especially "usability over everything else".
+torchtune embodies `PyTorch’s design philosophy <https://pytorch.org/docs/stable/community/design.html>`_, especially "usability over everything else".
 
 **Native PyTorch**
 
-TorchTune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
+torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.
 
 
 **Simplicity and Extensibility**
 
-TorchTune is designed to be easy to understand, use and extend.
+torchtune is designed to be easy to understand, use and extend.
 
 - Composition over implementation inheritance - layers of inheritance for code re-use makes the code hard to read and extend
 - No training frameworks - explicitly outlining the training logic makes it easy to extend for custom use cases
@@ -70,7 +70,7 @@ TorchTune is designed to be easy to understand, use and extend.
 
 **Correctness**
 
-TorchTune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
+torchtune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide
 
 - Extensive unit-tests to ensure component-level numerical parity with reference implementations
 - Checkpoint-tests to ensure model-level numerical parity with reference implementations

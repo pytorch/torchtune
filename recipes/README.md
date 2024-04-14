@@ -4,7 +4,7 @@
 
 ## What are Recipes?
 
-Recipes are the primary entry points for TorchTune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. Each recipe consists of three components:
+Recipes are the primary entry points for torchtune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. Each recipe consists of three components:
 
 - **Configurable parameters**, specified through yaml configs [example](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full.yaml) and command-line overrides
 - **Recipe class**, core logic needed for training, exposed to users through a set of APIs [interface](https://github.com/pytorch/torchtune/blob/main/recipes/interfaces.py)
@@ -14,13 +14,13 @@ Recipes are the primary entry points for TorchTune users. These can be thought o
 
 ## Recipe Design
 
-Recipes in TorchTune are:
+Recipes in torchtune are:
 
 1. **Simple**. Written fully in native-PyTorch.
 2. **Correct**. Numerical parity verification for every component and extensive comparisons with reference implementations and benchmarks.
 3. **Easy to Understand**. Each recipe provides a limited set of meaningful features, instead of every possible feature hidden behind 100s of flags. Code duplication is preferred over unnecessary abstractions.
 4. **Easy to Extend**. No dependency on training frameworks and no implementation inheritance. Users don't need to go through layers-upon-layers of abstractions to figure out how to extend core functionality.
-5. **Accessible to a spectrum of Users**. Users can decide how they want to interact with TorchTune Recipes:
+5. **Accessible to a spectrum of Users**. Users can decide how they want to interact with torchtune Recipes:
     - Start training models by modifying existing configs
     - Modify existing recipes for custom cases
     - Directly use available building blocks to write completely new recipes/training paradigms
@@ -29,12 +29,12 @@ Recipes in TorchTune are:
 
 ### Architecture Optimization
 
-TorchTune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see `receipes/configs/quantize.yaml` for more details.
+torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see `receipes/configs/quantization.yaml` for more details.
 
 #### Quantize
 To quantize a model (default is int4 weight only quantization):
 ```
-tune run quantize --config quantize
+tune run quantize --config quantization
 ```
 
 #### Eval
@@ -44,7 +44,7 @@ To evaluate a quantized model, add the following to `receipes/configs/eleuther_e
 ```
 # make sure to change the checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  _component_: torchtune.utils.FullModeltorchtuneCheckpointer
 
 # Quantization specific args
 quantizer:
@@ -54,17 +54,17 @@ quantizer:
 
 and run the eval command:
 ```
-tune run eleuther_eval --config eleuther_eval
+tune run eleuther_eval --config eleuther_evaluation
 ```
 
 #### Generate
-Changes in `receipes/configs/generate.yaml`
+Changes in `receipes/configs/generation.yaml`
 ```
 # Model arguments
 checkpointer:
 # make sure to change the checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  _component_: torchtune.utils.FullModeltorchtuneCheckpointer
   checkpoint_files: [meta_model_0-4w.pt]
 
 # Quantization Arguments
@@ -75,14 +75,14 @@ quantizer:
 
 and run generate command:
 ```
-tune run generate --config generate
+tune run generate --config generation
 ```
 
 #### GPTQ
 
 GPTQ is an algorithm to improve the accuracy of quantized model through optimizing the loss of (activation * weight) together, here are the changes that's needed to use it for int4 weight only quantization
 
-`receipes/configs/quantize.yaml`
+`receipes/configs/quantization.yaml`
 
 We'll publish doc pages for different quantizers in torchao a bit later. Please check `receipes/configs/quantized.yaml for how to use them for now.
 
@@ -122,7 +122,7 @@ def quantize(self, cfg: DictConfig):
 
 Run quantize
 ```
-tune run quantize --config quantize
+tune run quantize --config quantization
 ```
 
 `recipes/eleuther_eval.py`

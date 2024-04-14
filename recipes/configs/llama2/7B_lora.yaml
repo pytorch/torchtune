@@ -3,20 +3,15 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-7b \
-#   --hf-token <HF_TOKEN> \
-#   --output-dir /tmp/llama2
+#   tune download meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir /tmp/llama2
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/7B_lora \
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config llama2/7B_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/7B_lora \
-#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config llama2/7B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use 7B_lora_single_device.yaml
