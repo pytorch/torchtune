@@ -29,7 +29,7 @@ Recipes in torchtune are:
 
 ### Architecture Optimization
 
-torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see `receipes/configs/quantization.yaml` for more details.
+torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see `recipes/configs/quantization.yaml` for more details.
 
 #### Quantize
 To quantize a model (default is int4 weight only quantization):
@@ -38,7 +38,7 @@ tune run quantize --config quantization
 ```
 
 #### Eval
-To evaluate a quantized model, add the following to `receipes/configs/eleuther_eval.yaml`:
+To evaluate a quantized model, add the following to `recipes/configs/eleuther_eval.yaml`:
 
 
 ```
@@ -58,7 +58,7 @@ tune run eleuther_eval --config eleuther_evaluation
 ```
 
 #### Generate
-Changes in `receipes/configs/generation.yaml`
+Changes in `recipes/configs/generation.yaml`
 ```
 # Model arguments
 checkpointer:
@@ -82,9 +82,9 @@ tune run generate --config generation
 
 GPTQ is an algorithm to improve the accuracy of quantized model through optimizing the loss of (activation * weight) together, here are the changes that's needed to use it for int4 weight only quantization
 
-`receipes/configs/quantization.yaml`
+`recipes/configs/quantization.yaml`
 
-We'll publish doc pages for different quantizers in torchao a bit later. Please check `receipes/configs/quantized.yaml for how to use them for now.
+We'll publish doc pages for different quantizers in torchao a bit later. Please check `recipes/configs/quantized.yaml for how to use them for now.
 
 ```
 quantizer:
@@ -98,7 +98,7 @@ tokenizer:
   path: /tmp/llama2/tokenizer.model
 ```
 
-`receipes/quantize.py`
+`recipes/quantize.py`
 
 ```
 def quantize(self, cfg: DictConfig):
