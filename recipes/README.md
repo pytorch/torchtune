@@ -27,7 +27,7 @@ Recipes in torchtune are:
 
 &nbsp;
 
-### Architecture Optimization
+### Quantization and Sparsity
 
 torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see the docstrings in the [quantization recipe](quantize.py) for more details.
 
