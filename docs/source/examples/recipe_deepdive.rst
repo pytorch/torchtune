@@ -4,11 +4,11 @@
 Training Recipe Deep-Dive
 =========================
 
-This tutorial will walk you through the design of training-recipes in torchtune.
+This deep-dive will walk you through the design of training-recipes in torchtune.
 
 .. grid:: 1
 
-    .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * What are recipes?
       * What are the core components that make up a recipe?

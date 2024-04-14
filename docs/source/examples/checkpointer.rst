@@ -4,12 +4,12 @@
 Checkpointing in torchtune
 ==========================
 
-This tutorial will walk you through the design and behavior of the checkpointer and associated
-utilities.
+This deep-dive will walk you through the design and behavior of the checkpointer and
+associated utilities.
 
 .. grid:: 1
 
-    .. grid-item-card:: :octicon:`mortar-board;1em;` What this tutorial will cover:
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover:
 
       * Deep-dive into the checkpointer design for torchtune
       * Checkpoint formats and how we handle them
@@ -30,7 +30,7 @@ Before we dive into the checkpointer in torchtune, let's define some concepts.
 Checkpoint Format
 ^^^^^^^^^^^^^^^^^
 
-In this tutorial, we'll talk about different checkpoint formats and how torchtune handles them.
+In this deep-dive, we'll talk about different checkpoint formats and how torchtune handles them.
 Let's take a close look at these different formats.
 
 Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
@@ -463,5 +463,5 @@ You can do this with any model supported by torchtune. You can find a full list
 of models and model builders
 `here <https://github.com/pytorch/torchtune/tree/main/torchtune/models>`__.
 
-We hope this tutorial provided a deeper insight into the checkpointer and
-associated utilities in torchtune. Happy fine-tuning!
+We hope this deep-dive provided a deeper insight into the checkpointer and
+associated utilities in torchtune. Happy tuning!
