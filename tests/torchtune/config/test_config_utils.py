@@ -4,9 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
+from io import StringIO
 from unittest import mock
 
 import pytest
+from omegaconf import OmegaConf
 from torchtune.config._utils import (
     _get_chat_format,
     _get_component_from_path,
@@ -14,6 +17,7 @@ from torchtune.config._utils import (
     _merge_yaml_and_cli_args,
     _try_get_component,
     InstantiationError,
+    log_config,
 )
 from torchtune.data import AlpacaInstructTemplate, Llama2ChatFormat
 from torchtune.utils.argparse import TuneRecipeArgumentParser
@@ -139,3 +143,39 @@ class TestUtils:
 
     def test_get_chat_format(self):
         assert _get_chat_format("Llama2ChatFormat") == Llama2ChatFormat
+
+    def test_log_config(self, capsys):
+        cfg = OmegaConf.create({"test": {"a": 1, "b": 2}})
+
+        # Create a logger and add a StreamHandler to it so we can patch the
+        # config logger and assert on logged strings
+        logger = logging.getLogger(__name__)
+        stream = StringIO()
+        handler = logging.StreamHandler(stream)
+        logger.addHandler(handler)
+
+        with mock.patch("torchtune.config._utils.get_logger", return_value=logger):
+            # Make sure rank 0 logs as expected
+            with mock.patch(
+                "torchtune.config._utils.get_world_size_and_rank",
+                return_value=(None, 0),
+            ):
+                log_config("test", cfg)
+                output = stream.getvalue().strip()
+                assert (
+                    "Running test with resolved config:\n\ntest:\n  a: 1\n  b: 2"
+                    in output
+                )
+
+            # Clear the stream
+            stream.truncate(0)
+            stream.seek(0)
+
+            # Make sure all other ranks do not log anything
+            with mock.patch(
+                "torchtune.config._utils.get_world_size_and_rank",
+                return_value=(None, 1),
+            ):
+                log_config("test", cfg)
+                output = stream.getvalue().strip()
+                assert not output

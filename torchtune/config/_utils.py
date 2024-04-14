@@ -30,7 +30,8 @@ def log_config(recipe_name: str, cfg: DictConfig) -> None:
         return
 
     logger = get_logger("DEBUG")
-    logger.info(msg=f"Running {recipe_name} with parameters {cfg}")
+    cfg_str = OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True)
+    logger.info(msg=f"Running {recipe_name} with resolved config:\n\n{cfg_str}")
 
 
 def _has_component(node: Union[Dict[str, Any], DictConfig]) -> bool:
