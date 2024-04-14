@@ -34,10 +34,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     Features:
         - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
             flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
-            activations in memory and recompute them during the backward pass. This is especially helpful
-            for larger batch sizes when you're memory constrained. But these savings in memory come at the
-            cost of training performance. In most cases training can slow-down quite a bit as a result of
-            this activation recomputation.
+            activations in memory and instead recompute them during the backward pass. This is especially
+            helpful for larger batch sizes when you're memory constrained. But these savings in memory
+            come at the cost of training performance. In most cases training can slow-down quite a bit as
+            a result of this activation recomputation.
 
         - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
             flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
@@ -54,7 +54,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
 
             Gradient accumulation is especially useful when you are memory constrained. In this case,
-            accumulation gradients might give you better training speed than enabling activation
+            accumulating gradients might give you better training speed than enabling activation
             checkpointing.
 
         - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
@@ -78,7 +78,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             For more details on the checkpointer, please take a look at
             our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
 
-        - Logging. Terminal, WandB and TensorBoard are all supported.
+        - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
     For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
     has example commands for how to kick-off training.

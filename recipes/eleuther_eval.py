@@ -115,7 +115,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     We recommend launching evaluation using the tune CLI:
 
         tune run eleuther_eval --config llama2_eleuther_eval \
-        tasks=["truthfulqa_mc2", "hellaswag"]
+        tasks=["truthfulqa_mc2","hellaswag"]
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from YAML file

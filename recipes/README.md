@@ -29,7 +29,7 @@ Recipes in torchtune are:
 
 ### Quantization and Sparsity
 
-torchtune integrates with `torchao`(https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see the docstrings in the [quantization recipe](quantize.py) for more details.
+torchtune integrates with [torchao](https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see the docstrings in the [quantization recipe](quantize.py) for more details.
 
 #### Quantize
 To quantize a model (default is int4 weight only quantization):
@@ -47,7 +47,7 @@ To evaluate a quantized model, make the following changes to the default [evalua
 # https://pytorch.org/torchtune/main/examples/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModeltorchtuneCheckpointer
+  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
   ..
   checkpoint_files: [<quantized_model_checkpoint>]
 
@@ -72,7 +72,7 @@ To run inference using a quantized model, make the following changes to the defa
 # https://pytorch.org/torchtune/main/examples/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
-  _component_: torchtune.utils.FullModeltorchtuneCheckpointer
+  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
   ..
   checkpoint_files: [<quantized_model_checkpoint>]
 

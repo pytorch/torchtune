@@ -187,7 +187,7 @@ Running Recipes with Configs
 ----------------------------
 
 To run a recipe with a set of user-defined parameters, you will need to write a config file.
-You can learn all about configs in our :ref:`config tutorial<config_tutorial_label>`.
+You can learn all about configs in our :ref:`config deep-dive<config_tutorial_label>`.
 
 Config and CLI parsing using :code:`parse`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
