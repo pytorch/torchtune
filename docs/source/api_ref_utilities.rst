@@ -11,7 +11,7 @@ Checkpointing
 -------------
 
 TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the :ref:`checkpointing tutorial <understand_checkpointer>`.
+checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
 .. autosummary::
     :toctree: generated/
