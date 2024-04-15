@@ -24,9 +24,6 @@ def llama2_7b() -> TransformerDecoder:
     Builder for creating a Llama2 model initialized w/ the default 7b parameter values
     from https://arxiv.org/abs/2307.09288
 
-    Args:
-        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
-
     Returns:
         TransformerDecoder: Instantiation of Llama2 7B model
     """
@@ -75,7 +72,6 @@ def lora_llama2_7b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -112,9 +108,6 @@ def llama2_13b() -> TransformerDecoder:
     """
     Builder for creating a Llama2 model initialized w/ the default 13b parameter values
     from https://arxiv.org/abs/2307.09288
-
-    Args:
-        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
 
     Returns:
         TransformerDecoder: Instantiation of Llama2 13B model
@@ -157,7 +150,6 @@ def lora_llama2_13b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
