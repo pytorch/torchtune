@@ -98,15 +98,14 @@ Let's look for the right config for this use case by using the tune CLI.
     tune ls
 
     RECIPE                                   CONFIG
-    full_finetune_single_device              llama2/7B_full_single_device
-                                             llama2/7B_full_single_device_low_memory
-                                             mistral/7B_full
+    full_finetune_single_device              llama2/7B_full_low_memory
+                                             mistral/7B_full_low_memory
     full_finetune_distributed                llama2/7B_full
                                              llama2/13B_full
                                              mistral/7B_full
     lora_finetune_single_device              llama2/7B_lora_single_device
                                              llama2/7B_qlora_single_device
-                                             mistral/7B_lora
+                                             mistral/7B_lora_single_device
     ...
 
 
@@ -121,9 +120,9 @@ tokenizer. Let's do this using the overrides in the tune CLI while starting trai
 
     tune run lora_finetune_single_device \
     --config llama2/7B_lora_single_device \
-    checkpointer.checkpoint_dir=/tmp/Llama-2-7b-hf \
-    tokenizer.path=/tmp/Llama-2-7b-hf/tokenizer.model \
-    checkpointer.output_dir=/tmp/Llama-2-7b-hf
+    checkpointer.checkpoint_dir=<checkpoint_dir> \
+    tokenizer.path=<checkpoint_dir>/tokenizer.model \
+    checkpointer.output_dir=<checkpoint_dir>
 
 
 Once training is complete, you'll see the following in the logs.
@@ -160,13 +159,19 @@ An example of this is available through the
 ``eleuther_eval`` recipe. In this tutorial, we're going to directly use this recipe by
 modifying its associated config ``eleuther_evaluation.yaml``.
 
+.. note::
+    For this section of the tutorial, you should first run :code:`pip install lm_eval==0.4.*`
+    to install the EleutherAI evaluation harness.
+
 Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
 let's first copy over the config to our local working directory so we can make changes. This
 will be easier than overriding all of these elements through the CLI.
 
 .. code-block:: bash
 
-    tune cp eleuther_evaluation ./custom_eval_config.yaml
+    tune cp eleuther_evaluation ./custom_eval_config.yaml \
+    checkpointer.checkpoint_dir=<checkpoint_dir> \
+    tokenizer.path=<checkpoint_dir>/tokenizer.model
 
 For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
 The Truthful QA dataset measures a model's propensity to be truthful when answering questions.
@@ -362,7 +367,7 @@ quantization method from the config.
 
 .. code-block:: bash
 
-    tune run quantize --config /custom_quantization_config.yaml
+    tune run quantize --config ./custom_quantization_config.yaml
 
 Once quantization is complete, you'll see the following in the logs.
 
@@ -461,13 +466,14 @@ same format at the HF repo-id.
 
 .. code-block:: python
 
+    import json
     import torch
 
     # create the output dictionary
     output_dict = {"weight_map": {}}
 
     # Load the checkpoints
-    sd_1 = torch.load('<checkpoint_dir>/hf_model_0001_0.pt', mmap=True, map_locations='cpu')
+    sd_1 = torch.load('<checkpoint_dir>/hf_model_0001_0.pt', mmap=True, map_location='cpu')
     sd_2 = torch.load('<checkpoint_dir>/hf_model_0002_0.pt', mmap=True, map_location='cpu')
 
     # create the weight map
