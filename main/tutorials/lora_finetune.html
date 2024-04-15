@@ -411,7 +411,7 @@ to some of the linear projections in each transformer layer’s self-attention.<
 <p>If you’re unfamiliar, check out these references for the <a class="reference external" href="https://en.wikipedia.org/wiki/Rank_(linear_algebra)">definition of rank</a>
 and discussion of <a class="reference external" href="https://en.wikipedia.org/wiki/Low-rank_approximation">low-rank approximations</a>.</p>
 </div>
-<p>By finetuning with LoRA (as opposed to <a class="reference internal" href="first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">finetuning all model parameters</span></a> ),
+<p>By finetuning with LoRA (as opposed to finetuning all model parameters),
 you can expect to see memory savings due to a substantial reduction in the
 number of parameters with gradients. When using an optimizer with momentum,
 like <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html">AdamW</a>,
@@ -419,7 +419,7 @@ you can expect to see further memory savings from the optimizer state.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>LoRA memory savings come primarily from gradient and optimizer states,
-and so if your model’s peak memory comes in its <code class="code docutils literal notranslate"><span class="pre">forward()</span></code>, then LoRA
+so if your model’s peak memory comes in its <code class="code docutils literal notranslate"><span class="pre">forward()</span></code> method, then LoRA
 may not reduce peak memory.</p>
 </div>
 </section>
@@ -517,35 +517,33 @@ Let’s take a look at how to construct Llama2 models in torchtune with and with
 See <a class="reference internal" href="#setting-trainable-params"><span class="std std-ref">below</span></a> for how to do this.</p>
 </div>
 <p>Let’s inspect each of these models a bit more closely.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print the first layer&#39;s self-attention in the usual Llama2 model</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="p">)</span>
-
-<span class="n">CausalSelfAttention</span><span class="p">(</span>
-  <span class="p">(</span><span class="n">q_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">k_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">v_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">output_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">pos_embeddings</span><span class="p">):</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">()</span>
-<span class="p">)</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Print the first layer&#39;s self-attention in the usual Llama2 model</span>
+&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>base_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
+CausalSelfAttention<span class="o">(</span>
+<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>pos_embeddings<span class="o">)</span>:<span class="w"> </span>RotaryPositionalEmbeddings<span class="o">()</span>
+<span class="o">)</span>
 
 <span class="c1"># Print the same for Llama2 with LoRA weights</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">lora_model</span><span class="o">.</span><span class="n">layers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">attn</span><span class="p">)</span>
-
-<span class="n">CausalSelfAttention</span><span class="p">(</span>
-  <span class="p">(</span><span class="n">q_proj</span><span class="p">):</span> <span class="n">LoRALinear</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">dropout</span><span class="p">):</span> <span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">lora_a</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">lora_b</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">)</span>
-  <span class="p">(</span><span class="n">k_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">v_proj</span><span class="p">):</span> <span class="n">LoRALinear</span><span class="p">(</span>
-    <span class="p">(</span><span class="n">dropout</span><span class="p">):</span> <span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">inplace</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">lora_a</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="p">(</span><span class="n">lora_b</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">)</span>
-  <span class="p">(</span><span class="n">output_proj</span><span class="p">):</span> <span class="n">Linear</span><span class="p">(</span><span class="n">in_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">out_features</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="p">(</span><span class="n">pos_embeddings</span><span class="p">):</span> <span class="n">RotaryPositionalEmbeddings</span><span class="p">()</span>
-<span class="p">)</span>
+&gt;&gt;&gt;<span class="w"> </span>print<span class="o">(</span>lora_model.layers<span class="o">[</span><span class="m">0</span><span class="o">]</span>.attn<span class="o">)</span>
+CausalSelfAttention<span class="o">(</span>
+<span class="w">  </span><span class="o">(</span>q_proj<span class="o">)</span>:<span class="w"> </span>LoRALinear<span class="o">(</span>
+<span class="w">    </span><span class="o">(</span>dropout<span class="o">)</span>:<span class="w"> </span>Dropout<span class="o">(</span><span class="nv">p</span><span class="o">=</span><span class="m">0</span>.0,<span class="w"> </span><span class="nv">inplace</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">    </span><span class="o">(</span>lora_a<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">8</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">    </span><span class="o">(</span>lora_b<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">8</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>k_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>v_proj<span class="o">)</span>:<span class="w"> </span>LoRALinear<span class="o">(</span>
+<span class="w">    </span><span class="o">(</span>dropout<span class="o">)</span>:<span class="w"> </span>Dropout<span class="o">(</span><span class="nv">p</span><span class="o">=</span><span class="m">0</span>.0,<span class="w"> </span><span class="nv">inplace</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">    </span><span class="o">(</span>lora_a<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">8</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">    </span><span class="o">(</span>lora_b<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">8</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>output_proj<span class="o">)</span>:<span class="w"> </span>Linear<span class="o">(</span><span class="nv">in_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">out_features</span><span class="o">=</span><span class="m">4096</span>,<span class="w"> </span><span class="nv">bias</span><span class="o">=</span>False<span class="o">)</span>
+<span class="w">  </span><span class="o">(</span>pos_embeddings<span class="o">)</span>:<span class="w"> </span>RotaryPositionalEmbeddings<span class="o">()</span>
+<span class="o">)</span>
 </pre></div>
 </div>
 <p>Notice that our LoRA model’s layer contains additional weights in the Q and V projections,
@@ -615,8 +613,7 @@ for more details on how you can easily clone and modify torchtune configs.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>You can modify the value of <code class="code docutils literal notranslate"><span class="pre">nproc_per_node</span></code> depending on (a) the number of GPUs you have available,
-and (b) the memory constraints of your hardware. See <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements">this table</a>
-for peak memory of LoRA finetuning in a couple of common hardware setups.</p>
+and (b) the memory constraints of your hardware.</p>
 </div>
 <p>The preceding command will run a LoRA finetune with torchtune’s factory settings, but we may want to experiment a bit.
 Let’s take a closer look at some of the <code class="code docutils literal notranslate"><span class="pre">lora_finetune_distributed</span></code> config.</p>
