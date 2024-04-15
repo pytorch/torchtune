@@ -456,7 +456,7 @@
 
 <span class="k">class</span> <span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checkpointer which reads and writes &quot;full-model&quot; checkpoints in a format compatible with</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in a format compatible with</span>
 <span class="sd">    TorchTune. No conversion of weights is required.</span>
 
 <span class="sd">    Currently this supports reading a single checkpoint file only. This will likely change as</span>
@@ -615,7 +615,7 @@
 
 <div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checkpointer which reads and writes &quot;full-model&quot; checkpoints in HF&#39;s format. Example includes</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in HF&#39;s format. Example includes</span>
 <span class="sd">    the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)</span>
 
 <span class="sd">    A few notes about the checkpoint reading logic:</span>
@@ -834,7 +834,7 @@
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checkpointer which reads and writes &quot;full-model&quot; checkpoints in Meta&#39;s format. Example includes</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in Meta&#39;s format. Example includes</span>
 <span class="sd">    the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)</span>
 
 <span class="sd">    Currently we support reading from a single checkpoint file only. Support for reading from</span>

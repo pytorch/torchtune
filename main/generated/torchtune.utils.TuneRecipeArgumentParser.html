@@ -369,15 +369,17 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.utils.TuneRecipeArgumentParser">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">TuneRecipeArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.TuneRecipeArgumentParser" title="Permalink to this definition">¶</a></dt>
-<dd><p>TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that
-adds a builtin argument “config”. The config argument takes a file path to a yaml file
-and will load in argument defaults from the yaml file. The yaml file must only contain
+<dd><p>A helpful utility subclass of the <code class="docutils literal notranslate"><span class="pre">argparse.ArgumentParser</span></code> that
+adds a builtin argument “config”. The config argument takes a file path to a YAML file
+and loads in argument defaults from said file. The YAML file must only contain
 argument names and their values and nothing more, it does not have to include all of the
 arguments. These values will be treated as defaults and can still be overridden from the
 command line. Everything else works the same as the base ArgumentParser and you should
-consult the docs for more info.</p>
-<p><a class="reference external" href="https://docs.python.org/3/library/argparse.html">https://docs.python.org/3/library/argparse.html</a></p>
-<p><em>Note: This class uses “config” as a builtin argument so it is not available to use</em></p>
+consult the docs for more info: <a class="reference external" href="https://docs.python.org/3/library/argparse.html">https://docs.python.org/3/library/argparse.html</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This class uses “config” as a builtin argument so it is not available to use.</p>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.utils.TuneRecipeArgumentParser.parse_known_args">
 <span class="sig-name descname"><span class="pre">parse_known_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.12)"><span class="pre">Namespace</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser.parse_known_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.TuneRecipeArgumentParser.parse_known_args" title="Permalink to this definition">¶</a></dt>
@@ -385,8 +387,7 @@ consult the docs for more info.</p>
 from the config yaml file if it is provided. The command line args will always take
 precident over the values in the config file. All other parsing method, such as parse_args,
 internally call this method so they will inherit this property too. For more info see
-the docs for the base method.</p>
-<p><a class="reference external" href="https://docs.python.org/3/library/argparse.html#the-parse-args-method">https://docs.python.org/3/library/argparse.html#the-parse-args-method</a></p>
+the docs for the base method: <a class="reference external" href="https://docs.python.org/3/library/argparse.html#the-parse-args-method">https://docs.python.org/3/library/argparse.html#the-parse-args-method</a>.</p>
 </dd></dl>
 
 </dd></dl>

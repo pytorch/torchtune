@@ -440,7 +440,8 @@
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the torch.dtype corresponding to the given precision string.</span>
 
-<span class="sd">    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports</span>
+<span class="sd">    Note:</span>
+<span class="sd">        If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports</span>
 <span class="sd">        bf16 kernels. If not, a ``RuntimeError`` is raised.</span>
 
 <span class="sd">    Args:</span>
