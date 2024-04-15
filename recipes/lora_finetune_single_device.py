@@ -295,7 +295,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if compile_model:
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
-        if self._device == torch.device("cuda"):
+        if self._device.type == "cuda":
             memory_stats = utils.memory_stats_log(device=self._device)
             log.info(f"Memory Stats after model init:\n{memory_stats}")
         return model
