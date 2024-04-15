@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Finetune your first LLM &mdash; TorchTune  documentation</title>
+  <title>Fine-Tune Your First LLM &mdash; TorchTune  documentation</title>
   
 
   
@@ -263,20 +263,20 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Finetune your first LLM</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-Tune Your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All about configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -326,7 +326,7 @@
       </li>
 
         
-      <li>Finetune your first LLM</li>
+      <li>Fine-Tune Your First LLM</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -362,8 +362,8 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="finetune-your-first-llm">
-<span id="finetune-llama-label"></span><h1>Finetune your first LLM<a class="headerlink" href="#finetune-your-first-llm" title="Permalink to this heading">¶</a></h1>
+  <section id="fine-tune-your-first-llm">
+<span id="finetune-llama-label"></span><h1>Fine-Tune Your First LLM<a class="headerlink" href="#fine-tune-your-first-llm" title="Permalink to this heading">¶</a></h1>
 <p>This guide will walk you through the process of launching your first finetuning
 job using torchtune.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
@@ -434,7 +434,7 @@ inference, evaluation, and quantization.</p>
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What are recipes?</span></a>.</p>
+<p>To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a>.</p>
 </div>
 <p>torchtune provides built-in recipes for finetuning on single device, on multiple devices with <a class="reference external" href="https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/">FSDP</a>,
 using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! You can view all built-in recipes <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/recipes">on GitHub</a>. You can also utilize the
@@ -457,7 +457,7 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p><strong>Why have a separate recipe for single device vs. distributed?</strong> This is discussed in
-<a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What are recipes?</span></a> but one of our core principles in torchtune is minimal abstraction and boilerplate code.
+<a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes?</span></a> but one of our core principles in torchtune is minimal abstraction and boilerplate code.
 If you only want to train on a single GPU, our single-device recipe ensures you don’t have to worry about additional
 features like FSDP that are only required for distributed training.</p>
 </div>
@@ -487,7 +487,7 @@ Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </s
 changing the LoRA rank, update batch size, etc.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Check out <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All about configs</span></a> for a deeper dive on configs in torchtune.</p>
+<p>Check out <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs</span></a> for a deeper dive on configs in torchtune.</p>
 </div>
 <div class="line-block">
 <div class="line"><br /></div>
@@ -566,7 +566,7 @@ new model by checking out the <a class="reference internal" href="e2e_flow.html#
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Finetune your first LLM</a><ul>
+<li><a class="reference internal" href="#">Fine-Tune Your First LLM</a><ul>
 <li><a class="reference internal" href="#downloading-a-model">Downloading a model</a></li>
 <li><a class="reference internal" href="#selecting-a-recipe">Selecting a recipe</a></li>
 <li><a class="reference internal" href="#modifying-a-config">Modifying a config</a></li>
