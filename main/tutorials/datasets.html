@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Logging to Weights &amp; Biases &mdash; TorchTune  documentation</title>
+  <title>Configuring Datasets for Fine-tuning &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="torchtune.config" href="../api_ref_config.html" />
-    <link rel="prev" title="What are recipes?" href="recipe_deepdive.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="prev" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -263,21 +263,21 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Finetune your first LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your first LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-tuning</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuring Datasets for Fine-tuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configs.html">All about configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">What are recipes?</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Logging to Weights &amp; Biases</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -326,13 +326,13 @@
       </li>
 
         
-      <li>Logging to Weights &amp; Biases</li>
+      <li>Configuring Datasets for Fine-tuning</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/deep_dives/wandb_logging.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/tutorials/datasets.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -362,86 +362,221 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="logging-to-weights-biases">
-<span id="wandb-logging"></span><h1>Logging to Weights &amp; Biases<a class="headerlink" href="#logging-to-weights-biases" title="Permalink to this heading">¶</a></h1>
-<p>This deep-dive will guide you through how to set up logging to Weights &amp; Biases
-(W&amp;B) in torchtune.</p>
+  <section id="configuring-datasets-for-fine-tuning">
+<span id="dataset-tutorial-label"></span><h1>Configuring Datasets for Fine-tuning<a class="headerlink" href="#configuring-datasets-for-fine-tuning" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial will guide you through how to set up a dataset to fine-tune on.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
-<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
-<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What this deep-dive will cover</div>
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What you will learn</div>
 <ul class="simple">
-<li><p class="sd-card-text">How to get started with W&amp;B</p></li>
-<li><p class="sd-card-text">How to use the <a class="reference internal" href="../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">WandBLogger</span></code></a></p></li>
-<li><p class="sd-card-text">How to log configs, metrics, and model checkpoints to W&amp;B</p></li>
+<li><p class="sd-card-text">How to quickly get started with built-in datasets</p></li>
+<li><p class="sd-card-text">How to configure existing dataset classes from the config</p></li>
+<li><p class="sd-card-text">How to fully customize your own dataset</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
+<ul class="simple">
+<li><p class="sd-card-text">Know how to <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">configure components from the config</span></a></p></li>
 </ul>
 </div>
 </div>
 </div>
 </div>
 </div>
-<p>Torchtune supports logging your training runs to <a class="reference external" href="https://wandb.ai)">Weights &amp; Biases</a>.
-An example W&amp;B workspace from a torchtune fine-tuning run can be seen in the screenshot below.</p>
-<a class="reference internal image-reference" href="../_images/torchtune_workspace.png"><img alt="torchtune workspace in W&amp;B" class="align-center" src="../_images/torchtune_workspace.png" style="width: 100%;" /></a>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You will need to install the <code class="code docutils literal notranslate"><span class="pre">wandb</span></code> package to use this feature.
-You can install it via pip:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>wandb
+<p>Datasets are a core component of fine-tuning workflows that serve as a “steering
+wheel” to guide LLM generation for a particular use case. Many publicly shared
+open-source datasets have become popular for fine-tuning LLMs and serve as a great
+starting point to train your model. We support several widely used datasets to help
+quickly bootstrap your fine-tuning. Let’s walk through how to set up the Stanford
+Alpaca dataset for fine-tuning.</p>
+<p>You can easily specify to use the Alpaca dataset directly from the config file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dataset</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
 </pre></div>
 </div>
-<p>Then you need to login with your API key using the W&amp;B CLI:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wandb<span class="w"> </span>login
+<p>This will indicate to the recipes to create a dataset object that iterates over samples
+from <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca">tatsu-lab/alpaca on HuggingFace datasets</a>.</p>
+<p>We also expose common knobs to tweak the dataset for your needs. For example, let’s say
+you’d like to reduce the memory footprint of each batch without changing the batch size.
+You could tweak <code class="code docutils literal notranslate"><span class="pre">max_seq_len</span></code> to achieve that directly from the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dataset</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="c1"># Original is 512</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
 </pre></div>
 </div>
-</div>
-<section id="metric-logger">
-<h2>Metric Logger<a class="headerlink" href="#metric-logger" title="Permalink to this heading">¶</a></h2>
-<p>The only change you need to make is to add the metric logger to your config. Weights &amp; Biases will log the metrics and model checkpoints for you.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># enable logging to the built-in WandBLogger</span>
-<span class="nt">metric_logger</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.metric_logging.WandBLogger</span>
-<span class="w">  </span><span class="c1"># the W&amp;B project to log to</span>
-<span class="w">  </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune</span>
+<section id="customizing-instruct-templates">
+<h2>Customizing instruct templates<a class="headerlink" href="#customizing-instruct-templates" title="Permalink to this heading">¶</a></h2>
+<p>To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
+template that guides the model to generate output with a specific goal. Instruct templates
+are simply flavor text that structures your inputs for the model. It is model agnostic
+and is tokenized normally just like any other text, but it can help condition the model
+to respond better to an expected format. For example, the <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>
+structures the data in the following way:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
+<span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+<span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
-<p>We automatically grab the config from the recipe you are running and log it to W&amp;B. You can find it in the W&amp;B overview tab and the actual file in the <code class="code docutils literal notranslate"><span class="pre">Files</span></code> tab.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Click on this sample <a class="reference external" href="https://wandb.ai/capecape/torchtune">project to see the W&amp;B workspace</a>.
-The config used to train the models can be found <a class="reference external" href="https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml">here</a>.</p>
+<p>Here is an example of sample that is formatted with <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">AlpacaInstructTemplate</span>
+
+<span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;instruction&quot;</span><span class="p">:</span> <span class="s2">&quot;Classify the following into animals, plants, and minerals&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;Oak tree, copper ore, elephant&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">AlpacaInstructTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<span class="c1"># Below is an instruction that describes a task, paired with an input that provides further context.</span>
+<span class="c1"># Write a response that appropriately completes the request.</span>
+<span class="c1">#</span>
+<span class="c1"># ### Instruction:</span>
+<span class="c1"># Classify the following into animals, plants, and minerals</span>
+<span class="c1">#</span>
+<span class="c1"># ### Input:</span>
+<span class="c1"># Oak tree, copper ore, elephant</span>
+<span class="c1">#</span>
+<span class="c1"># ### Response:</span>
+<span class="c1">#</span>
+</pre></div>
+</div>
+<p>We provide <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py">other instruct templates</a>
+for common tasks such summarization and grammar correction. If you need to create your own
+instruct template for a custom task, you can create your own <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code>
+class and point to it in the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydataset/onthehub</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CustomTemplate</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+</pre></div>
 </div>
 </section>
-<section id="logging-model-checkpoints-to-w-b">
-<h2>Logging Model Checkpoints to W&amp;B<a class="headerlink" href="#logging-model-checkpoints-to-w-b" title="Permalink to this heading">¶</a></h2>
-<p>You can also log the model checkpoints to W&amp;B by modifying the desired script <code class="code docutils literal notranslate"><span class="pre">save_checkpoint</span></code> method.</p>
-<p>A suggested approach would be something like this:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="o">...</span>
-    <span class="c1">## Let&#39;s save the checkpoint to W&amp;B</span>
-    <span class="c1">## depending on the Checkpointer Class the file will be named differently</span>
-    <span class="c1">## Here is an example for the full_finetune case</span>
-    <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
-    <span class="n">wandb_at</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Artifact</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;model&quot;</span><span class="p">,</span>
-        <span class="c1"># description of the model checkpoint</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Model checkpoint&quot;</span><span class="p">,</span>
-        <span class="c1"># you can add whatever metadata you want as a dict</span>
-        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">SEED_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">TOTAL_EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">,</span>
-            <span class="n">utils</span><span class="o">.</span><span class="n">MAX_STEPS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps_per_epoch</span><span class="p">,</span>
-        <span class="p">}</span>
+<section id="customizing-chat-formats">
+<h2>Customizing chat formats<a class="headerlink" href="#customizing-chat-formats" title="Permalink to this heading">¶</a></h2>
+<p>Chat formats are similar to instruct templates, except that they format system,
+user, and assistant messages in a list of messages (see <code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code>)
+for a conversational dataset. These can be configured quite similarly to instruct
+datasets.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create the SlimOrca chat dataset without using the builder</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Open-Orca/SlimOrca-Dedup</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
+<span class="w">  </span><span class="nt">chat_format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Llama2ChatFormat</span>
+</pre></div>
+</div>
+<p>Here is how messages would be formatted using the <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">Message</span>
+
+<span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;You are a helpful, respectful, and honest assistant.&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;I am going to Paris, what should I see?&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+<span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatFormat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">formatted_messages</span><span class="p">)</span>
+<span class="c1"># [</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;user&quot;,</span>
+<span class="c1">#         content=&quot;[INST] &lt;&lt;SYS&gt;&gt;\nYou are a helpful, respectful and honest assistant.\n&lt;&lt;/SYS&gt;&gt;\n\n&quot;</span>
+<span class="c1">#         &quot;I am going to Paris, what should I see? [/INST] &quot;,</span>
+<span class="c1">#     ),</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;assistant&quot;,</span>
+<span class="c1">#         content=&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+<span class="c1">#     ),</span>
+<span class="c1"># ]</span>
+</pre></div>
+</div>
+<p>Note that the system message is now incorporated in the user message. If you create custom ChatFormats
+you can also add more advanced behavior.</p>
+</section>
+<section id="fully-customized-datasets">
+<h2>Fully customized datasets<a class="headerlink" href="#fully-customized-datasets" title="Permalink to this heading">¶</a></h2>
+<p>More advanced tasks and dataset formats may require you to create your own dataset
+class for more flexibility. Let’s walk through the <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code>,
+which has custom functionality for RLHF preference data, to understand what you’ll need to do.</p>
+<p>If you take a look at the code for the <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code> class,
+you’ll notice it’s quite similar to <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructDataset</span></code> with a few
+adjustments for chosen and rejected samples in preference data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">chosen_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_chosen</span><span class="p">]),</span>
+<span class="p">]</span>
+<span class="n">rejected_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_rejected</span><span class="p">]),</span>
+<span class="p">]</span>
+
+<span class="n">chosen_input_ids</span><span class="p">,</span> <span class="n">c_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">chosen_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">chosen_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">c_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">chosen_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">rejected_input_ids</span><span class="p">,</span> <span class="n">r_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">rejected_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">rejected_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">rejected_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>If any of the existing dataset classes do not serve your purposes, you can similarly
+use one of them as a starting point and add the functionality you need.</p>
+<p>To be able to use your custom dataset from the config, you will need to create
+a builder function. This is the builder function for the <code class="xref py py-func docutils literal notranslate"><span class="pre">stack_exchanged_paired_dataset()</span></code>,
+which creates a <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code> configured to use
+the StackExchanged paired dataset from Hugging Face. Notice that we’ve also had
+to add a custom instruct template as well.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">stack_exchanged_paired_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">PreferenceDataset</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;lvwerra/stack-exchange-paired&quot;</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">StackExchangedPairedTemplate</span><span class="p">(),</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;question&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;response_j&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;response_k&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;data/rl&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">wandb_at</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span>
-    <span class="n">wandb</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span><span class="n">wandb_at</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can easily specify our custom dataset from the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is how you would configure the Alpaca dataset using the builder</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.stack_exchanged_paired_dataset</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
 </pre></div>
 </div>
 </section>
@@ -455,10 +590,10 @@ The config used to train the models can be found <a class="reference external" h
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="../api_ref_config.html" class="btn btn-neutral float-right" title="torchtune.config" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="recipe_deepdive.html" class="btn btn-neutral" title="What are recipes?" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="e2e_flow.html" class="btn btn-neutral" title="End-to-End Workflow with torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -490,9 +625,10 @@ The config used to train the models can be found <a class="reference external" h
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Logging to Weights &amp; Biases</a><ul>
-<li><a class="reference internal" href="#metric-logger">Metric Logger</a></li>
-<li><a class="reference internal" href="#logging-model-checkpoints-to-w-b">Logging Model Checkpoints to W&amp;B</a></li>
+<li><a class="reference internal" href="#">Configuring Datasets for Fine-tuning</a><ul>
+<li><a class="reference internal" href="#customizing-instruct-templates">Customizing instruct templates</a></li>
+<li><a class="reference internal" href="#customizing-chat-formats">Customizing chat formats</a></li>
+<li><a class="reference internal" href="#fully-customized-datasets">Fully customized datasets</a></li>
 </ul>
 </li>
 </ul>
