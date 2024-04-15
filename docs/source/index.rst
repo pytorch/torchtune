@@ -30,7 +30,7 @@ Topics in this section will help you get started with torchtune.
      .. grid-item-card:: :octicon:`file-code;1em`
          Finetune your first model
          :img-top: _static/img/card-background.svg
-         :link: examples/first_finetune_tutorial.html
+         :link: tutorials/first_finetune_tutorial.html
          :link-type: url
 
          Follow a simple tutorial to finetune Llama2 with torchtune.
@@ -38,7 +38,7 @@ Topics in this section will help you get started with torchtune.
      .. grid-item-card:: :octicon:`file-code;1em`
          End-to-End Workflow with torchtune
          :img-top: _static/img/card-background.svg
-         :link: examples/e2e_flow.html
+         :link: tutorials/e2e_flow.html
          :link-type: url
 
          Train, Evaluate, Quantize and then Generate with your LLM.
@@ -55,21 +55,14 @@ torchtune tutorials.
    :header: Finetuning with LoRA in torchtune
    :card_description: Parameter-efficient finetuning of Llama2 using LoRA
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/lora_finetune.html
+   :link: tutorials/lora_finetune.html
    :tags: finetuning,llama2,lora
-
-.. customcarditem::
-   :header: LLM Full Finetuning Recipe
-   :card_description: Full Finetuning for Llama2
-   :image: _static/img/generic-pytorch-logo.png
-   :link: examples/finetune_llm.html
-   :tags: finetuning,llama2
 
 .. customcarditem::
    :header: End-to-End Workflow with torchtune
    :card_description: Train, Evaluate, Quantize and then Generate with your LLM.
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/e2e_flow.html
+   :link: tutorials/e2e_flow.html
    :tags: finetuning,quantization,inference,evals,llama2
 
 .. customcardend::
@@ -88,8 +81,8 @@ torchtune tutorials.
 
    overview
    install
-   examples/first_finetune_tutorial
-   examples/e2e_flow
+   tutorials/first_finetune_tutorial
+   tutorials/e2e_flow
 
 .. toctree::
    :glob:
@@ -97,8 +90,7 @@ torchtune tutorials.
    :caption: Tutorials
    :hidden:
 
-   examples/finetune_llm
-   examples/lora_finetune
+   tutorials/lora_finetune
 
 .. toctree::
    :glob:
@@ -106,10 +98,10 @@ torchtune tutorials.
    :caption: Deep-Dives
    :hidden:
 
-   examples/checkpointer
-   examples/configs
-   examples/recipe_deepdive
-   examples/wandb_logging
+   deep_dives/checkpointer
+   deep_dives/configs
+   deep_dives/recipe_deepdive
+   deep_dives/wandb_logging
 
 .. toctree::
    :glob:
