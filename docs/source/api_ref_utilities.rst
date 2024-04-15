@@ -72,10 +72,10 @@ TorchTune provides utilities to profile and debug the performance
 of your finetuning job.
 
 .. autosummary::
-   :toctree: generated/
-   :nosignatures:
+    :toctree: generated/
+    :nosignatures:
 
-   _profiler.profiler
+    profiler
 
 .. _metric_logging_label:
 
