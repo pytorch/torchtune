@@ -56,7 +56,7 @@ experience different peak memory utilization based on changes made in configurat
 | 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml)         |    Llama-7B      |     9.29 GB *           |
 | 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora.yaml)         |    Llama-7B      |    14.17 GB *           |
 | 1 x RTX 4090 |     LoRA          | [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml)     |    Llama-7B      | 17.18 GB *           |
-| 1 x RTX 4090 |   Full finetune   | [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_single_device_low_memory.yaml)     |    Llama-7B      |    15.97 GB * ^           |
+| 1 x RTX 4090 |   Full finetune   | [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_low_memory.yaml)     |    Llama-7B      |    15.97 GB * ^           |
 | 4 x RTX 4090 |   Full finetune   | [full_finetune_distributed](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full.yaml)         |    Llama-7B      |    12.01 GB *           |
 
 
