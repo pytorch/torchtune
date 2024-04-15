@@ -54,7 +54,7 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
 
 .. code-block:: bash
 
-    tune download google/gemma-2b
+    tune download google/gemma-2b --hf-token <ACCESS_TOKEN> --ignore-patterns ""
 
 .. autosummary::
     :toctree: generated/
