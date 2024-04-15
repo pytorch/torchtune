@@ -369,6 +369,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             epoch=epoch,
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
+        
 
     def train(self) -> None:
         """
@@ -389,7 +390,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+            pbar = tqdm(total=self._steps_per_epoch)
+
+            for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -409,23 +412,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = self._loss_fn(logits, labels)
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
-                            "lr": (
-                                self._optim_ckpt_wrapper.get_optim_key("lr")
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
-                            ),
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,
-                    )
-
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
                 if (
@@ -434,21 +420,36 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-
-                    # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
+                    
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
+                    )
+                    if self.total_training_steps % self._log_every_n_steps == 0:
+                        self._metric_logger.log_dict(
+                            {
+                                "loss": loss.item(),
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "gpu_resources": torch.cuda.memory_allocated(),
+                            },
+                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
+                        )
+                    # Update the number of steps when the weights are updated
+                     # Log peak memory for iteration
+                    if (
+                        self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                        and self._device == torch.device("cuda")
+                    ):
+                        memory_stats = utils.memory_stats_log(device=self._device)
+                        self._metric_logger.log_dict(
+                            memory_stats, step=self.total_training_steps
+                        )
+                        
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
-                # Log peak memory for iteration
-                if (
-                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._device == torch.device("cuda")
-                ):
-                    memory_stats = utils.memory_stats_log(device=self._device)
-                    self._metric_logger.log_dict(
-                        memory_stats, step=self.total_training_steps
-                    )
+                   
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
