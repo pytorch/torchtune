@@ -117,8 +117,9 @@ def get_dtype(
         and device != torch.device("cpu")
         and not verify_bf16_support()
     ):
-        log.info("BF16 not supported on this hardware. Setting dtype to float32")
-        torch_dtype = torch.float32
+        raise RuntimeError(
+            "bf16 precision was requested but not available on this hardware. Please use fp32 precision instead."
+        )
 
     return torch_dtype
 
