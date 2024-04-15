@@ -369,7 +369,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             epoch=epoch,
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
-        
 
     def train(self) -> None:
         """
@@ -420,7 +419,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    
+
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss.item()}"
@@ -436,23 +435,23 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
-                     # Log peak memory for iteration
+                    # Log peak memory for iteration
                     if (
-                        self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                        self.total_training_steps % self._log_peak_memory_every_n_steps
+                        == 0
                         and self._device == torch.device("cuda")
                     ):
                         memory_stats = utils.memory_stats_log(device=self._device)
                         self._metric_logger.log_dict(
                             memory_stats, step=self.total_training_steps
                         )
-                    
+
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
-                
+
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
-                   
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
