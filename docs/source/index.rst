@@ -91,6 +91,8 @@ torchtune tutorials.
    :hidden:
 
    tutorials/lora_finetune
+   tutorials/first_finetune_tutorial
+   tutorials/e2e_flow
 
 .. toctree::
    :glob:
