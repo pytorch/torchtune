@@ -150,6 +150,7 @@ class TestUtils:
         # Create a logger and add a StreamHandler to it so we can patch the
         # config logger and assert on logged strings
         logger = logging.getLogger(__name__)
+        logger.setLevel("DEBUG")
         stream = StringIO()
         handler = logging.StreamHandler(stream)
         logger.addHandler(handler)
