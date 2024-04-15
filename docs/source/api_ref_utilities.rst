@@ -11,7 +11,7 @@ Checkpointing
 -------------
 
 TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the :ref:`checkpointing tutorial <understand_checkpointer>`.
+checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
 .. autosummary::
     :toctree: generated/
@@ -62,6 +62,20 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     memory.set_activation_checkpointing
+
+.. _perf_profiling_label:
+
+Performance and Profiling
+-------------------------
+
+TorchTune provides utilities to profile and debug the performance
+of your finetuning job.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    profiler
 
 .. _metric_logging_label:
 

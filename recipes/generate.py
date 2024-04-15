@@ -21,8 +21,15 @@ class InferenceRecipe:
     """
     Recipe for generating tokens from a dense Transformer-based LLM.
 
-    Currently this recipe support single-GPU generation only. Speculative
+    Currently this recipe supports single-GPU generation only. Speculative
     decoding is not supported.
+
+    For more details on how to use this recipe for generation, please see our
+    tutorial: https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#generation
+
+    For using this recipe with a quantized model, please the following section of
+    the above tutorial:
+    https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#speeding-up-generation-using-quantization
     """
 
     def __init__(self, cfg: DictConfig) -> None:
@@ -127,6 +134,7 @@ class InferenceRecipe:
 
 @config.parse
 def main(cfg: DictConfig) -> None:
+    config.log_config(recipe_name="InferenceRecipe", cfg=cfg)
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.generate(cfg=cfg)

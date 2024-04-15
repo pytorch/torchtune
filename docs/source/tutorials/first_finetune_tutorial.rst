@@ -62,8 +62,7 @@ Each recipe consists of three components:
 * **Recipe class**, core logic needed for training, exposed to users through a set of APIs
 * **Recipe script**, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
 
-To see all available recipes and for more information on how to select the right recipe, see the :ref:`recipe_deepdive` tutorial.
-For this tutorial, you'll be using the :ref:`basic full finetuning recipe<basic_finetune_llm>`.
+For more information on how to select the right recipe, see the :ref:`recipe_deepdive` tutorial.
 
 Modifying a config
 ------------------
@@ -72,7 +71,6 @@ You can set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, se
 For a list of all currently supported datasets, see :ref:`datasets`.
 
 To modify an existing recipe config, you can use the :code:`tune` CLI to copy it to your local directory.
-Or, you can visit the specific :ref:`recipe page<basic_finetune_llm>` and copy/paste the config from there.
 It looks like there's already a config called :code:`alpaca_llama_full_finetune` that utilizes the popular
 `Alpaca instruction dataset <https://crfm.stanford.edu/2023/03/13/alpaca.html>`_. This seems like a good place to start so let's copy it!
 
@@ -156,5 +154,5 @@ You should see some immediate output and see the loss going down, indicating you
 Next steps
 ----------
 
-Now that you have trained your model and set up your environment, let's take a :ref:`closer look<basic_finetune_llm>`
-at the full fine-tuning recipe and understand the config better.
+Now that you have trained your model and set up your environment, let's take a look at what we can do with our
+new model by checking out the :ref:`E2E Workflow Tutorial<e2e_flow>`.

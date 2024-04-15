@@ -148,6 +148,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
+        # log config with parameter override
+        self._metric_logger.log_config(cfg)
+
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
         self._model = self._setup_model(
@@ -252,11 +255,9 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
-        log.info(
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
-            )
-        )
+        if self._device == torch.device("cuda"):
+            memory_stats = utils.memory_stats_log(device=self._device)
+            log.info(f"Memory Stats after model init:\n{memory_stats}")
         return model
 
     def _setup_optimizer(
@@ -490,9 +491,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
                 # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._device == torch.device("cuda")
+                ):
+                    # Log peak memory for iteration
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(
+                        memory_stats, step=self.total_training_steps
                     )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
@@ -510,6 +516,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
+    config.log_config(recipe_name="LoRADPORecipeSingleDevice", cfg=cfg)
     recipe = LoRADPORecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()

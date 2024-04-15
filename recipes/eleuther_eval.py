@@ -102,20 +102,20 @@ class _EvalWrapper(HFLM):
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
-    """This recipe runs evaluation on a trained model using EleutherAI's eval harness.
-    This assumes the user has the EleutherAI eval harness installed.
+    """
+    This recipe runs evaluation on a trained model using EleutherAI's eval harness.
+    This assumes the user has the EleutherAI eval harness installed. See
+    https://github.com/EleutherAI/lm-evaluation-harness for more details.
 
-    This recipe supports:
-        - Single GPU evaluation
-        - Loading model in fp32 or bf16
+    Features:
+        - Single GPU evaluation. Multi-GPU evaluation is currently not supported.
+        - Loading model in fp32 or bf16. Fp16 is currently not supported.
         - Any task from the EleutherAI eval harness that is *not* free generation
 
-    Assumptions:
-        - Evaluation is launched with the Tune CLI (recommended)
-        - User has the EleutherAI eval harness installed, see https://github.com/EleutherAI/lm-evaluation-harness
+    We recommend launching evaluation using the tune CLI:
 
-    The following configs can be used to run this recipe:
-        - eleuther_eval.yaml
+        tune run eleuther_eval --config llama2_eleuther_eval \
+        tasks=["truthfulqa_mc2","hellaswag"]
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from YAML file
@@ -200,6 +200,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """Entry point for the recipe."""
+    config.log_config(recipe_name="EleutherEvalRecipe", cfg=cfg)
     recipe = EleutherEvalRecipe(cfg=cfg)
     recipe.setup()
     recipe.evaluate()

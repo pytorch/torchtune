@@ -40,28 +40,57 @@ log = utils.get_logger("DEBUG")
 
 class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     """
-    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs).
 
-    This recipe supports:
-        - FSDP and activation checkpointing. Activation Checkpointing is configurable and is disabled
-            by default.
-        - Full fp32 and full bf16 training. Mixed precision training or fp16 are currently not
+    Features:
+        - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
             supported.
-        - Checkpointing of full model weights and optionally of optimizer state (for
-            checkpoints created during training).
-        - Logging to terminal, WandB, or TensorBoard.
 
-    Assumptions:
-        - Training happens on CUDA (CPU training is not supported)
-        - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
-            in ongoing epoch is lost.
-        - Datasets are Map-style and data fits in memory (not streamed).
+        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
+            activations in memory and instead recompute them during the backward pass. This is especially
+            helpful for larger batch sizes when you're memory constrained. But these savings in memory
+            come at the cost of training performance. In most cases training can slow-down quite a bit as
+            a result of this activation recomputation.
 
-    The following configs can be used to run this recipe:
-        >>> tune ls
-        RECIPE                         CONFIG
-        lora_finetune_distributed      llama2/7B_lora
-                                       llama2/13B_lora
+        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
+            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
+            most cases this should halve the memory footprint of full precision (fp32) training, without
+            loss in model quality (will depend on the model, training data and other settings). For
+            GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
+            precision are currently not supported.
+
+        - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
+            controlled using the ``gradient_accumulation_steps`` flag.
+
+                Total Batch Size = batch_size * number of GPUs * gradient accumulation steps.
+
+            For example: with batch_size=1, nproc_per_node=2 and gradient_accumulation_steps=32 we get a
+            total batch size of 64.
+
+            Gradient accumulation is especially useful when you are memory constrained. In this case,
+            accumulating gradients might give you better training speed than enabling activation
+            checkpointing.
+
+        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
+            training. Currently we checkpoint both the adapter weights (trainable params only) and the
+            complete merged weights (adapter weights added back to the base model). For more details
+            please take a look at our LoRA tutorial
+            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
+
+            Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training. Resuming
+            training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            currently not supported.
+
+            For more details on the checkpointer, please take a look at
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
+
+        - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
+
+    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
+    has example commands for how to kick-off training.
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -167,6 +196,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
+
+            # log config with parameter override
+            self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -324,11 +356,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(
-                utils.memory_stats_log(
-                    "Memory Stats after model init:", device=self._device
-                )
-            )
+            memory_stats = utils.memory_stats_log(device=self._device)
+            log.info(f"Memory Stats after model init:\n{memory_stats}")
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -542,8 +571,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
                     and self._is_rank_zero
                 ):
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    # Log peak memory for iteration
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(
+                        memory_stats, step=self.total_training_steps
                     )
 
             self.epochs_run += 1
@@ -571,6 +602,8 @@ def recipe_main(cfg: DictConfig) -> None:
         )
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+
+    config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 
     recipe = LoRAFinetuneRecipeDistributed(cfg=cfg)
     recipe.setup(cfg=cfg)
