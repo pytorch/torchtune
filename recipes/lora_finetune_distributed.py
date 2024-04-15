@@ -77,7 +77,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             training. Currently we checkpoint both the adapter weights (trainable params only) and the
             complete merged weights (adapter weights added back to the base model). For more details
             please take a look at our LoRA tutorial
-            (https://pytorch.org/torchtune/main/examples/lora_finetune.html).
+            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
 
             Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
             only saved at the end of a given epoch and used in case of resuming training. Resuming
@@ -85,7 +85,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
@@ -196,6 +196,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         if self._is_rank_zero:
             self._metric_logger = config.instantiate(cfg.metric_logger)
+
+            # log config with parameter override
+            self._metric_logger.log_config(cfg)
 
         checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
 
@@ -353,11 +356,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(
-                utils.memory_stats_log(
-                    "Memory Stats after model init:", device=self._device
-                )
-            )
+            memory_stats = utils.memory_stats_log(device=self._device)
+            log.info(f"Memory Stats after model init:\n{memory_stats}")
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -571,8 +571,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
                     and self._is_rank_zero
                 ):
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                    # Log peak memory for iteration
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(
+                        memory_stats, step=self.total_training_steps
                     )
 
             self.epochs_run += 1

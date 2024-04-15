@@ -79,7 +79,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
@@ -171,7 +171,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         Sets up the recipe state correctly. This includes setting recipe attributes based
         on the ``resume_from_checkpoint`` flag.
         """
-        self._metric_logger = config.instantiate(cfg.metric_logger)
+        if self._is_rank_zero:
+            self._metric_logger = config.instantiate(cfg.metric_logger)
+
+            # log config with parameter override
+            self._metric_logger.log_config(cfg)
 
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
@@ -291,11 +295,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            log.info(
-                utils.memory_stats_log(
-                    "Memory Stats after model init", device=self._device
-                )
-            )
+            memory_stats = utils.memory_stats_log(device=self._device)
+            log.info(f"Memory Stats after model init:\n{memory_stats}")
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -475,15 +476,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
                     and self._is_rank_zero
                 ):
-                    log.info(
-                        utils.memory_stats_log("Memory Stats", device=self._device)
+                    # Log peak memory for iteration
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(
+                        memory_stats, step=self.total_training_steps
                     )
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
-        self._metric_logger.close()
+        if self._is_rank_zero:
+            self._metric_logger.close()
         torch.distributed.destroy_process_group()
 
 
