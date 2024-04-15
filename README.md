@@ -56,8 +56,7 @@ torchtune provides the following fine-tuning recipes.
 |------------------------------------|------------------------------------|
 | Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora.yaml)] |
 | Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama2/7B_full_low_memory.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama2/7B_qlora_single_device.yaml)] |
-| Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml
-)]
+| Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)]
 
 &nbsp;
 
@@ -241,6 +240,7 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 - [lit-gpt](https://github.com/Lightning-AI/litgpt) for pushing the LLM fine-tuning community forward.
 
 &nbsp;
+
 
 ## License
 
