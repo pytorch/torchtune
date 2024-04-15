@@ -52,18 +52,18 @@ torchtune tutorials.
 .. customcardstart::
 
 .. customcarditem::
-   :header: LLM Full Finetuning Recipe
-   :card_description: Full Finetuning for Llama2
-   :image: _static/img/generic-pytorch-logo.png
-   :link: examples/finetune_llm.html
-   :tags: finetuning,llama2
-
-.. customcarditem::
    :header: Finetuning with LoRA in torchtune
    :card_description: Parameter-efficient finetuning of Llama2 using LoRA
    :image: _static/img/generic-pytorch-logo.png
    :link: examples/lora_finetune.html
    :tags: finetuning,llama2,lora
+
+.. customcarditem::
+   :header: LLM Full Finetuning Recipe
+   :card_description: Full Finetuning for Llama2
+   :image: _static/img/generic-pytorch-logo.png
+   :link: examples/finetune_llm.html
+   :tags: finetuning,llama2
 
 .. customcarditem::
    :header: End-to-End Workflow with torchtune
