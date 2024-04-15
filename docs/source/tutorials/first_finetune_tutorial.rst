@@ -74,8 +74,7 @@ using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`
 
 .. code-block:: bash
 
-  tune ls
-
+  $ tune ls
   RECIPE                                   CONFIG
   full_finetune_single_device              llama2/7B_full_low_memory
                                            mistral/7B_full_low_memory
@@ -122,7 +121,7 @@ If you want to make more substantial changes to the config, you can use the :cod
 
 .. code-block:: bash
 
-  tune cp llama2/7B_lora_single_device custom_config.yaml
+  $ tune cp llama2/7B_lora_single_device custom_config.yaml
   Copied file to custom_config.yaml
 
 Now you can update the custom YAML config any way you like. Try setting the random seed in order to make replication easier,
@@ -142,8 +141,7 @@ Just like all the other steps, you will be using the :code:`tune` CLI tool to la
 
 .. code-block:: bash
 
-  tune run lora_finetune_single_device --config llama2/7B_lora_single_device epochs=1
-
+  $ tune run lora_finetune_single_device --config llama2/7B_lora_single_device epochs=1
   INFO:torchtune.utils.logging:Running LoRAFinetuneRecipeSingleDevice with resolved config:
   Writing logs to /tmp/lora_finetune_output/log_1713194212.txt
   INFO:torchtune.utils.logging:Model is initialized with precision torch.bfloat16.
