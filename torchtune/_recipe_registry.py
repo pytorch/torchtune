@@ -45,6 +45,7 @@ _ALL_RECIPES = [
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
+            Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
         ],
         supports_distributed=True,
     ),
@@ -107,14 +108,6 @@ _ALL_RECIPES = [
             Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
         ],
         supports_distributed=False,
-    ),
-    Recipe(
-        name="gemma_full_finetune_distributed",
-        file_path="gemma_full_finetune_distributed.py",
-        configs=[
-            Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
-        ],
-        supports_distributed=True,
     ),
     Recipe(
         name="quantize",
