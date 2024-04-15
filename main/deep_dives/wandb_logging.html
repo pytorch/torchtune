@@ -365,24 +365,31 @@
               
   <section id="logging-to-weights-biases">
 <span id="wandb-logging"></span><h1>Logging to Weights &amp; Biases<a class="headerlink" href="#logging-to-weights-biases" title="Permalink to this heading">¶</a></h1>
-<p><div class="col-md-12 tutorials-card-container" data-tags=logging,wandb>
-  <div class="card tutorials-card">
-    <a href="examples/wandb_logging.html">
-      <div class="card-body">
-        <div class="card-title-container">
-          <h4>Logging to Weights & Biases</h4>
-        </div>
-        <p>Topics: <span class="tags">logging,wandb</span></p>
-        <p class="card-summary">Log metrics and model checkpoints to W&B</p>
-        <div class="tutorials-image"><img src='_static/img/torchtune_workspace.png'></div>
-      </div>
-    </a>
-  </div>
-</div></p>
-<p>Torchtune supports logging your training runs to [Weights &amp; Biases](<a class="reference external" href="https://wandb.ai">https://wandb.ai</a>).</p>
+<p>This deep-dive will guide you through how to set up logging to Weights &amp; Biases
+(W&amp;B) in torchtune.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What this deep-dive will cover</div>
+<ul class="simple">
+<li><p class="sd-card-text">How to get started with W&amp;B</p></li>
+<li><p class="sd-card-text">How to use the <a class="reference internal" href="../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">WandBLogger</span></code></a></p></li>
+<li><p class="sd-card-text">How to log configs, metrics, and model checkpoints to W&amp;B</p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Torchtune supports logging your training runs to <a class="reference external" href="https://wandb.ai)">Weights &amp; Biases</a>.
+An example W&amp;B workspace from a torchtune fine-tuning run can be seen in the screenshot below.</p>
+<a class="reference internal image-reference" href="../_images/torchtune_workspace.png"><img alt="torchtune workspace in W&amp;B" class="align-center" src="../_images/torchtune_workspace.png" style="width: 100%;" /></a>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>You will need to install the <cite>wandb</cite> package to use this feature.
+<p>You will need to install the <code class="code docutils literal notranslate"><span class="pre">wandb</span></code> package to use this feature.
 You can install it via pip:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>wandb
 </pre></div>
@@ -402,16 +409,16 @@ You can install it via pip:</p>
 <span class="w">  </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune</span>
 </pre></div>
 </div>
-<p>We automatically grab the config from the recipe you are running and log it to W&amp;B. You can find it in the W&amp;B overview tab and the actual file in the <cite>Files</cite> tab.</p>
+<p>We automatically grab the config from the recipe you are running and log it to W&amp;B. You can find it in the W&amp;B overview tab and the actual file in the <code class="code docutils literal notranslate"><span class="pre">Files</span></code> tab.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Click on this sample [project to see the W&amp;B workspace](<a class="reference external" href="https://wandb.ai/capecape/torchtune">https://wandb.ai/capecape/torchtune</a>)
-The config used to train the models can be found [here](<a class="reference external" href="https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml">https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml</a>)</p>
+<p>Click on this sample <a class="reference external" href="https://wandb.ai/capecape/torchtune">project to see the W&amp;B workspace</a>.
+The config used to train the models can be found <a class="reference external" href="https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml">here</a>.</p>
 </div>
 </section>
 <section id="logging-model-checkpoints-to-w-b">
 <h2>Logging Model Checkpoints to W&amp;B<a class="headerlink" href="#logging-model-checkpoints-to-w-b" title="Permalink to this heading">¶</a></h2>
-<p>You can also log the model checkpoints to W&amp;B by modifying the desired script <cite>save_checkpoint</cite> method.</p>
+<p>You can also log the model checkpoints to W&amp;B by modifying the desired script <code class="code docutils literal notranslate"><span class="pre">save_checkpoint</span></code> method.</p>
 <p>A suggested approach would be something like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="o">...</span>
