@@ -470,7 +470,7 @@ keyword arguments not specified in the config if we’d like:</p>
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note the API of the tokenizer we specified - we need to pass in a path</span>
-<span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tokenizer</span><span class="p">;</span>
+<span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tokenizer</span><span class="p">:</span>
 
 <span class="c1"># Note the API of the dataset we specified - we need to pass in a tokenizer</span>
 <span class="c1"># and any optional keyword arguments</span>
@@ -516,7 +516,8 @@ your config is well-formed and all components can be instantiated properly. You
 can also pass in overrides if you want to test out the exact commands you will run
 your experiments with. If any parameters are not well-formed, <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span></code>
 will list out all the locations where an error was found.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>validate<span class="w"> </span>--config<span class="w"> </span>recipes/configs/llama2/7B_full.yaml<span class="w"> </span><span class="nv">batch_size</span><span class="o">=</span><span class="m">4</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span>./my_config.yaml
+tune<span class="w"> </span>validate<span class="w"> </span>./my_config.yaml
 </pre></div>
 </div>
 </section>
@@ -573,12 +574,12 @@ but sometimes you may want to quickly try different values without having to upd
 the config itself. To enable quick experimentation, you can specify override values
 to parameters in your config via the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> command. These should be specified
 as key-value pairs <code class="code docutils literal notranslate"><span class="pre">k1=v1</span> <span class="pre">k2=v2</span> <span class="pre">...</span></code></p>
-<p>For example, to run the <code class="code docutils literal notranslate"><span class="pre">full_finetune</span></code> recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>full_finetune_distributed<span class="w"> </span><span class="se">\</span>
---config<span class="w"> </span>full_finetune_distributed<span class="w"> </span><span class="se">\</span>
+<p>For example, to run the <code class="code docutils literal notranslate"><span class="pre">lora_finetune_single_device</span></code> recipe with custom model and tokenizer directories, you can provide overrides:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
+--config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="se">\</span>
 checkpointer.checkpoint_dir<span class="o">=</span>/home/my_model_checkpoint<span class="w"> </span><span class="se">\</span>
-checkpointer.checkpoint_files<span class="o">=[</span>file_1,<span class="w"> </span>file_2<span class="o">]</span><span class="w"> </span><span class="se">\</span>
-<span class="nv">device</span><span class="o">=</span>cuda
+checkpointer.checkpoint_files<span class="o">=[</span><span class="s1">&#39;file_1&#39;</span>,<span class="s1">&#39;file_2&#39;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>/home/my_tokenizer_path
 </pre></div>
 </div>
 <section id="overriding-components">
@@ -592,7 +593,8 @@ name directly. Any nested fields in the components can be overridden with dot no
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to slimorca_dataset and set train_on_input to False</span>
-tune<span class="w"> </span>full_finetune<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
+tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
 </pre></div>
 </div>
 </section>
