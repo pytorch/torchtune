@@ -84,7 +84,7 @@ for S3_URL in "${S3_URLS[@]}"; do
             fi
         # For https: download with curl
         else
-            cp_cmd="curl -O --output-dir ${LOCAL_DIR} ${S3_URL}"
+            cp_cmd="curl --output ${LOCAL_DIR}/${FILE_NAME} ${S3_URL}"
         fi
         bash -c "${cp_cmd}"
         # Check if download was successful
