@@ -478,8 +478,9 @@
         <span class="ow">and</span> <span class="n">device</span> <span class="o">!=</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
         <span class="ow">and</span> <span class="ow">not</span> <span class="n">verify_bf16_support</span><span class="p">()</span>
     <span class="p">):</span>
-        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BF16 not supported on this hardware. Setting dtype to float32&quot;</span><span class="p">)</span>
-        <span class="n">torch_dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">float32</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;bf16 precision was requested but not available on this hardware. Please use fp32 precision instead.&quot;</span>
+        <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">torch_dtype</span></div>
 
