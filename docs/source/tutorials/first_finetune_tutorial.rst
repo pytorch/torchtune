@@ -27,7 +27,7 @@ Downloading a model
 The first step in any finetuning job is to download a pretrained base model. torchtune supports an integration
 with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
-For this tutorial, you're going to use the **`Llama2 7B model** from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
+For this tutorial, you're going to use the `**Llama2 7B model** from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
 meaning that you need to be granted access in order to download the weights. Follow `these instructions <https://huggingface.co/meta-llama>`_ on the official Meta page
 hosted on Hugging Face to complete this process. This should take less than 5 minutes. To verify that you have the access, go to the `model page <https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main>`_.
 You should be able to see the model files. If not, you may need to accept the agreement to complete the process.
@@ -55,14 +55,14 @@ This command will also download the model tokenizer and some other helpful files
 Selecting a recipe
 ------------------
 Recipes are the primary entry points for torchtune users.
-These can be thought of as **singularly-focused scripts for interacting with LLMs**, including training
+These can be thought of as **hackable, singularly-focused scripts for interacting with LLMs** including training,
 inference, evaluation, and quantization.
 
 Each recipe consists of three components:
 
 * **Configurable parameters**, specified through yaml configs and command-line overrides
 * **Recipe script**, entry-point which puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
-* **Recipe class**, core logic needed for training, exposed to users through a set of APIs
+* **Recipe class**, core logic needed for training, exposed through a set of APIs
 
 .. note::
 
@@ -93,8 +93,8 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
 
   **Why have a separate recipe for single device vs. distributed?** This is discussed in
   :ref:`recipe_deepdive` but one of our core principles in torchtune is minimal abstraction and boilerplate code.
-  If you don't want to train in a distributed environment, you shouldn't need to wade through hundreds of lines of complicated
-  distributed-specific code in order to understand how your model is training.
+  If you only want to train on a single GPU, our single-device recipe ensures you don't have to worry about additional
+  features like FSDP that are only required for distributed training.
 
 |
 
