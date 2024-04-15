@@ -273,6 +273,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../examples/checkpointer.html">Checkpointing in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../examples/configs.html">Configs Deep-Dive</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../examples/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -518,40 +519,42 @@
         <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">memory_stats_log</span><span class="p">(</span>
-    <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">memory_stats_log</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Print a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will</span>
+<span class="sd">    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will</span>
 <span class="sd">    also reset CUDA&#39;s peak memory tracking. This is useful to get data around relative use of peak</span>
 <span class="sd">    memory (i.e. peak memory during model init, during forward, etc) and optimize memory for</span>
 <span class="sd">    individual sections of training.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        prefix (str): Prefix to prepend to the printed summary.</span>
 <span class="sd">        device (torch.device): Device to get memory summary for. Only CUDA devices are supported.</span>
 <span class="sd">        reset_stats (bool): Whether to reset CUDA&#39;s peak memory tracking.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        None</span>
+<span class="sd">        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,</span>
+<span class="sd">        and peak memory reserved. This dict is useful for logging memory stats.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the passed in device is not CUDA.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">device</span><span class="o">.</span><span class="n">type</span> <span class="o">!=</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
-        <span class="k">return</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Logging memory stats is only supported on CUDA devices, got </span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
     <span class="n">peak_memory_active</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">memory_stats</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;active_bytes.all.peak&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
     <span class="n">peak_mem_alloc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_allocated</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
     <span class="n">peak_mem_reserved</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">max_memory_reserved</span><span class="p">(</span><span class="n">device</span><span class="p">)</span> <span class="o">/</span> <span class="mf">1e9</span>
 
-    <span class="n">ret</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">    </span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">:</span>
-<span class="s2">    GPU peak memory allocation: </span><span class="si">{</span><span class="n">peak_mem_alloc</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB</span>
-<span class="s2">    GPU peak memory reserved: </span><span class="si">{</span><span class="n">peak_mem_reserved</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB</span>
-<span class="s2">    GPU peak memory active: </span><span class="si">{</span><span class="n">peak_memory_active</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB</span>
-<span class="s2">    &quot;&quot;&quot;</span>
-
     <span class="k">if</span> <span class="n">reset_stats</span><span class="p">:</span>
         <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">reset_peak_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">ret</span>
+    <span class="n">memory_stats</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;peak_memory_active&quot;</span><span class="p">:</span> <span class="n">peak_memory_active</span><span class="p">,</span>
+        <span class="s2">&quot;peak_memory_alloc&quot;</span><span class="p">:</span> <span class="n">peak_mem_alloc</span><span class="p">,</span>
+        <span class="s2">&quot;peak_memory_reserved&quot;</span><span class="p">:</span> <span class="n">peak_mem_reserved</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="n">memory_stats</span>
 </pre></div>
 
              </article>

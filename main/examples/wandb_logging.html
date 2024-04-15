@@ -7,10 +7,11 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.config._parse &mdash; TorchTune  documentation</title>
+  <title>Logging to Weights &amp; Biases &mdash; TorchTune  documentation</title>
   
 
   
@@ -26,20 +27,22 @@
 
   
 
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="torchtune.config" href="../api_ref_config.html" />
+    <link rel="prev" title="Training Recipe Deep-Dive" href="recipe_deepdive.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -50,16 +53,16 @@
   
 
   
-  <script src="../../../_static/js/modernizr.min.js"></script>
+  <script src="../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -241,7 +244,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -258,30 +261,30 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="finetune_llm.html">LLM Full Finetuning Recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../examples/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models.llama2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models.llama2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -314,7 +317,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../../../index.html">
+        <a href="../index.html">
           
             Docs
           
@@ -322,12 +325,14 @@
       </li>
 
         
-          <li><a href="../../index.html">Module code</a> &gt;</li>
-        
-      <li>torchtune.config._parse</li>
+      <li>Logging to Weights &amp; Biases</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/examples/wandb_logging.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
         
       </li>
     
@@ -356,65 +361,98 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.config._parse</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
-<span class="c1"># All rights reserved.</span>
-<span class="c1">#</span>
-<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
-<span class="c1"># LICENSE file in the root directory of this source tree.</span>
-<span class="kn">import</span> <span class="nn">argparse</span>
-<span class="kn">import</span> <span class="nn">functools</span>
-<span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span>
-
-<span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.argparse</span> <span class="kn">import</span> <span class="n">TuneRecipeArgumentParser</span>
-
-
-<span class="n">Recipe</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DictConfig</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
-
-
-<div class="viewcode-block" id="parse"><a class="viewcode-back" href="../../../generated/torchtune.config.parse.html#torchtune.config.parse">[docs]</a><span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">:</span> <span class="n">Recipe</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Recipe</span><span class="p">],</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Decorator that handles parsing the config file and CLI overrides</span>
-<span class="sd">    for a recipe. Use it on the recipe&#39;s main function.</span>
-
-<span class="sd">    Example: in recipe/my_recipe.py,</span>
-<span class="sd">        &gt;&gt;&gt; @parse</span>
-<span class="sd">        &gt;&gt;&gt; def main(cfg: DictConfig):</span>
-<span class="sd">        &gt;&gt;&gt;     ...</span>
-
-<span class="sd">    With the decorator, the parameters will be parsed into cfg when run as:</span>
-<span class="sd">        &gt;&gt;&gt; tune my_recipe --config config.yaml foo=bar</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        recipe_main (Recipe): The main method that initializes</span>
-<span class="sd">            and runs the recipe</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Callable[[Recipe], Any]: the decorated main</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-
-    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-        <span class="n">parser</span> <span class="o">=</span> <span class="n">TuneRecipeArgumentParser</span><span class="p">(</span>
-            <span class="n">description</span><span class="o">=</span><span class="n">recipe_main</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">,</span>
-            <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">RawDescriptionHelpFormatter</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="c1"># Get user-specified args from config and CLI and create params for recipe</span>
-        <span class="n">yaml_args</span><span class="p">,</span> <span class="n">cli_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
-        <span class="n">conf</span> <span class="o">=</span> <span class="n">_merge_yaml_and_cli_args</span><span class="p">(</span><span class="n">yaml_args</span><span class="p">,</span> <span class="n">cli_args</span><span class="p">)</span>
-
-        <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">(</span><span class="n">conf</span><span class="p">))</span>
-
-    <span class="k">return</span> <span class="n">wrapper</span></div>
+  <section id="logging-to-weights-biases">
+<span id="wandb-logging"></span><h1>Logging to Weights &amp; Biases<a class="headerlink" href="#logging-to-weights-biases" title="Permalink to this heading">¶</a></h1>
+<p><div class="col-md-12 tutorials-card-container" data-tags=logging,wandb>
+  <div class="card tutorials-card">
+    <a href="examples/wandb_logging.html">
+      <div class="card-body">
+        <div class="card-title-container">
+          <h4>Logging to Weights & Biases</h4>
+        </div>
+        <p>Topics: <span class="tags">logging,wandb</span></p>
+        <p class="card-summary">Log metrics and model checkpoints to W&B</p>
+        <div class="tutorials-image"><img src='_static/img/torchtune_workspace.png'></div>
+      </div>
+    </a>
+  </div>
+</div></p>
+<p>Torchtune supports logging your training runs to [Weights &amp; Biases](<a class="reference external" href="https://wandb.ai">https://wandb.ai</a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>You will need to install the <cite>wandb</cite> package to use this feature.
+You can install it via pip:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>wandb
 </pre></div>
+</div>
+<p>Then you need to login with your API key using the W&amp;B CLI:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>wandb<span class="w"> </span>login
+</pre></div>
+</div>
+</div>
+<section id="metric-logger">
+<h2>Metric Logger<a class="headerlink" href="#metric-logger" title="Permalink to this heading">¶</a></h2>
+<p>The only change you need to make is to add the metric logger to your config. Weights &amp; Biases will log the metrics and model checkpoints for you.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># enable logging to the built-in WandBLogger</span>
+<span class="nt">metric_logger</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.metric_logging.WandBLogger</span>
+<span class="w">  </span><span class="c1"># the W&amp;B project to log to</span>
+<span class="w">  </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune</span>
+</pre></div>
+</div>
+<p>We automatically grab the config from the recipe you are running and log it to W&amp;B. You can find it in the W&amp;B overview tab and the actual file in the <cite>Files</cite> tab.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Click on this sample [project to see the W&amp;B workspace](<a class="reference external" href="https://wandb.ai/capecape/torchtune">https://wandb.ai/capecape/torchtune</a>)
+The config used to train the models can be found [here](<a class="reference external" href="https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml">https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml</a>)</p>
+</div>
+</section>
+<section id="logging-model-checkpoints-to-w-b">
+<h2>Logging Model Checkpoints to W&amp;B<a class="headerlink" href="#logging-model-checkpoints-to-w-b" title="Permalink to this heading">¶</a></h2>
+<p>You can also log the model checkpoints to W&amp;B by modifying the desired script <cite>save_checkpoint</cite> method.</p>
+<p>A suggested approach would be something like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="o">...</span>
+    <span class="c1">## Let&#39;s save the checkpoint to W&amp;B</span>
+    <span class="c1">## depending on the Checkpointer Class the file will be named differently</span>
+    <span class="c1">## Here is an example for the full_finetune case</span>
+    <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+    <span class="n">wandb_at</span> <span class="o">=</span> <span class="n">wandb</span><span class="o">.</span><span class="n">Artifact</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="s2">&quot;model&quot;</span><span class="p">,</span>
+        <span class="c1"># description of the model checkpoint</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Model checkpoint&quot;</span><span class="p">,</span>
+        <span class="c1"># you can add whatever metadata you want as a dict</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">SEED_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">TOTAL_EPOCHS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">,</span>
+            <span class="n">utils</span><span class="o">.</span><span class="n">MAX_STEPS_KEY</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_steps_per_epoch</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+    <span class="n">wandb_at</span><span class="o">.</span><span class="n">add_file</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span>
+    <span class="n">wandb</span><span class="o">.</span><span class="n">log_artifact</span><span class="p">(</span><span class="n">wandb_at</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
 
              </article>
              
             </div>
             <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../api_ref_config.html" class="btn btn-neutral float-right" title="torchtune.config" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="recipe_deepdive.html" class="btn btn-neutral" title="Training Recipe Deep-Dive" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
   
 
   
@@ -443,7 +481,14 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              
+              <ul>
+<li><a class="reference internal" href="#">Logging to Weights &amp; Biases</a><ul>
+<li><a class="reference internal" href="#metric-logger">Metric Logger</a></li>
+<li><a class="reference internal" href="#logging-model-checkpoints-to-w-b">Logging Model Checkpoints to W&amp;B</a></li>
+</ul>
+</li>
+</ul>
+
             </div>
           </div>
         </div>
@@ -456,24 +501,23 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-         <script src="../../../_static/jquery.js"></script>
-         <script src="../../../_static/underscore.js"></script>
-         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../../../_static/doctools.js"></script>
-         <script src="../../../_static/clipboard.min.js"></script>
-         <script src="../../../_static/copybutton.js"></script>
-         <script src="../../../_static/tabs.js"></script>
-         <script src="../../../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -588,7 +632,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -724,7 +768,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {
