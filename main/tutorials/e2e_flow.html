@@ -451,9 +451,7 @@ RTX 3090/4090. For more information on how to use LoRA, take a look at our
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py">single device LoRA recipe</a>
 and use the standard settings from the
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml">default config</a>.</p>
-<p>This will fine-tune our model on the
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py">Alpaca Dataset</a>
-using a <code class="docutils literal notranslate"><span class="pre">batch_size=2</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype=bfloat16</span></code>. With these settings the model
+<p>This will fine-tune our model using a <code class="docutils literal notranslate"><span class="pre">batch_size=2</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype=bfloat16</span></code>. With these settings the model
 should have a peak memory usage of ~16GB and total training time of around two hours for each epoch.
 We’ll need to make some changes to the config to make sure our recipe can access the
 right checkpoints.</p>
@@ -524,8 +522,8 @@ tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
 </pre></div>
 </div>
 <p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code> task from the harness.
-The Truthful QA dataset measures a model’s propensity to be truthful when answering questions.
-This task measures the model’s zero-shot accuracy on a question followed by one or more true
+This task measures a model’s propensity to be truthful when answering questions and
+measures the model’s zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let’s first run a baseline without fine-tuning.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>eleuther_eval<span class="w"> </span>--config<span class="w"> </span>./custom_eval_config.yaml
 

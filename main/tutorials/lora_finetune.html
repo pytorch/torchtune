@@ -599,7 +599,7 @@ of in the recipe.</p>
 <span id="lora-recipe-label"></span><h2>LoRA finetuning recipe in torchtune<a class="headerlink" href="#lora-finetuning-recipe-in-torchtune" title="Permalink to this heading">¶</a></h2>
 <p>Finally, we can put it all together and finetune a model using torchtune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">these instructions</span></a>.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 16GB):</p>
+You can then run the following command to perform a LoRA finetune of Llama2-7B with two GPUs (each having VRAM of at least 16GB):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora
 </pre></div>
 </div>
@@ -652,7 +652,7 @@ on a single device using most commodity GPUs which support bfloat16 floating-poi
 </pre></div>
 </div>
 <p>On a single device, we may need to be more cognizant of our peak memory. Let’s run a few experiments
-to see our peak memory during a finetune on the Alpaca dataset. We will experiment along two axes:
+to see our peak memory during a finetune. We will experiment along two axes:
 first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
 alpha in parallel to LoRA rank, as discussed above.)</p>
 <p>To compare the results of our experiments, we can evaluate our models on <code class="code docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code>, a task from
