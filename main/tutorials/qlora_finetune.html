@@ -366,7 +366,7 @@
 <span id="qlora-finetune-label"></span><h1>Finetuning Llama2 with QLoRA<a class="headerlink" href="#finetuning-llama2-with-qlora" title="Permalink to this heading">¶</a></h1>
 <p>In this tutorial, we’ll learn about <a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a>, an enhancement on top of
 <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a> that maintains frozen model parameters in 4-bit quantized precision, thereby reducing memory usage. We’ll
-walk through how QLoRA can be utilized within torchtune to finetune a Llama2-7b model in &lt; 10 GB of memory.
+walk through how QLoRA can be utilized within torchtune to finetune a Llama2-7b model in &lt;10 GB of memory.
 It is highly recommended to first develop an understanding of <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA finetuning in torchtune</span></a>.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
@@ -401,7 +401,7 @@ It is highly recommended to first develop an understanding of <a class="referenc
 </div>
 <section id="what-is-qlora">
 <h2>What is QLoRA?<a class="headerlink" href="#what-is-qlora" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a> builds on top of <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a> to enable further
+<p>QLoRA builds on top of LoRA to enable further
 memory savings. In LoRA, model parameters can be thought of as existing in two partitions: adapters, which are
 low-rank matrices added to different layers of a neural network, and base model parameters, which are parameters that are part of
 the original model. In vanilla LoRA-style training, both these parameters are held in the same precision (typically fp32 or bf16), and
@@ -411,10 +411,10 @@ largely retaining model accuracy. As a result, the vast majority of parameters o
 quantization is done through the method highlighted in the original <a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA paper</a>. Adapter
 parameters are still held in the original precision, and activations, gradients, and optimizer states still exist in the higher precision to preserve
 accuracy.</p>
-<p>The <a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA paper</a> introduces two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
+<p>The QLoRA authors introduce two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
 type, and a double quantization method that quantizes the quantization parameters themselves to save even more memory. torchtune uses
 the <a class="reference external" href="https://github.com/pytorch-labs/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153">NF4Tensor</a> abstraction from the <a class="reference external" href="https://github.com/pytorch-labs/ao">torchao library</a> to build QLoRA components as specified in the paper.
-<a class="reference external" href="https://github.com/pytorch-labs/ao">torchao library</a> is a PyTorch-native library that allows you to quantize and prune your models.</p>
+torchao is a PyTorch-native library that allows you to quantize and prune your models.</p>
 </section>
 <section id="using-qlora-to-save-memory">
 <span id="qlora-core-highlevel"></span><h2>Using QLoRA to save memory<a class="headerlink" href="#using-qlora-to-save-memory" title="Permalink to this heading">¶</a></h2>
@@ -606,7 +606,7 @@ a vanilla minimal LoRA layer, taken from <a class="reference internal" href="lor
     <span class="k">return</span> <span class="n">frozen_out</span> <span class="o">+</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alpha</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span><span class="p">)</span> <span class="o">*</span> <span class="n">lora_out</span>
 </pre></div>
 </div>
-<p>As mentioned above, torchtune takes a dependency on <a class="reference external" href="https://github.com/pytorch-labs/ao">torchao library</a> for some of the core components required for QLoRA. This includes the
+<p>As mentioned above, torchtune takes a dependency on torchao for some of the core components required for QLoRA. This includes the
 <code class="docutils literal notranslate"><span class="pre">NF4Tensor</span></code>, as well as helpful utilities including <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> and <code class="docutils literal notranslate"><span class="pre">linear_nf4</span></code>.</p>
 <p>The key changes on top of the LoRA layer are the usage of the <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> and <code class="docutils literal notranslate"><span class="pre">linear_nf4</span></code> APIs.</p>
 <p><code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> accepts an unquantized (bf16 or fp32) tensor and produces an <code class="docutils literal notranslate"><span class="pre">NF4</span></code> representation of the weight. See the <a class="reference external" href="https://github.com/pytorch-labs/ao/blob/c40358072f99b50cd7e58ec11e0e8d90440e3e25/torchao/dtypes/nf4tensor.py#L587">implementation</a> of <code class="docutils literal notranslate"><span class="pre">to_nf4</span></code> for more details.
