@@ -249,7 +249,7 @@ LoRA finetuning recipe in torchtune
 
 Finally, we can put it all together and finetune a model using torchtune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 16GB):
+You can then run the following command to perform a LoRA finetune of Llama2-7B with two GPUs (each having VRAM of at least 16GB):
 
 .. code-block:: bash
 
@@ -311,7 +311,7 @@ on a single device using most commodity GPUs which support bfloat16 floating-poi
     tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 
 On a single device, we may need to be more cognizant of our peak memory. Let's run a few experiments
-to see our peak memory during a finetune on the Alpaca dataset. We will experiment along two axes:
+to see our peak memory during a finetune. We will experiment along two axes:
 first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
 alpha in parallel to LoRA rank, as discussed above.)
 

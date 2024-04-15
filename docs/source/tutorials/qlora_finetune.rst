@@ -127,7 +127,7 @@ Putting it all together, we can now finetune a model using torchtune's `LoRA rec
 with a `QLoRA configuration <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_qlora_single_device.yaml>`_.
 
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a QLoRA finetune of Llama2-7B using the Alpaca dataset on a single GPU.
+You can then run the following command to perform a QLoRA finetune of Llama2-7B on a single GPU.
 
 .. code-block:: bash
 
