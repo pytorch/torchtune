@@ -6,7 +6,7 @@
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config llama2\7B_qlora_single_device
+#   tune run lora_finetune_single_device --config llama2/7B_qlora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
@@ -86,4 +86,4 @@ enable_activation_checkpointing: True
 profiler:
   _component_: torchtune.utils.profiler
   enabled: False
-  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
+  output_dir: ${output_dir}/torchtune_perf_tracing.json
