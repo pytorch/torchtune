@@ -381,8 +381,10 @@
     <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A state_dict hook that replaces nf4 tensors with their restored</span>
+<span class="sd">    A state_dict hook that replaces NF4 tensors with their restored</span>
 <span class="sd">    higher-precision weight and optionally offloads the restored weight to CPU.</span>
+<span class="sd">    Use this hook to avoid increased peak GPU memory usage during checkpoint</span>
+<span class="sd">    save when training with QLoRA.</span>
 
 <span class="sd">    This function is meant to be used with PyTorch&#39;s ``nn.Module._register_state_dict_hook``, i.e.</span>
 
