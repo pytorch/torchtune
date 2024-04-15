@@ -371,16 +371,15 @@
 
 <div class="viewcode-block" id="grammar_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset">[docs]</a><span class="k">def</span> <span class="nf">grammar_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;liweili/c4_200m&quot;</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Support for the Grammar dataset and its variants from Hugging Face Datasets.</span>
-<span class="sd">    https://huggingface.co/datasets/liweili/c4_200m</span>
+<span class="sd">    Support for grammar correction datasets and their variants from Hugging Face Datasets.</span>
+<span class="sd">    Here is an `example &lt;https://huggingface.co/datasets/liweili/c4_200m&gt;`_ of a grammar correction dataset.</span>
 
-<span class="sd">    Data input format: https://huggingface.co/datasets/liweili/c4_200m#description</span>
-
-<span class="sd">    The prompt template is created from llama_recipes codebase:</span>
-<span class="sd">    https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50</span>
+<span class="sd">    The prompt template mirrors what is used in the `llama_recipes codebase</span>
+<span class="sd">    &lt;https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50&gt;`_</span>
 
 <span class="sd">    where `input` and `output` are fields from the dataset.</span>
 
@@ -392,10 +391,11 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        InstructDataset: dataset configured with Grammar source data and template</span>
+<span class="sd">        InstructDataset: dataset configured with source data and template</span>
 
 
 <span class="sd">    Example:</span>
@@ -407,7 +407,7 @@
 
     <span class="k">return</span> <span class="n">InstructDataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;liweili/c4_200m&quot;</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">template</span><span class="o">=</span><span class="n">GrammarErrorCorrectionTemplate</span><span class="p">,</span>
         <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sentence&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">},</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>

@@ -372,12 +372,14 @@
 
 
 <div class="viewcode-block" id="slimorca_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">[docs]</a><span class="k">def</span> <span class="nf">slimorca_dataset</span><span class="p">(</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    PyTorch Representation of the SlimOrca Dataset</span>
-<span class="sd">    https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup</span>
-<span class="sd">    from Hugging Face.</span>
+<span class="sd">    Support for `SlimOrca-style &lt;https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup&gt;`_</span>
+<span class="sd">    family of conversational datasets.</span>
 
 <span class="sd">    The data is formatted to adhere to Llama2 Chat Format.</span>
 <span class="sd">    This format is required if the base model is Llama2 Chat Model.</span>
@@ -388,10 +390,9 @@
 <span class="sd">    input token id list is ensured (by truncation if necessary) to be within</span>
 <span class="sd">    that length.</span>
 
-<span class="sd">    Data input format: https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup#dataset-format</span>
-
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.</span>
 <span class="sd">            Default is 1024.</span>
@@ -420,7 +421,7 @@
 
     <span class="k">return</span> <span class="n">ChatDataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">sharegpt_to_llama2_messages</span><span class="p">,</span>
         <span class="n">chat_format</span><span class="o">=</span><span class="n">Llama2ChatFormat</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
