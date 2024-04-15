@@ -22,10 +22,9 @@ Datasets are a core component of fine-tuning workflows that serve as a "steering
 wheel" to guide LLM generation for a particular use case. Many publicly shared
 open-source datasets have become popular for fine-tuning LLMs and serve as a great
 starting point to train your model. We support several widely used datasets to help
-quickly bootstrap your fine-tuning. Let's walk through how to set up the Stanford
-Alpaca dataset for fine-tuning.
+quickly bootstrap your fine-tuning. Let's walk through how to set up a common one for fine-tuning.
 
-You can easily specify to use the Alpaca dataset directly from the config file:
+You can easily specify a dataset directly from the config file:
 
 .. code-block:: yaml
 
@@ -111,7 +110,6 @@ datasets.
 
 .. code-block:: yaml
 
-    # Create the SlimOrca chat dataset without using the builder
     dataset:
       _component_: torchtune.datasets.chat_dataset
       source: Open-Orca/SlimOrca-Dedup
@@ -197,7 +195,7 @@ use one of them as a starting point and add the functionality you need.
 To be able to use your custom dataset from the config, you will need to create
 a builder function. This is the builder function for the :func:`~torchtune.datasets.stack_exchanged_paired_dataset`,
 which creates a :class:`~torchtune.datasets.PreferenceDataset` configured to use
-the StackExchanged paired dataset from Hugging Face. Notice that we've also had
+a paired dataset from Hugging Face. Notice that we've also had
 to add a custom instruct template as well.
 
 .. code-block:: python

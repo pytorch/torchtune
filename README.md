@@ -67,12 +67,6 @@ Single-GPU recipes expose a number of memory optimizations that aren't available
 
 &nbsp;
 
-### Datasets
-
-torchtune provides [built-in support](torchtune/datasets/) for several popular datasets such as Alpaca, Grammar, Samsum, Slimorca etc. In the coming weeks, we'll be augmenting these datasets with several features such as Sample Packing.
-
-&nbsp;
-
 ---
 
 ## Installation
@@ -131,14 +125,14 @@ You can find your token at https://huggingface.co/settings/tokens
 
 ### Running fine-tuning recipes
 
-Llama2 7B + LoRA on single GPU + [Alpaca Dataset](https://huggingface.co/datasets/tatsu-lab/alpaca):
+Llama2 7B + LoRA on single GPU:
 
 ```bash
 tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 ```
 
 For distributed training, tune CLI integrates with [torchrun](https://pytorch.org/docs/stable/elastic/run.html).
-Llama2 7B + LoRA on two GPUs + [Alpaca Dataset](https://huggingface.co/datasets/tatsu-lab/alpaca):
+Llama2 7B + LoRA on two GPUs:
 
 ```bash
 tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full_distributed
