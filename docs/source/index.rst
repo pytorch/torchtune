@@ -65,6 +65,13 @@ torchtune tutorials.
    :link: examples/lora_finetune.html
    :tags: finetuning,llama2,lora
 
+.. customcarditem::
+   :header: End-to-End Workflow with torchtune
+   :card_description: Train, Evaluate, Quantize and then Generate with your LLM.
+   :image: _static/img/generic-pytorch-logo.png
+   :link: examples/e2e_flow.html
+   :tags: finetuning,quantization,inference,evals,llama2
+
 .. customcardend::
 
 
