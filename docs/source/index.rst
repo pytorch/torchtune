@@ -107,6 +107,7 @@ TorchTune tutorials.
    examples/checkpointer
    examples/configs
    examples/recipe_deepdive
+   examples/wandb_logging
 
 .. toctree::
    :glob:

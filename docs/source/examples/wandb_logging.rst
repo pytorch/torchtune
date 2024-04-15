@@ -29,7 +29,8 @@ Metric Logger
 
 The only change you need to make is to add the metric logger to your config. Weights & Biases will log the metrics and model checkpoints for you.
 
-.. code-block:: python
+.. code-block:: yaml
+
     # enable logging to the built-in WandBLogger
     metric_logger:
       _component_: torchtune.utils.metric_logging.WandBLogger
@@ -45,7 +46,7 @@ We automatically grab the config from the recipe you are running and log it to W
   The config used to train the models can be found [here](https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml)
 
 Logging Model Checkpoints to W&B
--------------------------------
+--------------------------------
 
 You can also log the model checkpoints to W&B by modifying the desired script `save_checkpoint` method.
 
@@ -53,7 +54,7 @@ A suggested approach would be something like this:
 
 .. code-block:: python
 
-      def save_checkpoint(self, epoch: int) -> None:
+    def save_checkpoint(self, epoch: int) -> None:
         ...
         ## Let's save the checkpoint to W&B
         ## depending on the Checkpointer Class the file will be named differently
@@ -62,16 +63,16 @@ A suggested approach would be something like this:
             self._checkpointer._output_dir, f"torchtune_model_{epoch}"
         ).with_suffix(".pt")
         wandb_at = wandb.Artifact(
-          name=f"torchtune_model_{epoch}",
-          type="model",
-          # description of the model checkpoint
-          description="Model checkpoint",
-          # you can add whatever metadata you want as a dict
-          metadata={
-            utils.SEED_KEY: self.seed,
-            utils.EPOCHS_KEY: self.epochs_run,
-            utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-            utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+            name=f"torchtune_model_{epoch}",
+            type="model",
+            # description of the model checkpoint
+            description="Model checkpoint",
+            # you can add whatever metadata you want as a dict
+            metadata={
+                utils.SEED_KEY: self.seed,
+                utils.EPOCHS_KEY: self.epochs_run,
+                utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
             }
         )
         wandb_at.add_file(checkpoint_file)

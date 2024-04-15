@@ -189,7 +189,7 @@ class WandBLogger(MetricLoggerInterface):
         """Saves the config locally and also logs the config to W&B. The config is
         stored in the same directory as the checkpoint. You can
         see an example of the logged config to W&B in the following link:
-          https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
+        https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
 
         Args:
             config (DictConfig): config to log
@@ -206,7 +206,6 @@ class WandBLogger(MetricLoggerInterface):
             )
             OmegaConf.save(config, output_config_fname)
             try:
-
                 log.info(f"Logging {output_config_fname} to W&B under Files")
                 self._wandb.save(
                     output_config_fname, base_path=output_config_fname.parent
