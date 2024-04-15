@@ -8,6 +8,7 @@ from typing import Optional
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch import Tensor
 from torchtune.modules import KVCache
 
@@ -16,11 +17,15 @@ from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
 class GemmaTransformerDecoder(nn.Module):
     """
-    Transformer Decoder derived from the Llama2 architecture.
+    Transformer Decoder derived from the Gemma architecture. A key difference between
+    the Gemma transformer decoder and :class:`~torchtune.modules.TransformerDecoder`
+    is that the output projection is replaced instead with a reverse projection
+    using the transposed token embedding weights from output dim to input dim
+    (see https://github.com/keras-team/keras-nlp/blob/master/keras_nlp/layers/modeling/reversible_embedding.py#L21).
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
-            tokens to an embedding space.
+            tokens to an embedding space and as the output projection.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
@@ -32,8 +37,6 @@ class GemmaTransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
-        output (nn.Linear): Callable that applies a linear transformation to the output of
-            the decoder.
         norm_embeddings (bool): Whether to normalize the embeddings before passing them
             through the decoder layers. Defaults to False.
 
@@ -52,14 +55,12 @@ class GemmaTransformerDecoder(nn.Module):
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
-        output: nn.Linear,
         norm_embeddings: bool = False,
     ) -> None:
         super().__init__()
         self.tok_embeddings = tok_embeddings
         self.layers = _get_clones(layer, num_layers)
         self.norm = norm
-        self.output = output
         self.max_seq_len = max_seq_len
         self.num_heads = num_heads
         self.head_dim = head_dim
@@ -129,5 +130,5 @@ class GemmaTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         # shape: [b, s, v]
-        output = self.output(h).float()
+        output = F.linear(h, self.tok_embeddings.weight).float()
         return output

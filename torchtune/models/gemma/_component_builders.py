@@ -4,22 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from functools import partial
-from typing import List, Literal, Optional
-
 from torch import nn
 
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
-    KVCache,
     RotaryPositionalEmbeddings,
     TransformerDecoderLayer,
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
-
-from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
 """
 Component builders for the Gemma 2B models and popular variants such as LoRA.
@@ -101,7 +95,6 @@ def gemma(
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
     model = GemmaTransformerDecoder(
         tok_embeddings=tok_embeddings,
         layer=layer,
@@ -110,7 +103,6 @@ def gemma(
         num_heads=num_heads,
         head_dim=head_dim,
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
-        output=output_proj,
         norm_embeddings=norm_embeddings,
     )
     return model
