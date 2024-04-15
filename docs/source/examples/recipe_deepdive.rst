@@ -1,8 +1,8 @@
 .. _recipe_deepdive:
 
-=========================
-Training Recipe Deep-Dive
-=========================
+=================
+What are recipes?
+=================
 
 This deep-dive will walk you through the design of training-recipes in torchtune.
 
