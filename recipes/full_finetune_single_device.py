@@ -420,12 +420,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ):
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
-                    self.total_training_steps += 1
                     
                     pbar.update(1)
                     pbar.set_description(
                         f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss.item()}"
                     )
+
+                    # compute training metrics
                     if self.total_training_steps % self._log_every_n_steps == 0:
                         self._metric_logger.log_dict(
                             {
@@ -435,7 +436,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
-                    # Update the number of steps when the weights are updated
                      # Log peak memory for iteration
                     if (
                         self.total_training_steps % self._log_peak_memory_every_n_steps == 0
@@ -445,7 +445,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._metric_logger.log_dict(
                             memory_stats, step=self.total_training_steps
                         )
-                        
+                    
+                    # Update the number of steps when the weights are updated
+                    self.total_training_steps += 1
+                
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
 
