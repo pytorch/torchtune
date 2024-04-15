@@ -40,11 +40,13 @@ class TestPrecisionUtils:
             torch.float32,
             torch.float16,
             torch.float16,
-            torch.bfloat16 if verify_bf16_support() else torch.float32,
+            torch.bfloat16,
             torch.float32,
             torch.float64,
         ]
         for dtype, expected_dtype in zip(dtypes, expected_dtypes):
+            if dtype == "bf16" and not verify_bf16_support():
+                continue  # skip bf16 tests if not supported.
             assert (
                 get_dtype(dtype) == expected_dtype
             ), f"{dtype} should return {expected_dtype}"
