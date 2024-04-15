@@ -461,15 +461,14 @@ right checkpoints.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>ls
 
 RECIPE<span class="w">                                   </span>CONFIG
-full_finetune_single_device<span class="w">              </span>llama2/7B_full_single_device
-<span class="w">                                         </span>llama2/7B_full_single_device_low_memory
-<span class="w">                                         </span>mistral/7B_full
+full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory
+<span class="w">                                         </span>mistral/7B_full_low_memory
 full_finetune_distributed<span class="w">                </span>llama2/7B_full
 <span class="w">                                         </span>llama2/13B_full
 <span class="w">                                         </span>mistral/7B_full
 lora_finetune_single_device<span class="w">              </span>llama2/7B_lora_single_device
 <span class="w">                                         </span>llama2/7B_qlora_single_device
-<span class="w">                                         </span>mistral/7B_lora
+<span class="w">                                         </span>mistral/7B_lora_single_device
 ...
 </pre></div>
 </div>
@@ -479,9 +478,9 @@ All we need to do is update the checkpoint directory for both the model and the
 tokenizer. Let’s do this using the overrides in the tune CLI while starting training!</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span><span class="se">\</span>
 --config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="se">\</span>
-checkpointer.checkpoint_dir<span class="o">=</span>/tmp/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
-tokenizer.path<span class="o">=</span>/tmp/Llama-2-7b-hf/tokenizer.model<span class="w"> </span><span class="se">\</span>
-checkpointer.output_dir<span class="o">=</span>/tmp/Llama-2-7b-hf
+checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model<span class="w"> </span><span class="se">\</span>
+checkpointer.output_dir<span class="o">=</span>&lt;checkpoint_dir&gt;
 </pre></div>
 </div>
 <p>Once training is complete, you’ll see the following in the logs.</p>
@@ -511,10 +510,17 @@ checkpoints and not the adapter weights.</p>
 An example of this is available through the
 <code class="docutils literal notranslate"><span class="pre">eleuther_eval</span></code> recipe. In this tutorial, we’re going to directly use this recipe by
 modifying its associated config <code class="docutils literal notranslate"><span class="pre">eleuther_evaluation.yaml</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>For this section of the tutorial, you should first run <code class="code docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">lm_eval==0.4.*</span></code>
+to install the EleutherAI evaluation harness.</p>
+</div>
 <p>Since we plan to update all of the checkpoint files to point to our fine-tuned checkpoints,
 let’s first copy over the config to our local working directory so we can make changes. This
 will be easier than overriding all of these elements through the CLI.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml<span class="w"> </span><span class="se">\</span>
+checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
 </pre></div>
 </div>
 <p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code> task from the harness.
@@ -669,7 +675,7 @@ and see if this improves generation speed.</p>
 </div>
 <p>Once the config is updated, let’s kick off quantization! We’ll use the default
 quantization method from the config.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>quantize<span class="w"> </span>--config<span class="w"> </span>/custom_quantization_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>quantize<span class="w"> </span>--config<span class="w"> </span>./custom_quantization_config.yaml
 </pre></div>
 </div>
 <p>Once quantization is complete, you’ll see the following in the logs.</p>
@@ -752,13 +758,14 @@ Let’s satisfy these assumptions, by creating this mapping
 file. Let’s assume we’ll be using <code class="docutils literal notranslate"><span class="pre">&lt;new_dir&gt;/Llama-2-7B-hf</span></code> as the directory
 for this. <code class="docutils literal notranslate"><span class="pre">gpt-fast</span></code> assumes that the directory with checkpoints has the
 same format at the HF repo-id.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">torch</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="c1"># create the output dictionary</span>
 <span class="n">output_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;weight_map&quot;</span><span class="p">:</span> <span class="p">{}}</span>
 
 <span class="c1"># Load the checkpoints</span>
-<span class="n">sd_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;&lt;checkpoint_dir&gt;/hf_model_0001_0.pt&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_locations</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
+<span class="n">sd_1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;&lt;checkpoint_dir&gt;/hf_model_0001_0.pt&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
 <span class="n">sd_2</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s1">&#39;&lt;checkpoint_dir&gt;/hf_model_0002_0.pt&#39;</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="s1">&#39;cpu&#39;</span><span class="p">)</span>
 
 <span class="c1"># create the weight map</span>
