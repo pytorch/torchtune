@@ -11,22 +11,25 @@ from torchtune.modules import Tokenizer
 
 def stack_exchanged_paired_dataset(
     tokenizer: Tokenizer,
+    source: str = "lvwerra/stack-exchange-paired",
     max_seq_len: int = 1024,
 ) -> PreferenceDataset:
     """
-    Build a preference dataset from StackExchange paired data.
+    Family of preference datasets similar to `StackExchange paired data
+    <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data.
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
-            Default is 2048.
+            Default is 1024.
 
     Returns:
-        PreferenceDataset: The preference dataset built from StackExchange paired data.
+        PreferenceDataset: The preference datßaset built from source paired data.
     """
     return PreferenceDataset(
         tokenizer=tokenizer,
-        source="lvwerra/stack-exchange-paired",
+        source=source,
         template=StackExchangedPairedTemplate(),
         column_map={
             "prompt": "question",
