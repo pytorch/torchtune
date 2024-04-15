@@ -443,7 +443,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Log peak memory for iteration
                 if (
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._device == torch.device("cuda")
+                    and self._device.type == "cuda"
                 ):
                     memory_stats = utils.memory_stats_log(device=self._device)
                     self._metric_logger.log_dict(

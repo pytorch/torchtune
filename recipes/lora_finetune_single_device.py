@@ -476,7 +476,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if (
                         self.total_training_steps % self._log_peak_memory_every_n_steps
                         == 0
-                        and self._device == torch.device("cuda")
+                        and self._device.type == "cuda"
                     ):
                         # Log peak memory for iteration
                         memory_stats = utils.memory_stats_log(device=self._device)
