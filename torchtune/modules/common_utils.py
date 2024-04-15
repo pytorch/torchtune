@@ -21,8 +21,10 @@ def reparametrize_as_dtype_state_dict_post_hook(
     **kwargs: Dict[Any, Any],
 ):
     """
-    A state_dict hook that replaces nf4 tensors with their restored
+    A state_dict hook that replaces NF4 tensors with their restored
     higher-precision weight and optionally offloads the restored weight to CPU.
+    Use this hook to avoid increased peak GPU memory usage during checkpoint
+    save when training with QLoRA.
 
     This function is meant to be used with PyTorch's ``nn.Module._register_state_dict_hook``, i.e.
 
