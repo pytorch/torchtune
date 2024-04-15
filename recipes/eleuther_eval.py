@@ -200,6 +200,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 @config.parse
 def recipe_main(cfg: DictConfig) -> None:
     """Entry point for the recipe."""
+    config.log_config(recipe_name="EleutherEvalRecipe", cfg=cfg)
     recipe = EleutherEvalRecipe(cfg=cfg)
     recipe.setup()
     recipe.evaluate()

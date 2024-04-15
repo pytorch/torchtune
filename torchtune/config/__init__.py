@@ -6,10 +6,12 @@
 
 from ._instantiate import instantiate
 from ._parse import parse
+from ._utils import log_config
 from ._validate import validate
 
 __all__ = [
     "parse",
     "instantiate",
     "validate",
+    "log_config",
 ]

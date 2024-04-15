@@ -110,6 +110,7 @@ class QuantizationRecipe:
 
 @config.parse
 def main(cfg: DictConfig) -> None:
+    config.log_config(recipe_name="QuantizationRecipe", cfg=cfg)
     recipe = QuantizationRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.quantize(cfg=cfg)
