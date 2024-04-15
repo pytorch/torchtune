@@ -369,7 +369,6 @@
 <span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">DictConfig</span>
 <span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_merge_yaml_and_cli_args</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.argparse</span> <span class="kn">import</span> <span class="n">TuneRecipeArgumentParser</span>
-<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 
 <span class="n">Recipe</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">DictConfig</span><span class="p">],</span> <span class="n">Any</span><span class="p">]</span>
@@ -405,9 +404,6 @@
         <span class="c1"># Get user-specified args from config and CLI and create params for recipe</span>
         <span class="n">yaml_args</span><span class="p">,</span> <span class="n">cli_args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
         <span class="n">conf</span> <span class="o">=</span> <span class="n">_merge_yaml_and_cli_args</span><span class="p">(</span><span class="n">yaml_args</span><span class="p">,</span> <span class="n">cli_args</span><span class="p">)</span>
-
-        <span class="n">logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Running </span><span class="si">{</span><span class="n">recipe_main</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> with parameters </span><span class="si">{</span><span class="n">conf</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">recipe_main</span><span class="p">(</span><span class="n">conf</span><span class="p">))</span>
 
