@@ -91,12 +91,9 @@ class InferenceRecipe:
         # to get the accurate performance measurement
         if self._quantization_mode is not None:
             logger.info("Starting compilation to improve generation performance ...")
-            t0 = time.perf_counter()
             custom_generate_next_token = torch.compile(
                 utils.generate_next_token, mode="max-autotune", fullgraph=True
             )
-            t = time.perf_counter() - t0
-            logger.info(f"Compilation for generate_next_token takes: {t:.02f} sec")
             t0 = time.perf_counter()
             _ = utils.generate(
                 model=self._model,
