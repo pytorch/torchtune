@@ -160,6 +160,7 @@ your experiments with. If any parameters are not well-formed, :code:`tune valida
 will list out all the locations where an error was found.
 
 .. code-block:: bash
+
   tune cp llama2/7B_lora_single_device ./my_config.yaml
   tune validate ./my_config.yaml
 
