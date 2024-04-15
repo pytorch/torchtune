@@ -28,8 +28,8 @@ torchtune focuses on integrating with popular tools and libraries from the ecosy
 - [Hugging Face Datasets](https://huggingface.co/docs/datasets/en/index) for [access](torchtune/datasets/_instruct.py) to training and evaluation datasets
 - [PyTorch FSDP](https://pytorch.org/docs/stable/fsdp.html) for distributed training
 - [torchao](https://github.com/pytorch-labs/ao) for lower precision dtypes and [post-training quantization](recipes/quantize.py) techniques
-- [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/main/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
-- [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://pytorch.org/torchtune/main/deep_dives/wandb_logging.html) using fine-tuned models
+- [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/stable/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
+- [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://pytorch.org/torchtune/stable/deep_dives/wandb_logging.html) using fine-tuned models
 - [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) for low memory optimizers for our [single-device recipes](recipes/configs/llama2/7B_full_low_memory.yaml)
 
 &nbsp;
@@ -114,7 +114,7 @@ options:
 
 ## Get Started
 
-To get started with fine-tuning your first LLM with torchtune, see our tutorial on [fine-tuning Llama2 7B](https://pytorch.org/torchtune/main/examples/first_finetune_tutorial.html). Our [end-to-end workflow](https://pytorch.org/torchtune/main/examples/e2e_flow.html) tutorial will show you how to evaluate, quantize and run inference with this model. The rest of this section will provide a quick overview of these steps with Llama2.
+To get started with fine-tuning your first LLM with torchtune, see our tutorial on [fine-tuning Llama2 7B](https://pytorch.org/torchtune/stable/tutorials/first_finetune_tutorial.html). Our [end-to-end workflow](https://pytorch.org/torchtune/stable/tutorials/e2e_flow.html) tutorial will show you how to evaluate, quantize and run inference with this model. The rest of this section will provide a quick overview of these steps with Llama2.
 
 &nbsp;
 
@@ -185,7 +185,7 @@ tune run full_finetune_distributed --config ./my_custom_config.yaml
 
 &nbsp;
 
-Check out `tune --help` for all possible CLI commands and options. For more information on using and updating configs, take a look at our [config deep-dive](https://pytorch.org/torchtune/main/examples/configs.html).
+Check out `tune --help` for all possible CLI commands and options. For more information on using and updating configs, take a look at our [config deep-dive](https://pytorch.org/torchtune/stable/deep_dives/configs.html).
 
 &nbsp;
 
