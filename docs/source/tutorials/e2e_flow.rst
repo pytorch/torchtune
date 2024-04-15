@@ -98,15 +98,16 @@ Let's look for the right config for this use case by using the tune CLI.
     tune ls
 
     RECIPE                                   CONFIG
-    full_finetune_single_device              llama2/7B_full_single_device
-                                             llama2/7B_full_single_device_low_memory
-                                             mistral/7B_full
+
+    full_finetune_single_device              llama2/7B_full_low_memory
+                                             mistral/7B_full_low_memory
     full_finetune_distributed                llama2/7B_full
                                              llama2/13B_full
                                              mistral/7B_full
     lora_finetune_single_device              llama2/7B_lora_single_device
                                              llama2/7B_qlora_single_device
-                                             mistral/7B_lora
+                                             mistral/7B_lora_single_device
+                                             mistral/7B_qlora_single_device
     ...
 
 
