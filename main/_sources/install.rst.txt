@@ -4,8 +4,11 @@
 Install Instructions
 ====================
 
-torchtune requires PyTorch, so please install for your proper host and environment,
-using `Start Locally <https://pytorch.org/get-started/locally/>`_ page.
+**Pre-requisites**: torchtune requires PyTorch, so please install for your proper host and environment
+using the `Start Locally <https://pytorch.org/get-started/locally/>`_ page.
+
+Install via PyPI
+----------------
 
 The latest stable version of torchtune is hosted on PyPI and can be downloaded
 with the following command:
@@ -32,6 +35,11 @@ And should see the following output:
     -h, --help            show this help message and exit
 
     ...
+
+|
+
+Install via `git clone`
+-----------------------
 
 If you want the latest and greatest features from torchtune or if you want to become a contributor,
 you can also install the package locally with the following command.
