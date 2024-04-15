@@ -226,7 +226,8 @@ For example, to run the :code:`lora_finetune_single_device` recipe with custom m
     tune run lora_finetune_single_device \
     --config llama2/7B_lora_single_device \
     checkpointer.checkpoint_dir=/home/my_model_checkpoint \
-    checkpointer.checkpoint_files=[file_1, file_2] \
+    checkpointer.checkpoint_files=['file_1','file_2'] \
+    tokenizer.path=/home/my_tokenizer_path
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^
@@ -243,4 +244,5 @@ name directly. Any nested fields in the components can be overridden with dot no
 .. code-block:: bash
 
     # Change to slimorca_dataset and set train_on_input to False
-    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
+    tune run lora_finetune_single_device --config my_config.yaml \
+    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
