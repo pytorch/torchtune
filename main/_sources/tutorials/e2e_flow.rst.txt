@@ -168,8 +168,6 @@ will be easier than overriding all of these elements through the CLI.
 .. code-block:: bash
 
     tune cp eleuther_evaluation ./custom_eval_config.yaml \
-    checkpointer.checkpoint_dir=<checkpoint_dir> \
-    tokenizer.path=<checkpoint_dir>/tokenizer.model
 
 For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
 This task measures a model's propensity to be truthful when answering questions and
@@ -180,6 +178,8 @@ responses and one or more false responses. Let's first run a baseline without fi
 .. code-block:: bash
 
     tune run eleuther_eval --config ./custom_eval_config.yaml
+    checkpointer.checkpoint_dir=<checkpoint_dir> \
+    tokenizer.path=<checkpoint_dir>/tokenizer.model
 
     [evaluator.py:324] Running loglikelihood requests
     [eleuther_eval.py:195] Eval completed in 121.27 seconds.

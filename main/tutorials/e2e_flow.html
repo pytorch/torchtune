@@ -517,8 +517,6 @@ to install the EleutherAI evaluation harness.</p>
 let’s first copy over the config to our local working directory so we can make changes. This
 will be easier than overriding all of these elements through the CLI.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>eleuther_evaluation<span class="w"> </span>./custom_eval_config.yaml<span class="w"> </span><span class="se">\</span>
-checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
-tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
 </pre></div>
 </div>
 <p>For this tutorial we’ll use the <code class="docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code> task from the harness.
@@ -526,6 +524,8 @@ This task measures a model’s propensity to be truthful when answering question
 measures the model’s zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let’s first run a baseline without fine-tuning.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>eleuther_eval<span class="w"> </span>--config<span class="w"> </span>./custom_eval_config.yaml
+checkpointer.checkpoint_dir<span class="o">=</span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
+tokenizer.path<span class="o">=</span>&lt;checkpoint_dir&gt;/tokenizer.model
 
 <span class="o">[</span>evaluator.py:324<span class="o">]</span><span class="w"> </span>Running<span class="w"> </span>loglikelihood<span class="w"> </span>requests
 <span class="o">[</span>eleuther_eval.py:195<span class="o">]</span><span class="w"> </span>Eval<span class="w"> </span>completed<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">121</span>.27<span class="w"> </span>seconds.
