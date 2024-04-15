@@ -409,6 +409,8 @@ You can install it via pip:</p>
 </pre></div>
 </div>
 <p>We automatically grab the config from the recipe you are running and log it to W&amp;B. You can find it in the W&amp;B overview tab and the actual file in the <code class="code docutils literal notranslate"><span class="pre">Files</span></code> tab.</p>
+<p>As a tip, you may see straggler <cite>wandb</cite> processes running in the background if your job crashes or otherwise exits without cleaning up resources. To kill these straggler processes, a command like <code class="docutils literal notranslate"><span class="pre">ps</span>
+<span class="pre">-aux</span> <span class="pre">|</span> <span class="pre">grep</span> <span class="pre">wandb</span> <span class="pre">|</span> <span class="pre">awk</span> <span class="pre">'{</span> <span class="pre">print</span> <span class="pre">$2</span> <span class="pre">}'</span> <span class="pre">|</span> <span class="pre">xargs</span> <span class="pre">kill</span></code> can be used.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Click on this sample <a class="reference external" href="https://wandb.ai/capecape/torchtune">project to see the W&amp;B workspace</a>.
