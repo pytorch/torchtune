@@ -31,7 +31,7 @@ mistral
 
 All models from `Mistral AI family <https://mistral.ai/technology/#models>`_.
 
-Pre-trained models can be download from the Hugging Face Hub with the following command:
+Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
 
 .. code-block:: bash
 
