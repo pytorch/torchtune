@@ -85,4 +85,4 @@ enable_activation_checkpointing: True
 profiler:
   _component_: torchtune.utils.profiler
   enabled: False
-  output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
+  output_dir: ${output_dir}/torchtune_perf_tracing.json
