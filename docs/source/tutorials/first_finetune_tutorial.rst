@@ -106,7 +106,7 @@ For a list of all currently supported datasets, see :ref:`datasets`.
 
 There are two ways to modify an existing config:
 
-1. **Override existing parameters from the command line**
+**Override existing parameters from the command line**
 
 You can override existing parameters from the command line using a :code:`key=value` format. Let's say
 you want to set the number of training epochs to 1.
@@ -115,7 +115,7 @@ you want to set the number of training epochs to 1.
 
   tune run <RECIPE> --config <CONFIG> epochs=1
 
-2. **Copy the config through :code:`tune cp` and modify directly**
+**Copy the config through :code:`tune cp` and modify directly**
 
 If you want to make more substantial changes to the config, you can use the :code:`tune` CLI to copy it to your local directory.
 
