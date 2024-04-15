@@ -190,7 +190,7 @@ From the logs, we can see about a 200% speed up (after a few hundred iterations 
 
 A comparison of the smoothed loss curves between QLoRA and LoRA can be seen below.
 
-.. image:: /_static/img/qlora_experiment.png
+.. image:: /_static/img/qlora_exp.png
 
 .. note::
     The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
