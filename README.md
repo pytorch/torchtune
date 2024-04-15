@@ -77,16 +77,12 @@ torchtune provides [built-in support](torchtune/datasets/) for several popular d
 
 ## Installation
 
-Currently, `torchtune` must be built via cloning the repository and installing.
-
 **Step 1:** Install Pytorch. torchtune is currently tested with the latest stable PyTorch release (2.2.2). We recommend following the instructions [here](https://pytorch.org/get-started/locally/) and installing either version 2.2.2 or the preview nightly version.
 
-**Step 2:** Git clone torchtune and install dependencies.
+**Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:
 
 ```bash
-git clone https://github.com/pytorch/torchtune.git
-cd torchtune
-pip install -e .
+pip install torchtune
 ```
 
 To confirm that the package is installed correctly, you can run the following command:
