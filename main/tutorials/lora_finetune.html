@@ -506,7 +506,9 @@ Let’s take a look at how to construct Llama2 models in torchtune with and with
 
 <span class="c1"># The default settings for lora_llama2_7b will match those for llama2_7b</span>
 <span class="c1"># We just need to define which layers we want LoRA applied to.</span>
-<span class="c1"># We can choose from [&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, and &quot;output_proj&quot;]</span>
+<span class="c1"># Within each self-attention, we can choose from [&quot;q_proj&quot;, &quot;k_proj&quot;, &quot;v_proj&quot;, and &quot;output_proj&quot;].</span>
+<span class="c1"># We can also set apply_lora_to_mlp=True or apply_lora_to_output=True to apply LoRA to other linear</span>
+<span class="c1"># layers outside of the self-attention.</span>
 <span class="n">lora_model</span> <span class="o">=</span> <span class="n">lora_llama2_7b</span><span class="p">(</span><span class="n">lora_attn_modules</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;q_proj&quot;</span><span class="p">,</span> <span class="s2">&quot;v_proj&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
@@ -561,7 +563,7 @@ model without any wrappers or custom checkpoint conversion logic.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Whenever loading weights with <code class="code docutils literal notranslate"><span class="pre">strict=False</span></code>, you should verify that any missing or extra keys in
-the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipe does this by default via
+the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipes do this by default via e.g.
 <code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.modules.peft.validate_state_dict_for_lora()</span></code>.</p>
 </div>
 <p>Once we’ve loaded the base model weights, we also want to set only LoRA parameters to trainable.</p>
@@ -574,7 +576,7 @@ the loaded <code class="code docutils literal notranslate"><span class="pre">sta
 <span class="n">set_trainable_params</span><span class="p">(</span><span class="n">lora_model</span><span class="p">,</span> <span class="n">lora_params</span><span class="p">)</span>
 
 <span class="c1"># Print the total number of parameters</span>
-<span class="n">total_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">lora_model</span><span class="o">.</span><span class="n">params</span><span class="p">()])</span>
+<span class="n">total_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">lora_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()])</span>
 <span class="n">trainable_params</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">numel</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">lora_model</span><span class="o">.</span><span class="n">parameters</span><span class="p">()</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">])</span>
 <span class="nb">print</span><span class="p">(</span>
   <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
@@ -600,8 +602,8 @@ of in the recipe.</p>
 <span id="lora-recipe-label"></span><h2>LoRA finetuning recipe in torchtune<a class="headerlink" href="#lora-finetuning-recipe-in-torchtune" title="Permalink to this heading">¶</a></h2>
 <p>Finally, we can put it all together and finetune a model using torchtune’s <a class="reference external" href="https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py">LoRA recipe</a>.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following <a class="reference internal" href="first_finetune_tutorial.html#download-llama-label"><span class="std std-ref">these instructions</span></a>.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed
+You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 16GB):</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora
 </pre></div>
 </div>
 <div class="admonition note">
@@ -633,8 +635,8 @@ Some experiments with LoRA have found that it can be beneficial to apply LoRA to
 the self-attention, and to increase the rank to 16 or 32. Note that this is likely to increase our max memory,
 but as long as we keep <code class="code docutils literal notranslate"><span class="pre">rank&lt;&lt;embed_dim</span></code>, the impact should be relatively minor.</p>
 <p>Let’s run this experiment. We can also increase alpha (in general it is good practice to scale alpha and rank together).</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>lora_finetune_distributed<span class="w"> </span><span class="se">\</span>
-<span class="nv">lora_attn_modules</span><span class="o">=</span><span class="s1">&#39;[q_proj, k_proj, v_proj, output_proj]&#39;</span><span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora<span class="w"> </span><span class="se">\</span>
+<span class="nv">lora_attn_modules</span><span class="o">=[</span><span class="s1">&#39;q_proj&#39;</span>,<span class="s1">&#39;k_proj&#39;</span>,<span class="s1">&#39;v_proj&#39;</span>,<span class="s1">&#39;output_proj&#39;</span><span class="o">]</span><span class="w"> </span><span class="se">\</span>
 <span class="nv">lora_rank</span><span class="o">=</span><span class="m">32</span><span class="w"> </span><span class="nv">lora_alpha</span><span class="o">=</span><span class="m">64</span><span class="w"> </span><span class="nv">output_dir</span><span class="o">=</span>./lora_experiment_1
 </pre></div>
 </div>
@@ -645,10 +647,89 @@ but as long as we keep <code class="code docutils literal notranslate"><span cla
 <p>The above figure was generated with W&amp;B. You can use torchtune’s <a class="reference internal" href="../generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-class docutils literal notranslate"><span class="pre">WandBLogger</span></code></a>
 to generate similar loss curves, but you will need to install W&amp;B and setup an account separately.</p>
 </div>
-<p>As an exercise, you can also try running some evaluation tasks or manually inspecting generations
-output by your saved checkpoints (which can be found in <code class="code docutils literal notranslate"><span class="pre">output_dir</span></code>).
-You may want to train the model for longer first, as here we only looked at 500 steps
-(which corresponds to about 2% of one epoch of the Alpaca dataset).</p>
+</section>
+<section id="trading-off-memory-and-model-performance-with-lora">
+<h2>Trading off memory and model performance with LoRA<a class="headerlink" href="#trading-off-memory-and-model-performance-with-lora" title="Permalink to this heading">¶</a></h2>
+<p>In the preceding example, we ran LoRA on two devices. But given LoRA’s low memory footprint, we can run fine-tuning
+on a single device using most commodity GPUs which support bfloat16 floating-point format. This can be done via the command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora_single_device
+</pre></div>
+</div>
+<p>On a single device, we may need to be more cognizant of our peak memory. Let’s run a few experiments
+to see our peak memory during a finetune on the Alpaca dataset. We will experiment along two axes:
+first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
+alpha in parallel to LoRA rank, as discussed above.)</p>
+<p>To compare the results of our experiments, we can evaluate our models on <code class="code docutils literal notranslate"><span class="pre">truthfulqa_mc2</span></code>, a task from
+the <a class="reference external" href="https://arxiv.org/abs/2109.07958">TruthfulQA</a> benchmark for language models. For more details on how to run this and other evaluation tasks
+with torchtune’s EleutherAI evaluation harness integration, see our <a class="reference internal" href="e2e_flow.html#eval-harness-label"><span class="std std-ref">End-to-End Workflow Tutorial</span></a>.</p>
+<p>Previously, we only enabled LoRA for the linear layers in each self-attention module, but in fact there are other linear
+layers we can apply LoRA to: MLP layers and our model’s final output projection. Note that for Llama-2-7B the final output
+projection maps to dimension 32000 (instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
+our peak memory a bit more than the other layers. We can make the following changes to our config:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Model Arguments</span>
+<span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">lora_llama2_7b</span>
+<span class="w">  </span><span class="nt">lora_attn_modules</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&#39;q_proj&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;k_proj&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;v_proj&#39;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&#39;output_proj&#39;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">apply_lora_to_mlp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">apply_lora_to_output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="nn">...</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>All the finetuning runs below use the <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml">llama2/7B_lora_single_device</a>
+config, which has a default batch size of 2. Modifying the batch size (or other hyperparameters, e.g. the optimizer) will impact both peak memory
+and final evaluation results.</p>
+</div>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>LoRA Layers</p></th>
+<th class="head"><p>Rank</p></th>
+<th class="head"><p>Alpha</p></th>
+<th class="head"><p>Peak Memory</p></th>
+<th class="head"><p>Accuracy (truthfulqa_mc2)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Q and V only</p></td>
+<td><p>8</p></td>
+<td><p>16</p></td>
+<td><p><strong>15.57 GB</strong></p></td>
+<td><p>0.475</p></td>
+</tr>
+<tr class="row-odd"><td><p>all layers</p></td>
+<td><p>8</p></td>
+<td><p>16</p></td>
+<td><p>15.87 GB</p></td>
+<td><p>0.508</p></td>
+</tr>
+<tr class="row-even"><td><p>Q and V only</p></td>
+<td><p>64</p></td>
+<td><p>128</p></td>
+<td><p>15.86 GB</p></td>
+<td><p>0.504</p></td>
+</tr>
+<tr class="row-odd"><td><p>all layers</p></td>
+<td><p>64</p></td>
+<td><p>128</p></td>
+<td><p>17.04 GB</p></td>
+<td><p><strong>0.514</strong></p></td>
+</tr>
+</tbody>
+</table>
+<p>We can see that our baseline settings give the lowest peak memory, but our evaluation performance is relatively lower.
+By enabling LoRA for all linear layers and increasing the rank to 64, we see almost a 4% absolute improvement
+in our accuracy on this task, but our peak memory also increases by about 1.4GB. These are just a couple simple
+experiments; we encourage you to run your own finetunes to find the right tradeoff for your particular setup.</p>
+<p>Additionally, if you want to decrease your model’s peak memory even further (and still potentially achieve similar
+model quality results), you can check out our <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">QLoRA tutorial</span></a>.</p>
 </section>
 </section>
 
@@ -700,6 +781,7 @@ You may want to train the model for longer first, as here we only looked at 500 
 <li><a class="reference internal" href="#how-does-lora-work">How does LoRA work?</a></li>
 <li><a class="reference internal" href="#applying-lora-to-llama2-models">Applying LoRA to Llama2 models</a></li>
 <li><a class="reference internal" href="#lora-finetuning-recipe-in-torchtune">LoRA finetuning recipe in torchtune</a></li>
+<li><a class="reference internal" href="#trading-off-memory-and-model-performance-with-lora">Trading off memory and model performance with LoRA</a></li>
 </ul>
 </li>
 </ul>
