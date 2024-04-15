@@ -11,16 +11,15 @@ from torchtune.modules import Tokenizer
 
 def samsum_dataset(
     tokenizer: Tokenizer,
+    source: str = "samsum",
     train_on_input: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Summarize dataset and its variants from Hugging Face Datasets.
-    https://huggingface.co/datasets/samsum
+    Support for summarization datasets and their variants from Hugging Face Datasets.
+    An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
 
-    Data input format: https://huggingface.co/datasets/samsum#data-fields
-
-    The prompt template is created from llama_recipes codebase:
-    https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/samsum_dataset.py#L13
+    The prompt template mirrors what is used in the llama_recipes `codebase
+    <https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/samsum_dataset.py#L13>`_
 
     where `dialogue` and `summary` are fields from the dataset.
 
@@ -32,10 +31,11 @@ def samsum_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
 
     Returns:
-        InstructDataset: dataset configured with Summarization source data and template
+        InstructDataset: dataset configured with source data and template
 
 
     Example:
@@ -47,7 +47,7 @@ def samsum_dataset(
 
     return InstructDataset(
         tokenizer=tokenizer,
-        source="samsum",
+        source=source,
         template=SummarizeTemplate,
         column_map={"output": "summary"},
         train_on_input=train_on_input,
