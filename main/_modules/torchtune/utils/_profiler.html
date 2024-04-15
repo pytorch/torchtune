@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils &mdash; TorchTune  documentation</title>
+  <title>torchtune.utils._profiler &mdash; TorchTune  documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="FullModelHFCheckpointer" href="generated/torchtune.utils.FullModelHFCheckpointer.html" />
-    <link rel="prev" title="reparametrize_as_dtype_state_dict_post_hook" href="generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="_static/js/modernizr.min.js"></script>
+  <script src="../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -244,7 +241,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -261,32 +258,32 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All about configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What are recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models.llama2</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models.llama2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -319,7 +316,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="index.html">
+        <a href="../../../index.html">
           
             Docs
           
@@ -327,14 +324,12 @@
       </li>
 
         
-      <li>torchtune.utils</li>
+          <li><a href="../../index.html">Module code</a> &gt;</li>
+        
+      <li>torchtune.utils._profiler</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="_sources/api_ref_utilities.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -363,146 +358,63 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="torchtune-utils">
-<h1>torchtune.utils<a class="headerlink" href="#torchtune-utils" title="Permalink to this heading">¶</a></h1>
-<section id="checkpointing">
-<span id="checkpointing-label"></span><h2>Checkpointing<a class="headerlink" href="#checkpointing" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
-checkpointing, please see the <a class="reference internal" href="deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing deep-dive</span></a>.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer" title="torchtune.utils.FullModelHFCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelHFCheckpointer</span></code></a></p></td>
-<td><p>Checkpointer which reads and writes &quot;full-model&quot; checkpoints in HF's format.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer" title="torchtune.utils.FullModelMetaCheckpointer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FullModelMetaCheckpointer</span></code></a></p></td>
-<td><p>Checkpointer which reads and writes &quot;full-model&quot; checkpoints in Meta's format.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="distributed">
-<span id="dist-label"></span><h2>Distributed<a class="headerlink" href="#distributed" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for enabling and working with distributed training.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed" title="torchtune.utils.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
-<td><p>Initialize torch.distributed.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank" title="torchtune.utils.get_world_size_and_rank"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_world_size_and_rank</span></code></a></p></td>
-<td><p>Function that gets the current world size (aka total number of ranks) and rank number of the current trainer.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="reduced-precision">
-<span id="mp-label"></span><h2>Reduced Precision<a class="headerlink" href="#reduced-precision" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for working in a reduced precision setting.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.precision.get_autocast.html#torchtune.utils.precision.get_autocast" title="torchtune.utils.precision.get_autocast"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.get_autocast</span></code></a></p></td>
-<td><p>Intelligently determines, based on the dtype if mixed precision training is supported and returns the builtin torch.autocast if applicable.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.precision.get_gradient_scaler.html#torchtune.utils.precision.get_gradient_scaler" title="torchtune.utils.precision.get_gradient_scaler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.get_gradient_scaler</span></code></a></p></td>
-<td><p>Returns a gradient scaler for mixed-precision training.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.precision.get_dtype.html#torchtune.utils.precision.get_dtype" title="torchtune.utils.precision.get_dtype"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.get_dtype</span></code></a></p></td>
-<td><p>Get the torch.dtype corresponding to the given precision string.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.precision.list_dtypes.html#torchtune.utils.precision.list_dtypes" title="torchtune.utils.precision.list_dtypes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">precision.list_dtypes</span></code></a></p></td>
-<td><p>Return a list of supported dtypes for finetuning.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="memory-management">
-<span id="ac-label"></span><h2>Memory Management<a class="headerlink" href="#memory-management" title="Permalink to this heading">¶</a></h2>
-<p>Utilities to reduce memory consumption during training.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.memory.set_activation_checkpointing.html#torchtune.utils.memory.set_activation_checkpointing" title="torchtune.utils.memory.set_activation_checkpointing"><code class="xref py py-obj docutils literal notranslate"><span class="pre">memory.set_activation_checkpointing</span></code></a></p></td>
-<td><p>Utility to setup activation checkpointing and wrap the model for checkpointing.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="performance-and-profiling">
-<span id="perf-profiling-label"></span><h2>Performance and Profiling<a class="headerlink" href="#performance-and-profiling" title="Permalink to this heading">¶</a></h2>
-<p>TorchTune provides utilities to profile and debug the performance
-of your finetuning job.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.profiler.html#torchtune.utils.profiler" title="torchtune.utils.profiler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">profiler</span></code></a></p></td>
-<td><p>Utility component that wraps around <cite>torch.profiler</cite> to profile model's operators.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="metric-logging">
-<span id="metric-logging-label"></span><h2>Metric Logging<a class="headerlink" href="#metric-logging" title="Permalink to this heading">¶</a></h2>
-<p>Various logging utilities.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.WandBLogger.html#torchtune.utils.metric_logging.WandBLogger" title="torchtune.utils.metric_logging.WandBLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.WandBLogger</span></code></a></p></td>
-<td><p>Logger for use w/ Weights and Biases application (<a class="reference external" href="https://wandb.ai/">https://wandb.ai/</a>).</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.TensorBoardLogger.html#torchtune.utils.metric_logging.TensorBoardLogger" title="torchtune.utils.metric_logging.TensorBoardLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.TensorBoardLogger</span></code></a></p></td>
-<td><p>Logger for use w/ PyTorch's implementation of TensorBoard (<a class="reference external" href="https://pytorch.org/docs/stable/tensorboard.html">https://pytorch.org/docs/stable/tensorboard.html</a>).</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger" title="torchtune.utils.metric_logging.StdoutLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.StdoutLogger</span></code></a></p></td>
-<td><p>Logger to standard output.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger" title="torchtune.utils.metric_logging.DiskLogger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">metric_logging.DiskLogger</span></code></a></p></td>
-<td><p>Logger to disk.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="data">
-<h2>Data<a class="headerlink" href="#data" title="Permalink to this heading">¶</a></h2>
-<p>Utilities for working with data and datasets.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.collate.padded_collate.html#torchtune.utils.collate.padded_collate" title="torchtune.utils.collate.padded_collate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">collate.padded_collate</span></code></a></p></td>
-<td><p>Pad a batch of sequences to the longest sequence length in the batch, and convert integer lists to tensors.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="miscellaneous">
-<span id="gen-label"></span><h2>Miscellaneous<a class="headerlink" href="#miscellaneous" title="Permalink to this heading">¶</a></h2>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.argparse.TuneRecipeArgumentParser.html#torchtune.utils.argparse.TuneRecipeArgumentParser" title="torchtune.utils.argparse.TuneRecipeArgumentParser"><code class="xref py py-obj docutils literal notranslate"><span class="pre">argparse.TuneRecipeArgumentParser</span></code></a></p></td>
-<td><p>TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that adds a builtin argument &quot;config&quot;.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.logging.get_logger.html#torchtune.utils.logging.get_logger" title="torchtune.utils.logging.get_logger"><code class="xref py py-obj docutils literal notranslate"><span class="pre">logging.get_logger</span></code></a></p></td>
-<td><p>Get a logger with a stream handler.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_device.html#torchtune.utils.get_device" title="torchtune.utils.get_device"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_device</span></code></a></p></td>
-<td><p>Function that takes or device or device string, verifies it's correct and availabe given the machine and distributed settings, and returns a torch.device.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.seed.set_seed.html#torchtune.utils.seed.set_seed" title="torchtune.utils.seed.set_seed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">seed.set_seed</span></code></a></p></td>
-<td><p>Function that sets seed for pseudo-random number generators across commonly used libraries.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
+  <h1>Source code for torchtune.utils._profiler</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">import</span> <span class="nn">contextlib</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">ContextManager</span><span class="p">,</span> <span class="n">Optional</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.profiler</span> <span class="kn">import</span> <span class="n">profile</span>
+
+
+<div class="viewcode-block" id="profiler"><a class="viewcode-back" href="../../../generated/torchtune.utils.profiler.html#torchtune.utils.profiler">[docs]</a><span class="k">def</span> <span class="nf">profiler</span><span class="p">(</span>
+    <span class="n">enabled</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;./torchtune_perf_tracing.json&quot;</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Utility component that wraps around `torch.profiler` to profile model&#39;s operators.</span>
+<span class="sd">    See https://pytorch.org/docs/stable/profiler.html for more details.</span>
+<span class="sd">    The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps</span>
+<span class="sd">    Note: Enabling pytorch profiler may have training speed reduction.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        enabled (Optional[bool]): Enable pytorch profiler. Default is False.</span>
+<span class="sd">        output_dir (Optional[str]): Tracing file output path. Default is &quot;./torchtune_perf_tracing.json&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ContextManager: pytorch profiler context manager</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">trace_handler</span><span class="p">(</span><span class="n">prof</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">prof</span><span class="o">.</span><span class="n">export_chrome_trace</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">profile</span><span class="p">(</span>
+            <span class="n">activities</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">ProfilerActivity</span><span class="o">.</span><span class="n">CPU</span><span class="p">,</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">ProfilerActivity</span><span class="o">.</span><span class="n">CUDA</span><span class="p">,</span>
+            <span class="p">],</span>
+            <span class="n">schedule</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">schedule</span><span class="p">(</span><span class="n">wait</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">warmup</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">active</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+            <span class="n">on_trace_ready</span><span class="o">=</span><span class="n">trace_handler</span><span class="p">,</span>
+            <span class="n">record_shapes</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">profile_memory</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">with_stack</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">enabled</span>
+        <span class="k">else</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nullcontext</span><span class="p">()</span>
+    <span class="p">)</span></div>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="generated/torchtune.utils.FullModelHFCheckpointer.html" class="btn btn-neutral float-right" title="FullModelHFCheckpointer" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -531,20 +443,7 @@ of your finetuning job.</p>
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">torchtune.utils</a><ul>
-<li><a class="reference internal" href="#checkpointing">Checkpointing</a></li>
-<li><a class="reference internal" href="#distributed">Distributed</a></li>
-<li><a class="reference internal" href="#reduced-precision">Reduced Precision</a></li>
-<li><a class="reference internal" href="#memory-management">Memory Management</a></li>
-<li><a class="reference internal" href="#performance-and-profiling">Performance and Profiling</a></li>
-<li><a class="reference internal" href="#metric-logging">Metric Logging</a></li>
-<li><a class="reference internal" href="#data">Data</a></li>
-<li><a class="reference internal" href="#miscellaneous">Miscellaneous</a></li>
-</ul>
-</li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -557,23 +456,24 @@ of your finetuning job.</p>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-         <script src="_static/jquery.js"></script>
-         <script src="_static/underscore.js"></script>
-         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="_static/doctools.js"></script>
-         <script src="_static/clipboard.min.js"></script>
-         <script src="_static/copybutton.js"></script>
-         <script src="_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script src="../../../_static/tabs.js"></script>
+         <script src="../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -688,7 +588,7 @@ of your finetuning job.</p>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -824,7 +724,7 @@ of your finetuning job.</p>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

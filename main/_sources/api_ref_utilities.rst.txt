@@ -63,6 +63,20 @@ Utilities to reduce memory consumption during training.
 
     memory.set_activation_checkpointing
 
+.. _perf_profiling_label:
+
+Performance and Profiling
+-------------------------
+
+TorchTune provides utilities to profile and debug the performance
+of your finetuning job.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    profiler
+
 .. _metric_logging_label:
 
 Metric Logging
