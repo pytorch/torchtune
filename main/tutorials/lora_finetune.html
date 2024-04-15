@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Checkpointing in torchtune" href="checkpointer.html" />
-    <link rel="prev" title="LLM Full Finetuning Recipe" href="finetune_llm.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="prev" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -268,15 +268,16 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="finetune_llm.html">LLM Full Finetuning Recipe</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -331,7 +332,7 @@
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/examples/lora_finetune.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/tutorials/lora_finetune.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -606,7 +607,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 <p class="admonition-title">Note</p>
 <p>Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
 either by adding <code class="code docutils literal notranslate"><span class="pre">checkpointer.checkpoint_files=[my_model_checkpoint_path]</span> <span class="pre">tokenizer_checkpoint=my_tokenizer_checkpoint_path</span></code>
-or by directly modifying the <code class="code docutils literal notranslate"><span class="pre">7B_lora.yaml</span></code> file. See our <a class="reference internal" href="configs.html#config-tutorial-label"><span class="std std-ref">Configs Deep-Dive</span></a>
+or by directly modifying the <code class="code docutils literal notranslate"><span class="pre">7B_lora.yaml</span></code> file. See our <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All about configs</span></a>
 for more details on how you can easily clone and modify torchtune configs.</p>
 </div>
 <div class="admonition note">
@@ -658,10 +659,10 @@ You may want to train the model for longer first, as here we only looked at 500 
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="finetune_llm.html" class="btn btn-neutral" title="LLM Full Finetuning Recipe" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="e2e_flow.html" class="btn btn-neutral" title="End-to-End Workflow with torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

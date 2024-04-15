@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Configs Deep-Dive" href="configs.html" />
-    <link rel="prev" title="Finetuning Llama2 with LoRA" href="lora_finetune.html" />
+    <link rel="next" title="All about configs" href="configs.html" />
+    <link rel="prev" title="Finetuning Llama2 with LoRA" href="../tutorials/lora_finetune.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -263,19 +263,20 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">What are recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -331,7 +332,7 @@
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/examples/checkpointer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/deep_dives/checkpointer.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -698,7 +699,7 @@ to the config file</p>
 <p>In torchtune, we output both the adapter weights and the full model “merged” weights
 for LoRA. The “merged” checkpoint can be used just like you would use the source
 checkpoint with any post-training tools. For more details, take a look at our
-<a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Finetuning Tutorial</span></a>.</p>
+<a class="reference internal" href="../tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Finetuning Tutorial</span></a>.</p>
 <p>The primary difference between the two use cases is when you want to resume training
 from a checkpoint. In this case, the checkpointer needs access to both the initial frozen
 base model weights as well as the learnt adapter weights. The config for this scenario
@@ -805,10 +806,10 @@ associated utilities in torchtune. Happy tuning!</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="configs.html" class="btn btn-neutral float-right" title="Configs Deep-Dive" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="configs.html" class="btn btn-neutral float-right" title="All about configs" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="lora_finetune.html" class="btn btn-neutral" title="Finetuning Llama2 with LoRA" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="../tutorials/lora_finetune.html" class="btn btn-neutral" title="Finetuning Llama2 with LoRA" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

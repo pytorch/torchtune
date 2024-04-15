@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Training Recipe Deep-Dive &mdash; TorchTune  documentation</title>
+  <title>All about configs &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Logging to Weights &amp; Biases" href="wandb_logging.html" />
-    <link rel="prev" title="Configs Deep-Dive" href="configs.html" />
+    <link rel="next" title="What are recipes?" href="recipe_deepdive.html" />
+    <link rel="prev" title="Checkpointing in torchtune" href="checkpointer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -263,19 +263,20 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Training Recipe Deep-Dive</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">What are recipes?</a></li>
 <li class="toctree-l1"><a class="reference internal" href="wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
@@ -325,13 +326,13 @@
       </li>
 
         
-      <li>Training Recipe Deep-Dive</li>
+      <li>All about configs</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/examples/recipe_deepdive.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/deep_dives/configs.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -361,221 +362,237 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="training-recipe-deep-dive">
-<span id="recipe-deepdive"></span><h1>Training Recipe Deep-Dive<a class="headerlink" href="#training-recipe-deep-dive" title="Permalink to this heading">¶</a></h1>
-<p>This deep-dive will walk you through the design of training-recipes in torchtune.</p>
+  <section id="all-about-configs">
+<span id="config-tutorial-label"></span><h1>All about configs<a class="headerlink" href="#all-about-configs" title="Permalink to this heading">¶</a></h1>
+<p>This deep-dive will guide you through writing configs for running recipes.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
-<div class="sd-row sd-row-cols-1 sd-row-cols-xs-1 sd-row-cols-sm-1 sd-row-cols-md-1 sd-row-cols-lg-1 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
 <div class="sd-card-body docutils">
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What this deep-dive will cover</div>
 <ul class="simple">
-<li><p class="sd-card-text">What are recipes?</p></li>
-<li><p class="sd-card-text">What are the core components that make up a recipe?</p></li>
-<li><p class="sd-card-text">How should I structure a new recipe?</p></li>
+<li><p class="sd-card-text">How to write a YAML config and run a recipe with it</p></li>
+<li><p class="sd-card-text">How to use <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code> and <code class="code docutils literal notranslate"><span class="pre">parse</span></code> APIs</p></li>
+<li><p class="sd-card-text">How to effectively use configs and CLI overrides for running recipes</p></li>
 </ul>
 </div>
 </div>
 </div>
-</div>
-</div>
-<section id="what-are-recipes">
-<h2>What are Recipes?<a class="headerlink" href="#what-are-recipes" title="Permalink to this heading">¶</a></h2>
-<p>Recipes are the primary entry points for torchtune users. These can be thought of
-as “targeted” end-to-end pipelines for training and optionally evaluating LLMs.
-Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
-features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision
-training) applied to a given model family (eg: Llama2).</p>
-<p>As model training gets more and more complex, it becomes harder to anticipate new model
-architectures and training methodologies while also reasoning about every possible trade-off
-(eg: memory vs model quality). We believe a) users are best suited to make trade-offs
-specific to their use cases and b) there’s no one-size-fits-all solution. As a result, recipes
-are meant to be easy to understand, extend and debug, <em>and not</em> generalized entry points for
-all possible settings.</p>
-<p>Depending on your use case and level of expertise, you will routinely find yourself modifying
-existing recipes (eg: adding new features) or writing new ones. torchtune makes writing recipes
-easy by providing well-tested modular components/building-blocks and general utilities
-(eg: <a class="reference internal" href="../api_ref_utilities.html#metric-logging-label"><span class="std std-ref">WandB Logging</span></a> and <a class="reference internal" href="../api_ref_utilities.html#checkpointing-label"><span class="std std-ref">Checkpointing</span></a>).</p>
-<div class="line-block">
-<div class="line"><br /></div>
-</div>
-<p><strong>Recipe Design</strong></p>
-<p>Recipes in torchtune are designed to be:</p>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
 <ul class="simple">
-<li><p><strong>Simple</strong>. Written fully in native-PyTorch.</p></li>
-<li><p><strong>Correct</strong>. Numerical parity verification for every component and extensive comparisons with
-reference implementations and benchmarks.</p></li>
-<li><p><strong>Easy to Understand</strong>. Each recipe provides a limited set of meaningful features, instead of
-every possible feature hidden behind 100s of flags. Code duplication is preferred over unnecessary
-abstractions.</p></li>
-<li><p><strong>Easy to Extend</strong>. No dependency on training frameworks and no implementation inheritance. Users
-don’t need to go through layers-upon-layers of abstractions to figure out how to extend core
-functionality.</p></li>
-<li><dl class="simple">
-<dt><strong>Accessible to a spectrum of Users</strong>. Users can decide how they want to interact with torchtune recipes:</dt><dd><ul>
-<li><p>Start training models by modifying existing configs</p></li>
-<li><p>Modify existing recipes for custom cases</p></li>
-<li><p>Directly use available building blocks to write completely new recipes/training paradigms</p></li>
+<li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of torchtune</span></a></p></li>
+<li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
+<li><p class="sd-card-text">Understand the <a class="reference internal" href="recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">fundamentals of recipes</span></a></p></li>
 </ul>
-</dd>
-</dl>
-</li>
-</ul>
-<p>Each recipe consists of three components:</p>
-<ul class="simple">
-<li><p><strong>Configurable parameters</strong>, specified through yaml configs and command-line overrides</p></li>
-<li><p><strong>Recipe Script</strong>, entry-point which puts everything together including parsing and validating
-configs, setting up the environment, and correctly using the recipe class</p></li>
-<li><p><strong>Recipe Class</strong>, core logic needed for training, exposed to users through a set of APIs</p></li>
-</ul>
-<p>In the following sections, we’ll take a closer look at each of these components.
-For a complete working example, refer to the
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_distributed.py">full finetuning recipe</a>
-in torchtune and the associated
-<a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/configs/7B_full.yaml">config</a>.</p>
-<div class="line-block">
-<div class="line"><br /></div>
 </div>
+</div>
+</div>
+</div>
+</div>
+<section id="where-do-parameters-live">
+<h2>Where do parameters live?<a class="headerlink" href="#where-do-parameters-live" title="Permalink to this heading">¶</a></h2>
+<p>There are two primary entry points for you to configure parameters: <strong>configs</strong> and
+<strong>CLI overrides</strong>. Configs are YAML files that define all the
+parameters needed to run a recipe within a single location. They are the single
+source of truth for reproducing a run. The config parameters can be overridden on the
+command-line using <code class="code docutils literal notranslate"><span class="pre">tune</span></code> for quick changes and experimentation without
+modifying the config.</p>
 </section>
-<section id="what-recipes-are-not">
-<h2>What Recipes are not?<a class="headerlink" href="#what-recipes-are-not" title="Permalink to this heading">¶</a></h2>
-<ul class="simple">
-<li><p><strong>Monolithic Trainers.</strong> A recipe is <strong>not</strong> a monolithic trainer meant to support every
-possible feature through 100s of flags.</p></li>
-<li><p><strong>Generalized entry-points.</strong> A recipe is <strong>not</strong> meant to support every possible model
-architecture or fine-tuning method.</p></li>
-<li><p><strong>Wrappers around external frameworks.</strong> A recipe is <strong>not</strong> meant to be a wrapper around
-external frameworks. These are fully written in native-PyTorch using torchtune building blocks.
-Dependencies are primarily in the form of additional utilities or interoperability with the
-surrounding ecosystem (eg: EleutherAI’s evaluation harness).</p></li>
-</ul>
-<div class="line-block">
-<div class="line"><br /></div>
+<section id="writing-configs">
+<h2>Writing configs<a class="headerlink" href="#writing-configs" title="Permalink to this heading">¶</a></h2>
+<p>Configs serve as the primary entry point for running recipes in torchtune. They are
+expected to be YAML files and they simply list out values for parameters you want to define
+for a particular run.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
+<span class="nt">shuffle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="nt">device</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cuda</span>
+<span class="nt">dtype</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">fp32</span>
+<span class="nt">enable_fsdp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="nn">...</span>
+</pre></div>
 </div>
+<section id="configuring-components-using-instantiate">
+<h3>Configuring components using <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code><a class="headerlink" href="#configuring-components-using-instantiate" title="Permalink to this heading">¶</a></h3>
+<p>Many fields will require specifying torchtune objects with associated keyword
+arguments as parameters. Models, datasets, optimizers, and loss functions are
+common examples of this. You can easily do this using the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code>
+subfield. In <code class="code docutils literal notranslate"><span class="pre">_component_</span></code>, you need to specify the dotpath of the object
+you wish to instantiate in the recipe. The dotpath is the exact path you would use
+to import the object normally in a Python file. For example, to specify the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">alpaca_dataset</span></code> in your config with custom
+arguments:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+</pre></div>
+</div>
+<p>Here, we are changing the default value for <code class="code docutils literal notranslate"><span class="pre">train_on_input</span></code> from <code class="code docutils literal notranslate"><span class="pre">True</span></code>
+to <code class="code docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<p>Once you’ve specified the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code> in your config, you can create an
+instance of the specified object in your recipe’s setup like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="c1"># Access the dataset field and create the object instance</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will automatically use any keyword arguments specified in the fields under
+<code class="code docutils literal notranslate"><span class="pre">dataset</span></code>.</p>
+<p>As written, the preceding example will actually throw an error. If you look at the method for <code class="xref py py-class docutils literal notranslate"><span class="pre">alpaca_dataset</span></code>,
+you’ll notice that we’re missing a required positional argument, the tokenizer.
+Since this is another configurable torchtune object, let’s understand how to handle
+this by taking a look at the <code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code> API.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">instantiate</span><span class="p">(</span>
+    <span class="n">config</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">,</span>
+    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code> also accepts positional arguments
+and keyword arguments and automatically uses that with the config when creating
+the object. This means we can not only pass in the tokenizer, but also add additional
+keyword arguments not specified in the config if we’d like:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tokenizer is needed for the dataset, configure it first</span>
+<span class="nt">tokenizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama2.llama2_tokenizer</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/tokenizer.model</span>
+
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note the API of the tokenizer we specified - we need to pass in a path</span>
+<span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tokenizer</span><span class="p">;</span>
+
+<span class="c1"># Note the API of the dataset we specified - we need to pass in a tokenizer</span>
+<span class="c1"># and any optional keyword arguments</span>
+<span class="k">def</span> <span class="nf">alpaca_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
+
+<span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">config</span>
+
+<span class="c1"># Since we&#39;ve already specified the path in the config, we don&#39;t need to pass</span>
+<span class="c1"># it in</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">)</span>
+<span class="c1"># We pass in the instantiated tokenizer as the first required argument, then</span>
+<span class="c1"># we change an optional keyword argument</span>
+<span class="n">dataset</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">instantiate</span><span class="p">(</span>
+    <span class="n">cfg</span><span class="o">.</span><span class="n">dataset</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that additional keyword arguments will overwrite any duplicated keys in the
+config.</p>
 </section>
-<section id="recipe-script">
-<h2>Recipe Script<a class="headerlink" href="#recipe-script" title="Permalink to this heading">¶</a></h2>
-<p>This is the primary entry point for each recipe and provides the user with control over how
-the recipe is set up, how models are trained and how the subsequent checkpoints are used.
-This includes:</p>
-<ul class="simple">
-<li><p>Setting up of the environment</p></li>
-<li><p>Parsing and validating configs</p></li>
-<li><p>Training the model</p></li>
-<li><p>Setting up multi-stage training (eg: Distillation) using multiple recipe classes</p></li>
-</ul>
-<p>Scripts should generally structure operations in the following order:</p>
-<ul class="simple">
-<li><p>Initialize the recipe class which in-turn initializes recipe state</p></li>
-<li><p>Load and Validate checkpoint to update recipe state if resuming training</p></li>
-<li><p>Initialize recipe components (model, tokenizer, optimizer, loss and dataloader)
-from checkpoint (if applicable)</p></li>
-<li><p>Train the model</p></li>
-<li><p>Clean up recipe state after training is complete</p></li>
-</ul>
-<p>An example script looks something like this:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initialize the process group</span>
-<span class="n">init_process_group</span><span class="p">(</span><span class="n">backend</span><span class="o">=</span><span class="s2">&quot;gloo&quot;</span> <span class="k">if</span> <span class="n">cfg</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">else</span> <span class="s2">&quot;nccl&quot;</span><span class="p">)</span>
-
-<span class="c1"># Setup the recipe and train the model</span>
-<span class="n">recipe</span> <span class="o">=</span> <span class="n">FullFinetuneRecipeDistributed</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
-<span class="n">recipe</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
-<span class="n">recipe</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-<span class="n">recipe</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
-
-<span class="c1"># Other stuff to do after training is complete</span>
-<span class="o">...</span>
-</pre></div>
-</div>
-</section>
-<section id="recipe-class">
-<h2>Recipe Class<a class="headerlink" href="#recipe-class" title="Permalink to this heading">¶</a></h2>
-<p>The recipe class carries the core logic for training a model. Each class implements a relevant
-interface and exposes a set of APIs. For fine-tuning, the structure of this class is as follows:</p>
-<p>Initialize recipe state including seed, device, dtype, metric loggers, relevant flags etc:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_device</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_dtype</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="o">...</span>
-</pre></div>
-</div>
-<p>Load checkpoint, update recipe state from checkpoint, initialize components and load state dicts from checkpoint</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">):</span>
-
-    <span class="n">ckpt_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_checkpoint</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">checkpointer</span><span class="p">)</span>
-
-    <span class="c1"># Setup the model, including FSDP wrapping, setting up activation checkpointing and</span>
-    <span class="c1"># loading the state dict</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_model</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_tokenizer</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-
-    <span class="c1"># Setup Optimizer, including transforming for FSDP when resuming training</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_optimizer</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_loss_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_loss</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_sampler</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataloader</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_setup_data</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Run forward and backward across all epochs and save checkpoint at end of each epoch</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">train</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-    <span class="k">for</span> <span class="n">curr_epoch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">epochs_run</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_epochs</span><span class="p">):</span>
-
-        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_dataloader</span><span class="p">):</span>
-            <span class="o">...</span>
-
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_autocast</span><span class="p">:</span>
-                <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-                <span class="o">...</span>
-                <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_fn</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_training_steps</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_every_n_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_metric_logger</span><span class="o">.</span><span class="n">log_dict</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-
-            <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">step</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
-
-            <span class="c1"># Update the number of steps when the weights are updated</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">total_training_steps</span> <span class="o">+=</span> <span class="mi">1</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">curr_epoch</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>Cleanup recipe state</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">cleanup</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">metric_loggers</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
-    <span class="o">...</span>
+<section id="referencing-other-config-fields-with-interpolations">
+<h3>Referencing other config fields with interpolations<a class="headerlink" href="#referencing-other-config-fields-with-interpolations" title="Permalink to this heading">¶</a></h3>
+<p>Sometimes you need to use the same value more than once for multiple fields. You
+can use <em>interpolations</em> to reference another field, and <code class="xref py py-func docutils literal notranslate"><span class="pre">instantiate()</span></code>
+will automatically resolve it for you.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/alpaca-llama2-finetune</span>
+<span class="nt">metric_logger</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.metric_logging.DiskLogger</span>
+<span class="w">  </span><span class="nt">log_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${output_dir}</span>
 </pre></div>
 </div>
 </section>
-<section id="running-recipes-with-configs">
-<h2>Running Recipes with Configs<a class="headerlink" href="#running-recipes-with-configs" title="Permalink to this heading">¶</a></h2>
-<p>To run a recipe with a set of user-defined parameters, you will need to write a config file.
-You can learn all about configs in our <a class="reference internal" href="configs.html#config-tutorial-label"><span class="std std-ref">config deep-dive</span></a>.</p>
-<section id="config-and-cli-parsing-using-parse">
-<h3>Config and CLI parsing using <code class="code docutils literal notranslate"><span class="pre">parse</span></code><a class="headerlink" href="#config-and-cli-parsing-using-parse" title="Permalink to this heading">¶</a></h3>
-<p>We provide a convenient decorator <code class="xref py py-func docutils literal notranslate"><span class="pre">parse()</span></code> that wraps
-your recipe to enable running from the command-line with <code class="code docutils literal notranslate"><span class="pre">tune</span></code> with config
-and CLI override parsing.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@config</span><span class="o">.</span><span class="n">parse</span>
-<span class="k">def</span> <span class="nf">recipe_main</span><span class="p">(</span><span class="n">cfg</span><span class="p">:</span> <span class="n">DictConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">recipe</span> <span class="o">=</span> <span class="n">FullFinetuneRecipe</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
-    <span class="n">recipe</span><span class="o">.</span><span class="n">setup</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">cfg</span><span class="p">)</span>
-    <span class="n">recipe</span><span class="o">.</span><span class="n">train</span><span class="p">()</span>
-    <span class="n">recipe</span><span class="o">.</span><span class="n">cleanup</span><span class="p">()</span>
+<section id="validating-your-config">
+<h3>Validating your config<a class="headerlink" href="#validating-your-config" title="Permalink to this heading">¶</a></h3>
+<p>We provide a convenient CLI utility, <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span></code>, to quickly verify that
+your config is well-formed and all components can be instantiated properly. You
+can also pass in overrides if you want to test out the exact commands you will run
+your experiments with. If any parameters are not well-formed, <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span></code>
+will list out all the locations where an error was found.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>validate<span class="w"> </span>--config<span class="w"> </span>recipes/configs/llama2/7B_full.yaml<span class="w"> </span><span class="nv">batch_size</span><span class="o">=</span><span class="m">4</span>
 </pre></div>
 </div>
 </section>
-<section id="running-your-recipe">
-<h3>Running your recipe<a class="headerlink" href="#running-your-recipe" title="Permalink to this heading">¶</a></h3>
-<p>You should be able to run your recipe by providing the direct paths to your custom
-recipe and custom config using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> command with any CLI overrides:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>&lt;path/to/recipe&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;path/to/config&gt;<span class="w"> </span><span class="nv">k1</span><span class="o">=</span>v1<span class="w"> </span><span class="nv">k2</span><span class="o">=</span>v2<span class="w"> </span>...
+<section id="best-practices-for-writing-configs">
+<h3>Best practices for writing configs<a class="headerlink" href="#best-practices-for-writing-configs" title="Permalink to this heading">¶</a></h3>
+<p>Let’s discuss some guidelines for writing configs to get the most out of them.</p>
+<section id="airtight-configs">
+<h4>Airtight configs<a class="headerlink" href="#airtight-configs" title="Permalink to this heading">¶</a></h4>
+<p>While it may be tempting to put as much as you can in the config to give you
+maximum flexibility in switching parameters for your experiments, we encourage
+you to only include fields in the config that will be used or instantiated in the
+recipe. This ensures full clarity on the options a recipe was run with and will
+make it significantly easier to debug.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># dont do this</span>
+<span class="nt">alpaca_dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="nt">slimorca_dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+
+<span class="c1"># do this</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># change this in config or override when needed</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+</section>
+<section id="use-public-apis-only">
+<h4>Use public APIs only<a class="headerlink" href="#use-public-apis-only" title="Permalink to this heading">¶</a></h4>
+<p>If a component you wish to specify in a config is located in a private file, use
+the public dotpath in your config. These components are typically exposed in their
+parent module’s <code class="code docutils literal notranslate"><span class="pre">__init__.py</span></code> file. This way, you can guarantee the stability
+of the API you are using in your config. There should be no underscores in your
+component dotpath.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># don&#39;t do this</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets._alpaca.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+
+<span class="c1"># do this</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="command-line-overrides">
+<h2>Command-line overrides<a class="headerlink" href="#command-line-overrides" title="Permalink to this heading">¶</a></h2>
+<p>Configs are the primary location to collect all your parameters to run a recipe,
+but sometimes you may want to quickly try different values without having to update
+the config itself. To enable quick experimentation, you can specify override values
+to parameters in your config via the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> command. These should be specified
+as key-value pairs <code class="code docutils literal notranslate"><span class="pre">k1=v1</span> <span class="pre">k2=v2</span> <span class="pre">...</span></code></p>
+<p>For example, to run the <code class="code docutils literal notranslate"><span class="pre">full_finetune</span></code> recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>full_finetune_distributed<span class="w"> </span><span class="se">\</span>
+--config<span class="w"> </span>full_finetune_distributed<span class="w"> </span><span class="se">\</span>
+checkpointer.checkpoint_dir<span class="o">=</span>/home/my_model_checkpoint<span class="w"> </span><span class="se">\</span>
+checkpointer.checkpoint_files<span class="o">=[</span>file_1,<span class="w"> </span>file_2<span class="o">]</span><span class="w"> </span><span class="se">\</span>
+<span class="nv">device</span><span class="o">=</span>cuda
+</pre></div>
+</div>
+<section id="overriding-components">
+<h3>Overriding components<a class="headerlink" href="#overriding-components" title="Permalink to this heading">¶</a></h3>
+<p>If you would like to override a class or function in the config that is instantiated
+via the <code class="code docutils literal notranslate"><span class="pre">_component_</span></code> field, you can do so by assigning to the parameter
+name directly. Any nested fields in the components can be overridden with dot notation.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to slimorca_dataset and set train_on_input to False</span>
+tune<span class="w"> </span>full_finetune<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
 </pre></div>
 </div>
 </section>
@@ -590,10 +607,10 @@ recipe and custom config using the <code class="code docutils literal notranslat
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="wandb_logging.html" class="btn btn-neutral float-right" title="Logging to Weights &amp; Biases" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="recipe_deepdive.html" class="btn btn-neutral float-right" title="What are recipes?" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="configs.html" class="btn btn-neutral" title="Configs Deep-Dive" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="checkpointer.html" class="btn btn-neutral" title="Checkpointing in torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -625,14 +642,21 @@ recipe and custom config using the <code class="code docutils literal notranslat
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Training Recipe Deep-Dive</a><ul>
-<li><a class="reference internal" href="#what-are-recipes">What are Recipes?</a></li>
-<li><a class="reference internal" href="#what-recipes-are-not">What Recipes are not?</a></li>
-<li><a class="reference internal" href="#recipe-script">Recipe Script</a></li>
-<li><a class="reference internal" href="#recipe-class">Recipe Class</a></li>
-<li><a class="reference internal" href="#running-recipes-with-configs">Running Recipes with Configs</a><ul>
-<li><a class="reference internal" href="#config-and-cli-parsing-using-parse">Config and CLI parsing using <code class="code docutils literal notranslate"><span class="pre">parse</span></code></a></li>
-<li><a class="reference internal" href="#running-your-recipe">Running your recipe</a></li>
+<li><a class="reference internal" href="#">All about configs</a><ul>
+<li><a class="reference internal" href="#where-do-parameters-live">Where do parameters live?</a></li>
+<li><a class="reference internal" href="#writing-configs">Writing configs</a><ul>
+<li><a class="reference internal" href="#configuring-components-using-instantiate">Configuring components using <code class="code docutils literal notranslate"><span class="pre">instantiate</span></code></a></li>
+<li><a class="reference internal" href="#referencing-other-config-fields-with-interpolations">Referencing other config fields with interpolations</a></li>
+<li><a class="reference internal" href="#validating-your-config">Validating your config</a></li>
+<li><a class="reference internal" href="#best-practices-for-writing-configs">Best practices for writing configs</a><ul>
+<li><a class="reference internal" href="#airtight-configs">Airtight configs</a></li>
+<li><a class="reference internal" href="#use-public-apis-only">Use public APIs only</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#command-line-overrides">Command-line overrides</a><ul>
+<li><a class="reference internal" href="#overriding-components">Overriding components</a></li>
 </ul>
 </li>
 </ul>

@@ -262,20 +262,21 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -397,7 +398,7 @@ Installation instructions</div>
 Finetune your first model</div>
 <p class="sd-card-text">Follow a simple tutorial to finetune Llama2 with torchtune.</p>
 </div>
-<a class="sd-stretched-link reference external" href="examples/first_finetune_tutorial.html"></a></div>
+<a class="sd-stretched-link reference external" href="tutorials/first_finetune_tutorial.html"></a></div>
 </div>
 <div class="sd-col sd-d-flex-row docutils">
 <div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm sd-card-hover docutils">
@@ -407,7 +408,7 @@ Finetune your first model</div>
 End-to-End Workflow with torchtune</div>
 <p class="sd-card-text">Train, Evaluate, Quantize and then Generate with your LLM.</p>
 </div>
-<a class="sd-stretched-link reference external" href="examples/e2e_flow.html"></a></div>
+<a class="sd-stretched-link reference external" href="tutorials/e2e_flow.html"></a></div>
 </div>
 </div>
 </div>
@@ -432,29 +433,29 @@ torchtune tutorials.</p>
   <div class="row">
     <div id="tutorial-cards">
       <div class="list"></p>
-<p><div class="col-md-12 tutorials-card-container" data-tags=finetuning,llama2>
-  <div class="card tutorials-card">
-    <a href="examples/finetune_llm.html">
-      <div class="card-body">
-        <div class="card-title-container">
-          <h4>LLM Full Finetuning Recipe</h4>
-        </div>
-        <p>Topics: <span class="tags">finetuning,llama2</span></p>
-        <p class="card-summary">Full Finetuning for Llama2</p>
-        <div class="tutorials-image"><img src='_static/img/generic-pytorch-logo.png'></div>
-      </div>
-    </a>
-  </div>
-</div></p>
 <p><div class="col-md-12 tutorials-card-container" data-tags=finetuning,llama2,lora>
   <div class="card tutorials-card">
-    <a href="examples/lora_finetune.html">
+    <a href="tutorials/lora_finetune.html">
       <div class="card-body">
         <div class="card-title-container">
           <h4>Finetuning with LoRA in torchtune</h4>
         </div>
         <p>Topics: <span class="tags">finetuning,llama2,lora</span></p>
         <p class="card-summary">Parameter-efficient finetuning of Llama2 using LoRA</p>
+        <div class="tutorials-image"><img src='_static/img/generic-pytorch-logo.png'></div>
+      </div>
+    </a>
+  </div>
+</div></p>
+<p><div class="col-md-12 tutorials-card-container" data-tags=finetuning,quantization,inference,evals,llama2>
+  <div class="card tutorials-card">
+    <a href="tutorials/e2e_flow.html">
+      <div class="card-body">
+        <div class="card-title-container">
+          <h4>End-to-End Workflow with torchtune</h4>
+        </div>
+        <p>Topics: <span class="tags">finetuning,quantization,inference,evals,llama2</span></p>
+        <p class="card-summary">Train, Evaluate, Quantize and then Generate with your LLM.</p>
         <div class="tutorials-image"><img src='_static/img/generic-pytorch-logo.png'></div>
       </div>
     </a>

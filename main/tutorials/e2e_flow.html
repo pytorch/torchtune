@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="LLM Full Finetuning Recipe" href="finetune_llm.html" />
+    <link rel="next" title="Finetuning Llama2 with LoRA" href="lora_finetune.html" />
     <link rel="prev" title="Finetune your First LLM" href="first_finetune_tutorial.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -267,16 +267,17 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="finetune_llm.html">LLM Full Finetuning Recipe</a></li>
+<ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -331,7 +332,7 @@
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/examples/e2e_flow.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/tutorials/e2e_flow.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -390,8 +391,8 @@ from the community seemlessly with torchtune.</p>
 <ul class="simple">
 <li><p class="sd-card-text">Be familiar with the <a class="reference internal" href="../overview.html#overview-label"><span class="std std-ref">overview of torchtune</span></a></p></li>
 <li><p class="sd-card-text">Make sure to <a class="reference internal" href="../install.html#install-label"><span class="std std-ref">install torchtune</span></a></p></li>
-<li><p class="sd-card-text">Concepts such as <a class="reference internal" href="configs.html#config-tutorial-label"><span class="std std-ref">configs</span></a> and
-<a class="reference internal" href="checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a></p></li>
+<li><p class="sd-card-text">Concepts such as <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">configs</span></a> and
+<a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -424,7 +425,7 @@ by torchtune <a class="reference external" href="https://github.com/pytorch/torc
 <h2>Download Llama2 7B<a class="headerlink" href="#download-llama2-7b" title="Permalink to this heading">¶</a></h2>
 <p>In this tutorial, we’ll use the Hugging Face model weights for the Llama2 7B mode.
 For more information on checkpoint formats and how these are handled in torchtune, take a look at
-this tutorial on <a class="reference internal" href="checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a>.</p>
+this tutorial on <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpoints</span></a>.</p>
 <p>To download the HF format Llama2 7B model, we’ll use the tune CLI.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span><span class="se">\</span>
 meta-llama/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
@@ -813,7 +814,7 @@ your own workflows. Happy Tuning!</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="finetune_llm.html" class="btn btn-neutral float-right" title="LLM Full Finetuning Recipe" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="lora_finetune.html" class="btn btn-neutral float-right" title="Finetuning Llama2 with LoRA" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="first_finetune_tutorial.html" class="btn btn-neutral" title="Finetune your First LLM" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

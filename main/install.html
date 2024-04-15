@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Finetune your First LLM" href="examples/first_finetune_tutorial.html" />
+    <link rel="next" title="Finetune your First LLM" href="tutorials/first_finetune_tutorial.html" />
     <link rel="prev" title="torchtune Overview" href="overview.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -263,20 +263,21 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -363,10 +364,11 @@
               
   <section id="install-instructions">
 <span id="install-label"></span><h1>Install Instructions<a class="headerlink" href="#install-instructions" title="Permalink to this heading">¶</a></h1>
-<p>There is currently only one way to download torchtune, which is locally.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/pytorch/torchtune.git
-<span class="nb">cd</span><span class="w"> </span>torchtune
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+<p>torchtune requires PyTorch, so please install for your proper host and environment,
+using <a class="reference external" href="https://pytorch.org/get-started/locally/">Start Locally</a> page.</p>
+<p>The latest stable version of torchtune is hosted on PyPI and can be downloaded
+with the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>torchtune
 </pre></div>
 </div>
 <p>To confirm that the package is installed correctly, you can run the following command:</p>
@@ -374,8 +376,21 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </pre></div>
 </div>
 <p>And should see the following output:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">tune</span> <span class="p">[</span><span class="n">options</span><span class="p">]</span> <span class="o">&lt;</span><span class="n">recipe</span><span class="o">&gt;</span> <span class="p">[</span><span class="n">recipe_args</span><span class="p">]</span>
-<span class="n">tune</span><span class="p">:</span> <span class="n">error</span><span class="p">:</span> <span class="n">the</span> <span class="n">following</span> <span class="n">arguments</span> <span class="n">are</span> <span class="n">required</span><span class="p">:</span> <span class="n">recipe</span><span class="p">,</span> <span class="n">recipe_args</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>usage: tune [-h] {download,ls,cp,run,validate} ...
+
+Welcome to the TorchTune CLI!
+
+options:
+-h, --help            show this help message and exit
+
+...
+</pre></div>
+</div>
+<p>If you want the latest and greatest features from torchtune or if you want to become a contributor,
+you can also install the package locally with the following command.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/pytorch/torchtune.git
+<span class="nb">cd</span><span class="w"> </span>torchtune
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
 </section>
@@ -388,7 +403,7 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="examples/first_finetune_tutorial.html" class="btn btn-neutral float-right" title="Finetune your First LLM" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="tutorials/first_finetune_tutorial.html" class="btn btn-neutral float-right" title="Finetune your First LLM" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="overview.html" class="btn btn-neutral" title="torchtune Overview" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

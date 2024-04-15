@@ -263,20 +263,21 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/first_finetune_tutorial.html">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/finetune_llm.html">LLM Full Finetuning Recipe</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Finetune your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="examples/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/configs.html">Configs Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/recipe_deepdive.html">Training Recipe Deep-Dive</a></li>
-<li class="toctree-l1"><a class="reference internal" href="examples/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All about configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What are recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
@@ -384,8 +385,8 @@
 </ul>
 <p>Excited? To get started, checkout some of our tutorials, including:</p>
 <ul class="simple">
-<li><p>our <a class="reference internal" href="examples/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">full finetuning tutorial</span></a> to get started and finetune your first LLM using torchtune.</p></li>
-<li><p>our <a class="reference internal" href="examples/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with torchtune.</p></li>
+<li><p>our <a class="reference internal" href="tutorials/first_finetune_tutorial.html#finetune-llama-label"><span class="std std-ref">full finetuning tutorial</span></a> to get started and finetune your first LLM using torchtune.</p></li>
+<li><p>our <a class="reference internal" href="tutorials/lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA tutorial</span></a> to learn about parameter-efficient finetuning with torchtune.</p></li>
 </ul>
 </section>
 <section id="key-concepts">
@@ -398,7 +399,7 @@ See the “Getting Started with Configs” tutorial for more information.</p>
 as “targeted” end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
 features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training)
-applied to a given model family (eg: Llama2). See the tutorial on <a class="reference internal" href="examples/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">Training Recipe Deep-Dive</span></a> for more information.</p>
+applied to a given model family (eg: Llama2). See the tutorial on <a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">Training Recipe Deep-Dive</span></a> for more information.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
