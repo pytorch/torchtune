@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -29,29 +28,60 @@ log = utils.get_logger("DEBUG")
 
 class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
-    Full finetuning recipe for dense transformer-based LLMs such as Llama2.
+    Full finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe is optimized
+    for single GPU training. Training on CPU is not supported.
 
-    This recipe supports:
-        - Activation checkpointing. This is enabled by default but can be
-            configured using the ``enable_activation_checkpointing`` flags.
-        - Full bf16 training via setting the ``dtype`` flag to bf16.
-        - Checkpointing of model weights, optimizer state and the recipe state (epoch and seed).
-        - Resuming from checkpoints saved using the ``save_checkpoint`` functionality.
-        - Logging to terminal, WandB, or TensorBoard.
+    Features:
+        - Activation Checkpointing. This can be controlled using the ``activation_checkpointing``
+            flag. Activation checkpointing helps reduce the memory footprint since we no longer keep
+            activations in memory and instead recompute them during the backward pass. This is especially
+            helpful for larger batch sizes when you're memory constrained. But these savings in memory
+            come at the cost of training performance. In most cases training can slow-down quite a bit as
+            a result of this activation recomputation.
 
-    Assumptions:
-        - Training is launched with the Tune CLI (recommended) which uses TorchRun under the
-            hood. Setting up the env variables is handled by TorchRun.
-        - Training happens on CUDA (CPU training is not supported)
-        - Checkpoints are ONLY saved at epoch boundaries. Mid-epoch checkpointing is NOT supported.
-        - User can only use ONE of gradient accumulation or optimizer in backward. These features
-            currently do not work together.
-        - Datasets are Map-style and data fits in memory (not streamed).
+        - Precision. Full fp32 and bf16 training are supported. Precision is controlled using the ``dtype``
+            flag. When ``dtype=bf16``, all activations, gradients and optimizer states are in bfloat16. In
+            most cases this should halve the memory footprint of full precision (fp32) training, without
+            loss in model quality (will depend on the model, training data and other settings). For
+            GPUs which do not support bfloat16, we fall back to fp32. Mixed precision training and fp16
+            precision are currently not supported.
 
-    The following configs can be used to run this recipe:
-        >>> tune ls
-        RECIPE                             CONFIG
-        full_finetune_single_device        llama2/7B_full_single_device
+        - Gradient Accumulation. You can simulate larger batch sizes by accumulating gradients. This is
+            controlled using the ``gradient_accumulation_steps`` flag.
+
+                Total Batch Size = batch_size * gradient accumulation steps.
+
+            For example: with batch_size=1 and gradient_accumulation_steps=32 we get a total batch size of 32.
+
+            Gradient accumulation is especially useful when you are memory constrained. In this case,
+            accumulating gradients might give you better training speed than enabling activation
+            checkpointing.
+
+        - Optimizer in Backward. Fusing the optimizer step into the backward pass helps reduce the memory
+            footprint associated with gradients. This can be especially helpful when you are memory
+            constrained. Note that users can only use ONE of gradient accumulation or optimizer in backward.
+            These features currently do not work together. For more details on optimizer in backward, please
+            see this tutorial: https://pytorch.org/tutorials/intermediate/optimizer_step_in_backward_tutorial.html
+
+        - Lower precision optimizers. This recipe supports lower-precision optimizers from the bitsandbytes
+            library (https://huggingface.co/docs/bitsandbytes/main/en/index). We've tested the recipe with
+            8-bit AdamW and Paged AdamW. These optimizers are especially helpful when you are memory constrained
+            since they help reduce the memory footprint associated with the optimizer states.
+
+        - Checkpointing. Model weights are checkpointed both at the end of each epoch and at the end of
+            training. Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
+            only saved at the end of a given epoch and used in case of resuming training.
+
+            Resuming training is controlled by the ``resume_from_checkpoint`` flag. Mid-epoch checkpointing is
+            currently not supported.
+
+            For more details on the checkpointer, please take a look at
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/deep_dives/checkpointer.html).
+
+        - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
+
+    For a full list of example configs for this recipe, run ``tune ls`` on the command line. Each config
+    has example commands for how to kick-off training.
 
     Args:
         cfg (DictConfig): OmegaConf object parsed from yaml file
@@ -72,22 +102,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
-
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
         self._log_peak_memory_every_n_steps = 100
+
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
+
         # TODO: find a better place / way to perform validation of args that don't yet
         # compose with each other.
         if self._gradient_accumulation_steps > 1 and self._optimizer_in_bwd:
@@ -95,6 +119,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "Gradient accumulation is not supported with optimizer in bwd."
                 "Please set gradient_accumulation_steps=1, or optimizer_in_bwd=False."
             )
+
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
         self.seed = utils.set_seed(seed=cfg.seed)
@@ -103,13 +128,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.total_training_steps = 0
 
-    def load_checkpoint(self, cfg: DictConfig) -> Dict[str, Any]:
+    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
         Extract the checkpoint state from file and validate. If resume_from_checkpoint
         is True, this also includes the recipe state.
         """
         self._checkpointer = config.instantiate(
-            cfg,
+            cfg_checkpointer,
             resume_from_checkpoint=self._resume_from_checkpoint,
         )
         checkpoint_dict = self._checkpointer.load_checkpoint()
@@ -151,14 +176,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         self._metric_logger = config.instantiate(cfg.metric_logger)
 
+        # log config with parameter override
+        self._metric_logger.log_config(cfg)
+
         ckpt_dict = self.load_checkpoint(cfg.checkpointer)
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
+        self._model_compile = cfg.compile
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            compile_model=self._model_compile,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -206,6 +236,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        compile_model: bool,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
@@ -224,11 +255,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         log.info(f"Model is initialized with precision {self._dtype}.")
-        log.info(
-            utils.memory_stats_log(
-                "Memory Stats after model init:", device=self._device
-            )
-        )
+
+        # Compile model, if enabled.
+        if compile_model:
+            log.info("Compiling model with torch.compile...")
+            model = utils.wrap_compile(model)
+        if self._device == torch.device("cuda"):
+            memory_stats = utils.memory_stats_log(device=self._device)
+            log.info(f"Memory Stats after model init:\n{memory_stats}")
         return model
 
     def _setup_optimizer(
@@ -341,6 +375,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+
+        if self._model_compile:
+            log.info(
+                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
+            )
         # zero out the gradients before starting training
         if not self._optimizer_in_bwd:
             self._optimizer.zero_grad()
@@ -370,8 +409,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = self._loss_fn(logits, labels)
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                 if self.total_training_steps % self._log_every_n_steps == 0:
+                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
                     self._metric_logger.log_dict(
                         {
                             "loss": loss.item(),
@@ -402,9 +441,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self.total_training_steps += 1
 
                 # Log peak memory for iteration
-                if self.total_training_steps % self._log_peak_memory_every_n_steps == 0:
-                    log.info(
-                        utils.memory_stats_log("Memory Stats:", device=self._device)
+                if (
+                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
+                    and self._device == torch.device("cuda")
+                ):
+                    memory_stats = utils.memory_stats_log(device=self._device)
+                    self._metric_logger.log_dict(
+                        memory_stats, step=self.total_training_steps
                     )
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
@@ -422,6 +465,7 @@ def recipe_main(cfg: DictConfig) -> None:
         - Parameters specified in config (see available configs through ``tune ls``)
         - Overwritten by arguments from the command-line
     """
+    config.log_config(recipe_name="FullFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = FullFinetuneRecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()

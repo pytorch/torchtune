@@ -38,9 +38,10 @@ The library currently supports the following models and fine-tuning methods.
 
 | Model                                         | Sizes     |   Finetuning Methods |
 |-----------------------------------------------|-----------|-----------------------------------------------------------|
-| [Llama2](torchtune/models/llama2/_model_builders.py)   | 7B        | Full Finetuning [[single device](recipes/configs/llama2/7B_full_single_device.yaml),  [distributed](recipes/configs/llama2/7B_full.yaml)] LoRA [[single device](recipes/configs/llama2/7B_lora_single_device.yaml),  [distributed](recipes/configs/llama2/7B_lora.yaml)] QLoRA [single device](recipes/configs/llama2/7B_qlora_single_device.yaml) |
+| [Llama2](torchtune/models/llama2/_model_builders.py)   | 7B        | Full Finetuning [[single device low memory](recipes/configs/llama2/7B_full_low_memory.yaml),  [distributed](recipes/configs/llama2/7B_full.yaml)] LoRA [[single device](recipes/configs/llama2/7B_lora_single_device.yaml),  [distributed](recipes/configs/llama2/7B_lora.yaml)] QLoRA [[single device](recipes/configs/llama2/7B_qlora_single_device.yaml)] |
 | [Llama2](torchtune/models/llama2/_model_builders.py)   | 13B       | [Full Finetuning](recipes/configs/llama2/13B_full.yaml), [LoRA](recipes/configs/llama2/13B_lora.yaml)
-| [Mistral](torchtune/models/mistral//_model_builders.py)   | 7B       | [Full Finetuning](recipes/configs/mistral/7B_full.yaml), [LoRA](recipes/configs/mistral/7B_lora.yaml)
+| [Mistral](torchtune/models/mistral/_model_builders.py)   | 7B       | Full Finetuning [[single device low memory](recipes/configs/mistral/7B_full_low_memory.yaml), [distributed](recipes/configs/mistral/7B_full.yaml)] LoRA [[single device](recipes/configs/mistral/7B_lora_single_device.yaml), [distributed](recipes/configs/mistral/7B_lora.yaml)] QLoRA [[single device](recipes/configs/mistral/7B_qlora_single_device.yaml)]
+| [Gemma](torchtune/models/gemma/_model_builders.py)   | 2B        | [Full Finetuning](recipes/configs/gemma/2B_full.yaml)
 
 
 &nbsp;
@@ -105,7 +106,7 @@ options:
 
 ## Get Started
 
-For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
+For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/tutorials/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
 
 #### Downloading a model
 
@@ -115,8 +116,8 @@ Follow the instructions on the official [`meta-llama`](https://huggingface.co/me
 You can find your token at https://huggingface.co/settings/tokens
 
 ```
-tune download meta-llama/Llama-2-7b \
---output-dir /tmp/llama2 \
+tune download meta-llama/Llama-2-7b-hf \
+--output-dir /tmp/Llama-2-7b-hf \
 --hf-token <HF_TOKEN> \
 ```
 
@@ -173,6 +174,13 @@ tune run my_custom_finetune_recipe.py --config 7B_full.yaml
 Check out `tune --help` for all possible CLI commands and options.
 
 &nbsp;
+
+---
+
+#### Support for torch.compile
+
+Note that support for ``torch.compile`` is currently in progress and only enabled for a couple of recipes. In particular, ``torch.compile`` support is
+enabled for [full_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/full_finetune_single_device.py) and [lora_finetune_single_device](https://github.com/pytorch/torchtune/blob/main/recipes/lora_finetune_single_device.py) and validated on Llama2-7b. Other recipes and models are currently not tested, though we welcome contributions from the community.
 
 ---
 

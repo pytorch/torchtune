@@ -1,14 +1,14 @@
 .. _config_tutorial_label:
 
 =================
-Configs Deep-Dive
+All about configs
 =================
 
-This tutorial will guide you through writing configs for running recipes.
+This deep-dive will guide you through writing configs for running recipes.
 
 .. grid:: 2
 
-    .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
+    .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover
 
       * How to write a YAML config and run a recipe with it
       * How to use :code:`instantiate` and :code:`parse` APIs
@@ -16,8 +16,8 @@ This tutorial will guide you through writing configs for running recipes.
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
-      * Make sure to :ref:`install TorchTune<install_label>`
+      * Be familiar with the :ref:`overview of torchtune<overview_label>`
+      * Make sure to :ref:`install torchtune<install_label>`
       * Understand the :ref:`fundamentals of recipes<recipe_deepdive>`
 
 
@@ -34,7 +34,7 @@ modifying the config.
 
 Writing configs
 ---------------
-Configs serve as the primary entry point for running recipes in TorchTune. They are
+Configs serve as the primary entry point for running recipes in torchtune. They are
 expected to be YAML files and they simply list out values for parameters you want to define
 for a particular run.
 
@@ -49,7 +49,7 @@ for a particular run.
 
 Configuring components using :code:`instantiate`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Many fields will require specifying TorchTune objects with associated keyword
+Many fields will require specifying torchtune objects with associated keyword
 arguments as parameters. Models, datasets, optimizers, and loss functions are
 common examples of this. You can easily do this using the :code:`_component_`
 subfield. In :code:`_component_`, you need to specify the dotpath of the object
@@ -82,7 +82,7 @@ This will automatically use any keyword arguments specified in the fields under
 
 As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets._alpaca.alpaca_dataset`,
 you'll notice that we're missing a required positional argument, the tokenizer.
-Since this is another configurable TorchTune object, let's understand how to handle
+Since this is another configurable torchtune object, let's understand how to handle
 this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` API.
 
 .. code-block:: python

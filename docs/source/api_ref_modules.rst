@@ -22,16 +22,6 @@ Modeling Components and Building Blocks
     TransformerDecoder
 
 
-Low Precision Components
-------------------------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    low_precision.FrozenNF4Linear
-
-
 PEFT Components
 ---------------
 
@@ -43,3 +33,14 @@ PEFT Components
     peft.AdapterModule
     peft.get_adapter_params
     peft.set_trainable_params
+
+
+Module Utilities
+------------------
+These are utilities that are common to and can be used by all modules.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   common_utils.reparametrize_as_dtype_state_dict_post_hook

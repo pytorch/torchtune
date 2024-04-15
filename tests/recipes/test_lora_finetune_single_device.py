@@ -14,6 +14,7 @@ import torch
 from omegaconf import OmegaConf
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
     llama2_test_config,
     lora_llama2_test_config,
     write_hf_ckpt_config,
@@ -22,6 +23,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    torch_version_ge,
 )
 from torchtune import config
 
@@ -34,29 +36,34 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             f"dtype={dtype_str}",
             "enable_activation_checkpointing=False",
             "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
-            "dataset=torchtune.datasets.alpaca_dataset",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
             "max_steps_per_epoch=2",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+            "gradient_accumulation_steps=1",
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self):
-        return [10.5074, 10.5614, 10.5205, 10.4918]
+        return [10.5209, 10.5269, 10.5130, 10.5242]
 
     def _fetch_qlora_expected_loss_values(self, dtype):
         if dtype == "bf16":
-            return [10.5057, 10.5575, 10.5179, 10.4898]
-        return [10.5059, 10.5571, 10.5181, 10.4897]
+            return [10.5197, 10.5272, 10.5129, 10.5243]
+        return [10.5198, 10.5271, 10.5131, 10.5244]
 
     @pytest.mark.integration_test
-    def test_loss(self, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss(self, compile, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
 
         cmd = f"""
         tune run lora_finetune_single_device \
@@ -68,6 +75,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(
@@ -91,11 +99,20 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("dtype", ["fp32", "bf16"])
-    def test_loss_qlora(self, dtype, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    @pytest.mark.skipif(
+        not torch_version_ge("2.4.0"),
+        reason="Please install a nightly build of torch to run this test.",
+    )
+    def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
+
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
 
         cmd = f"""
         tune run lora_finetune_single_device
@@ -107,6 +124,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = lora_llama2_test_config(
@@ -115,6 +133,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             apply_lora_to_output=False,
             lora_rank=8,
             lora_alpha=16,
+            quantize_base=True,
         )
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config

@@ -260,24 +260,27 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     Checkpointer which reads and writes "full-model" checkpoints in HF's format. Example includes
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
-    For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary
-    checkpoint and json files. The easiest way to make sure everything works correctly is to use
-    the following flow:
-
-        1. Download the model from the HF repo using tune download
-        tune download --repo-id meta-llama/Llama-2-7b-hf \
-        --output-dir <checkpoint_dir> \
-        --hf-token <hf-token>
-
-        2. Use the directory created in 1. as the checkpoint_dir
-
     A few notes about the checkpoint reading logic:
-        - HF checkpoint names usually oredered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure
-            we read the files in the right order, we sort the checkpoint file names before reading
-        - Checkpoint conversion to and from HF's format requires access to model params which are
-            read directly from the "config.json" file. This helps ensure we either load the weights
-            correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
-            model implementations.
+    - HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure
+    we read the files in the right order, we sort the checkpoint file names before reading
+    - Checkpoint conversion to and from HF's format requires access to model params which are
+    read directly from the "config.json" file. This helps ensure we either load the weights
+    correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
+    model implementations.
+
+    Args:
+        checkpoint_dir (str): Directory containing the checkpoint files
+        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care
+            of sorting by file ID, the order in this list does not matter
+        model_type (ModelType): Model type of the model for which the checkpointer is being loaded
+        output_dir (str): Directory to save the checkpoint files
+        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
+        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
+        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
+            resume training from a previous run. Default is False
+
+    Raises:
+        ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None
     """
 
     def __init__(
@@ -341,20 +344,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         The keys and weights from across all checkpoint files are merged into a single state_dict.
         We preserve the "state_dict key" <-> "checkpoint file mapping" in weight_map so we can
-        weite the state dict correctly in ``save_checkpoint``.
+        write the state dict correctly in ``save_checkpoint``.
 
         Before returning, the model state dict is converted to a TorchTune compatible format using.
-
-        The output state_dict has the following format, with keys other than "model" only present if
-        ``resume_from_checkpoint`` is True:
-            {
-                "model": {
-                    "key_1": weight
-                    ...
-                },
-                "optimizer": ...,
-                ...
-            }
 
         Returns:
             state_dict (Dict[str, Any]): TorchTune checkpoint state dict
@@ -426,20 +418,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         The state_dict is first converted back to the HF format and then paritioned based on the
         ``_weight_map`` into separate checkpoint files.
 
-        The output state dicts have the following formats:
-
-            Model:
-                {
-                    "key_1": weight
-                    ...
-                }
-
-            Recipe State:
-                {
-                    "optimizer": ...,
-                    "epoch": ...,
-                    ...
-                }
+        Args:
+            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
+            epoch (int): Epoch number. Used to create the checkpoint file name
+            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
+                and (if applicable) adapter weights are created. Default is False
         """
         self._output_dir.mkdir(exist_ok=True)
 
@@ -506,19 +489,23 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
     Checkpointer which reads and writes "full-model" checkpoints in Meta's format. Example includes
     the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)
 
-    For this checkpointer to work correctly, we assume that checkpoint_dir contains the necessary
-    checkpoint and json files. The easiest way to make sure everything works correctly is to use
-    the following flow:
-
-        1. Download the model from the HF repo using tune download
-        tune download --repo-id meta-llama/Llama-2-7b \
-        --output-dir <checkpoint_dir> \
-        --hf-token <hf-token>
-
-        2. Use the directory created in 1. as the checkpoint_dir
-
     Currently we support reading from a single checkpoint file only. Support for reading from
     sharded checkpoints is WIP.
+
+    Args:
+        checkpoint_dir (str): Directory containing the checkpoint files
+        checkpoint_files (List[str]): List of checkpoint files to load. Currently this checkpointer only
+            supports loading a single checkpoint file.
+        model_type (ModelType): Model type of the model for which the checkpointer is being loaded
+        output_dir (str): Directory to save the checkpoint files
+        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None
+        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
+        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
+            resume training from a previous run. Default is False
+
+    Raises:
+        ValueError: If ``checkpoint_files`` is not a list of length 1
+        ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None
     """
 
     def __init__(
@@ -564,17 +551,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
     def load_checkpoint(self) -> Dict[str, Any]:
         """
         Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
-
-        The output state_dict has the following format, with keys other than "model" only present if
-        ``resume_from_checkpoint`` is True:
-            {
-                "model": {
-                    "key_1": weight
-                    ...
-                },
-                "optimizer": ...,
-                ...
-            }
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
@@ -598,27 +574,13 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
-        state. The output state dicts have the following formats:
-
-            Model:
-                {
-                    "key_1": weight
-                    ...
-                }
-
-            Recipe State:
-                {
-                    "optimizer": ...,
-                    "epoch": ...,
-                    ...
-                }
+        state.
 
         Args:
-            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state
-            epoch (int): Current epoch number. This is added to the checkpoint file name to ensure
-                we're not overwriting intermediate checkpoint files
-            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the
-                recipe state
+            state_dict (Dict[str, Any]): Checkpoint state dict to be written out to file
+            epoch (int): Epoch number. Used to create the checkpoint file name
+            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state
+                and (if applicable) adapter weights are created. Default is False
         """
         self._output_dir.mkdir(exist_ok=True)
         model_state_dict = state_dict[utils.MODEL_KEY]

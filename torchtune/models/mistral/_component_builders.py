@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 from typing import List, Literal, Optional
 
 from torch import nn
@@ -142,6 +143,7 @@ def lora_mistral(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
     Return a version of Mistral (an instance of :func:`~torchtune.modules.TransformerDecoder`)
@@ -172,6 +174,9 @@ def lora_mistral(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
+            weights within linear layers LoRA is applied to. The final output linear projection is not
+            supported for quantization currently.
 
     Returns:
         TransformerDecoder: Instantiation of Mistral model with LoRA applied to
@@ -190,6 +195,7 @@ def lora_mistral(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
 
     if apply_lora_to_mlp:
@@ -198,6 +204,7 @@ def lora_mistral(
             hidden_dim=intermediate_dim,
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
     else:
         mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
@@ -211,6 +218,7 @@ def lora_mistral(
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
 
+    # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
         LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
         if apply_lora_to_output
@@ -226,6 +234,19 @@ def lora_mistral(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
+
+    if quantize_base:
+        # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
+        # so as to not increase peak memory
+        model._register_state_dict_hook(
+            partial(
+                reparametrize_as_dtype_state_dict_post_hook,
+                # TODO this is clowny, figure out a better way to get what precision the rest
+                # of the model is in
+                dtype=tok_embeddings.weight.dtype,
+                offload_to_cpu=True,
+            )
+        )
 
     return model
 
@@ -244,6 +265,7 @@ def lora_mistral_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    quantize_base: bool = False,
 ) -> CausalSelfAttention:
     """
     Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
@@ -266,6 +288,8 @@ def lora_mistral_self_attention(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        quantize_base (bool): Whether to quantize base model parameters for linear layers
+            LoRA is being applied to. Default is ``False``.
 
     Returns:
         CausalSelfAttention: instantiation of self-attention module with LoRA
@@ -288,6 +312,7 @@ def lora_mistral_self_attention(
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
         else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
@@ -298,6 +323,7 @@ def lora_mistral_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
@@ -308,6 +334,7 @@ def lora_mistral_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
@@ -318,6 +345,7 @@ def lora_mistral_self_attention(
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
         else nn.Linear(embed_dim, embed_dim, bias=False)
@@ -346,6 +374,7 @@ def lora_mistral_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    quantize_base: bool = False,
 ) -> FeedForward:
     gate_proj = LoRALinear(
         in_dim=dim,
@@ -353,6 +382,7 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     down_proj = LoRALinear(
         in_dim=hidden_dim,
@@ -360,6 +390,7 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     up_proj = LoRALinear(
         in_dim=dim,
@@ -367,6 +398,7 @@ def lora_mistral_mlp(
         rank=lora_rank,
         alpha=lora_alpha,
         dropout=lora_dropout,
+        quantize_base=quantize_base,
     )
     return FeedForward(
         gate_proj=gate_proj,

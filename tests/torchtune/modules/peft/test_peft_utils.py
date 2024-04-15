@@ -8,15 +8,20 @@ from copy import deepcopy
 
 import pytest
 import torch
+
+from tests.test_utils import init_weights_with_constant
+
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     _get_base_model_params,
     AdapterModule,
+    disable_adapter,
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
 
@@ -359,6 +364,64 @@ class TestPeftUtils:
                 base_model_state_dict_keys=base_model_state_dict_keys,
             )
 
+    @pytest.mark.parametrize(
+        (
+            """
+            base_missing,
+            base_unexpected,
+            lora_missing,
+            lora_unexpected,
+            expected
+            """
+        ),
+        [
+            (["k_proj.lora"], [], ["q_proj.lora"], [], "Missing LoRA"),
+            (["output_proj.lora"], [], ["q_proj.lora"], [], "Missing non-LoRA"),
+            (
+                ["k_proj.lora"],
+                ["output.weight"],
+                ["q_proj.base_weight"],
+                [],
+                "loading base model",
+            ),
+            (
+                ["k_proj.lora"],
+                [],
+                ["q_proj.base_weight"],
+                ["output.weight"],
+                "loading adapter",
+            ),
+            (["k_proj.lora"], [], ["q_proj.base_weight"], [], ""),
+        ],
+    )
+    def test_validate_missing_and_unexpected_for_lora(
+        self, base_missing, base_unexpected, lora_missing, lora_unexpected, expected
+    ):
+        lora_attn_modules = ["q_proj", "k_proj"]
+        apply_lora_to_mlp = True
+        apply_lora_to_output = False
+        if expected:
+            with pytest.raises(AssertionError, match=expected):
+                validate_missing_and_unexpected_for_lora(
+                    lora_attn_modules,
+                    apply_lora_to_mlp,
+                    apply_lora_to_output,
+                    base_missing,
+                    base_unexpected,
+                    lora_missing,
+                    lora_unexpected,
+                )
+        else:
+            validate_missing_and_unexpected_for_lora(
+                lora_attn_modules,
+                apply_lora_to_mlp,
+                apply_lora_to_output,
+                base_missing,
+                base_unexpected,
+                lora_missing,
+                lora_unexpected,
+            )
+
 
 class TestGetMergedLoRACkpt:
     def dummy_model(self):
@@ -398,3 +461,30 @@ class TestGetMergedLoRACkpt:
 
         inputs = torch.randn(2, 8, 4)
         torch.testing.assert_close(dummy_model(inputs), merged_model(inputs))
+
+
+class TestDisableAdapter:
+    def dummy_model(self):
+        model_ori = nn.Sequential(
+            nn.Linear(2, 6, bias=False),
+            nn.Linear(6, 3),
+        )
+        model_lora = nn.Sequential(
+            LoRALinear(in_dim=2, out_dim=6, rank=RANK, alpha=ALPHA),
+            nn.Linear(6, 3),
+        )
+        init_weights_with_constant(model_ori)
+        init_weights_with_constant(model_lora)
+        return model_ori, model_lora
+
+    def test_disable_adapter(self):
+        model_ori, model_lora = self.dummy_model()
+        inputs = torch.randn(2, 2)
+
+        ori_outputs = model_ori(inputs)
+
+        with disable_adapter(model_lora):
+            lora_outputs = model_lora(inputs)
+
+        assert model_lora[0].disabled is False
+        torch.testing.assert_close(ori_outputs, lora_outputs)

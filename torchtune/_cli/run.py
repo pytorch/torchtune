@@ -68,9 +68,8 @@ class Run(Subcommand):
         for action in torchrun_argparser._actions:
             if action.dest == "training_script":
                 action.dest = "recipe"
-                action.help = """
-                    Name or path to recipe to be launched followed by args.
-                    For a list of all possible recipes, run `tune ls`."""
+                action.help = """Name or path to recipe to be launched followed by args.
+For a list of all possible recipes, run `tune ls`."""
             elif action.dest == "training_script_args":
                 action.dest = "recipe_args"
                 action.help = "Args to be passed to the recipe."

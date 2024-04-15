@@ -28,16 +28,12 @@ _ALL_RECIPES = [
         file_path="full_finetune_single_device.py",
         configs=[
             Config(
-                name="llama2/7B_full_single_device",
-                file_path="llama2/7B_full_single_device.yaml",
+                name="llama2/7B_full_low_memory",
+                file_path="llama2/7B_full_low_memory.yaml",
             ),
             Config(
-                name="llama2/7B_full_single_device_low_memory",
-                file_path="llama2/7B_full_single_device_low_memory.yaml",
-            ),
-            Config(
-                name="mistral/7B_full",
-                file_path="mistral/7B_full.yaml",
+                name="mistral/7B_full_low_memory",
+                file_path="mistral/7B_full_low_memory.yaml",
             ),
         ],
         supports_distributed=False,
@@ -65,8 +61,23 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_qlora_single_device.yaml",
             ),
             Config(
-                name="mistral/7B_lora",
-                file_path="mistral/7B_lora.yaml",
+                name="mistral/7B_lora_single_device",
+                file_path="mistral/7B_lora_single_device.yaml",
+            ),
+            Config(
+                name="mistral/7B_qlora_single_device",
+                file_path="mistral/7B_qlora_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
+        name="lora_dpo_single_device",
+        file_path="lora_dpo_single_device.py",
+        configs=[
+            Config(
+                name="llama2/7B_lora_dpo_single_device",
+                file_path="llama2/7B_lora_dpo_single_device.yaml",
             ),
         ],
         supports_distributed=False,
@@ -85,7 +96,7 @@ _ALL_RECIPES = [
         name="generate",
         file_path="generate.py",
         configs=[
-            Config(name="generate", file_path="generate.yaml"),
+            Config(name="generation", file_path="generation.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -93,7 +104,7 @@ _ALL_RECIPES = [
         name="eleuther_eval",
         file_path="eleuther_eval.py",
         configs=[
-            Config(name="eleuther_eval", file_path="eleuther_eval.yaml"),
+            Config(name="eleuther_evaluation", file_path="eleuther_evaluation.yaml"),
         ],
         supports_distributed=False,
     ),
@@ -104,6 +115,14 @@ _ALL_RECIPES = [
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
         ],
         supports_distributed=True,
+    ),
+    Recipe(
+        name="quantize",
+        file_path="quantize.py",
+        configs=[
+            Config(name="quantization", file_path="quantization.yaml"),
+        ],
+        supports_distributed=False,
     ),
 ]
 

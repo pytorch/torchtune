@@ -21,23 +21,35 @@ class InferenceRecipe:
     """
     Recipe for generating tokens from a dense Transformer-based LLM.
 
-    Currently this recipe support single-GPU generation only. Speculative
+    Currently this recipe supports single-GPU generation only. Speculative
     decoding is not supported.
+
+    For more details on how to use this recipe for generation, please see our
+    tutorial: https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#generation
+
+    For using this recipe with a quantized model, please the following section of
+    the above tutorial:
+    https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#speeding-up-generation-using-quantization
     """
 
     def __init__(self, cfg: DictConfig) -> None:
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(dtype=cfg.dtype)
+        self._quantizer = config.instantiate(cfg.quantizer)
+        self._quantization_mode = utils.get_quantizer_mode(self._quantizer)
 
         utils.set_seed(seed=cfg.seed)
 
-    def load_checkpoint(self, checkpointer_cfg: DictConfig) -> Dict[str, Any]:
-        checkpointer = config.instantiate(checkpointer_cfg)
-        checkpoint_dict = checkpointer.load_checkpoint()
-        return checkpoint_dict
-
     def setup(self, cfg: DictConfig) -> None:
-        ckpt_dict = self.load_checkpoint(cfg.checkpointer)
+        checkpointer = config.instantiate(cfg.checkpointer)
+        if self._quantization_mode is None:
+            ckpt_dict = checkpointer.load_checkpoint()
+        else:
+            # weights_only needs to be False when loading a quantized model
+            # currently loading a quantized model is only supported with the
+            # FullModelTorchTuneCheckpointer
+            ckpt_dict = checkpointer.load_checkpoint(weights_only=False)
+
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
@@ -51,6 +63,10 @@ class InferenceRecipe:
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+
+        if self._quantization_mode is not None:
+            model = self._quantizer.quantize(model)
+            model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
 
@@ -69,6 +85,31 @@ class InferenceRecipe:
         tokens = self._tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
+        custom_generate_next_token = None
+
+        # since quantized model uses torch.compile to get speedup, it needs a warm up / prefill run
+        # to get the accurate performance measurement
+        if self._quantization_mode is not None:
+            logger.info("Starting compilation to improve generation performance ...")
+            t0 = time.perf_counter()
+            custom_generate_next_token = torch.compile(
+                utils.generate_next_token, mode="max-autotune", fullgraph=True
+            )
+            t = time.perf_counter() - t0
+            logger.info(f"Compilation for generate_next_token takes: {t:.02f} sec")
+            t0 = time.perf_counter()
+            _ = utils.generate(
+                model=self._model,
+                prompt=prompt,
+                max_generated_tokens=2,
+                temperature=cfg.temperature,
+                top_k=cfg.top_k,
+                eos_id=self._tokenizer.eos_id,
+                custom_generate_next_token=custom_generate_next_token,
+            )
+            t = time.perf_counter() - t0
+            logger.info(f"Warmup run for quantized model takes: {t:.02f} sec")
+
         t0 = time.perf_counter()
         generated_tokens = utils.generate(
             model=self._model,
@@ -77,6 +118,7 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             eos_id=self._tokenizer.eos_id,
+            custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0
 
@@ -92,6 +134,7 @@ class InferenceRecipe:
 
 @config.parse
 def main(cfg: DictConfig) -> None:
+    config.log_config(recipe_name="InferenceRecipe", cfg=cfg)
     recipe = InferenceRecipe(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.generate(cfg=cfg)

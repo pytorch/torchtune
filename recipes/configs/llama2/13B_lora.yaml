@@ -3,23 +3,18 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download --repo-id meta-llama/Llama-2-13b-hf \
-#   --hf-token <HF_TOKEN> \
-#   --output-dir /tmp/llama2-13b-hf
+#   tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN> --output-dir /tmp/llama2-13b-hf
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/13B_lora \
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config llama2/13B_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune --nnodes 1 --nproc_per_node 4 lora_finetune_distributed \
-#   --config llama2/13B_lora \
-#   checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 lora_finetune_distributed --config llama2/13B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
-# For single device lora finetuning please use 7B_lora_single_device.yaml
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
 # or 7B_qlora_single_device.yaml and update the model and checkpoints to
 # the 13B model.
 
@@ -75,6 +70,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
+gradient_accumulation_steps: 1
 
 # Logging
 output_dir: /tmp/lora_finetune_output

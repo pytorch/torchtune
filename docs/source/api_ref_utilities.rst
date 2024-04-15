@@ -4,10 +4,28 @@ torchtune.utils
 
 .. currentmodule:: torchtune.utils
 
+
+.. _checkpointing_label:
+
+Checkpointing
+-------------
+
+TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
+checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    FullModelHFCheckpointer
+    FullModelMetaCheckpointer
+
 .. _dist_label:
 
 Distributed
 -----------
+
+Utilities for enabling and working with distributed training.
 
 .. autosummary::
     :toctree: generated/
@@ -18,8 +36,10 @@ Distributed
 
 .. _mp_label:
 
-Mixed Precision
----------------
+Reduced Precision
+------------------
+
+Utilities for working in a reduced precision setting.
 
 .. autosummary::
     :toctree: generated/
@@ -34,6 +54,8 @@ Mixed Precision
 
 Memory Management
 -----------------
+
+Utilities to reduce memory consumption during training.
 
 .. autosummary::
     :toctree: generated/
@@ -60,6 +82,8 @@ of your finetuning job.
 Metric Logging
 --------------
 
+Various logging utilities.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
@@ -72,11 +96,12 @@ Metric Logging
 Data
 ----
 
+Utilities for working with data and datasets.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    checkpointable_dataloader.CheckpointableDataLoader
     collate.padded_collate
 
 .. _gen_label:

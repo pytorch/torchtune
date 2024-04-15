@@ -11,12 +11,16 @@ from pathlib import Path
 from typing import Mapping, Optional, Union
 
 from numpy import ndarray
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
 
+from torchtune.utils import get_logger
 from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
+
+log = get_logger("DEBUG")
 
 
 class MetricLoggerInterface(Protocol):
@@ -34,6 +38,14 @@ class MetricLoggerInterface(Protocol):
             name (str): tag name used to group scalars
             data (Scalar): scalar data to log
             step (int): step value to record
+        """
+        pass
+
+    def log_config(self, config: DictConfig) -> None:
+        """Logs the config
+
+        Args:
+            config (DictConfig): config to log
         """
         pass
 
@@ -147,7 +159,7 @@ class WandBLogger(MetricLoggerInterface):
 
     def __init__(
         self,
-        project: str,
+        project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
         **kwargs,
@@ -160,26 +172,63 @@ class WandBLogger(MetricLoggerInterface):
                 "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
             ) from e
         self._wandb = wandb
-        self._wandb.init(
-            project=project,
-            entity=entity,
-            group=group,
-            reinit=True,
-            resume="allow",
-            config=kwargs,
-        )
+
+        _, self.rank = get_world_size_and_rank()
+
+        if self.rank == 0:
+            self._wandb.init(
+                project=project,
+                entity=entity,
+                group=group,
+                reinit=True,
+                resume="allow",
+                **kwargs,
+            )
+
+    def log_config(self, config: DictConfig) -> None:
+        """Saves the config locally and also logs the config to W&B. The config is
+        stored in the same directory as the checkpoint. You can
+        see an example of the logged config to W&B in the following link:
+        https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
+
+        Args:
+            config (DictConfig): config to log
+        """
+        if self._wandb.run:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            self._wandb.config.update(resolved)
+
+            output_config_fname = Path(
+                os.path.join(
+                    config.checkpointer.checkpoint_dir,
+                    f"torchtune_config_{self._wandb.run.id}.yaml",
+                )
+            )
+            OmegaConf.save(config, output_config_fname)
+            try:
+                log.info(f"Logging {output_config_fname} to W&B under Files")
+                self._wandb.save(
+                    output_config_fname, base_path=output_config_fname.parent
+                )
+
+            except Exception as e:
+                log.warning(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
 
     def log(self, name: str, data: Scalar, step: int) -> None:
-        self._wandb.log({name: data}, step=step)
+        if self._wandb.run:
+            self._wandb.log({name: data}, step=step)
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        self._wandb.log(payload, step=step)
+        if self._wandb.run:
+            self._wandb.log(payload, step=step)
 
     def __del__(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
     def close(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
 
 class TensorBoardLogger(MetricLoggerInterface):

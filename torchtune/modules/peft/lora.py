@@ -10,12 +10,9 @@ import torch.nn.functional as F
 
 from torch import nn, Tensor
 
-from torchao.dtypes.nf4tensor import linear_nf4
-from torchtune.modules.low_precision import (  # noqa: F401
-    _register_nf4_dispatch_ops,
-    FrozenNF4Linear,
-)
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.peft.peft_utils import AdapterModule
+from torchtune.utils import _register_nf4_dispatch_ops  # noqa: F401
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -59,6 +56,10 @@ class LoRALinear(nn.Module, AdapterModule):
         self.use_bias = use_bias
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
+        # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
+        # this can be used in DPO for treating the lora adapters as the policy model
+        # and disabling it to treat the base model as the reference model
+        self.disabled = False
         self.register_parameter("weight", nn.Parameter(weight))
         self.register_parameter(
             "bias", nn.Parameter(bias) if bias is not None else None
@@ -89,12 +90,8 @@ class LoRALinear(nn.Module, AdapterModule):
         (indicated via quantize_base=True).
         """
         in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
-        linear = (
-            nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-            if not self._quantize_base
-            else FrozenNF4Linear(in_dim, out_dim, bias=False)
-        )
-        weight = linear.weight
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
         bias = None
         if self.use_bias:
             if self._quantize_base:
@@ -127,6 +124,8 @@ class LoRALinear(nn.Module, AdapterModule):
             out = linear_nf4(input=x, weight=self.weight)
         else:
             out = F.linear(x, self.weight, self.bias)
+        if self.disabled:
+            return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out

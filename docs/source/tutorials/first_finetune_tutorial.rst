@@ -5,26 +5,26 @@ Finetune your First LLM
 =======================
 
 This guide will walk you through the process of launching your first finetuning
-job using TorchTune.
+job using torchtune.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
-      * How to download a model and convert it to a format compatible with Torchtune
+      * How to download a model and convert it to a format compatible with torchtune
       * How to modify a recipe's parameters
       * How to finetune a model
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
-      * Be familiar with the :ref:`overview of TorchTune<overview_label>`
-      * Make sure to :ref:`install TorchTune<install_label>`
+      * Be familiar with the :ref:`overview of torchtune<overview_label>`
+      * Make sure to :ref:`install torchtune<install_label>`
 
 .. _download_llama_label:
 
 Downloading a model
 -------------------
-First, you need to download a model. TorchTune's supports an integration
+First, you need to download a model. torchtune's supports an integration
 with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
 For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
@@ -53,7 +53,7 @@ This command will also download the model tokenizer and some other helpful files
 
 Selecting a recipe
 ------------------
-Recipes are the primary entry points for TorchTune users.
+Recipes are the primary entry points for torchtune users.
 These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs.
 
 Each recipe consists of three components:
@@ -62,8 +62,7 @@ Each recipe consists of three components:
 * **Recipe class**, core logic needed for training, exposed to users through a set of APIs
 * **Recipe script**, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class
 
-To see all available recipes and for more information on how to select the right recipe, see the :ref:`recipe_deepdive` tutorial.
-For this tutorial, you'll be using the :ref:`basic full finetuning recipe<basic_finetune_llm>`.
+For more information on how to select the right recipe, see the :ref:`recipe_deepdive` tutorial.
 
 Modifying a config
 ------------------
@@ -72,7 +71,6 @@ You can set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, se
 For a list of all currently supported datasets, see :ref:`datasets`.
 
 To modify an existing recipe config, you can use the :code:`tune` CLI to copy it to your local directory.
-Or, you can visit the specific :ref:`recipe page<basic_finetune_llm>` and copy/paste the config from there.
 It looks like there's already a config called :code:`alpaca_llama_full_finetune` that utilizes the popular
 `Alpaca instruction dataset <https://crfm.stanford.edu/2023/03/13/alpaca.html>`_. This seems like a good place to start so let's copy it!
 
@@ -132,7 +130,7 @@ Training a model
 Now that you have a model in the proper format and a config that suits your needs, let's get training!
 
 Just like all the other steps, you will be using the :code:`tune` CLI tool to launch your finetuning run.
-To make it easier for users already familiar with the PyTorch ecosystem, TorchTune integrates with
+To make it easier for users already familiar with the PyTorch ecosystem, torchtune integrates with
 `torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_. Therefore, in order to launch a distributed
 run using two GPUs, it's as easy as:
 
@@ -156,5 +154,5 @@ You should see some immediate output and see the loss going down, indicating you
 Next steps
 ----------
 
-Now that you have trained your model and set up your environment, let's take a :ref:`closer look<basic_finetune_llm>`
-at the full fine-tuning recipe and understand the config better.
+Now that you have trained your model and set up your environment, let's take a look at what we can do with our
+new model by checking out the :ref:`E2E Workflow Tutorial<e2e_flow>`.

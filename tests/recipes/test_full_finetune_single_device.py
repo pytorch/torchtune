@@ -18,7 +18,11 @@ import pytest
 import torch
 from tests.common import TUNE_PATH
 
-from tests.recipes.utils import llama2_test_config, write_hf_ckpt_config
+from tests.recipes.utils import (
+    dummy_alpaca_dataset_config,
+    llama2_test_config,
+    write_hf_ckpt_config,
+)
 from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
@@ -41,24 +45,25 @@ class TestFullFinetuneSingleDeviceRecipe:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
-        ]
+        ] + dummy_alpaca_dataset_config()
 
     def _fetch_expected_loss_values(self):
-        return [10.5074, 10.5563, 10.5152, 10.4851]
+        return [10.5201, 10.5217, 10.4945, 10.5136]
 
     @pytest.mark.integration_test
-    @pytest.mark.parametrize(
-        "config", ["full_single_device_low_memory", "full_single_device"]
-    )
-    def test_loss(self, config, tmpdir, monkeypatch):
+    @pytest.mark.parametrize("compile", [True, False])
+    def test_loss(self, compile, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
+        # To workaround https://github.com/pytorch/torchtune/issues/676
+        if compile:
+            os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_{config} \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -66,6 +71,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
             metric_logger.filename={log_file} \
+            compile={compile} \
         """.split()
 
         model_config = llama2_test_config()
@@ -104,7 +110,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Train for two epochs
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
@@ -123,7 +129,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         # Resume training
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelHFCheckpointer \
             checkpointer.checkpoint_dir={tmpdir} \
@@ -164,6 +170,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             "optimizer=torch.optim.AdamW",
             "optimizer.lr=2e-5",
             "log_every_n_steps=1",
+            "optimizer_in_bwd=False",
         ]
 
     @pytest.mark.integration_test
@@ -186,7 +193,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
 
         cmd_1 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
@@ -212,7 +219,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         # Update the cmd with new values for gradient accumulation
         cmd_2 = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_single_device \
+            --config llama2/7B_full_low_memory \
             checkpointer._component_=torchtune.utils.FullModelTorchTuneCheckpointer \
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
