@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -370,12 +371,22 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
+    def compute_grad_norm(self, model) -> float:
+        """Compute models grad norm"""
+        total_norm = 0.0
+        for p in model.parameters():
+            if p.grad is not None:
+                param_norm = p.grad.detach().data.norm(2)
+                total_norm += param_norm.item() ** 2
+
+        return total_norm**0.5
+
     def train(self) -> None:
         """
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-
+        t0 = time.perf_counter()
         if self._model_compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
@@ -413,10 +424,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Check if this is the norm or not
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
+
                 if (
                     not self._optimizer_in_bwd
                     and (idx + 1) % self._gradient_accumulation_steps == 0
                 ):
+                    grad_norm = self.compute_grad_norm(self._model)
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
 
@@ -427,11 +440,19 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # compute training metrics
                     if self.total_training_steps % self._log_every_n_steps == 0:
+                        time_per_step = time.perf_counter() - t0
                         self._metric_logger.log_dict(
                             {
                                 "loss": loss.item(),
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "gpu_resources": torch.cuda.memory_allocated(),
+                                "tokens_per_second": (
+                                    input_ids.numel()
+                                    * self._gradient_accumulation_steps
+                                    / time_per_step
+                                ),
+                                "iterations_per_second": (1 / time_per_step),
+                                "grad_norm": grad_norm,
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
@@ -448,6 +469,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
+                    t0 = time.perf_counter()
 
                 elif self._optimizer_in_bwd:
                     self.total_training_steps += 1
