@@ -35,14 +35,6 @@ Topics in this section will help you get started with torchtune.
 
          Follow a simple tutorial to finetune Llama2 with torchtune.
 
-     .. grid-item-card:: :octicon:`file-code;1em`
-         End-to-End Workflow with torchtune
-         :img-top: _static/img/card-background.svg
-         :link: tutorials/e2e_flow.html
-         :link-type: url
-
-         Train, Evaluate, Quantize and then Generate with your LLM.
-
 Tutorials
 ~~~~~~~~~
 
@@ -89,7 +81,6 @@ torchtune tutorials.
    overview
    install
    tutorials/first_finetune_tutorial
-   tutorials/e2e_flow
 
 .. toctree::
    :glob:
@@ -99,7 +90,6 @@ torchtune tutorials.
 
    tutorials/lora_finetune
    tutorials/qlora_finetune
-   tutorials/first_finetune_tutorial
    tutorials/e2e_flow
 
 .. toctree::
