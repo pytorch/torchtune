@@ -1,7 +1,7 @@
 .. _finetune_llama_label:
 
 =======================
-Finetune your first LLM
+Finetune Your First LLM
 =======================
 
 This guide will walk you through the process of launching your first finetuning

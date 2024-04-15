@@ -1,7 +1,7 @@
 .. _dataset_tutorial_label:
 
 ====================================
-Configuring Datasets for Fine-tuning
+Configuring Datasets for Fine-Tuning
 ====================================
 
 This tutorial will guide you through how to set up a dataset to fine-tune on.
