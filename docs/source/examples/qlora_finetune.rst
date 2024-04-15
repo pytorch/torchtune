@@ -203,7 +203,7 @@ In the final section, we'll go over a deep dive on how a QLoRA component can be 
 
 .. _qlora_deepdive_label:
 
-`Deep-dive: Building QLoRA from LoRA
+Deep-dive: Building QLoRA from LoRA
 -----------------------------------------
 
 This deep-dive section resumes from the :ref:`Using QLoRA to save memory<qlora_core_highlevel>` portion of this tutorial and dives into how quantization is done with ``NF4Tensor`` and handled appropriately in the forward pass.
