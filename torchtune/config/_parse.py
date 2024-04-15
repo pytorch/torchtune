@@ -21,17 +21,17 @@ def parse(recipe_main: Recipe) -> Callable[[Recipe], Any]:
     Decorator that handles parsing the config file and CLI overrides
     for a recipe. Use it on the recipe's main function.
 
-    Example: in recipe/my_recipe.py,
+    Args:
+        recipe_main (Recipe): The main method that initializes
+            and runs the recipe
+
+    Examples:
         >>> @parse
         >>> def main(cfg: DictConfig):
         >>>     ...
 
-    With the decorator, the parameters will be parsed into cfg when run as:
+        >>> # With the decorator, the parameters will be parsed into cfg when run as:
         >>> tune my_recipe --config config.yaml foo=bar
-
-    Args:
-        recipe_main (Recipe): The main method that initializes
-            and runs the recipe
 
     Returns:
         Callable[[Recipe], Any]: the decorated main
