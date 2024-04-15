@@ -68,7 +68,7 @@ Each recipe consists of three components:
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
 torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like LoRA, and more! You can view all built-in recipes `here <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
+using memory efficient techniques like LoRA, and more! You can view all built-in recipes `on GitHub <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
 :code:`tune ls` command to print out all recipes and corresponding configs.
 
 .. code-block:: bash
@@ -91,15 +91,32 @@ using memory efficient techniques like LoRA, and more! You can view all built-in
 For the purposes of this tutorial, you'll will be using the recipe for finetuning a Llama2 model using `LoRA <https://arxiv.org/abs/2106.09685>`_ on
 a single device. For a more in-depth discussion on LoRA in torchtune, you can see the complete :ref:`lora_finetune_label` tutorial.
 
+.. note::
+
+  **Why have a separate recipe for single device vs. distributed?** This is discussed in
+  :ref:`recipe_deepdive` but one of our core principles in torchtune is minimal abstraction and boilerplate code.
+  If you don't want to train in a distributed environment, you shouldn't need to wade through hundreds of lines of complicated
+  distributed-specific code in order to understand how your model is training.
+
 Modifying a config
 ------------------
 YAML configs hold most of the important information needed for running your recipe.
 You can set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, select a new dataset, and more.
 For a list of all currently supported datasets, see :ref:`datasets`.
 
-To modify an existing recipe config, you can use the :code:`tune` CLI to copy it to your local directory.
-It looks like there's already a config called :code:`llama2/7B_lora_single_device` that utilizes the popular
-`Alpaca instruction dataset <https://crfm.stanford.edu/2023/03/13/alpaca.html>`_. This seems like a good place to start so let's copy it!
+There are two ways to modify an existing config.
+
+1. Override existing parameters from the command line
+2. Copy the config through :code:`tune cp` and modify directly
+
+You can override existing parameters from the command line using a :code:`key=value` format. Let's say
+you want to set the number of training epochs to 1.
+
+.. code-block:: bash
+
+  tune run <RECIPE> --config <CONFIG> epochs=1
+
+If you want to make more substantial changes to the config, you can use the :code:`tune` CLI to copy it to your local directory.
 
 .. code-block:: bash
 
@@ -109,109 +126,40 @@ It looks like there's already a config called :code:`llama2/7B_lora_single_devic
 
   Copied file to custom_config.yaml
 
-Now you can update the custom YAML config to point to your model and tokenizer (not needed in this case). While you're at it,
-you can make some other changes, like setting the random seed in order to make replication easier,
-lowering the epochs to 1 so you can see results sooner, and updating the learning rate.
+Now you can update the custom YAML config any way you like. Try setting the random seed in order to make replication easier,
+changing the LoRA rank, update batch size, etc.
 
-.. code-block:: yaml
+.. note::
 
-  # Model Arguments
-  model:
-    _component_: torchtune.models.llama2.lora_llama2_7b
-    lora_attn_modules: ['q_proj', 'v_proj']
-    apply_lora_to_mlp: False
-    apply_lora_to_output: False
-    lora_rank: 8
-    lora_alpha: 16
-
-  tokenizer:
-    _component_: torchtune.models.llama2.llama2_tokenizer
-    path: /tmp/Llama-2-7b-hf/tokenizer.model
-
-  checkpointer:
-    _component_: torchtune.utils.FullModelHFCheckpointer
-    checkpoint_dir: /tmp/Llama-2-7b-hf
-    checkpoint_files: [
-      pytorch_model-00001-of-00002.bin,
-      pytorch_model-00002-of-00002.bin
-    ]
-    adapter_checkpoint: null
-    recipe_checkpoint: null
-    output_dir: /tmp/Llama-2-7b-hf
-    model_type: LLAMA2
-  resume_from_checkpoint: False
-
-  # Dataset and Sampler
-  dataset:
-    _component_: torchtune.datasets.alpaca_cleaned_dataset
-    train_on_input: True
-  seed: null
-  shuffle: True
-  batch_size: 2
-
-  # Optimizer and Scheduler
-  optimizer:
-    _component_: torch.optim.AdamW
-    weight_decay: 0.01
-    lr: 3e-4
-  lr_scheduler:
-    _component_: torchtune.modules.get_cosine_schedule_with_warmup
-    num_warmup_steps: 100
-
-  loss:
-    _component_: torch.nn.CrossEntropyLoss
-
-  # Training
-  epochs: 1
-  max_steps_per_epoch: null
-  gradient_accumulation_steps: 64
-  compile: False
-
-  # Logging
-  output_dir: /tmp/lora_finetune_output
-  metric_logger:
-    _component_: torchtune.utils.metric_logging.DiskLogger
-    log_dir: ${output_dir}
-  log_every_n_steps: null
-
-  # Environment
-  device: cuda
-  dtype: bf16
-  enable_activation_checkpointing: True
-
-  # Show case the usage of pytorch profiler
-  # Set enabled to False as it's only needed for debugging training
-  profiler:
-    _component_: torchtune.utils.profiler
-    enabled: False
-    output_dir: /tmp/alpaca-llama2-finetune/torchtune_perf_tracing.json
-
+  Check out :ref:`config_tutorial_label` for a deeper dive on configs in torchtune.
 
 Training a model
 ----------------
 Now that you have a model in the proper format and a config that suits your needs, let's get training!
 
 Just like all the other steps, you will be using the :code:`tune` CLI tool to launch your finetuning run.
-To make it easier for users already familiar with the PyTorch ecosystem, torchtune integrates with
-`torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_. Therefore, in order to launch a distributed
-run using two GPUs, it's as easy as:
 
 .. code-block:: bash
 
-  tune run --nnodes 1 --nproc_per_node 2 full_finetune_distributed --config custom_config.yaml
+  tune run lora_finetune_single_device --config llama2/7B_lora_single_device epochs=1
 
-You should see some immediate output and see the loss going down, indicating your model is training succesfully.
+You should see some immediate output:
 
 .. code-block:: text
 
-  Writing logs to /tmp/alpaca-llama2-finetune/log_1707246452.txt
-  Setting manual seed to local seed 42. Local seed is seed + rank = 42 + 0
-  Model is initialized. FSDP and Activation Checkpointing are enabled.
-  Tokenizer is initialized from file.
-  Optimizer is initialized.
-  Loss is initialized.
-  Dataset and Sampler are initialized.
-  1|1|Loss: 1.7553404569625854:   0%|                       | 0/13000 [00:03<?, ?it/s]
+  INFO:torchtune.utils.logging:Running LoRAFinetuneRecipeSingleDevice with resolved config:
+  Writing logs to /tmp/lora_finetune_output/log_1713194212.txt
+  INFO:torchtune.utils.logging:Model is initialized with precision torch.bfloat16.
+  INFO:torchtune.utils.logging:Tokenizer is initialized from file.
+  INFO:torchtune.utils.logging:Optimizer and loss are initialized.
+  INFO:torchtune.utils.logging:Loss is initialized.
+  INFO:torchtune.utils.logging:Dataset and Sampler are initialized.
+  INFO:torchtune.utils.logging:Learning rate scheduler is initialized.
+  1|52|Loss: 2.3697006702423096:   0%|▏                     | 52/25880 [00:24<3:55:01,  1.83it/s]
+
+You can see that all the modules were successfully initialized and the model has started training.
+You can monitor the loss and progress through the `tqdm <https://tqdm.github.io/>`_ bar but torchtune
+will also log some more metrics at an interval defined in the config.
 
 Next steps
 ----------
