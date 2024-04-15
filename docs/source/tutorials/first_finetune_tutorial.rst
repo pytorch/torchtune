@@ -50,6 +50,7 @@ This command will also download the model tokenizer and some other helpful files
   You can opt to download the model directly through the Llama2 repository.
   See `this page <https://llama.meta.com/get-started#getting-the-models>`_ for more details.
 
+|
 
 Selecting a recipe
 ------------------
@@ -75,8 +76,6 @@ using memory efficient techniques like LoRA, and more! You can view all built-in
 
   tune ls
 
-.. code-block:: text
-
   RECIPE                                   CONFIG
   full_finetune_single_device              llama2/7B_full_low_memory
                                            mistral/7B_full_low_memory
@@ -97,6 +96,8 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
   :ref:`recipe_deepdive` but one of our core principles in torchtune is minimal abstraction and boilerplate code.
   If you don't want to train in a distributed environment, you shouldn't need to wade through hundreds of lines of complicated
   distributed-specific code in order to understand how your model is training.
+
+|
 
 Modifying a config
 ------------------
@@ -122,8 +123,6 @@ If you want to make more substantial changes to the config, you can use the :cod
 
   tune cp llama2/7B_lora_single_device custom_config.yaml
 
-.. code-block:: text
-
   Copied file to custom_config.yaml
 
 Now you can update the custom YAML config any way you like. Try setting the random seed in order to make replication easier,
@@ -132,6 +131,8 @@ changing the LoRA rank, update batch size, etc.
 .. note::
 
   Check out :ref:`config_tutorial_label` for a deeper dive on configs in torchtune.
+
+|
 
 Training a model
 ----------------
@@ -142,10 +143,6 @@ Just like all the other steps, you will be using the :code:`tune` CLI tool to la
 .. code-block:: bash
 
   tune run lora_finetune_single_device --config llama2/7B_lora_single_device epochs=1
-
-You should see some immediate output:
-
-.. code-block:: text
 
   INFO:torchtune.utils.logging:Running LoRAFinetuneRecipeSingleDevice with resolved config:
   Writing logs to /tmp/lora_finetune_output/log_1713194212.txt
@@ -160,6 +157,8 @@ You should see some immediate output:
 You can see that all the modules were successfully initialized and the model has started training.
 You can monitor the loss and progress through the `tqdm <https://tqdm.github.io/>`_ bar but torchtune
 will also log some more metrics at an interval defined in the config.
+
+|
 
 Next steps
 ----------
