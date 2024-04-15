@@ -55,6 +55,9 @@ The only change you need to make is to add the metric logger to your config. Wei
 
 We automatically grab the config from the recipe you are running and log it to W&B. You can find it in the W&B overview tab and the actual file in the :code:`Files` tab.
 
+As a tip, you may see straggler `wandb` processes running in the background if your job crashes or otherwise exits without cleaning up resources. To kill these straggler processes, a command like ``ps
+-aux | grep wandb | awk '{ print $2 }' | xargs kill`` can be used.
+
 .. note::
 
   Click on this sample `project to see the W&B workspace <https://wandb.ai/capecape/torchtune>`_.
