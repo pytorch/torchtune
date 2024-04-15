@@ -3,15 +3,13 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
-from functools import partial
-
-from torch import nn
+from typing import List
 
 from torchtune.models.mistral._component_builders import mistral, lora_mistral
 
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from functools import partial
 
 
 """
