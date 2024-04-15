@@ -1,9 +1,0 @@
-﻿.. role:: hidden
-    :class: hidden-section
-.. currentmodule:: torchtune.utils.precision
-
-
-get_autocast
-============
-
-.. autofunction:: get_autocast

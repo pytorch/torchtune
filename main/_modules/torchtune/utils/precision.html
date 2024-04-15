@@ -418,7 +418,7 @@
         <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">allow_tf32</span> <span class="o">=</span> <span class="kc">True</span>
 
 
-<div class="viewcode-block" id="list_dtypes"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.list_dtypes.html#torchtune.utils.precision.list_dtypes">[docs]</a><span class="k">def</span> <span class="nf">list_dtypes</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+<div class="viewcode-block" id="list_dtypes"><a class="viewcode-back" href="../../../generated/torchtune.utils.list_dtypes.html#torchtune.utils.list_dtypes">[docs]</a><span class="k">def</span> <span class="nf">list_dtypes</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return a list of supported dtypes for finetuning.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -436,7 +436,7 @@
     <span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.get_dtype.html#torchtune.utils.precision.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
+<div class="viewcode-block" id="get_dtype"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_dtype.html#torchtune.utils.get_dtype">[docs]</a><span class="k">def</span> <span class="nf">get_dtype</span><span class="p">(</span>
     <span class="n">dtype</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the torch.dtype corresponding to the given precision string.</span>
@@ -484,7 +484,7 @@
     <span class="k">return</span> <span class="n">torch_dtype</span></div>
 
 
-<div class="viewcode-block" id="get_gradient_scaler"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.get_gradient_scaler.html#torchtune.utils.precision.get_gradient_scaler">[docs]</a><span class="k">def</span> <span class="nf">get_gradient_scaler</span><span class="p">(</span><span class="n">fsdp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">,</span> <span class="n">ShardedGradScaler</span><span class="p">]:</span>
+<span class="k">def</span> <span class="nf">get_gradient_scaler</span><span class="p">(</span><span class="n">fsdp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">,</span> <span class="n">ShardedGradScaler</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns a gradient scaler for mixed-precision training.</span>
 
@@ -494,10 +494,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Union[GradScaler, ShardedGradScaler]: Gradient scaler object</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">GradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">fsdp</span> <span class="k">else</span> <span class="n">ShardedGradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">GradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">fsdp</span> <span class="k">else</span> <span class="n">ShardedGradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
-<div class="viewcode-block" id="get_autocast"><a class="viewcode-back" href="../../../generated/torchtune.utils.precision.get_autocast.html#torchtune.utils.precision.get_autocast">[docs]</a><span class="k">def</span> <span class="nf">get_autocast</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">get_autocast</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Intelligently determines, based on the dtype if mixed precision training is supported and</span>
 <span class="sd">    returns the builtin torch.autocast if applicable.</span>
@@ -519,7 +519,7 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nullcontext</span><span class="p">()</span></div>
+        <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nullcontext</span><span class="p">()</span>
 
 
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>

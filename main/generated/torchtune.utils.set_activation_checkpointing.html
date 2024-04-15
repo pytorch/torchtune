@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>TuneRecipeArgumentParser &mdash; TorchTune  documentation</title>
+  <title>set_activation_checkpointing &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_logger" href="torchtune.utils.logging.get_logger.html" />
-    <link rel="prev" title="padded_collate" href="torchtune.utils.collate.padded_collate.html" />
+    <link rel="next" title="profiler" href="torchtune.utils.profiler.html" />
+    <link rel="prev" title="list_dtypes" href="torchtune.utils.list_dtypes.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -329,13 +329,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>TuneRecipeArgumentParser</li>
+      <li>set_activation_checkpointing</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.argparse.TuneRecipeArgumentParser.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.set_activation_checkpointing.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -365,31 +365,21 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="tunerecipeargumentparser">
-<h1>TuneRecipeArgumentParser<a class="headerlink" href="#tunerecipeargumentparser" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneRecipeArgumentParser">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.argparse.</span></span><span class="sig-name descname"><span class="pre">TuneRecipeArgumentParser</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneRecipeArgumentParser" title="Permalink to this definition">¶</a></dt>
-<dd><p>TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that
-adds a builtin argument “config”. The config argument takes a file path to a yaml file
-and will load in argument defaults from the yaml file. The yaml file must only contain
-argument names and their values and nothing more, it does not have to include all of the
-arguments. These values will be treated as defaults and can still be overridden from the
-command line. Everything else works the same as the base ArgumentParser and you should
-consult the docs for more info.</p>
-<p><a class="reference external" href="https://docs.python.org/3/library/argparse.html">https://docs.python.org/3/library/argparse.html</a></p>
-<p><em>Note: This class uses “config” as a builtin argument so it is not available to use</em></p>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.utils.argparse.TuneRecipeArgumentParser.parse_known_args">
-<span class="sig-name descname"><span class="pre">parse_known_args</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/argparse.html#argparse.Namespace" title="(in Python v3.12)"><span class="pre">Namespace</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/argparse.html#TuneRecipeArgumentParser.parse_known_args"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.argparse.TuneRecipeArgumentParser.parse_known_args" title="Permalink to this definition">¶</a></dt>
-<dd><p>This acts the same as the base parse_known_args but will first load in defaults from
-from the config yaml file if it is provided. The command line args will always take
-precident over the values in the config file. All other parsing method, such as parse_args,
-internally call this method so they will inherit this property too. For more info see
-the docs for the base method.</p>
-<p><a class="reference external" href="https://docs.python.org/3/library/argparse.html#the-parse-args-method">https://docs.python.org/3/library/argparse.html#the-parse-args-method</a></p>
-</dd></dl>
-
+  <section id="set-activation-checkpointing">
+<h1>set_activation_checkpointing<a class="headerlink" href="#set-activation-checkpointing" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.utils.set_activation_checkpointing">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">set_activation_checkpointing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_wrap_policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.12)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/memory.html#set_activation_checkpointing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.set_activation_checkpointing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Utility to setup activation checkpointing and wrap the model for checkpointing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>nn.Module</em>) – Model to setup activation checkpointing.</p></li>
+<li><p><strong>auto_wrap_policy</strong> (<em>Optional</em><em>[</em><em>Set</em><em>[</em><em>nn.Module</em><em>]</em><em>]</em>) – Policy to wrap module.</p></li>
+<li><p><strong>**kwargs</strong> – additional arguments to pass to torch.distributed activation checkpointing.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -402,10 +392,10 @@ the docs for the base method.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.logging.get_logger.html" class="btn btn-neutral float-right" title="get_logger" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.profiler.html" class="btn btn-neutral float-right" title="profiler" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.collate.padded_collate.html" class="btn btn-neutral" title="padded_collate" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.list_dtypes.html" class="btn btn-neutral" title="list_dtypes" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -437,7 +427,7 @@ the docs for the base method.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">TuneRecipeArgumentParser</a></li>
+<li><a class="reference internal" href="#">set_activation_checkpointing</a></li>
 </ul>
 
             </div>

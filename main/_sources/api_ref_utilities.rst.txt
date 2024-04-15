@@ -45,10 +45,8 @@ Utilities for working in a reduced precision setting.
     :toctree: generated/
     :nosignatures:
 
-    precision.get_autocast
-    precision.get_gradient_scaler
-    precision.get_dtype
-    precision.list_dtypes
+    get_dtype
+    list_dtypes
 
 .. _ac_label:
 
@@ -61,7 +59,7 @@ Utilities to reduce memory consumption during training.
     :toctree: generated/
     :nosignatures:
 
-    memory.set_activation_checkpointing
+    set_activation_checkpointing
 
 .. _perf_profiling_label:
 
@@ -102,7 +100,7 @@ Utilities for working with data and datasets.
     :toctree: generated/
     :nosignatures:
 
-    collate.padded_collate
+    padded_collate
 
 .. _gen_label:
 
@@ -114,7 +112,7 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
-    argparse.TuneRecipeArgumentParser
-    logging.get_logger
+    TuneRecipeArgumentParser
+    get_logger
     get_device
-    seed.set_seed
+    set_seed

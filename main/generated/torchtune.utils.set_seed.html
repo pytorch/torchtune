@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>set_activation_checkpointing &mdash; TorchTune  documentation</title>
+  <title>set_seed &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,8 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="profiler" href="torchtune.utils.profiler.html" />
-    <link rel="prev" title="list_dtypes" href="torchtune.utils.precision.list_dtypes.html" />
+    <link rel="prev" title="get_device" href="torchtune.utils.get_device.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -329,13 +328,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>set_activation_checkpointing</li>
+      <li>set_seed</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.memory.set_activation_checkpointing.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.set_seed.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -365,19 +364,36 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="set-activation-checkpointing">
-<h1>set_activation_checkpointing<a class="headerlink" href="#set-activation-checkpointing" title="Permalink to this heading">¶</a></h1>
+  <section id="set-seed">
+<h1>set_seed<a class="headerlink" href="#set-seed" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.memory.set_activation_checkpointing">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.memory.</span></span><span class="sig-name descname"><span class="pre">set_activation_checkpointing</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">auto_wrap_policy</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.12)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.2)"><span class="pre">Module</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/memory.html#set_activation_checkpointing"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.memory.set_activation_checkpointing" title="Permalink to this definition">¶</a></dt>
-<dd><p>Utility to setup activation checkpointing and wrap the model for checkpointing.</p>
+<dt class="sig sig-object py" id="torchtune.utils.set_seed">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">set_seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">debug_mode</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Union" title="(in Python v3.12)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/seed.html#set_seed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.set_seed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Function that sets seed for pseudo-random number generators across commonly used libraries.</p>
+<p>This seeds PyTorch, NumPy, and the python.random module. For distributed jobs, each local process
+sets its own seed, computed seed + rank.
+For more details, see <a class="reference external" href="https://pytorch.org/docs/stable/notes/randomness.html">https://pytorch.org/docs/stable/notes/randomness.html</a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>nn.Module</em>) – Model to setup activation checkpointing.</p></li>
-<li><p><strong>auto_wrap_policy</strong> (<em>Optional</em><em>[</em><em>Set</em><em>[</em><em>nn.Module</em><em>]</em><em>]</em>) – Policy to wrap module.</p></li>
-<li><p><strong>**kwargs</strong> – additional arguments to pass to torch.distributed activation checkpointing.</p></li>
+<li><p><strong>seed</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – the integer value seed. If <cite>None</cite>, a random seed will be generated and set.</p></li>
+<li><p><strong>debug_mode</strong> (<em>Optional</em><em>[</em><em>Union</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em><em>]</em>) – <p>Controls debug_mode settings for deterministic operations within PyTorch.</p>
+<ul>
+<li><p>If <cite>None</cite>, don’t set any PyTorch global values.</p></li>
+<li><p>If “default” or 0, don’t error or warn on nondeterministic operations and additionally enable PyTorch CuDNN benchmark.</p></li>
+<li><p>If “warn” or 1, warn on nondeterministic operations and disable PyTorch CuDNN benchmark.</p></li>
+<li><p>If “error” or 2, error on nondeterministic operations and disable PyTorch CuDNN benchmark.</p></li>
+<li><p>For more details, see <a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.set_deterministic_debug_mode.html#torch.set_deterministic_debug_mode" title="(in PyTorch v2.2)"><code class="xref py py-func docutils literal notranslate"><span class="pre">torch.set_deterministic_debug_mode()</span></code></a> and
+<a class="reference external" href="https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms">https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms</a>.</p></li>
 </ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The current seed int</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If the input seed value is outside the required range.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -392,10 +408,8 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.profiler.html" class="btn btn-neutral float-right" title="profiler" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
-      
-        <a href="torchtune.utils.precision.list_dtypes.html" class="btn btn-neutral" title="list_dtypes" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.get_device.html" class="btn btn-neutral" title="get_device" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -427,7 +441,7 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">set_activation_checkpointing</a></li>
+<li><a class="reference internal" href="#">set_seed</a></li>
 </ul>
 
             </div>

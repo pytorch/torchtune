@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.utils.argparse
+.. currentmodule:: torchtune.utils
 
 
 TuneRecipeArgumentParser

@@ -1,6 +1,6 @@
 ﻿.. role:: hidden
     :class: hidden-section
-.. currentmodule:: torchtune.utils.seed
+.. currentmodule:: torchtune.utils
 
 
 set_seed

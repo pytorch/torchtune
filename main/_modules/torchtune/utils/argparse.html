@@ -372,7 +372,7 @@
 <span class="kn">from</span> <span class="nn">omegaconf</span> <span class="kn">import</span> <span class="n">OmegaConf</span>
 
 
-<div class="viewcode-block" id="TuneRecipeArgumentParser"><a class="viewcode-back" href="../../../generated/torchtune.utils.argparse.TuneRecipeArgumentParser.html#torchtune.utils.argparse.TuneRecipeArgumentParser">[docs]</a><span class="k">class</span> <span class="nc">TuneRecipeArgumentParser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
+<div class="viewcode-block" id="TuneRecipeArgumentParser"><a class="viewcode-back" href="../../../generated/torchtune.utils.TuneRecipeArgumentParser.html#torchtune.utils.TuneRecipeArgumentParser">[docs]</a><span class="k">class</span> <span class="nc">TuneRecipeArgumentParser</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that</span>
 <span class="sd">    adds a builtin argument &quot;config&quot;. The config argument takes a file path to a yaml file</span>
@@ -396,7 +396,7 @@
             <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="TuneRecipeArgumentParser.parse_known_args"><a class="viewcode-back" href="../../../generated/torchtune.utils.argparse.TuneRecipeArgumentParser.html#torchtune.utils.argparse.TuneRecipeArgumentParser.parse_known_args">[docs]</a>    <span class="k">def</span> <span class="nf">parse_known_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<div class="viewcode-block" id="TuneRecipeArgumentParser.parse_known_args"><a class="viewcode-back" href="../../../generated/torchtune.utils.TuneRecipeArgumentParser.html#torchtune.utils.TuneRecipeArgumentParser.parse_known_args">[docs]</a>    <span class="k">def</span> <span class="nf">parse_known_args</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;This acts the same as the base parse_known_args but will first load in defaults from</span>
 <span class="sd">        from the config yaml file if it is provided. The command line args will always take</span>
 <span class="sd">        precident over the values in the config file. All other parsing method, such as parse_args,</span>
