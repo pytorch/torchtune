@@ -84,9 +84,7 @@ We'll fine-tune using our
 and use the standard settings from the
 `default config <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml>`_.
 
-This will fine-tune our model on the
-`Alpaca Dataset <https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py>`_
-using a ``batch_size=2`` and ``dtype=bfloat16``. With these settings the model
+This will fine-tune our model using a ``batch_size=2`` and ``dtype=bfloat16``. With these settings the model
 should have a peak memory usage of ~16GB and total training time of around two hours for each epoch.
 We'll need to make some changes to the config to make sure our recipe can access the
 right checkpoints.
@@ -174,8 +172,8 @@ will be easier than overriding all of these elements through the CLI.
     tokenizer.path=<checkpoint_dir>/tokenizer.model
 
 For this tutorial we'll use the ``truthfulqa_mc2`` task from the harness.
-The Truthful QA dataset measures a model's propensity to be truthful when answering questions.
-This task measures the model's zero-shot accuracy on a question followed by one or more true
+This task measures a model's propensity to be truthful when answering questions and
+measures the model's zero-shot accuracy on a question followed by one or more true
 responses and one or more false responses. Let's first run a baseline without fine-tuning.
 
 

@@ -96,7 +96,7 @@ class _CheckpointerInterface(Protocol):
 
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
     """
-    Checkpointer which reads and writes "full-model" checkpoints in a format compatible with
+    Checkpointer which reads and writes checkpoints in a format compatible with
     TorchTune. No conversion of weights is required.
 
     Currently this supports reading a single checkpoint file only. This will likely change as
@@ -255,7 +255,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
 class FullModelHFCheckpointer(_CheckpointerInterface):
     """
-    Checkpointer which reads and writes "full-model" checkpoints in HF's format. Example includes
+    Checkpointer which reads and writes checkpoints in HF's format. Example includes
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
     A few notes about the checkpoint reading logic:
@@ -474,7 +474,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
 class FullModelMetaCheckpointer(_CheckpointerInterface):
     """
-    Checkpointer which reads and writes "full-model" checkpoints in Meta's format. Example includes
+    Checkpointer which reads and writes checkpoints in Meta's format. Example includes
     the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)
 
     Currently we support reading from a single checkpoint file only. Support for reading from
