@@ -117,10 +117,9 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     cli args, respectively) and merges them into a single OmegaConf DictConfig.
 
     If a cli arg overrides a yaml arg with a _component_ field, the cli arg can
-    be specified with the parent field directly, i.e.,
-    model=torchtune.models.llama2_7b instead of model._component_=torchtune.models.llama2_7b.
-    Nested fields within the component should be specified with dot notation, i.e.,
-    model.max_batch_size=2.
+    be specified with the parent field directly, e.g., model=torchtune.models.lora_llama2_7b
+    instead of model._component_=torchtune.models.lora_llama2_7b. Nested fields within the
+    component should be specified with dot notation, e.g., model.lora_rank=16.
 
     Example:
         >>> config.yaml:
