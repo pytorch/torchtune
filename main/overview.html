@@ -370,7 +370,7 @@
 <p>torchtune is a PyTorch library for easily authoring, fine-tuning and experimenting with LLMs. The library emphasizes 4 key aspects:</p>
 <ul class="simple">
 <li><p><strong>Simplicity and Extensibility</strong>. Native-PyTorch, componentized design and easy-to-reuse abstractions</p></li>
-<li><p><strong>Correctness</strong>. High-bar on proving the correctness of components and recipes</p></li>
+<li><p><strong>Correctness</strong>. High bar on proving the correctness of components and recipes</p></li>
 <li><p><strong>Stability</strong>. PyTorch just works. So should torchtune</p></li>
 <li><p><strong>Democratizing LLM fine-tuning</strong>. Works out-of-the-box on different hardware</p></li>
 </ul>
@@ -379,9 +379,9 @@
 <li><p>Modular native-PyTorch implementations of popular LLMs</p></li>
 <li><p>Interoperability with popular model zoos through checkpoint-conversion utilities</p></li>
 <li><p>Training recipes for a variety of fine-tuning techniques</p></li>
-<li><p>Integration with <a class="reference external" href="https://huggingface.co/docs/datasets/en/index">Hugging Face Datasets</a> for training and <a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s Eval</a> Harness for evaluation</p></li>
+<li><p>Integration with <a class="reference external" href="https://huggingface.co/docs/datasets/en/index">Hugging Face Datasets</a> for training and <a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s Eval Harness</a> for evaluation</p></li>
 <li><p>Support for distributed training using <a class="reference external" href="https://pytorch.org/docs/stable/fsdp.html">FSDP</a></p></li>
-<li><p>Yaml configs for easily configuring training runs</p></li>
+<li><p>YAML configs for easily configuring training runs</p></li>
 </ul>
 <p>Excited? To get started, checkout some of our tutorials, including:</p>
 <ul class="simple">
@@ -393,14 +393,14 @@
 <section id="key-concepts">
 <h2>Key Concepts<a class="headerlink" href="#key-concepts" title="Permalink to this heading">¶</a></h2>
 <p>As you go through the tutorials and code, there are two concepts which will help you better understand and use torchtune.</p>
-<p><strong>Configs.</strong> Yaml files which help you configure training settings (dataset, model, chekckpoint) and
+<p><strong>Configs.</strong> YAML files which help you configure training settings (dataset, model, chekckpoint) and
 hyperparameters (batch size, learning rate) without modifying code.
-See the “Getting Started with Configs” tutorial for more information.</p>
+See the <a class="reference internal" href="deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All About Configs deep-dive</span></a> for more information.</p>
 <p><strong>Recipes.</strong> Recipes can be thought of
-as “targeted” end-to-end pipelines for training and optionally evaluating LLMs.
+as targeted end-to-end pipelines for training and optionally evaluating LLMs.
 Each recipe implements a training method (eg: full fine-tuning) with a set of meaningful
-features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Mixed Precision training)
-applied to a given model family (eg: Llama2). See the tutorial on <a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">Training Recipe Deep-Dive</span></a> for more information.</p>
+features (eg: FSDP + Activation Checkpointing + Gradient Accumulation + Reduced Precision training)
+applied to a given model family (eg: Llama2). See the <a class="reference internal" href="deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What Are Recipes? deep-dive</span></a> for more information.</p>
 <div class="line-block">
 <div class="line"><br /></div>
 </div>
@@ -409,7 +409,7 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
 <h2>Design Principles<a class="headerlink" href="#design-principles" title="Permalink to this heading">¶</a></h2>
 <p>torchtune embodies <a class="reference external" href="https://pytorch.org/docs/stable/community/design.html">PyTorch’s design philosophy</a>, especially “usability over everything else”.</p>
 <p><strong>Native PyTorch</strong></p>
-<p>torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EluetherAI Eval Harness), all of the core functionality is written in PyTorch.</p>
+<p>torchtune is a native-PyTorch library. While we provide integrations with the surrounding ecosystem (eg: Hugging Face Datasets, EleutherAI Eval Harness), all of the core functionality is written in PyTorch.</p>
 <p><strong>Simplicity and Extensibility</strong></p>
 <p>torchtune is designed to be easy to understand, use and extend.</p>
 <ul class="simple">
@@ -419,10 +419,10 @@ applied to a given model family (eg: Llama2). See the tutorial on <a class="refe
 <li><p>Modular building blocks over monolithic components</p></li>
 </ul>
 <p><strong>Correctness</strong></p>
-<p>torchtune provides well-tested components with a high-bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide</p>
+<p>torchtune provides well-tested components with a high bar on correctness. The library will never be the first to provide a feature, but available features will be thoroughly tested. We provide</p>
 <ul class="simple">
-<li><p>Extensive unit-tests to ensure component-level numerical parity with reference implementations</p></li>
-<li><p>Checkpoint-tests to ensure model-level numerical parity with reference implementations</p></li>
+<li><p>Extensive unit tests to ensure component-level numerical parity with reference implementations</p></li>
+<li><p>Checkpoint tests to ensure model-level numerical parity with reference implementations</p></li>
 <li><p>Integration tests to ensure recipe-level performance parity with reference implementations on standard benchmarks</p></li>
 </ul>
 </section>
