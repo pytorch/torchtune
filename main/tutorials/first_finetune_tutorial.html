@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Finetune your First LLM &mdash; TorchTune  documentation</title>
+  <title>Finetune your first LLM &mdash; TorchTune  documentation</title>
   
 
   
@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
+    <link rel="next" title="Finetuning Llama2 with LoRA" href="lora_finetune.html" />
     <link rel="prev" title="Install Instructions" href="../install.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -263,14 +263,12 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Finetune your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Finetune your first LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
-<ul class="current">
+<ul>
 <li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Finetune your First LLM</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
@@ -327,7 +325,7 @@
       </li>
 
         
-      <li>Finetune your First LLM</li>
+      <li>Finetune your first LLM</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -364,7 +362,7 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <section id="finetune-your-first-llm">
-<span id="finetune-llama-label"></span><h1>Finetune your First LLM<a class="headerlink" href="#finetune-your-first-llm" title="Permalink to this heading">¶</a></h1>
+<span id="finetune-llama-label"></span><h1>Finetune your first LLM<a class="headerlink" href="#finetune-your-first-llm" title="Permalink to this heading">¶</a></h1>
 <p>This guide will walk you through the process of launching your first finetuning
 job using torchtune.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
@@ -375,9 +373,9 @@ job using torchtune.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What you will learn</div>
 <ul class="simple">
-<li><p class="sd-card-text">How to download a model and convert it to a format compatible with torchtune</p></li>
-<li><p class="sd-card-text">How to modify a recipe’s parameters</p></li>
-<li><p class="sd-card-text">How to finetune a model</p></li>
+<li><p class="sd-card-text">How to download a model from the <a class="reference external" href="https://huggingface.co/docs/hub/en/index">Hugging Face Hub</a></p></li>
+<li><p class="sd-card-text">How to modify a recipe’s parameters to suit your needs</p></li>
+<li><p class="sd-card-text">How to run a finetune</p></li>
 </ul>
 </div>
 </div>
@@ -398,115 +396,124 @@ job using torchtune.</p>
 </div>
 <section id="downloading-a-model">
 <span id="download-llama-label"></span><h2>Downloading a model<a class="headerlink" href="#downloading-a-model" title="Permalink to this heading">¶</a></h2>
-<p>First, you need to download a model. torchtune’s supports an integration
+<p>The first step in any finetuning job is to download a pretrained base model. torchtune supports an integration
 with the <a class="reference external" href="https://huggingface.co/docs/hub/en/index">Hugging Face Hub</a> - a collection of the latest and greatest model weights.</p>
-<p>For this tutorial, you’re going to use the <a class="reference external" href="https://llama.meta.com/">Llama2 model from Meta</a>. Llama2 is a “gated model”,
+<p>For this tutorial, you’re going to use the <a class="reference external" href="https://llama.meta.com/">Llama2 7B model from Meta</a>. Llama2 is a “gated model”,
 meaning that you need to be granted access in order to download the weights. Follow <a class="reference external" href="https://huggingface.co/meta-llama">these instructions</a> on the official Meta page
-hosted on Hugging Face to complete this process. (This should take less than 5 minutes.) To verify that you have the access, go to the <a class="reference external" href="https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main">model page</a>. You should be able to see the model files. If not, you may need to accept the agreement to complete the signup process.</p>
+hosted on Hugging Face to complete this process. This should take less than 5 minutes. To verify that you have the access, go to the <a class="reference external" href="https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main">model page</a>.
+You should be able to see the model files. If not, you may need to accept the agreement to complete the process.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Alternatively, you can opt to download the model directly through the Llama2 repository.
+See <a class="reference external" href="https://llama.meta.com/get-started#getting-the-models">this page</a> for more details.</p>
+</div>
 <p>Once you have authorization, you will need to authenticate with Hugging Face Hub. The easiest way to do so is to provide an
 access token to the download script. You can find your token <a class="reference external" href="https://huggingface.co/settings/tokens">here</a>.</p>
 <p>Then, it’s as simple as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span><span class="se">\</span>
-meta-llama/Llama-2-7b<span class="w"> </span><span class="se">\</span>
---output-dir<span class="w"> </span>/tmp/llama2<span class="w"> </span><span class="se">\</span>
---hf-token<span class="w"> </span>&lt;ACCESS<span class="w"> </span>TOKEN&gt;
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output-dir<span class="w"> </span>/tmp/Llama-2-7b-hf<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--hf-token<span class="w"> </span>&lt;ACCESS<span class="w"> </span>TOKEN&gt;
 </pre></div>
 </div>
 <p>This command will also download the model tokenizer and some other helpful files such as a Responsible Use guide.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>You can also download the model directly through the Llama2 repository.
-See <a class="reference external" href="https://llama.meta.com/get-started#getting-the-models">this page</a> for more details.</p>
+<div class="line-block">
+<div class="line"><br /></div>
 </div>
 </section>
 <section id="selecting-a-recipe">
 <h2>Selecting a recipe<a class="headerlink" href="#selecting-a-recipe" title="Permalink to this heading">¶</a></h2>
 <p>Recipes are the primary entry points for torchtune users.
-These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs.</p>
+These can be thought of as <strong>hackable, singularly-focused scripts for interacting with LLMs</strong> including training,
+inference, evaluation, and quantization.</p>
 <p>Each recipe consists of three components:</p>
 <ul class="simple">
-<li><p><strong>Configurable parameters</strong>, specified through yaml configs, command-line overrides and dataclasses</p></li>
-<li><p><strong>Recipe class</strong>, core logic needed for training, exposed to users through a set of APIs</p></li>
-<li><p><strong>Recipe script</strong>, puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class</p></li>
+<li><p><strong>Configurable parameters</strong>, specified through yaml configs and command-line overrides</p></li>
+<li><p><strong>Recipe script</strong>, entry-point which puts everything together including parsing and validating configs, setting up the environment, and correctly using the recipe class</p></li>
+<li><p><strong>Recipe class</strong>, core logic needed for training, exposed through a set of APIs</p></li>
 </ul>
-<p>For more information on how to select the right recipe, see the <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What are recipes?</span></a> tutorial.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>To learn more about the concept of “recipes”, check out our technical deep-dive: <a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What are recipes?</span></a>.</p>
+</div>
+<p>torchtune provides built-in recipes for finetuning on single device, on multiple devices with <a class="reference external" href="https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/">FSDP</a>,
+using memory efficient techniques like <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, and more! You can view all built-in recipes <a class="reference external" href="https://github.com/pytorch/torchtune/tree/main/recipes">on GitHub</a>. You can also utilize the
+<code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">ls</span></code> command to print out all recipes and corresponding configs.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>ls
+RECIPE<span class="w">                                   </span>CONFIG
+full_finetune_single_device<span class="w">              </span>llama2/7B_full_low_memory
+<span class="w">                                         </span>mistral/7B_full_low_memory
+full_finetune_distributed<span class="w">                </span>llama2/7B_full
+<span class="w">                                         </span>llama2/13B_full
+<span class="w">                                         </span>mistral/7B_full
+lora_finetune_single_device<span class="w">              </span>llama2/7B_lora_single_device
+<span class="w">                                         </span>llama2/7B_qlora_single_device
+<span class="w">                                         </span>mistral/7B_lora_single_device
+...
+</pre></div>
+</div>
+<p>For the purposes of this tutorial, you’ll will be using the recipe for finetuning a Llama2 model using <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a> on
+a single device. For a more in-depth discussion on LoRA in torchtune, you can see the complete <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">Finetuning Llama2 with LoRA</span></a> tutorial.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><strong>Why have a separate recipe for single device vs. distributed?</strong> This is discussed in
+<a class="reference internal" href="../deep_dives/recipe_deepdive.html#recipe-deepdive"><span class="std std-ref">What are recipes?</span></a> but one of our core principles in torchtune is minimal abstraction and boilerplate code.
+If you only want to train on a single GPU, our single-device recipe ensures you don’t have to worry about additional
+features like FSDP that are only required for distributed training.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
 </section>
 <section id="modifying-a-config">
 <h2>Modifying a config<a class="headerlink" href="#modifying-a-config" title="Permalink to this heading">¶</a></h2>
 <p>YAML configs hold most of the important information needed for running your recipe.
 You can set hyperparameters, specify metric loggers like <a class="reference external" href="wandb.ai">WandB</a>, select a new dataset, and more.
 For a list of all currently supported datasets, see <a class="reference internal" href="../api_ref_datasets.html#datasets"><span class="std std-ref">torchtune.datasets</span></a>.</p>
-<p>To modify an existing recipe config, you can use the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI to copy it to your local directory.
-It looks like there’s already a config called <code class="code docutils literal notranslate"><span class="pre">alpaca_llama_full_finetune</span></code> that utilizes the popular
-<a class="reference external" href="https://crfm.stanford.edu/2023/03/13/alpaca.html">Alpaca instruction dataset</a>. This seems like a good place to start so let’s copy it!</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_full<span class="w"> </span>custom_config.yaml
+<p>There are two ways to modify an existing config:</p>
+<p><strong>Override existing parameters from the command line</strong></p>
+<p>You can override existing parameters from the command line using a <code class="code docutils literal notranslate"><span class="pre">key=value</span></code> format. Let’s say
+you want to set the number of training epochs to 1.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>&lt;RECIPE&gt;<span class="w"> </span>--config<span class="w"> </span>&lt;CONFIG&gt;<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">1</span>
 </pre></div>
 </div>
-<p>Now you can update the custom YAML config to point to your model and tokenizer. While you’re at it,
-you can make some other changes, like setting the random seed in order to make replication easier,
-lowering the epochs to 1 so you can see results sooner, and updating the learning rate.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Tokenizer</span>
-<span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama2.llama2_tokenizer</span>
-<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/tokenizer.model</span>
-
-<span class="c1"># Dataset</span>
-<span class="nt">dataset</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="nt">seed</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">42</span>
-<span class="nt">shuffle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
-
-<span class="c1"># Model Arguments</span>
-<span class="nt">model</span><span class="p">:</span>
-<span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama2.llama2_7b</span>
-
-<span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
-<span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/llama2</span>
-<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">consolidated.00.pth</span><span class="p p-Indicator">]</span>
-<span class="w">  </span><span class="nt">recipe_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">null</span>
-<span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/llama2</span>
-<span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA2</span>
-<span class="nt">resume_from_checkpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
-
-<span class="c1"># Fine-tuning arguments</span>
-<span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
-<span class="nt">epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="nt">optimizer</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.SGD</span>
-<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1e-5</span>
-<span class="nt">loss</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.nn.CrossEntropyLoss</span>
-
-<span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/tmp/alpaca-llama2-finetune</span>
-
-<span class="nt">device</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cuda</span>
-<span class="nt">dtype</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bf16</span>
-
-<span class="nt">enable_activation_checkpointing</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<p><strong>Copy the config through `tune cp` and modify directly</strong></p>
+<p>If you want to make more substantial changes to the config, you can use the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI to copy it to your local directory.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>cp<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span>custom_config.yaml
+Copied<span class="w"> </span>file<span class="w"> </span>to<span class="w"> </span>custom_config.yaml
 </pre></div>
+</div>
+<p>Now you can update the custom YAML config any way you like. Try setting the random seed in order to make replication easier,
+changing the LoRA rank, update batch size, etc.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Check out <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">All about configs</span></a> for a deeper dive on configs in torchtune.</p>
+</div>
+<div class="line-block">
+<div class="line"><br /></div>
 </div>
 </section>
 <section id="training-a-model">
 <h2>Training a model<a class="headerlink" href="#training-a-model" title="Permalink to this heading">¶</a></h2>
 <p>Now that you have a model in the proper format and a config that suits your needs, let’s get training!</p>
-<p>Just like all the other steps, you will be using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI tool to launch your finetuning run.
-To make it easier for users already familiar with the PyTorch ecosystem, torchtune integrates with
-<a class="reference external" href="https://pytorch.org/docs/stable/elastic/run.html">torchrun</a>. Therefore, in order to launch a distributed
-run using two GPUs, it’s as easy as:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nnodes<span class="w"> </span><span class="m">1</span><span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>custom_config.yaml
+<p>Just like all the other steps, you will be using the <code class="code docutils literal notranslate"><span class="pre">tune</span></code> CLI tool to launch your finetuning run.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama2/7B_lora_single_device<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">1</span>
+INFO:torchtune.utils.logging:Running<span class="w"> </span>LoRAFinetuneRecipeSingleDevice<span class="w"> </span>with<span class="w"> </span>resolved<span class="w"> </span>config:
+Writing<span class="w"> </span>logs<span class="w"> </span>to<span class="w"> </span>/tmp/lora_finetune_output/log_1713194212.txt
+INFO:torchtune.utils.logging:Model<span class="w"> </span>is<span class="w"> </span>initialized<span class="w"> </span>with<span class="w"> </span>precision<span class="w"> </span>torch.bfloat16.
+INFO:torchtune.utils.logging:Tokenizer<span class="w"> </span>is<span class="w"> </span>initialized<span class="w"> </span>from<span class="w"> </span>file.
+INFO:torchtune.utils.logging:Optimizer<span class="w"> </span>and<span class="w"> </span>loss<span class="w"> </span>are<span class="w"> </span>initialized.
+INFO:torchtune.utils.logging:Loss<span class="w"> </span>is<span class="w"> </span>initialized.
+INFO:torchtune.utils.logging:Dataset<span class="w"> </span>and<span class="w"> </span>Sampler<span class="w"> </span>are<span class="w"> </span>initialized.
+INFO:torchtune.utils.logging:Learning<span class="w"> </span>rate<span class="w"> </span>scheduler<span class="w"> </span>is<span class="w"> </span>initialized.
+<span class="m">1</span><span class="p">|</span><span class="m">52</span><span class="p">|</span>Loss:<span class="w"> </span><span class="m">2</span>.3697006702423096:<span class="w">   </span><span class="m">0</span>%<span class="p">|</span>▏<span class="w">                     </span><span class="p">|</span><span class="w"> </span><span class="m">52</span>/25880<span class="w"> </span><span class="o">[</span><span class="m">00</span>:24&lt;<span class="m">3</span>:55:01,<span class="w">  </span><span class="m">1</span>.83it/s<span class="o">]</span>
 </pre></div>
 </div>
-<p>You should see some immediate output and see the loss going down, indicating your model is training succesfully.</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Writing logs to /tmp/alpaca-llama2-finetune/log_1707246452.txt
-Setting manual seed to local seed 42. Local seed is seed + rank = 42 + 0
-Model is initialized. FSDP and Activation Checkpointing are enabled.
-Tokenizer is initialized from file.
-Optimizer is initialized.
-Loss is initialized.
-Dataset and Sampler are initialized.
-1|1|Loss: 1.7553404569625854:   0%|                       | 0/13000 [00:03&lt;?, ?it/s]
-</pre></div>
+<p>This will finetune your model on the <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py">Alpaca Dataset</a>.
+You can see that all the modules were successfully initialized and the model has started training.
+You can monitor the loss and progress through the <a class="reference external" href="https://tqdm.github.io/">tqdm</a> bar but torchtune
+will also log some more metrics, such as GPU memory usage, at an interval defined in the config.</p>
+<div class="line-block">
+<div class="line"><br /></div>
 </div>
 </section>
 <section id="next-steps">
@@ -524,7 +531,7 @@ new model by checking out the <a class="reference internal" href="e2e_flow.html#
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="e2e_flow.html" class="btn btn-neutral float-right" title="End-to-End Workflow with torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="lora_finetune.html" class="btn btn-neutral float-right" title="Finetuning Llama2 with LoRA" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="../install.html" class="btn btn-neutral" title="Install Instructions" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
@@ -559,7 +566,7 @@ new model by checking out the <a class="reference internal" href="e2e_flow.html#
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Finetune your First LLM</a><ul>
+<li><a class="reference internal" href="#">Finetune your first LLM</a><ul>
 <li><a class="reference internal" href="#downloading-a-model">Downloading a model</a></li>
 <li><a class="reference internal" href="#selecting-a-recipe">Selecting a recipe</a></li>
 <li><a class="reference internal" href="#modifying-a-config">Modifying a config</a></li>
