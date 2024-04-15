@@ -38,7 +38,7 @@ to some of the linear projections in each transformer layer's self-attention.
     If you're unfamiliar, check out these references for the `definition of rank <https://en.wikipedia.org/wiki/Rank_(linear_algebra)>`_
     and discussion of `low-rank approximations <https://en.wikipedia.org/wiki/Low-rank_approximation>`_.
 
-By finetuning with LoRA (as opposed to :ref:`finetuning all model parameters<finetune_llama_label>` ),
+By finetuning with LoRA (as opposed to finetuning all model parameters),
 you can expect to see memory savings due to a substantial reduction in the
 number of parameters with gradients. When using an optimizer with momentum,
 like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_,
@@ -47,7 +47,7 @@ you can expect to see further memory savings from the optimizer state.
 .. note::
 
     LoRA memory savings come primarily from gradient and optimizer states,
-    and so if your model's peak memory comes in its :code:`forward()`, then LoRA
+    so if your model's peak memory comes in its :code:`forward()` method, then LoRA
     may not reduce peak memory.
 
 How does LoRA work?
@@ -157,11 +157,10 @@ Let's take a look at how to construct Llama2 models in torchtune with and withou
 
 Let's inspect each of these models a bit more closely.
 
-.. code-block:: python
+.. code-block:: bash
 
   # Print the first layer's self-attention in the usual Llama2 model
-  print(base_model.layers[0].attn)
-
+  >>> print(base_model.layers[0].attn)
   CausalSelfAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
@@ -171,8 +170,7 @@ Let's inspect each of these models a bit more closely.
   )
 
   # Print the same for Llama2 with LoRA weights
-  print(lora_model.layers[0].attn)
-
+  >>> print(lora_model.layers[0].attn)
   CausalSelfAttention(
     (q_proj): LoRALinear(
       (dropout): Dropout(p=0.0, inplace=False)
@@ -265,8 +263,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 
 .. note::
     You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
-    and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
-    for peak memory of LoRA finetuning in a couple of common hardware setups.
+    and (b) the memory constraints of your hardware.
 
 The preceding command will run a LoRA finetune with torchtune's factory settings, but we may want to experiment a bit.
 Let's take a closer look at some of the :code:`lora_finetune_distributed` config.
