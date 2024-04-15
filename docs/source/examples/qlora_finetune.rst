@@ -131,7 +131,7 @@ You can then run the following command to perform a QLoRA finetune of Llama2-7B 
 
 .. code-block:: bash
 
-    tune run lora_finetune_single_device --config llama2/7B_qlora_single_device.yaml
+    tune run lora_finetune_single_device --config llama2/7B_qlora_single_device
 
 .. note::
     Make sure to correctly point to the location of your Llama2 weights and tokenizer. This can be done
@@ -145,7 +145,7 @@ can be run as follows:
 
 .. code-block:: bash
 
-    tune run lora_finetune_single_device --config llama2/7B_lora_single_device.yaml
+    tune run lora_finetune_single_device --config llama2/7B_lora_single_device
 
 You should see the memory usage printed out during model initialization and training. An example log for LoRA model initialization is as follows:
 
@@ -180,7 +180,7 @@ you can specify the compile flag as ``True`` via a config override:
 
 .. code-block:: bash
 
-    tune run lora_finetune_single_device --config llama2/7B_qlora_single_device.yaml compile=True
+    tune run lora_finetune_single_device --config llama2/7B_qlora_single_device compile=True
 
 From the logs, we can see about a 200% speed up (after a few hundred iterations once the training has stabilized):
 
