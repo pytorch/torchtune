@@ -15,7 +15,7 @@ def stack_exchanged_paired_dataset(
     max_seq_len: int = 1024,
 ) -> PreferenceDataset:
     """
-    Family of preference datasets similar to `StackExchange paired data
+    Family of preference datasets similar to `StackExchangePaired data
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
@@ -25,7 +25,7 @@ def stack_exchanged_paired_dataset(
             Default is 1024.
 
     Returns:
-        PreferenceDataset: The preference datßaset built from source paired data.
+        PreferenceDataset: The preference dataset built from source paired data.
     """
     return PreferenceDataset(
         tokenizer=tokenizer,

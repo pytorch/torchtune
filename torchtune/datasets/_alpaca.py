@@ -35,10 +35,8 @@ def alpaca_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
-            Default is 512, as set by `Stanford Alpaca
-            <https://github.com/tatsu-lab/stanford_alpaca?tab=readme-ov-file#fine-tuning>`_,
-            but we recommend setting this to the highest you can fit in memory and is supported by the model.
-            For example, llama2-7B supports up to 4096 for sequence length.
+            Default is 512, but we recommend setting this to the highest you can fit in memory and
+            is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
 
     Returns:
         InstructDataset: dataset configured with source data and template
