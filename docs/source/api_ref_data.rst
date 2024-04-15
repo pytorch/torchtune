@@ -10,14 +10,14 @@ torchtune.data
     :toctree: generated/
     :nosignatures:
 
-    AlpacaInstructTemplate
-    ChatFormat
-    ChatMLFormat
-    GrammarErrorCorrectionTemplate
     InstructTemplate
-    Llama2ChatFormat
+        AlpacaInstructTemplate
+        GrammarErrorCorrectionTemplate
+        SummarizeTemplate
+    ChatFormat
+        ChatMLFormat
+        Llama2ChatFormat
+        MistralChatFormat
     Message
-    MistralChatFormat
     sharegpt_to_llama2_messages
-    SummarizeTemplate
     truncate

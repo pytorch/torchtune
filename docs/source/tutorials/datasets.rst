@@ -1,16 +1,17 @@
 .. _dataset_tutorial_label:
 
-======================
-Bring Your Own Dataset
-======================
+====================================
+Configuring Datasets for Fine-tuning
+====================================
 
-This tutorial will guide you through configuring your own dataset to fine-tune on.
+This tutorial will guide you through how to set up a dataset to fine-tune on.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
-      * How to configure existing dataset classes from the config
+      * How to quickly get started with built-in datasets
+      # How to configure existing dataset classes from the config
       * How to fully customize your own dataset
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
@@ -18,56 +19,44 @@ This tutorial will guide you through configuring your own dataset to fine-tune o
       * Know how to :ref:`configure components from the config<config_tutorial_label>`
 
 Datasets are a core component of fine-tuning workflows that serve as a "steering
-wheel" to guide LLM generation for a particular use case. We provide several common
-categories of datasets to help you quickly bootstrap your own data.
+wheel" to guide LLM generation for a particular use case. Many publicly shared
+open-source datasets have become popular for fine-tuning LLMs and serve as a great
+starting point to train your model. We support several widely used datasets to help
+quickly bootstrap your fine-tuning. Let's walk through how to set up the Stanford
+Alpaca dataset for fine-tuning.
 
-- :class:`~torchtune.datasets._instruct.InstructDataset`: primarily used for instruction-following
-data, where the input is typically a specific task the user wants the model to do.
-It formats the input data into the provided prompt template string (see :class:`~torchtune.data._instruct_templates.InstructTemplate`)
-related to the task, so you can quickly customize this to fine-tune on an instruct task.
-- :class:`~torchtune.datasets._instruct.ChatDataset`: primarily used for conversational
-data with support for multiple turns between user, assistant, and an optional system prompt.
-When you configure this, you need to ensure your conversations follow the LLaMA format,
-either by formatting the data offline or providing a transform via :code:`convert_to_messages`
-(see :func:`~torchtune.data._converters.sharegpt_to_llama2_messages` as an example).
-
-You can configure these classes directly from the config by using the associated
-builder functions - :func:`~torchtune.datasets._instruct.instruct_dataset` and :func:`~torchtune.datasets._chat.chat_dataset`.
+You can easily specify to use the Alpaca dataset directly from the config file:
 
 .. code-block:: yaml
 
-    # This is how you would configure the Alpaca dataset using the builder
-    dataset:
-      _component_: torchtune.datasets.instruct_dataset
-      source: tatsu-lab/alpaca
-      template: AlpacaInstructTemplate
-      train_on_input: True
-      max_seq_len: 512
+  # Dataset
+  dataset:
+    _component_: torchtune.datasets.alpaca_dataset
 
-If you need to further customize your dataset, we strongly encourage you to create
-your own dataset class and associated builder function so you can configure it
-from the yaml config. Then you have full control of how the data is preprocessed
-and formatted. You can then use it in the config in a similar way.
+This will indicate to the recipes to create a dataset object that iterates over samples
+from `tatsu-lab/alpaca on HuggingFace datasets <https://huggingface.co/datasets/tatsu-lab/alpaca>`_.
+
+We also expose common knobs to tweak the dataset for your needs. For example, let's say
+you'd like to reduce the memory footprint of each batch without changing the batch size.
+You could tweak :code:`max_seq_len` to achieve that directly from the config.
 
 .. code-block:: yaml
 
-    # This is how you would configure the Alpaca dataset using the builder
-    dataset:
-      _component_: torchtune.datasets.my_dataset_builder
-      source: mydataset/onthehub
-      template: CustomTemplate
-      ...
+  # Dataset
+  dataset:
+    _component_: torchtune.datasets.alpaca_dataset
+    # Original is 512
+    max_seq_len: 256
 
-Instruct templates
-------------------
-For most instruct-based tasks, you'll want to format your prompts into a template
-string that describes the task before passing it to the model. The library has
-various instruct templates for common tasks that you can either use or take inspiration
-from for a custom template (see :class:`~torchtune.data._instruct_templates.InstructTemplate`).
+Customizing instruct templates
+----------------------------
 
-For example, let's say you want to format your dataset into the Alpaca instruction
-format. You will need to use :class:`~torchtune.data._instruct_templates.AlpacaInstructTemplate`
-which looks like this:
+To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
+template that guides the model to generate output with a specific goal. Instruct templates
+are simply flavor text that structures your inputs for the model. It is model agnostic
+and is tokenized normally just like any other text, but it can help condition the model
+to respond better to an expected format. For example, the :class:`~torchtune.data.AlpacaInstructTemplate`
+structures the data in the following way:
 
 .. code-block:: python
 
@@ -99,12 +88,37 @@ Here is an example of sample that is formatted with :class:`~torchtune.data._ins
     # ### Response:
     #
 
-Chat formats
-------------
-Chat formats are similar to instruct templates, except that they format system,
-user, and assistant messages in a list of messages (see :class:`~torchtune.data._chat_formats.ChatFormat`).
+We provide `other instruct templates <https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py>`_
+for common tasks such summarization and grammar correction. If you need to create your own
+instruct template for a custom task, you can create your own :class:`~torchtune.data._instruct_templates.InstructTemplate`
+class and point to it in the config.
 
-Here is an example using the :class:`~torchtune.data._chat_formats.Llama2ChatFormat`:
+.. code-block:: yaml
+
+    dataset:
+      _component_: torchtune.datasets.instruct_dataset
+      source: mydataset/onthehub
+      template: CustomTemplate
+      train_on_input: True
+      max_seq_len: 512
+
+Customizing chat formats
+------------------------
+Chat formats are similar to instruct templates, except that they format system,
+user, and assistant messages in a list of messages (see :class:`~torchtune.data._chat_formats.ChatFormat`)
+for a conversational dataset. These can be configured quite similarly to instruct
+datasets.
+
+.. code-block:: yaml
+
+    # Create the SlimOrca chat dataset without using the builder
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: Open-Orca/SlimOrca-Dedup
+      conversation_style: sharegpt
+      chat_format: Llama2ChatFormat
+
+Here is how messages would be formatted using the :class:`~torchtune.data._chat_formats.Llama2ChatFormat`:
 
 .. code-block:: python
 
@@ -141,3 +155,78 @@ Here is an example using the :class:`~torchtune.data._chat_formats.Llama2ChatFor
 
 Note that the system message is now incorporated in the user message. If you create custom ChatFormats
 you can also add more advanced behavior.
+
+Fully customized datasets
+-------------------------
+
+More advanced tasks and dataset formats may require you to create your own dataset
+class for more flexibility. Let's walk through the :class:`~torchtune.datasets.PreferenceDataset`,
+which has custom functionality for RLHF preference data, to understand what you'll need to do.
+
+If you take a look at the code for the :class:`~torchtune.datasets.PreferenceDataset` class,
+you'll notice it's quite similar to :class:`~torchtune.datasets.InstructDataset` with a few
+adjustments for chosen and rejected samples in preference data.
+
+.. code-block:: python
+
+    chosen_message = [
+        Message(role="user", content=prompt, masked=True),
+        Message(role="assistant", content=transformed_sample[key_chosen]),
+    ]
+
+    rejected_message = [
+        Message(role="user", content=prompt, masked=True),
+        Message(role="assistant", content=transformed_sample[key_rejected]),
+    ]
+
+    chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
+        chosen_message, self.max_seq_len
+    )
+    chosen_labels = list(
+        np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
+    )
+
+    rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
+        rejected_message, self.max_seq_len
+    )
+    rejected_labels = list(
+        np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
+    )
+
+If any of the existing dataset classes do not serve your purposes, you can similarly
+use one of them as a starting point and add the functionality you need.
+
+To be able to use your custom dataset from the config, you will need to create
+a builder function. This is the builder function for the :func:`~torchtune.datasets.stack_exchanged_paired_dataset`,
+which creates a :class:`~torchtune.datasets.PreferenceDataset` configured to use
+the StackExchanged paired dataset from Hugging Face. Notice that we've also had
+to add a custom instruct template as well.
+
+.. code-block:: python
+
+    def stack_exchanged_paired_dataset(
+        tokenizer: Tokenizer,
+        max_seq_len: int = 1024,
+    ) -> PreferenceDataset:
+        return PreferenceDataset(
+            tokenizer=tokenizer,
+            source="lvwerra/stack-exchange-paired",
+            template=StackExchangedPairedTemplate(),
+            column_map={
+                "prompt": "question",
+                "chosen": "response_j",
+                "rejected": "response_k",
+            },
+            max_seq_len=max_seq_len,
+            split="train",
+            data_dir="data/rl",
+        )
+
+Now we can easily specify our custom dataset from the config.
+
+.. code-block:: yaml
+
+    # This is how you would configure the Alpaca dataset using the builder
+    dataset:
+      _component_: torchtune.datasets.stack_exchanged_paired_dataset
+      max_seq_len: 512
