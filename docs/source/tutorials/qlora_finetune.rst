@@ -6,7 +6,7 @@ Finetuning Llama2 with QLoRA
 
 In this tutorial, we'll learn about `QLoRA <https://arxiv.org/abs/2305.14314>`_, an enhancement on top of
 `LoRA <https://arxiv.org/abs/2106.09685>`_ that maintains frozen model parameters in 4-bit quantized precision, thereby reducing memory usage. We'll
-walk through how QLoRA can be utilized within torchtune to finetune a Llama2-7b model in < 10 GB of memory.
+walk through how QLoRA can be utilized within torchtune to finetune a Llama2-7b model in <10 GB of memory.
 It is highly recommended to first develop an understanding of :ref:`LoRA finetuning in torchtune<lora_finetune_label>`.
 
 
@@ -28,7 +28,7 @@ It is highly recommended to first develop an understanding of :ref:`LoRA finetun
 What is QLoRA?
 ---------------
 
-`QLoRA <https://arxiv.org/abs/2305.14314>`_ builds on top of `LoRA <https://arxiv.org/abs/2106.09685>`_ to enable further
+QLoRA builds on top of LoRA to enable further
 memory savings. In LoRA, model parameters can be thought of as existing in two partitions: adapters, which are
 low-rank matrices added to different layers of a neural network, and base model parameters, which are parameters that are part of
 the original model. In vanilla LoRA-style training, both these parameters are held in the same precision (typically fp32 or bf16), and
@@ -40,10 +40,10 @@ quantization is done through the method highlighted in the original `QLoRA paper
 parameters are still held in the original precision, and activations, gradients, and optimizer states still exist in the higher precision to preserve
 accuracy.
 
-The `QLoRA paper <https://arxiv.org/abs/2305.14314>`_ introduces two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
+The QLoRA authors introduce two key abstractions to decrease memory usage and avoid accuracy degradation: the bespoke 4-bit NormatFloat
 type, and a double quantization method that quantizes the quantization parameters themselves to save even more memory. torchtune uses
 the `NF4Tensor <https://github.com/pytorch-labs/ao/blob/b9beaf351e27133d189b57d6fa725b1a7824a457/torchao/dtypes/nf4tensor.py#L153>`_ abstraction from the `torchao library <https://github.com/pytorch-labs/ao>`_ to build QLoRA components as specified in the paper.
-`torchao library <https://github.com/pytorch-labs/ao>`_ is a PyTorch-native library that allows you to quantize and prune your models.
+torchao is a PyTorch-native library that allows you to quantize and prune your models.
 
 
 .. _qlora_core_highlevel:
@@ -266,7 +266,7 @@ a vanilla minimal LoRA layer, taken from :ref:`the LoRA tutorial <lora_finetune_
       # and add to the original model's outputs
       return frozen_out + (self.alpha / self.rank) * lora_out
 
-As mentioned above, torchtune takes a dependency on `torchao library <https://github.com/pytorch-labs/ao>`_ for some of the core components required for QLoRA. This includes the
+As mentioned above, torchtune takes a dependency on torchao for some of the core components required for QLoRA. This includes the
 ``NF4Tensor``, as well as helpful utilities including ``to_nf4`` and ``linear_nf4``.
 
 The key changes on top of the LoRA layer are the usage of the ``to_nf4`` and ``linear_nf4`` APIs.
