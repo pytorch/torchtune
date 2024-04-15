@@ -385,9 +385,6 @@
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 7b parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288</span>
 
-<span class="sd">    Args:</span>
-<span class="sd">        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.</span>
-
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama2 7B model</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -436,7 +433,6 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
-<span class="sd">        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
@@ -473,9 +469,6 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builder for creating a Llama2 model initialized w/ the default 13b parameter values</span>
 <span class="sd">    from https://arxiv.org/abs/2307.09288</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama2 13B model</span>
@@ -518,7 +511,6 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
-<span class="sd">        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
