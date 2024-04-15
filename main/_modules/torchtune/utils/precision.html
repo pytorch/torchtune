@@ -442,7 +442,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Get the torch.dtype corresponding to the given precision string.</span>
 
 <span class="sd">    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports</span>
-<span class="sd">        bf16 kernels. If not, the dtype returned is `torch.float32`.</span>
+<span class="sd">        bf16 kernels. If not, a ``RuntimeError`` is raised.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        dtype (Optional[str]): The precision dtype. Default: ``None``, in which we default to torch.float32</span>
@@ -452,6 +452,7 @@
 <span class="sd">            a CUDA device is assumed.</span>
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if precision isn&#39;t supported by the precision utils</span>
+<span class="sd">        RuntimeError: if bf16 precision is requested but not available on this hardware.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        torch.dtype: The corresponding torch.dtype.</span>
