@@ -13,17 +13,16 @@ from omegaconf import OmegaConf
 
 class TuneRecipeArgumentParser(argparse.ArgumentParser):
     """
-    TuneRecipeArgParser is a helpful utility subclass of the argparse ArgumentParser that
-    adds a builtin argument "config". The config argument takes a file path to a yaml file
-    and will load in argument defaults from the yaml file. The yaml file must only contain
+    A helpful utility subclass of the ``argparse.ArgumentParser`` that
+    adds a builtin argument "config". The config argument takes a file path to a YAML file
+    and loads in argument defaults from said file. The YAML file must only contain
     argument names and their values and nothing more, it does not have to include all of the
     arguments. These values will be treated as defaults and can still be overridden from the
     command line. Everything else works the same as the base ArgumentParser and you should
-    consult the docs for more info.
+    consult the docs for more info: https://docs.python.org/3/library/argparse.html.
 
-    https://docs.python.org/3/library/argparse.html
-
-    *Note: This class uses "config" as a builtin argument so it is not available to use*
+    Note:
+        This class uses "config" as a builtin argument so it is not available to use.
     """
 
     def __init__(self, *args, **kwargs) -> None:
@@ -40,9 +39,7 @@ class TuneRecipeArgumentParser(argparse.ArgumentParser):
         from the config yaml file if it is provided. The command line args will always take
         precident over the values in the config file. All other parsing method, such as parse_args,
         internally call this method so they will inherit this property too. For more info see
-        the docs for the base method.
-
-        https://docs.python.org/3/library/argparse.html#the-parse-args-method
+        the docs for the base method: https://docs.python.org/3/library/argparse.html#the-parse-args-method.
         """
         namespace, unknown_args = super().parse_known_args(*args, **kwargs)
 
