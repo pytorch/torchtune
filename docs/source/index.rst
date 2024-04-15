@@ -101,6 +101,7 @@ torchtune tutorials.
    tutorials/qlora_finetune
    tutorials/first_finetune_tutorial
    tutorials/e2e_flow
+   tutorials/datasets
 
 .. toctree::
    :glob:
