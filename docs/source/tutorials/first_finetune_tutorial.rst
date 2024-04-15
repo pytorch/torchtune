@@ -105,9 +105,9 @@ YAML configs hold most of the important information needed for running your reci
 You can set hyperparameters, specify metric loggers like `WandB <wandb.ai>`_, select a new dataset, and more.
 For a list of all currently supported datasets, see :ref:`datasets`.
 
-There are two ways to modify an existing config.
+There are two ways to modify an existing config:
 
-1. **Override existing parameters from the command line*
+1. **Override existing parameters from the command line**
 
 You can override existing parameters from the command line using a :code:`key=value` format. Let's say
 you want to set the number of training epochs to 1.
