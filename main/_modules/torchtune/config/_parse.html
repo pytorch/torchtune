@@ -381,17 +381,17 @@
 <span class="sd">    Decorator that handles parsing the config file and CLI overrides</span>
 <span class="sd">    for a recipe. Use it on the recipe&#39;s main function.</span>
 
-<span class="sd">    Example: in recipe/my_recipe.py,</span>
+<span class="sd">    Args:</span>
+<span class="sd">        recipe_main (Recipe): The main method that initializes</span>
+<span class="sd">            and runs the recipe</span>
+
+<span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; @parse</span>
 <span class="sd">        &gt;&gt;&gt; def main(cfg: DictConfig):</span>
 <span class="sd">        &gt;&gt;&gt;     ...</span>
 
-<span class="sd">    With the decorator, the parameters will be parsed into cfg when run as:</span>
+<span class="sd">        &gt;&gt;&gt; # With the decorator, the parameters will be parsed into cfg when run as:</span>
 <span class="sd">        &gt;&gt;&gt; tune my_recipe --config config.yaml foo=bar</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        recipe_main (Recipe): The main method that initializes</span>
-<span class="sd">            and runs the recipe</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Callable[[Recipe], Any]: the decorated main</span>
