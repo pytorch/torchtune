@@ -152,6 +152,7 @@ Just like all the other steps, you will be using the :code:`tune` CLI tool to la
   INFO:torchtune.utils.logging:Learning rate scheduler is initialized.
   1|52|Loss: 2.3697006702423096:   0%|▏                     | 52/25880 [00:24<3:55:01,  1.83it/s]
 
+This will finetune your model on the `Alpaca Dataset <https://github.com/pytorch/torchtune/blob/main/torchtune/datasets/_alpaca.py>`_.
 You can see that all the modules were successfully initialized and the model has started training.
 You can monitor the loss and progress through the `tqdm <https://tqdm.github.io/>`_ bar but torchtune
 will also log some more metrics, such as GPU memory usage, at an interval defined in the config.

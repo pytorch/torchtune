@@ -8,7 +8,7 @@ Getting Started
 
 Topics in this section will help you get started with torchtune.
 
-.. grid:: 4
+.. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
         What is torchtune?
