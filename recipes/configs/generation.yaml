@@ -1,7 +1,7 @@
 # Config for running the InferenceRecipe in generate.py to generate output from an LLM
 #
 # To launch, run the following command from root torchtune directory:
-#    tune run generate --config generate
+#    tune run generate --config generation
 
 # Model arguments
 model:
