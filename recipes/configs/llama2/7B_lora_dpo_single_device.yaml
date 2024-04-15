@@ -43,19 +43,6 @@ checkpointer:
   model_type: LLAMA2
 resume_from_checkpoint: False
 
-checkpointer:
-  _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Llama-2-7b-hf
-  checkpoint_files: [
-    pytorch_model-00001-of-00002.bin,
-    pytorch_model-00002-of-00002.bin
-  ]
-  adapter_checkpoint: null
-  recipe_checkpoint: null
-  output_dir: /tmp/Llama-2-7b-hf
-  model_type: LLAMA2
-resume_from_checkpoint: False
-
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.stack_exchanged_paired_dataset
