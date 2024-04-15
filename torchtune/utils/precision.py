@@ -80,7 +80,8 @@ def get_dtype(
 ) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
-    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
+    Note:
+        If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
         bf16 kernels. If not, a ``RuntimeError`` is raised.
 
     Args:

@@ -1,7 +1,7 @@
 .. _config_tutorial_label:
 
 =================
-All about configs
+All About Configs
 =================
 
 This deep-dive will guide you through writing configs for running recipes.
@@ -55,7 +55,7 @@ common examples of this. You can easily do this using the :code:`_component_`
 subfield. In :code:`_component_`, you need to specify the dotpath of the object
 you wish to instantiate in the recipe. The dotpath is the exact path you would use
 to import the object normally in a Python file. For example, to specify the
-:class:`~torchtune.datasets._alpaca.alpaca_dataset` in your config with custom
+:class:`~torchtune.datasets.alpaca_dataset` in your config with custom
 arguments:
 
 .. code-block:: yaml
@@ -80,10 +80,10 @@ instance of the specified object in your recipe's setup like so:
 This will automatically use any keyword arguments specified in the fields under
 :code:`dataset`.
 
-As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets._alpaca.alpaca_dataset`,
+As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets.alpaca_dataset`,
 you'll notice that we're missing a required positional argument, the tokenizer.
 Since this is another configurable torchtune object, let's understand how to handle
-this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` API.
+this by taking a look at the :func:`~torchtune.config.instantiate` API.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` 
         **kwargs: Dict[str, Any],
     )
 
-:func:`~torchtune.config._instantiate.instantiate` also accepts positional arguments
+:func:`~torchtune.config.instantiate` also accepts positional arguments
 and keyword arguments and automatically uses that with the config when creating
 the object. This means we can not only pass in the tokenizer, but also add additional
 keyword arguments not specified in the config if we'd like:
@@ -141,7 +141,7 @@ config.
 Referencing other config fields with interpolations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Sometimes you need to use the same value more than once for multiple fields. You
-can use *interpolations* to reference another field, and :func:`~torchtune.config._instantiate.instantiate`
+can use *interpolations* to reference another field, and :func:`~torchtune.config.instantiate`
 will automatically resolve it for you.
 
 .. code-block:: yaml

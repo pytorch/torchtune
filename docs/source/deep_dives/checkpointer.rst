@@ -11,7 +11,7 @@ associated utilities.
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` What this deep-dive will cover:
 
-      * Deep-dive into the checkpointer design for torchtune
+      * Checkpointer design for torchtune
       * Checkpoint formats and how we handle them
       * Checkpointing scenarios: Intermediate vs Final and LoRA vs Full-finetune
 
@@ -145,8 +145,8 @@ and json files. The easiest way to make sure everything works correctly is to us
 
     .. code-block:: bash
 
-        tune download meta-llama/Llama-2-7b-hf
-        --output-dir <checkpoint_dir>
+        tune download meta-llama/Llama-2-7b-hf \
+        --output-dir <checkpoint_dir> \
         --hf-token <hf-token>
 
 - Use ``output_dir`` specified here as the ``checkpoint_dir`` argument for the checkpointer.
@@ -216,8 +216,8 @@ and json files. The easiest way to make sure everything works correctly is to us
 
     .. code-block:: bash
 
-        tune download meta-llama/Llama-2-7b
-        --output-dir <checkpoint_dir>
+        tune download meta-llama/Llama-2-7b \
+        --output-dir <checkpoint_dir> \
         --hf-token <hf-token>
 
 - Use ``output_dir`` above as the ``checkpoint_dir`` for the checkpointer.
@@ -259,7 +259,7 @@ The following snippet explains how the MetaCheckpointer is setup in torchtune co
 
 |
 
-**torchtuneCheckpointer**
+**TorchTuneCheckpointer**
 
 This checkpointer reads and writes checkpoints in a format that is compatible with torchtune's
 model definition. This does not perform any state_dict conversions and is currently used either

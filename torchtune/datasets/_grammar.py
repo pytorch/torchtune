@@ -11,16 +11,15 @@ from torchtune.modules import Tokenizer
 
 def grammar_dataset(
     tokenizer: Tokenizer,
+    source: str = "liweili/c4_200m",
     train_on_input: bool = False,
 ) -> InstructDataset:
     """
-    Support for the Grammar dataset and its variants from Hugging Face Datasets.
-    https://huggingface.co/datasets/liweili/c4_200m
+    Support for grammar correction datasets and their variants from Hugging Face Datasets.
+    Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
 
-    Data input format: https://huggingface.co/datasets/liweili/c4_200m#description
-
-    The prompt template is created from llama_recipes codebase:
-    https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50
+    The prompt template mirrors what is used in the `llama_recipes codebase
+    <https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50>`_
 
     where `input` and `output` are fields from the dataset.
 
@@ -32,10 +31,11 @@ def grammar_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
 
     Returns:
-        InstructDataset: dataset configured with Grammar source data and template
+        InstructDataset: dataset configured with source data and template
 
 
     Example:
@@ -47,7 +47,7 @@ def grammar_dataset(
 
     return InstructDataset(
         tokenizer=tokenizer,
-        source="liweili/c4_200m",
+        source=source,
         template=GrammarErrorCorrectionTemplate,
         column_map={"sentence": "input"},
         train_on_input=train_on_input,

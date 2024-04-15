@@ -1,7 +1,7 @@
 .. _dataset_tutorial_label:
 
 ====================================
-Configuring Datasets for Fine-tuning
+Configuring Datasets for Fine-Tuning
 ====================================
 
 This tutorial will guide you through how to set up a dataset to fine-tune on.
@@ -22,10 +22,9 @@ Datasets are a core component of fine-tuning workflows that serve as a "steering
 wheel" to guide LLM generation for a particular use case. Many publicly shared
 open-source datasets have become popular for fine-tuning LLMs and serve as a great
 starting point to train your model. We support several widely used datasets to help
-quickly bootstrap your fine-tuning. Let's walk through how to set up the Stanford
-Alpaca dataset for fine-tuning.
+quickly bootstrap your fine-tuning. Let's walk through how to set up a common one for fine-tuning.
 
-You can easily specify to use the Alpaca dataset directly from the config file:
+You can easily specify a dataset directly from the config file:
 
 .. code-block:: yaml
 
@@ -64,7 +63,7 @@ structures the data in the following way:
     "Write a response that appropriately completes the request.\n\n"
     "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
 
-Here is an example of sample that is formatted with :class:`~torchtune.data._instruct_templates.AlpacaInstructTemplate`:
+Here is an example of sample that is formatted with :class:`~torchtune.data.AlpacaInstructTemplate`:
 
 .. code-block:: python
 
@@ -90,7 +89,7 @@ Here is an example of sample that is formatted with :class:`~torchtune.data._ins
 
 We provide `other instruct templates <https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py>`_
 for common tasks such summarization and grammar correction. If you need to create your own
-instruct template for a custom task, you can create your own :class:`~torchtune.data._instruct_templates.InstructTemplate`
+instruct template for a custom task, you can create your own :class:`~torchtune.data.InstructTemplate`
 class and point to it in the config.
 
 .. code-block:: yaml
@@ -105,20 +104,19 @@ class and point to it in the config.
 Customizing chat formats
 ------------------------
 Chat formats are similar to instruct templates, except that they format system,
-user, and assistant messages in a list of messages (see :class:`~torchtune.data._chat_formats.ChatFormat`)
+user, and assistant messages in a list of messages (see :class:`~torchtune.data.ChatFormat`)
 for a conversational dataset. These can be configured quite similarly to instruct
 datasets.
 
 .. code-block:: yaml
 
-    # Create the SlimOrca chat dataset without using the builder
     dataset:
       _component_: torchtune.datasets.chat_dataset
       source: Open-Orca/SlimOrca-Dedup
       conversation_style: sharegpt
       chat_format: Llama2ChatFormat
 
-Here is how messages would be formatted using the :class:`~torchtune.data._chat_formats.Llama2ChatFormat`:
+Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatFormat`:
 
 .. code-block:: python
 
@@ -197,7 +195,7 @@ use one of them as a starting point and add the functionality you need.
 To be able to use your custom dataset from the config, you will need to create
 a builder function. This is the builder function for the :func:`~torchtune.datasets.stack_exchanged_paired_dataset`,
 which creates a :class:`~torchtune.datasets.PreferenceDataset` configured to use
-the StackExchanged paired dataset from Hugging Face. Notice that we've also had
+a paired dataset from Hugging Face. Notice that we've also had
 to add a custom instruct template as well.
 
 .. code-block:: python
