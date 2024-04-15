@@ -143,7 +143,7 @@ TorchTune integrates with [`torchrun`](https://pytorch.org/docs/stable/elastic/r
 overwrite the config, not affect distributed training.
 
 ```
-tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full_distributed
+tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full
 ```
 
 You can easily overwrite some config properties as follows, but you can also easily copy a built-in config and
