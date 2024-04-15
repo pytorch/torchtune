@@ -424,7 +424,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
+                        f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss.item()}"
                     )
                     if self.total_training_steps % self._log_every_n_steps == 0:
                         self._metric_logger.log_dict(
