@@ -71,7 +71,7 @@ Single-GPU recipes expose a number of memory optimizations that aren't available
 
 ## Installation
 
-**Step 1:** Install Pytorch. torchtune is currently tested with the latest stable PyTorch release (2.2.2). We recommend following the instructions [here](https://pytorch.org/get-started/locally/) and installing either version 2.2.2 or the preview nightly version.
+**Step 1:** [Install PyTorch](ttps://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release (2.2.2) as well as the preview nightly version.
 
 **Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:
 
