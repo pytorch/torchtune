@@ -354,7 +354,7 @@ our peak memory a bit more than the other layers. We can make the following chan
    * - Q and V only
      - 8
      - 16
-     - **15.61 GB**
+     - **15.57 GB**
      - 0.475
    * - all layers
      - 8
@@ -378,4 +378,4 @@ in our accuracy on this task, but our peak memory also increases by about 1.4GB.
 experiments; we encourage you to run your own finetunes to find the right tradeoff for your particular setup.
 
 Additionally, if you want to decrease your model's peak memory even further (and still potentially achieve similar
-model quality results), you can check out our QLoRA tutorial (TODO: add link).
+model quality results), you can check out our :ref:`QLoRA tutorial<qlora_finetune_label>`.
