@@ -1,7 +1,7 @@
 .. _config_tutorial_label:
 
 =================
-Configs Deep-Dive
+All about configs
 =================
 
 This deep-dive will guide you through writing configs for running recipes.

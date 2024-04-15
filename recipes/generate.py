@@ -25,11 +25,11 @@ class InferenceRecipe:
     decoding is not supported.
 
     For more details on how to use this recipe for generation, please see our
-    tutorial: https://pytorch.org/torchtune/main/examples/e2e_flow.html#generation
+    tutorial: https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#generation
 
     For using this recipe with a quantized model, please the following section of
     the above tutorial:
-    https://pytorch.org/torchtune/main/examples/e2e_flow.html#speeding-up-generation-using-quantization
+    https://pytorch.org/torchtune/main/tutorials/e2e_flow.html#speeding-up-generation-using-quantization
     """
 
     def __init__(self, cfg: DictConfig) -> None:

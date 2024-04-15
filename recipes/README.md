@@ -4,7 +4,7 @@
 
 ## What are Recipes?
 
-Recipes are the primary entry points for torchtune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. More information about recipes, their components and a design overview can be found in our [recipe deep-dive](https://pytorch.org/torchtune/main/examples/recipe_deepdive.html).
+Recipes are the primary entry points for torchtune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. More information about recipes, their components and a design overview can be found in our [recipe deep-dive](https://pytorch.org/torchtune/main/deep_dives/recipe_deepdive.html).
 
 &nbsp;
 
@@ -25,7 +25,7 @@ To evaluate a quantized model, make the following changes to the default [evalua
 ```yaml
 # Currently we only support torchtune checkpoints when
 # evaluating quantized models. For more details on checkpointing see
-# https://pytorch.org/torchtune/main/examples/checkpointer.html
+# https://pytorch.org/torchtune/main/deep_dives/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer
@@ -50,7 +50,7 @@ To run inference using a quantized model, make the following changes to the defa
 ```yaml
 # Currently we only support torchtune checkpoints when
 # evaluating quantized models. For more details on checkpointing see
-# https://pytorch.org/torchtune/main/examples/checkpointer.html
+# https://pytorch.org/torchtune/main/deep_dives/checkpointer.html
 # Make sure to change the default checkpointer component
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer

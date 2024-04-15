@@ -106,7 +106,7 @@ options:
 
 ## Get Started
 
-For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/examples/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
+For our quickstart guide to getting you finetuning an LLM fast, see our [Finetuning Llama2 with TorchTune](https://torchtune-preview.netlify.app/tutorials/first_finetune_tutorial.html) tutorial. You can also follow the steps below.
 
 #### Downloading a model
 

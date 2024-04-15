@@ -77,7 +77,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             training. Currently we checkpoint both the adapter weights (trainable params only) and the
             complete merged weights (adapter weights added back to the base model). For more details
             please take a look at our LoRA tutorial
-            (https://pytorch.org/torchtune/main/examples/lora_finetune.html).
+            (https://pytorch.org/torchtune/main/tutorials/lora_finetune.html).
 
             Optimizer State and recipe state (seed, total_epochs, number of epochs run etc) are
             only saved at the end of a given epoch and used in case of resuming training. Resuming
@@ -85,7 +85,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             currently not supported.
 
             For more details on the checkpointer, please take a look at
-            our checkpointer deepdive (https://pytorch.org/torchtune/main/examples/checkpointer.html).
+            our checkpointer deepdive (https://pytorch.org/torchtune/main/tutorials/checkpointer.html).
 
         - Logging. Terminal, Disk, WandB and TensorBoard are all supported.
 
