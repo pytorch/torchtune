@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN> --output-dir /tmp/llama2-13b-hf
+#   tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN> --output-dir /tmp/Llama-2-13b-hf
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config llama2/13B_full
@@ -37,14 +37,14 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/llama2-13b-hf/
+  checkpoint_dir: /tmp/Llama-2-13b-hf/
   checkpoint_files: [
     pytorch_model-00001-of-00003.bin,
     pytorch_model-00002-of-00003.bin,
     pytorch_model-00003-of-00003.bin
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/llama2-13b-hf/
+  output_dir: /tmp/Llama-2-13b-hf/
   model_type: LLAMA2
 resume_from_checkpoint: False
 
