@@ -3,7 +3,7 @@
 .. currentmodule:: torchtune.models.llama2
 
 
-lora_llama2
-===========
+qlora_llama2_13b
+================
 
-.. autofunction:: lora_llama2
+.. autofunction:: qlora_llama2_13b
