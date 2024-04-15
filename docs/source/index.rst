@@ -72,20 +72,6 @@ torchtune tutorials.
    :link: examples/qlora_finetune.html
    :tags: finetuning,llama2
 
-.. customcarditem::
-   :header: Training Recipes Deep-Dive
-   :card_description: Dive into TorchTune's Training Recipes
-   :image: _static/img/generic-pytorch-logo.png
-   :link: examples/recipe_deepdive.html
-   :tags: finetuning
-
-.. customcarditem::
-   :header: Understanding the Checkpointer
-   :card_description: Dive into TorchTune's Checkpointers
-   :image: _static/img/generic-pytorch-logo.png
-   :link: examples/checkpointer.html
-   :tags: checkpointing
-
 .. customcardend::
 
 
