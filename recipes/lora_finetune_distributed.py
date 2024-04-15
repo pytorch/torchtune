@@ -326,7 +326,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-        if self._is_rank_zero and self._device == torch.device("cuda"):
+        if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)
             log.info(f"Memory Stats after model init:\n{memory_stats}")
 
@@ -541,7 +541,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if (
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
                     and self._is_rank_zero
-                    and self._device == torch.device("cuda")
                 ):
                     # Log peak memory for iteration
                     memory_stats = utils.memory_stats_log(device=self._device)

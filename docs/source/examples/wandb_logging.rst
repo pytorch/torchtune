@@ -16,12 +16,18 @@ Torchtune supports logging your training runs to [Weights & Biases](https://wand
 
 .. note::
 
-  You will need to install the `wandb`` package to use this feature.
+  You will need to install the `wandb` package to use this feature.
   You can install it via pip:
 
   .. code-block:: bash
 
     pip install wandb
+
+  Then you need to login with your API key using the W&B CLI:
+
+  .. code-block:: bash
+
+    wandb login
 
 
 Metric Logger
