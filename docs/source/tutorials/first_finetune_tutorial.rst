@@ -27,10 +27,15 @@ Downloading a model
 The first step in any finetuning job is to download a pretrained base model. torchtune supports an integration
 with the `Hugging Face Hub <https://huggingface.co/docs/hub/en/index>`_ - a collection of the latest and greatest model weights.
 
-For this tutorial, you're going to use the `Llama2 model from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
+For this tutorial, you're going to use the **`Llama2 7B model** from Meta <https://llama.meta.com/>`_. Llama2 is a "gated model",
 meaning that you need to be granted access in order to download the weights. Follow `these instructions <https://huggingface.co/meta-llama>`_ on the official Meta page
 hosted on Hugging Face to complete this process. This should take less than 5 minutes. To verify that you have the access, go to the `model page <https://huggingface.co/meta-llama/Llama-2-7b-hf/tree/main>`_.
 You should be able to see the model files. If not, you may need to accept the agreement to complete the process.
+
+.. note::
+
+  Alternatively, you can opt to download the model directly through the Llama2 repository.
+  See `this page <https://llama.meta.com/get-started#getting-the-models>`_ for more details.
 
 Once you have authorization, you will need to authenticate with Hugging Face Hub. The easiest way to do so is to provide an
 access token to the download script. You can find your token `here <https://huggingface.co/settings/tokens>`_.
@@ -45,17 +50,12 @@ Then, it's as simple as:
 
 This command will also download the model tokenizer and some other helpful files such as a Responsible Use guide.
 
-.. note::
-
-  You can opt to download the model directly through the Llama2 repository.
-  See `this page <https://llama.meta.com/get-started#getting-the-models>`_ for more details.
-
 |
 
 Selecting a recipe
 ------------------
 Recipes are the primary entry points for torchtune users.
-These can be thought of as singularly-focused scripts for interacting with LLMs, including training
+These can be thought of as **singularly-focused scripts for interacting with LLMs**, including training
 inference, evaluation, and quantization.
 
 Each recipe consists of three components:
@@ -69,7 +69,7 @@ Each recipe consists of three components:
   To learn more about the concept of "recipes", check out our technical deep-dive: :ref:`recipe_deepdive`.
 
 torchtune provides built-in recipes for finetuning on single device, on multiple devices with `FSDP <https://pytorch.org/blog/introducing-pytorch-fully-sharded-data-parallel-api/>`_,
-using memory efficient techniques like LoRA, and more! You can view all built-in recipes `on GitHub <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
+using memory efficient techniques like `LoRA <https://arxiv.org/abs/2106.09685>`_, and more! You can view all built-in recipes `on GitHub <https://github.com/pytorch/torchtune/tree/main/recipes>`_. You can also utilize the
 :code:`tune ls` command to print out all recipes and corresponding configs.
 
 .. code-block:: bash
@@ -107,8 +107,7 @@ For a list of all currently supported datasets, see :ref:`datasets`.
 
 There are two ways to modify an existing config.
 
-1. Override existing parameters from the command line
-2. Copy the config through :code:`tune cp` and modify directly
+1. **Override existing parameters from the command line*
 
 You can override existing parameters from the command line using a :code:`key=value` format. Let's say
 you want to set the number of training epochs to 1.
@@ -117,12 +116,13 @@ you want to set the number of training epochs to 1.
 
   tune run <RECIPE> --config <CONFIG> epochs=1
 
+2. **Copy the config through :code:`tune cp` and modify directly**
+
 If you want to make more substantial changes to the config, you can use the :code:`tune` CLI to copy it to your local directory.
 
 .. code-block:: bash
 
   tune cp llama2/7B_lora_single_device custom_config.yaml
-
   Copied file to custom_config.yaml
 
 Now you can update the custom YAML config any way you like. Try setting the random seed in order to make replication easier,
@@ -156,7 +156,7 @@ Just like all the other steps, you will be using the :code:`tune` CLI tool to la
 
 You can see that all the modules were successfully initialized and the model has started training.
 You can monitor the loss and progress through the `tqdm <https://tqdm.github.io/>`_ bar but torchtune
-will also log some more metrics at an interval defined in the config.
+will also log some more metrics, such as GPU memory usage, at an interval defined in the config.
 
 |
 
