@@ -47,7 +47,7 @@ We automatically grab the config from the recipe you are running and log it to W
 Logging Model Checkpoints to W&B
 -------------------------------
 
-You can also log the model checkpoints to W&B by modifying the desired script `save_checkpoint` method. 
+You can also log the model checkpoints to W&B by modifying the desired script `save_checkpoint` method.
 
 A suggested approach would be something like this:
 
@@ -75,4 +75,4 @@ A suggested approach would be something like this:
             }
         )
         wandb_at.add_file(checkpoint_file)
-        wandb.log_artifact(wandb_at) 
+        wandb.log_artifact(wandb_at)

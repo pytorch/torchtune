@@ -172,11 +172,17 @@ def memory_stats_log(device: torch.device, reset_stats: bool = True) -> dict:
         reset_stats (bool): Whether to reset CUDA's peak memory tracking.
 
     Returns:
-        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated, 
+        Dict[str, float]: A dictionary containing the peak memory active, peak memory allocated,
         and peak memory reserved. This dict is useful for logging memory stats.
+
+    Raises:
+        ValueError: If the passed in device is not CUDA.
     """
     if device.type != "cuda":
-        return
+        raise ValueError(
+            f"Logging memory stats is only supported on CUDA devices, got {device}"
+        )
+
     peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
     peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
     peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9

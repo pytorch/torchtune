@@ -8,20 +8,21 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Mapping, Optional, Union, Literal
+from typing import Mapping, Optional, Union
 
 from numpy import ndarray
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
-from omegaconf import OmegaConf, DictConfig
 
 from torchtune.utils import get_logger
-from torchtune.utils._device import _get_local_rank
 from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
 Scalar = Union[Tensor, ndarray, int, float]
 
 log = get_logger("DEBUG")
+
+
 class MetricLoggerInterface(Protocol):
     """Abstract metric logger."""
 
@@ -39,13 +40,15 @@ class MetricLoggerInterface(Protocol):
             step (int): step value to record
         """
         pass
+
     def log_config(self, config: DictConfig) -> None:
         """Logs the config
-        
+
         Args:
             config (DictConfig): config to log
         """
         pass
+
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         """Log multiple scalar values.
 
@@ -88,10 +91,10 @@ class DiskLogger(MetricLoggerInterface):
         self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
-    
+
     def path_to_log_file(self) -> Path:
         return self._file_name
-    
+
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
 
@@ -171,7 +174,7 @@ class WandBLogger(MetricLoggerInterface):
         self._wandb = wandb
 
         _, self.rank = get_world_size_and_rank()
-        
+
         if self.rank == 0:
             self._wandb.init(
                 project=project,
@@ -180,31 +183,34 @@ class WandBLogger(MetricLoggerInterface):
                 reinit=True,
                 resume="allow",
                 **kwargs,
-            
             )
-        
+
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
         stored in the same directory as the checkpoint. You can
         see an example of the logged config to W&B in the following link:
           https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
-        Raises:
-            RuntimeError: If W&B run is not initialized.
+
+        Args:
+            config (DictConfig): config to log
         """
         if self._wandb.run:
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(resolved)
-            
-            output_config_fname = Path(os.path.join(
-                config.checkpointer.checkpoint_dir, 
-                f"torchtune_config_{self._wandb.run.id}.yaml"
+
+            output_config_fname = Path(
+                os.path.join(
+                    config.checkpointer.checkpoint_dir,
+                    f"torchtune_config_{self._wandb.run.id}.yaml",
                 )
             )
             OmegaConf.save(config, output_config_fname)
             try:
-                
+
                 log.info(f"Logging {output_config_fname} to W&B under Files")
-                self._wandb.save(output_config_fname, base_path=output_config_fname.parent)
+                self._wandb.save(
+                    output_config_fname, base_path=output_config_fname.parent
+                )
 
             except Exception as e:
                 log.warning(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
@@ -224,6 +230,7 @@ class WandBLogger(MetricLoggerInterface):
     def close(self) -> None:
         if self._wandb.run:
             self._wandb.finish()
+
 
 class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
@@ -286,4 +293,3 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
-
