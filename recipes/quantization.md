@@ -1,13 +1,3 @@
-# Training Recipes
-
-&nbsp;
-
-## What are Recipes?
-
-Recipes are the primary entry points for torchtune users. These can be thought of as end-to-end pipelines for training and optionally evaluating LLMs. More information about recipes, their components and a design overview can be found in our [recipe deep-dive](https://pytorch.org/torchtune/main/deep_dives/recipe_deepdive.html).
-
-&nbsp;
-
 # Quantization and Sparsity
 
 torchtune integrates with [torchao](https://github.com/pytorch-labs/ao/) for architecture optimization techniques including quantization and sparsity. Currently only some quantization techniques are integrated, see the docstrings in the [quantization recipe](quantize.py) for more details.
