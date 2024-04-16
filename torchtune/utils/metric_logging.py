@@ -135,10 +135,13 @@ class WandBLogger(MetricLoggerInterface):
     For more information about arguments expected by WandB, see https://docs.wandb.ai/ref/python/init.
 
     Args:
-        project (str): WandB project name
-        entity (Optional[str]): WandB entity name
-        group (Optional[str]): WandB group name
-        log_dir (Optional[str]): WandB log directory
+        project (str): WandB project name. Default is `torchtune`.
+        entity (Optional[str]): WandB entity name. If you don't specify an entity,
+            the run will be sent to your default entity, which is usually your username.
+        group (Optional[str]): WandB group name for grouping runs together. If you don't
+            specify a group, the run will be logged as an individual experiment.
+        log_dir (Optional[str]): WandB log directory. If not specified, use the `dir`
+            argument provided in kwargs. Else, use root directory.
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
@@ -175,7 +178,7 @@ class WandBLogger(MetricLoggerInterface):
             ) from e
         self._wandb = wandb
 
-        # remove "dir" from kwargs
+        # Use dir if specified, otherwise use log_dir.
         self.log_dir = kwargs.pop("dir", log_dir)
 
         _, self.rank = get_world_size_and_rank()
