@@ -1,7 +1,7 @@
 .. _recipe_deepdive:
 
 =================
-What are recipes?
+What Are Recipes?
 =================
 
 This deep-dive will walk you through the design of training-recipes in torchtune.
@@ -208,7 +208,7 @@ You can learn all about configs in our :ref:`config deep-dive<config_tutorial_la
 
 Config and CLI parsing using :code:`parse`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-We provide a convenient decorator :func:`~torchtune.config._parse.parse` that wraps
+We provide a convenient decorator :func:`~torchtune.config.parse` that wraps
 your recipe to enable running from the command-line with :code:`tune` with config
 and CLI override parsing.
 

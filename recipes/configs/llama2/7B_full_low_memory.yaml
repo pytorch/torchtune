@@ -3,7 +3,11 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Llama-2-7b --hf-token <HF_TOKEN> --output-dir /tmp/llama2
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
+#
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
 #
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config llama2/7B_full_low_memory

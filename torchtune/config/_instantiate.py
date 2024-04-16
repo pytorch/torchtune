@@ -51,6 +51,13 @@ def instantiate(
     function call. These are automatically merged with the provided config, with keyword
     args taking precedence.
 
+    Args:
+        config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.
+            This is expected to have a _component_ field specifying the path of the object
+            to instantiate.
+        *args (Tuple[Any, ...]): positional arguments to pass to the object to instantiate.
+        **kwargs (Dict[str, Any]): keyword arguments to pass to the object to instantiate.
+
     Examples:
         >>> config.yaml:
         >>>     model:
@@ -65,13 +72,6 @@ def instantiate(
         >>> # in llama2(), it must be specified first. Pass in other arguments as kwargs.
         >>> # This will return an nn.Module directly for llama2 with specified args.
         >>> model = config.instantiate(parsed_yaml.model, vocab_size, max_seq_len=4096, embed_dim=4096)
-
-    Args:
-        config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.
-            This is expected to have a _component_ field specifying the path of the object
-            to instantiate.
-        *args (Tuple[Any, ...]): positional arguments to pass to the object to instantiate.
-        **kwargs (Dict[str, Any]): keyword arguments to pass to the object to instantiate.
 
     Returns:
         Any: the instantiated object.

@@ -8,7 +8,7 @@ Getting Started
 
 Topics in this section will help you get started with torchtune.
 
-.. grid:: 4
+.. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
         What is torchtune?
@@ -35,14 +35,6 @@ Topics in this section will help you get started with torchtune.
 
          Follow a simple tutorial to finetune Llama2 with torchtune.
 
-     .. grid-item-card:: :octicon:`file-code;1em`
-         End-to-End Workflow with torchtune
-         :img-top: _static/img/card-background.svg
-         :link: tutorials/e2e_flow.html
-         :link-type: url
-
-         Train, Evaluate, Quantize and then Generate with your LLM.
-
 Tutorials
 ~~~~~~~~~
 
@@ -62,8 +54,8 @@ torchtune tutorials.
    :header: Understanding QLoRA in TorchTune
    :card_description: Using QLoRA to quantize base model weights and maximize memory savings
    :image: _static/img/generic-pytorch-logo.png
-   :link: examples/qlora_finetune.html
-   :tags: finetuning,llama2
+   :link: tutorials/qlora_finetune.html
+   :tags: finetuning,llama2,qlora
 
 .. customcarditem::
    :header: End-to-End Workflow with torchtune
@@ -89,7 +81,6 @@ torchtune tutorials.
    overview
    install
    tutorials/first_finetune_tutorial
-   tutorials/e2e_flow
 
 .. toctree::
    :glob:
@@ -99,8 +90,8 @@ torchtune tutorials.
 
    tutorials/lora_finetune
    tutorials/qlora_finetune
-   tutorials/first_finetune_tutorial
    tutorials/e2e_flow
+   tutorials/datasets
 
 .. toctree::
    :glob:
@@ -120,6 +111,7 @@ torchtune tutorials.
    :hidden:
 
    api_ref_config
+   api_ref_data
    api_ref_datasets
    api_ref_models
    api_ref_modules

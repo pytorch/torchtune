@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --hf-token <HF_TOKEN> --output-dir /tmp/gemma2
+#   tune download google/gemma-2b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/2B_full
@@ -42,11 +42,6 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: /tmp/gemma
   model_type: GEMMA
-share_weights:
-  share_weights: True
-  weight_tying_config: {
-    "output": "tok_embeddings"
-  }
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
@@ -59,7 +54,6 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
 
 # Training env
 device: cuda

@@ -8,6 +8,7 @@
 
 
 import contextlib
+from unittest import mock
 
 import pytest
 import torch
@@ -39,14 +40,26 @@ class TestPrecisionUtils:
             torch.float32,
             torch.float16,
             torch.float16,
-            torch.bfloat16 if verify_bf16_support() else torch.float32,
+            torch.bfloat16,
             torch.float32,
             torch.float64,
         ]
         for dtype, expected_dtype in zip(dtypes, expected_dtypes):
+            if dtype == "bf16" and not verify_bf16_support():
+                continue  # skip bf16 tests if not supported.
             assert (
                 get_dtype(dtype) == expected_dtype
             ), f"{dtype} should return {expected_dtype}"
+
+    @mock.patch("torchtune.utils.precision.verify_bf16_support", return_value=False)
+    def test_error_bf16_unsupported(self, mock_verify):
+        """
+        Tests that an error is raised if bf16 is specified but not supported.
+        """
+        with pytest.raises(
+            RuntimeError, match="bf16 precision was requested but not available"
+        ):
+            get_dtype(torch.bfloat16)
 
     def test_grad_scaler(self):
         """

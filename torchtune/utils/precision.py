@@ -80,8 +80,9 @@ def get_dtype(
 ) -> torch.dtype:
     """Get the torch.dtype corresponding to the given precision string.
 
-    NOTE: If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
-        bf16 kernels. If not, the dtype returned is `torch.float32`.
+    Note:
+        If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
+        bf16 kernels. If not, a ``RuntimeError`` is raised.
 
     Args:
         dtype (Optional[str]): The precision dtype. Default: ``None``, in which we default to torch.float32
@@ -91,6 +92,7 @@ def get_dtype(
             a CUDA device is assumed.
     Raises:
         ValueError: if precision isn't supported by the precision utils
+        RuntimeError: if bf16 precision is requested but not available on this hardware.
 
     Returns:
         torch.dtype: The corresponding torch.dtype.
@@ -117,8 +119,9 @@ def get_dtype(
         and device != torch.device("cpu")
         and not verify_bf16_support()
     ):
-        log.info("BF16 not supported on this hardware. Setting dtype to float32")
-        torch_dtype = torch.float32
+        raise RuntimeError(
+            "bf16 precision was requested but not available on this hardware. Please use fp32 precision instead."
+        )
 
     return torch_dtype
 
