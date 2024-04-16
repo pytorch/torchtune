@@ -63,7 +63,7 @@ torchtune provides the following fine-tuning recipes.
 
 Memory efficiency is important to us. All of our recipes are tested on a variety of setups including commodity GPUs with 24GB of VRAM as well as beefier options found in data centers.
 
-Single-GPU recipes expose a number of memory optimizations that aren't available in the distributed versions. These include support for low-precision optimizers from [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) and fusing optimizer step with backward to reduce memory footprint from the gradients (see example [config](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_low_memory.yaml)). For memory-constrained setups, we recommend using the single-device configs as a starting point. For example, our default QLoRA config has a peak memory usage of ``~9.3GB``. Similarly LoRA on single device with ``batch_size=2`` has a peak memory usage of ``~15.5GB``. Both of these are with ``dtype=bf16`` and ``AdamW`` as the optimizer.
+Single-GPU recipes expose a number of memory optimizations that aren't available in the distributed versions. These include support for low-precision optimizers from [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) and fusing optimizer step with backward to reduce memory footprint from the gradients (see example [config](https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_full_low_memory.yaml)). For memory-constrained setups, we recommend using the single-device configs as a starting point. For example, our default QLoRA config has a peak memory usage of ``~9.3GB``. Similarly LoRA on single device with ``batch_size=2`` has a peak memory usage of ``~17.1GB``. Both of these are with ``dtype=bf16`` and ``AdamW`` as the optimizer.
 
 This table captures the minimum memory requirements for our different recipes using the associated configs.
 
@@ -75,7 +75,7 @@ This table captures the minimum memory requirements for our different recipes us
 | 1 x RTX 4090 |   Full finetune   | [full_finetune_single_device](recipes/configs/llama2/7B_full_low_memory.yaml)     |    Llama-7B      |    14.97 GB            |
 | 4 x RTX 4090 |   Full finetune   | [full_finetune_distributed](recipes/configs/llama2/7B_full.yaml)         |    Llama-7B      |    22.9 GB           |
 
-* we've tried to average these numbers over multiple runs, but there might be some variance based on the setup.
+* these are averaged over multiple runs, but there might be some variance based on the setup. We'll update this table regularly.
 
 
 &nbsp;
