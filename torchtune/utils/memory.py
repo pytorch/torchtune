@@ -31,8 +31,8 @@ no_recompute_list = {
 
 # Uses PTD FSDP AC wrapper
 # currently selective per op and per layer checkpointing are supported
-def checkpoint_wrapper(module, config):
-    if config.mode == "selective" and config.selective_ac_option == "op":
+def checkpoint_wrapper(module, mode, ac_style):
+    if mode == "selective" and ac_style == "op":
 
         def _get_custom_policy(meta):
             def _custom_policy(mode, func, *args, **kwargs):
@@ -58,7 +58,7 @@ def checkpoint_wrapper(module, config):
             use_reentrant=False,
             preserve_rng_state=False,
         )
-    elif config.mode == "full":
+    elif mode == "full":
         return ptd_checkpoint_wrapper(
             module,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
@@ -67,7 +67,7 @@ def checkpoint_wrapper(module, config):
             preserve_rng_state=False,
         )
 
-    elif config.mode == "selective" and config.selective_ac_option.isdigit():
+    elif mode == "selective" and ac_style.isdigit():
         """enables selective checkpointing of candidate layers.
         Usage:
         'selective_ac_option' with a positive 'int' value in config controls which layers to checkpoint.
@@ -112,15 +112,19 @@ def set_activation_checkpointing(
         **kwargs: additional arguments to pass to torch.distributed activation checkpointing.
     """
     # integrate selective ac
+    # probably need to filter for which module
+    mode = "selective"
+    ac_style = "op"
 
     for layer_id, transformer_block in enumerate(model.layers):
-            if job_config.activation_checkpoint.mode in ("full", "selective"):
-                transformer_block = checkpoint_wrapper(
-                    transformer_block, job_config.activation_checkpoint
-                )
-
-    wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-    apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
+        print(f"inside set act checkpoint: {layer_id=}, {transformer_block=}" )
+        if mode in ("full", "selective"):
+            transformer_block = checkpoint_wrapper(
+                transformer_block, mode, ac_style,
+            )
+    assert False, "good stop"
+    #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
+    #apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
 
 def cleanup_before_training() -> None:

@@ -294,6 +294,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
+
+        assert False, "verify ac"
         if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)
             log.info(f"Memory Stats after model init:\n{memory_stats}")
