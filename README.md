@@ -135,7 +135,7 @@ For distributed training, tune CLI integrates with [torchrun](https://pytorch.or
 Llama2 7B + LoRA on two GPUs:
 
 ```bash
-tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full_distributed
+tune run --nproc_per_node 2 full_finetune_distributed --config llama2/7B_full
 ```
 
 > Tip: Make sure to place any torchrun commands **before** the recipe specification. Any CLI args after this will override the config and not impact distributed training.
