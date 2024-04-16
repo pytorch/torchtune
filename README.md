@@ -67,6 +67,7 @@ Single-GPU recipes expose a number of memory optimizations that aren't available
 
 This table captures the minimum memory requirements for our different recipes using the associated configs.
 
+| Example HW Resources | Finetuning Method | Config | Model | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
 | 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](recipes/configs/llama2/7B_qlora_single_device.yaml)         |    Llama-7B      |     9.29 GB            |
 | 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](recipes/configs/llama2/7B_lora.yaml)         |    Llama-7B      |    20.95 GB            |
