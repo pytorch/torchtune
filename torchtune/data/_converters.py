@@ -39,6 +39,7 @@ def sharegpt_to_llama2_messages(
         sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
             to a list of dict messages.
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
+
     Returns:
         List[Message]: a list of messages with "role" and "content" fields. See `torchtune.datasets._types.Message`
             and `torchtune.datasets._types.Dialogue` for more details.
