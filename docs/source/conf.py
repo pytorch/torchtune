@@ -78,7 +78,7 @@ templates_path = ["_templates"]
 #
 source_suffix = [".rst"]
 
-# Get ET_VERSION_DOCS during the build.
+# Get TORCHTUNE_VERSION_DOCS during the build.
 torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
 
 # The code below will cut version displayed in the dropdown like this:
