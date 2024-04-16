@@ -530,12 +530,14 @@ is utilizing the :code:`huggingface-cli` command, which is integrated with torch
 to your finetuned model directory like so:
 
 .. code-block:: bash
+
     huggingface-cli upload <hf-repo-id> <checkpoint-dir>
 
 The command should output a link to your repository on the Hub. If the repository doesn't exist yet, it will
 be created automatically.
 
 .. code-block:: text
+
     https://huggingface.co/<hf-repo-id>/tree/main/.
 
 .. note::
