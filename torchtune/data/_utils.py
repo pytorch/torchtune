@@ -26,11 +26,13 @@ def validate_messages(
     """
     Given a list of messages, ensure that messages form a valid
     back-and-forth conversation. An error will be raised if:
-    1) There is a system message that's not the first message
-    2) There are two consecutive user messages
-    3) An assistant message comes before the first user message
-    4) The message is empty
-    5) Messages are shorter than length of 2 (min. one user-assistant turn)
+
+    - There is a system message that's not the first message
+    - There are two consecutive user messages
+    - An assistant message comes before the first user message
+    - The message is empty
+    - Messages are shorter than length of 2 (min. one user-assistant turn)
+
 
     Args:
         messages (List[Message]): the messages to validate.
