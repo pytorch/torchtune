@@ -1,0 +1,933 @@
+
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Configuring Datasets for Fine-Tuning &mdash; TorchTune  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Checkpointing in torchtune" href="../deep_dives/checkpointer.html" />
+    <link rel="prev" title="End-to-End Workflow with torchtune" href="e2e_flow.html" />
+  <!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-T8XT4PS');</script>
+    <!-- End Google Tag Manager -->
+  
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+  <!-- Preload the theme fonts -->
+
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+
+<!-- Preload the katex fonts -->
+
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Math-Italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Main-Bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size1-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size4-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size2-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Size3-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="https://cdn.jsdelivr.net/npm/katex@0.10.0/dist/fonts/KaTeX_Caligraphic-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.2/css/all.css" integrity="sha384-vSIIfh2YWi9wW0r9iZe7RJPrKwp6bG+s9QZMoITbCckVJqGCCRhc+ccxNcdpHuYu" crossorigin="anonymous">
+</head>
+
+<div class="container-fluid header-holder tutorials-header" id="header-holder">
+  <div class="container">
+    <div class="header-container">
+      <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch.org/get-started">Get Started</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ecosystem">Ecosystem</a>
+          </li>
+
+          <li>
+          <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="resource-option with-down-arrow">
+                Edge
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/edge">
+                  <span class="dropdown-title">About PyTorch Edge</span>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/executorch">
+                  <span class="dropdown-title">ExecuTorch</span>
+                </a>
+              </div>
+            </div>  
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/blog/">Blog</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/tutorials">Tutorials</a>
+          </li>
+
+          <li class="active docs-active">
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="resource-option with-down-orange-arrow">
+                Docs
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/docs/stable/index.html">
+                  <span class="dropdown-title">PyTorch</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/audio/stable/index.html">
+                  <span class="dropdown-title">torchaudio</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/text/stable/index.html">
+                  <span class="dropdown-title">torchtext</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/vision/stable/index.html">
+                  <span class="dropdown-title">torchvision</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/torcharrow">
+                  <span class="dropdown-title">torcharrow</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/data">
+                  <span class="dropdown-title">TorchData</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/torchrec">
+                  <span class="dropdown-title">TorchRec</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/serve/">
+                  <span class="dropdown-title">TorchServe</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/torchx/">
+                  <span class="dropdown-title">TorchX</span>
+                  <p></p>
+                </a>
+                <a class="doc-dropdown-option nav-dropdown-item" href="https://pytorch.org/xla">
+                  <span class="dropdown-title">PyTorch on XLA Devices</span>
+                  <p></p>
+                </a>
+            </div>
+          </li>
+
+          <li>
+            <div id="resourcesDropdownButton" data-toggle="resources-dropdown" class="resources-dropdown">
+              <a class="resource-option with-down-arrow">
+                Resources
+              </a>
+              <div class="resources-dropdown-menu">
+                <a class="nav-dropdown-item" href="https://pytorch.org/features">
+                  <span class="dropdown-title">About</span>
+                  <p>Learn about PyTorch’s features and capabilities</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/foundation">
+                  <span class="dropdown-title">PyTorch Foundation</span>
+                  <p>Learn about the PyTorch foundation</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/#community-module">
+                  <span class="dropdown-title">Community</span>
+                  <p>Join the PyTorch developer community to contribute, learn, and get your questions answered.</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/community-stories">
+                  <span class="dropdown-title">Community Stories</span>
+                  <p>Learn how our community solves real, everyday machine learning problems with PyTorch.</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/resources">
+                  <span class="dropdown-title">Developer Resources</span>
+                  <p>Find resources and get questions answered</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/events">
+                  <span class="dropdown-title">Events</span>
+                  <p>Find events, webinars, and podcasts</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://discuss.pytorch.org/" target="_blank">
+                  <span class="dropdown-title">Forums</span>
+                  <p>A place to discuss PyTorch code, issues, install, research</p>
+                </a>
+                <a class="nav-dropdown-item" href="https://pytorch.org/hub">
+                  <span class="dropdown-title">Models (Beta)</span>
+                  <p>Discover, publish, and reuse pre-trained models</p>
+                </a>
+              </div>
+            </div>
+          </li>
+
+          <li>
+            <a href="https://github.com/pytorch/pytorch">GitHub</a>
+          </li>
+        </ul>
+      </div>
+
+      <a class="main-menu-open-button" href="#" data-behavior="open-mobile-menu"></a>
+    </div>
+  </div>
+</div>
+
+<body class="pytorch-body">
+
+   
+
+    
+
+    <div class="table-of-contents-link-wrapper">
+      <span>Table of Contents</span>
+      <a href="#" class="toggle-table-of-contents" data-behavior="toggle-table-of-contents"></a>
+    </div>
+
+    <nav data-toggle="wy-nav-shift" class="pytorch-left-menu" id="pytorch-left-menu">
+      <div class="pytorch-side-scroll">
+        <div class="pytorch-menu pytorch-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          <div class="pytorch-left-menu-search">
+            
+    <div class="version">
+        <a href='https://pytorch.org/torchtune/versions.html'> &#x25BC</a>
+      </div>
+    
+
+
+  
+
+
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search Docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          </div>
+
+          
+            
+            
+              
+            
+            
+              <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Configuring Datasets for Fine-Tuning</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <div class="pytorch-container">
+      <div class="pytorch-page-level-bar" id="pytorch-page-level-bar">
+        <div class="pytorch-breadcrumbs-wrapper">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="pytorch-breadcrumbs">
+    
+      <li>
+        <a href="../index.html">
+          
+            Docs
+          
+        </a> &gt;
+      </li>
+
+        
+      <li>Configuring Datasets for Fine-Tuning</li>
+    
+    
+      <li class="pytorch-breadcrumbs-aside">
+        
+            
+            <a href="../_sources/tutorials/datasets.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+</div>
+        </div>
+
+        <div class="pytorch-shortcuts-wrapper" id="pytorch-shortcuts-wrapper">
+          Shortcuts
+        </div>
+      </div>
+
+      <section data-toggle="wy-nav-shift" id="pytorch-content-wrap" class="pytorch-content-wrap">
+        <div class="pytorch-content-left">
+
+        
+          <!-- Google Tag Manager (noscript) -->
+          <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-T8XT4PS"
+          height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+          <!-- End Google Tag Manager (noscript) -->
+          
+          <div class="rst-content">
+          
+            <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
+             <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
+              
+  <section id="configuring-datasets-for-fine-tuning">
+<span id="dataset-tutorial-label"></span><h1>Configuring Datasets for Fine-Tuning<a class="headerlink" href="#configuring-datasets-for-fine-tuning" title="Permalink to this heading">¶</a></h1>
+<p>This tutorial will guide you through how to set up a dataset to fine-tune on.</p>
+<div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
+<div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> What you will learn</div>
+<ul class="simple">
+<li><p class="sd-card-text">How to quickly get started with built-in datasets</p></li>
+<li><p class="sd-card-text">How to configure existing dataset classes from the config</p></li>
+<li><p class="sd-card-text">How to fully customize your own dataset</p></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sd-col sd-d-flex-row docutils">
+<div class="sd-card sd-sphinx-override sd-w-100 sd-shadow-sm docutils">
+<div class="sd-card-body docutils">
+<div class="sd-card-title sd-font-weight-bold docutils">
+<svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
+<ul class="simple">
+<li><p class="sd-card-text">Know how to <a class="reference internal" href="../deep_dives/configs.html#config-tutorial-label"><span class="std std-ref">configure components from the config</span></a></p></li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p>Datasets are a core component of fine-tuning workflows that serve as a “steering
+wheel” to guide LLM generation for a particular use case. Many publicly shared
+open-source datasets have become popular for fine-tuning LLMs and serve as a great
+starting point to train your model. We support several widely used datasets to help
+quickly bootstrap your fine-tuning. Let’s walk through how to set up a common one for fine-tuning.</p>
+<p>You can easily specify a dataset directly from the config file:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dataset</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+</pre></div>
+</div>
+<p>This will indicate to the recipes to create a dataset object that iterates over samples
+from <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca">tatsu-lab/alpaca on HuggingFace datasets</a>.</p>
+<p>We also expose common knobs to tweak the dataset for your needs. For example, let’s say
+you’d like to reduce the memory footprint of each batch without changing the batch size.
+You could tweak <code class="code docutils literal notranslate"><span class="pre">max_seq_len</span></code> to achieve that directly from the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Dataset</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
+<span class="w">  </span><span class="c1"># Original is 512</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
+</pre></div>
+</div>
+<section id="customizing-instruct-templates">
+<h2>Customizing instruct templates<a class="headerlink" href="#customizing-instruct-templates" title="Permalink to this heading">¶</a></h2>
+<p>To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
+template that guides the model to generate output with a specific goal. Instruct templates
+are simply flavor text that structures your inputs for the model. It is model agnostic
+and is tokenized normally just like any other text, but it can help condition the model
+to respond better to an expected format. For example, the <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>
+structures the data in the following way:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
+<span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+<span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
+</pre></div>
+</div>
+<p>Here is an example of sample that is formatted with <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">AlpacaInstructTemplate</span>
+
+<span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;instruction&quot;</span><span class="p">:</span> <span class="s2">&quot;Classify the following into animals, plants, and minerals&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;input&quot;</span><span class="p">:</span> <span class="s2">&quot;Oak tree, copper ore, elephant&quot;</span><span class="p">,</span>
+<span class="p">}</span>
+<span class="n">prompt</span> <span class="o">=</span> <span class="n">AlpacaInstructTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<span class="c1"># Below is an instruction that describes a task, paired with an input that provides further context.</span>
+<span class="c1"># Write a response that appropriately completes the request.</span>
+<span class="c1">#</span>
+<span class="c1"># ### Instruction:</span>
+<span class="c1"># Classify the following into animals, plants, and minerals</span>
+<span class="c1">#</span>
+<span class="c1"># ### Input:</span>
+<span class="c1"># Oak tree, copper ore, elephant</span>
+<span class="c1">#</span>
+<span class="c1"># ### Response:</span>
+<span class="c1">#</span>
+</pre></div>
+</div>
+<p>We provide <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py">other instruct templates</a>
+for common tasks such summarization and grammar correction. If you need to create your own
+instruct template for a custom task, you can create your own <a class="reference internal" href="../generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>
+class and point to it in the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mydataset/onthehub</span>
+<span class="w">  </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CustomTemplate</span>
+<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+</pre></div>
+</div>
+</section>
+<section id="customizing-chat-formats">
+<h2>Customizing chat formats<a class="headerlink" href="#customizing-chat-formats" title="Permalink to this heading">¶</a></h2>
+<p>Chat formats are similar to instruct templates, except that they format system,
+user, and assistant messages in a list of messages (see <a class="reference internal" href="../generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a>)
+for a conversational dataset. These can be configured quite similarly to instruct
+datasets.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Open-Orca/SlimOrca-Dedup</span>
+<span class="w">  </span><span class="nt">conversation_style</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sharegpt</span>
+<span class="w">  </span><span class="nt">chat_format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Llama2ChatFormat</span>
+</pre></div>
+</div>
+<p>Here is how messages would be formatted using the <a class="reference internal" href="../generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">Message</span>
+
+<span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;system&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;You are a helpful, respectful, and honest assistant.&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;I am going to Paris, what should I see?&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span>
+        <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
+        <span class="n">content</span><span class="o">=</span><span class="s2">&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+    <span class="p">),</span>
+<span class="p">]</span>
+<span class="n">formatted_messages</span> <span class="o">=</span> <span class="n">Llama2ChatFormat</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">formatted_messages</span><span class="p">)</span>
+<span class="c1"># [</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;user&quot;,</span>
+<span class="c1">#         content=&quot;[INST] &lt;&lt;SYS&gt;&gt;\nYou are a helpful, respectful and honest assistant.\n&lt;&lt;/SYS&gt;&gt;\n\n&quot;</span>
+<span class="c1">#         &quot;I am going to Paris, what should I see? [/INST] &quot;,</span>
+<span class="c1">#     ),</span>
+<span class="c1">#     Message(</span>
+<span class="c1">#         role=&quot;assistant&quot;,</span>
+<span class="c1">#         content=&quot;Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+<span class="c1">#     ),</span>
+<span class="c1"># ]</span>
+</pre></div>
+</div>
+<p>Note that the system message is now incorporated in the user message. If you create custom ChatFormats
+you can also add more advanced behavior.</p>
+</section>
+<section id="fully-customized-datasets">
+<h2>Fully customized datasets<a class="headerlink" href="#fully-customized-datasets" title="Permalink to this heading">¶</a></h2>
+<p>More advanced tasks and dataset formats may require you to create your own dataset
+class for more flexibility. Let’s walk through the <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code>,
+which has custom functionality for RLHF preference data, to understand what you’ll need to do.</p>
+<p>If you take a look at the code for the <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code> class,
+you’ll notice it’s quite similar to <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructDataset</span></code> with a few
+adjustments for chosen and rejected samples in preference data.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">chosen_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_chosen</span><span class="p">]),</span>
+<span class="p">]</span>
+<span class="n">rejected_message</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_rejected</span><span class="p">]),</span>
+<span class="p">]</span>
+
+<span class="n">chosen_input_ids</span><span class="p">,</span> <span class="n">c_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">chosen_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">chosen_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">c_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">chosen_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+
+<span class="n">rejected_input_ids</span><span class="p">,</span> <span class="n">r_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+    <span class="n">rejected_message</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+<span class="p">)</span>
+<span class="n">rejected_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">r_masks</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">rejected_input_ids</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>If any of the existing dataset classes do not serve your purposes, you can similarly
+use one of them as a starting point and add the functionality you need.</p>
+<p>To be able to use your custom dataset from the config, you will need to create
+a builder function. This is the builder function for the <code class="xref py py-func docutils literal notranslate"><span class="pre">stack_exchanged_paired_dataset()</span></code>,
+which creates a <code class="xref py py-class docutils literal notranslate"><span class="pre">PreferenceDataset</span></code> configured to use
+a paired dataset from Hugging Face. Notice that we’ve also had
+to add a custom instruct template as well.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">stack_exchanged_paired_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">PreferenceDataset</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="s2">&quot;lvwerra/stack-exchange-paired&quot;</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">StackExchangedPairedTemplate</span><span class="p">(),</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;question&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;chosen&quot;</span><span class="p">:</span> <span class="s2">&quot;response_j&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;response_k&quot;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;data/rl&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can easily specify our custom dataset from the config.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># This is how you would configure the Alpaca dataset using the builder</span>
+<span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.stack_exchanged_paired_dataset</span>
+<span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">512</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+             </article>
+             
+            </div>
+            <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="../deep_dives/checkpointer.html" class="btn btn-neutral float-right" title="Checkpointing in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+      
+      
+        <a href="e2e_flow.html" class="btn btn-neutral" title="End-to-End Workflow with torchtune" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+      
+    </div>
+  
+
+  
+
+    <hr>
+
+  
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2023-present, TorchTune Contributors.
+
+    </p>
+  </div>
+    
+      <div>
+        Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+      </div>
+     
+
+</footer>
+
+          </div>
+        </div>
+
+        <div class="pytorch-content-right" id="pytorch-content-right">
+          <div class="pytorch-right-menu" id="pytorch-right-menu">
+            <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
+              <ul>
+<li><a class="reference internal" href="#">Configuring Datasets for Fine-Tuning</a><ul>
+<li><a class="reference internal" href="#customizing-instruct-templates">Customizing instruct templates</a></li>
+<li><a class="reference internal" href="#customizing-chat-formats">Customizing chat formats</a></li>
+<li><a class="reference internal" href="#fully-customized-datasets">Fully customized datasets</a></li>
+</ul>
+</li>
+</ul>
+
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+  
+
+
+  
+
+     
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
+     
+
+  
+
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+<!-- Disabling "auto-collapsing" of sections on the left side bar. Replace script with commented out sections to reenable. -->
+<!--  
+<script script type="text/javascript">
+    var collapsedSections = ['Introduction', 'Getting Started', 'Tutorials']
+</script> -->
+
+<script script type="text/javascript">
+    var collapsedSections = []
+</script>
+
+
+  <!-- Begin Footer -->
+
+  <div class="container-fluid docs-tutorials-resources" id="docs-tutorials-resources">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-4 text-center">
+          <h2>Docs</h2>
+          <p>Access comprehensive developer documentation for PyTorch</p>
+          <a class="with-right-arrow" href="https://pytorch.org/docs/stable/index.html">View Docs</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Tutorials</h2>
+          <p>Get in-depth tutorials for beginners and advanced developers</p>
+          <a class="with-right-arrow" href="https://pytorch.org/tutorials">View Tutorials</a>
+        </div>
+
+        <div class="col-md-4 text-center">
+          <h2>Resources</h2>
+          <p>Find development resources and get your questions answered</p>
+          <a class="with-right-arrow" href="https://pytorch.org/resources">View Resources</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container footer-container">
+      <div class="footer-logo-wrapper">
+        <a href="https://pytorch.org/" class="footer-logo"></a>
+      </div>
+
+      <div class="footer-links-wrapper">
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/">PyTorch</a></li>
+            <li><a href="https://pytorch.org/get-started">Get Started</a></li>
+            <li><a href="https://pytorch.org/features">Features</a></li>
+            <li><a href="https://pytorch.org/ecosystem">Ecosystem</a></li>
+            <li><a href="https://pytorch.org/blog/">Blog</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/blob/master/CONTRIBUTING.md">Contributing</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title"><a href="https://pytorch.org/resources">Resources</a></li>
+            <li><a href="https://pytorch.org/tutorials">Tutorials</a></li>
+            <li><a href="https://pytorch.org/docs/stable/index.html">Docs</a></li>
+            <li><a href="https://discuss.pytorch.org" target="_blank">Discuss</a></li>
+            <li><a href="https://github.com/pytorch/pytorch/issues" target="_blank">Github Issues</a></li>
+            <li><a href="https://pytorch.org/assets/brand-guidelines/PyTorch-Brand-Guidelines.pdf" target="_blank">Brand Guidelines</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">Stay up to date</li>
+            <li><a href="https://www.facebook.com/pytorch" target="_blank">Facebook</a></li>
+            <li><a href="https://twitter.com/pytorch" target="_blank">Twitter</a></li>
+            <li><a href="https://www.youtube.com/pytorch" target="_blank">YouTube</a></li>
+            <li><a href="https://www.linkedin.com/company/pytorch" target="_blank">LinkedIn</a></li>
+          </ul>  
+          </div>
+
+        <div class="footer-links-col">
+          <ul>
+            <li class="list-title">PyTorch Podcasts</li>
+            <li><a href="https://open.spotify.com/show/6UzHKeiy368jKfQMKKvJY5" target="_blank">Spotify</a></li>
+            <li><a href="https://podcasts.apple.com/us/podcast/pytorch-developer-podcast/id1566080008" target="_blank">Apple</a></li>
+            <li><a href="https://www.google.com/podcasts?feed=aHR0cHM6Ly9mZWVkcy5zaW1wbGVjYXN0LmNvbS9PQjVGa0lsOA%3D%3D" target="_blank">Google</a></li>
+            <li><a href="https://music.amazon.com/podcasts/7a4e6f0e-26c2-49e9-a478-41bd244197d0/PyTorch-Developer-Podcast?" target="_blank">Amazon</a></li>
+          </ul>
+         </div>
+        </div>
+        
+        <div class="privacy-policy">
+          <ul>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/terms/" target="_blank">Terms</a></li>
+            <li class="privacy-policy-links">|</li>
+            <li class="privacy-policy-links"><a href="https://www.linuxfoundation.org/privacy-policy/" target="_blank">Privacy</a></li>
+          </ul>
+        </div>
+        <div class="copyright">
+        <p>© Copyright The Linux Foundation. The PyTorch Foundation is a project of The Linux Foundation.
+          For web site terms of use, trademark policy and other policies applicable to The PyTorch Foundation please see
+          <a href="https://www.linuxfoundation.org/policies/">www.linuxfoundation.org/policies/</a>. The PyTorch Foundation supports the PyTorch open source
+          project, which has been established as PyTorch Project a Series of LF Projects, LLC. For policies applicable to the PyTorch Project a Series of LF Projects, LLC,
+          please see <a href="https://www.lfprojects.org/policies/">www.lfprojects.org/policies/</a>.</p>
+      </div>
+     </div>
+
+  </footer>
+
+  <div class="cookie-banner-wrapper">
+  <div class="container">
+    <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
+  </div>
+</div>
+
+  <!-- End Footer -->
+
+  <!-- Begin Mobile Menu -->
+
+  <div class="mobile-main-menu">
+    <div class="container-fluid">
+      <div class="container">
+        <div class="mobile-main-menu-header-container">
+          <a class="header-logo" href="https://pytorch.org/" aria-label="PyTorch"></a>
+          <a class="main-menu-close-button" href="#" data-behavior="close-mobile-menu"></a>
+        </div>
+      </div>
+    </div>
+
+    <div class="mobile-main-menu-links-container">
+      <div class="main-menu">
+        <ul>
+          <li>
+            <a href="https://pytorch.org/get-started">Get Started</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/ecosystem">Ecosystem</a>
+          </li>
+            
+          <li>
+            <a href="">Mobile</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/blog/">Blog</a>
+          </li>
+
+          <li>
+            <a href="https://pytorch.org/tutorials">Tutorials</a>
+          </li>
+
+          <li class="resources-mobile-menu-title" class="active">
+            Docs
+          </li>
+
+          <ul class="resources-mobile-menu-items">
+            <li>
+              <a href="https://pytorch.org/docs/stable/index.html">PyTorch</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/audio/stable/index.html">torchaudio</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/text/stable/index.html">torchtext</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/vision/stable/index.html">torchvision</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/torcharrow">torcharrow</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/data">TorchData</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/torchrec">TorchRec</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/serve/">TorchServe</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/torchx/">TorchX</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/xla">PyTorch on XLA Devices</a>
+            </li>
+          </ul>
+
+          <li class="resources-mobile-menu-title">
+            Resources
+          </li>
+            
+           <ul class="resources-mobile-menu-items">
+
+            <li>
+              <a href="https://pytorch.org/features">About</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/foundation">PyTorch Foundation</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/#community-module">Community</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/community-stories">Community Stories</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/resources">Developer Resources</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/events">Events</a>
+            </li>
+
+            <li>
+              <a href="https://discuss.pytorch.org/">Forums</a>
+            </li>
+
+            <li>
+              <a href="https://pytorch.org/hub">Models (Beta)</a>
+            </li>
+          </ul>
+
+          <li>
+            <a href="https://github.com/pytorch/pytorch">Github</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- End Mobile Menu -->
+
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+
+  <script type="text/javascript">
+    $(document).ready(function() {
+      mobileMenu.bind();
+      mobileTOC.bind();
+      pytorchAnchors.bind();
+      sideMenus.bind();
+      scrollToAnchor.bind();
+      highlightNavigation.bind();
+      mainMenuDropdown.bind();
+      filterTags.bind();
+
+      // Add class to links that have code blocks, since we cannot create links in code blocks
+      $("article.pytorch-article a span.pre").each(function(e) {
+        $(this).closest("a").addClass("has-code");
+      });
+    })
+  </script>
+</body>
+</html>
