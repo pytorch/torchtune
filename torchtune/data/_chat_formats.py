@@ -47,11 +47,15 @@ class Llama2ChatFormat(ChatFormat):
     repository <https://github.com/meta-llama/llama/blob/main/llama/generation.py>`_.
 
     Example:
-        "[INST] <<SYS>>
-        You are a helpful, respectful and honest assistant.
-        <</SYS>>
+        .. code-block:: text
 
-        I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
+            "[INST] <<SYS>>
+            You are a helpful, respectful and honest assistant.
+            <</SYS>>"
+
+            I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture..."
+
+
     """
 
     B_INST, E_INST = "[INST]", "[/INST]"
@@ -110,8 +114,10 @@ class MistralChatFormat(ChatFormat):
     prompts.
 
     Example:
-        "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital
-        of France, is known for its stunning architecture..."
+        .. code-block:: text
+
+            "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital
+            of France, is known for its stunning architecture..."
 
     """
 
@@ -162,7 +168,7 @@ class MistralChatFormat(ChatFormat):
 class ChatMLFormat(ChatFormat):
     """
     OpenAI's `Chat Markup Language
-    <https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/openai/includes/chat-markup-language.md>`_
+    <https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md>`_
     used by their chat models.
 
     It is the default chat format used by HuggingFace models.
