@@ -168,17 +168,14 @@ class ChatMLFormat(ChatFormat):
     It is the default chat format used by HuggingFace models.
 
     Example:
-        ``<|im_start|>system``
+        .. code-block:: text
 
-        ``Provide some context and/or instructions to the model.<|im_end|>``
-
-        ``<|im_start|>user``
-
-        ``The user’s message goes here<|im_end|>``
-
-        ``<|im_start|>assistant``
-
-        ``The assistant’s response goes here<|im_end|>``
+            <|im_start|>system
+            Provide some context and/or instructions to the model.<|im_end|>
+            <|im_start|>user
+            The user’s message goes here<|im_end|>
+            <|im_start|>assistant
+            The assistant’s response goes here<|im_end|>
     """
 
     IM_START, IM_END = "<|im_start|>", "<|im_end|>"
