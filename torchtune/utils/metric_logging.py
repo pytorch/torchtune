@@ -138,6 +138,7 @@ class WandBLogger(MetricLoggerInterface):
         project (str): WandB project name
         entity (Optional[str]): WandB entity name
         group (Optional[str]): WandB group name
+        log_dir (Optional[str]): WandB log directory
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
@@ -162,6 +163,7 @@ class WandBLogger(MetricLoggerInterface):
         project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
+        log_dir: Optional[str] = None,
         **kwargs,
     ):
         try:
@@ -173,6 +175,9 @@ class WandBLogger(MetricLoggerInterface):
             ) from e
         self._wandb = wandb
 
+        # remove "dir" from kwargs
+        self.log_dir = kwargs.pop("dir", log_dir)
+
         _, self.rank = get_world_size_and_rank()
 
         if self.rank == 0:
@@ -182,6 +187,7 @@ class WandBLogger(MetricLoggerInterface):
                 group=group,
                 reinit=True,
                 resume="allow",
+                dir=self.log_dir,
                 **kwargs,
             )
             run._label(repo="torchtune")
