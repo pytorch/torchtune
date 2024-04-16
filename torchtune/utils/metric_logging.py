@@ -176,7 +176,7 @@ class WandBLogger(MetricLoggerInterface):
         _, self.rank = get_world_size_and_rank()
 
         if self.rank == 0:
-            self._wandb.init(
+            run = self._wandb.init(
                 project=project,
                 entity=entity,
                 group=group,
@@ -184,6 +184,7 @@ class WandBLogger(MetricLoggerInterface):
                 resume="allow",
                 **kwargs,
             )
+            run._label(repo="torchtune")
 
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
@@ -197,22 +198,25 @@ class WandBLogger(MetricLoggerInterface):
         if self._wandb.run:
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(resolved)
-
-            output_config_fname = Path(
-                os.path.join(
-                    config.checkpointer.checkpoint_dir,
-                    f"torchtune_config_{self._wandb.run.id}.yaml",
-                )
-            )
-            OmegaConf.save(config, output_config_fname)
             try:
+                output_config_fname = Path(
+                    os.path.join(
+                        config.checkpointer.checkpoint_dir,
+                        f"torchtune_config_{self._wandb.run.id}.yaml",
+                    )
+                )
+                OmegaConf.save(config, output_config_fname)
+
                 log.info(f"Logging {output_config_fname} to W&B under Files")
                 self._wandb.save(
                     output_config_fname, base_path=output_config_fname.parent
                 )
 
             except Exception as e:
-                log.warning(f"Error saving {output_config_fname} to W&B.\nError: \n{e}")
+                log.warning(
+                    f"Error saving {output_config_fname} to W&B.\nError: \n{e}."
+                    "Don't worry the config will be logged the W&B workspace"
+                )
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         if self._wandb.run:
