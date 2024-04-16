@@ -122,7 +122,6 @@ def set_activation_checkpointing(
             transformer_block = checkpoint_wrapper(
                 transformer_block, mode, ac_style,
             )
-    assert False, "good stop"
     #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
     #apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
 
