@@ -112,7 +112,7 @@ keyword arguments not specified in the config if we'd like:
 .. code-block:: python
 
     # Note the API of the tokenizer we specified - we need to pass in a path
-    def llama2_tokenizer(path: str) -> Tokenizer;
+    def llama2_tokenizer(path: str) -> Tokenizer:
 
     # Note the API of the dataset we specified - we need to pass in a tokenizer
     # and any optional keyword arguments
@@ -161,7 +161,8 @@ will list out all the locations where an error was found.
 
 .. code-block:: bash
 
-  tune validate --config recipes/configs/llama2/7B_full.yaml batch_size=4
+  tune cp llama2/7B_lora_single_device ./my_config.yaml
+  tune validate ./my_config.yaml
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -219,15 +220,15 @@ the config itself. To enable quick experimentation, you can specify override val
 to parameters in your config via the :code:`tune` command. These should be specified
 as key-value pairs :code:`k1=v1 k2=v2 ...`
 
-For example, to run the :code:`full_finetune` recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:
+For example, to run the :code:`lora_finetune_single_device` recipe with custom model and tokenizer directories, you can provide overrides:
 
 .. code-block:: bash
 
-    tune full_finetune_distributed \
-    --config full_finetune_distributed \
+    tune run lora_finetune_single_device \
+    --config llama2/7B_lora_single_device \
     checkpointer.checkpoint_dir=/home/my_model_checkpoint \
-    checkpointer.checkpoint_files=[file_1, file_2] \
-    device=cuda
+    checkpointer.checkpoint_files=['file_1','file_2'] \
+    tokenizer.path=/home/my_tokenizer_path
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^
@@ -244,4 +245,5 @@ name directly. Any nested fields in the components can be overridden with dot no
 .. code-block:: bash
 
     # Change to slimorca_dataset and set train_on_input to False
-    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
+    tune run lora_finetune_single_device --config my_config.yaml \
+    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False

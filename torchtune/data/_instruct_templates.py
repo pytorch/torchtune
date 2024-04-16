@@ -149,7 +149,7 @@ class SummarizeTemplate(InstructTemplate):
 
 class StackExchangedPairedTemplate(InstructTemplate):
     """
-    Prompt template for preference datasets similar to StackExchanged paired.
+    Prompt template for preference datasets similar to StackExchangedPaired.
     """
 
     template = "Question: {question}\n\nAnswer: "

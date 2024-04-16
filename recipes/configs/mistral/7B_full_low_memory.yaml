@@ -9,6 +9,10 @@
 # this run:
 #   tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN> --output-dir /tmp/Mistral-7B-v0.1
 #
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
+#
 # To launch on a single device, run the following command from root:
 #   tune run full_finetune_single_device --config mistral/7B_full_low_memory
 #
@@ -56,7 +60,7 @@ optimizer:
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 1
 optimizer_in_bwd: True
 
 # Training env
