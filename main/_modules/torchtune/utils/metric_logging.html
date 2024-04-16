@@ -496,9 +496,13 @@
 <span class="sd">    For more information about arguments expected by WandB, see https://docs.wandb.ai/ref/python/init.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        project (str): WandB project name</span>
-<span class="sd">        entity (Optional[str]): WandB entity name</span>
-<span class="sd">        group (Optional[str]): WandB group name</span>
+<span class="sd">        project (str): WandB project name. Default is `torchtune`.</span>
+<span class="sd">        entity (Optional[str]): WandB entity name. If you don&#39;t specify an entity,</span>
+<span class="sd">            the run will be sent to your default entity, which is usually your username.</span>
+<span class="sd">        group (Optional[str]): WandB group name for grouping runs together. If you don&#39;t</span>
+<span class="sd">            specify a group, the run will be logged as an individual experiment.</span>
+<span class="sd">        log_dir (Optional[str]): WandB log directory. If not specified, use the `dir`</span>
+<span class="sd">            argument provided in kwargs. Else, use root directory.</span>
 <span class="sd">        **kwargs: additional arguments to pass to wandb.init</span>
 
 <span class="sd">    Example:</span>
@@ -523,6 +527,7 @@
         <span class="n">project</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;torchtune&quot;</span><span class="p">,</span>
         <span class="n">entity</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">group</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">log_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">try</span><span class="p">:</span>
@@ -534,6 +539,9 @@
             <span class="p">)</span> <span class="kn">from</span> <span class="nn">e</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_wandb</span> <span class="o">=</span> <span class="n">wandb</span>
 
+        <span class="c1"># Use dir if specified, otherwise use log_dir.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dir&quot;</span><span class="p">,</span> <span class="n">log_dir</span><span class="p">)</span>
+
         <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -543,6 +551,7 @@
                 <span class="n">group</span><span class="o">=</span><span class="n">group</span><span class="p">,</span>
                 <span class="n">reinit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                 <span class="n">resume</span><span class="o">=</span><span class="s2">&quot;allow&quot;</span><span class="p">,</span>
+                <span class="nb">dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">log_dir</span><span class="p">,</span>
                 <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="n">run</span><span class="o">.</span><span class="n">_label</span><span class="p">(</span><span class="n">repo</span><span class="o">=</span><span class="s2">&quot;torchtune&quot;</span><span class="p">)</span>
