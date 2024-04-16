@@ -20,7 +20,10 @@ from torchtune.data import (
 
 from torchtune.modules import Tokenizer
 
-os.environ["ACTIVELOOP_TOKEN"] = os.getenv("ACTIVELOOP_TOKEN")
+try:
+    os.environ["ACTIVELOOP_TOKEN"] = os.getenv("ACTIVELOOP_TOKEN")
+except:
+    print("ACTIVELOOP_TOKEN not found in environment variables")
 
 
 class DeepLakePyTorchDataset(Dataset):

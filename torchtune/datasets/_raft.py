@@ -11,7 +11,10 @@ from torchtune.datasets._instruct_deeplake import InstructDatasetDeepLakeRAFT
 from torchtune.modules import Tokenizer
 import os
 
-dataset_source_env = os.getenv("dataset_activeloop")
+try:
+    dataset_source_env = os.getenv("dataset_activeloop")
+except:
+    print("dataset_activeloop not found in environment variables")
 
 
 def raft_dataset(
