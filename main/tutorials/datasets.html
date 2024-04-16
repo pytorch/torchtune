@@ -282,6 +282,7 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
@@ -422,14 +423,14 @@ You could tweak <code class="code docutils literal notranslate"><span class="pre
 template that guides the model to generate output with a specific goal. Instruct templates
 are simply flavor text that structures your inputs for the model. It is model agnostic
 and is tokenized normally just like any other text, but it can help condition the model
-to respond better to an expected format. For example, the <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>
+to respond better to an expected format. For example, the <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>
 structures the data in the following way:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="s2">&quot;Below is an instruction that describes a task, paired with an input that provides further context. &quot;</span>
 <span class="s2">&quot;Write a response that appropriately completes the request.</span><span class="se">\n\n</span><span class="s2">&quot;</span>
 <span class="s2">&quot;### Instruction:</span><span class="se">\n</span><span class="si">{instruction}</span><span class="se">\n\n</span><span class="s2">### Input:</span><span class="se">\n</span><span class="si">{input}</span><span class="se">\n\n</span><span class="s2">### Response:</span><span class="se">\n</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
-<p>Here is an example of sample that is formatted with <code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code>:</p>
+<p>Here is an example of sample that is formatted with <a class="reference internal" href="../generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate" title="torchtune.data.AlpacaInstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">AlpacaInstructTemplate</span></code></a>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">AlpacaInstructTemplate</span>
 
 <span class="n">sample</span> <span class="o">=</span> <span class="p">{</span>
@@ -453,7 +454,7 @@ structures the data in the following way:</p>
 </div>
 <p>We provide <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py">other instruct templates</a>
 for common tasks such summarization and grammar correction. If you need to create your own
-instruct template for a custom task, you can create your own <code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code>
+instruct template for a custom task, you can create your own <a class="reference internal" href="../generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>
 class and point to it in the config.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
@@ -467,7 +468,7 @@ class and point to it in the config.</p>
 <section id="customizing-chat-formats">
 <h2>Customizing chat formats<a class="headerlink" href="#customizing-chat-formats" title="Permalink to this heading">¶</a></h2>
 <p>Chat formats are similar to instruct templates, except that they format system,
-user, and assistant messages in a list of messages (see <code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code>)
+user, and assistant messages in a list of messages (see <a class="reference internal" href="../generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a>)
 for a conversational dataset. These can be configured quite similarly to instruct
 datasets.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
@@ -477,7 +478,7 @@ datasets.</p>
 <span class="w">  </span><span class="nt">chat_format</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Llama2ChatFormat</span>
 </pre></div>
 </div>
-<p>Here is how messages would be formatted using the <code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code>:</p>
+<p>Here is how messages would be formatted using the <a class="reference internal" href="../generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a>:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">Message</span>
 
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>

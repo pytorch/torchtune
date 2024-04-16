@@ -279,6 +279,7 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
@@ -376,6 +377,7 @@
  | <a href="#R"><strong>R</strong></a>
  | <a href="#S"><strong>S</strong></a>
  | <a href="#T"><strong>T</strong></a>
+ | <a href="#V"><strong>V</strong></a>
  | <a href="#W"><strong>W</strong></a>
  
 </div>
@@ -388,13 +390,15 @@
         <li><a href="generated/torchtune.modules.peft.LoRALinear.html#torchtune.modules.peft.LoRALinear.adapter_params">(torchtune.modules.peft.LoRALinear method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.peft.AdapterModule.html#torchtune.modules.peft.AdapterModule">AdapterModule (class in torchtune.modules.peft)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.datasets.alpaca_cleaned_dataset.html#torchtune.datasets.alpaca_cleaned_dataset">alpaca_cleaned_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset">alpaca_dataset() (in module torchtune.datasets)</a>
+</li>
+      <li><a href="generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate">AlpacaInstructTemplate (class in torchtune.data)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -404,6 +408,12 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention">CausalSelfAttention (class in torchtune.modules)</a>
 </li>
+      <li><a href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat">ChatFormat (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.ChatMLFormat.html#torchtune.data.ChatMLFormat">ChatMLFormat (class in torchtune.data)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.utils.metric_logging.DiskLogger.html#torchtune.utils.metric_logging.DiskLogger.close">close() (torchtune.utils.metric_logging.DiskLogger method)</a>
 
       <ul>
@@ -442,6 +452,26 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.FeedForward.html#torchtune.modules.FeedForward">FeedForward (class in torchtune.modules)</a>
 </li>
+      <li><a href="generated/torchtune.data.AlpacaInstructTemplate.html#torchtune.data.AlpacaInstructTemplate.format">format() (torchtune.data.AlpacaInstructTemplate class method)</a>
+
+      <ul>
+        <li><a href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat.format">(torchtune.data.ChatFormat class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.ChatMLFormat.html#torchtune.data.ChatMLFormat.format">(torchtune.data.ChatMLFormat class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.GrammarErrorCorrectionTemplate.html#torchtune.data.GrammarErrorCorrectionTemplate.format">(torchtune.data.GrammarErrorCorrectionTemplate class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate.format">(torchtune.data.InstructTemplate class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat.format">(torchtune.data.Llama2ChatFormat class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat.format">(torchtune.data.MistralChatFormat class method)</a>
+</li>
+        <li><a href="generated/torchtune.data.SummarizeTemplate.html#torchtune.data.SummarizeTemplate.format">(torchtune.data.SummarizeTemplate class method)</a>
+</li>
+      </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.CausalSelfAttention.html#torchtune.modules.CausalSelfAttention.forward">forward() (torchtune.modules.CausalSelfAttention method)</a>
 
       <ul>
@@ -458,8 +488,6 @@
         <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.forward">(torchtune.modules.TransformerDecoderLayer method)</a>
 </li>
       </ul></li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.from_file">from_file() (torchtune.modules.Tokenizer class method)</a>
 </li>
       <li><a href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">FullModelHFCheckpointer (class in torchtune.utils)</a>
@@ -490,6 +518,8 @@
 </li>
       <li><a href="generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset">grammar_dataset() (in module torchtune.datasets)</a>
 </li>
+      <li><a href="generated/torchtune.data.GrammarErrorCorrectionTemplate.html#torchtune.data.GrammarErrorCorrectionTemplate">GrammarErrorCorrectionTemplate (class in torchtune.data)</a>
+</li>
   </ul></td>
 </tr></table>
 
@@ -501,6 +531,8 @@
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.config.instantiate.html#torchtune.config.instantiate">instantiate() (in module torchtune.config)</a>
+</li>
+      <li><a href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate">InstructTemplate (class in torchtune.data)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -521,6 +553,8 @@
       <li><a href="generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b">llama2_13b() (in module torchtune.models.llama2)</a>
 </li>
       <li><a href="generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b">llama2_7b() (in module torchtune.models.llama2)</a>
+</li>
+      <li><a href="generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat">Llama2ChatFormat (class in torchtune.data)</a>
 </li>
       <li><a href="generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer.load_checkpoint">load_checkpoint() (torchtune.utils.FullModelHFCheckpointer method)</a>
 
@@ -567,6 +601,10 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.models.mistral.mistral_7b.html#torchtune.models.mistral.mistral_7b">mistral_7b() (in module torchtune.models.mistral)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat">MistralChatFormat (class in torchtune.data)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -628,15 +666,19 @@
       </ul></li>
       <li><a href="generated/torchtune.utils.set_activation_checkpointing.html#torchtune.utils.set_activation_checkpointing">set_activation_checkpointing() (in module torchtune.utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.utils.set_seed.html#torchtune.utils.set_seed">set_seed() (in module torchtune.utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">set_trainable_params() (in module torchtune.modules.peft)</a>
 </li>
       <li><a href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">slimorca_dataset() (in module torchtune.datasets)</a>
 </li>
       <li><a href="generated/torchtune.utils.metric_logging.StdoutLogger.html#torchtune.utils.metric_logging.StdoutLogger">StdoutLogger (class in torchtune.utils.metric_logging)</a>
+</li>
+      <li><a href="generated/torchtune.data.SummarizeTemplate.html#torchtune.data.SummarizeTemplate">SummarizeTemplate (class in torchtune.data)</a>
+</li>
+      <li><a href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat.system">system (torchtune.data.MistralChatFormat attribute)</a>
 </li>
   </ul></td>
 </tr></table>
@@ -657,6 +699,18 @@
       <li><a href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer">TransformerDecoderLayer (class in torchtune.modules)</a>
 </li>
       <li><a href="generated/torchtune.utils.TuneRecipeArgumentParser.html#torchtune.utils.TuneRecipeArgumentParser">TuneRecipeArgumentParser (class in torchtune.utils)</a>
+</li>
+  </ul></td>
+</tr></table>
+
+<h2 id="V">V</h2>
+<table style="width: 100%" class="indextable genindextable"><tr>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.config.validate.html#torchtune.config.validate">validate() (in module torchtune.config)</a>
+</li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages">validate_messages() (in module torchtune.data)</a>
 </li>
   </ul></td>
 </tr></table>
