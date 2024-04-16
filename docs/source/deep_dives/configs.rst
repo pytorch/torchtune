@@ -1,7 +1,7 @@
 .. _config_tutorial_label:
 
 =================
-All about configs
+All About Configs
 =================
 
 This deep-dive will guide you through writing configs for running recipes.
@@ -55,7 +55,7 @@ common examples of this. You can easily do this using the :code:`_component_`
 subfield. In :code:`_component_`, you need to specify the dotpath of the object
 you wish to instantiate in the recipe. The dotpath is the exact path you would use
 to import the object normally in a Python file. For example, to specify the
-:class:`~torchtune.datasets._alpaca.alpaca_dataset` in your config with custom
+:class:`~torchtune.datasets.alpaca_dataset` in your config with custom
 arguments:
 
 .. code-block:: yaml
@@ -80,10 +80,10 @@ instance of the specified object in your recipe's setup like so:
 This will automatically use any keyword arguments specified in the fields under
 :code:`dataset`.
 
-As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets._alpaca.alpaca_dataset`,
+As written, the preceding example will actually throw an error. If you look at the method for :class:`~torchtune.datasets.alpaca_dataset`,
 you'll notice that we're missing a required positional argument, the tokenizer.
 Since this is another configurable torchtune object, let's understand how to handle
-this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` API.
+this by taking a look at the :func:`~torchtune.config.instantiate` API.
 
 .. code-block:: python
 
@@ -93,7 +93,7 @@ this by taking a look at the :func:`~torchtune.config._instantiate.instantiate` 
         **kwargs: Dict[str, Any],
     )
 
-:func:`~torchtune.config._instantiate.instantiate` also accepts positional arguments
+:func:`~torchtune.config.instantiate` also accepts positional arguments
 and keyword arguments and automatically uses that with the config when creating
 the object. This means we can not only pass in the tokenizer, but also add additional
 keyword arguments not specified in the config if we'd like:
@@ -112,7 +112,7 @@ keyword arguments not specified in the config if we'd like:
 .. code-block:: python
 
     # Note the API of the tokenizer we specified - we need to pass in a path
-    def llama2_tokenizer(path: str) -> Tokenizer;
+    def llama2_tokenizer(path: str) -> Tokenizer:
 
     # Note the API of the dataset we specified - we need to pass in a tokenizer
     # and any optional keyword arguments
@@ -141,7 +141,7 @@ config.
 Referencing other config fields with interpolations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Sometimes you need to use the same value more than once for multiple fields. You
-can use *interpolations* to reference another field, and :func:`~torchtune.config._instantiate.instantiate`
+can use *interpolations* to reference another field, and :func:`~torchtune.config.instantiate`
 will automatically resolve it for you.
 
 .. code-block:: yaml
@@ -161,7 +161,8 @@ will list out all the locations where an error was found.
 
 .. code-block:: bash
 
-  tune validate --config recipes/configs/llama2/7B_full.yaml batch_size=4
+  tune cp llama2/7B_lora_single_device ./my_config.yaml
+  tune validate ./my_config.yaml
 
 Best practices for writing configs
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -219,15 +220,15 @@ the config itself. To enable quick experimentation, you can specify override val
 to parameters in your config via the :code:`tune` command. These should be specified
 as key-value pairs :code:`k1=v1 k2=v2 ...`
 
-For example, to run the :code:`full_finetune` recipe with custom model and tokenizer directories and using GPUs, you can provide overrides:
+For example, to run the :code:`lora_finetune_single_device` recipe with custom model and tokenizer directories, you can provide overrides:
 
 .. code-block:: bash
 
-    tune full_finetune_distributed \
-    --config full_finetune_distributed \
+    tune run lora_finetune_single_device \
+    --config llama2/7B_lora_single_device \
     checkpointer.checkpoint_dir=/home/my_model_checkpoint \
-    checkpointer.checkpoint_files=[file_1, file_2] \
-    device=cuda
+    checkpointer.checkpoint_files=['file_1','file_2'] \
+    tokenizer.path=/home/my_tokenizer_path
 
 Overriding components
 ^^^^^^^^^^^^^^^^^^^^^
@@ -244,4 +245,5 @@ name directly. Any nested fields in the components can be overridden with dot no
 .. code-block:: bash
 
     # Change to slimorca_dataset and set train_on_input to False
-    tune full_finetune --config my_config.yaml dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
+    tune run lora_finetune_single_device --config my_config.yaml \
+    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False

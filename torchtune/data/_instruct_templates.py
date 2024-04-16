@@ -39,7 +39,7 @@ class InstructTemplate(ABC):
 
 class AlpacaInstructTemplate(InstructTemplate):
     """
-    Prompt template for the Alpaca dataset. Template prompt changes slightly depending
+    Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
     on if there's an instruction + input or just an instruction.
     """
 
@@ -89,7 +89,7 @@ class AlpacaInstructTemplate(InstructTemplate):
 
 class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
-    Prompt template for the Grammar dataset.
+    Prompt template for grammar correction datasets.
     """
 
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
@@ -149,7 +149,7 @@ class SummarizeTemplate(InstructTemplate):
 
 class StackExchangedPairedTemplate(InstructTemplate):
     """
-    Prompt template for the StackExchangedPaired dataset.
+    Prompt template for preference datasets similar to StackExchangedPaired.
     """
 
     template = "Question: {question}\n\nAnswer: "

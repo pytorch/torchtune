@@ -38,7 +38,7 @@ to some of the linear projections in each transformer layer's self-attention.
     If you're unfamiliar, check out these references for the `definition of rank <https://en.wikipedia.org/wiki/Rank_(linear_algebra)>`_
     and discussion of `low-rank approximations <https://en.wikipedia.org/wiki/Low-rank_approximation>`_.
 
-By finetuning with LoRA (as opposed to :ref:`finetuning all model parameters<finetune_llama_label>` ),
+By finetuning with LoRA (as opposed to finetuning all model parameters),
 you can expect to see memory savings due to a substantial reduction in the
 number of parameters with gradients. When using an optimizer with momentum,
 like `AdamW <https://pytorch.org/docs/stable/generated/torch.optim.AdamW.html>`_,
@@ -47,7 +47,7 @@ you can expect to see further memory savings from the optimizer state.
 .. note::
 
     LoRA memory savings come primarily from gradient and optimizer states,
-    and so if your model's peak memory comes in its :code:`forward()`, then LoRA
+    so if your model's peak memory comes in its :code:`forward()` method, then LoRA
     may not reduce peak memory.
 
 How does LoRA work?
@@ -145,7 +145,9 @@ Let's take a look at how to construct Llama2 models in torchtune with and withou
 
   # The default settings for lora_llama2_7b will match those for llama2_7b
   # We just need to define which layers we want LoRA applied to.
-  # We can choose from ["q_proj", "k_proj", "v_proj", and "output_proj"]
+  # Within each self-attention, we can choose from ["q_proj", "k_proj", "v_proj", and "output_proj"].
+  # We can also set apply_lora_to_mlp=True or apply_lora_to_output=True to apply LoRA to other linear
+  # layers outside of the self-attention.
   lora_model = lora_llama2_7b(lora_attn_modules=["q_proj", "v_proj"])
 
 .. note::
@@ -155,11 +157,10 @@ Let's take a look at how to construct Llama2 models in torchtune with and withou
 
 Let's inspect each of these models a bit more closely.
 
-.. code-block:: python
+.. code-block:: bash
 
   # Print the first layer's self-attention in the usual Llama2 model
-  print(base_model.layers[0].attn)
-
+  >>> print(base_model.layers[0].attn)
   CausalSelfAttention(
     (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
     (k_proj): Linear(in_features=4096, out_features=4096, bias=False)
@@ -169,8 +170,7 @@ Let's inspect each of these models a bit more closely.
   )
 
   # Print the same for Llama2 with LoRA weights
-  print(lora_model.layers[0].attn)
-
+  >>> print(lora_model.layers[0].attn)
   CausalSelfAttention(
     (q_proj): LoRALinear(
       (dropout): Dropout(p=0.0, inplace=False)
@@ -204,7 +204,7 @@ model without any wrappers or custom checkpoint conversion logic.
 
 .. note::
     Whenever loading weights with :code:`strict=False`, you should verify that any missing or extra keys in
-    the loaded :code:`state_dict` are as expected. torchtune's LoRA recipe does this by default via
+    the loaded :code:`state_dict` are as expected. torchtune's LoRA recipes do this by default via e.g.
     :func:`torchtune.modules.peft.validate_state_dict_for_lora`.
 
 Once we've loaded the base model weights, we also want to set only LoRA parameters to trainable.
@@ -222,7 +222,7 @@ Once we've loaded the base model weights, we also want to set only LoRA paramete
   set_trainable_params(lora_model, lora_params)
 
   # Print the total number of parameters
-  total_params = sum([p.numel() for p in lora_model.params()])
+  total_params = sum([p.numel() for p in lora_model.parameters()])
   trainable_params = sum([p.numel() for p in lora_model.parameters() if p.requires_grad])
   print(
     f"""
@@ -249,11 +249,11 @@ LoRA finetuning recipe in torchtune
 
 Finally, we can put it all together and finetune a model using torchtune's `LoRA recipe <https://github.com/pytorch/torchtune/blob/48626d19d2108f92c749411fbd5f0ff140023a25/recipes/lora_finetune.py>`_.
 Make sure that you have first downloaded the Llama2 weights and tokenizer by following :ref:`these instructions<download_llama_label>`.
-You can then run the following command to perform a LoRA finetune of Llama2-7B using the Alpaca dataset with two GPUs (each having VRAM of at least 23GB):
+You can then run the following command to perform a LoRA finetune of Llama2-7B with two GPUs (each having VRAM of at least 16GB):
 
 .. code-block:: bash
 
-    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed
+    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama2/7B_lora
 
 .. note::
     Make sure to point to the location of your Llama2 weights and tokenizer. This can be done
@@ -263,8 +263,7 @@ You can then run the following command to perform a LoRA finetune of Llama2-7B u
 
 .. note::
     You can modify the value of :code:`nproc_per_node` depending on (a) the number of GPUs you have available,
-    and (b) the memory constraints of your hardware. See `this table <https://github.com/pytorch/torchtune/tree/main?tab=readme-ov-file#finetuning-resource-requirements>`_
-    for peak memory of LoRA finetuning in a couple of common hardware setups.
+    and (b) the memory constraints of your hardware.
 
 The preceding command will run a LoRA finetune with torchtune's factory settings, but we may want to experiment a bit.
 Let's take a closer look at some of the :code:`lora_finetune_distributed` config.
@@ -288,8 +287,8 @@ Let's run this experiment. We can also increase alpha (in general it is good pra
 
 .. code-block:: bash
 
-    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config lora_finetune_distributed \
-    lora_attn_modules='[q_proj, k_proj, v_proj, output_proj]' \
+    tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama2/7B_lora \
+    lora_attn_modules=['q_proj','k_proj','v_proj','output_proj'] \
     lora_rank=32 lora_alpha=64 output_dir=./lora_experiment_1
 
 A comparison of the (smoothed) loss curves between this run and our baseline over the first 500 steps can be seen below.
@@ -300,7 +299,80 @@ A comparison of the (smoothed) loss curves between this run and our baseline ove
     The above figure was generated with W&B. You can use torchtune's :class:`~torchtune.utils.metric_logging.WandBLogger`
     to generate similar loss curves, but you will need to install W&B and setup an account separately.
 
-As an exercise, you can also try running some evaluation tasks or manually inspecting generations
-output by your saved checkpoints (which can be found in :code:`output_dir`).
-You may want to train the model for longer first, as here we only looked at 500 steps
-(which corresponds to about 2% of one epoch of the Alpaca dataset).
+
+Trading off memory and model performance with LoRA
+--------------------------------------------------
+
+In the preceding example, we ran LoRA on two devices. But given LoRA's low memory footprint, we can run fine-tuning
+on a single device using most commodity GPUs which support bfloat16 floating-point format. This can be done via the command:
+
+.. code-block:: bash
+
+    tune run lora_finetune_single_device --config llama2/7B_lora_single_device
+
+On a single device, we may need to be more cognizant of our peak memory. Let's run a few experiments
+to see our peak memory during a finetune. We will experiment along two axes:
+first, which model layers have LoRA applied, and second, the rank of each LoRA layer. (We will scale
+alpha in parallel to LoRA rank, as discussed above.)
+
+To compare the results of our experiments, we can evaluate our models on :code:`truthfulqa_mc2`, a task from
+the `TruthfulQA <https://arxiv.org/abs/2109.07958>`_ benchmark for language models. For more details on how to run this and other evaluation tasks
+with torchtune's EleutherAI evaluation harness integration, see our :ref:`End-to-End Workflow Tutorial <eval_harness_label>`.
+
+Previously, we only enabled LoRA for the linear layers in each self-attention module, but in fact there are other linear
+layers we can apply LoRA to: MLP layers and our model's final output projection. Note that for Llama-2-7B the final output
+projection maps to dimension 32000 (instead of 4096 as in the other linear layers), so enabling LoRA for this layer will increase
+our peak memory a bit more than the other layers. We can make the following changes to our config:
+
+.. code-block:: yaml
+
+  # Model Arguments
+  model:
+    _component_: lora_llama2_7b
+    lora_attn_modules: ['q_proj', 'k_proj', 'v_proj', 'output_proj']
+    apply_lora_to_mlp: True
+    apply_lora_to_output: True
+  ...
+
+.. note::
+    All the finetuning runs below use the `llama2/7B_lora_single_device <https://github.com/pytorch/torchtune/blob/main/recipes/configs/llama2/7B_lora_single_device.yaml>`_
+    config, which has a default batch size of 2. Modifying the batch size (or other hyperparameters, e.g. the optimizer) will impact both peak memory
+    and final evaluation results.
+
+.. list-table::
+   :widths: 25 25 25 25 25
+   :header-rows: 1
+
+   * - LoRA Layers
+     - Rank
+     - Alpha
+     - Peak Memory
+     - Accuracy (truthfulqa_mc2)
+   * - Q and V only
+     - 8
+     - 16
+     - **15.57 GB**
+     - 0.475
+   * - all layers
+     - 8
+     - 16
+     - 15.87 GB
+     - 0.508
+   * - Q and V only
+     - 64
+     - 128
+     - 15.86 GB
+     - 0.504
+   * - all layers
+     - 64
+     - 128
+     - 17.04 GB
+     - **0.514**
+
+We can see that our baseline settings give the lowest peak memory, but our evaluation performance is relatively lower.
+By enabling LoRA for all linear layers and increasing the rank to 64, we see almost a 4% absolute improvement
+in our accuracy on this task, but our peak memory also increases by about 1.4GB. These are just a couple simple
+experiments; we encourage you to run your own finetunes to find the right tradeoff for your particular setup.
+
+Additionally, if you want to decrease your model's peak memory even further (and still potentially achieve similar
+model quality results), you can check out our :ref:`QLoRA tutorial<qlora_finetune_label>`.

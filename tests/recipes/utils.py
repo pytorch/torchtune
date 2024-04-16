@@ -7,7 +7,7 @@
 import json
 import os
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import torch
 from torch.utils.data import Dataset
@@ -55,7 +55,7 @@ def dummy_alpaca_dataset_config():
     return out
 
 
-def llama2_test_config(max_batch_size: Optional[int] = None) -> List[str]:
+def llama2_test_config() -> List[str]:
     return [
         "model._component_=torchtune.models.llama2.llama2",
         "model.vocab_size=32_000",
@@ -74,7 +74,6 @@ def lora_llama2_test_config(
     apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
-    max_batch_size: Optional[int] = None,
     quantize_base: bool = False,
 ) -> List[str]:
     lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
