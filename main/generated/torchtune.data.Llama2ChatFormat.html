@@ -374,10 +374,13 @@
 used in LLaMA2 pre-training. Taken from Meta’s official <a class="reference external" href="https://github.com/meta-llama/llama/blob/main/llama/generation.py">LLaMA inference
 repository</a>.</p>
 <p class="rubric">Example</p>
-<p>“[INST] &lt;&lt;SYS&gt;&gt;
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&quot;[INST] &lt;&lt;SYS&gt;&gt;
 You are a helpful, respectful and honest assistant.
-&lt;&lt;/SYS&gt;&gt;</p>
-<p>I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture…”</p>
+&lt;&lt;/SYS&gt;&gt;&quot;
+
+I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture...&quot;
+</pre></div>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.data.Llama2ChatFormat.format">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Message</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><span class="pre">Message</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/data/_chat_formats.html#Llama2ChatFormat.format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.Llama2ChatFormat.format" title="Permalink to this definition">¶</a></dt>

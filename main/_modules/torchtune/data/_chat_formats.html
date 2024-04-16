@@ -408,11 +408,15 @@
 <span class="sd">    repository &lt;https://github.com/meta-llama/llama/blob/main/llama/generation.py&gt;`_.</span>
 
 <span class="sd">    Example:</span>
-<span class="sd">        &quot;[INST] &lt;&lt;SYS&gt;&gt;</span>
-<span class="sd">        You are a helpful, respectful and honest assistant.</span>
-<span class="sd">        &lt;&lt;/SYS&gt;&gt;</span>
+<span class="sd">        .. code-block:: text</span>
 
-<span class="sd">        I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+<span class="sd">            &quot;[INST] &lt;&lt;SYS&gt;&gt;</span>
+<span class="sd">            You are a helpful, respectful and honest assistant.</span>
+<span class="sd">            &lt;&lt;/SYS&gt;&gt;&quot;</span>
+
+<span class="sd">            I am going to Paris, what should I see? [/INST] Paris, the capital of France, is known for its stunning architecture...&quot;</span>
+
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">B_INST</span><span class="p">,</span> <span class="n">E_INST</span> <span class="o">=</span> <span class="s2">&quot;[INST]&quot;</span><span class="p">,</span> <span class="s2">&quot;[/INST]&quot;</span>
@@ -471,8 +475,10 @@
 <span class="sd">    prompts.</span>
 
 <span class="sd">    Example:</span>
-<span class="sd">        &quot;[INST] I am going to Paris, what should I see? [/INST] Paris, the capital</span>
-<span class="sd">        of France, is known for its stunning architecture...&quot;</span>
+<span class="sd">        .. code-block:: text</span>
+
+<span class="sd">            &quot;[INST] I am going to Paris, what should I see? [/INST] Paris, the capital</span>
+<span class="sd">            of France, is known for its stunning architecture...&quot;</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
@@ -523,7 +529,7 @@
 <div class="viewcode-block" id="ChatMLFormat"><a class="viewcode-back" href="../../../generated/torchtune.data.ChatMLFormat.html#torchtune.data.ChatMLFormat">[docs]</a><span class="k">class</span> <span class="nc">ChatMLFormat</span><span class="p">(</span><span class="n">ChatFormat</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    OpenAI&#39;s `Chat Markup Language</span>
-<span class="sd">    &lt;https://github.com/MicrosoftDocs/azure-docs/blob/main/articles/ai-services/openai/includes/chat-markup-language.md&gt;`_</span>
+<span class="sd">    &lt;https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md&gt;`_</span>
 <span class="sd">    used by their chat models.</span>
 
 <span class="sd">    It is the default chat format used by HuggingFace models.</span>
