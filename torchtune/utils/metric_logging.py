@@ -183,17 +183,16 @@ class WandBLogger(MetricLoggerInterface):
 
         _, self.rank = get_world_size_and_rank()
 
-        if self.rank == 0:
-            run = self._wandb.init(
-                project=project,
-                entity=entity,
-                group=group,
-                reinit=True,
-                resume="allow",
-                dir=self.log_dir,
-                **kwargs,
-            )
-            run._label(repo="torchtune")
+        if self._wandb.run is None:
+            # we check if wandb.init got called externally,
+            if self.rank == 0:
+                run = self._wandb.init(
+                    project=project,
+                    entity=entity,
+                    group=group,
+                    dir=self.log_dir,
+                    **kwargs,
+                )
 
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
@@ -205,13 +204,14 @@ class WandBLogger(MetricLoggerInterface):
             config (DictConfig): config to log
         """
         if self._wandb.run:
+            self._wandb.run._label(repo="torchtune")
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(resolved)
             try:
                 output_config_fname = Path(
                     os.path.join(
                         config.checkpointer.checkpoint_dir,
-                        f"torchtune_config_{self._wandb.run.id}.yaml",
+                        "torchtune_config.yaml",
                     )
                 )
                 OmegaConf.save(config, output_config_fname)
