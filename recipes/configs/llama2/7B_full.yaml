@@ -62,6 +62,7 @@ gradient_accumulation_steps: 1
 device: cuda
 
 # Memory management [Activation Checkpointing]
+
 ac_mode: 'selective'  # ['none', 'selective', 'full']
 ac_option: 2  # [int, 'op'] int = ac every positive int layer or 'op', ac based on ops policy
 

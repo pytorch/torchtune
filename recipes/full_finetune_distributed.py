@@ -230,6 +230,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
+        enable_activation_checkpointing: bool,
         ac_mode: str,
         ac_option: Union[int, str],
         model_state_dict: Dict[str, Any],
@@ -296,6 +297,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 else None
             ),
         )
+
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+            )
 
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
