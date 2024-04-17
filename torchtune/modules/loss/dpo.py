@@ -15,7 +15,7 @@ class DPOLoss(nn.Module):
     """
     Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.
 
-    Largely inspired by the implementation in HF's TRL library:
+    Based on the implementation in HF's TRL library:
     https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844
 
     Args:

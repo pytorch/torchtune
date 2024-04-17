@@ -34,7 +34,7 @@ log = utils.get_logger("DEBUG")
 class LoRADPORecipeSingleDevice(FTRecipeInterface):
     """
     LoRA DPO recipe for dense transformer-based LLMs such as Llama2 for
-    single device training. This is largely inspired by HF's DPOTrainer in the
+    single device training. This is based on HF's DPOTrainer in the
     TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     This recipe supports:
@@ -375,8 +375,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """
-        Largely inspired by the implementation in HF's TRL library:
-        https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L961
+        Run forward pass of the model with chosen and rejected samples concatenated.
 
         Args:
             model (nn.Module): The model to be used for the forward pass.
@@ -411,8 +410,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
     ) -> torch.FloatTensor:
         """
-        Largely inspired by the implementation in HF's TRL library:
-        https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L924
+        Calculate log probabilities based on provided logits and labels.
 
         Args:
             logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
