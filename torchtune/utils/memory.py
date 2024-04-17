@@ -119,7 +119,6 @@ def set_activation_checkpointing(
               representing the number of layers to checkpoint.
             - If ac_mode is 'selective' and ac_option is 'op', then selective op ac is run.
             - If ac_mode is 'none' or 'full, ac_option is ignored.
-            Defaults to None.
     """
 
     for layer_id, transformer_block in enumerate(model.layers):
