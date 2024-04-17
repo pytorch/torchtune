@@ -425,13 +425,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
 
-                if (
-                    not self._optimizer_in_bwd
-                    and (idx + 1) % self._gradient_accumulation_steps == 0
-                ):
-                    grad_norm = self.compute_grad_norm(self._model)
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
+                # Check if we need to do an update step based on grad accum steps
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    # Only step the optimizer if optimizer_in_bwd is false. It
+                    # is handled in the backward pass otherwise.
+                    if not self._optimizer_in_bwd:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
 
                     pbar.update(1)
                     pbar.set_description(
@@ -444,7 +444,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._metric_logger.log_dict(
                             {
                                 "loss": loss.item(),
-                                "lr": self._optimizer.param_groups[0]["lr"],
+                                # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                                # true since we don't expose the ability to configure this yet.
+                                "lr": (
+                                    self._optim_ckpt_wrapper.get_optim_key("lr")
+                                    if self._optimizer_in_bwd
+                                    else self._optimizer.param_groups[0]["lr"]
+                                ),
                                 "gpu_resources": torch.cuda.memory_allocated(),
                                 "tokens_per_second": (
                                     input_ids.numel()
@@ -452,7 +458,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                     / time_per_step
                                 ),
                                 "iterations_per_second": (1 / time_per_step),
-                                "grad_norm": grad_norm,
+                                "grad_norm": self.compute_grad_norm(self._model),
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
@@ -460,7 +466,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     if (
                         self.total_training_steps % self._log_peak_memory_every_n_steps
                         == 0
-                        and self._device == torch.device("cuda")
+                        and self._device.type == "cuda"
                     ):
                         memory_stats = utils.memory_stats_log(device=self._device)
                         self._metric_logger.log_dict(
@@ -470,9 +476,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
                     t0 = time.perf_counter()
-
-                elif self._optimizer_in_bwd:
-                    self.total_training_steps += 1
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
