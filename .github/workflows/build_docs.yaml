@@ -49,8 +49,8 @@ jobs:
           # REF_NAME variable. This will be passed in
           # conf.py to display the version in the
           # site dropdown
-          REF_NAME=${{ github.ref_name }}
-          TORCHTUNE_VERSION_DOCS="${REF_NAME}"
+          GITHUB_REF=${{ github.ref }}
+          TORCHTUNE_VERSION_DOCS="${GITHUB_REF}"
           echo "$TORCHTUNE_VERSION_DOCS"
       - name: Build docs
         run: |
