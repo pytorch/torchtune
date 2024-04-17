@@ -269,9 +269,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model = model.to(torch.bfloat16)
 
         # Activation checkpointing ['none', 'full', 'selective']
-        if ac_mode != 'none':
+        if ac_mode != "none":
             utils.set_activation_checkpointing(
-                model, ac_mode, ac_option,
+                model,
+                ac_mode,
+                ac_option,
             )
 
         # Wrap the model with FSDP. This will ensure that the model is sharded
@@ -417,7 +419,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
-        _gb = 1024*1024*1024
+        _gb = 1024 * 1024 * 1024
 
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
@@ -462,8 +464,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_mem_alloc": torch.cuda.memory_allocated()/_gb,
-                            "gpu_mem_reserved": torch.cuda.memory_reserved()/_gb,
+                            "gpu_mem_alloc": torch.cuda.memory_allocated() / _gb,
+                            "gpu_mem_reserved": torch.cuda.memory_reserved() / _gb,
                         },
                         step=self.total_training_steps,
                     )

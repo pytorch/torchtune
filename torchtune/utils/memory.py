@@ -6,23 +6,19 @@
 
 import gc
 
-from typing import Any, Dict, Optional, Set
+from collections import defaultdict
+
+from typing import Any, Dict
 
 import torch
-import functools
 
 from torch import nn
-from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
-    apply_activation_checkpointing,
-)
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torch.utils.checkpoint import _pt2_selective_checkpoint_context_fn_gen, checkpoint
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper as ptd_checkpoint_wrapper,
     CheckpointImpl,
 )
 
-from collections import defaultdict
+from torch.utils.checkpoint import _pt2_selective_checkpoint_context_fn_gen, checkpoint
 
 # for selective AC
 no_recompute_list = {
@@ -36,6 +32,7 @@ no_recompute_list = {
 # currently selective per op and per layer checkpointing are supported
 def checkpoint_wrapper(module, ac_mode, ac_style):
     if ac_mode == "selective" and ac_style == "op":
+
         def _get_custom_policy(meta):
             def _custom_policy(mode, func, *args, **kwargs):
                 mm_count_key = f"{mode}_mm_count"
@@ -71,7 +68,10 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
         )
 
     # selective layer checkpointing...some checks in case we receive '2' or 2...
-    elif ac_mode == "selective" and (isinstance(ac_style, (int, float)) or (isinstance(ac_style, str) and ac_style.isdigit())):
+    elif ac_mode == "selective" and (
+        isinstance(ac_style, (int, float))
+        or (isinstance(ac_style, str) and ac_style.isdigit())
+    ):
         """enables selective checkpointing of candidate layers.
         Usage:
         'selective_ac_option' with a positive 'int' value in config controls which layers to checkpoint.
@@ -105,22 +105,26 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
 
 
 def set_activation_checkpointing(
-    model: nn.Module, ac_mode: str, ac_style: Optional[str] = None,
+    model: nn.Module,
+    ac_mode: str,
+    ac_style: Union[int, str],
 ) -> None:
     """Utility to setup activation checkpointing and wrap the model for checkpointing.
 
     Args:
         model (nn.Module): Model to setup activation checkpointing.
         ac_mode (str): Activation checkpointing mode. ['none', 'full', 'selective']
-        ac_style (str): Activation checkpointing style. ['op', 'int']
+        ac_style (Optional[Union[None, int, str]]): Activation checkpointing style. ['op', int]
     """
 
     for layer_id, transformer_block in enumerate(model.layers):
-        #print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
+        # print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
         if ac_mode in ("full", "selective"):
 
             transformer_block = checkpoint_wrapper(
-                transformer_block, ac_mode, ac_style,
+                transformer_block,
+                ac_mode,
+                ac_style,
             )
         model.layers[layer_id] = transformer_block
 
