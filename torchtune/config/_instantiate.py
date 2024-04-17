@@ -51,6 +51,9 @@ def instantiate(
     function call. These are automatically merged with the provided config, with keyword
     args taking precedence.
 
+    Based on Hydra's `instantiate` utility from Facebook Research:
+    https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/instantiate/_instantiate2.py#L148
+
     Args:
         config (DictConfig): a single field in the OmegaConf object parsed from the yaml file.
             This is expected to have a _component_ field specifying the path of the object

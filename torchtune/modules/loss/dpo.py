@@ -13,7 +13,10 @@ import torch.nn.functional as F
 
 class DPOLoss(nn.Module):
     """
-    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290
+    Direct Preference Optimization (DPO) Loss module: https://arxiv.org/abs/2305.18290.
+
+    Based on the implementation in HF's TRL library:
+    https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844
 
     Args:
         beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
