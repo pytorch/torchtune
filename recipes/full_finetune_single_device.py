@@ -416,8 +416,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
-                # Note: We're always logging the loss before normalizing it
-                # Check if this is the norm or not
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
 
@@ -434,7 +432,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss.item()}"
                     )
 
-                    # compute training metrics
+                    # Compute training metrics
+                    # Note: We're always logging the loss before normalizing it
+                    # Check if this is the norm or not
                     if self.total_training_steps % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         self._metric_logger.log_dict(
