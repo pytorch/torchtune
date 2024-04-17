@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -184,7 +184,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            ac_mode=cfg.ac_mode,
+            ac_option=cfg.ac_option,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
 
@@ -229,7 +230,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_activation_checkpointing: bool,
+        ac_mode: str,
+        ac_option: Union[int, str],
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
@@ -266,11 +268,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
-
-        if enable_activation_checkpointing:
+        # Activation checkpointing ['none', 'full', 'selective']
+        if ac_mode != 'none':
             utils.set_activation_checkpointing(
-                model, modules.TransformerDecoderLayer
+                model, ac_mode, ac_option,
             )
+
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -294,8 +297,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
-
-
 
         if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)

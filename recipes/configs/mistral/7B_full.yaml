@@ -64,8 +64,9 @@ gradient_accumulation_steps: 1
 # Training env
 device: cuda
 
-# Memory management
-enable_activation_checkpointing: True
+# Memory management [Activation Checkpointing]
+ac_mode: 'selective'  # ['none', 'selective', 'full']
+ac_option: 2  # ['int', 'op'] int = ac every positive int layer or 'op', ac based on ops policy
 
 # Reduced precision
 dtype: bf16

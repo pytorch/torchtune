@@ -70,7 +70,8 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
             preserve_rng_state=False,
         )
 
-    elif ac_mode == "selective" and ac_style.isdigit():
+    # selective layer checkpointing...some checks in case we receive '2' or 2...
+    elif ac_mode == "selective" and (isinstance(ac_style, (int, float)) or (isinstance(ac_style, str) and ac_style.isdigit())):
         """enables selective checkpointing of candidate layers.
         Usage:
         'selective_ac_option' with a positive 'int' value in config controls which layers to checkpoint.
@@ -104,40 +105,25 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
 
 
 def set_activation_checkpointing(
-    model: nn.Module, auto_wrap_policy: Optional[Set[nn.Module]] = None, **kwargs
+    model: nn.Module, ac_mode: str, ac_style: Optional[str] = None,
 ) -> None:
     """Utility to setup activation checkpointing and wrap the model for checkpointing.
 
     Args:
         model (nn.Module): Model to setup activation checkpointing.
-        auto_wrap_policy (Optional[Set[nn.Module]]): Policy to wrap module.
-        **kwargs: additional arguments to pass to torch.distributed activation checkpointing.
+        ac_mode (str): Activation checkpointing mode. ['none', 'full', 'selective']
+        ac_style (str): Activation checkpointing style. ['op', 'int']
     """
-    # integrate selective ac
-    # probably need to filter for which module
-    mode = "selective"
-    ac_style = "op"
-    block = None
+
     for layer_id, transformer_block in enumerate(model.layers):
         #print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
-        if mode in ("full", "selective"):
-            #print(f" applying {mode} checkpointing with {ac_style=}")
+        if ac_mode in ("full", "selective"):
+
             transformer_block = checkpoint_wrapper(
-                transformer_block, mode, ac_style,
+                transformer_block, ac_mode, ac_style,
             )
         model.layers[layer_id] = transformer_block
-        #print(f"checkpointed {layer_id=}")
 
-    #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-    # wrap_policy=<torch.distributed.fsdp.wrap.ModuleWrapPolicy object at 0x7f450df19ff0>
-    #({<class 'torchtune.modules.transformer.TransformerDecoderLayer'>})
-    #print(f"{wrap_policy=}")
-
-    # torchtune.modules.transformer.TransformerDecoderLayer
-
-    #apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
-    #assert False, "inspect"
-    #fsdp_checkpointing_base(model, block)
 
 def cleanup_before_training() -> None:
     gc.collect()
