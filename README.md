@@ -241,7 +241,7 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 - [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for bringing several memory and performance based techniques to the PyTorch ecosystem
 - [@winglian](https://github.com/winglian/) and [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) for early feedback and brainstorming on torchtune's design and feature set.
 - [lit-gpt](https://github.com/Lightning-AI/litgpt) for pushing the LLM fine-tuning community forward.
-- [Hugging Face TRL](https://github.com/huggingface/trl) for awesome training utilities for aligning transformer-based models.
+- [HF TRL](https://github.com/huggingface/trl) for making reward modeling more accessible to the PyTorch community.
 
 &nbsp;
 
