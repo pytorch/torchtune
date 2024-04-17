@@ -10,6 +10,7 @@ from io import StringIO
 from typing import cast
 from unittest.mock import patch
 
+from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from tests.test_utils import assert_expected, captured_output
@@ -145,3 +146,20 @@ class WandBLoggerTest:
             logger.close()
 
             mock_log.assert_called_with(metric_dict, step=1)
+
+    def test_save_config(self) -> None:
+        with patch("wandb.init") as mock_init, patch(
+            "wandb.run", create=True
+        ) as mock_run, patch("OmegaConf.save") as mock_save, patch(
+            "wandb.save"
+        ) as mock_wandb_save:
+
+            logger = WandBLogger(project="test_project")
+            cfg = OmegaConf.create({"a": 1, "b": 2})
+
+            with patch.object(logger, "_wandb", mock_run):
+                logger.save_config(cfg)
+
+            expected_config_path = "torchtune_config.yaml"
+            mock_save.assert_called_once_with(cfg, expected_config_path)
+            mock_wandb_save.assert_called_once_with(expected_config_path)
