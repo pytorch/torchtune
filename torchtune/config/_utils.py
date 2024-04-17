@@ -44,7 +44,7 @@ def _get_component_from_path(path: str) -> Any:
     The base functionality relies on ``getattr()`` and handles all
     possible exceptions accordingly.
 
-    Inspired by Hydra's `_locate` from Facebook Research:
+    Based on Hydra's `_locate` from Facebook Research:
     https://github.com/facebookresearch/hydra/blob/main/hydra/_internal/utils.py#L614
 
     Args:
