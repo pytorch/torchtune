@@ -107,14 +107,19 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
 def set_activation_checkpointing(
     model: nn.Module,
     ac_mode: str,
-    ac_style: Union[int, str],
+    ac_option: Optional[Union[int, str]],
 ) -> None:
     """Utility to setup activation checkpointing and wrap the model for checkpointing.
 
     Args:
         model (nn.Module): Model to setup activation checkpointing.
         ac_mode (str): Activation checkpointing mode. ['none', 'full', 'selective']
-        ac_style (Optional[Union[None, int, str]]): Activation checkpointing style. ['op', int]
+        ac_option (Optional[Union[int, str]]): Activation checkpointing option.
+            - If ac_mode is 'selective', ac_option can be an integer or a string
+              representing the number of layers to checkpoint.
+            - If ac_mode is 'selective' and ac_option is 'op', then selective op ac is run.
+            - If ac_mode is 'none' or 'full, ac_option is ignored.
+            Defaults to None.
     """
 
     for layer_id, transformer_block in enumerate(model.layers):
@@ -124,7 +129,7 @@ def set_activation_checkpointing(
             transformer_block = checkpoint_wrapper(
                 transformer_block,
                 ac_mode,
-                ac_style,
+                ac_option,
             )
         model.layers[layer_id] = transformer_block
 
