@@ -183,16 +183,15 @@ class WandBLogger(MetricLoggerInterface):
 
         _, self.rank = get_world_size_and_rank()
 
-        if self._wandb.run is None:
+        if self._wandb.run is None and self.rank == 0:
             # we check if wandb.init got called externally,
-            if self.rank == 0:
-                run = self._wandb.init(
-                    project=project,
-                    entity=entity,
-                    group=group,
-                    dir=self.log_dir,
-                    **kwargs,
-                )
+            run = self._wandb.init(
+                project=project,
+                entity=entity,
+                group=group,
+                dir=self.log_dir,
+                **kwargs,
+            )
 
         # define default x-axis (for latest wandb versions)
         if getattr(self._wandb, "define_metric", None):
