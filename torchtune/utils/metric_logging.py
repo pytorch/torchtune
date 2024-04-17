@@ -183,17 +183,25 @@ class WandBLogger(MetricLoggerInterface):
 
         _, self.rank = get_world_size_and_rank()
 
-        if self.rank == 0:
+        if self._wandb.run is None and self.rank == 0:
+            # we check if wandb.init got called externally,
             run = self._wandb.init(
                 project=project,
                 entity=entity,
                 group=group,
-                reinit=True,
-                resume="allow",
                 dir=self.log_dir,
                 **kwargs,
             )
-            run._label(repo="torchtune")
+
+        if self._wandb.run:
+            self._wandb.run._label(repo="torchtune")
+
+        # define default x-axis (for latest wandb versions)
+        if getattr(self._wandb, "define_metric", None):
+            self._wandb.define_metric("total_training_steps")
+            self._wandb.define_metric(
+                "*", step_metric="total_training_steps", step_sync=True
+            )
 
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
@@ -211,7 +219,7 @@ class WandBLogger(MetricLoggerInterface):
                 output_config_fname = Path(
                     os.path.join(
                         config.checkpointer.checkpoint_dir,
-                        f"torchtune_config_{self._wandb.run.id}.yaml",
+                        "torchtune_config.yaml",
                     )
                 )
                 OmegaConf.save(config, output_config_fname)
@@ -229,11 +237,11 @@ class WandBLogger(MetricLoggerInterface):
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         if self._wandb.run:
-            self._wandb.log({name: data}, step=step)
+            self._wandb.log({name: data, "total_training_steps": step})
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         if self._wandb.run:
-            self._wandb.log(payload, step=step)
+            self._wandb.log({**payload, "total_training_steps": step})
 
     def __del__(self) -> None:
         if self._wandb.run:
