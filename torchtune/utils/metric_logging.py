@@ -193,6 +193,9 @@ class WandBLogger(MetricLoggerInterface):
                 **kwargs,
             )
 
+        if self._wandb.run:
+            self._wandb.run._label(repo="torchtune")
+
         # define default x-axis (for latest wandb versions)
         if getattr(self._wandb, "define_metric", None):
             self._wandb.define_metric("total_training_steps")
@@ -210,7 +213,6 @@ class WandBLogger(MetricLoggerInterface):
             config (DictConfig): config to log
         """
         if self._wandb.run:
-            self._wandb.run._label(repo="torchtune")
             resolved = OmegaConf.to_container(config, resolve=True)
             self._wandb.config.update(resolved)
             try:
