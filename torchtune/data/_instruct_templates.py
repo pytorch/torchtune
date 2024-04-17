@@ -120,9 +120,7 @@ class RAFTInstructTemplate(InstructTemplate):
         column_map = column_map or {}
         key_instruction = column_map.get("instruction", "instruction")
 
-        prompt = cls.template["prompt_input"].format(
-            instruction=sample[key_instruction]
-        )
+        prompt = cls.template["prompt"].format(instruction=sample[key_instruction])
         return prompt
 
 
