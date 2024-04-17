@@ -526,7 +526,7 @@ Uploading your model to the Hugging Face Hub
 --------------------------------------------
 
 Your new model is working great and you want to share it with the world. The easiest way to do this
-is utilizing the ``huggingface-cli`` command, which is integrated with torchtune. Simply point the CLI
+is utilizing the ``huggingface-cli`` command, which works seamlessly with torchtune. Simply point the CLI
 to your finetuned model directory like so:
 
 .. code-block:: bash
@@ -542,7 +542,7 @@ be created automatically:
 
 .. note::
 
-    Before uploading, make sure you are authenticated with Hugging Face by running ``huggingface-cli login``.
+    Before uploading, make sure you are `authenticated with Hugging Face <huggingface.co/docs/huggingface_hub/quick-start#authentication>`_ by running ``huggingface-cli login``.
 
 For more details on the ``huggingface-cli upload`` feature check out the `Hugging Face docs <https://huggingface.co/docs/huggingface_hub/en/guides/cli#huggingface-cli-upload>`_.
 
