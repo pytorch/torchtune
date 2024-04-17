@@ -36,17 +36,18 @@ class DeepLakePyTorchDataset(Dataset):
     def __getitem__(self, idx):
         question = self.ds.question[idx].text().astype(str)
         instruction = self.ds.instruction[idx].text().astype(str)
-        oracle_context = self.ds.oracle_context[idx].text().astype(str)
+        cot_answer = self.ds.cot_answer[idx].text().astype(str)
         return {
             "question": question,
             "instruction": instruction,
-            "oracle_context": oracle_context,
+            "cot_answer": cot_answer,
         }
 
 
 def load_deeplake_dataset(source):
+    print("Loading dataset from deeplake")
     ds = deeplake.dataset(source)
-    return ds
+    print(f"Dataset loaded from deeplake: {ds}")
     return DeepLakePyTorchDataset(ds)
 
 
@@ -86,9 +87,9 @@ class InstructDatasetDeepLakeRAFT(Dataset):
 
         prompt = self.template.format(transformed_sample, self._column_map)
         key_output = (
-            self._column_map["oracle_context"]
-            if self._column_map and "oracle_context" in self._column_map
-            else "oracle_context"
+            self._column_map["cot_answer"]
+            if self._column_map and "cot_answer" in self._column_map
+            else "cot_answer"
         )
         messages = [
             Message(role="user", content=prompt, masked=(not self.train_on_input)),
@@ -147,3 +148,4 @@ def instruct_dataset(
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
+
