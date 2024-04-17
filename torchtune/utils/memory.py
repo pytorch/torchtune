@@ -9,6 +9,7 @@ import gc
 from typing import Any, Dict, Optional, Set
 
 import torch
+import functools
 
 from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
@@ -21,6 +22,8 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointImpl,
 )
 
+from collections import defaultdict
+
 # for selective AC
 no_recompute_list = {
     torch.ops.aten.mm.default,
@@ -31,15 +34,16 @@ no_recompute_list = {
 
 # Uses PTD FSDP AC wrapper
 # currently selective per op and per layer checkpointing are supported
-def checkpoint_wrapper(module, mode, ac_style):
-    if mode == "selective" and ac_style == "op":
-
+def checkpoint_wrapper(module, ac_mode, ac_style):
+    if ac_mode == "selective" and ac_style == "op":
+        print("selective op checkpointing ^^^^^^^^^")
         def _get_custom_policy(meta):
             def _custom_policy(mode, func, *args, **kwargs):
                 mm_count_key = f"{mode}_mm_count"
                 if func == torch.ops.aten.mm.default:
                     meta[mm_count_key] += 1
                 # Saves output of all compute ops, except every second mm
+
                 return func in no_recompute_list and not (
                     func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0
                 )
@@ -48,6 +52,7 @@ def checkpoint_wrapper(module, mode, ac_style):
 
         def selective_checkpointing_context_fn():
             meta = defaultdict(int)
+            print(f"selective checkpointing context fn fired ^^^^^^^^")
             return _pt2_selective_checkpoint_context_fn_gen(_get_custom_policy(meta))
 
         return ptd_checkpoint_wrapper(
@@ -58,7 +63,7 @@ def checkpoint_wrapper(module, mode, ac_style):
             use_reentrant=False,
             preserve_rng_state=False,
         )
-    elif mode == "full":
+    elif ac_mode == "full":
         return ptd_checkpoint_wrapper(
             module,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
@@ -67,14 +72,14 @@ def checkpoint_wrapper(module, mode, ac_style):
             preserve_rng_state=False,
         )
 
-    elif mode == "selective" and ac_style.isdigit():
+    elif ac_mode == "selective" and ac_style.isdigit():
         """enables selective checkpointing of candidate layers.
         Usage:
         'selective_ac_option' with a positive 'int' value in config controls which layers to checkpoint.
         1 == checkpointing every one (all).
         2 == checkpoint every 2nd one
         """
-        every_x_layer = int(config.selective_ac_option)
+        every_x_layer = int(ac_style)
         assert (
             every_x_layer >= 0
         ), f"selective layer AC policy (every_x_layer) expects a positive integer, received {every_x_layer}"
@@ -100,7 +105,6 @@ def checkpoint_wrapper(module, mode, ac_style):
         )
 
 
-
 def set_activation_checkpointing(
     model: nn.Module, auto_wrap_policy: Optional[Set[nn.Module]] = None, **kwargs
 ) -> None:
@@ -114,17 +118,28 @@ def set_activation_checkpointing(
     # integrate selective ac
     # probably need to filter for which module
     mode = "selective"
-    ac_style = "op"
-
+    ac_style = "1"
+    block = None
     for layer_id, transformer_block in enumerate(model.layers):
-        print(f"inside set act checkpoint: {layer_id=}, {transformer_block=}" )
+        #print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
         if mode in ("full", "selective"):
+            #print(f" applying {mode} checkpointing with {ac_style=}")
             transformer_block = checkpoint_wrapper(
                 transformer_block, mode, ac_style,
             )
-    #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-    #apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
+        model.layers[layer_id] = transformer_block
+        print(f"checkpointed {layer_id=}")
 
+    #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
+    # wrap_policy=<torch.distributed.fsdp.wrap.ModuleWrapPolicy object at 0x7f450df19ff0>
+    #({<class 'torchtune.modules.transformer.TransformerDecoderLayer'>})
+    #print(f"{wrap_policy=}")
+
+    # torchtune.modules.transformer.TransformerDecoderLayer
+
+    #apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
+    #assert False, "inspect"
+    #fsdp_checkpointing_base(model, block)
 
 def cleanup_before_training() -> None:
     gc.collect()

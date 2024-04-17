@@ -266,6 +266,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
+
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                model, modules.TransformerDecoderLayer
+            )
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -290,12 +295,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
-        if enable_activation_checkpointing:
-            utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
-            )
 
-        assert False, "verify ac"
+
         if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)
             log.info(f"Memory Stats after model init:\n{memory_stats}")
@@ -415,6 +416,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
+        _gb = 1024*1024*1024
+
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -458,7 +461,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
+                            "gpu_mem_alloc": torch.cuda.memory_allocated()/_gb,
+                            "gpu_mem_reserved": torch.cuda.memory_reserved()/_gb,
                         },
                         step=self.total_training_steps,
                     )
