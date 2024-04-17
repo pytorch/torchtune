@@ -36,7 +36,6 @@ no_recompute_list = {
 # currently selective per op and per layer checkpointing are supported
 def checkpoint_wrapper(module, ac_mode, ac_style):
     if ac_mode == "selective" and ac_style == "op":
-        print("selective op checkpointing ^^^^^^^^^")
         def _get_custom_policy(meta):
             def _custom_policy(mode, func, *args, **kwargs):
                 mm_count_key = f"{mode}_mm_count"
@@ -52,7 +51,6 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
 
         def selective_checkpointing_context_fn():
             meta = defaultdict(int)
-            print(f"selective checkpointing context fn fired ^^^^^^^^")
             return _pt2_selective_checkpoint_context_fn_gen(_get_custom_policy(meta))
 
         return ptd_checkpoint_wrapper(
@@ -118,7 +116,7 @@ def set_activation_checkpointing(
     # integrate selective ac
     # probably need to filter for which module
     mode = "selective"
-    ac_style = "1"
+    ac_style = "op"
     block = None
     for layer_id, transformer_block in enumerate(model.layers):
         #print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
@@ -128,7 +126,7 @@ def set_activation_checkpointing(
                 transformer_block, mode, ac_style,
             )
         model.layers[layer_id] = transformer_block
-        print(f"checkpointed {layer_id=}")
+        #print(f"checkpointed {layer_id=}")
 
     #wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
     # wrap_policy=<torch.distributed.fsdp.wrap.ModuleWrapPolicy object at 0x7f450df19ff0>
