@@ -542,7 +542,7 @@ be created automatically:
 
 .. note::
 
-    Before uploading, make sure you are `authenticated with Hugging Face <huggingface.co/docs/huggingface_hub/quick-start#authentication>`_ by running ``huggingface-cli login``.
+    Before uploading, make sure you are `authenticated with Hugging Face <https://huggingface.co/docs/huggingface_hub/quick-start#authentication>`_ by running ``huggingface-cli login``.
 
 For more details on the ``huggingface-cli upload`` feature check out the `Hugging Face docs <https://huggingface.co/docs/huggingface_hub/en/guides/cli#huggingface-cli-upload>`_.
 
