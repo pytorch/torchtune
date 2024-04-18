@@ -8,12 +8,11 @@ llama3
 ------
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
-TODO: check link
 
 .. code-block:: bash
 
-    tune download hsramall/hsramall-7b-hf-bfloat16 --hf-token <ACCESS_TOKEN>
-    TODO: change HF path
+    tune download meta-llama/Llama-3-8b-hf --hf-token <ACCESS_TOKEN>
+
 
 .. autosummary::
     :toctree: generated/
