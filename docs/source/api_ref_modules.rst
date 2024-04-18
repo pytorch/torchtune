@@ -17,10 +17,18 @@ Modeling Components and Building Blocks
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
-    Tokenizer
     TransformerDecoderLayer
     TransformerDecoder
 
+Tokenizers
+------------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    tokenizers.SentencePieceTokenizer
+    tokenizers.TikTokenTokenizer
 
 PEFT Components
 ---------------

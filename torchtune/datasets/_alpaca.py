@@ -8,7 +8,7 @@ from functools import partial
 
 from torchtune.data import AlpacaInstructTemplate
 from torchtune.datasets._instruct import InstructDataset
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def alpaca_dataset(

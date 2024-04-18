@@ -5,7 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 from torchtune.models.gemma._component_builders import gemma
 
-from torchtune.modules import Tokenizer, TransformerDecoder
+from torchtune.modules import TransformerDecoder
+from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 """
 Model builders build specific instantiations using component builders. For example
@@ -35,7 +36,7 @@ def gemma_2b() -> TransformerDecoder:
     )
 
 
-def gemma_tokenizer(path: str) -> Tokenizer:
-    tokenizer = Tokenizer.from_file(path)
+def gemma_tokenizer(path: str) -> SentencePieceTokenizer:
+    tokenizer = SentencePieceTokenizer(path)
     tokenizer.pad_id = 0
     return tokenizer
