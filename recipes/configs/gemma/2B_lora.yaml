@@ -31,9 +31,9 @@ shuffle: True
 # Model Arguments
 model:
   _component_: torchtune.models.gemma.lora_gemma_2b
-  lora_attn_modules: [ 'q_proj', 'v_proj' ]
-  apply_lora_to_mlp: False
-  apply_lora_to_output: False
+  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: True
   lora_rank: 8
   lora_alpha: 16
 
