@@ -22,7 +22,7 @@ Llama3-8B
 ----------
 
 `Llama3-8B <https://llama.meta.com/llama3>`_ is a new model released by Meta AI that improves upon the performance of the Llama2 family
-of models across a `range of different benchmarks <https://github.com/meta-llama/llama3/blob/main/eval_details.md>`_.
+of models across a `range of different benchmarks <https://huggingface.co/meta-llama/Meta-Llama-3-8B#base-pretrained-models>`_.
 There are a few main changes between Llama2-7B and Llama3-8B models:
 
 - Llama3-8B uses `grouped-query attention <https://arxiv.org/abs/2305.13245>`_ instead of the standard multi-head attention from Llama2-7B
@@ -93,7 +93,7 @@ In our experiments, we observed a peak memory usage of 18.5 GB. The default conf
 
 If you have multiple GPUs available, you can run the distributed version of the recipe.
 torchtune makes use of the `FSDP <https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html>`_ APIs from PyTorch Distributed
-to shard the model, optimizer states, and gradients. This should enable you to increase your batch size, resulting in faster training.
+to shard the model, optimizer states, and gradients. This should enable you to increase your batch size, resulting in faster overall training.
 For example, on two devices:
 
 .. code-block:: bash
@@ -140,28 +140,31 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
 
 .. code-block:: yaml
 
+    model:
+      _component_: torchtune.models.llama3.llama3_8b
+
     checkpointer:
-        _component_: torchtune.utils.FullModelMetaCheckpointer
+      _component_: torchtune.utils.FullModelMetaCheckpointer
 
-        # directory with the checkpoint files
-        # this should match the output_dir specified during
-        # fine-tuning
-        checkpoint_dir: <checkpoint_dir>
+      # directory with the checkpoint files
+      # this should match the output_dir specified during
+      # fine-tuning
+      checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files for the fine-tuned model. These will be logged
-        # at the end of your fine-tune
-        checkpoint_files: [
-            consolidated.00.pth
-        ]
+      # checkpoint files for the fine-tuned model. These will be logged
+      # at the end of your fine-tune
+      checkpoint_files: [
+        consolidated.00.pth
+      ]
 
-        output_dir: <checkpoint_dir>
-        model_type: LLAMA3
+      output_dir: <checkpoint_dir>
+      model_type: LLAMA3
 
     # Make sure to update the tokenizer path to the right
     # checkpoint directory as well
     tokenizer:
-        _component_: torchtune.models.llama3.llama3_tokenizer
-        path: <checkpoint_dir>/tokenizer.model
+      _component_: torchtune.models.llama3.llama3_tokenizer
+      path: <checkpoint_dir>/tokenizer.model
 
 Finally, we can run evaluation using our modified config.
 
@@ -189,28 +192,31 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
 
 .. code-block:: yaml
 
+    model:
+      _component_: torchtune.models.llama3.llama3_8b
+
     checkpointer:
-        _component_: torchtune.utils.FullModelMetaCheckpointer
+      _component_: torchtune.utils.FullModelMetaCheckpointer
 
-        # directory with the checkpoint files
-        # this should match the output_dir specified during
-        # fine-tuning
-        checkpoint_dir: <checkpoint_dir>
+      # directory with the checkpoint files
+      # this should match the output_dir specified during
+      # fine-tuning
+      checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files for the fine-tuned model. These will be logged
-        # at the end of your fine-tune
-        checkpoint_files: [
-            consolidated.00.pth
-        ]
+      # checkpoint files for the fine-tuned model. These will be logged
+      # at the end of your fine-tune
+      checkpoint_files: [
+        consolidated.00.pth
+      ]
 
-        output_dir: <checkpoint_dir>
-        model_type: LLAMA3
+      output_dir: <checkpoint_dir>
+      model_type: LLAMA3
 
     # Make sure to update the tokenizer path to the right
     # checkpoint directory as well
     tokenizer:
-        _component_: torchtune.models.llama3.llama3_tokenizer
-        path: <checkpoint_dir>/tokenizer.model
+      _component_: torchtune.models.llama3.llama3_tokenizer
+      path: <checkpoint_dir>/tokenizer.model
 
 Running generation with our LoRA-finetuned model, we see the following output:
 
@@ -243,32 +249,36 @@ And update ``custom_quantization_config.yaml`` with the following:
 
 .. code-block:: yaml
 
+    # Model arguments
+    model:
+      _component_: torchtune.models.llama3.llama3_8b
+
     checkpointer:
-        _component_: torchtune.utils.FullModelMetaCheckpointer
+      _component_: torchtune.utils.FullModelMetaCheckpointer
 
-        # directory with the checkpoint files
-        # this should match the output_dir specified during
-        # fine-tuning
-        checkpoint_dir: <checkpoint_dir>
+      # directory with the checkpoint files
+      # this should match the output_dir specified during
+      # fine-tuning
+      checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files for the fine-tuned model. These will be logged
-        # at the end of your fine-tune
-        checkpoint_files: [
-            consolidated.00.pth
-        ]
+      # checkpoint files for the fine-tuned model. These will be logged
+      # at the end of your fine-tune
+      checkpoint_files: [
+        consolidated.00.pth
+      ]
 
-        output_dir: <checkpoint_dir>
-        model_type: LLAMA3
+      output_dir: <checkpoint_dir>
+      model_type: LLAMA3
 
 To quantize the model, we can now run:
 
 .. code-block:: bash
 
-    tune run quantize ./custom_quantization_config.yaml
+    tune run quantize --config ./custom_quantization_config.yaml
 
     [quantize.py:90] Time for quantization: 2.93 sec
     [quantize.py:91] Memory used: 23.13 GB
-    [quantize.py:104] Model checkpoint of size 4.92 GB saved to /tmp/Llama-3-8B-hf/meta_model_0-4w.pt
+    [quantize.py:104] Model checkpoint of size 4.92 GB saved to /tmp/Llama-3-8B-hf/consolidated-4w.pt
 
 We can see that the model is now under 5 GB, or just over four bits for each of the 8B parameters.
 
@@ -286,29 +296,29 @@ First, we'll make one more change to our ``custom_generation_config.yaml``.
 .. code-block:: yaml
 
     checkpointer:
-        # we need to use the custom TorchTune checkpointer
-        # instead of the HF checkpointer for loading
-        # quantized models
-        _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+      # we need to use the custom TorchTune checkpointer
+      # instead of the HF checkpointer for loading
+      # quantized models
+      _component_: torchtune.utils.FullModelTorchTuneCheckpointer
 
-        # directory with the checkpoint files
-        # this should match the output_dir specified during
-        # fine-tuning
-        checkpoint_dir: <checkpoint_dir>
+      # directory with the checkpoint files
+      # this should match the output_dir specified during
+      # fine-tuning
+      checkpoint_dir: <checkpoint_dir>
 
-        # checkpoint files point to the quantized model
-        checkpoint_files: [
-            meta_model_0-4w.pt,
-        ]
+      # checkpoint files point to the quantized model
+      checkpoint_files: [
+        consolidated-4w.pt,
+      ]
 
-        output_dir: <checkpoint_dir>
-        model_type: LLAMA3
+      output_dir: <checkpoint_dir>
+      model_type: LLAMA3
 
     # we also need to update the quantizer to what was used during
     # quantization
     quantizer:
-        _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
-        groupsize: 256
+      _component_: torchtune.utils.quantization.Int4WeightOnlyQuantizer
+      groupsize: 256
 
 Let's re-run generation!
 
