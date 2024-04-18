@@ -394,7 +394,7 @@ options:
 </div>
 </section>
 <section id="install-via-git-clone">
-<h2>Install via <cite>git clone</cite><a class="headerlink" href="#install-via-git-clone" title="Permalink to this heading">¶</a></h2>
+<h2>Install via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code><a class="headerlink" href="#install-via-git-clone" title="Permalink to this heading">¶</a></h2>
 <p>If you want the latest and greatest features from torchtune or if you want to become a contributor,
 you can also install the package locally with the following command.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/pytorch/torchtune.git
@@ -402,6 +402,26 @@ you can also install the package locally with the following command.</p>
 pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 </pre></div>
 </div>
+<div class="line-block">
+<div class="line"><br /></div>
+</div>
+</section>
+<section id="install-nightly-build">
+<h2>Install nightly build<a class="headerlink" href="#install-nightly-build" title="Permalink to this heading">¶</a></h2>
+<p>torchtune gets built every evening with the latest commits to <code class="docutils literal notranslate"><span class="pre">main</span></code> branch. If you want the latest updates
+to the package <em>without</em> installing via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code>, you can install with the following command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>--pre<span class="w"> </span>torchtune<span class="w"> </span>--extra-index-url<span class="w"> </span>https://download.pytorch.org/whl/test/cpu<span class="w"> </span>--no-cache-dir
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code class="docutils literal notranslate"><span class="pre">--no-cache-dir</span></code> will direct <code class="docutils literal notranslate"><span class="pre">pip</span></code> to not look for a cached version of torchtune, thereby overwriting
+your existing torchtune installation.</p>
+</div>
+<p>If you already have PyTorch installed, torchtune will default to using that version. However, if you want to
+use the nightly version of PyTorch, you can append the <code class="docutils literal notranslate"><span class="pre">--force-reinstall</span></code> option to the above command. If you
+opt for this install method, you will likely need to change the “cpu” suffix in the index url to match your CUDA
+version. For example, if you are running CUDA 12, your index url would be “<a class="reference external" href="https://download.pytorch.org/whl/test/cu121">https://download.pytorch.org/whl/test/cu121</a>”.</p>
 </section>
 </section>
 
@@ -450,7 +470,8 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
               <ul>
 <li><a class="reference internal" href="#">Install Instructions</a><ul>
 <li><a class="reference internal" href="#install-via-pypi">Install via PyPI</a></li>
-<li><a class="reference internal" href="#install-via-git-clone">Install via <cite>git clone</cite></a></li>
+<li><a class="reference internal" href="#install-via-git-clone">Install via <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code></a></li>
+<li><a class="reference internal" href="#install-nightly-build">Install nightly build</a></li>
 </ul>
 </li>
 </ul>
