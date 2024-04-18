@@ -107,6 +107,7 @@ _ALL_RECIPES = [
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
             Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),
+            Config(name="llama3/70B_lora", file_path="llama3/70B_lora.yaml"),
             Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
             Config(name="mistral/7B_lora", file_path="mistral/7B_lora.yaml"),
         ],
