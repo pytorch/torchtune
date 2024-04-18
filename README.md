@@ -55,7 +55,7 @@ torchtune provides the following fine-tuning recipes.
 | Training                           | Fine-tuning Method                 |
 |------------------------------------|------------------------------------|
 | Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora.yaml)] |
-| Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama2/7B_full_low_memory.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama2/7B_qlora_single_device.yaml)] |
+| Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama2/7B_full_low_memory.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama2/7B_qlora_single_device.yaml)] |
 | Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)]
 
 &nbsp;
@@ -241,6 +241,7 @@ We also want to acknowledge some awesome libraries and tools from the ecosystem:
 - [bitsandbytes](https://github.com/TimDettmers/bitsandbytes) for bringing several memory and performance based techniques to the PyTorch ecosystem
 - [@winglian](https://github.com/winglian/) and [axolotl](https://github.com/OpenAccess-AI-Collective/axolotl) for early feedback and brainstorming on torchtune's design and feature set.
 - [lit-gpt](https://github.com/Lightning-AI/litgpt) for pushing the LLM fine-tuning community forward.
+- [HF TRL](https://github.com/huggingface/trl) for making reward modeling more accessible to the PyTorch community.
 
 &nbsp;
 
