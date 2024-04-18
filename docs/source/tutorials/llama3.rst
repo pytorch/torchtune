@@ -43,7 +43,7 @@ Next, make sure you grab your Hugging Face token from `here <https://huggingface
 
 .. code-block:: bash
 
-    tune download meta-llama/Llama-3-8b-hf \
+    tune download meta-llama/Meta-Llama-3-8B \
         --output-dir <checkpoint_dir> \
         --hf-token <ACCESS TOKEN>
 
@@ -151,9 +151,7 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            hf_model_0001_0.pt,
-            hf_model_0002_0.pt,
-            hf_model_0003_0.pt
+            consolidated_00.pth
         ]
 
         output_dir: <checkpoint_dir>
@@ -202,9 +200,7 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            hf_model_0001_0.pt,
-            hf_model_0002_0.pt,
-            hf_model_0003_0.pt
+            consolidated_00.pth
         ]
 
         output_dir: <checkpoint_dir>
@@ -258,9 +254,7 @@ And update ``custom_quantization_config.yaml`` with the following:
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            hf_model_0001_0.pt,
-            hf_model_0002_0.pt,
-            hf_model_0003_0.pt
+            consolidated_00.pth
         ]
 
         output_dir: <checkpoint_dir>
@@ -304,7 +298,7 @@ First, we'll make one more change to our ``custom_generation_config.yaml``.
 
         # checkpoint files point to the quantized model
         checkpoint_files: [
-            hf_model_0001_0-4w.pt,
+            meta_model_0_0-4w.pt,
         ]
 
         output_dir: <checkpoint_dir>
