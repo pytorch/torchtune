@@ -11,7 +11,7 @@
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # Single device full finetuning requires more memory optimizations. It's
@@ -49,8 +49,8 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 3
 
-optimizer: torch.optim.AdamW
-  _component_:
+optimizer:
+  _component_: torch.optim.AdamW
   lr: 2e-5
   foreach: False
 
