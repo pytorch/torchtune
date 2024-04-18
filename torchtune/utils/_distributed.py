@@ -211,7 +211,7 @@ def wrap_fsdp(
             model,
             auto_wrap_policy=wrap_policy,
             device_id=device,
-            mixed_precision=None,
+            mixed_precision=mp,
             sharding_strategy=_get_sharding_strategy(strategy),
             **kwargs,
         )
