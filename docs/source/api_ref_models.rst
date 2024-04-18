@@ -44,6 +44,8 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.llama2_13b
     llama2.lora_llama2_13b
     llama2.qlora_llama2_13b
+    llama2.llama2_70b
+    llama2.lora_llama2_70b
 
 
 mistral
