@@ -46,7 +46,7 @@ def llama3_8b() -> TransformerDecoder:
 
 def llama3_70b() -> TransformerDecoder:
     """
-    Builder for creating a Llama3 model initialized w/ the default 70 parameter values.
+    Builder for creating a Llama3 model initialized w/ the default 70B parameter values.
 
     Returns:
         TransformerDecoder: Instantiation of Llama3 70 model
