@@ -11,7 +11,6 @@ from .kv_cache import KVCache  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
-from .tokenizer import Tokenizer  # noqa
 from .transformer import TransformerDecoder, TransformerDecoderLayer  # noqa
 
 __all__ = [
@@ -21,7 +20,6 @@ __all__ = [
     "KVCache",
     "RotaryPositionalEmbeddings",
     "RMSNorm",
-    "Tokenizer",
     "TransformerDecoder",
     "TransformerDecoderLayer",
     "reparametrize_as_dtype_state_dict_post_hook",
