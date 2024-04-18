@@ -39,7 +39,7 @@ And should see the following output:
 |
 
 Install via ``git clone``
------------------------
+-------------------------
 
 If you want the latest and greatest features from torchtune or if you want to become a contributor,
 you can also install the package locally with the following command.
@@ -64,7 +64,7 @@ to the package *without* installing via ``git clone``, you can install with the 
 
 .. note::
 
-    ``--no-cache-dir`` will direct ``pip`` to not look for a cached version of torchtune, thereby overwriting 
+    ``--no-cache-dir`` will direct ``pip`` to not look for a cached version of torchtune, thereby overwriting
     your existing torchtune installation.
 
 If you already have PyTorch installed, torchtune will default to using that version. However, if you want to
