@@ -184,8 +184,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            ac_mode=cfg.ac_mode,
-            ac_option=cfg.ac_option,
+            cfg_file = cfg,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
 
@@ -230,9 +229,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        enable_activation_checkpointing: bool,
-        ac_mode: str,
-        ac_option: Union[int, str],
+        cfg_file: DictConfig,
         model_state_dict: Dict[str, Any],
     ) -> nn.Module:
         """
@@ -270,7 +267,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model = model.to(torch.bfloat16)
 
         # Activation checkpointing ['none', 'full', 'selective']
-        if ac_mode != "none":
+        ac_enabled = cfg_file.get("enable_activation_checkpointing", "False")
+
+        # we can't guarantee selective ac is present in the config...
+        ac_mode = cfg_file.get("ac_mode", None)
+        ac_option = cfg_file.get("ac_option", None)
+
+        print(f"ac_enabled: {ac_enabled}, ac_mode: {ac_mode}, ac_option: {ac_option}")
+        assert False, "check enabled"
+
+        if ac_enabled and ac_mode:
             utils.set_activation_checkpointing(
                 model,
                 ac_mode,
@@ -298,7 +304,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
-        if enable_activation_checkpointing:
+        if ac_enabled and ac_mode is None:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
