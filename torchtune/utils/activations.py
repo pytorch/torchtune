@@ -79,9 +79,9 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
         2 == checkpoint every 2nd one
         """
         every_x_layer = int(ac_style)
-        assert (
-            every_x_layer >= 0
-        ), f"selective layer AC policy (every_x_layer) expects a positive integer, received {every_x_layer}"
+
+        if not (every_x_layer >= 0):
+            raise ValueError(f"Selective layer AC policy (every_x_layer) expects a positive integer, received {every_x_layer}")
 
         checkpoint_wrapper.__dict__.setdefault("_count", 0)
 
