@@ -15,7 +15,6 @@ from torchtune.modules import (
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
-from torchtune.models.gemma.lora import LoRALinearGemma
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
