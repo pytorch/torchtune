@@ -421,6 +421,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Check if we need to do an update step based on grad accum steps
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    # compute grad norm before zerooing the grads
+                    grad_norm = self.compute_grad_norm(self._model)
+
                     # Only step the optimizer if optimizer_in_bwd is false. It
                     # is handled in the backward pass otherwise.
                     if not self._optimizer_in_bwd:
@@ -454,7 +457,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                     / time_per_step
                                 ),
                                 "iterations_per_second": (1 / time_per_step),
-                                "grad_norm": self.compute_grad_norm(self._model),
+                                "grad_norm": grad_norm,
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
