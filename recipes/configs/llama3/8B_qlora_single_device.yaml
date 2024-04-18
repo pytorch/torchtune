@@ -6,7 +6,7 @@
 #   tune download meta-llama/Meta-Llama-3-8B --output-dir /tmp/Llama-3-8b-hf --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config llama3/8B_qlora_single_device \
+#   tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training

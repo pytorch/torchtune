@@ -298,7 +298,7 @@ First, we'll make one more change to our ``custom_generation_config.yaml``.
 
         # checkpoint files point to the quantized model
         checkpoint_files: [
-            meta_model_0_0-4w.pt,
+            meta_model_0-4w.pt,
         ]
 
         output_dir: <checkpoint_dir>

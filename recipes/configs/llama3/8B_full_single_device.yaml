@@ -10,7 +10,7 @@
 #   pip install bitsandbytes
 #
 # To launch on a single device, run the following command from root:
-#   tune run full_finetune_single_device --config llama3/8B_full_single_device \
+#   tune run full_finetune_single_device --config llama3/8B_full_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
