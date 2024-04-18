@@ -60,6 +60,9 @@ def verify_bf16_support() -> bool:
         and torch.cuda.is_bf16_supported()
         and torch.distributed.is_nccl_available()
         and torch.cuda.nccl.version() >= (2, 10)
+    ) or (
+        torch.backends.mps.is_available()
+        and packaging.version.parse(torch.__version__).release >= (2, 3) 
     )
 
 

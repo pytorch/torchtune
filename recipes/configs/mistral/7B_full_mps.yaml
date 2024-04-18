@@ -1,0 +1,70 @@
+# Config for single-device M based Mac full finetuning using a Mistral 7B model
+# 
+# This config uses hyperparameters based on small set of experiments and information
+# available on various forums. These are not meant to replicate the numbers
+# from the paper
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download mistralai/Mistral-7B-v0.1 --output-dir ./tmp/Mistral-7B-v0.1
+#
+# You can then run the recipe with:
+#   tune run full_finetune_single_device --config ./recipes/configs/mistral/7B_full_mps.yaml
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.mistral.mistral_tokenizer
+  path: ./tmp/Mistral-7B-v0.1/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+  train_on_input: True
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.mistral.mistral_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: ./tmp/Mistral-7B-v0.1/
+  checkpoint_files: [
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin
+  ]
+  recipe_checkpoint: null
+  output_dir: ./tmp/Mistral-7B-v0.1/
+  model_type: MISTRAL
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 3
+optimizer:
+  _component_: torch.optim.Adam
+  lr: 5e-6
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+optimizer_in_bwd: True
+
+# Training env
+device: mps
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Model compilation
+compile: False
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: ./tmp/Mistral-7B-v0.1/
+log_every_n_steps: null
