@@ -1,3 +1,14 @@
+# Config for multi-device LoRA in lora_finetune_distributed.py
+# using a Llama2 70B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --hf-token <HF_TOKEN>
+#
+# This config needs 8 GPUs to run
+#   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama2/70B_lora
+#
+
 # Model Arguments
 model:
   _component_: torchtune.models.llama2.lora_llama2_70b
