@@ -263,6 +263,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Llama3 in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
@@ -367,7 +368,8 @@
 
 <span class="kn">from</span> <span class="nn">torchtune.models.mistral._component_builders</span> <span class="kn">import</span> <span class="n">mistral</span><span class="p">,</span> <span class="n">lora_mistral</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">Tokenizer</span><span class="p">,</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceTokenizer</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
 <span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
 
@@ -400,8 +402,8 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">mistral_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tokenizer</span><span class="p">:</span>
-    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">Tokenizer</span><span class="o">.</span><span class="n">from_file</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">mistral_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SentencePieceTokenizer</span><span class="p">:</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="c1"># Original tokenizer has no pad_id, which causes indexing errors when batch training</span>
     <span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">return</span> <span class="n">tokenizer</span>

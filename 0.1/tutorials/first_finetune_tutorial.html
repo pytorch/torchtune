@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="Finetuning Llama2 with LoRA" href="lora_finetune.html" />
+    <link rel="next" title="Llama3 in torchtune" href="llama3.html" />
     <link rel="prev" title="Install Instructions" href="../install.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -266,6 +266,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="llama3.html">Llama3 in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
@@ -466,7 +467,7 @@ features like FSDP that are only required for distributed training.</p>
 </div>
 </section>
 <section id="modifying-a-config">
-<h2>Modifying a config<a class="headerlink" href="#modifying-a-config" title="Permalink to this heading">¶</a></h2>
+<span id="tune-cp-label"></span><h2>Modifying a config<a class="headerlink" href="#modifying-a-config" title="Permalink to this heading">¶</a></h2>
 <p>YAML configs hold most of the important information needed for running your recipe.
 You can set hyperparameters, specify metric loggers like <a class="reference external" href="wandb.ai">WandB</a>, select a new dataset, and more.
 For a list of all currently supported datasets, see <a class="reference internal" href="../api_ref_datasets.html#datasets"><span class="std std-ref">torchtune.datasets</span></a>.</p>
@@ -531,7 +532,7 @@ new model by checking out the <a class="reference internal" href="e2e_flow.html#
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lora_finetune.html" class="btn btn-neutral float-right" title="Finetuning Llama2 with LoRA" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="llama3.html" class="btn btn-neutral float-right" title="Llama3 in torchtune" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="../install.html" class="btn btn-neutral" title="Install Instructions" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.tokenizer &mdash; TorchTune  documentation</title>
+  <title>torchtune.modules.tokenizers._sentencepiece &mdash; TorchTune  documentation</title>
   
 
   
@@ -25,20 +25,20 @@
 
   
 
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../../../genindex.html" />
-    <link rel="search" title="Search" href="../../../search.html" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -49,16 +49,16 @@
   
 
   
-  <script src="../../../_static/js/modernizr.min.js"></script>
+  <script src="../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -240,7 +240,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -257,32 +257,33 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -315,7 +316,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../../../index.html">
+        <a href="../../../../index.html">
           
             Docs
           
@@ -323,9 +324,9 @@
       </li>
 
         
-          <li><a href="../../index.html">Module code</a> &gt;</li>
+          <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.tokenizer</li>
+      <li>torchtune.modules.tokenizers._sentencepiece</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -357,7 +358,7 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.tokenizer</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.modules.tokenizers._sentencepiece</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
@@ -373,37 +374,31 @@
 <span class="n">WHITESPACE_CHARS</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\r</span><span class="s2">&quot;</span><span class="p">,</span> <span class="s2">&quot;</span><span class="se">\v</span><span class="s2">&quot;</span><span class="p">]</span>
 
 
-<div class="viewcode-block" id="Tokenizer"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer">[docs]</a><span class="k">class</span> <span class="nc">Tokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="SentencePieceTokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer">[docs]</a><span class="k">class</span> <span class="nc">SentencePieceTokenizer</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;A wrapper around SentencePieceProcessor.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        spm_model (SentencePieceProcessor): The SentencePiece model.</span>
-<span class="sd">        vocab_size (int): The size of the vocabulary.</span>
-<span class="sd">        bos_id (int): The ID of the beginning-of-sentence token.</span>
-<span class="sd">        eos_id (int): The ID of the end-of-sentence token.</span>
-<span class="sd">        pad_id (int): The ID of the padding token.</span>
+<span class="sd">        path (str): Path to pretrained tokenizer file.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        # Accepts only non-batched input for now</span>
-<span class="sd">        &gt;&gt;&gt; tokenizer = Tokenizer.from_file(&quot;/path/to/spm_model&quot;)</span>
-<span class="sd">        &gt;&gt;&gt; tokenized_text = tokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer = SentencePieceTokenizer(&quot;/path/to/spm_model&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; tokenized_text = SentencePieceTokenizer.encode(&quot;Hello world!&quot;, add_bos=True, add_eos=True)</span>
 <span class="sd">        &gt;&gt;&gt; print(tokenized_text)</span>
 <span class="sd">        [1, 31587, 29644, 102, 2]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">spm_model</span><span class="p">:</span> <span class="n">SentencePieceProcessor</span><span class="p">,</span>
-        <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">bos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">eos_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">pad_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="n">spm_model</span> <span class="o">=</span> <span class="n">SentencePieceProcessor</span><span class="p">()</span>
+        <span class="n">spm_model</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span> <span class="o">=</span> <span class="n">spm_model</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="n">bos_id</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">eos_id</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="n">pad_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">bos_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">eos_id</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="n">spm_model</span><span class="o">.</span><span class="n">pad_id</span><span class="p">()</span>
 
         <span class="c1"># This is used in tokenize_messages: if the tokenizer does not</span>
         <span class="c1"># encode whitespace, then we can more easily split strings</span>
@@ -412,21 +407,7 @@
             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">WHITESPACE_CHARS</span><span class="p">]</span>
         <span class="p">)</span>
 
-<div class="viewcode-block" id="Tokenizer.from_file"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.from_file">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_file</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s2">&quot;Tokenizer&quot;</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize a `Tokenizer` instance from a SentencePiece model file.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            path (str): The path to the SentencePiece model file.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tokenizer: A `Tokenizer` instance.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">spm</span> <span class="o">=</span> <span class="n">SentencePieceProcessor</span><span class="p">()</span>
-        <span class="n">spm</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">spm</span><span class="p">,</span> <span class="n">spm</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">(),</span> <span class="n">spm</span><span class="o">.</span><span class="n">bos_id</span><span class="p">(),</span> <span class="n">spm</span><span class="o">.</span><span class="n">eos_id</span><span class="p">(),</span> <span class="n">spm</span><span class="o">.</span><span class="n">pad_id</span><span class="p">())</span></div>
-
-<div class="viewcode-block" id="Tokenizer.encode"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+<div class="viewcode-block" id="SentencePieceTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">add_bos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -472,7 +453,7 @@
                 <span class="n">out_type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="p">)</span></div>
 
-<div class="viewcode-block" id="Tokenizer.decode"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<div class="viewcode-block" id="SentencePieceTokenizer.decode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.decode">[docs]</a>    <span class="k">def</span> <span class="nf">decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Decode token IDs to strings.</span>
 
 <span class="sd">        Args:</span>
@@ -483,7 +464,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Tokenizer.tokenize_messages"><a class="viewcode-back" href="../../../generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
+<div class="viewcode-block" id="SentencePieceTokenizer.tokenize_messages"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.tokenize_messages">[docs]</a>    <span class="k">def</span> <span class="nf">tokenize_messages</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span> <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sa">r</span><span class="sd">&quot;&quot;&quot;Tokenize a list of messages one at a time then concatenate them,</span>
@@ -495,7 +476,7 @@
 <span class="sd">        beginning off the tokenized s2.</span>
 
 <span class="sd">        Example:</span>
-<span class="sd">            &gt;&gt;&gt; tokenizer = Tokenizer.from_file(tokenizer_path)</span>
+<span class="sd">            &gt;&gt;&gt; tokenizer = SentencePieceTokenizer(tokenizer_path)</span>
 <span class="sd">            &gt;&gt;&gt; messages = [</span>
 <span class="sd">                Message(role=&quot;system&quot;, content=&quot;system message\n&quot;, masked=True),</span>
 <span class="sd">                Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
@@ -621,24 +602,24 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
-         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-         <script src="../../../_static/jquery.js"></script>
-         <script src="../../../_static/underscore.js"></script>
-         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../../../_static/doctools.js"></script>
-         <script src="../../../_static/clipboard.min.js"></script>
-         <script src="../../../_static/copybutton.js"></script>
-         <script src="../../../_static/tabs.js"></script>
-         <script src="../../../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+         <script src="../../../../_static/jquery.js"></script>
+         <script src="../../../../_static/underscore.js"></script>
+         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../_static/doctools.js"></script>
+         <script src="../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../_static/copybutton.js"></script>
+         <script src="../../../../_static/tabs.js"></script>
+         <script src="../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -753,7 +734,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -889,7 +870,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {
