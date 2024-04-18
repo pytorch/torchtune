@@ -151,7 +151,7 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            consolidated_00.pth
+            consolidated.00.pth
         ]
 
         output_dir: <checkpoint_dir>
@@ -200,7 +200,7 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            consolidated_00.pth
+            consolidated.00.pth
         ]
 
         output_dir: <checkpoint_dir>
@@ -254,7 +254,7 @@ And update ``custom_quantization_config.yaml`` with the following:
         # checkpoint files for the fine-tuned model. These will be logged
         # at the end of your fine-tune
         checkpoint_files: [
-            consolidated_00.pth
+            consolidated.00.pth
         ]
 
         output_dir: <checkpoint_dir>

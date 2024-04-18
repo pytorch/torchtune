@@ -40,7 +40,7 @@ checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
   checkpoint_dir: /tmp/Llama-3-8b-hf/original/
   checkpoint_files: [
-    consolidated_00.pth
+    consolidated.00.pth
   ]
   recipe_checkpoint: null
   output_dir: /tmp/Llama-3-8b-hf/
