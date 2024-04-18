@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
@@ -274,10 +275,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         ac_option = cfg_file.get("ac_option", None)
 
         print(f"ac_enabled: {ac_enabled}, ac_mode: {ac_mode}, ac_option: {ac_option}")
-        assert False, "check enabled"
 
         if ac_enabled and ac_mode:
-            utils.set_activation_checkpointing(
+            apply_selective_activation_checkpointing(
                 model,
                 ac_mode,
                 ac_option,

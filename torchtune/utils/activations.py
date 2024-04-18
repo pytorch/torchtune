@@ -8,7 +8,7 @@ import gc
 
 from collections import defaultdict
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
 import torch
 
@@ -103,7 +103,7 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
             "Unknown AC type or AC config. Only selective op and selective layer ac implemented currently."
         )
 
-def set_selective_activation_checkpointing(
+def apply_selective_activation_checkpointing(
     model: nn.Module,
     ac_mode: str,
     ac_option: Optional[Union[int, str]],
