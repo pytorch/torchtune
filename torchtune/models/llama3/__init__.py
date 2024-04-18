@@ -7,8 +7,10 @@
 from ._component_builders import llama3, lora_llama3
 
 from ._model_builders import (  # noqa
+    llama3_70b,
     llama3_8b,
     llama3_tokenizer,
+    lora_llama3_70b,
     lora_llama3_8b,
     qlora_llama3_8b,
 )
@@ -17,9 +19,11 @@ from ._model_utils import scale_hidden_dim_for_mlp
 __all__ = [
     "llama3",
     "llama3_8b",
+    "llama3_70b",
     "llama3_tokenizer",
     "lora_llama3",
     "lora_llama3_8b",
+    "lora_llama3_70b",
     "qlora_llama3_8b",
     "scale_hidden_dim_for_mlp",
 ]
