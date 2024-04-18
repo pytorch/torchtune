@@ -400,7 +400,7 @@
 <section id="llama3-8b">
 <h2>Llama3-8B<a class="headerlink" href="#llama3-8b" title="Permalink to this heading">¶</a></h2>
 <p><a class="reference external" href="https://llama.meta.com/llama3">Llama3-8B</a> is a new model released by Meta AI that improves upon the performance of the Llama2 family
-of models across a <a class="reference external" href="https://github.com/meta-llama/llama3/blob/main/eval_details.md">range of different benchmarks</a>.
+of models across a <a class="reference external" href="https://huggingface.co/meta-llama/Meta-Llama-3-8B#base-pretrained-models">range of different benchmarks</a>.
 There are a few main changes between Llama2-7B and Llama3-8B models:</p>
 <ul class="simple">
 <li><p>Llama3-8B uses <a class="reference external" href="https://arxiv.org/abs/2305.13245">grouped-query attention</a> instead of the standard multi-head attention from Llama2-7B</p></li>
@@ -464,7 +464,7 @@ will be saved separately.</p>
 <p>In our experiments, we observed a peak memory usage of 18.5 GB. The default config can be trained on a consumer GPU with 24 GB VRAM.</p>
 <p>If you have multiple GPUs available, you can run the distributed version of the recipe.
 torchtune makes use of the <a class="reference external" href="https://pytorch.org/tutorials/intermediate/FSDP_tutorial.html">FSDP</a> APIs from PyTorch Distributed
-to shard the model, optimizer states, and gradients. This should enable you to increase your batch size, resulting in faster training.
+to shard the model, optimizer states, and gradients. This should enable you to increase your batch size, resulting in faster overall training.
 For example, on two devices:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora
 </pre></div>
@@ -501,28 +501,31 @@ file to our fine-tuned checkpoint files.</p>
 </pre></div>
 </div>
 <p>Next, we modify <code class="docutils literal notranslate"><span class="pre">custom_eval_config.yaml</span></code> to include the fine-tuned checkpoints.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
-<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
-<span class="w">    </span><span class="c1"># fine-tuning</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
-<span class="w">    </span><span class="c1"># at the end of your fine-tune</span>
-<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">consolidated.00.pth</span>
-<span class="w">    </span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">  </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">  </span><span class="c1"># fine-tuning</span>
+<span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
+<span class="w">  </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
+<span class="w">  </span><span class="c1"># at the end of your fine-tune</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="nv">consolidated.00.pth</span>
+<span class="w">  </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 
 <span class="c1"># Make sure to update the tokenizer path to the right</span>
 <span class="c1"># checkpoint directory as well</span>
 <span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
-<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
 </pre></div>
 </div>
 <p>Finally, we can run evaluation using our modified config.</p>
@@ -543,28 +546,31 @@ file to our fine-tuned checkpoint files.</p>
 </pre></div>
 </div>
 <p>Now we modify <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code> to point to our checkpoint and tokenizer.</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
-<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
-<span class="w">    </span><span class="c1"># fine-tuning</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
-<span class="w">    </span><span class="c1"># at the end of your fine-tune</span>
-<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">consolidated.00.pth</span>
-<span class="w">    </span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">  </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">  </span><span class="c1"># fine-tuning</span>
+<span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
+<span class="w">  </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
+<span class="w">  </span><span class="c1"># at the end of your fine-tune</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="nv">consolidated.00.pth</span>
+<span class="w">  </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 
 <span class="c1"># Make sure to update the tokenizer path to the right</span>
 <span class="c1"># checkpoint directory as well</span>
 <span class="nt">tokenizer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
-<span class="w">    </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_tokenizer</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;/tokenizer.model</span>
 </pre></div>
 </div>
 <p>Running generation with our LoRA-finetuned model, we see the following output:</p>
@@ -590,30 +596,34 @@ Let’s copy the quantization config and point it at our fine-tuned model.</p>
 </pre></div>
 </div>
 <p>And update <code class="docutils literal notranslate"><span class="pre">custom_quantization_config.yaml</span></code> with the following:</p>
-<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Model arguments</span>
+<span class="nt">model</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.models.llama3.llama3_8b</span>
 
-<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
-<span class="w">    </span><span class="c1"># fine-tuning</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="nt">checkpointer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelMetaCheckpointer</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
-<span class="w">    </span><span class="c1"># at the end of your fine-tune</span>
-<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">consolidated.00.pth</span>
-<span class="w">    </span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">  </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">  </span><span class="c1"># fine-tuning</span>
+<span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
+<span class="w">  </span><span class="c1"># checkpoint files for the fine-tuned model. These will be logged</span>
+<span class="w">  </span><span class="c1"># at the end of your fine-tune</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="nv">consolidated.00.pth</span>
+<span class="w">  </span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 </pre></div>
 </div>
 <p>To quantize the model, we can now run:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>quantize<span class="w"> </span>./custom_quantization_config.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>quantize<span class="w"> </span>--config<span class="w"> </span>./custom_quantization_config.yaml
 
 <span class="o">[</span>quantize.py:90<span class="o">]</span><span class="w"> </span>Time<span class="w"> </span><span class="k">for</span><span class="w"> </span>quantization:<span class="w"> </span><span class="m">2</span>.93<span class="w"> </span>sec
 <span class="o">[</span>quantize.py:91<span class="o">]</span><span class="w"> </span>Memory<span class="w"> </span>used:<span class="w"> </span><span class="m">23</span>.13<span class="w"> </span>GB
-<span class="o">[</span>quantize.py:104<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">4</span>.92<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>/tmp/Llama-3-8B-hf/meta_model_0-4w.pt
+<span class="o">[</span>quantize.py:104<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">4</span>.92<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>/tmp/Llama-3-8B-hf/consolidated-4w.pt
 </pre></div>
 </div>
 <p>We can see that the model is now under 5 GB, or just over four bits for each of the 8B parameters.</p>
@@ -629,29 +639,29 @@ with your favorite inference engine.</p>
 <p>Let’s take our quantized model and run the same generation again.
 First, we’ll make one more change to our <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">    </span><span class="c1"># we need to use the custom TorchTune checkpointer</span>
-<span class="w">    </span><span class="c1"># instead of the HF checkpointer for loading</span>
-<span class="w">    </span><span class="c1"># quantized models</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelTorchTuneCheckpointer</span>
+<span class="w">  </span><span class="c1"># we need to use the custom TorchTune checkpointer</span>
+<span class="w">  </span><span class="c1"># instead of the HF checkpointer for loading</span>
+<span class="w">  </span><span class="c1"># quantized models</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelTorchTuneCheckpointer</span>
 
-<span class="w">    </span><span class="c1"># directory with the checkpoint files</span>
-<span class="w">    </span><span class="c1"># this should match the output_dir specified during</span>
-<span class="w">    </span><span class="c1"># fine-tuning</span>
-<span class="w">    </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">  </span><span class="c1"># directory with the checkpoint files</span>
+<span class="w">  </span><span class="c1"># this should match the output_dir specified during</span>
+<span class="w">  </span><span class="c1"># fine-tuning</span>
+<span class="w">  </span><span class="nt">checkpoint_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
 
-<span class="w">    </span><span class="c1"># checkpoint files point to the quantized model</span>
-<span class="w">    </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
-<span class="w">        </span><span class="nv">meta_model_0-4w.pt</span><span class="p p-Indicator">,</span>
-<span class="w">    </span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="c1"># checkpoint files point to the quantized model</span>
+<span class="w">  </span><span class="nt">checkpoint_files</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span>
+<span class="w">    </span><span class="nv">consolidated-4w.pt</span><span class="p p-Indicator">,</span>
+<span class="w">  </span><span class="p p-Indicator">]</span>
 
-<span class="w">    </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
-<span class="w">    </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
+<span class="w">  </span><span class="nt">output_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;checkpoint_dir&gt;</span>
+<span class="w">  </span><span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LLAMA3</span>
 
 <span class="c1"># we also need to update the quantizer to what was used during</span>
 <span class="c1"># quantization</span>
 <span class="nt">quantizer</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.quantization.Int4WeightOnlyQuantizer</span>
-<span class="w">    </span><span class="nt">groupsize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.quantization.Int4WeightOnlyQuantizer</span>
+<span class="w">  </span><span class="nt">groupsize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
 </pre></div>
 </div>
 <p>Let’s re-run generation!</p>
