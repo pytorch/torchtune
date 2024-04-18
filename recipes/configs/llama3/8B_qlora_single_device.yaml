@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-8B --output-dir /tmp/Llama-3-8b-hf --hf-token <HF_TOKEN>
+#   tune download meta-llama/Meta-Llama-3-8B --output-dir /tmp/Meta-Llama-3-8B --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
@@ -27,16 +27,16 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Llama-3-8b-hf/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-8B/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Llama-3-8b-hf/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Llama-3-8b-hf/
+  output_dir: /tmp/Meta-Llama-3-8B/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
