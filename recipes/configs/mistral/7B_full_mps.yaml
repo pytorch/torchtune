@@ -13,7 +13,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
-  path: ./models/Mistral-7B-v0.1/tokenizer.model
+  path: ./tmp/Mistral-7B-v0.1/tokenizer.model
 
 # Dataset
 dataset:
@@ -28,13 +28,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: ./models/Mistral-7B-v0.1/
+  checkpoint_dir: ./tmp/Mistral-7B-v0.1/
   checkpoint_files: [
     pytorch_model-00001-of-00002.bin,
     pytorch_model-00002-of-00002.bin
   ]
   recipe_checkpoint: null
-  output_dir: ./models/Mistral-7B-v0.1/
+  output_dir: ./tmp/Mistral-7B-v0.1/
   model_type: MISTRAL
 resume_from_checkpoint: False
 
@@ -66,5 +66,5 @@ compile: False
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: ./models/Mistral-7B-v0.1/
+output_dir: ./tmp/Mistral-7B-v0.1/
 log_every_n_steps: null
