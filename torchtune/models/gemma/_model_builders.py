@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 from torchtune.models.gemma._component_builders import gemma
+from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
 from torchtune.modules import Tokenizer, TransformerDecoder
 
@@ -13,13 +14,13 @@ the ``gemma_2b`` model builder uses the ``gemma`` component builder.
 """
 
 
-def gemma_2b() -> TransformerDecoder:
+def gemma_2b() -> GemmaTransformerDecoder:
     """
     Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        TransformerDecoder: Instantiation of Gemma 2B model
+        GemmaTransformerDecoder: Instantiation of Gemma 2B model
     """
     return gemma(
         vocab_size=256_000,
