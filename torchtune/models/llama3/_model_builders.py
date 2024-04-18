@@ -75,7 +75,6 @@ def lora_llama3_8b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
-        max_batch_size (Optional[int]): Maximum batch size to be passed to KVCache.
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
@@ -92,7 +91,6 @@ def lora_llama3_8b(
         embed_dim=4096,
         max_seq_len=4096,
         intermediate_dim=14336,
-        max_batch_size=max_batch_size,
         attn_dropout=0.0,
         norm_eps=1e-5,
         rope_base=500000.0,
