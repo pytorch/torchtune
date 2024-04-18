@@ -267,6 +267,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Llama3 in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
@@ -387,14 +388,24 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.RMSNorm.html#torchtune.modules.RMSNorm" title="torchtune.modules.RMSNorm"><code class="xref py py-obj docutils literal notranslate"><span class="pre">RMSNorm</span></code></a></p></td>
 <td><p>Implements Root Mean Square Normalization introduced in <a class="reference external" href="https://arxiv.org/pdf/1910.07467.pdf">https://arxiv.org/pdf/1910.07467.pdf</a>.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.Tokenizer.html#torchtune.modules.Tokenizer" title="torchtune.modules.Tokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Tokenizer</span></code></a></p></td>
-<td><p>A wrapper around SentencePieceProcessor.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer" title="torchtune.modules.TransformerDecoderLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoderLayer</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer" title="torchtune.modules.TransformerDecoderLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoderLayer</span></code></a></p></td>
 <td><p>Transformer layer derived from the Llama2 model.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p></td>
 <td><p>Transformer Decoder derived from the Llama2 architecture.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="tokenizers">
+<h2>Tokenizers<a class="headerlink" href="#tokenizers" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.SentencePieceTokenizer</span></code></a></p></td>
+<td><p>A wrapper around SentencePieceProcessor.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tokenizers.TikTokenTokenizer</span></code></a></p></td>
+<td><p>A wrapper around tiktoken Encoding.</p></td>
 </tr>
 </tbody>
 </table>
@@ -476,6 +487,7 @@
               <ul>
 <li><a class="reference internal" href="#">torchtune.modules</a><ul>
 <li><a class="reference internal" href="#modeling-components-and-building-blocks">Modeling Components and Building Blocks</a></li>
+<li><a class="reference internal" href="#tokenizers">Tokenizers</a></li>
 <li><a class="reference internal" href="#peft-components">PEFT Components</a></li>
 <li><a class="reference internal" href="#module-utilities">Module Utilities</a></li>
 </ul>
