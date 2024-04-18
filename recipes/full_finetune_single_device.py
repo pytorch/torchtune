@@ -416,6 +416,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # Note: We're always logging the loss before normalizing it
+                # Check if this is the norm or not
+                loss_to_log = loss.item()
                 loss = loss / self._gradient_accumulation_steps
                 loss.backward()
 
@@ -436,13 +439,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     )
 
                     # Compute training metrics
-                    # Note: We're always logging the loss before normalizing it
-                    # Check if this is the norm or not
                     if self.total_training_steps % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         self._metric_logger.log_dict(
                             {
-                                "loss": loss.item(),
+                                "loss": loss_to_log,
                                 # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                                 # true since we don't expose the ability to configure this yet.
                                 "lr": (
