@@ -6,6 +6,8 @@
 
 from torch import nn
 from typing import List
+from functools import partial
+from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -129,7 +131,6 @@ def gemma_mlp(dim: int, hidden_dim: int) -> FeedForward:
 def lora_gemma(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     *,
     # gemma args
     vocab_size: int,
@@ -152,6 +153,7 @@ def lora_gemma(
 ) -> GemmaTransformerDecoder:
     """
     Return a version of Gemma with LoRA applied to some of the linear layers in its self-attention modules.
+    Note: output projection lora is not supported because it is tied to token embeddings
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -159,9 +161,6 @@ def lora_gemma(
             ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
         apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
             Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
-            Note: output projection lora is not supported because it is tied to token embeddings
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
@@ -232,6 +231,19 @@ def lora_gemma(
         norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         norm_embeddings=norm_embeddings,
     )
+
+    if quantize_base:
+        # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
+        # so as to not increase peak memory
+        model._register_state_dict_hook(
+            partial(
+                reparametrize_as_dtype_state_dict_post_hook,
+                # TODO this is clowny, figure out a better way to get what precision the rest
+                # of the model is in
+                dtype=tok_embeddings.weight.dtype,
+                offload_to_cpu=True,
+            )
+        )
 
     return model
 

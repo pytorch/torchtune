@@ -50,7 +50,6 @@ def gemma_tokenizer(path: str) -> SentencePieceTokenizer:
 def lora_gemma_2b(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
     lora_rank: int = 8,
     lora_alpha: float = 16,
     quantize_base: bool = False,
@@ -58,7 +57,6 @@ def lora_gemma_2b(
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
         vocab_size=256_000,
         num_layers=18,
         num_heads=8,
