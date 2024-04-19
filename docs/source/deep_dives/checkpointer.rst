@@ -35,7 +35,7 @@ Let's take a close look at these different formats.
 
 Very simply put, the format of a checkpoint is dictated by the state_dict and how this is stored
 in files on disk. Each weight is associated with a string key that identifies it in the state dict.
-If the string identifer of the keys in the stored checkpoints don't match up
+If the string identifier of the keys in the stored checkpoints don't match up
 exactly with those in the model definition, you'll either run into explicit errors (loading the
 state dict will raise an exception) or worse - silent errors (loading will succeed but training or
 inference will not work as expected). In addition to the keys lining up, you also need the shapes
