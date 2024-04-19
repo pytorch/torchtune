@@ -9,11 +9,11 @@ import os
 import textwrap
 
 from pathlib import Path
+from typing import Literal, Union
 
 from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
 from torchtune._cli.subcommand import Subcommand
-from typing import List, Literal, Optional, Union
 
 
 class Download(Subcommand):
@@ -72,7 +72,7 @@ class Download(Subcommand):
             "--output-dir-use-symlinks",
             type=str,
             required=False,
-            default="False",
+            default="auto",
             help=(
                 "To be used with `output-dir`. If set to 'auto', the cache directory will be used and the file will be"
                 " either duplicated or symlinked to the local directory depending on its size. It set to `True`, a"
@@ -106,7 +106,7 @@ class Download(Subcommand):
         if use_symlinks_lowercase == "true":
             output_dir_use_symlinks = True
         elif use_symlinks_lowercase == "false":
-            output_dir_use_symlinks= False
+            output_dir_use_symlinks = False
         elif use_symlinks_lowercase == "auto":
             output_dir_use_symlinks = "auto"
         else:
