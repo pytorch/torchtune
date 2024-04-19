@@ -11,6 +11,8 @@ from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 from torchtune.modules import Tokenizer, TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
+from functools import partial
+
 """
 Model builders build specific instantiations using component builders. For example
 the ``gemma_2b`` model builder uses the ``gemma`` component builder.
@@ -72,3 +74,11 @@ def lora_gemma_2b(
         lora_dropout=0.05,
         quantize_base=quantize_base,
     )
+
+qlora_gemma_2b = partial(lora_gemma_2b, quantize_base=True)
+
+qlora_gemma_2b.__doc__ = """
+Builder for creating a Gemma model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_gemma_2b` for full API arguments.
+"""
