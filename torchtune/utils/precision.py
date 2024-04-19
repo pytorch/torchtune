@@ -18,7 +18,6 @@ from typing import (
 
 import torch
 import torch.nn as nn
-from pkg_resources import packaging
 
 from torch.cuda.amp import GradScaler
 from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
@@ -67,9 +66,7 @@ def list_dtypes() -> List[str]:
 def verify_bf16_support():
     return (
         torch.cuda.is_available()
-        and torch.version.cuda
         and torch.cuda.is_bf16_supported()
-        and packaging.version.parse(torch.version.cuda).release >= (11, 0)
         and torch.distributed.is_nccl_available()
         and torch.cuda.nccl.version() >= (2, 10)
     )
