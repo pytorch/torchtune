@@ -57,7 +57,7 @@ def llama3_70b() -> TransformerDecoder:
         num_heads=64,
         num_kv_heads=8,
         embed_dim=8192,
-        max_seq_len=4096,
+        max_seq_len=8192,
         intermediate_dim=28672,
         attn_dropout=0.0,
         norm_eps=1e-5,
