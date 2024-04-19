@@ -22,7 +22,6 @@ from ._distributed import (  # noqa
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
-    wrap_fsdp,
 )
 from ._generation import generate, generate_next_token  # noqa
 from ._profiler import profiler
@@ -47,9 +46,7 @@ from .memory import (  # noqa
     set_activation_checkpointing,
 )
 from .precision import (
-    get_autocast,
     get_dtype,
-    get_gradient_scaler,
     list_dtypes,
     set_default_dtype,
     validate_expected_param_dtype,
@@ -61,12 +58,9 @@ __all__ = [
     "save_checkpoint",
     "transform_opt_state_dict",
     "validate_checkpoint",
-    "get_autocast",
     "memory_stats_log",
     "get_device",
     "get_dtype",
-    "wrap_fsdp",
-    "get_gradient_scaler",
     "get_logger",
     "get_world_size_and_rank",
     "init_distributed",
