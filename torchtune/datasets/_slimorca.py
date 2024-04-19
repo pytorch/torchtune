@@ -39,7 +39,7 @@ def slimorca_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         chat_format (Optional[ChatFormat]): template used to format the chat. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
-            Default: Llama2ChatFormat
+            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. Default: Llama2ChatFormat
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.
             Default is 1024.

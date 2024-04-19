@@ -50,9 +50,11 @@ class ChatDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of `Messages` that follows the llama format with the expected keys
-        chat_format (Optional[ChatFormat]): template used to format the chat. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
-            Default: None
+        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
+            messages, such as the [INST] tags in LLaMA2 and in Mistral. The extra text will still get tokenized as normal text, not
+            as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, `chat_format` is not needed,
+            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
+            template do not match the column/key names in the dataset, use `column_map` to map them. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -118,7 +120,8 @@ def chat_dataset(
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the llama style. Supported styles are: "sharegpt"
-        chat_format (str): name of ChatFormat class used to format the messages.
+        chat_format (str): name of ChatFormat class used to format the messages. See the description in
+            :class:`~torchtune.datasets.ChatDataset` for more details.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
