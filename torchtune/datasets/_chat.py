@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
@@ -50,8 +50,9 @@ class ChatDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of `Messages` that follows the llama format with the expected keys
-        chat_format (ChatFormat): template used to format the chat. If the placeholder variable
+        chat_format (Optional[ChatFormat]): template used to format the chat. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+            Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -59,10 +60,11 @@ class ChatDataset(Dataset):
 
     def __init__(
         self,
+        *,
         tokenizer: Tokenizer,
         source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
-        chat_format: ChatFormat,
+        chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
@@ -83,7 +85,8 @@ class ChatDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
-        messages = self.chat_format.format(messages)
+        if self.chat_format:
+            messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
