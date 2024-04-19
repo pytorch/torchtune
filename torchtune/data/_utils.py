@@ -59,10 +59,4 @@ def validate_messages(
             raise ValueError(
                 f"System message at index {i} in messages, but system messages must come first"
             )
-        # Assistant messages can be empty because they will not be tokenized and
-        # will not contribute to the loss, assuming the entire batch is not full
-        # of empty assistant messages. The alpaca dataset is an example of the
-        # output assistant message being empty sometimes.
-        if not message.content and message.role != "assistant":
-            raise ValueError(f"Message at index {i} in messages is empty")
         last_turn = message.role
