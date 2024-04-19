@@ -522,5 +522,31 @@ The output should look something like this:
 
 And thats it! Try your own prompt!
 
+Uploading your model to the Hugging Face Hub
+--------------------------------------------
+
+Your new model is working great and you want to share it with the world. The easiest way to do this
+is utilizing the ``huggingface-cli`` command, which works seamlessly with torchtune. Simply point the CLI
+to your finetuned model directory like so:
+
+.. code-block:: bash
+
+    huggingface-cli upload <hf-repo-id> <checkpoint-dir>
+
+The command should output a link to your repository on the Hub. If the repository doesn't exist yet, it will
+be created automatically:
+
+.. code-block:: text
+
+    https://huggingface.co/<hf-repo-id>/tree/main/.
+
+.. note::
+
+    Before uploading, make sure you are `authenticated with Hugging Face <https://huggingface.co/docs/huggingface_hub/quick-start#authentication>`_ by running ``huggingface-cli login``.
+
+For more details on the ``huggingface-cli upload`` feature check out the `Hugging Face docs <https://huggingface.co/docs/huggingface_hub/en/guides/cli#huggingface-cli-upload>`_.
+
+|
+
 Hopefully this tutorial gave you some insights into how you can use torchtune for
 your own workflows. Happy Tuning!

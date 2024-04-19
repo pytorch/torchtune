@@ -42,10 +42,11 @@ def sharegpt_to_llama2_messages(
 
     Returns:
         List[Message]: a list of messages with "role" and "content" fields. See `torchtune.datasets._types.Message`
-            and `torchtune.datasets._types.Dialogue` for more details.
+            for more details.
     """
     role_map = {"system": "system", "human": "user", "gpt": "assistant"}
     conversations = sample["conversations"]
+
     messages = []
     for message in conversations:
         role = role_map[message["from"]]

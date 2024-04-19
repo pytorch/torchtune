@@ -18,7 +18,7 @@ from torchtune.data import (
     sharegpt_to_llama2_messages,
     validate_messages,
 )
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 class ChatDataset(Dataset):

@@ -3,6 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import itertools
 import sys
 import time
 from typing import Any, Dict
@@ -121,11 +122,21 @@ class InferenceRecipe:
 
         logger.info(self._tokenizer.decode(generated_tokens))
 
+        model_size = sum(
+            [
+                p.numel() * p.dtype.itemsize
+                for p in itertools.chain(
+                    self._model.parameters(), self._model.buffers()
+                )
+            ]
+        )
+
         tokens_generated = len(generated_tokens) - prompt.size(0)
         tokens_sec = tokens_generated / t
         logger.info(
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
         )
+        logger.info(f"Bandwidth achieved: {model_size * tokens_sec / 1e9:.02f} GB/s")
         logger.info(f"Memory used: {torch.cuda.max_memory_allocated() / 1e9:.02f} GB")
 
 
