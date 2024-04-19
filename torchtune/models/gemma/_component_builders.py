@@ -161,6 +161,7 @@ def lora_gemma(
             Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
+            Note: output projection lora is not supported because it is tied to token embeddings
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
@@ -220,9 +221,6 @@ def lora_gemma(
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
-
-    # TODO: Fix the apply to output_proj.
-    assert apply_lora_to_output is False, "LoRA is not currently supported for the output projection."
 
     model = GemmaTransformerDecoder(
         tok_embeddings=tok_embeddings,
