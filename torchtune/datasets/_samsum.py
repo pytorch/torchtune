@@ -6,7 +6,7 @@
 
 from torchtune.data import SummarizeTemplate
 from torchtune.datasets import InstructDataset
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def samsum_dataset(

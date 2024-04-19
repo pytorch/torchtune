@@ -6,7 +6,7 @@
 
 from torchtune.data import GrammarErrorCorrectionTemplate
 from torchtune.datasets._instruct import InstructDataset
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def grammar_dataset(

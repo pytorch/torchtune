@@ -44,6 +44,13 @@ torchtune tutorials.
 .. customcardstart::
 
 .. customcarditem::
+   :header: Llama3 in torchtune
+   :card_description:
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/llama3.html
+   :tags: finetuning,llama3
+
+.. customcarditem::
    :header: Finetuning with LoRA in torchtune
    :card_description: Parameter-efficient finetuning of Llama2 using LoRA
    :image: _static/img/generic-pytorch-logo.png
@@ -88,6 +95,7 @@ torchtune tutorials.
    :caption: Tutorials
    :hidden:
 
+   tutorials/llama3
    tutorials/lora_finetune
    tutorials/qlora_finetune
    tutorials/e2e_flow
