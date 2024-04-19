@@ -3,6 +3,10 @@
 ![Recipe Integration Test](https://github.com/pytorch/torchtune/actions/workflows/recipe_test.yaml/badge.svg)
 [![](https://dcbadge.vercel.app/api/server/4Xsdn8Rr9Q?style=flat)](https://discord.gg/4Xsdn8Rr9Q)
 
+&nbsp;
+&nbsp;
+
+torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-8B with LoRA, QLoRA and Full fine-tune in the [Llama3](#llama3) section! 🚀 🦙
 
 # torchtune
 
@@ -40,7 +44,8 @@ torchtune currently supports the following models.
 
 | Model                                         | Sizes     |
 |-----------------------------------------------|-----------|
-| [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
+| [Llama3](https://llama.meta.com/llama3)    | 8B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
+| [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B, 70B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
 
@@ -54,8 +59,8 @@ torchtune provides the following fine-tuning recipes.
 
 | Training                           | Fine-tuning Method                 |
 |------------------------------------|------------------------------------|
-| Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora.yaml)] |
-| Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama2/7B_full_low_memory.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama2/7B_qlora_single_device.yaml)] |
+| Distributed Training [1 to 8 GPUs] | Full [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama3/8B_full.yaml)], LoRA [[code](recipes/lora_finetune_distributed.py), [example](recipes/configs/llama3/8B_lora.yaml)] |
+| Single Device / Low Memory [1 GPU] | Full [[code](recipes/full_finetune_single_device.py), [example](recipes/configs/llama3/8B_full_single_device.yaml)], LoRA + QLoRA [[code](recipes/lora_finetune_single_device.py), [example](recipes/configs/llama3/8B_lora_single_device.yaml)] |
 | Single Device [1 GPU]              | DPO [[code](recipes/full_finetune_distributed.py), [example](recipes/configs/llama2/7B_lora_dpo_single_device.yaml)]
 
 &nbsp;
@@ -69,13 +74,46 @@ This table captures the minimum memory requirements for our different recipes us
 
 | Example HW Resources | Finetuning Method | Config | Model | Peak Memory per GPU
 |--------------|-------------------|---------|------------|---------------------|
-| 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](recipes/configs/llama2/7B_qlora_single_device.yaml)         |    Llama-7B      |     9.29 GB            |
-| 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](recipes/configs/llama2/7B_lora.yaml)         |    Llama-7B      |    20.95 GB            |
-| 1 x RTX 4090 |     LoRA          | [lora_finetune_single_device](recipes/configs/llama2/7B_lora_single_device.yaml)     |    Llama-7B      | 17.18 GB           |
-| 1 x RTX 4090 |   Full finetune   | [full_finetune_single_device](recipes/configs/llama2/7B_full_low_memory.yaml)     |    Llama-7B      |    14.97 GB            |
-| 4 x RTX 4090 |   Full finetune   | [full_finetune_distributed](recipes/configs/llama2/7B_full.yaml)         |    Llama-7B      |    22.9 GB           |
+| 1 x RTX 4090 |     QLoRA          | [qlora_finetune_single_device](recipes/configs/llama2/7B_qlora_single_device.yaml)         |    Llama2-7B      |     8.57 GB            |
+| 2 x RTX 4090 |     LoRA          | [lora_finetune_distributed](recipes/configs/llama2/7B_lora.yaml)         |    Llama2-7B      |    20.95 GB            |
+| 1 x RTX 4090 |     LoRA          | [lora_finetune_single_device](recipes/configs/llama2/7B_lora_single_device.yaml)     |    Llama2-7B      | 17.18 GB           |
+| 1 x RTX 4090 |   Full finetune   | [full_finetune_single_device](recipes/configs/llama2/7B_full_low_memory.yaml)     |    Llama2-7B      |    14.97 GB            |
+| 4 x RTX 4090 |   Full finetune   | [full_finetune_distributed](recipes/configs/llama2/7B_full.yaml)         |    Llama2-7B      |    22.9 GB           |
 
 * these are averaged over multiple runs, but there might be some variance based on the setup. We'll update this table regularly.
+
+&nbsp;
+
+## Llama3
+
+torchtune supports fine-tuning for the Llama3 8B models with support for 70B on its way. We currently support LoRA, QLoRA and Full-finetune on a single GPU as well as LoRA and Full fine-tune on multiple devices. For all the details, take a look at our [tutorial](https://pytorch.org/torchtune/main/tutorials/llama3.html).
+
+
+In our initial experiments, QLoRA has a peak allocated memory of ``~9GB`` while LoRA on a single GPU has a peak allocated memory of ``~19GB``. To get started, you can use our default configs to kick off training.
+
+- LoRA on a single GPU.
+
+```bash
+tune run lora_finetune_single_device --config llama3/8B_lora_single_device
+```
+
+- QLoRA on a single GPU
+
+```bash
+tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
+```
+
+- LoRA on 2 GPUs
+
+```bash
+tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
+```
+
+- Full fine-tune on 2 GPUs
+
+```bash
+tune run --nproc_per_node 2 full_finetune_distributed --config llama3/8B_full
+```
 
 
 &nbsp;
