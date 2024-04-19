@@ -47,7 +47,7 @@ torchtune tutorials.
    :header: Llama3 in torchtune
    :card_description:
    :image: _static/img/generic-pytorch-logo.png
-   :link: tutorials/lora_finetune.html
+   :link: tutorials/llama3.html
    :tags: finetuning,llama3
 
 .. customcarditem::
