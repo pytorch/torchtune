@@ -6,7 +6,7 @@
 &nbsp;
 &nbsp;
 
-torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-8B with LoRA (70B also supported), QLoRA and Full fine-tune in the [Llama3](#llama3) section! 🚀 🦙
+torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-8B with LoRA, QLoRA and Full fine-tune in the [Llama3](#llama3) section! We also support 70B fine-tuning with LoRA! 🚀 🦙
 
 # torchtune
 
