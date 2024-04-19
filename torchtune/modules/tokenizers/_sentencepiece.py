@@ -13,37 +13,31 @@ from torchtune.data._utils import truncate
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
-class Tokenizer:
+class SentencePieceTokenizer:
     """A wrapper around SentencePieceProcessor.
 
     Args:
-        spm_model (SentencePieceProcessor): The SentencePiece model.
-        vocab_size (int): The size of the vocabulary.
-        bos_id (int): The ID of the beginning-of-sentence token.
-        eos_id (int): The ID of the end-of-sentence token.
-        pad_id (int): The ID of the padding token.
+        path (str): Path to pretrained tokenizer file.
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = Tokenizer.from_file("/path/to/spm_model")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = SentencePieceTokenizer("/path/to/spm_model")
+        >>> tokenized_text = SentencePieceTokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
         self,
-        spm_model: SentencePieceProcessor,
-        vocab_size: int,
-        bos_id: int,
-        eos_id: int,
-        pad_id: int,
+        path: str,
     ):
+        spm_model = SentencePieceProcessor()
+        spm_model.load(path)
         self.spm_model = spm_model
-        self.vocab_size = vocab_size
-        self.bos_id = bos_id
-        self.eos_id = eos_id
-        self.pad_id = pad_id
+        self.vocab_size = spm_model.vocab_size()
+        self.bos_id = spm_model.bos_id()
+        self.eos_id = spm_model.eos_id()
+        self.pad_id = spm_model.pad_id()
 
         # This is used in tokenize_messages: if the tokenizer does not
         # encode whitespace, then we can more easily split strings
@@ -51,20 +45,6 @@ class Tokenizer:
         self.encodes_whitespace = any(
             [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
         )
-
-    @classmethod
-    def from_file(cls, path: str) -> "Tokenizer":
-        """Initialize a `Tokenizer` instance from a SentencePiece model file.
-
-        Args:
-            path (str): The path to the SentencePiece model file.
-
-        Returns:
-            Tokenizer: A `Tokenizer` instance.
-        """
-        spm = SentencePieceProcessor()
-        spm.load(path)
-        return cls(spm, spm.vocab_size(), spm.bos_id(), spm.eos_id(), spm.pad_id())
 
     def encode(
         self,
@@ -135,7 +115,7 @@ class Tokenizer:
         beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = Tokenizer.from_file(tokenizer_path)
+            >>> tokenizer = SentencePieceTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),

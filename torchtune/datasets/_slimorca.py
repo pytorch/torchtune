@@ -8,7 +8,7 @@ from torchtune.data import Llama2ChatFormat, sharegpt_to_llama2_messages
 
 from torchtune.datasets._chat import ChatDataset
 
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def slimorca_dataset(

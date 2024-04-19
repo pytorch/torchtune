@@ -22,6 +22,7 @@ class ModelType(Enum):
     LLAMA2 = "llama2"
     MISTRAL = "mistral"
     GEMMA = "gemma"
+    LLAMA3 = "llama3"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
