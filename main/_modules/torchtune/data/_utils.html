@@ -421,12 +421,6 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="sa">f</span><span class="s2">&quot;System message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages, but system messages must come first&quot;</span>
             <span class="p">)</span>
-        <span class="c1"># Assistant messages can be empty because they will not be tokenized and</span>
-        <span class="c1"># will not contribute to the loss, assuming the entire batch is not full</span>
-        <span class="c1"># of empty assistant messages. The alpaca dataset is an example of the</span>
-        <span class="c1"># output assistant message being empty sometimes.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span> <span class="ow">and</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Message at index </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> in messages is empty&quot;</span><span class="p">)</span>
         <span class="n">last_turn</span> <span class="o">=</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span></div>
 </pre></div>
 

@@ -366,7 +366,9 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">sharegpt_to_llama2_messages</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">ChatFormat</span><span class="p">,</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span> <span class="n">sharegpt_to_llama2_messages</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.datasets._chat</span> <span class="kn">import</span> <span class="n">ChatDataset</span>
 
@@ -374,8 +376,10 @@
 
 
 <div class="viewcode-block" id="slimorca_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset">[docs]</a><span class="k">def</span> <span class="nf">slimorca_dataset</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Open-Orca/SlimOrca-Dedup&quot;</span><span class="p">,</span>
+    <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ChatFormat</span><span class="p">]</span> <span class="o">=</span> <span class="n">Llama2ChatFormat</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
@@ -395,6 +399,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
+<span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. If the placeholder variable</span>
+<span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
+<span class="sd">            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. Default: Llama2ChatFormat</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.</span>
 <span class="sd">            Default is 1024.</span>
@@ -425,7 +432,7 @@
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">sharegpt_to_llama2_messages</span><span class="p">,</span>
-        <span class="n">chat_format</span><span class="o">=</span><span class="n">Llama2ChatFormat</span><span class="p">,</span>
+        <span class="n">chat_format</span><span class="o">=</span><span class="n">chat_format</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
