@@ -287,6 +287,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
             )
 
+            cfg_model.apply_lora_to_output = getattr(
+                cfg_model, "apply_lora_to_output", False
+            )
+
             # The model contains LoRA params which won't have any matching keys in
             # the state dict. As a result, we need to load with strict=False.
             # Before loading the state dict, ensure the state dict keys for the base

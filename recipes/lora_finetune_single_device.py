@@ -274,6 +274,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             lora_missing, lora_unexpected = None, None
 
+        cfg_model.apply_lora_to_output = getattr(
+            cfg_model, "apply_lora_to_output", False
+        )
+
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
