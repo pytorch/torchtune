@@ -357,7 +357,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
         if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            log.info(
+                "Memory stats after model init:"
+                f"\n\tGPU peak memory allocation: {memory_stats['peak_memory_alloc']:.2f} GB"
+                f"\n\tGPU peak memory reserved: {memory_stats['peak_memory_reserved']:.2f} GB"
+                f"\n\tGPU peak memory active: {memory_stats['peak_memory_active']:.2f} GB"
+            )
 
         # synchronize before training begins
         torch.distributed.barrier()

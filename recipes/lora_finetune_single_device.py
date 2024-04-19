@@ -224,7 +224,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
-        steps_per_epoch = len(self._dataloader)
         if (
             self.max_steps_per_epoch is not None
             and self.max_steps_per_epoch < self._steps_per_epoch
@@ -297,7 +296,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             model = utils.wrap_compile(model)
         if self._device.type == "cuda":
             memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            log.info(
+                "Memory stats after model init:"
+                f"\n\tGPU peak memory allocation: {memory_stats['peak_memory_alloc']:.2f} GB"
+                f"\n\tGPU peak memory reserved: {memory_stats['peak_memory_reserved']:.2f} GB"
+                f"\n\tGPU peak memory active: {memory_stats['peak_memory_active']:.2f} GB"
+            )
         return model
 
     def _setup_optimizer(
