@@ -267,14 +267,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
-        # Activation checkpointing ['none', 'full', 'selective']
+        # Activation checkpointing
         ac_enabled = cfg_file.get("enable_activation_checkpointing", "False")
 
         # we can't guarantee selective ac is present in the config...
         ac_mode = cfg_file.get("ac_mode", None)
         ac_option = cfg_file.get("ac_option", None)
-
-        print(f"ac_enabled: {ac_enabled}, ac_mode: {ac_mode}, ac_option: {ac_option}")
 
         if ac_enabled and ac_mode:
             apply_selective_activation_checkpointing(
@@ -431,8 +429,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         _, rank = utils.get_world_size_and_rank()
 
-        _gb = 1024 * 1024 * 1024
-
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
@@ -476,8 +472,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_mem_alloc": torch.cuda.memory_allocated() / _gb,
-                            "gpu_mem_reserved": torch.cuda.memory_reserved() / _gb,
+                            "gpu_mem_alloc": torch.cuda.memory_allocated() / 1e9,
+                            "gpu_mem_reserved": torch.cuda.memory_reserved() / 1e9,
                         },
                         step=self.total_training_steps,
                     )
