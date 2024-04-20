@@ -295,7 +295,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             validate_state_dict_for_lora(
                 lora_attn_modules=cfg_model.lora_attn_modules,
                 apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-                apply_lora_to_output=cfg_model.apply_lora_to_output,
+                apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
                 full_model_state_dict_keys=model.state_dict().keys(),
                 lora_state_dict_keys=(
                     lora_weights_state_dict.keys()
