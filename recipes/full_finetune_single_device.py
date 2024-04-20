@@ -261,8 +261,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
         if self._device.type == "cuda":
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
+
         return model
 
     def _setup_optimizer(
@@ -444,7 +445,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self.total_training_steps % self._log_peak_memory_every_n_steps == 0
                     and self._device.type == "cuda"
                 ):
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )
