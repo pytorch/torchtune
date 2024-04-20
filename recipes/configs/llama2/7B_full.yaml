@@ -47,7 +47,7 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 4
+batch_size: 2
 epochs: 3
 optimizer:
   _component_: torch.optim.AdamW
@@ -55,7 +55,7 @@ optimizer:
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: null
 
 
 # Training env
