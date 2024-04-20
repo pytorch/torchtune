@@ -34,10 +34,7 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
         )
 
     # selective layer checkpointing...some checks in case we receive '2' or 2...
-    elif ac_mode == "selective" and (
-        isinstance(ac_style, (int, float))
-        or (isinstance(ac_style, str) and ac_style.isdigit())
-    ):
+    elif ac_mode == "selective":
         """enables selective checkpointing of candidate layers.
         Usage:
         'selective_ac_option' with a positive 'int' value in config controls which layers to checkpoint.

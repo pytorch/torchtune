@@ -64,9 +64,9 @@ gradient_accumulation_steps: 1
 device: cuda
 
 # Memory management
-enable_activation_checkpointing: True
+enable_activation_checkpointing: False
 ac_mode: 'selective'  # ['selective', 'full']
-ac_option: '3'  # [int] = ac every positive int layer
+ac_option: 2  # [int] = ac every positive int layer
 
 
 # Reduced precision
@@ -76,5 +76,5 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: ./logs/alpaca-llama3-finetune
+output_dir: /tmp/alpaca-llama3-finetune
 log_every_n_steps: null
