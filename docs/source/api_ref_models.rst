@@ -19,8 +19,10 @@ All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
     :nosignatures:
 
     llama3.llama3_8b
+    llama3.llama3_70b
     llama3.lora_llama3_8b
     llama3.qlora_llama3_8b
+    llama3.lora_llama3_70b
 
 
 llama2

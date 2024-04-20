@@ -295,7 +295,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             validate_state_dict_for_lora(
                 lora_attn_modules=cfg_model.lora_attn_modules,
                 apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-                apply_lora_to_output=cfg_model.apply_lora_to_output,
+                apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
                 full_model_state_dict_keys=model.state_dict().keys(),
                 lora_state_dict_keys=(
                     lora_weights_state_dict.keys()
@@ -356,8 +356,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -572,7 +572,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._is_rank_zero
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )

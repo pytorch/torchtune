@@ -224,7 +224,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
-        steps_per_epoch = len(self._dataloader)
         if (
             self.max_steps_per_epoch is not None
             and self.max_steps_per_epoch < self._steps_per_epoch
@@ -277,7 +276,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            apply_lora_to_output=cfg_model.apply_lora_to_output,
+            apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
             base_missing=base_missing,
             base_unexpected=base_unexpected,
             lora_missing=lora_missing,
@@ -296,8 +295,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
         if self._device.type == "cuda":
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -479,7 +478,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         and self._device.type == "cuda"
                     ):
                         # Log peak memory for iteration
-                        memory_stats = utils.memory_stats_log(device=self._device)
+                        memory_stats = utils.get_memory_stats(device=self._device)
                         self._metric_logger.log_dict(
                             memory_stats, step=self.total_training_steps
                         )
