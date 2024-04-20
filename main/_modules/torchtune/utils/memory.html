@@ -367,6 +367,7 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">logging</span>
 
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
 
@@ -377,6 +378,9 @@
     <span class="n">apply_activation_checkpointing</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
+
+<span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
 
 <div class="viewcode-block" id="set_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.utils.set_activation_checkpointing.html#torchtune.utils.set_activation_checkpointing">[docs]</a><span class="k">def</span> <span class="nf">set_activation_checkpointing</span><span class="p">(</span>
@@ -522,7 +526,7 @@
         <span class="n">p</span><span class="o">.</span><span class="n">register_post_accumulate_grad_hook</span><span class="p">(</span><span class="n">optim_step</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">memory_stats_log</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="k">def</span> <span class="nf">get_memory_stats</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">reset_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will</span>
 <span class="sd">    also reset CUDA&#39;s peak memory tracking. This is useful to get data around relative use of peak</span>
@@ -558,6 +562,24 @@
         <span class="s2">&quot;peak_memory_reserved&quot;</span><span class="p">:</span> <span class="n">peak_mem_reserved</span><span class="p">,</span>
     <span class="p">}</span>
     <span class="k">return</span> <span class="n">memory_stats</span>
+
+
+<span class="k">def</span> <span class="nf">log_memory_stats</span><span class="p">(</span><span class="n">stats</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Logs a dict containing memory stats to the logger. This expects the fields</span>
+<span class="sd">    `peak_memory_active`, `peak_memory_alloc`, and `peak_memory_reserved` as</span>
+<span class="sd">    returned by `get_memory_stats`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory</span>
+<span class="sd">            allocated, and peak memory reserved stats.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+        <span class="s2">&quot;Memory stats after model init:&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory allocation: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_alloc&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory reserved: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_reserved&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB&quot;</span>
+        <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n\t</span><span class="s2">GPU peak memory active: </span><span class="si">{</span><span class="n">stats</span><span class="p">[</span><span class="s1">&#39;peak_memory_active&#39;</span><span class="p">]</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB&quot;</span>
+    <span class="p">)</span>
 </pre></div>
 
              </article>
