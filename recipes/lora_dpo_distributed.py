@@ -42,8 +42,9 @@ log = utils.get_logger("DEBUG")
 
 class LoRADPORecipeDistributed(FTRecipeInterface):
     """
-    Distributed LoRA finetuning recipe for dense transformer-based LLMs such as Llama2. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs).
+    Distributed LoRA DPO recipe for dense transformer-based LLMs such as Llama2. This recipe supports
+    distributed training and can be run on a single node (1 to 8 GPUs). This is based on HF's DPOTrainer 
+    in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
         - FSDP. Supported using PyTorch's FSDP APIs. DDP is currently not supported. Traning on CPU is not
@@ -507,6 +508,16 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
     def concatenated_forward(
         self, model: nn.Module, batch: Tuple[torch.Tensor, torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        """
+        Run forward pass of the model with chosen and rejected samples concatenated.
+
+        Args:
+            model (nn.Module): The model to be used for the forward pass.
+            batch (Tuple[torch.Tensor, torch.Tensor]): Tuple of input_ids and labels.
+
+        Returns:
+            Tuple of chosen log probs, rejected log probs, chosen logits, rejected logits.
+        """
         concatenated_input_ids, concatenated_labels = batch
         concatenated_input_ids = concatenated_input_ids.to(self._device)
         concatenated_labels = concatenated_labels.to(self._device)
@@ -532,6 +543,22 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         labels: torch.LongTensor,
         label_pad_token_id: int = CROSS_ENTROPY_IGNORE_IDX,
     ) -> torch.FloatTensor:
+        """
+        Calculate log probabilities based on provided logits and labels.
+
+        Args:
+            logits (torch.FloatTensor): direct logits output of the model of shape (b, s, v)
+            labels (torch.LongTensor): ground-truth labels to compute log probs with, shape (b, s).
+                Label tokens with a value of label_pad_token_id are ignored.
+            label_pad_token_id (int): token id to ignore in labels.
+
+        Returns:
+            Calculated log probs of shape (b, )
+
+        Raises:
+            ValueError: If logits and labels have different shapes.
+        """
+        
         if logits.shape[:-1] != labels.shape:
             raise ValueError(
                 "Logits (batch and sequence length dim) and labels must have the same shape."
