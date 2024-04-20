@@ -256,13 +256,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         if self._device == torch.device("cuda"):
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(
-                "Memory stats after model init:"
-                f"\n\tGPU peak memory allocation: {memory_stats['peak_memory_alloc']:.2f} GB"
-                f"\n\tGPU peak memory reserved: {memory_stats['peak_memory_reserved']:.2f} GB"
-                f"\n\tGPU peak memory active: {memory_stats['peak_memory_active']:.2f} GB"
-            )
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -527,7 +522,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     and self._device == torch.device("cuda")
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )
