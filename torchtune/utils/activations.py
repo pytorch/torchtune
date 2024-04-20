@@ -4,20 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import gc
-
-from collections import defaultdict
-
-from typing import Any, Dict, Optional, Union
-
-import torch
-from torch.utils.checkpoint import checkpoint
-
 from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     checkpoint_wrapper as ptd_checkpoint_wrapper,
     CheckpointImpl,
 )
+from torch.utils.checkpoint import checkpoint
 
 
 # Uses PTD FSDP AC wrapper
@@ -44,7 +36,9 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
         every_x_layer = int(ac_style)
 
         if not (every_x_layer >= 0):
-            raise ValueError(f"Selective layer AC policy (every_x_layer) expects a positive integer, received {every_x_layer}")
+            raise ValueError(
+                f"Selective layer AC policy (every_x_layer) expects a positive integer, received {every_x_layer}"
+            )
 
         checkpoint_wrapper.__dict__.setdefault("_count", 0)
 
@@ -65,6 +59,7 @@ def checkpoint_wrapper(module, ac_mode, ac_style):
         raise NotImplementedError(
             "Unknown AC type or AC config. Only selective op and selective layer ac implemented currently."
         )
+
 
 def apply_selective_activation_checkpointing(
     model: nn.Module,

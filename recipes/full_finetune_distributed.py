@@ -8,7 +8,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
@@ -185,7 +185,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            cfg_file = cfg,
+            cfg_file=cfg,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
         )
 
@@ -302,13 +302,14 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ),
         )
 
+        # Ensure no params and buffers are on meta device
+        utils.validate_no_params_on_meta_device(model)
+
+        # original activation checkpointing (full)
         if ac_enabled and ac_mode is None:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
-
-        # Ensure no params and buffers are on meta device
-        utils.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
             memory_stats = utils.memory_stats_log(device=self._device)
