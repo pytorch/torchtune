@@ -11,6 +11,7 @@ from collections import defaultdict
 from typing import Any, Dict, Optional, Union
 
 import torch
+from torch.utils.checkpoint import checkpoint
 
 from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
@@ -18,47 +19,12 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointImpl,
 )
 
-from torch.utils.checkpoint import _pt2_selective_checkpoint_context_fn_gen, checkpoint
-
-# for selective AC
-no_recompute_list = {
-    torch.ops.aten.mm.default,
-    torch.ops.aten._scaled_dot_product_efficient_attention.default,
-    torch.ops.aten._scaled_dot_product_flash_attention.default,
-    torch.ops._c10d_functional.reduce_scatter_tensor.default,
-}
 
 # Uses PTD FSDP AC wrapper
-# currently selective per op and per layer checkpointing are supported
+# currently selective per layer checkpointing are supported
 def checkpoint_wrapper(module, ac_mode, ac_style):
-    if ac_mode == "selective" and ac_style == "op":
 
-        def _get_custom_policy(meta):
-            def _custom_policy(mode, func, *args, **kwargs):
-                mm_count_key = f"{mode}_mm_count"
-                if func == torch.ops.aten.mm.default:
-                    meta[mm_count_key] += 1
-                # Saves output of all compute ops, except every second mm
-
-                return func in no_recompute_list and not (
-                    func == torch.ops.aten.mm.default and meta[mm_count_key] % 2 == 0
-                )
-
-            return _custom_policy
-
-        def selective_checkpointing_context_fn():
-            meta = defaultdict(int)
-            return _pt2_selective_checkpoint_context_fn_gen(_get_custom_policy(meta))
-
-        return ptd_checkpoint_wrapper(
-            module,
-            checkpoint_impl=CheckpointImpl.NO_REENTRANT,
-            checkpoint_fn=checkpoint,
-            context_fn=selective_checkpointing_context_fn,
-            use_reentrant=False,
-            preserve_rng_state=False,
-        )
-    elif ac_mode == "full":
+    if ac_mode == "full":
         return ptd_checkpoint_wrapper(
             module,
             checkpoint_impl=CheckpointImpl.NO_REENTRANT,
@@ -121,7 +87,6 @@ def apply_selective_activation_checkpointing(
     """
 
     for layer_id, transformer_block in enumerate(model.layers):
-        # print(f"inside set act checkpoint: {type(transformer_block)=}) # , {transformer_block=}" )
         if ac_mode in ("full", "selective"):
 
             transformer_block = checkpoint_wrapper(
