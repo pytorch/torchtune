@@ -162,3 +162,123 @@ Fine-tuning on a custom chat dataset
 Let's test our understanding by trying to fine-tune the LLaMA3-8B model with a custom
 chat dataset. We'll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.
+
+We'll be using the `LIMA <https://arxiv.org/pdf/2305.11206.pdf>`_ dataset, a small,
+carefully crafted dataset from Q&A selected for responses in the style of a helpful
+AI assistant. Looking at the :class:`~torchtune.datasets.ChatDataset` class, you'll
+notice several parameters you'll need to provide to configure it:
+
+.. code-block:: python
+
+    class ChatDataset(Dataset):
+        def __init__(
+            self,
+            *,
+            tokenizer: Tokenizer,
+            source: str,
+            convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
+            chat_format: Optional[ChatFormat] = None,
+            max_seq_len: int,
+            train_on_input: bool = False,
+            **load_dataset_kwargs: Dict[str, Any],
+        ) -> None:
+
+The tokenizer will be the :class:`~torchtune.modules.tokenizers.TikTokenTokenizer`
+instantiated and passed in within the recipe. For source, we can simply use the
+`Hugging Face dataset name for LIMA <https://huggingface.co/datasets/GAIR/lima>`_,
+:code:`"GAIR/lima"`. For chat format, based on our discussion above, since we are
+fine-tuning the LLaMA3 model, we don't need to provide a chat format since the
+tokenizer will handle adding all the special tokens. If we were fine-tuning the
+Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceTokenizer`,
+we would need to use the :class:`~torchtune.data.MistralChatFormat` to format
+all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
+Max sequence length can be set up to 8192, the max for LLaMA3, based on your memory
+constraints.
+
+There is one parameter that will require more customization, :code:`convert_to_messages`.
+This parameter provides an opportunity for you to perform any transformations needed
+on your dataset. The goal of this function should be to format the data into a standardized
+conversation format that the tokenizers expect. We adhere to the LLaMA conversation
+style, which expects the data to look like this:
+
+.. code-block:: python
+
+    conversation: List[Message] = [
+        {
+            "role":    # one of {system, user, assistant}
+            "content": # actual text
+        },
+        ...
+    ]
+
+Looking at the LIMA dataset, we need to do a bit of work to follow this.
+
+.. code-block:: python
+
+    def lima_to_llama(sample: Mapping[str, Any]) -> List[Message]:
+        conversation = sample["conversations"]
+
+        # First message is a user message, second is assistant.
+        # There are no system prompts.
+        user_message = Message(
+            role="user",
+            content=conversation[0],
+            masked=True,  # Mask if not training on prompt
+        )
+        assistant_message = Message(
+            role="assistant",
+            content=conversation[1],
+            masked=False,
+        )
+        # A single turn conversation
+        messages = [user_message, assistant_message]
+
+        return messages
+
+Now that we have all the pieces we need, let's create a builder function. This
+will let us easily specify this dataset from the config, while exposing some
+parameters you may want to experiment with.
+
+.. code-block:: python
+
+    def lima_dataset(
+        *,
+        tokenizer: Tokenizer,
+        source: str = "GAIR/lima",
+        chat_format: Optional[ChatFormat] = None,
+        max_seq_len: int = 2048,  # From original paper
+    ) -> ChatDataset:
+
+        return ChatDataset(
+            tokenizer=tokenizer,
+            source=source,
+            convert_to_messages=lima_to_llama,
+            chat_format=chat_format,
+            max_seq_len=max_seq_len,
+            train_on_input=False,
+            split="train",
+        )
+
+.. note::
+    You can pass in any keyword argument for :code:`load_dataset` into all our
+    Dataset classes and they will honor them. This is useful for common parameters
+    such as specifying the data split with :code:`split` or configuration with
+    :code:`name`
+
+Now we're ready to start fine-tuning! In the spirit of the authors' hypothesis
+that most capabilities are learned during pre-training, we'll use the built-in
+LoRA single device recipe to preserve these capabilities. Use the :code:`tune cp`
+command to get a copy of the :code:`8B_lora_single_device.yaml` config and update
+it to use your new dataset.
+
+.. code-block:: yaml
+
+    dataset:
+      _component_: torchtune.datasets.lima_dataset
+      max_seq_len: 2048
+
+Launch the fine-tune!
+
+.. code-block:: bash
+
+    $ tune run lora_finetune_single_device --config custom_8B_lora_single_device.yaml epochs=15
