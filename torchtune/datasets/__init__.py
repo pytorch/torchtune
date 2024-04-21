@@ -6,11 +6,14 @@
 
 from torchtune.datasets._alpaca import alpaca_cleaned_dataset, alpaca_dataset
 from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
 from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._slimorca import slimorca_dataset
+from torchtune.datasets._stack import stack_dataset
 from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
+
 
 __all__ = [
     "alpaca_dataset",
@@ -23,4 +26,6 @@ __all__ = [
     "ChatDataset",
     "instruct_dataset",
     "chat_dataset",
+    "ConcatDataset",
+    "stack_dataset",
 ]
