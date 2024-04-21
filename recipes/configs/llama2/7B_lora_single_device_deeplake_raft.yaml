@@ -46,6 +46,7 @@ resume_from_checkpoint: False
 dataset:
   _component_: torchtune.datasets.raft_dataset
   train_on_input: True
+  deeplake_dataloader: True
 seed: null
 shuffle: True
 batch_size: 2
@@ -75,6 +76,11 @@ metric_logger:
   log_dir: ${output_dir}
 log_every_n_steps: null
 
+# Logging with W&B
+#metric_logger:
+#  _component_: torchtune.utils.metric_logging.WandBLogger
+#  # the W&B project to log to
+#  project: torchtune
 # Environment
 device: cuda
 dtype: bf16
