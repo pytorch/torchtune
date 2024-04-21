@@ -45,6 +45,11 @@ class DeepLakePyTorchDataset(Dataset):
 
 
 def load_deeplake_dataset(source):
+    import deeplake
+
+    ds = deeplake.dataset(f"hub://manufe/raft_format_dataset_3")
+    # train_loader = ds.dataloader()
+    # train_loader = ds.dataloader().batch(2).shuffle().pytorch()
     print("Loading dataset from deeplake")
     ds = deeplake.dataset(source)
     print(f"Dataset loaded from deeplake: {ds}")
@@ -148,4 +153,3 @@ def instruct_dataset(
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
-
