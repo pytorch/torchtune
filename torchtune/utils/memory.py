@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import gc
+import logging
 
 from typing import Any, Dict, Optional, Set
 
@@ -15,6 +16,9 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torchtune.utils.logging import get_logger
+
+_log: logging.Logger = get_logger()
 
 
 def set_activation_checkpointing(
@@ -160,7 +164,7 @@ def register_optim_in_bwd_hooks(
         p.register_post_accumulate_grad_hook(optim_step)
 
 
-def memory_stats_log(device: torch.device, reset_stats: bool = True) -> dict:
+def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     """
     Computes a memory summary for the passed in device. If ``reset_stats`` is ``True``, this will
     also reset CUDA's peak memory tracking. This is useful to get data around relative use of peak
@@ -196,3 +200,21 @@ def memory_stats_log(device: torch.device, reset_stats: bool = True) -> dict:
         "peak_memory_reserved": peak_mem_reserved,
     }
     return memory_stats
+
+
+def log_memory_stats(stats: Dict[str, float]) -> None:
+    """
+    Logs a dict containing memory stats to the logger. This expects the fields
+    `peak_memory_active`, `peak_memory_alloc`, and `peak_memory_reserved` as
+    returned by `get_memory_stats`.
+
+    Args:
+        stats (Dict[str, float]): A dictionary containing the peak memory active, peak memory
+            allocated, and peak memory reserved stats.
+    """
+    _log.info(
+        "Memory stats after model init:"
+        f"\n\tGPU peak memory allocation: {stats['peak_memory_alloc']:.2f} GB"
+        f"\n\tGPU peak memory reserved: {stats['peak_memory_reserved']:.2f} GB"
+        f"\n\tGPU peak memory active: {stats['peak_memory_active']:.2f} GB"
+    )

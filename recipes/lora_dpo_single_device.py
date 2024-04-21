@@ -196,7 +196,6 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self._steps_per_epoch = (
             len(self._dataloader) // self._gradient_accumulation_steps
         )
-        steps_per_epoch = len(self._dataloader)
         if (
             self.max_steps_per_epoch is not None
             and self.max_steps_per_epoch < self._steps_per_epoch
@@ -257,8 +256,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         if self._device == torch.device("cuda"):
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
         return model
 
     def _setup_optimizer(
@@ -523,7 +522,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     and self._device == torch.device("cuda")
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )
