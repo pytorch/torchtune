@@ -43,7 +43,7 @@ log = utils.get_logger("DEBUG")
 class LoRADPORecipeDistributed(FTRecipeInterface):
     """
     Distributed LoRA DPO recipe for dense transformer-based LLMs such as Llama2. This recipe supports
-    distributed training and can be run on a single node (1 to 8 GPUs). This is based on HF's DPOTrainer 
+    distributed training and can be run on a single node (1 to 8 GPUs). This is based on HF's DPOTrainer
     in the TRL library: https://github.com/huggingface/trl/blob/main/trl/trainer/dpo_trainer.py#L65
 
     Features:
@@ -360,8 +360,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -558,7 +558,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         Raises:
             ValueError: If logits and labels have different shapes.
         """
-        
+
         if logits.shape[:-1] != labels.shape:
             raise ValueError(
                 "Logits (batch and sequence length dim) and labels must have the same shape."
@@ -575,7 +575,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         ).squeeze(2)
 
         return (per_token_log_probs * loss_mask).sum(-1)
-    
+
     def train(self) -> None:
         """
         The core training loop.
@@ -674,7 +674,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     and self._is_rank_zero
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )
