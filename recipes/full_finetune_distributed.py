@@ -416,6 +416,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
+        # Initialize tokens count and running loss (for grad accumulation)
+        running_loss = 0
+        num_tokens = 0
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -435,6 +439,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
+                num_tokens += input_ids.numel()
                 labels = labels.to(self._device)
 
                 logits = self._model(input_ids)

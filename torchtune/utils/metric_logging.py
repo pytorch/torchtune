@@ -12,7 +12,7 @@ from typing import Mapping, Optional, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
-from torch import Tensor
+from torch import nn, Tensor
 
 from torchtune.utils import get_logger
 from torchtune.utils._distributed import get_world_size_and_rank
