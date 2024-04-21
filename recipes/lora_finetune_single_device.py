@@ -25,7 +25,7 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
-
+import deeplake
 log = utils.get_logger("DEBUG")
 
 
@@ -243,6 +243,42 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler_enabled = cfg.profiler.enabled
         self._profiler = config.instantiate(cfg.profiler)
 
+    def setup_deeplake_dataloader(self, cfg: DictConfig) -> None:
+        """
+        Setup the recipe state. This includes recipe state (if resume_from_checkpoint is True),
+        model, tokenizer, loss, optimizer, learning rate scheduler, sampler, and dataloader.
+        """
+        self._tokenizer = config.instantiate(cfg.tokenizer)
+        log.info("Tokenizer is initialized from file.")
+        self._loss_fn = config.instantiate(cfg.loss)
+        log.info("Loss is initialized.")
+
+        self._sampler, self._dataloader = self._setup_data_deeplake_dataloader(
+            cfg_dataset=cfg.dataset,
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
+        )
+
+        self._metric_logger = config.instantiate(cfg.metric_logger)
+
+        # log config with parameter override
+        self._metric_logger.log_config(cfg)
+
+        # self._model_compile = cfg.compile
+        # checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        #
+        # self._model = self._setup_model(
+        #     cfg_model=cfg.model,
+        #     enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+        #     compile_model=cfg.compile,
+        #     base_model_state_dict=checkpoint_dict[utils.MODEL_KEY],
+        #     lora_weights_state_dict=(
+        #         checkpoint_dict[utils.ADAPTER_KEY]
+        #         if self._resume_from_checkpoint
+        #         else None
+        #     ),
+        # )
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -325,6 +361,40 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
+
+    def _setup_data_deeplake_dataloader(
+        self,
+        cfg_dataset: DictConfig,
+        shuffle: bool,
+        batch_size: int,
+    ):
+        ds = config.instantiate(
+            cfg_dataset,
+            tokenizer=self._tokenizer,
+        )
+        dataloader = ds.dataloader() \
+            .batch(batch_size) \
+            .shuffle() \
+            .pytorch()
+
+        sampler = DistributedSampler(
+            ds,
+            num_replicas=1,
+            rank=0,
+            shuffle=shuffle,
+            seed=0,
+        )
+        # dataloader = DataLoader(
+        #     dataset=ds,
+        #     sampler=sampler,
+        #     batch_size=batch_size,
+        #     collate_fn=partial(
+        #         utils.padded_collate,
+        #         padding_idx=self._tokenizer.pad_id,
+        #         ignore_idx=self._loss_fn.ignore_index,
+        #     ),
+        # )
+        return sampler, dataloader
 
     def _setup_data(
         self,
@@ -501,7 +571,10 @@ def recipe_main(cfg: DictConfig) -> None:
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
-    recipe.setup(cfg=cfg)
+    if cfg.dataset.deeplake_dataloader:
+        recipe.setup_deeplake_dataloader(cfg=cfg)
+    else:
+        recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
 
