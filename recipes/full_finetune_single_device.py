@@ -383,7 +383,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
+        # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
+        num_tokens = 0
+        running_loss = 0.0
+
         if self._model_compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
@@ -408,6 +412,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     break
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
+                num_tokens += input_ids.numel()
                 labels = labels.to(self._device)
                 logits = self._model(input_ids)
                 # Shift so that tokens < n predict n
@@ -418,8 +423,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = self._loss_fn(logits, labels)
                 # Note: We're always logging the loss before normalizing it
                 # Check if this is the norm or not
-                loss_to_log = loss.item()
-                loss = loss / self._gradient_accumulation_steps
+                loss = loss.item() / self._gradient_accumulation_steps
+                running_loss += loss
                 loss.backward()
 
                 # Check if we need to do an update step based on grad accum steps
@@ -435,7 +440,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss.item()}"
+                        f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {running_loss}"
                     )
 
                     # Compute training metrics
@@ -443,7 +448,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         time_per_step = time.perf_counter() - t0
                         self._metric_logger.log_dict(
                             {
-                                "loss": loss_to_log,
+                                "loss": running_loss,
                                 # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
                                 # true since we don't expose the ability to configure this yet.
                                 "lr": (
@@ -453,15 +458,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 ),
                                 "gpu_resources": torch.cuda.memory_allocated(),
                                 "tokens_per_second": (
-                                    input_ids.numel()
-                                    * self._gradient_accumulation_steps
-                                    / time_per_step
+                                    num_tokens,
+                                    *self._gradient_accumulation_steps / time_per_step,
                                 ),
                                 "iterations_per_second": (1 / time_per_step),
                                 "grad_norm": grad_norm,
                             },
                             step=self.total_training_steps,  # Each step is unique, not limited to each epoch
                         )
+
                     # Log peak memory for iteration
                     if (
                         self.total_training_steps % self._log_peak_memory_every_n_steps
@@ -475,6 +480,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
+                    running_loss = 0.0  # reset running loss
+                    num_tokens = 0  # reset token count
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
