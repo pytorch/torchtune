@@ -276,7 +276,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
               the correct device.
         """
 
-        if self._is_rank_zero:
+        # if self._is_rank_zero:
+        if True:
             log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
             init_start = time.perf_counter()
 
@@ -311,10 +312,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
 
-        else:
-            # For non-zero ranks, load the model on meta device
-            with utils.set_default_dtype(self._dtype), torch.device("meta"):
-                model = config.instantiate(cfg_model)
+        # else:
+        #     # For non-zero ranks, load the model on meta device
+        #     with utils.set_default_dtype(self._dtype), torch.device("meta"):
+        #         model = config.instantiate(cfg_model)
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
@@ -337,15 +338,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
             # Ensure we broadcast params and buffers from rank 0
-            sync_module_states=True,
+            # sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
-            param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
-                )
-                if not self._is_rank_zero
-                else None
-            ),
+            # param_init_fn=(
+            #     lambda module: module.to_empty(
+            #         device=torch.device("cuda"), recurse=False
+            #     )
+            #     if not self._is_rank_zero
+            #     else None
+            # ),
         )
 
         # Ensure no params and buffers are on meta device
