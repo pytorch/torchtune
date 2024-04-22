@@ -85,6 +85,7 @@ torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
 # tags like v0.1.0 and v0.1.0-rc3 = > 0.1
 # main will remain main
 # the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
+project = "TorchTune"
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
         version = ".".join(
@@ -111,7 +112,6 @@ else:
 master_doc = "index"
 
 # General information about the project.
-project = "TorchTune"
 copyright = "2023-present, TorchTune Contributors"
 author = "Torch Contributors"
 
