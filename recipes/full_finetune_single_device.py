@@ -368,7 +368,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
-    def compute_grad_norm(self, model) -> float:
+    def compute_grad_norm(self, model: nn.Module) -> float:
         """Compute models grad norm"""
         total_norm = 0.0
         for p in model.parameters():
