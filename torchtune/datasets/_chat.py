@@ -28,11 +28,12 @@ class ChatDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> foreach turn{format into template -> tokenize}
 
-    If the column/key names differ from the expected names in the `ChatFormat`,
-    then the `column_map` argument can be used to provide this mapping.
+    If the column/key names differ from the expected names in the ``ChatFormat``,
+    then the ``column_map`` argument can be used to provide this mapping.
 
-    Use `convert_to_messages` to prepare your dataset into the llama conversation format
-    and roles:
+    Use ``convert_to_messages`` to prepare your dataset into the llama conversation format
+    and roles::
+
         [
             {
                 "role": <system|user|assistant>,
@@ -42,7 +43,7 @@ class ChatDataset(Dataset):
         ]
 
     This class supports multi-turn conversations. If a tokenizer sample with multiple
-    turns does not fit within `max_seq_len` then it is truncated.
+    turns does not fit within ``max_seq_len`` then it is truncated.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
