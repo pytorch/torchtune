@@ -5,7 +5,7 @@ What is the purpose of this PR? Is it to
 - [ ] update tests and/or documentation
 - [ ] other (please add here)
 
-Please link to any issues this PR addresses
+Please link to any issues this PR addresses.
 
 #### Changelog
 What are the changes made in this PR?
