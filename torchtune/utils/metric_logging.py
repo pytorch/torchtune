@@ -311,3 +311,136 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
+
+
+class CometLogger(MetricLoggerInterface):
+    """Logger for use w/ Comet (https://www.comet.com/site/).
+    For more information about arguments expected by Comet, see
+    https://www.comet.com/docs/v2/guides/experiment-management/configure-sdk/#for-the-experiment.
+
+    Args:
+        api_key (Optional[str]): Comet API key. It's not recommended to save the Comet API Key in code.
+        workspace (Optional[str]): Comet workspace name.
+        project (Optional[str]): Comet project name.
+        experiment_name (Optional[str]): The name for comet experiment to be used for logging.
+        experiment_key (Optional[str]): The key for comet experiment to be used for logging. Must be an alphanumeric
+            string whose length is between 32 and 50 characters.
+        online (Optional[bool]): If True, the data will be logged to Comet server, otherwise it will be stored locally
+            in offline experiment. Default is `True`.
+        mode (Optional[str]): Control how the Comet experiment is started. "get": Continue logging to an existing
+            experiment identified by the `experiment_key` value. "create": Always creates of a new experiment, useful
+            for HPO sweeps. "get_or_create" (default): Starts a fresh experiment if required, or persists logging to
+            an existing one.
+        **kwargs: additional arguments to pass to Comet.start
+
+    Example:
+        >>> from torchtune.utils.metric_logging import CometLogger
+        >>> logger = CometLogger(project="my_project")
+        >>> logger.log("my_metric", 1.0, 1)
+        >>> logger.log_dict({"my_metric": 1.0}, 1)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If ``comet_ml`` package is not installed.
+
+    Note:
+        This logger requires the comet_ml package to be installed.
+        You can install it with `pip install comet_ml`.
+        In order to use the logger, you need to login to your Comet account.
+        You can do this by running `comet init --api-key` in your terminal.
+    """
+
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        workspace: Optional[str] = None,
+        project: Optional[str] = None,
+        experiment_name: Optional[str] = None,
+        experiment_key: Optional[str] = None,
+        online: Optional[bool] = None,
+        mode: Optional[str] = None,
+        **kwargs,
+    ):
+        try:
+            import comet_ml
+        except ImportError as e:
+            raise ImportError(
+                "``comet_ml`` package not found. Please install cometml using `pip install comet_ml` to use CometLogger."
+                "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+
+        _, self.rank = get_world_size_and_rank()
+
+        self._experiment = None
+
+        if self._experiment is None and self.rank == 0:
+            self._experiment = comet_ml.start(
+                api_key=api_key,
+                workspace=workspace,
+                project=project,
+                experiment_key=experiment_key,
+                mode=mode,
+                online=online,
+                **kwargs,
+            )
+
+            if experiment_name is not None:
+                self._experiment.set_name(experiment_name)
+
+    def log_config(self, config: DictConfig) -> None:
+        """Saves the config locally and also logs the config to Comet. The config is
+        stored in the same directory as the checkpoint. You can
+        see an example of the logged config to Comet in the following link:
+        https://www.comet.com/examples/comet-example-torchtune-mistral/79dffc6e42424b33adfee6dd439ff47f?experiment-tab=params
+
+        Args:
+            config (DictConfig): config to log
+        """
+        if self._experiment:
+            resolved = OmegaConf.to_container(config, resolve=True)
+
+            # Force "manual" source to log parameters as nested
+            self._experiment.__internal_api__log_parameters__(
+                config, framework="torchtune", source="manual", flatten_nested=True
+            )
+
+            try:
+                output_config_fname = Path(
+                    os.path.join(
+                        config.checkpointer.checkpoint_dir,
+                        "torchtune_config.yaml",
+                    )
+                )
+            except Exception as e:
+                log.warning(f"Error saving Config to disk.\nError: \n{e}.")
+                return
+
+            try:
+                OmegaConf.save(config, output_config_fname)
+                self._experiment.log_asset(
+                    output_config_fname, file_name="torchtune_config.yaml"
+                )
+            except Exception as e:
+                log.warning(
+                    f"Error saving {output_config_fname} to Comet.\nError: \n{e}."
+                )
+
+    def log(self, name: str, data: Scalar, step: int) -> None:
+        if self._experiment:
+            self._experiment.__internal_api__log_metric__(
+                name, data, step=step, framework="torchtune"
+            )
+
+    def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
+        if self._experiment:
+            self._experiment.__internal_api__log_metrics__(
+                payload, step=step, framework="torchtune"
+            )
+
+    def __del__(self) -> None:
+        if self._experiment:
+            self._experiment.end()
+
+    def close(self) -> None:
+        if self._experiment:
+            self._experiment.end()

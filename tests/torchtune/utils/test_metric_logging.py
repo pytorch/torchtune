@@ -7,8 +7,9 @@
 
 import tempfile
 from io import StringIO
+from pathlib import Path
 from typing import cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from omegaconf import OmegaConf
@@ -17,6 +18,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from tests.test_utils import assert_expected, captured_output
 
 from torchtune.utils.metric_logging import (
+    CometLogger,
     DiskLogger,
     StdoutLogger,
     TensorBoardLogger,
@@ -165,3 +167,74 @@ class TestWandBLogger:
             expected_config_path = "torchtune_config.yaml"
             mock_save.assert_called_once_with(cfg, expected_config_path)
             mock_wandb_save.assert_called_once_with(expected_config_path)
+
+
+def _get_comet_mock():
+    mock_experiment = Mock()
+    # Manually mock used magic methods to avoid requiring to install comet_ml
+    # for tests
+    mock_experiment.__internal_api__log_metric__ = Mock()
+    mock_experiment.__internal_api__log_metrics__ = Mock()
+    mock_experiment.__internal_api__log_parameters__ = Mock()
+
+    return mock_experiment
+
+
+class TestCometLogger:
+    def test_experiment_name(self) -> None:
+        mock_experiment = _get_comet_mock()
+        with patch("comet_ml.start", return_value=mock_experiment) as mock_start:
+            experiment_name = "test_experiment_name"
+            logger = CometLogger(
+                project="test_project", experiment_name=experiment_name
+            )
+
+            assert mock_experiment.set_name.call_count == 1
+
+            mock_experiment.set_name.assert_called_once_with(experiment_name)
+
+    def test_log(self) -> None:
+        mock_experiment = _get_comet_mock()
+        with patch("comet_ml.start", return_value=mock_experiment) as mock_start:
+            logger = CometLogger(project="test_project")
+            for i in range(5):
+                logger.log("test_log", float(i) ** 2, i)
+            logger.close()
+
+            assert mock_experiment.__internal_api__log_metric__.call_count == 5
+            for i in range(5):
+                print(mock_experiment.call_args_list)
+                mock_experiment.__internal_api__log_metric__.assert_any_call(
+                    "test_log", float(i) ** 2, step=i, framework="torchtune"
+                )
+
+    def test_log_dict(self) -> None:
+        mock_experiment = _get_comet_mock()
+        with patch("comet_ml.start", return_value=mock_experiment) as mock_start:
+            logger = CometLogger(project="test_project")
+            metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
+            logger.log_dict(metric_dict, 1)
+            logger.close()
+
+            mock_experiment.__internal_api__log_metrics__.assert_called_with(
+                metric_dict, step=1, framework="torchtune"
+            )
+
+    def test_log_config(self) -> None:
+        mock_experiment = _get_comet_mock()
+        with patch("comet_ml.start", return_value=mock_experiment) as mock_start, patch(
+            "omegaconf.OmegaConf.save"
+        ) as mock_save:
+            logger = CometLogger(project="test_project")
+            raw_config = {"a": 1, "b": 2, "checkpointer": {"checkpoint_dir": "."}}
+            cfg = OmegaConf.create(raw_config)
+
+            logger.log_config(cfg)
+
+            expected_config_path = Path("torchtune_config.yaml")
+            mock_experiment.__internal_api__log_parameters__.assert_called_once_with(
+                raw_config, framework="torchtune", source="manual", flatten_nested=True
+            )
+            mock_experiment.log_asset.assert_called_once_with(
+                expected_config_path, file_name="torchtune_config.yaml"
+            )
