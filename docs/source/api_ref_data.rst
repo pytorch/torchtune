@@ -41,6 +41,15 @@ Types
 
     Message
 
+Converters
+----------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    sharegpt_to_llama2_messages
+
 Helper funcs
 ------------
 

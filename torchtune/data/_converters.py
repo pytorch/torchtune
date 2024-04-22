@@ -13,9 +13,10 @@ def sharegpt_to_llama2_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
 ) -> List[Message]:
     """
-    Convert a chat sample adhering to the ShareGPT format to the LLaMA2 format.
+    Convert a chat sample adhering to the ShareGPT format to the Llama2 chat format.
 
-    ShareGPT follows:
+    ShareGPT follows::
+
         {
             "conversations": [
                 {
@@ -26,7 +27,8 @@ def sharegpt_to_llama2_messages(
             ]
         }
 
-    LLaMA2 follows:
+    Llama2 follows::
+
         [
             {
                 "role": <system|user|assistant>,
@@ -41,7 +43,7 @@ def sharegpt_to_llama2_messages(
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
 
     Returns:
-        List[Message]: a list of messages with "role" and "content" fields. See `torchtune.datasets._types.Message`
+        List[Message]: a list of messages with "role" and "content" fields. See :class:`~torchtune.datasets.Message`
             for more details.
     """
     role_map = {"system": "system", "human": "user", "gpt": "assistant"}
