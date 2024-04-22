@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -276,8 +277,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
               the correct device.
         """
 
-        # if self._is_rank_zero:
-        if True:
+        if self._is_rank_zero:
             log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
             init_start = time.perf_counter()
 
@@ -312,10 +312,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
 
-        # else:
-        #     # For non-zero ranks, load the model on meta device
-        #     with utils.set_default_dtype(self._dtype), torch.device("meta"):
-        #         model = config.instantiate(cfg_model)
+        else:
+            # For non-zero ranks, load the model on meta device
+            with utils.set_default_dtype(self._dtype), torch.device("meta"):
+                model = config.instantiate(cfg_model)
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
@@ -338,15 +338,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
             # Ensure we broadcast params and buffers from rank 0
-            # sync_module_states=True,
+            sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
-            # param_init_fn=(
-            #     lambda module: module.to_empty(
-            #         device=torch.device("cuda"), recurse=False
-            #     )
-            #     if not self._is_rank_zero
-            #     else None
-            # ),
+            param_init_fn=(
+                lambda module: module.to_empty(
+                    device=torch.device("cuda"), recurse=False
+                )
+                if not self._is_rank_zero
+                else None
+            ),
         )
 
         # Ensure no params and buffers are on meta device
@@ -601,7 +601,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
+    os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
