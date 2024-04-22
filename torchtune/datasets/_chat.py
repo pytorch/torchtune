@@ -87,7 +87,7 @@ class ChatDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
-        if self.chat_format:
+        if self.chat_format is not None:
             messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
@@ -142,7 +142,7 @@ def chat_dataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
-        chat_format=_get_chat_format(chat_format) if chat_format else None,
+        chat_format=_get_chat_format(chat_format) if chat_format is not None else None,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,
