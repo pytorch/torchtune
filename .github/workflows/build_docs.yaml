@@ -118,6 +118,7 @@ jobs:
           
           # Convert refs/tags/v1.12.0rc3 into 1.12. 
           # Adopted from https://github.com/pytorch/pytorch/blob/main/.github/workflows/_docs.yml#L150C11-L155C13
+          GITHUB_REF=${{ github.ref }} 
           if [[ "${GITHUB_REF}" =~ ^refs/tags/v([0-9]+\.[0-9]+)\.* ]]; then
             TARGET_FOLDER="${BASH_REMATCH[1]}"
           else
