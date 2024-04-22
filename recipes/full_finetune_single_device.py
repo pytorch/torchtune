@@ -376,7 +376,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         The core training loop. Supports training on subsets of the dataset using the
         ``max_steps_per_epoch``.
         """
-        t0 = time.perf_counter()
         if self._model_compile:
             log.info(
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
@@ -386,6 +385,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._optimizer.zero_grad()
 
         # Initialize tokens count and running loss (for grad accumulation)
+        t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
 
@@ -396,7 +396,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch)
-
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -420,17 +419,12 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 running_loss += loss
                 loss.backward()
 
-                # Note: We're always logging the loss before normalizing it
-                # Check if this is the norm or not
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
 
-                        # Update the number of steps when the weights are updated
-                        self.total_training_steps += 1
-                    else:
-                        self.total_training_steps += 1
+                    self.total_training_steps += 1
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
@@ -452,16 +446,16 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                             "tokens_per_second": num_tokens / time_per_step,
                             "iterations_per_second": (1 / time_per_step),
                         }
-                        if self._device.type == "cuda":
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                        log_dict.update(utils.get_memory_stats(device=self._device))
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.total_training_steps,
                         )
 
-                # Reset running stats for the next step
-                running_loss = 0
-                num_tokens = 0
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)

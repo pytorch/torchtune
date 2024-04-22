@@ -235,8 +235,5 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         monkeypatch.setattr(sys, "argv", cmd_2)
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
-        import pdb
-
-        pdb.set_trace()
         accum_loss = np.mean(get_loss_values_from_metric_logger(grad_accum_log_file))
         torch.testing.assert_close(no_accum_loss, accum_loss, atol=1e-5, rtol=1e-5)
