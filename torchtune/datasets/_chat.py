@@ -87,7 +87,7 @@ class ChatDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
-        if self.chat_format:
+        if self.chat_format is not None:
             messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
@@ -101,10 +101,11 @@ class ChatDataset(Dataset):
 
 
 def chat_dataset(
+    *,
     tokenizer: Tokenizer,
     source: str,
     conversation_style: str,
-    chat_format: str,
+    chat_format: Optional[str] = None,
     max_seq_len: int,
     train_on_input: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
@@ -120,8 +121,8 @@ def chat_dataset(
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the llama style. Supported styles are: "sharegpt"
-        chat_format (str): name of ChatFormat class used to format the messages. See the description in
-            :class:`~torchtune.datasets.ChatDataset` for more details.
+        chat_format (Optional[str]): name of ChatFormat class used to format the messages. See the description in
+            :class:`~torchtune.datasets.ChatDataset` for more details. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -141,7 +142,7 @@ def chat_dataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
-        chat_format=_get_chat_format(chat_format),
+        chat_format=_get_chat_format(chat_format) if chat_format is not None else None,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,
