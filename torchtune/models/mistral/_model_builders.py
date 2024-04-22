@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 from typing import List
 
-from torchtune.models.mistral._component_builders import mistral, lora_mistral
+from torchtune.models.mistral._component_builders import mistral, lora_mistral, mistral_classifier
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import SentencePieceTokenizer
@@ -94,6 +94,7 @@ def lora_mistral_7b(
         quantize_base=quantize_base,
     )
 
+
 qlora_mistral_7b = partial(lora_mistral_7b, quantize_base=True)
 
 qlora_mistral_7b.__doc__ = """
@@ -101,3 +102,27 @@ Builder for creating a Mistral model with QLoRA enabled. Base model weights in l
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_mistral_7b` for full API arguments.
 """
+
+
+def mistral_classifier_7b() -> TransformerDecoder:
+    """
+    Builder for creating a Mistral 7B lassifier model initialized w/ the default 7b
+    parameter values from:
+    https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback
+
+
+    Returns:
+        TransformerClassifier: Instantiation of Mistral 7B classifier model
+    """
+    return mistral_classifier(
+        num_classes=1,
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=8,
+        embed_dim=4096,
+        intermediate_dim=14336,
+        max_seq_len=32768,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )

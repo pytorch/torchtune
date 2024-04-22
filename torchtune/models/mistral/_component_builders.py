@@ -17,6 +17,7 @@ from torchtune.modules import (
     RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerDecoderLayer,
+    TransformerClassifier,
 )
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
@@ -32,6 +33,7 @@ can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
 """
+
 
 def mistral(
     vocab_size: int,
@@ -111,6 +113,7 @@ def mistral(
         norm=RMSNorm(embed_dim, eps=norm_eps),
         output=output_proj,
     )
+
 
 def mistral_mlp(dim: int, hidden_dim: int) -> FeedForward:
     """
@@ -298,9 +301,7 @@ def lora_mistral_self_attention(
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(
-            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
-        )
+        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -403,4 +404,62 @@ def lora_mistral_mlp(
         gate_proj=gate_proj,
         down_proj=down_proj,
         up_proj=up_proj,
+    )
+
+
+def mistral_classifier(
+    num_classes: int,
+    *,
+    # mistral args
+    vocab_size: int,
+    num_layers: int,
+    num_heads: int,
+    num_kv_heads: int,
+    embed_dim: int,
+    intermediate_dim: int,
+    max_seq_len: int,
+    attn_dropout: float = 0.0,
+    norm_eps: float = 1e-5,
+    rope_base: int = 10_000,
+) -> TransformerClassifier:
+    """
+    Build a base mistral model with an added classification layer.
+    See :func:`~torchtune.models.mistral.mistral`
+        for details on the base mistral model.
+
+    Args:
+        num_classes (int): number of classes for the classification layer.
+        vocab_size (int): number of tokens in vocabulary.
+        num_layers (int): number of layers in the transformer decoder.
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        num_kv_heads (int): number of key and value heads. If specified,
+            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            `None`, in which case this is the same as MHA
+        embed_dim (int): embedding dimension for self-attention
+        intermediate_dim (int): intermediate dimension for MLP
+        max_seq_len (int): maximum sequence length the model will be run with,
+        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
+            Default: 0.0
+        norm_eps (float): epsilon in RMS norms
+        rope_base (int): base for the rotary positional embeddings. Default: 10_000
+
+    Returns:
+        TransformerClassifier: Instantiation of mistral classification model.
+    """
+    transformer_model = mistral(
+        vocab_size=vocab_size,
+        num_layers=num_layers,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        embed_dim=embed_dim,
+        intermediate_dim=intermediate_dim,
+        max_seq_len=max_seq_len,
+        attn_dropout=attn_dropout,
+        norm_eps=norm_eps,
+        rope_base=rope_base,
+    )
+    return TransformerClassifier(
+        transformer_model=transformer_model,
+        num_classes=num_classes,
     )

@@ -154,9 +154,7 @@ class TransformerDecoder(nn.Module):
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
-        self.causal_mask = torch.tril(
-            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
-        )
+        self.causal_mask = torch.tril(torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool))
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
@@ -192,9 +190,7 @@ class TransformerDecoder(nn.Module):
         mask = None
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
+                raise ValueError("Caches are setup, but the position of input token is missing")
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, None, input_pos]
@@ -209,3 +205,37 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, v]
         output = self.output(h).float()
         return output
+
+
+class TransformerClassifier(nn.Module):
+    def __init__(
+        self,
+        transformer_decoder: TransformerDecoder,
+        embed_dim: int,
+        num_classes: int,
+    ) -> None:
+        super().__init__()
+        self.transformer_decoder = transformer_decoder
+        self.classifier = nn.Linear(embed_dim, num_classes)
+
+    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+        """
+        Args:
+            tokens (Tensor): input tensor with shape [b x s]
+            input_pos (Optional[Tensor]): Optional tensor which contains the position
+                of the current token. This is only used during inference. Default is None
+
+        See :func:`~torchtune.modules.TransformerDecoder.forward` for additional details.
+
+        Returns:
+            Tensor: Reward output tensor with shape [b x 1]
+
+        Raises:
+            ValueError: see :func:`~torchtune.modules.TransformerDecoder.forward`
+
+        Notation used for tensor shapes:
+            - b: batch size
+            - s: sequence length
+        """
+        transformer_output = self.transformer_decoder(tokens, input_pos)
+        return self.classifier(transformer_output)
