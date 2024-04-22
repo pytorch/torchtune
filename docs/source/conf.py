@@ -87,13 +87,18 @@ torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
 # the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
-        version = '.'.join(torchtune_version_docs.split('/')[-1].split('-')[0].lstrip('v').split('.')[:2])
-        print(f'Version: {version}')
+        version = ".".join(
+            torchtune_version_docs.split("/")[-1]
+            .split("-")[0]
+            .lstrip("v")
+            .split(".")[:2]
+        )
+        print(f"Version: {version}")
         release = version
         html_title = " ".join((project, version, "documentation"))
     elif et_version_docs.startswith("refs/heads/"):
-        version = et_version_docs.split('/')[-1]
-        print(f'Version: {version}')  # Debug line
+        version = et_version_docs.split("/")[-1]
+        print(f"Version: {version}")
         release = version
         html_title = " ".join((project, version, "documentation"))
 # IF TORCHTUNE_VERSION_DOCS not set, set version to main.
