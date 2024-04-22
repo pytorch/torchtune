@@ -258,8 +258,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info("Compiling model with torch.compile...")
             model = utils.wrap_compile(model)
         if self._device.type == "cuda":
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
+
         return model
 
     def _setup_optimizer(
@@ -405,7 +406,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 labels = labels.to(self._device)

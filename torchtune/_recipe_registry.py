@@ -32,6 +32,10 @@ _ALL_RECIPES = [
                 file_path="llama2/7B_full_low_memory.yaml",
             ),
             Config(
+                name="llama3/8B_full_single_device",
+                file_path="llama3/8B_full_single_device.yaml",
+            ),
+            Config(
                 name="mistral/7B_full_low_memory",
                 file_path="mistral/7B_full_low_memory.yaml",
             ),
@@ -44,6 +48,7 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_full", file_path="llama2/7B_full.yaml"),
             Config(name="llama2/13B_full", file_path="llama2/13B_full.yaml"),
+            Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
         ],
@@ -60,6 +65,14 @@ _ALL_RECIPES = [
             Config(
                 name="llama2/7B_qlora_single_device",
                 file_path="llama2/7B_qlora_single_device.yaml",
+            ),
+            Config(
+                name="llama3/8B_lora_single_device",
+                file_path="llama3/8B_lora_single_device.yaml",
+            ),
+            Config(
+                name="llama3/8B_qlora_single_device",
+                file_path="llama3/8B_qlora_single_device.yaml",
             ),
             Config(
                 name="llama2/13B_qlora_single_device",
@@ -93,6 +106,9 @@ _ALL_RECIPES = [
         configs=[
             Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
             Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
+            Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),
+            Config(name="llama3/70B_lora", file_path="llama3/70B_lora.yaml"),
+            Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
             Config(name="mistral/7B_lora", file_path="mistral/7B_lora.yaml"),
         ],
         supports_distributed=True,

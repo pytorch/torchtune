@@ -5,4 +5,9 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._component_builders import gemma  # noqa
-from ._model_builders import gemma_2b, gemma_tokenizer  # noqa
+from ._model_builders import (  # noqa
+    gemma_2b,
+    gemma_tokenizer,
+    lora_gemma_2b,
+    qlora_gemma_2b,
+)

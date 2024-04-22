@@ -98,6 +98,8 @@ a single device. For a more in-depth discussion on LoRA in torchtune, you can se
 
 |
 
+.. _tune_cp_label:
+
 Modifying a config
 ------------------
 YAML configs hold most of the important information needed for running your recipe.

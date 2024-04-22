@@ -15,7 +15,8 @@ from omegaconf import DictConfig
 from torch import nn
 
 from torchtune import config, utils
-from torchtune.modules import Tokenizer, TransformerDecoder
+from torchtune.modules import TransformerDecoder
+from torchtune.modules.tokenizers import Tokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
 

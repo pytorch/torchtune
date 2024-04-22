@@ -4,6 +4,27 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
+llama3
+------
+
+All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3-8B --hf-token <ACCESS_TOKEN>
+
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    llama3.llama3_8b
+    llama3.llama3_70b
+    llama3.lora_llama3_8b
+    llama3.qlora_llama3_8b
+    llama3.lora_llama3_70b
+
+
 llama2
 ------
 
@@ -25,6 +46,9 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.llama2_13b
     llama2.lora_llama2_13b
     llama2.qlora_llama2_13b
+    llama2.llama2_70b
+    llama2.lora_llama2_70b
+
 
 mistral
 -------

@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
@@ -18,7 +18,7 @@ from torchtune.data import (
     sharegpt_to_llama2_messages,
     validate_messages,
 )
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 class ChatDataset(Dataset):
@@ -50,8 +50,11 @@ class ChatDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of `Messages` that follows the llama format with the expected keys
-        chat_format (ChatFormat): template used to format the chat. If the placeholder variable
-            names in the template do not match the column/key names in the dataset, use `column_map` to map them.
+        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
+            messages, such as the [INST] tags in LLaMA2 and in Mistral. The extra text will still get tokenized as normal text, not
+            as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, `chat_format` is not needed,
+            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
+            template do not match the column/key names in the dataset, use `column_map` to map them. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -59,10 +62,11 @@ class ChatDataset(Dataset):
 
     def __init__(
         self,
+        *,
         tokenizer: Tokenizer,
         source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
-        chat_format: ChatFormat,
+        chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
@@ -83,7 +87,8 @@ class ChatDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
-        messages = self.chat_format.format(messages)
+        if self.chat_format:
+            messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
@@ -115,7 +120,8 @@ def chat_dataset(
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the llama style. Supported styles are: "sharegpt"
-        chat_format (str): name of ChatFormat class used to format the messages.
+        chat_format (str): name of ChatFormat class used to format the messages. See the description in
+            :class:`~torchtune.datasets.ChatDataset` for more details.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.

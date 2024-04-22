@@ -295,8 +295,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -477,7 +477,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._is_rank_zero
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )
