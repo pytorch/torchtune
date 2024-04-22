@@ -18,6 +18,8 @@ Instruct templates
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
 
+.. _chat_formats:
+
 Chat formats
 ------------
 
