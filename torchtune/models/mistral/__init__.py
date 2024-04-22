@@ -8,9 +8,9 @@ from ._component_builders import lora_mistral, mistral, mistral_classifier
 from ._model_builders import (
     lora_mistral_7b,
     mistral_7b,
+    mistral_classifier_7b,
     mistral_tokenizer,
     qlora_mistral_7b,
-    mistral_classifier_7b
 )
 
 __all__ = [
@@ -21,5 +21,5 @@ __all__ = [
     "lora_mistral_7b",
     "qlora_mistral_7b",
     "mistral_classifier",
-    "mistral_classifier_7b"
+    "mistral_classifier_7b",
 ]

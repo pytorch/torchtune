@@ -10,8 +10,8 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
-from torchtune.modules.rms_norm import RMSNorm
-     
+
+
 class TransformerDecoderLayer(nn.Module):
     """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
@@ -111,7 +111,7 @@ class TransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
-        output (nn.Linear): Callable that applies a linear transformation to the output of
+        output (nn.Module): Callable that applies a linear transformation to the output of
             the decoder.
 
     Note:
@@ -154,7 +154,9 @@ class TransformerDecoder(nn.Module):
 
         # causal_mask is used during inference to ensure we're attending
         # to the right tokens
-        self.causal_mask = torch.tril(torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool))
+        self.causal_mask = torch.tril(
+            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
+        )
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
@@ -190,7 +192,9 @@ class TransformerDecoder(nn.Module):
         mask = None
         if self.causal_mask is not None:
             if input_pos is None:
-                raise ValueError("Caches are setup, but the position of input token is missing")
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, None, input_pos]
@@ -207,10 +211,10 @@ class TransformerDecoder(nn.Module):
 
 
 class TransformerClassifier(nn.Module):
-    """Sequence classification layer derived from HuggingFace's MistralForSequenceClassification model. 
+    """Sequence classification layer derived from HuggingFace's MistralForSequenceClassification model.
     Args:
-        num_classes (int): Number of classes.  
-        embed_dim (int): Embedding dimension of transformer model. 
+        num_classes (int): Number of classes.
+        embed_dim (int): Embedding dimension of transformer model.
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
@@ -225,6 +229,7 @@ class TransformerClassifier(nn.Module):
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
     """
+
     def __init__(
         self,
         num_classes: int,
@@ -237,20 +242,20 @@ class TransformerClassifier(nn.Module):
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
-        norm: nn.Module
+        norm: nn.Module,
     ) -> None:
-        
+
         super().__init__()
         self.transformer_decoder = TransformerDecoder(
-                                    tok_embeddings=tok_embeddings,
-                                    layer=layer,
-                                    num_layers=num_layers,
-                                    max_seq_len=max_seq_len,
-                                    num_heads=num_heads,
-                                    head_dim=head_dim,
-                                    norm=norm,
-                                    output=nn.Linear(embed_dim, num_classes)
-    )
+            tok_embeddings=tok_embeddings,
+            layer=layer,
+            num_layers=num_layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=head_dim,
+            norm=norm,
+            output=nn.Linear(embed_dim, num_classes),
+        )
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
@@ -273,16 +278,20 @@ class TransformerClassifier(nn.Module):
         """
         # shape: [b, s, num_classes]
         logits = self.transformer_decoder(tokens, input_pos)
-        
+
         batch_size = logits.shape[0]
 
         # calculate per-batch-element sequence lengths
         padding_mask = tokens == 0
         if padding_mask.any():
-            sequence_lengths = (padding_mask.logical_not().cumsum(-1) == 1).sum(-1).to(logits.device)
+            sequence_lengths = (
+                (padding_mask.logical_not().cumsum(-1) == 1).sum(-1).to(logits.device)
+            )
         else:
             sequence_lengths = -1
 
         # grab the last predicted token for each sequence in the batch
-        output = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+        output = logits[
+            torch.arange(batch_size, device=logits.device), sequence_lengths
+        ]
         return output
