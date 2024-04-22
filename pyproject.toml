@@ -39,7 +39,7 @@ tune = "torchtune._cli.tune:main"
 
 [project.optional-dependencies]
 dev = [
-    # "bitsandbytes>=0.43.0",
+    "bitsandbytes>=0.43.0",
     "pre-commit",
     "pytest",
     "pytest-cov",
