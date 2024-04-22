@@ -54,7 +54,8 @@ class ChatDataset(Dataset):
             messages, such as the [INST] tags in LLaMA2 and in Mistral. The extra text will still get tokenized as normal text, not
             as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, `chat_format` is not needed,
             unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
-            template do not match the column/key names in the dataset, use `column_map` to map them. Default: None
+            template do not match the column/key names in the dataset, use `column_map` to map them. For a list of all possible chat
+            formats, check out :ref:`_data`. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
@@ -113,7 +114,7 @@ def chat_dataset(
     """
     Build a configurable dataset with conversations. This method should be
     used to configure a custom chat dataset from the yaml config instead of
-    using `ChatDataset` directly, as it is made to be config friendly.
+    using :ref:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
@@ -122,10 +123,32 @@ def chat_dataset(
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the llama style. Supported styles are: "sharegpt"
         chat_format (Optional[str]): name of ChatFormat class used to format the messages. See the description in
-            :class:`~torchtune.datasets.ChatDataset` for more details. Default: None
+            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,
+            check out :ref:`_data`. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+
+    Examples:
+        # In YAML config
+        dataset:
+            _component_: torchtune.datasets.chat_dataset
+            source: HuggingFaceH4/no_robots
+            conversation_style: sharegpt
+            chat_format: ChatMLFormat
+            max_seq_len: 2096
+            train_on_input: True
+
+        # In code
+        >>> from torchtune.datasets import chat_dataset
+        >>> dataset = chat_dataset(
+        ...   tokenizer=tokenizer,
+        ...   source="HuggingFaceH4/no_robots",
+        ...   conversation_style="sharegpt",
+        ...   chat_format=ChatMLFormat,
+        ...   max_seq_len=2096,
+        ...   train_on_input=True
+        ... )
 
     Returns:
         ChatDataset: the configured ChatDataset
