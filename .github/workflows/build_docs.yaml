@@ -46,7 +46,7 @@ jobs:
       - name: Get the torchtune version
         run: | 
           # Get the github.ref_name and save into the
-          # REF_NAME variable. This will be passed in
+          # GITHUB_REF variable. This will be passed in
           # conf.py to display the version in the
           # site dropdown
           GITHUB_REF=${{ github.ref }}
