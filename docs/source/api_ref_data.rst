@@ -33,7 +33,7 @@ Chat formats
     MistralChatFormat
 
 Types
-~~~~~
+-----
 
 .. autosummary::
     :toctree: generated/
@@ -49,3 +49,4 @@ Helper funcs
     :nosignatures:
 
     validate_messages
+    truncate
