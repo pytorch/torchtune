@@ -97,8 +97,8 @@ if torchtune_version_docs:
         print(f"Version: {version}")
         release = version
         html_title = " ".join((project, version, "documentation"))
-    elif et_version_docs.startswith("refs/heads/"):
-        version = et_version_docs.split("/")[-1]
+    elif torchtune_version_docs.startswith("refs/heads/"):
+        version = torchtune_version_docs.split("/")[-1]
         print(f"Version: {version}")
         release = version
         html_title = " ".join((project, version, "documentation"))
