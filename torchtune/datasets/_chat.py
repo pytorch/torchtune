@@ -31,14 +31,14 @@ class ChatDataset(Dataset):
     If the column/key names differ from the expected names in the ``ChatFormat``,
     then the ``column_map`` argument can be used to provide this mapping.
 
-    Use ``convert_to_messages`` to prepare your dataset into the llama conversation format
+    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format
     and roles::
 
         [
-            {
-                "role": <system|user|assistant>,
-                "content": <message>,
-            },
+            Message(
+                role=<system|user|assistant>,
+                content=<message>,
+            ),
             ...
         ]
 

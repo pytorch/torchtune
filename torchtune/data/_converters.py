@@ -43,7 +43,7 @@ def sharegpt_to_llama2_messages(
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
 
     Returns:
-        List[Message]: a list of messages with "role" and "content" fields. See :class:`~torchtune.datasets.Message`
+        A list of messages with "role" and "content" fields. See :class:`~torchtune.datasets.Message`
             for more details.
     """
     role_map = {"system": "system", "human": "user", "gpt": "assistant"}
