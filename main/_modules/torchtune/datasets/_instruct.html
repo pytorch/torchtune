@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.common_utils &mdash; TorchTune main documentation</title>
+  <title>torchtune.datasets._instruct &mdash; TorchTune main documentation</title>
   
 
   
@@ -327,7 +327,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.common_utils</li>
+      <li>torchtune.datasets._instruct</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -359,57 +359,155 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.common_utils</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.datasets._instruct</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
-<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_instruct_template</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="n">InstructTemplate</span><span class="p">,</span>
+    <span class="n">Message</span><span class="p">,</span>
+    <span class="n">validate_messages</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
 
-<span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span>
 
-
-<div class="viewcode-block" id="reparametrize_as_dtype_state_dict_post_hook"><a class="viewcode-back" href="../../../generated/torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html#torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook">[docs]</a><span class="k">def</span> <span class="nf">reparametrize_as_dtype_state_dict_post_hook</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-    <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span>
-    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">,</span>
-    <span class="n">offload_to_cpu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">):</span>
+<span class="k">class</span> <span class="nc">InstructDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A state_dict hook that replaces NF4 tensors with their restored</span>
-<span class="sd">    higher-precision weight and optionally offloads the restored weight to CPU.</span>
-<span class="sd">    Use this hook to avoid increased peak GPU memory usage during checkpoint</span>
-<span class="sd">    save when training with QLoRA.</span>
+<span class="sd">    Class that supports any custom dataset with instruction-based prompts and a</span>
+<span class="sd">    configurable template.</span>
 
-<span class="sd">    This function is meant to be used with PyTorch&#39;s ``nn.Module._register_state_dict_hook``, i.e.</span>
+<span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
+<span class="sd">    load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</span>
 
-<span class="sd">    &gt;&gt;&gt; m = MyModule()</span>
-<span class="sd">    &gt;&gt;&gt; m._register_state_dict_hook(reparametrize_as_dtype_state_dict_post_hook)</span>
+<span class="sd">    If the column/key names differ from the expected names in the `InstructTemplate`,</span>
+<span class="sd">    then the `column_map` argument can be used to provide this mapping.</span>
 
-<span class="sd">    If the hook is registered per the above process, this hook will be called _after_ the module&#39;s</span>
-<span class="sd">    ``state_dict`` method is called. The hook will replace all ``NF4Tensor`` instances by unquantizing</span>
-<span class="sd">    them to the original dtype, and optionally offload the restored weight to CPU.</span>
+<span class="sd">    Masking of the prompt during training is controlled by the `train_on_input` flag, which is</span>
+<span class="sd">    set to `False` by default.</span>
+<span class="sd">    - If `train_on_input` is True, the prompt is used during training and</span>
+<span class="sd">    contributes to the loss.</span>
+<span class="sd">    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        model (nn.Module): the model to take ``state_dict()`` on</span>
-<span class="sd">        state_dict (Dict[str, Any]): the state dict to modify</span>
-<span class="sd">        *args (Tuple[Any, ...]): Unused args passed when running this as a state_dict hook.</span>
-<span class="sd">        dtype (torch.dtype): the dtype to restore the weight to. Default is ``torch.bfloat16``.</span>
-<span class="sd">        offload_to_cpu (bool): whether to offload the restored weight to CPU. Default is ``True``.</span>
-<span class="sd">        **kwargs (Dict[Any, Any]): Unused keyword args passed when running this as a state_dict hook.</span>
+<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
+<span class="sd">        template (InstructTemplate): template used to format the prompt. If the placeholder variable</span>
+<span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
+<span class="sd">        transform (Optional[Callable]): transform to apply to the sample before formatting to the template.</span>
+<span class="sd">            Default is None.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
+<span class="sd">            to the column/key names in the sample. If None, assume these are identical.</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
+<span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
+<span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">offload_to_cpu</span><span class="p">:</span>
-                <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">template</span><span class="p">:</span> <span class="n">InstructTemplate</span><span class="p">,</span>
+        <span class="n">transform</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="o">=</span> <span class="n">transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="o">=</span> <span class="n">column_map</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_sample</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="n">transformed_sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transform</span> <span class="k">else</span> <span class="n">sample</span>
+
+        <span class="n">prompt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">transformed_sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">)</span>
+        <span class="n">key_output</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span> <span class="ow">and</span> <span class="s2">&quot;output&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_column_map</span>
+            <span class="k">else</span> <span class="s2">&quot;output&quot;</span>
+        <span class="p">)</span>
+        <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)),</span>
+            <span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">transformed_sample</span><span class="p">[</span><span class="n">key_output</span><span class="p">]),</span>
+        <span class="p">]</span>
+
+        <span class="n">validate_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
+
+        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
+            <span class="n">messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">tokens</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">labels</span>
+
+
+<div class="viewcode-block" id="instruct_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset">[docs]</a><span class="k">def</span> <span class="nf">instruct_dataset</span><span class="p">(</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">template</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Build a configurable dataset with instruction prompts. This method should be</span>
+<span class="sd">    used to configure a custom instruct dataset from the yaml config instead of</span>
+<span class="sd">    using `InstructDataset` directly, as it is made to be config friendly.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
+<span class="sd">        template (str): class used to format the prompt. If the placeholder variable</span>
+<span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
+<span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
+<span class="sd">            to the column/key names in the sample. If None, assume these are identical.</span>
+<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
+<span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
+<span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        InstructDataset: the configured InstructDataset</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">InstructDataset</span><span class="p">(</span>
+        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">_get_instruct_template</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
+        <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
+        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
+    <span class="p">)</span></div>
 </pre></div>
 
              </article>
