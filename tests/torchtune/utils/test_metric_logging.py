@@ -5,21 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 
-import math
 import tempfile
 from io import StringIO
 from typing import cast
 from unittest.mock import patch
 
 import pytest
-import torch
 from omegaconf import OmegaConf
 from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
 
 from tests.test_utils import assert_expected, captured_output
-from torch import nn
 from torchtune.utils.metric_logging import (
-    compute_grad_norm,
     DiskLogger,
     StdoutLogger,
     TensorBoardLogger,

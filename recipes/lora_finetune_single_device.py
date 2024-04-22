@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import time
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -482,7 +483,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "tokens_per_second": num_tokens / time_per_step,
                                 "iterations_per_second": (1 / time_per_step),
                             }
-                            log_dict.update(utils.get_memory_stats(device=self._device))
+                            if self._device.type == "cuda":
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.total_training_steps,
