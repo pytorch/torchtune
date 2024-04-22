@@ -82,10 +82,8 @@ source_suffix = [".rst"]
 torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
 
 # The code below will cut version displayed in the dropdown like this:
-# tags like v0.1.0 = > 0.1
-# branch like release/0.1 => 0.1
+# tags like v0.1.0 and v0.1.0-rc3 = > 0.1
 # main will remain main
-# if not set will fail back to main
 # the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
@@ -99,12 +97,10 @@ if torchtune_version_docs:
         release = version
         html_title = " ".join((project, version, "documentation"))
 # IF TORCHTUNE_VERSION_DOCS not set, set version to main.
-# This can be updated to nightly and so on.
 else:
     version = "main"
     release = "main"
     html_title = " ".join((project, version, "documentation"))
-
 
 # The master toctree document.
 master_doc = "index"
