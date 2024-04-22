@@ -124,7 +124,6 @@ def mistral_mlp(dim: int, hidden_dim: int) -> FeedForward:
     up_proj = nn.Linear(dim, hidden_dim, bias=False)
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj)
 
-
 def lora_mistral(
     lora_attn_modules: List[LORA_ATTN_MODULES],
     apply_lora_to_mlp: bool = False,
@@ -410,7 +409,7 @@ def lora_mistral_mlp(
 def mistral_classifier(
     num_classes: int,
     *,
-    # mistral args
+    # base mistral args
     vocab_size: int,
     num_layers: int,
     num_heads: int,
@@ -421,7 +420,7 @@ def mistral_classifier(
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
     rope_base: int = 10_000,
-) -> TransformerClassifier:
+) -> TransformerDecoder:
     """
     Build a base mistral model with an added classification layer.
     See :func:`~torchtune.models.mistral.mistral`
@@ -447,19 +446,41 @@ def mistral_classifier(
     Returns:
         TransformerClassifier: Instantiation of mistral classification model.
     """
-    transformer_model = mistral(
-        vocab_size=vocab_size,
-        num_layers=num_layers,
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    self_attn = CausalSelfAttention(
+        embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
-        embed_dim=embed_dim,
-        intermediate_dim=intermediate_dim,
+        head_dim=head_dim,
+        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        pos_embeddings=rope,
+        kv_cache=None,
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
-        norm_eps=norm_eps,
-        rope_base=rope_base,
     )
+    mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+    layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+    )
+    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
+
     return TransformerClassifier(
-        transformer_model=transformer_model,
-        num_classes=num_classes,
+        num_classes,
+        embed_dim,
+        tok_embeddings=tok_embeddings,
+        layer=layer,
+        num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
+        norm=RMSNorm(embed_dim, eps=norm_eps),
     )

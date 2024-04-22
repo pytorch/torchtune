@@ -10,8 +10,8 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
-
-
+from torchtune.modules.rms_norm import RMSNorm
+     
 class TransformerDecoderLayer(nn.Module):
     """Transformer layer derived from the Llama2 model. Normalization is applied before the attention **and** FF layer.
 
@@ -129,7 +129,7 @@ class TransformerDecoder(nn.Module):
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
-        output: nn.Linear,
+        output: nn.Module,
     ) -> None:
         super().__init__()
 
@@ -202,40 +202,87 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
         output = self.output(h).float()
         return output
 
 
 class TransformerClassifier(nn.Module):
+    """Sequence classification layer derived from HuggingFace's MistralForSequenceClassification model. 
+    Args:
+        num_classes (int): Number of classes.  
+        embed_dim (int): Embedding dimension of transformer model. 
+        tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
+            tokens to an embedding space.
+        layer (TransformerDecoderLayer): Transformer Decoder layer.
+        num_layers (int): Number of Transformer Decoder layers.
+        max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value. This is used to setup the
+            :func:`~torchtune.modules.KVCache`
+        head_dim (int): embedding dimension for each head in self-attention. This is used
+            to setup the :func:`~torchtune.modules.KVCache`
+        norm (nn.Module): Callable that applies normalization to the output of the decoder,
+            before final MLP.
+    """
     def __init__(
         self,
-        transformer_decoder: TransformerDecoder,
-        embed_dim: int,
         num_classes: int,
+        embed_dim: int,
+        *,
+        # TransformerDecoder args
+        tok_embeddings: nn.Embedding,
+        layer: TransformerDecoderLayer,
+        num_layers: int,
+        max_seq_len: int,
+        num_heads: int,
+        head_dim: int,
+        norm: nn.Module
     ) -> None:
+        
         super().__init__()
-        self.transformer_decoder = transformer_decoder
-        self.classifier = nn.Linear(embed_dim, num_classes)
+        self.transformer_decoder = TransformerDecoder(
+                                    tok_embeddings=tok_embeddings,
+                                    layer=layer,
+                                    num_layers=num_layers,
+                                    max_seq_len=max_seq_len,
+                                    num_heads=num_heads,
+                                    head_dim=head_dim,
+                                    norm=norm,
+                                    output=nn.Linear(embed_dim, num_classes)
+    )
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
+        See :func:`~torchtune.modules.TransformerDecoder.forward` for additional details.
+        This function uses padding tokens to identify sequence lengths - these are currently
+        hardcoded in :func:`~torchtune.models.mistral._model_builders.py.mistral_tokenizer`.
         Args:
             tokens (Tensor): input tensor with shape [b x s]
             input_pos (Optional[Tensor]): Optional tensor which contains the position
                 of the current token. This is only used during inference. Default is None
 
-        See :func:`~torchtune.modules.TransformerDecoder.forward` for additional details.
-
         Returns:
-            Tensor: Reward output tensor with shape [b x 1]
-
-        Raises:
-            ValueError: see :func:`~torchtune.modules.TransformerDecoder.forward`
+            Tensor: output tensor with shape [b x n]
 
         Notation used for tensor shapes:
             - b: batch size
             - s: sequence length
+            - d: embed dim
+            - n: number of classes
         """
-        transformer_output = self.transformer_decoder(tokens, input_pos)
-        return self.classifier(transformer_output)
+        # shape: [b, s, num_classes]
+        logits = self.transformer_decoder(tokens, input_pos)
+        
+        batch_size = logits.shape[0]
+
+        # calculate per-batch-element sequence lengths
+        padding_mask = tokens == 0
+        if padding_mask.any():
+            sequence_lengths = (padding_mask.logical_not().cumsum(-1) == 1).sum(-1).to(logits.device)
+        else:
+            sequence_lengths = -1
+
+        # grab the last predicted token for each sequence in the batch
+        output = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+        return output
