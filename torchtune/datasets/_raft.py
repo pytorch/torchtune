@@ -8,7 +8,7 @@ from functools import partial
 
 from torchtune.data import RAFTInstructTemplate
 from torchtune.datasets._instruct_deeplake import InstructDatasetDeepLakeRAFT
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 import os
 
 try:

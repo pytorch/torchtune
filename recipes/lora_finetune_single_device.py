@@ -371,10 +371,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_dataset,
             tokenizer=self._tokenizer,
         )
-        dataloader = ds.dataloader() \
-            .batch(batch_size) \
-            .shuffle() \
-            .pytorch()
+        # dataloader = ds.dataloader() \
+        #     .batch(batch_size) \
+        #     .shuffle() \
+        #     .pytorch()
 
         sampler = DistributedSampler(
             ds,
@@ -383,16 +383,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             shuffle=shuffle,
             seed=0,
         )
-        # dataloader = DataLoader(
-        #     dataset=ds,
-        #     sampler=sampler,
-        #     batch_size=batch_size,
-        #     collate_fn=partial(
-        #         utils.padded_collate,
-        #         padding_idx=self._tokenizer.pad_id,
-        #         ignore_idx=self._loss_fn.ignore_index,
-        #     ),
-        # )
+        dataloader = DataLoader(
+            dataset=ds,
+            sampler=sampler,
+            batch_size=batch_size,
+            collate_fn=partial(
+                utils.padded_collate,
+                padding_idx=self._tokenizer.pad_id,
+                ignore_idx=self._loss_fn.ignore_index,
+            ),
+        )
         return sampler, dataloader
 
     def _setup_data(
@@ -570,7 +570,8 @@ def recipe_main(cfg: DictConfig) -> None:
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
-    if cfg.dataset.deeplake_dataloader:
+    deeplake_dataset = False
+    if deeplake_dataset:
         recipe.setup_deeplake_dataloader(cfg=cfg)
     else:
         recipe.setup(cfg=cfg)

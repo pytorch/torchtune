@@ -18,7 +18,7 @@ from torchtune.data import (
     validate_messages,
 )
 
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 try:
     os.environ["ACTIVELOOP_TOKEN"] = os.getenv("ACTIVELOOP_TOKEN")
@@ -51,7 +51,7 @@ def load_deeplake_dataset(source):
     # train_loader = ds.dataloader()
     # train_loader = ds.dataloader().batch(2).shuffle().pytorch()
     print("Loading dataset from deeplake")
-    ds = deeplake.dataset(source)
+    # ds = deeplake.dataset(source)
     print(f"Dataset loaded from deeplake: {ds}")
     return DeepLakePyTorchDataset(ds)
 
