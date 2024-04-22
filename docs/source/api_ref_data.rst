@@ -32,6 +32,15 @@ Chat formats
     Llama2ChatFormat
     MistralChatFormat
 
+Types
+~~~~~
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    Message
+
 Helper funcs
 ------------
 
