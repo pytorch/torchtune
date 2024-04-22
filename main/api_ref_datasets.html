@@ -368,7 +368,7 @@
 <span id="datasets"></span><h1>torchtune.datasets<a class="headerlink" href="#torchtune-datasets" title="Permalink to this heading">¶</a></h1>
 <section id="example-datasets">
 <h2>Example datasets<a class="headerlink" href="#example-datasets" title="Permalink to this heading">¶</a></h2>
-<p>torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning</p>
+<p>torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset" title="torchtune.datasets.alpaca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_dataset</span></code></a></p></td>
@@ -392,7 +392,8 @@
 </section>
 <section id="generic-dataset-builders">
 <h2>Generic dataset builders<a class="headerlink" href="#generic-dataset-builders" title="Permalink to this heading">¶</a></h2>
-<p>torchtune also supports generic dataset builders for common formats like chat models and instruct models</p>
+<p>torchtune also supports generic dataset builders for common formats like chat models and instruct models.
+These are especially useful for specifying from a YAML config.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset" title="torchtune.datasets.instruct_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">instruct_dataset</span></code></a></p></td>
@@ -400,6 +401,20 @@
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chat_dataset</span></code></a></p></td>
 <td><p>Build a configurable dataset with conversations.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="generic-dataset-classes">
+<h2>Generic dataset classes<a class="headerlink" href="#generic-dataset-classes" title="Permalink to this heading">¶</a></h2>
+<p>Class representations for the above dataset builders.</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InstructDataset</span></code></a></p></td>
+<td><p>Class that supports any custom dataset with instruction-based prompts and a configurable template.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChatDataset</span></code></a></p></td>
+<td><p>Class that supports any custom dataset with multiturn conversations.</p></td>
 </tr>
 </tbody>
 </table>
@@ -452,6 +467,7 @@
 <li><a class="reference internal" href="#">torchtune.datasets</a><ul>
 <li><a class="reference internal" href="#example-datasets">Example datasets</a></li>
 <li><a class="reference internal" href="#generic-dataset-builders">Generic dataset builders</a></li>
+<li><a class="reference internal" href="#generic-dataset-classes">Generic dataset classes</a></li>
 </ul>
 </li>
 </ul>

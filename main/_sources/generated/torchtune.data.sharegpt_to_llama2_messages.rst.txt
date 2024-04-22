@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.data
+
+
+sharegpt_to_llama2_messages
+===========================
+
+.. autofunction:: sharegpt_to_llama2_messages

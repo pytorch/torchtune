@@ -366,6 +366,8 @@
               
   <section id="torchtune-data">
 <span id="data"></span><h1>torchtune.data<a class="headerlink" href="#torchtune-data" title="Permalink to this heading">¶</a></h1>
+<section id="instruct-templates">
+<h2>Instruct templates<a class="headerlink" href="#instruct-templates" title="Permalink to this heading">¶</a></h2>
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a></p></td>
@@ -380,6 +382,13 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.SummarizeTemplate.html#torchtune.data.SummarizeTemplate" title="torchtune.data.SummarizeTemplate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">SummarizeTemplate</span></code></a></p></td>
 <td><p>Prompt template to format datasets for summarization tasks.</p></td>
 </tr>
+</tbody>
+</table>
+</section>
+<section id="chat-formats">
+<span id="id1"></span><h2>Chat formats<a class="headerlink" href="#chat-formats" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChatFormat</span></code></a></p></td>
 <td><p>Interface for chat formats.</p></td>
 </tr>
@@ -392,11 +401,39 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat" title="torchtune.data.MistralChatFormat"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MistralChatFormat</span></code></a></p></td>
 <td><p>Formats according to <a class="reference external" href="https://docs.mistral.ai/models/">Mistral's instruct model</a>.</p></td>
 </tr>
+</tbody>
+</table>
+</section>
+<section id="types">
+<h2>Types<a class="headerlink" href="#types" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Message</span></code></a></p></td>
+<td><p>This dataclass represents individual messages in an instruction or chat dataset.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="converters">
+<h2>Converters<a class="headerlink" href="#converters" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.sharegpt_to_llama2_messages.html#torchtune.data.sharegpt_to_llama2_messages" title="torchtune.data.sharegpt_to_llama2_messages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sharegpt_to_llama2_messages</span></code></a></p></td>
+<td><p>Convert a chat sample adhering to the ShareGPT format to the Llama2 chat format.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="helper-funcs">
+<h2>Helper funcs<a class="headerlink" href="#helper-funcs" title="Permalink to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.data.validate_messages.html#torchtune.data.validate_messages" title="torchtune.data.validate_messages"><code class="xref py py-obj docutils literal notranslate"><span class="pre">validate_messages</span></code></a></p></td>
 <td><p>Given a list of messages, ensure that messages form a valid back-and-forth conversation.</p></td>
 </tr>
 </tbody>
 </table>
+</section>
 </section>
 
 
@@ -442,7 +479,14 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">torchtune.data</a></li>
+<li><a class="reference internal" href="#">torchtune.data</a><ul>
+<li><a class="reference internal" href="#instruct-templates">Instruct templates</a></li>
+<li><a class="reference internal" href="#chat-formats">Chat formats</a></li>
+<li><a class="reference internal" href="#types">Types</a></li>
+<li><a class="reference internal" href="#converters">Converters</a></li>
+<li><a class="reference internal" href="#helper-funcs">Helper funcs</a></li>
+</ul>
+</li>
 </ul>
 
             </div>

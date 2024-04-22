@@ -383,43 +383,45 @@
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
 
 
-<span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="ChatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">[docs]</a><span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Class that supports any custom dataset with multiturn conversations.</span>
 
 <span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
 <span class="sd">    load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</span>
 
-<span class="sd">    If the column/key names differ from the expected names in the `ChatFormat`,</span>
-<span class="sd">    then the `column_map` argument can be used to provide this mapping.</span>
+<span class="sd">    If the column/key names differ from the expected names in the ``ChatFormat``,</span>
+<span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
 
-<span class="sd">    Use `convert_to_messages` to prepare your dataset into the llama conversation format</span>
-<span class="sd">    and roles:</span>
+<span class="sd">    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format</span>
+<span class="sd">    and roles::</span>
+
 <span class="sd">        [</span>
-<span class="sd">            {</span>
-<span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
-<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
-<span class="sd">            },</span>
+<span class="sd">            Message(</span>
+<span class="sd">                role=&lt;system|user|assistant&gt;,</span>
+<span class="sd">                content=&lt;message&gt;,</span>
+<span class="sd">            ),</span>
 <span class="sd">            ...</span>
 <span class="sd">        ]</span>
 
 <span class="sd">    This class supports multi-turn conversations. If a tokenizer sample with multiple</span>
-<span class="sd">    turns does not fit within `max_seq_len` then it is truncated.</span>
+<span class="sd">    turns does not fit within ``max_seq_len`` then it is truncated.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample</span>
-<span class="sd">            and converts to a list of `Messages` that follows the llama format with the expected keys</span>
+<span class="sd">            and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys</span>
 <span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual</span>
-<span class="sd">            messages, such as the [INST] tags in LLaMA2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
-<span class="sd">            as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, `chat_format` is not needed,</span>
+<span class="sd">            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
+<span class="sd">            as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
 <span class="sd">            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the</span>
-<span class="sd">            template do not match the column/key names in the dataset, use `column_map` to map them. Default: None</span>
+<span class="sd">            template do not match the column/key names in the dataset, use ``column_map`` to map them. For a list of all possible</span>
+<span class="sd">            chat formats, check out :ref:`chat_formats`. Default: None.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -459,7 +461,7 @@
         <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">tokens</span><span class="p">))</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">labels</span>
+        <span class="k">return</span> <span class="n">tokens</span><span class="p">,</span> <span class="n">labels</span></div>
 
 
 <div class="viewcode-block" id="chat_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">[docs]</a><span class="k">def</span> <span class="nf">chat_dataset</span><span class="p">(</span>
@@ -475,22 +477,44 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build a configurable dataset with conversations. This method should be</span>
 <span class="sd">    used to configure a custom chat dataset from the yaml config instead of</span>
-<span class="sd">    using `ChatDataset` directly, as it is made to be config friendly.</span>
+<span class="sd">    using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
-<span class="sd">            for automatic conversion to the llama style. Supported styles are: &quot;sharegpt&quot;</span>
-<span class="sd">        chat_format (Optional[str]): name of ChatFormat class used to format the messages. See the description in</span>
-<span class="sd">            :class:`~torchtune.datasets.ChatDataset` for more details. Default: None</span>
+<span class="sd">            for automatic conversion to the Llama style. Supported styles are: &quot;sharegpt&quot;</span>
+<span class="sd">        chat_format (Optional[str]): name of ``ChatFormat`` class used to format the messages. See the description in</span>
+<span class="sd">            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,</span>
+<span class="sd">            check out :ref:`chat_formats`. Default: None.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
 
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.datasets import chat_dataset</span>
+<span class="sd">        &gt;&gt;&gt; dataset = chat_dataset(</span>
+<span class="sd">        ...   tokenizer=tokenizer,</span>
+<span class="sd">        ...   source=&quot;HuggingFaceH4/no_robots&quot;,</span>
+<span class="sd">        ...   conversation_style=&quot;sharegpt&quot;,</span>
+<span class="sd">        ...   chat_format=ChatMLFormat,</span>
+<span class="sd">        ...   max_seq_len=2096,</span>
+<span class="sd">        ...   train_on_input=True</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    This can also be accomplished via the yaml config::</span>
+
+<span class="sd">        dataset:</span>
+<span class="sd">            _component_: torchtune.datasets.chat_dataset</span>
+<span class="sd">            source: HuggingFaceH4/no_robots</span>
+<span class="sd">            conversation_style: sharegpt</span>
+<span class="sd">            chat_format: ChatMLFormat</span>
+<span class="sd">            max_seq_len: 2096</span>
+<span class="sd">            train_on_input: True</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">        ChatDataset: the configured ChatDataset</span>
+<span class="sd">        ChatDataset: the configured :class:`~torchtune.datasets.ChatDataset`</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if the conversation format is not supported</span>

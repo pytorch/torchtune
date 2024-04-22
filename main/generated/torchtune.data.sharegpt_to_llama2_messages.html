@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>alpaca_dataset &mdash; TorchTune main documentation</title>
+  <title>sharegpt_to_llama2_messages &mdash; TorchTune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="alpaca_cleaned_dataset" href="torchtune.datasets.alpaca_cleaned_dataset.html" />
-    <link rel="prev" title="torchtune.datasets" href="../api_ref_datasets.html" />
+    <link rel="next" title="validate_messages" href="torchtune.data.validate_messages.html" />
+    <link rel="prev" title="Message" href="torchtune.data.Message.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -283,8 +283,8 @@
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
@@ -328,15 +328,15 @@
       </li>
 
         
-          <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
+          <li><a href="../api_ref_data.html">torchtune.data</a> &gt;</li>
         
-      <li>alpaca_dataset</li>
+      <li>sharegpt_to_llama2_messages</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.datasets.alpaca_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.data.sharegpt_to_llama2_messages.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -366,46 +366,49 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="alpaca-dataset">
-<h1>alpaca_dataset<a class="headerlink" href="#alpaca-dataset" title="Permalink to this heading">¶</a></h1>
+  <section id="sharegpt-to-llama2-messages">
+<h1>sharegpt_to_llama2_messages<a class="headerlink" href="#sharegpt-to-llama2-messages" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.datasets.alpaca_dataset">
-<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">alpaca_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'tatsu-lab/alpaca'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">512</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets._instruct.InstructDataset"><span class="pre">InstructDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_alpaca.html#alpaca_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.alpaca_dataset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using
-the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a>
-and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a>
-from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite>
-are fields from the dataset.</p>
-<p>Masking of the prompt during training is controlled by the <cite>train_on_input</cite> flag, which is
-set to <cite>True</cite> by <a class="reference external" href="https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49">default</a>
-- If <cite>train_on_input</cite> is True, the prompt is used during training and
-contributes to the loss.
-- If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+<dt class="sig sig-object py" id="torchtune.data.sharegpt_to_llama2_messages">
+<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">sharegpt_to_llama2_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._types.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/data/_converters.html#sharegpt_to_llama2_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.sharegpt_to_llama2_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a chat sample adhering to the ShareGPT format to the Llama2 chat format.</p>
+<p>ShareGPT follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;conversations&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;from&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">system</span><span class="o">|</span><span class="n">human</span><span class="o">|</span><span class="n">gpt</span><span class="o">&gt;</span><span class="p">,</span>
+            <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">message</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="o">...</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>Llama2 follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">system</span><span class="o">|</span><span class="n">user</span><span class="o">|</span><span class="n">assistant</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">message</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="o">...</span>
+<span class="p">]</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tokenizer</strong> (<em>Tokenizer</em>) – Tokenizer used to encode data. Tokenize must implement an <cite>encode</cite> and <cite>decode</cite> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>.</p></li>
-<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is True.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of tokens in the returned input and label token id lists.
-Default is 512, but we recommend setting this to the highest you can fit in memory and
-is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
+<li><p><strong>sample</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – a single data sample with “conversations” field pointing
+to a list of dict messages.</p></li>
+<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the prompt should remain unmasked. Default: False</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>dataset configured with source data and template</p>
+<dd class="field-even"><p>A list of messages with “role” and “content” fields.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset">InstructDataset</a></p>
+<dd class="field-odd"><p>List[<a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message">Message</a>]</p>
 </dd>
 </dl>
-<p class="rubric">Example</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">alpaca_ds</span> <span class="o">=</span> <span class="n">alpaca_dataset</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">Dataloader</span><span class="p">(</span><span class="n">alpaca_ds</span><span class="p">,</span> <span class="n">batch_size</span><span class="o">=</span><span class="mi">8</span><span class="p">):</span>
-<span class="gp">&gt;&gt;&gt; </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Batch size: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">Batch</span> <span class="n">size</span><span class="p">:</span> <span class="mi">8</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>
@@ -418,10 +421,10 @@ is supported by the model. For example, llama2-7B supports up to 4096 for sequen
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.datasets.alpaca_cleaned_dataset.html" class="btn btn-neutral float-right" title="alpaca_cleaned_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.validate_messages.html" class="btn btn-neutral float-right" title="validate_messages" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="../api_ref_datasets.html" class="btn btn-neutral" title="torchtune.datasets" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.data.Message.html" class="btn btn-neutral" title="Message" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -453,7 +456,7 @@ is supported by the model. For example, llama2-7B supports up to 4096 for sequen
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">alpaca_dataset</a></li>
+<li><a class="reference internal" href="#">sharegpt_to_llama2_messages</a></li>
 </ul>
 
             </div>
