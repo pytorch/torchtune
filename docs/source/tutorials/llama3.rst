@@ -1,6 +1,6 @@
-====================
-Llama3 in torchtune
-====================
+========================
+Meta Llama3 in torchtune
+========================
 
 .. grid:: 2
 
@@ -18,25 +18,25 @@ Llama3 in torchtune
       * Make sure to :ref:`install torchtune<install_label>`
 
 
-Llama3-8B-Instruct
-----------
+Llama3-8B
+---------
 
-`Llama3-8B-Instruct <https://llama.meta.com/llama3>`_ is a new model released by Meta AI that improves upon the performance of the Llama2 family
-of models across a `range of different benchmarks <https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct#base-pretrained-models>`_.
-There are a few main changes between Llama2-7B and Llama3-8B-Instruct models:
+`Meta Llama 3 <https://llama.meta.com/llama3>`_ is a new model released by Meta AI that improves upon the performance of the Llama2 family
+of models across a `range of different benchmarks <https://huggingface.co/meta-llama/Meta-Llama-3-8B#base-pretrained-models>`_.
+There are a few main changes between Llama2-7B and Llama3-8B models:
 
-- Llama3-8B-Instruct uses `grouped-query attention <https://arxiv.org/abs/2305.13245>`_ instead of the standard multi-head attention from Llama2-7B
-- Llama3-8B-Instruct has a larger vocab size (128,256 instead of 32,000 from Llama2 models)
-- Llama3-8B-Instruct uses a different tokenizer than Llama2 models (`tiktoken <https://github.com/openai/tiktoken>`_ instead of `sentencepiece <https://github.com/google/sentencepiece>`_)
-- Llama3-8B-Instruct uses a larger intermediate dimension in its MLP layers than Llama2-7B
-- Llama3-8B-Instruct uses a higher base value to calculate theta in its `rotary positional embeddings <https://arxiv.org/abs/2104.09864>`_
+- Llama3-8B uses `grouped-query attention <https://arxiv.org/abs/2305.13245>`_ instead of the standard multi-head attention from Llama2-7B
+- Llama3-8B has a larger vocab size (128,256 instead of 32,000 from Llama2 models)
+- Llama3-8B uses a different tokenizer than Llama2 models (`tiktoken <https://github.com/openai/tiktoken>`_ instead of `sentencepiece <https://github.com/google/sentencepiece>`_)
+- Llama3-8B uses a larger intermediate dimension in its MLP layers than Llama2-7B
+- Llama3-8B uses a higher base value to calculate theta in its `rotary positional embeddings <https://arxiv.org/abs/2104.09864>`_
 
 |
 
 Getting access to Llama3-8B-Instruct
----------------------------
+------------------------------------
 
-First, let's download the model from Hugging Face. You will need to follow the instructions
+For this tutorial, we will be using the instruction-tuned version of Llama3-8B. First, let's download the model from Hugging Face. You will need to follow the instructions
 on the `official Meta page <https://github.com/meta-llama/llama3/blob/main/README.md>`_ to gain access to the model.
 Next, make sure you grab your Hugging Face token from `here <https://huggingface.co/settings/tokens>`_.
 
@@ -50,10 +50,10 @@ Next, make sure you grab your Hugging Face token from `here <https://huggingface
 |
 
 Fine-tuning Llama3-8B-Instruct in torchtune
-----------------------------------
+-------------------------------------------
 
 torchtune provides `LoRA <https://arxiv.org/abs/2106.09685>`_, `QLoRA <https://arxiv.org/abs/2305.14314>`_, and full fine-tuning
-recipes for fine-tuning Llama3-8B-Instruct on one or more GPUs. For more on LoRA in torchtune, see our :ref:`LoRA Tutorial <lora_finetune_label>`.
+recipes for fine-tuning Llama3-8B on one or more GPUs. For more on LoRA in torchtune, see our :ref:`LoRA Tutorial <lora_finetune_label>`.
 For more on QLoRA in torchtune, see our :ref:`QLoRA Tutorial <qlora_finetune_label>`.
 
 Let's take a look at how we can fine-tune Llama3-8B-Instruct with LoRA on a single device using torchtune. In this example, we will fine-tune
@@ -113,10 +113,10 @@ Try it out!
 
 |
 
-Evaluating fine-tuned Llama3-8B-Instruct models with EleutherAI's Eval Harness
+Evaluating fine-tuned Llama3-8B models with EleutherAI's Eval Harness
 ---------------------------------------------------------------------
 
-Now that we've fine-tuned Llama3-8B-Instruct, what's next? Let's take our LoRA-finetuned model from the
+Now that we've fine-tuned our model, what's next? Let's take our LoRA-finetuned model from the
 preceding section and look at a couple different ways we can evaluate its performance on the tasks we care about.
 
 First, torchtune provides an integration with
@@ -176,8 +176,8 @@ Try it for yourself and see what accuracy your model gets!
 
 |
 
-Generating text with our fine-tuned Llama3-8B-Instruct model
----------------------------------------------------
+Generating text with our fine-tuned Llama3 model
+------------------------------------------------
 
 Next, let's look at one other way we can evaluate our model: generating text! torchtune provides a
 `recipe for generation <https://github.com/pytorch/torchtune/blob/main/recipes/generate.py>`_ as well.
@@ -334,5 +334,5 @@ Let's re-run generation!
 
 By quantizing the model and running ``torch.compile`` we get over a 3x speedup!
 
-This is just the beginning of what you can do with Llama3-8B-Instruct using torchtune and the broader ecosystem.
+This is just the beginning of what you can do with Meta Llama3 using torchtune and the broader ecosystem.
 We look forward to seeing what you build!
