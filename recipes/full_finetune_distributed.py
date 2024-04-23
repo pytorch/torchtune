@@ -185,8 +185,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # state dict requires the model
         self._model = self._setup_model(
             cfg_model=cfg.model,
-            cfg_file=cfg,
+            enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            ac_mode=cfg.get("ac_mode", None),
+            ac_option=cfg.get("ac_option", None),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -230,8 +232,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
     def _setup_model(
         self,
         cfg_model: DictConfig,
-        cfg_file: DictConfig,
+        enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
+        ac_mode: Optional[str] = None,
+        ac_option: Optional[int] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -268,11 +272,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             model = model.to(torch.bfloat16)
 
         # Activation checkpointing
-        ac_enabled = cfg_file.get("enable_activation_checkpointing", "False")
+        ac_enabled = enable_activation_checkpointing
 
         # we can't guarantee selective ac is present in the config...
-        ac_mode = cfg_file.get("ac_mode", None)
-        ac_option = cfg_file.get("ac_option", None)
+        ac_mode = ac_mode
+        ac_option = ac_option
 
         if ac_enabled and ac_mode:
             apply_selective_activation_checkpointing(

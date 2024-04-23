@@ -51,10 +51,6 @@ _ALL_RECIPES = [
             Config(name="llama3/8B_full", file_path="llama3/8B_full.yaml"),
             Config(name="mistral/7B_full", file_path="mistral/7B_full.yaml"),
             Config(name="gemma/2B_full", file_path="gemma/2B_full.yaml"),
-            Config(
-                name="llama3/8B_full_experimental",
-                file_path="llama3/8B_full_experimental.yaml",
-            ),
         ],
         supports_distributed=True,
     ),
