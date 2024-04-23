@@ -1,5 +1,5 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
-# using a Llama3 8B model
+# using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
 # this run:
