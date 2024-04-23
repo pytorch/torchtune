@@ -25,7 +25,6 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
-import deeplake
 log = utils.get_logger("DEBUG")
 
 
@@ -570,11 +569,7 @@ def recipe_main(cfg: DictConfig) -> None:
     """
     config.log_config(recipe_name="LoRAFinetuneRecipeSingleDevice", cfg=cfg)
     recipe = LoRAFinetuneRecipeSingleDevice(cfg=cfg)
-    deeplake_dataset = False
-    if deeplake_dataset:
-        recipe.setup_deeplake_dataloader(cfg=cfg)
-    else:
-        recipe.setup(cfg=cfg)
+    recipe.setup(cfg=cfg)
     recipe.train()
     recipe.cleanup()
 
