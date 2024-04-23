@@ -288,6 +288,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         utils.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
+
         log.info(f"Model is initialized with precision {self._dtype}.")
         # Compile model, if enabled.
         if compile_model:
