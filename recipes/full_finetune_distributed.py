@@ -271,14 +271,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
-        # Activation checkpointing
-        ac_enabled = enable_activation_checkpointing
-
-        # we can't guarantee selective ac is present in the config...
+        # We currently have two versions of activation checkpointing in this recipe
+        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
+        # the older version of AC and this behavior is unchanged
+        # ac_mode and ac_option together control selective AC. This is only enabled
+        # when these are set AND ``enable_activation_checkpointing`` is set to False
+        # We'll clean this up as soon as testing of AC is complete
         ac_mode = ac_mode
         ac_option = ac_option
 
-        if ac_enabled and ac_mode:
+        if (not enable_activation_checkpointing) and (ac_mode is not None):
             apply_selective_activation_checkpointing(
                 model,
                 ac_mode,
@@ -309,8 +311,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
-        # original activation checkpointing (full)
-        if ac_enabled and ac_mode is None:
+        # original activation checkpointing (full) - flip the condition above
+        if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
