@@ -167,7 +167,7 @@ To get started with fine-tuning your first LLM with torchtune, see our tutorial 
 
 ### Downloading a model
 
-Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama) repository to ensure you have access to the Llama(2 or 3) model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
+Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama) repository to ensure you have access to the official Llama model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
 
 ### Llama2 download
 ```bash
