@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
@@ -186,6 +187,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            ac_mode=cfg.get("ac_mode", None),
+            ac_option=cfg.get("ac_option", None),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -231,6 +234,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
+        ac_mode: Optional[str] = None,
+        ac_option: Optional[int] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -266,6 +271,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
+        # We currently have two versions of activation checkpointing in this recipe
+        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
+        # the older version of AC and this behavior is unchanged
+        # ac_mode and ac_option together control selective AC. This is only enabled
+        # when these are set AND ``enable_activation_checkpointing`` is set to False
+        # We'll clean this up as soon as testing of AC is complete
+        ac_mode = ac_mode
+        ac_option = ac_option
+
+        if (not enable_activation_checkpointing) and (ac_mode is not None):
+            apply_selective_activation_checkpointing(
+                model,
+                ac_mode,
+                ac_option,
+            )
+
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -290,13 +311,15 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
-        if enable_activation_checkpointing:
+        # original activation checkpointing (full) - flip the condition above
+        if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
+
         if self._is_rank_zero:
-            memory_stats = utils.memory_stats_log(device=self._device)
-            log.info(f"Memory Stats after model init:\n{memory_stats}")
+            memory_stats = utils.get_memory_stats(device=self._device)
+            utils.log_memory_stats(memory_stats)
 
         # synchronize before training begins
         torch.distributed.barrier()
@@ -456,7 +479,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         {
                             "loss": loss.item(),
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_resources": torch.cuda.memory_allocated(),
+                            "gpu_mem_alloc": torch.cuda.memory_allocated() / 1e9,
+                            "gpu_mem_reserved": torch.cuda.memory_reserved() / 1e9,
                         },
                         step=self.total_training_steps,
                     )
@@ -477,7 +501,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     and self._is_rank_zero
                 ):
                     # Log peak memory for iteration
-                    memory_stats = utils.memory_stats_log(device=self._device)
+                    memory_stats = utils.get_memory_stats(device=self._device)
                     self._metric_logger.log_dict(
                         memory_stats, step=self.total_training_steps
                     )

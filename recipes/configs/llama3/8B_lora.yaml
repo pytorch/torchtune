@@ -33,7 +33,7 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B/original
   checkpoint_files: [
     consolidated.00.pth
   ]
