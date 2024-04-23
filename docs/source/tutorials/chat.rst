@@ -1,5 +1,5 @@
 =================================
-Fine-tuning LLaMA3 with chat data
+Fine-tuning LLaMA3 with Chat Data
 =================================
 
 LLaMA3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
@@ -179,12 +179,12 @@ than LLaMA2.
     # artists of all time: 2Pac, Rakim, N.W.A., Run-D.M.C., and Nas.<|eot_id|>'
 
 .. note::
-    We used the `tokenize_messages` API for LLaMA3, which is different than
+    We used the ``tokenize_messages`` API for LLaMA3, which is different than
     encode. It simply manages adding all the special tokens in the correct
     places after encoding the individual messages.
 
 We can see that the tokenizer handled all the formatting without us specifying a prompt
-template. Turns out, all of the additional tags are special tokens, and we don't require
+template. It turns out that all of the additional tags are special tokens, and we don't require
 a separate prompt template. We can verify this by checking if the tags get encoded
 as their own token IDs.
 
@@ -202,20 +202,15 @@ That means you won't have to worry about messing up any required prompt template
 When should I use a prompt template?
 ------------------------------------
 
-When to use or not to use a prompt template is governed by what your desired inference
-behavior is. You should use a prompt template in the following scenarios:
+Whether or not to use a prompt template is governed by what your desired inference
+behavior is. You should use a prompt template if you are running inference on the
+base model and it was pre-trained with a prompt template, or you want to prime a
+fine-tuned model to expect a certain prompt structure on inference for a specific task.
 
-1. You are running inference on the base model and it was pre-trained with a prompt
-template
-2. You want to prime a fine-tuned model to expect a certain prompt structure on inference
-for a specific task
-
-It is not strictly necessary to fine-tune with a prompt template, but generally you
-want the model to perform some sort of task, which will require some formatting of
-the prompt.
-
-For example, the :class:`~torchtune.data.SummarizeTemplate` provides a lightweight
-structure to prime your fine-tuned model for prompts asking to summarize text.
+It is not strictly necessary to fine-tune with a prompt template, but generally
+specific tasks will require specific templates. For example, the :class:`~torchtune.data.SummarizeTemplate`
+provides a lightweight structure to prime your fine-tuned model for prompts asking to summarize text.
+This would wrap around the user message, with the assistant message untouched.
 
 .. code-block:: python
 
@@ -229,7 +224,7 @@ sees during inference. The model should be robust enough to adapt to a new templ
 Fine-tuning on a custom chat dataset
 ------------------------------------
 
-Let's test our understanding by trying to fine-tune the LLaMA3-8B model with a custom
+Let's test our understanding by trying to fine-tune the LLaMA3-8B instruct model with a custom
 chat dataset. We'll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.
 
