@@ -47,7 +47,7 @@ class DeepLakePyTorchDataset(Dataset):
 def load_deeplake_dataset(source):
     import deeplake
 
-    ds = deeplake.dataset(f"hub://manufe/raft_format_dataset_3")
+    ds = deeplake.dataset(f"hub://manufe/raft_format_dataset_biomedical")
     # train_loader = ds.dataloader()
     # train_loader = ds.dataloader().batch(2).shuffle().pytorch()
     print("Loading dataset from deeplake")
