@@ -10,7 +10,7 @@ torchtune.datasets
 Example datasets
 ----------------
 
-torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning
+torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.
 
 .. autosummary::
     :toctree: generated/
@@ -25,7 +25,8 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
 Generic dataset builders
 ------------------------
 
-torchtune also supports generic dataset builders for common formats like chat models and instruct models
+torchtune also supports generic dataset builders for common formats like chat models and instruct models.
+These are especially useful for specifying from a YAML config.
 
 .. autosummary::
     :toctree: generated/
@@ -33,3 +34,15 @@ torchtune also supports generic dataset builders for common formats like chat mo
 
     instruct_dataset
     chat_dataset
+
+Generic dataset classes
+-----------------------
+
+Class representations for the above dataset builders.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    InstructDataset
+    ChatDataset
