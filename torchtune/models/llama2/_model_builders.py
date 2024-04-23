@@ -22,7 +22,7 @@ llama2 7B model.
 
 def llama2_7b() -> TransformerDecoder:
     """
-    Builder for creating a Llama2 model initialized w/ the default 7b parameter values
+    Builder for creating a Llama2 model initialized w/ the default 7B parameter values
     from https://arxiv.org/abs/2307.09288
 
     Returns:
@@ -96,6 +96,7 @@ def lora_llama2_7b(
         quantize_base=quantize_base,
     )
 
+
 qlora_llama2_7b = partial(lora_llama2_7b, quantize_base=True)
 
 qlora_llama2_7b.__doc__ = """
@@ -107,7 +108,7 @@ Please see `lora_llama2_7b` for full API arguments.
 
 def llama2_13b() -> TransformerDecoder:
     """
-    Builder for creating a Llama2 model initialized w/ the default 13b parameter values
+    Builder for creating a Llama2 model initialized w/ the default 13B parameter values
     from https://arxiv.org/abs/2307.09288
 
     Returns:
@@ -123,7 +124,6 @@ def llama2_13b() -> TransformerDecoder:
         max_seq_len=4096,
         attn_dropout=0.0,
         norm_eps=1e-5,
-
     )
 
 
@@ -177,16 +177,17 @@ def lora_llama2_13b(
         quantize_base=quantize_base,
     )
 
+
 qlora_llama2_13b = partial(lora_llama2_13b, quantize_base=True)
 
 
 def llama2_70b() -> TransformerDecoder:
     """
-    Builder for creating a Llama2 model initialized w/ the default 70 parameter values
+    Builder for creating a Llama2 model initialized w/ the default 70B parameter values
     from https://arxiv.org/abs/2307.09288
 
     Returns:
-        TransformerDecoder: Instantiation of Llama2 70 model
+        TransformerDecoder: Instantiation of Llama2 70B model
     """
     return llama2(
         vocab_size=32_000,
@@ -249,4 +250,66 @@ def lora_llama2_70b(
         lora_alpha=lora_alpha,
         lora_dropout=0.05,
         quantize_base=quantize_base,
+    )
+
+
+def code_llama2_7b() -> TransformerDecoder:
+    """
+    Builder for creating a Code-Llama2 model initialized w/ the default 7B parameter values
+    from https://arxiv.org/pdf/2308.12950.pdf
+
+    Returns:
+        TransformerDecoder: Instantiation of Code-Llama2 7B model
+    """
+    return llama2(
+        vocab_size=32_016,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=32,
+        embed_dim=4096,
+        max_seq_len=16384,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )
+
+
+def code_llama2_13b() -> TransformerDecoder:
+    """
+    Builder for creating a Code-Llama2 model initialized w/ the default 13B parameter values
+    from https://arxiv.org/pdf/2308.12950.pdf
+
+    Returns:
+        TransformerDecoder: Instantiation of Code-Llama2 13B model
+    """
+    return llama2(
+        vocab_size=32_016,
+        num_layers=40,
+        num_heads=40,
+        num_kv_heads=40,
+        embed_dim=5120,
+        intermediate_dim=13824,
+        max_seq_len=16384,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )
+
+
+def code_llama2_70b() -> TransformerDecoder:
+    """
+    Builder for creating a Code-Llama2 model initialized w/ the default 70B parameter values
+    from https://arxiv.org/pdf/2308.12950.pdf
+
+    Returns:
+        TransformerDecoder: Instantiation of Code-Llama2 70B model
+    """
+    return llama2(
+        vocab_size=32_016,
+        num_layers=80,
+        num_heads=64,
+        num_kv_heads=8,
+        embed_dim=8192,
+        intermediate_dim=28672,
+        max_seq_len=16384,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
     )

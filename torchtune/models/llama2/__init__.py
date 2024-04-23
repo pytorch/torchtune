@@ -7,6 +7,9 @@
 from ._component_builders import llama2, lora_llama2
 
 from ._model_builders import (  # noqa
+    code_llama2_13b,
+    code_llama2_70b,
+    code_llama2_7b,
     llama2_13b,
     llama2_70b,
     llama2_7b,
