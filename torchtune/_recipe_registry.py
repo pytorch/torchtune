@@ -101,6 +101,17 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="lora_dpo_distributed",
+        file_path="lora_dpo_distributed.py",
+        configs=[
+            Config(
+                name="llama2/7B_lora_dpo",
+                file_path="llama2/7B_lora_dpo.yaml",
+            ),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",
         configs=[
