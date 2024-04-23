@@ -11,6 +11,8 @@ from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._slimorca import slimorca_dataset
 from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
+from torchtune.datasets._text_completion import text_completion_dataset, TextCompletionDataset
+from torchtune.datasets._wikitext import wikitext_dataset
 
 __all__ = [
     "alpaca_dataset",
@@ -23,4 +25,7 @@ __all__ = [
     "ChatDataset",
     "instruct_dataset",
     "chat_dataset",
+    "text_completion_dataset",
+    "TextCompletionDataset",
+    "wikitext_dataset",
 ]

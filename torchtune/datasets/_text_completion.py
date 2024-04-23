@@ -13,7 +13,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, Message, validate_messages
 from torchtune.modules.tokenizers import Tokenizer
 
 
-class TextDataset(Dataset):
+class TextCompletionDataset(Dataset):
     """
     Freeform dataset for any unstructured text corpus. Quickly load any dataset
     from Hugging Face or local disk and tokenize it correctly for your model.
@@ -50,18 +50,13 @@ class TextDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
-        messages = [
-            Message(role="user", content=sample[self._column]),
-            # Assistant message is empty because we want the model to
-            # perform text completion
-            Message(role="assistant", content=""),
-        ]
+        prompt = sample[self._column]
+        prompt_tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
 
-        validate_messages(messages)
+        # Labels are just input tokens offset by 1
+        input_tokens = prompt_tokens[:-1].copy()
+        labels = prompt_tokens[1:].copy()
 
-        tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
-        )
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
@@ -70,13 +65,13 @@ class TextDataset(Dataset):
         return tokens, labels
 
 
-def text_dataset(
+def text_completion_dataset(
     tokenizer: Tokenizer,
     source: str,
     column: str,
     max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
-) -> TextDataset:
+) -> TextCompletionDataset:
     """
     Build a configurable freeform text dataset with instruction prompts. This method should be
     used to configure a custom text dataset from the yaml config instead of
@@ -93,9 +88,9 @@ def text_dataset(
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Returns:
-        TextDataset: the configured TextDataset
+        TextCompletionDataset: the configured TextCompletionDataset
     """
-    return TextDataset(
+    return TextCompletionDataset(
         tokenizer=tokenizer,
         source=source,
         column=column,
