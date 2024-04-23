@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -600,7 +601,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
+    os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
