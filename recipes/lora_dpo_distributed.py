@@ -655,7 +655,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss_to_log}"
+                        f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
