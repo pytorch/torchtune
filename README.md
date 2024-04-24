@@ -124,7 +124,7 @@ tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full
 LoRA 8B
 
 ```bash
-tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lorag 
+tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora 
 ```
 
 LoRA 70B
