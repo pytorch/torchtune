@@ -84,6 +84,9 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
 
+    def reset_parameters(self):
+        self.initialize_parameters()
+
     def _create_weight_and_bias(self):
         """
         Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
