@@ -175,12 +175,13 @@ tune download meta-llama/Llama-2-7b-hf \
 --output-dir /tmp/Llama-2-7b-hf \
 --hf-token <HF_TOKEN> \
 ```
+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
 
 ### Llama3 download
 ```bash
 tune download meta-llama/Meta-Llama-3-8B \
 --output-dir /tmp/Meta-Llama-3-8B \
---hf-token <HF_TOKEN> \
+--hf-token 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 \
 ```
 
 
