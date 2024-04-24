@@ -106,7 +106,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -476,9 +476,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
                             "tokens_per_second": num_tokens / time_per_step,
-                            "iterations_per_second": (1 / time_per_step),
                         }
-                        log_dict.update(utils.get_memory_stats(device=self._device))
+                        if self._log_peak_memory_stats:
+                            log_dict.update(utils.get_memory_stats(device=self._device))
                         self._metric_logger.log_dict(
                             log_dict,
                             step=self.total_training_steps,

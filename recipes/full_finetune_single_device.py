@@ -106,6 +106,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -444,9 +445,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
                             "tokens_per_second": num_tokens / time_per_step,
-                            "iterations_per_second": (1 / time_per_step),
                         }
-                        if self._device.type == "cuda":
+                        if self._device.type == "cuda" and self.log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
                         self._metric_logger.log_dict(
                             log_dict,

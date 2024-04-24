@@ -114,7 +114,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -481,9 +481,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
                                 "tokens_per_second": num_tokens / time_per_step,
-                                "iterations_per_second": (1 / time_per_step),
                             }
-                            if self._device.type == "cuda":
+                            if self._device.type == "cuda" and self._log_peak_memory_stats:
                                 log_dict.update(
                                     utils.get_memory_stats(device=self._device)
                                 )
