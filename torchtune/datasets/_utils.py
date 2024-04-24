@@ -62,10 +62,6 @@ def load_deep_lake_dataset(deep_lake_dataset: str, **config_kwargs) -> DeepLakeD
         # Load a dataset named "my_deep_lake_dataset" from DeepLake
         dataloader = load_deeplake_dataset("my_deep_lake_dataset")
     """
-    try:
-        os.environ["ACTIVELOOP_TOKEN"] = os.getenv("ACTIVELOOP_TOKEN")
-    except:
-        log.info("ACTIVELOOP_TOKEN not found in environment variables only public datasets can be read.")
 
     ds = deeplake.dataset(deep_lake_dataset, **config_kwargs)
     log.info(f"Dataset loaded from deeplake: {ds}")
