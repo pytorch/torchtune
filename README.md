@@ -131,7 +131,7 @@ LoRA 70B
 tune run --nproc_per_node 8 lora_finetune_distributed --config recipes/configs/llama3/70B_lora.yaml
 ```
 
-Also See: [All llama3 recipes](recipes/configs/llama3)
+You can find a full list of all our Llama3 configs [here.](recipes/configs/llama3)
 
 
 &nbsp;
