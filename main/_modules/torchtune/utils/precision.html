@@ -368,24 +368,11 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ContextManager</span><span class="p">,</span>
-    <span class="n">Dict</span><span class="p">,</span>
-    <span class="n">Generator</span><span class="p">,</span>
-    <span class="n">Iterable</span><span class="p">,</span>
-    <span class="n">List</span><span class="p">,</span>
-    <span class="n">Optional</span><span class="p">,</span>
-    <span class="n">Tuple</span><span class="p">,</span>
-    <span class="n">Union</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 
-<span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">GradScaler</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.fsdp.sharded_grad_scaler</span> <span class="kn">import</span> <span class="n">ShardedGradScaler</span>
-
-<span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">_validate_device_from_env</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="n">log</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
@@ -484,44 +471,6 @@
         <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">torch_dtype</span></div>
-
-
-<span class="k">def</span> <span class="nf">get_gradient_scaler</span><span class="p">(</span><span class="n">fsdp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">GradScaler</span><span class="p">,</span> <span class="n">ShardedGradScaler</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Returns a gradient scaler for mixed-precision training.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        fsdp (bool): Whether FSDP is being used for training, in which case a shard-aware gradient scaler is returned.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Union[GradScaler, ShardedGradScaler]: Gradient scaler object</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">GradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">fsdp</span> <span class="k">else</span> <span class="n">ShardedGradScaler</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">get_autocast</span><span class="p">(</span><span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Intelligently determines, based on the dtype if mixed precision training is supported and</span>
-<span class="sd">    returns the builtin torch.autocast if applicable.</span>
-
-<span class="sd">    Reference: https://pytorch.org/docs/stable/amp.html#torch.autocast</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        dtype (torch.dtype): dtype used to determine if mixed precision training is used.</span>
-<span class="sd">        device (torch.device): Pytorch device.</span>
-<span class="sd">    Returns:</span>
-<span class="sd">        Autocast manager object if using half precision, otherwise null context</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">manager</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float16</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">):</span>
-        <span class="c1"># Note some devices do not support autocasting, and will raise an error.</span>
-        <span class="n">_validate_device_from_env</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span>
-            <span class="n">device_type</span><span class="o">=</span><span class="n">device</span><span class="o">.</span><span class="n">type</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">nullcontext</span><span class="p">()</span>
 
 
 <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>

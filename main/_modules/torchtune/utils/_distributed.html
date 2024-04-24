@@ -371,24 +371,19 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">FullyShardedDataParallel</span> <span class="k">as</span> <span class="n">FSDP</span><span class="p">,</span>
-    <span class="n">MixedPrecision</span><span class="p">,</span>
-    <span class="n">ShardingStrategy</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
+<span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="n">ShardingStrategy</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">_lora_a_init_params</span><span class="p">,</span>
     <span class="n">_lora_b_init_params</span><span class="p">,</span>
     <span class="n">LoRALinear</span><span class="p">,</span>
 <span class="p">)</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">_validate_device_from_env</span><span class="p">,</span> <span class="n">get_device</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils._device</span> <span class="kn">import</span> <span class="n">get_device</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils.logging</span> <span class="kn">import</span> <span class="n">get_logger</span>
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
@@ -502,86 +497,6 @@
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">fsdp</span><span class="o">.</span><span class="n">FullyShardedDataParallel</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">modules</span><span class="p">()</span>
     <span class="p">)</span>
-
-
-<span class="k">def</span> <span class="nf">wrap_fsdp</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
-    <span class="n">device</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
-    <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-    <span class="n">strategy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">auto_wrap_policy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">FSDPPolicyType</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_meta_device</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.</span>
-<span class="sd">    FSDP allows three primary types of data parallel training (these can be set under &quot;strategy&quot;):</span>
-
-<span class="sd">    NO_SHARD:</span>
-<span class="sd">        No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire</span>
-<span class="sd">        model and optimizer can fit on a single GPU and you just want to split the batch across ranks.</span>
-<span class="sd">    SHARD_GRAD_OP:</span>
-<span class="sd">        Only gradients and optimizer are sharded across all ranks. This is typically fastest when the</span>
-<span class="sd">        model can fit on your GPU but there isn&#39;t enough room for a forward and backward pass.</span>
-<span class="sd">    FULL_SHARD:</span>
-<span class="sd">        All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a</span>
-<span class="sd">        single GPU.</span>
-
-<span class="sd">    If using sharding, you need to define how the model is sharded. The auto_wrap_policy is a list of model layers</span>
-<span class="sd">    and blocks that FSDP will use as shards.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        model (nn.Module): Model to wrap for distributed training.</span>
-<span class="sd">        device (torch.device): Device for host model.</span>
-<span class="sd">        dtype (torch.dtype): dtype for mixed precision training. FSDP mixed precision will be</span>
-<span class="sd">            configured to use this dtype for both computation and communication.</span>
-<span class="sd">        strategy (Optional[str]): Sharding strategy to use. Please see</span>
-<span class="sd">            torch.distributed.fsdp.ShardingStrategy for options. Default: &quot;FULL_SHARD&quot;, which</span>
-<span class="sd">            shards parameters, gradients, and optimizer states.</span>
-<span class="sd">        auto_wrap_policy (Optional[Union[Set[Type], FSDPPolicyType]]): nn.Module types to recursively apply FSDP to.</span>
-<span class="sd">            FSDP will wrap each instance of the specified nn.Module type in its own atomic FSDP unit.</span>
-<span class="sd">            Alternatively, this can be a custom callable policy of type FSDPPolicyType, in which case FSDP will</span>
-<span class="sd">            be wrapped according to the specified policy.</span>
-<span class="sd">            Please see https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy</span>
-<span class="sd">            for details on FSDP wrapping and writing wrapping policies.</span>
-<span class="sd">            Default: None. In this case, FSDP is only applied to the top level module. In this</span>
-<span class="sd">            case, entire model is unsharded during computation and memory is only saved due to</span>
-<span class="sd">            sharding optimizer states.</span>
-<span class="sd">        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.</span>
-<span class="sd">            If so, we will define the `reset_parameters()` method on all submodules</span>
-<span class="sd">            to ensure FSDP properly initializes all modules on device given by `device`. Default: False</span>
-<span class="sd">        **kwargs: additional arguments to pass to FSDP for distributed training.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        nn.Module: Model wrapped for distributed training</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        RuntimeError: If environment not setup for distributed training.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="ow">and</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">use_meta_device</span><span class="p">:</span>
-            <span class="n">model</span> <span class="o">=</span> <span class="n">prepare_model_for_fsdp_with_meta_device</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">strategy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">strategy</span> <span class="o">=</span> <span class="s2">&quot;FULL_SHARD&quot;</span>
-        <span class="n">_validate_device_from_env</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">wrap_policy</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">ModuleWrapPolicy</span><span class="p">(</span><span class="n">auto_wrap_policy</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">auto_wrap_policy</span><span class="p">,</span> <span class="nb">set</span><span class="p">)</span>
-            <span class="k">else</span> <span class="n">auto_wrap_policy</span>
-        <span class="p">)</span>
-        <span class="n">mp</span> <span class="o">=</span> <span class="n">MixedPrecision</span><span class="p">(</span><span class="n">param_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">reduce_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">buffer_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">FSDP</span><span class="p">(</span>
-            <span class="n">model</span><span class="p">,</span>
-            <span class="n">auto_wrap_policy</span><span class="o">=</span><span class="n">wrap_policy</span><span class="p">,</span>
-            <span class="n">device_id</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
-            <span class="n">mixed_precision</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">sharding_strategy</span><span class="o">=</span><span class="n">_get_sharding_strategy</span><span class="p">(</span><span class="n">strategy</span><span class="p">),</span>
-            <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-            <span class="s2">&quot;Distributed environment is not setup. Please run init_distributed() first.&quot;</span>
-        <span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">_dummy_reset_params</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
