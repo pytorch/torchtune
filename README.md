@@ -167,13 +167,22 @@ To get started with fine-tuning your first LLM with torchtune, see our tutorial 
 
 ### Downloading a model
 
-Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama/Llama-2-7b) repository to ensure you have access to the Llama2 model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
+Follow the instructions on the official [`meta-llama`](https://huggingface.co/meta-llama) repository to ensure you have access to the official Llama model weights. Once you have confirmed access, you can run the following command to download the weights to your local machine. This will also download the tokenizer model and a responsible use guide.
 
+### Llama2 download
 ```bash
 tune download meta-llama/Llama-2-7b-hf \
 --output-dir /tmp/Llama-2-7b-hf \
 --hf-token <HF_TOKEN> \
 ```
+
+### Llama3 download
+```bash
+tune download meta-llama/Meta-Llama-3-8B \
+--output-dir /tmp/Meta-Llama-3-8B \
+--hf-token <HF_TOKEN> \
+```
+
 
 > Tip: Set your environment variable `HF_TOKEN` or pass in `--hf-token` to the command in order to validate your access.
 You can find your token at https://huggingface.co/settings/tokens
