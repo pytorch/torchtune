@@ -8,24 +8,19 @@
 import logging
 import os
 from itertools import chain
-from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
 from torch import nn
-from torch.distributed.fsdp import (
-    FullyShardedDataParallel as FSDP,
-    MixedPrecision,
-    ShardingStrategy,
-)
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.distributed.fsdp import ShardingStrategy
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
     LoRALinear,
 )
 
-from torchtune.utils._device import _validate_device_from_env, get_device
+from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
@@ -139,86 +134,6 @@ def contains_fsdp(model: nn.Module) -> bool:
         isinstance(m, torch.distributed.fsdp.FullyShardedDataParallel)
         for m in model.modules()
     )
-
-
-def wrap_fsdp(
-    model: nn.Module,
-    device: torch.device,
-    dtype: torch.dtype,
-    strategy: Optional[str] = None,
-    auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
-    use_meta_device: bool = False,
-    **kwargs,
-) -> nn.Module:
-    """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
-    FSDP allows three primary types of data parallel training (these can be set under "strategy"):
-
-    NO_SHARD:
-        No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
-        model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
-    SHARD_GRAD_OP:
-        Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
-        model can fit on your GPU but there isn't enough room for a forward and backward pass.
-    FULL_SHARD:
-        All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
-        single GPU.
-
-    If using sharding, you need to define how the model is sharded. The auto_wrap_policy is a list of model layers
-    and blocks that FSDP will use as shards.
-
-    Args:
-        model (nn.Module): Model to wrap for distributed training.
-        device (torch.device): Device for host model.
-        dtype (torch.dtype): dtype for mixed precision training. FSDP mixed precision will be
-            configured to use this dtype for both computation and communication.
-        strategy (Optional[str]): Sharding strategy to use. Please see
-            torch.distributed.fsdp.ShardingStrategy for options. Default: "FULL_SHARD", which
-            shards parameters, gradients, and optimizer states.
-        auto_wrap_policy (Optional[Union[Set[Type], FSDPPolicyType]]): nn.Module types to recursively apply FSDP to.
-            FSDP will wrap each instance of the specified nn.Module type in its own atomic FSDP unit.
-            Alternatively, this can be a custom callable policy of type FSDPPolicyType, in which case FSDP will
-            be wrapped according to the specified policy.
-            Please see https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy
-            for details on FSDP wrapping and writing wrapping policies.
-            Default: None. In this case, FSDP is only applied to the top level module. In this
-            case, entire model is unsharded during computation and memory is only saved due to
-            sharding optimizer states.
-        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.
-            If so, we will define the `reset_parameters()` method on all submodules
-            to ensure FSDP properly initializes all modules on device given by `device`. Default: False
-        **kwargs: additional arguments to pass to FSDP for distributed training.
-
-    Returns:
-        nn.Module: Model wrapped for distributed training
-
-    Raises:
-        RuntimeError: If environment not setup for distributed training.
-
-    """
-    if dist.is_available() and dist.is_initialized():
-        if use_meta_device:
-            model = prepare_model_for_fsdp_with_meta_device(model)
-        if strategy is None:
-            strategy = "FULL_SHARD"
-        _validate_device_from_env(device)
-        wrap_policy = (
-            ModuleWrapPolicy(auto_wrap_policy)
-            if isinstance(auto_wrap_policy, set)
-            else auto_wrap_policy
-        )
-        mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
-        return FSDP(
-            model,
-            auto_wrap_policy=wrap_policy,
-            device_id=device,
-            mixed_precision=None,
-            sharding_strategy=_get_sharding_strategy(strategy),
-            **kwargs,
-        )
-    else:
-        raise RuntimeError(
-            "Distributed environment is not setup. Please run init_distributed() first."
-        )
 
 
 def _dummy_reset_params(x: nn.Module) -> None:

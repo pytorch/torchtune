@@ -29,6 +29,7 @@ from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
 
@@ -106,7 +107,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = cfg.log_peak_memory_stats
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats if cfg.log_peak_memory_stats else False
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -186,6 +187,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            ac_mode=cfg.get("ac_mode", None),
+            ac_option=cfg.get("ac_option", None),
         )
 
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -231,6 +234,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         model_state_dict: Dict[str, Any],
+        ac_mode: Optional[str] = None,
+        ac_option: Optional[int] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -266,6 +271,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
 
+        # We currently have two versions of activation checkpointing in this recipe
+        # for testing and BC purposes. ``enable_activation_checkpointing`` controls
+        # the older version of AC and this behavior is unchanged
+        # ac_mode and ac_option together control selective AC. This is only enabled
+        # when these are set AND ``enable_activation_checkpointing`` is set to False
+        # We'll clean this up as soon as testing of AC is complete
+        ac_mode = ac_mode
+        ac_option = ac_option
+
+        if (not enable_activation_checkpointing) and (ac_mode is not None):
+            apply_selective_activation_checkpointing(
+                model,
+                ac_mode,
+                ac_option,
+            )
+
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
         model = FSDP(
@@ -290,10 +311,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
-        if enable_activation_checkpointing:
+        # original activation checkpointing (full) - flip the condition above
+        if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
+
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
@@ -454,6 +477,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 running_loss += loss
                 loss.backward()
 
+                # Step with optimizer and log per-step metrics
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)

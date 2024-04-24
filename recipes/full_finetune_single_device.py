@@ -106,7 +106,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = cfg.log_peak_memory_stats
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats if cfg.log_peak_memory_stats else False
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -420,6 +420,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 running_loss += loss
                 loss.backward()
 
+                # Step with optimizer and log per-step metrics
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()

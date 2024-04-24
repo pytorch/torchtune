@@ -114,7 +114,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = cfg.log_peak_memory_stats
+        self._log_peak_memory_stats = cfg.log_peak_memory_stats if cfg.log_peak_memory_stats else False
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -462,6 +462,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     running_loss += loss
                     loss.backward()
 
+                    # Step with optimizer and log per-step metrics
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)

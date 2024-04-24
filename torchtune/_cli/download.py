@@ -9,6 +9,7 @@ import os
 import textwrap
 
 from pathlib import Path
+from typing import Literal, Union
 
 from huggingface_hub import snapshot_download
 from huggingface_hub.utils import GatedRepoError, RepositoryNotFoundError
@@ -68,6 +69,18 @@ class Download(Subcommand):
             help="Directory in which to save the model.",
         )
         self._parser.add_argument(
+            "--output-dir-use-symlinks",
+            type=str,
+            required=False,
+            default="auto",
+            help=(
+                "To be used with `output-dir`. If set to 'auto', the cache directory will be used and the file will be"
+                " either duplicated or symlinked to the local directory depending on its size. It set to `True`, a"
+                " symlink will be created, no matter the file size. If set to `False`, the file will either be"
+                " duplicated from cache (if already exists) or downloaded from the Hub and not cached."
+            ),
+        )
+        self._parser.add_argument(
             "--hf-token",
             type=str,
             required=False,
@@ -86,11 +99,28 @@ class Download(Subcommand):
     def _download_cmd(self, args: argparse.Namespace) -> None:
         """Downloads a model from the Hugging Face Hub."""
         # Download the tokenizer and PyTorch model files
+
+        # Raise if local_dir_use_symlinks is invalid
+        output_dir_use_symlinks: Union[Literal["auto"], bool]
+        use_symlinks_lowercase = args.output_dir_use_symlinks.lower()
+        if use_symlinks_lowercase == "true":
+            output_dir_use_symlinks = True
+        elif use_symlinks_lowercase == "false":
+            output_dir_use_symlinks = False
+        elif use_symlinks_lowercase == "auto":
+            output_dir_use_symlinks = "auto"
+        else:
+            self._parser.error(
+                f"'{args.output_dir_use_symlinks}' is not a valid value for `--output-dir-use-symlinks`. It must be either"
+                " 'auto', 'True' or 'False'."
+            )
+
         print(f"Ignoring files matching the following patterns: {args.ignore_patterns}")
         try:
             true_output_dir = snapshot_download(
                 args.repo_id,
                 local_dir=args.output_dir,
+                local_dir_use_symlinks=output_dir_use_symlinks,
                 ignore_patterns=args.ignore_patterns,
                 token=args.hf_token,
             )
