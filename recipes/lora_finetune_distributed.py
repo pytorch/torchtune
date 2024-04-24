@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import itertools
 import os
 import sys
 import time
@@ -17,7 +18,7 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._composable.fsdp import FSDP, fully_shard
 from torch.distributed._tensor import distribute_tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -294,14 +295,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         sharded_sd = {}
 
         if self._is_rank_zero:
-            log.info(
-                "FSDP is enabled. Instantiating Model on meta device for Rank 0 ..."
-            )
-            init_start = time.perf_counter()
-
-            log.info(
-                f"Model instantiation took {time.perf_counter() - init_start:.2f} secs"
-            )
 
             # The model contains LoRA params which won't have any matching keys in
             # the state dict. As a result, we need to load with strict=False.
@@ -323,7 +316,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
             # Load both the base model weights and (if available) the adapter weights. Both
             # of this should happen only on Rank 0
-            # model.load_state_dict(base_model_state_dict, strict=False)
+            log.info("FSDP is enabled. Loading checkpoints for Rank 0 ...")
+            init_start = time.perf_counter()
             for param_name, full_param in base_model_state_dict.items():
                 sharded_meta_param = meta_sharded_sd.get(param_name)
                 full_param = full_param.detach().to(self._device)
@@ -333,6 +327,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     full_param, mesh, sharded_meta_param.placements
                 )
                 sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+            log.info(
+                f"Loading checkpoints took {time.perf_counter() - init_start:.2f} secs"
+            )
             # TODO: lora_weights_state_dict
             # if lora_weights_state_dict:
             #     model.load_state_dict(lora_weights_state_dict, strict=False)
@@ -353,11 +350,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         model.load_state_dict(sharded_sd, strict=False, assign=True)
 
-        model.to_empty(device=self._device)
-        with self._device:
-            for module in model.modules():
-                if hasattr(module, "reset_parameters"):
-                    module.reset_parameters()
+        # LoRALinear are sitll on meta if lora_weights_state_dict = False
+        # RotaryPositionalEmbeddings.theta is buffer and does not exists in checkpoints
+        for m in model.modules():
+            if isinstance(m, FSDP):
+                continue
+            param_is_meta = [
+                x.is_meta
+                for x in itertools.chain(
+                    m.parameters(recurse=False), m.buffers(recurse=False)
+                )
+            ]
+            if len(param_is_meta) > 0 and all(param_is_meta):
+                m.to_empty(device=self._device)
+                if not hasattr(m, "reset_parameters"):
+                    raise ValueError(f"Need to implement reset_parameters in {m}")
+                m.reset_parameters()
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
