@@ -11,11 +11,7 @@ from .kv_cache import KVCache  # noqa
 from .lr_schedulers import get_cosine_schedule_with_warmup  # noqa
 from .position_embeddings import RotaryPositionalEmbeddings  # noqa
 from .rms_norm import RMSNorm  # noqa
-from .transformer import (  # noqa
-    TransformerClassifier,
-    TransformerDecoder,
-    TransformerDecoderLayer,
-)
+from .transformer import TransformerDecoder, TransformerDecoderLayer  # noqa
 
 __all__ = [
     "CausalSelfAttention",

@@ -47,5 +47,5 @@ class TestMistralClassifier:
         actual = model(inputs)
         # TODO find the actual value
         # expected = torch.tensor(3.9763)
-        assert actual.shape == (BSZ, NUM_CLASSES)
+        assert actual.shape == (BSZ, SEQ_LEN, NUM_CLASSES)
         # torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-4)
