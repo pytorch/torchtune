@@ -93,12 +93,6 @@ In our initial experiments for Llama3-8B, QLoRA has a peak allocated memory of `
 
 ### Single GPU
 
-Full 8B
-
-```bash
-tune run full_finetune_single_device --config llama3/8B_full_single_device
-```
-
 LoRA 8B
 
 ```bash
@@ -111,18 +105,24 @@ QLoRA 8B
 tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
 ```
 
+Full 8B
+
+```bash
+tune run full_finetune_single_device --config llama3/8B_full_single_device
+```
+
 ### Multi GPU
 
 Full 8B
 
 ```bash
-tune run --nproc_per_node 2 full_finetune_distributed --config llama3/8B_full
+tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full
 ```
 
 LoRA 8B
 
 ```bash
-tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
+tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
 ```
 
 LoRA 70B
