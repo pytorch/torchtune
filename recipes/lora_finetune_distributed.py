@@ -308,7 +308,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
-                if isinstance(m, LoRALinear):
+                if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                    # to_empty is needed since kaiming_uniform_ is inplace
+                    m.to_empty(device=self._device)
                     m.initialize_parameters()
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
