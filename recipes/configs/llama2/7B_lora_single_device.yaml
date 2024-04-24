@@ -74,6 +74,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: null
+log_peak_memory_stats: False
 
 # Environment
 device: cuda
