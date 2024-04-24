@@ -107,7 +107,7 @@ class InstructDatasetDeepLakeRAFT(Dataset):
         return tokens, labels
 
 
-def instruct_dataset(
+def instruct_dataset_raft(
     tokenizer: Tokenizer,
     source: str,
     template: str,
