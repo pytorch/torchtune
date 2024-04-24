@@ -6,10 +6,9 @@
 
 from typing import Any, Dict, List, Mapping, Optional, Tuple
 
-import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, Message, validate_messages
+from torchtune.data import truncate
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -54,12 +53,14 @@ class TextCompletionDataset(Dataset):
         prompt_tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
 
         # Labels are just input tokens offset by 1
-        input_tokens = prompt_tokens[:-1].copy()
+        tokens = prompt_tokens[:-1].copy()
         labels = prompt_tokens[1:].copy()
 
+        # Truncate if needed, but don't coerce EOS id
+        if self.max_seq_len is not None:
+            tokens = truncate(tokens, self.max_seq_len - 1)
+            labels = truncate(labels, self.max_seq_len - 1)
 
-        # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
-        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
         assert len(tokens) == len(labels)
 
         return tokens, labels
