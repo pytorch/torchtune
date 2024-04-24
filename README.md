@@ -89,37 +89,49 @@ This table captures the minimum memory requirements for our different recipes us
 torchtune supports fine-tuning for the Llama3 8B and 70B models. We currently support LoRA, QLoRA and Full-finetune on a single GPU as well as LoRA and Full fine-tune on multiple devices for the 8B model, and LoRA on multiple devices for the 70B model. For all the details, take a look at our [tutorial](https://pytorch.org/torchtune/stable/tutorials/llama3.html).
 
 
-In our initial experiments for Llama3-8B, QLoRA has a peak allocated memory of ``~9GB`` while LoRA on a single GPU has a peak allocated memory of ``~19GB``. To get started, you can use our default configs to kick off training.
+In our initial experiments for Llama3-8B, QLoRA has a peak allocated memory of ``~9GB`` while LoRA on a single GPU has a peak allocated memory of ``~19GB``. To get started, you can use our default configs to kick off training. 
 
-- 8B LoRA on a single GPU.
+### Single GPU
+
+Full 8B
+
+```bash
+tune run full_finetune_single_device --config llama3/8B_full_single_device
+```
+
+LoRA 8B
 
 ```bash
 tune run lora_finetune_single_device --config llama3/8B_lora_single_device
 ```
 
-- 8B QLoRA on a single GPU
+QLoRA 8B
 
 ```bash
 tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
 ```
 
-- 8B LoRA on 2 GPUs
+### Multi GPU
 
-```bash
-tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
-```
-
-- 8B Full fine-tune on 2 GPUs
+Full 8B
 
 ```bash
 tune run --nproc_per_node 2 full_finetune_distributed --config llama3/8B_full
 ```
 
-- 70B LoRA finetune on 8 GPUs
+LoRA 8B
+
+```bash
+tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
+```
+
+LoRA 70B
 
 ```bash
 tune run --nproc_per_node 8 lora_finetune_distributed --config recipes/configs/llama3/70B_lora.yaml
 ```
+
+Also See: [All llama3 recipes](recipes/configs/llama3)
 
 
 &nbsp;
