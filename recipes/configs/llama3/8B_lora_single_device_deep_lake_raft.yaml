@@ -28,16 +28,16 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: D:/Triton 500/ArtificialIntelligence/10 - ACTIVELOOP PROJECT FOLDER/9 - RAFT/torchtune/llama3/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-8B/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: D:/Triton 500/ArtificialIntelligence/10 - ACTIVELOOP PROJECT FOLDER/9 - RAFT/torchtune/llama3/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: D:/Triton 500/ArtificialIntelligence/10 - ACTIVELOOP PROJECT FOLDER/9 - RAFT/torchtune/llama3/
+  output_dir: /tmp/Meta-Llama-3-8B/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
@@ -68,7 +68,7 @@ gradient_accumulation_steps: 64
 compile: False
 
 # Logging
-output_dir: D:/Triton 500/ArtificialIntelligence/10 - ACTIVELOOP PROJECT FOLDER/9 - RAFT/torchtune/lora_finetune_output
+output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
