@@ -422,7 +422,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 running_loss += loss
                 loss.backward()
 
-                # Step with optimizer and log per-step metrics
+                # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
                         self._optimizer.step()
@@ -436,6 +436,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                         f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss_to_log}"
                     )
 
+                    # Log per-step metrics
                     if self.total_training_steps % self._log_every_n_steps == 0:
                         time_per_step = time.perf_counter() - t0
                         log_dict = {

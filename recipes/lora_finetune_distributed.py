@@ -554,7 +554,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 running_loss += loss
                 loss.backward()
 
-                # Step with optimizer and log per-step metrics
+                # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
@@ -569,6 +569,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         f"{curr_epoch+1}|{self.total_training_steps+1}|Loss: {loss_to_log}"
                     )
 
+                    # Log per-step metrics
                     if (
                         self.total_training_steps % self._log_every_n_steps == 0
                         and self._is_rank_zero
