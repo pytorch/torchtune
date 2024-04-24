@@ -50,16 +50,14 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
         prompt = sample[self._column]
-        prompt_tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
-
-        # Labels are just input tokens offset by 1
-        tokens = prompt_tokens[:-1].copy()
-        labels = prompt_tokens[1:].copy()
+        tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
 
         # Truncate if needed, but don't coerce EOS id
         if self.max_seq_len is not None:
             tokens = truncate(tokens, self.max_seq_len - 1)
-            labels = truncate(labels, self.max_seq_len - 1)
+
+        # No need to offset labels by 1 - happens in the recipe
+        labels = tokens.copy()
 
         assert len(tokens) == len(labels)
 
