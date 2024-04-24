@@ -42,21 +42,20 @@ class RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        theta = self.get_theta()
-        self.register_buffer("theta", theta, persistent=False)
-        self.build_rope_cache(self.max_seq_len)
+        self._rope_init()
 
     # We need to explicitly define reset_parameters for FSDP initialization, see
     # https://github.com/pytorch/pytorch/blob/797d4fbdf423dd9320ebe383fb57ffb1135c4a99/torch/distributed/fsdp/_init_utils.py#L885
     def reset_parameters(self):
-        self.theta.copy_(self.get_theta())
+        self._rope_init()
 
-    def get_theta(self):
+    def _rope_init(self):
         theta = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
         )
-        return theta
+        self.register_buffer("theta", theta, persistent=False)
+        self.build_rope_cache(self.max_seq_len)
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`

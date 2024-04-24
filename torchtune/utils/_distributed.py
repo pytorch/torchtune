@@ -8,11 +8,13 @@
 import logging
 import os
 from itertools import chain
-from typing import Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, Union
 
 import torch
 import torch.distributed as dist
+import torch.distributed._composable.fsdp
 from torch import nn
+from torch.distributed._tensor import distribute_tensor
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
@@ -297,3 +299,31 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         return isinstance(module, tuple(modules_to_wrap))
 
     return lora_wrap_fsdp
+
+
+def load_from_full_state_dict(
+    model: torch.distributed._composable.fsdp.FSDP,
+    full_sd: Dict[str, Any],
+    device: torch.device,
+    is_rank_zero: bool,
+):
+    meta_sharded_sd = model.state_dict()
+    sharded_sd = {}
+    for param_name, full_tensor in full_sd.items():
+        sharded_meta_param = meta_sharded_sd.get(param_name)
+        mesh = sharded_meta_param.device_mesh
+        if is_rank_zero:
+            full_tensor = full_tensor.detach().to(device)
+            torch.distributed.broadcast(full_tensor, src=0, group=mesh.get_group(0))
+        else:
+            full_tensor = torch.empty(
+                sharded_meta_param.size(),
+                device=device,
+                dtype=sharded_meta_param.dtype,
+            )
+            torch.distributed.broadcast(full_tensor, src=0, group=mesh.get_group(0))
+        sharded_tensor = distribute_tensor(
+            full_tensor, mesh, sharded_meta_param.placements
+        )
+        sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+    model.load_state_dict(sharded_sd, strict=False, assign=True)

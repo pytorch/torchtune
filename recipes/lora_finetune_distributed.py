@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import itertools
 import os
 import sys
 import time
@@ -18,16 +17,15 @@ from omegaconf import DictConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import FSDP, fully_shard
-from torch.distributed._tensor import distribute_tensor
+from torch.distributed._composable.fsdp import fully_shard
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
-    # validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -279,8 +277,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 f'FSDP needs device="cuda" but found device={self._device.type}'
             )
 
+        if self._is_rank_zero:
+            log.info("FSDP is enabled. Model init and checkpoint loading on Rank 0 ...")
+            init_start = time.perf_counter()
+
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+
+        # Note: this needs to be set before wrapping with FSDP
+        self.adapter_params = get_adapter_params(model)
+        set_trainable_params(model, self.adapter_params)
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
@@ -291,97 +297,35 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             if isinstance(m, modules.TransformerDecoderLayer):
                 fully_shard(m)
         fully_shard(model)
-        meta_sharded_sd = model.state_dict()
-        sharded_sd = {}
 
-        if self._is_rank_zero:
-
-            # The model contains LoRA params which won't have any matching keys in
-            # the state dict. As a result, we need to load with strict=False.
-            # Before loading the state dict, ensure the state dict keys for the base
-            # model and adapters (if available) match the keys in the full LoRA model
-            # This is a good sanity check to prevent silent errors
-            # validate_state_dict_for_lora(
-            #     lora_attn_modules=cfg_model.lora_attn_modules,
-            #     apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-            #     apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
-            #     full_model_state_dict_keys=model.state_dict().keys(),
-            #     lora_state_dict_keys=(
-            #         lora_weights_state_dict.keys()
-            #         if lora_weights_state_dict is not None
-            #         else None
-            #     ),
-            #     base_model_state_dict_keys=base_model_state_dict.keys(),
-            # )
-
-            # Load both the base model weights and (if available) the adapter weights. Both
-            # of this should happen only on Rank 0
-            log.info("FSDP is enabled. Loading checkpoints for Rank 0 ...")
-            init_start = time.perf_counter()
-            for param_name, full_param in base_model_state_dict.items():
-                sharded_meta_param = meta_sharded_sd.get(param_name)
-                full_param = full_param.detach().to(self._device)
-                mesh = sharded_meta_param.device_mesh
-                torch.distributed.broadcast(full_param, src=0, group=mesh.get_group(0))
-                sharded_tensor = distribute_tensor(
-                    full_param, mesh, sharded_meta_param.placements
-                )
-                sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-            log.info(
-                f"Loading checkpoints took {time.perf_counter() - init_start:.2f} secs"
+        utils.load_from_full_state_dict(
+            model, base_model_state_dict, self._device, self._is_rank_zero
+        )
+        if lora_weights_state_dict:
+            utils.load_from_full_state_dict(
+                model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
-            # TODO: lora_weights_state_dict
-            # if lora_weights_state_dict:
-            #     model.load_state_dict(lora_weights_state_dict, strict=False)
-        else:
-            for param_name, full_param in base_model_state_dict.items():
-                sharded_meta_param = meta_sharded_sd.get(param_name)
-                full_tensor = torch.empty(
-                    sharded_meta_param.size(),
-                    device=self._device,
-                    dtype=sharded_meta_param.dtype,
-                )
-                mesh = sharded_meta_param.device_mesh
-                torch.distributed.broadcast(full_tensor, src=0, group=mesh.get_group(0))
-                sharded_tensor = distribute_tensor(
-                    full_tensor, mesh, sharded_meta_param.placements
-                )
-                sharded_sd[param_name] = nn.Parameter(sharded_tensor)
 
-        model.load_state_dict(sharded_sd, strict=False, assign=True)
+        with utils.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                if isinstance(m, LoRALinear):
+                    m.initialize_parameters()
+                if isinstance(m, modules.RotaryPositionalEmbeddings):
+                    m.reset_parameters()
 
-        # LoRALinear are sitll on meta if lora_weights_state_dict = False
-        # RotaryPositionalEmbeddings.theta is buffer and does not exists in checkpoints
-        for m in model.modules():
-            if isinstance(m, FSDP):
-                continue
-            param_is_meta = [
-                x.is_meta
-                for x in itertools.chain(
-                    m.parameters(recurse=False), m.buffers(recurse=False)
-                )
-            ]
-            if len(param_is_meta) > 0 and all(param_is_meta):
-                m.to_empty(device=self._device)
-                if not hasattr(m, "reset_parameters"):
-                    raise ValueError(f"Need to implement reset_parameters in {m}")
-                m.reset_parameters()
-
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
+        model = model.to(self._dtype)
 
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
 
-        # Note: this needs to be set before wrapping with FSDP
-        self.adapter_params = get_adapter_params(model)
-        set_trainable_params(model, self.adapter_params)
-
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
         if self._is_rank_zero:
+            log.info(
+                f"Model init and checkpoint loading took {time.perf_counter() - init_start:.2f} secs"
+            )
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
