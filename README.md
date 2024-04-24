@@ -129,6 +129,13 @@ tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
 
 LoRA 70B
 
+Note that the download command for the Meta-Llama3 70B model slightly differs from download commands for the 8B models. This is because we use the HuggingFace [safetensor](https://huggingface.co/docs/safetensors/en/index) model format to load the model. To download the 70B model, run
+```bash
+tune download meta-llama/Meta-Llama-3-70b --hf-token <> --output-dir /tmp/Meta-Llama-3-70b --ignore-patterns "original/consolidated*"
+```
+
+Then, a finetune can be kicked off:
+
 ```bash
 tune run --nproc_per_node 8 lora_finetune_distributed --config recipes/configs/llama3/70B_lora.yaml
 ```
