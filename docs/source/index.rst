@@ -100,6 +100,7 @@ torchtune tutorials.
    tutorials/qlora_finetune
    tutorials/e2e_flow
    tutorials/datasets
+   tutorials/chat
 
 .. toctree::
    :glob:
