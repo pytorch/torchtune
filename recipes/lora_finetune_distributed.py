@@ -120,7 +120,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = cfg.log_peak_memory_stats if cfg.log_peak_memory_stats else False
+        self._log_peak_memory_stats = (
+            cfg.log_peak_memory_stats if cfg.log_peak_memory_stats else False
+        )
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
