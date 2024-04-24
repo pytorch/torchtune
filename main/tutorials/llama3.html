@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Llama3 in torchtune &mdash; TorchTune main documentation</title>
+  <title>Meta Llama3 in torchtune &mdash; TorchTune main documentation</title>
   
 
   
@@ -267,7 +267,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Llama3 in torchtune</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Meta Llama3 in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
@@ -329,7 +329,7 @@
       </li>
 
         
-      <li>Llama3 in torchtune</li>
+      <li>Meta Llama3 in torchtune</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -365,8 +365,8 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="llama3-in-torchtune">
-<span id="llama3-label"></span><h1>Llama3 in torchtune<a class="headerlink" href="#llama3-in-torchtune" title="Permalink to this heading">¶</a></h1>
+  <section id="meta-llama3-in-torchtune">
+<span id="llama3-label"></span><h1>Meta Llama3 in torchtune<a class="headerlink" href="#meta-llama3-in-torchtune" title="Permalink to this heading">¶</a></h1>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -375,9 +375,9 @@
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> You will learn how to:</div>
 <ul class="simple">
-<li><p class="sd-card-text">Download the Llama3-8B weights and tokenizer</p></li>
-<li><p class="sd-card-text">Fine-tune Llama3-8B with LoRA and QLoRA</p></li>
-<li><p class="sd-card-text">Evaluate your fine-tuned Llama3-8B model</p></li>
+<li><p class="sd-card-text">Download the Llama3-8B-Instruct weights and tokenizer</p></li>
+<li><p class="sd-card-text">Fine-tune Llama3-8B-Instruct with LoRA and QLoRA</p></li>
+<li><p class="sd-card-text">Evaluate your fine-tuned Llama3-8B-Instruct model</p></li>
 <li><p class="sd-card-text">Generate text with your fine-tuned model</p></li>
 <li><p class="sd-card-text">Quantize your model to speed up generation</p></li>
 </ul>
@@ -400,8 +400,9 @@
 </div>
 <section id="llama3-8b">
 <h2>Llama3-8B<a class="headerlink" href="#llama3-8b" title="Permalink to this heading">¶</a></h2>
-<p><a class="reference external" href="https://llama.meta.com/llama3">Llama3-8B</a> is a new model released by Meta AI that improves upon the performance of the Llama2 family
+<p><a class="reference external" href="https://llama.meta.com/llama3">Meta Llama 3</a> is a new family of models released by Meta AI that improves upon the performance of the Llama2 family
 of models across a <a class="reference external" href="https://huggingface.co/meta-llama/Meta-Llama-3-8B#base-pretrained-models">range of different benchmarks</a>.
+Currently there are two different sizes of Meta Llama 3: 8B and 70B. In this tutorial we will focus on the 8B size model.
 There are a few main changes between Llama2-7B and Llama3-8B models:</p>
 <ul class="simple">
 <li><p>Llama3-8B uses <a class="reference external" href="https://arxiv.org/abs/2305.13245">grouped-query attention</a> instead of the standard multi-head attention from Llama2-7B</p></li>
@@ -414,12 +415,12 @@ There are a few main changes between Llama2-7B and Llama3-8B models:</p>
 <div class="line"><br /></div>
 </div>
 </section>
-<section id="getting-access-to-llama3-8b">
-<h2>Getting access to Llama3-8B<a class="headerlink" href="#getting-access-to-llama3-8b" title="Permalink to this heading">¶</a></h2>
-<p>First, let’s download the model from Hugging Face. You will need to follow the instructions
+<section id="getting-access-to-llama3-8b-instruct">
+<h2>Getting access to Llama3-8B-Instruct<a class="headerlink" href="#getting-access-to-llama3-8b-instruct" title="Permalink to this heading">¶</a></h2>
+<p>For this tutorial, we will be using the instruction-tuned version of Llama3-8B. First, let’s download the model from Hugging Face. You will need to follow the instructions
 on the <a class="reference external" href="https://github.com/meta-llama/llama3/blob/main/README.md">official Meta page</a> to gain access to the model.
 Next, make sure you grab your Hugging Face token from <a class="reference external" href="https://huggingface.co/settings/tokens">here</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B<span class="w"> </span><span class="se">\</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--output-dir<span class="w"> </span>&lt;checkpoint_dir&gt;<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>--hf-token<span class="w"> </span>&lt;ACCESS<span class="w"> </span>TOKEN&gt;
 </pre></div>
@@ -428,12 +429,12 @@ Next, make sure you grab your Hugging Face token from <a class="reference extern
 <div class="line"><br /></div>
 </div>
 </section>
-<section id="fine-tuning-llama3-8b-in-torchtune">
-<h2>Fine-tuning Llama3-8B in torchtune<a class="headerlink" href="#fine-tuning-llama3-8b-in-torchtune" title="Permalink to this heading">¶</a></h2>
+<section id="fine-tuning-llama3-8b-instruct-in-torchtune">
+<h2>Fine-tuning Llama3-8B-Instruct in torchtune<a class="headerlink" href="#fine-tuning-llama3-8b-instruct-in-torchtune" title="Permalink to this heading">¶</a></h2>
 <p>torchtune provides <a class="reference external" href="https://arxiv.org/abs/2106.09685">LoRA</a>, <a class="reference external" href="https://arxiv.org/abs/2305.14314">QLoRA</a>, and full fine-tuning
 recipes for fine-tuning Llama3-8B on one or more GPUs. For more on LoRA in torchtune, see our <a class="reference internal" href="lora_finetune.html#lora-finetune-label"><span class="std std-ref">LoRA Tutorial</span></a>.
 For more on QLoRA in torchtune, see our <a class="reference internal" href="qlora_finetune.html#qlora-finetune-label"><span class="std std-ref">QLoRA Tutorial</span></a>.</p>
-<p>Let’s take a look at how we can fine-tune Llama3-8B with LoRA on a single device using torchtune. In this example, we will fine-tune
+<p>Let’s take a look at how we can fine-tune Llama3-8B-Instruct with LoRA on a single device using torchtune. In this example, we will fine-tune
 for one epoch on a common instruct dataset for illustrative purposes. The basic command for a single-device LoRA fine-tune is</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora_single_device
 </pre></div>
@@ -449,7 +450,7 @@ for one epoch on a common instruct dataset for illustrative purposes. The basic 
 <span class="w">    </span>checkpointer.output_dir<span class="o">=</span>&lt;checkpoint_dir&gt;
 </pre></div>
 </div>
-<p>This will load the Llama3-8B checkpoint and tokenizer from <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code> used in the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span></code> command above,
+<p>This will load the Llama3-8B-Instruct checkpoint and tokenizer from <code class="docutils literal notranslate"><span class="pre">&lt;checkpoint_dir&gt;</span></code> used in the <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">download</span></code> command above,
 then save a final checkpoint in the same directory following the original format. For more details on the
 checkpoint formats supported in torchtune, see our <a class="reference internal" href="../deep_dives/checkpointer.html#understand-checkpointer"><span class="std std-ref">checkpointing deep-dive</span></a>.</p>
 <div class="admonition note">
@@ -484,7 +485,7 @@ Try it out!</p>
 </section>
 <section id="evaluating-fine-tuned-llama3-8b-models-with-eleutherai-s-eval-harness">
 <h2>Evaluating fine-tuned Llama3-8B models with EleutherAI’s Eval Harness<a class="headerlink" href="#evaluating-fine-tuned-llama3-8b-models-with-eleutherai-s-eval-harness" title="Permalink to this heading">¶</a></h2>
-<p>Now that we’ve fine-tuned Llama3-8B, what’s next? Let’s take our LoRA-finetuned model from the
+<p>Now that we’ve fine-tuned our model, what’s next? Let’s take our LoRA-finetuned model from the
 preceding section and look at a couple different ways we can evaluate its performance on the tasks we care about.</p>
 <p>First, torchtune provides an integration with
 <a class="reference external" href="https://github.com/EleutherAI/lm-evaluation-harness">EleutherAI’s evaluation harness</a>
@@ -538,8 +539,8 @@ file to our fine-tuned checkpoint files.</p>
 <div class="line"><br /></div>
 </div>
 </section>
-<section id="generating-text-with-our-fine-tuned-llama3-8b-model">
-<h2>Generating text with our fine-tuned Llama3-8B model<a class="headerlink" href="#generating-text-with-our-fine-tuned-llama3-8b-model" title="Permalink to this heading">¶</a></h2>
+<section id="generating-text-with-our-fine-tuned-llama3-model">
+<h2>Generating text with our fine-tuned Llama3 model<a class="headerlink" href="#generating-text-with-our-fine-tuned-llama3-model" title="Permalink to this heading">¶</a></h2>
 <p>Next, let’s look at one other way we can evaluate our model: generating text! torchtune provides a
 <a class="reference external" href="https://github.com/pytorch/torchtune/blob/main/recipes/generate.py">recipe for generation</a> as well.</p>
 <p>Similar to what we did, let’s copy and modify the default generation config.</p>
@@ -624,7 +625,7 @@ Let’s copy the quantization config and point it at our fine-tuned model.</p>
 
 <span class="o">[</span>quantize.py:90<span class="o">]</span><span class="w"> </span>Time<span class="w"> </span><span class="k">for</span><span class="w"> </span>quantization:<span class="w"> </span><span class="m">2</span>.93<span class="w"> </span>sec
 <span class="o">[</span>quantize.py:91<span class="o">]</span><span class="w"> </span>Memory<span class="w"> </span>used:<span class="w"> </span><span class="m">23</span>.13<span class="w"> </span>GB
-<span class="o">[</span>quantize.py:104<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">4</span>.92<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>/tmp/Llama-3-8B-hf/consolidated-4w.pt
+<span class="o">[</span>quantize.py:104<span class="o">]</span><span class="w"> </span>Model<span class="w"> </span>checkpoint<span class="w"> </span>of<span class="w"> </span>size<span class="w"> </span><span class="m">4</span>.92<span class="w"> </span>GB<span class="w"> </span>saved<span class="w"> </span>to<span class="w"> </span>/tmp/Llama-3-8B-Instruct-hf/consolidated-4w.pt
 </pre></div>
 </div>
 <p>We can see that the model is now under 5 GB, or just over four bits for each of the 8B parameters.</p>
@@ -676,7 +677,7 @@ Time<span class="w"> </span><span class="k">for</span><span class="w"> </span>in
 </pre></div>
 </div>
 <p>By quantizing the model and running <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> we get over a 3x speedup!</p>
-<p>This is just the beginning of what you can do with Llama3-8B using torchtune and the broader ecosystem.
+<p>This is just the beginning of what you can do with Meta Llama3 using torchtune and the broader ecosystem.
 We look forward to seeing what you build!</p>
 </section>
 </section>
@@ -724,12 +725,12 @@ We look forward to seeing what you build!</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Llama3 in torchtune</a><ul>
+<li><a class="reference internal" href="#">Meta Llama3 in torchtune</a><ul>
 <li><a class="reference internal" href="#llama3-8b">Llama3-8B</a></li>
-<li><a class="reference internal" href="#getting-access-to-llama3-8b">Getting access to Llama3-8B</a></li>
-<li><a class="reference internal" href="#fine-tuning-llama3-8b-in-torchtune">Fine-tuning Llama3-8B in torchtune</a></li>
+<li><a class="reference internal" href="#getting-access-to-llama3-8b-instruct">Getting access to Llama3-8B-Instruct</a></li>
+<li><a class="reference internal" href="#fine-tuning-llama3-8b-instruct-in-torchtune">Fine-tuning Llama3-8B-Instruct in torchtune</a></li>
 <li><a class="reference internal" href="#evaluating-fine-tuned-llama3-8b-models-with-eleutherai-s-eval-harness">Evaluating fine-tuned Llama3-8B models with EleutherAI’s Eval Harness</a></li>
-<li><a class="reference internal" href="#generating-text-with-our-fine-tuned-llama3-8b-model">Generating text with our fine-tuned Llama3-8B model</a></li>
+<li><a class="reference internal" href="#generating-text-with-our-fine-tuned-llama3-model">Generating text with our fine-tuned Llama3 model</a></li>
 <li><a class="reference internal" href="#faster-generation-via-quantization">Faster generation via quantization</a></li>
 </ul>
 </li>
