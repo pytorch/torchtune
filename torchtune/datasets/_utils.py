@@ -2,8 +2,6 @@ import os
 from torch.utils.data import Dataset
 from torchtune import utils
 import deeplake
-from dotenv import load_dotenv
-load_dotenv()
 log = utils.get_logger("DEBUG")
 
 
