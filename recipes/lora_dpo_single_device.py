@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-
+import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
@@ -86,12 +86,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = (
-            cfg.log_peak_memory_stats
-            if hasattr(cfg, "log_peak_memory_stats")
-            else False
-        )
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -515,6 +511,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
                     # Log per-step metrics
                     if self.total_training_steps % self._log_every_n_steps == 0:
+                        time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],

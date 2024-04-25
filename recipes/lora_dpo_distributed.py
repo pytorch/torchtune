@@ -121,12 +121,8 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = (
-            cfg.log_peak_memory_stats
-            if hasattr(cfg, "log_peak_memory_stats")
-            else False
-        )
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
@@ -663,6 +659,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                         self.total_training_steps % self._log_every_n_steps == 0
                         and self._is_rank_zero
                     ):
+                        time_per_step = time.perf_counter() - t0
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],

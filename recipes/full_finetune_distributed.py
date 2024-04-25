@@ -106,12 +106,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_stats = (
-            cfg.log_peak_memory_stats
-            if hasattr(cfg, "log_peak_memory_stats")
-            else False
-        )
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
