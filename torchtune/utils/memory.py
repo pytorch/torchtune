@@ -32,7 +32,7 @@ def set_activation_checkpointing(
         model (nn.Module): Model to setup activation checkpointing.
         auto_wrap_policy (ACWrapPolicyType): Policy to wrap module.
             This can either be a set of ``nn.Module`` types, in which case, modules of the specified type(s)
-            will be wrapped individually with activation checkpointing or a ``callable`` policy describing
+            will be wrapped individually with activation checkpointing, or a ``callable`` policy describing
             how to wrap the model with activation checkpointing. For more information on authoring custom
             policies, please see this tutorial:
             https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy.

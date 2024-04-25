@@ -15,7 +15,13 @@ from torchtune.utils import set_activation_checkpointing
 class TestSetActivationCheckpointing:
     @pytest.fixture
     def model(self) -> int:
-        return nn.Sequential(nn.Linear(10, 10), nn.Linear(10, 10), nn.Linear(10, 10))
+        return nn.Sequential(
+            nn.Linear(10, 10),
+            nn.Linear(10, 10),
+            nn.Linear(10, 10),
+            nn.ReLU(),
+            nn.Dropout(0.5),
+        )
 
     def _verify(self, model):
         for submodule in model.modules():
