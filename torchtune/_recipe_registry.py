@@ -76,7 +76,7 @@ _ALL_RECIPES = [
             ),
             Config(
                 name="code_llama2/7B_qlora_single_device",
-                file_path="llama2/7B_qlora_single_device.yaml",
+                file_path="code_llama2/7B_qlora_single_device.yaml",
             ),
             Config(
                 name="llama3/8B_lora_single_device",

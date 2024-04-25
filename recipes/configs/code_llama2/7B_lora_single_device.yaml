@@ -1,9 +1,9 @@
 # Config for single device full finetuning in full_finetune_single_device.py
-# using a Llama2 7B model
+# using a Code-Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#     tune download codellama/CodeLlama-7b-Instruct-hf --output-dir /tmp/CodeLlama-7b-Instruct-hf
+#     tune download codellama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
@@ -53,7 +53,6 @@ checkpointer:
   recipe_checkpoint: null
   output_dir: /tmp/CodeLlama-7b-hf
   model_type: LLAMA2
-resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
