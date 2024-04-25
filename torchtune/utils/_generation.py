@@ -95,7 +95,6 @@ def generate(
         ValueError: if max_seq_len supported by the model is smaller than the number of tokens
             requested
     """
-
     prompt_length = prompt.size(0)
 
     if model.max_seq_len < (prompt_length + max_generated_tokens) - 1:
@@ -135,12 +134,11 @@ def generate(
             top_k=top_k,
         ).clone()
 
-        generated_tokens.append(token)
-
-        if stop_tokens is not None and token in stop_tokens:
+        if stop_tokens is not None and token.item() in stop_tokens:
             break
+
+        generated_tokens.append(token)
 
         # update the position before we generate the next token
         input_pos += 1
-
     return torch.cat(generated_tokens).tolist()
