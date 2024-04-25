@@ -16,9 +16,11 @@ from ._compile_utils import wrap_compile
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
+    get_full_finetune_fsdp_wrap_policy,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
+    llama3_full_fsdp_wrap_policy,
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
@@ -69,6 +71,8 @@ __all__ = [
     "is_distributed",
     "list_dtypes",
     "lora_fsdp_wrap_policy",
+    "llama3_full_fsdp_wrap_policy",
+    "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
     "set_activation_checkpointing",

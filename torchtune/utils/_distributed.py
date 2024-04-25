@@ -14,6 +14,7 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import ShardingStrategy
+from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
@@ -212,3 +213,46 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         return isinstance(module, tuple(modules_to_wrap))
 
     return lora_wrap_fsdp
+
+
+def get_full_finetune_fsdp_wrap_policy(
+    model_type, modules_to_wrap: Set[Type]
+) -> FSDPPolicyType:
+    """
+    DOC
+    """
+    # TODO: don't know why model_type == ModelType.LLAMA3 does not work
+    if str(model_type) == "LLAMA3":
+        return llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
+    else:
+        return ModuleWrapPolicy(modules_to_wrap)
+
+
+def llama3_full_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for wrapping Llama-3 style models for full finetuning using FSDP. Specifically,
+    this will wrap the model's token embedding and output projection into their own FSDP units to
+    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that the
+    input model has an attribute ``output`` that is a nn.Linear which is the model's output projection.
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+    modules_to_wrap.add(torch.nn.Embedding)
+
+    def llama3_wrap(module: nn.Module, recurse: bool, **kwargs):
+        # Label that output_proj should be wrapped individually.
+        if isinstance(module, modules.TransformerDecoder):
+            module.output._wrap = True
+        if recurse:
+            return True
+
+        # Wrap output_proj individually.
+        if getattr(module, "_wrap", False):
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return llama3_wrap
