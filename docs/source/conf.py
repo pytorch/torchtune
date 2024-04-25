@@ -90,7 +90,7 @@ project = "TorchTune"
 # By default, set to "main".
 # If it's a tag like refs/tags/v1.2.3-rc4 or refs/tags/v1.2.3, then
 # cut to 1.2
-# the version varible is used in layout.html: https://github.com/pytorch/executorch/blob/main/docs/source/_templates/layout.html#L29
+# the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
 version = release = "main"
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
