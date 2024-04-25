@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from typing import Optional
+
 import torch
 from torch import Tensor
 
 
 def pool_sequence_logits(
-    tokens: Tensor, logits: Tensor, padding_token_idx: int = None
+    tokens: Tensor, logits: Tensor, padding_token_idx: Optional[int] = None
 ) -> Tensor:
     """Pool sequence logits by selecting the predicted logits for the last non-padding token
     for each sequence in the batch.
@@ -18,7 +20,7 @@ def pool_sequence_logits(
     Args:
         tokens (Tensor): input tensor with shape [b x s]
         logits (Tensor): predicted logits for input tokens with shape [b x s x n]
-        padding_token_idx (int): Padding token id used in the tokenizer.
+        padding_token_idx (Optional[int]): Padding token id used in the tokenizer.
     Returns:
         Tensor: Pooled logits with shape [b x n]
     Notation used for tensor shapes:
@@ -30,7 +32,8 @@ def pool_sequence_logits(
     """
     batch_size = tokens.shape[0]
 
-    # padding token needs to be defined to pool multiple sequences
+    # padding token needs to be defined to pool multiple sequences. drawn from:
+    # https://github.com/huggingface/transformers/blob/928331381ef6ce0622c0b1ac704299046b3afa21/src/transformers/models/mistral/modeling_mistral.py#L1339
     if padding_token_idx is None and batch_size != 1:
         raise ValueError("padding_token_idx must be set if batch_size > 1")
     if padding_token_idx is None:

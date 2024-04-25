@@ -111,7 +111,7 @@ Please see `lora_mistral_7b` for full API arguments.
 
 def mistral_classifier_7b() -> TransformerDecoder:
     """
-    Builder for creating a Mistral 7B lassifier model initialized w/ the default 7b
+    Builder for creating a Mistral 7B classifier model initialized w/ the default 7b
     parameter values from:
     https://huggingface.co/Ray2333/reward-model-Mistral-7B-instruct-Unified-Feedback
 
