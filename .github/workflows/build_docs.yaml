@@ -45,7 +45,7 @@ jobs:
           python -m pip install -r requirements.txt
       - name: Build docs
         env:
-            TORCHTUNE_VERSION_DOCS: {{ github.ref }}
+            TORCHTUNE_VERSION_DOCS: ${{ github.ref }}
         run: |
           cd docs
           make html

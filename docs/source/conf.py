@@ -95,7 +95,10 @@ version = release = "main"
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
         version = ".".join(
-            torchtune_version_docs.split("/")[-1].split("-")[0].lstrip("v").split(".")[:2]
+            torchtune_version_docs.split("/")[-1]
+            .split("-")[0]
+            .lstrip("v")
+            .split(".")[:2]
         )
     elif torchtune_version_docs.startswith("refs/heads/release/"):
         version = torchtune_version_docs.split("/")[-1]
