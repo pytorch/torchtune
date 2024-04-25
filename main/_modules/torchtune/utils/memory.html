@@ -370,7 +370,7 @@
 <span class="kn">import</span> <span class="nn">gc</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
@@ -383,19 +383,27 @@
 
 <span class="n">_log</span><span class="p">:</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span> <span class="o">=</span> <span class="n">get_logger</span><span class="p">()</span>
 
+<span class="n">ACWrapPolicyType</span><span class="p">:</span> <span class="n">Type</span> <span class="o">=</span> <span class="n">Union</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">],</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span>
+
 
 <div class="viewcode-block" id="set_activation_checkpointing"><a class="viewcode-back" href="../../../generated/torchtune.utils.set_activation_checkpointing.html#torchtune.utils.set_activation_checkpointing">[docs]</a><span class="k">def</span> <span class="nf">set_activation_checkpointing</span><span class="p">(</span>
-    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">auto_wrap_policy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Set</span><span class="p">[</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">auto_wrap_policy</span><span class="p">:</span> <span class="n">ACWrapPolicyType</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility to setup activation checkpointing and wrap the model for checkpointing.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Utility to apply activation checkpointing to the passed in model.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        model (nn.Module): Model to setup activation checkpointing.</span>
-<span class="sd">        auto_wrap_policy (Optional[Set[nn.Module]]): Policy to wrap module.</span>
-<span class="sd">        **kwargs: additional arguments to pass to torch.distributed activation checkpointing.</span>
+<span class="sd">        auto_wrap_policy (ACWrapPolicyType): Policy to wrap module.</span>
+<span class="sd">            This can either be a set of ``nn.Module`` types, in which case, modules of the specified type(s)</span>
+<span class="sd">            will be wrapped individually with activation checkpointing, or a ``callable`` policy describing</span>
+<span class="sd">            how to wrap the model with activation checkpointing. For more information on authoring custom</span>
+<span class="sd">            policies, please see this tutorial:</span>
+<span class="sd">            https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy.</span>
+<span class="sd">        **kwargs: additional arguments to pass to ``torch.distributed`` activation checkpointing.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">wrap_policy</span> <span class="o">=</span> <span class="n">ModuleWrapPolicy</span><span class="p">(</span><span class="n">auto_wrap_policy</span> <span class="ow">or</span> <span class="nb">set</span><span class="p">())</span>
-    <span class="n">apply_activation_checkpointing</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">auto_wrap_policy</span><span class="o">=</span><span class="n">wrap_policy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">auto_wrap_policy</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+        <span class="n">auto_wrap_policy</span> <span class="o">=</span> <span class="n">ModuleWrapPolicy</span><span class="p">(</span><span class="n">auto_wrap_policy</span><span class="p">)</span>
+    <span class="n">apply_activation_checkpointing</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">auto_wrap_policy</span><span class="o">=</span><span class="n">auto_wrap_policy</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">cleanup_before_training</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
