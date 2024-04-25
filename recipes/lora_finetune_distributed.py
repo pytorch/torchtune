@@ -121,7 +121,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_peak_memory_every_n_steps = cfg.log_peak_memory_every_n_steps
 
         # training attributes
         self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
@@ -136,6 +136,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+
+        self._enable_clip_grad_norm = cfg.clip_grad_norm.enable
+        self._max_norm = cfg.clip_grad_norm.max_norm
+        self._norm_type = cfg.clip_grad_norm.norm_type
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -538,6 +542,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 loss.backward()
 
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    if self._enable_clip_grad_norm:
+                        torch.nn.utils.clip_grad_norm_(
+                            self._model.parameters(),
+                            max_norm=self._max_norm,
+                            norm_type=self._norm_type,
+                            foreach=True,
+                        )
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
                     self._lr_scheduler.step()

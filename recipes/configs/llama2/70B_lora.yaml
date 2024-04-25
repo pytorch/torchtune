@@ -63,6 +63,10 @@ optimizer:
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
+clip_grad_norm:
+  enable: False
+  max_norm: 1000.0
+  norm_type: 2
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
@@ -78,6 +82,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: null
+log_peak_memory_every_n_steps: 100
 
 # Environment
 device: cuda
