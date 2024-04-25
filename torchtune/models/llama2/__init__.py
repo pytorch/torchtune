@@ -7,23 +7,15 @@
 from ._component_builders import llama2, lora_llama2
 
 from ._model_builders import (  # noqa
-    code_llama2_13b,
-    code_llama2_70b,
-    code_llama2_7b,
     llama2_13b,
     llama2_70b,
     llama2_7b,
     llama2_tokenizer,
-    lora_code_llama2_13b,
-    lora_code_llama2_70b,
-    lora_code_llama2_7b,
     lora_llama2_13b,
     lora_llama2_70b,
     lora_llama2_7b,
-    qlora_code_llama2_13b,
-    qlora_code_llama2_70b,
-    qlora_code_llama2_7b,
     qlora_llama2_13b,
+    qlora_llama2_70b,
     qlora_llama2_7b,
 )
 from ._model_utils import scale_hidden_dim_for_mlp
