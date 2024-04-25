@@ -423,17 +423,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
 
-        sharded_sd = self._model.state_dict()
-        cpu_state_dict = {}
-        for param_name, sharded_param in sharded_sd.items():
-            full_param = sharded_param.full_tensor()
-            if self._is_rank_zero:
-                cpu_state_dict[param_name] = full_param.cpu()
-            else:
-                del full_param
+        cpu_state_dict = utils.get_full_model_state_dict(
+            self._model, self._is_rank_zero
+        )
 
-        # TODO: implement optim state dict
-        opt_state_dict = None
+        if intermediate_checkpoint:
+            opt_state_dict = utils.get_full_optimizer_state_dict(
+                self._optimizer, self._is_rank_zero
+            )
+        else:
+            opt_state_dict = None
 
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
