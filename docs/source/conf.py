@@ -88,7 +88,8 @@ project = "TorchTune"
 
 # The code below will cut version displayed in the dropdown like this:
 # By default, set to "main".
-# If it's a tag like refs/tags/v1.2.3-rc4 or refs/tags/v1.2.3, then
+# If it's a tag like refs/tags/v1.2.3-rc4 or refs/tags/v1.2.3, or a
+#  refs/heads/release/1.2 then
 # cut to 1.2
 # the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
 version = release = "main"
