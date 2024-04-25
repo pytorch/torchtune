@@ -114,7 +114,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._log_peak_memory_stats = True
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -261,7 +261,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model,
+                auto_wrap_policy={modules.TransformerDecoderLayer},
+                # auto_wrap_policy=utils.get_ac_policy(
+                #     model_type=self._checkpointer._model_type,
+                #     modules_to_wrap={modules.TransformerDecoderLayer},
+                # ),
             )
 
         base_missing, base_unexpected = model.load_state_dict(
@@ -291,6 +296,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         log.info(f"Model is initialized with precision {self._dtype}.")
+        print(f"RV created model {model}")
         # Compile model, if enabled.
         if compile_model:
             log.info("Compiling model with torch.compile...")

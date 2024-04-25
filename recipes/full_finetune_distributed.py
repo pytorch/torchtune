@@ -107,7 +107,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._log_peak_memory_stats = True
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -291,10 +291,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # across all available GPUs.
         model = FSDP(
             module=model,
-            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
-                model_type=self._checkpointer._model_type,
-                modules_to_wrap={modules.TransformerDecoderLayer},
-            ),
+            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
+            # auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
+            #     model_type=self._checkpointer._model_type,
+            #     modules_to_wrap={modules.TransformerDecoderLayer},
+            # ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -318,15 +319,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
                 model,
-                auto_wrap_policy=utils.get_ac_policy(
-                    model_type=self._checkpointer._model_type,
-                    modules_to_wrap={modules.TransformerDecoderLayer},
-                ),
+                auto_wrap_policy={modules.TransformerDecoderLayer},
+                # auto_wrap_policy=utils.get_ac_policy(
+                #     model_type=self._checkpointer._model_type,
+                #     modules_to_wrap={modules.TransformerDecoderLayer},
+                # ),
             )
 
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
+            print(f"RV --- fully wrapped model: {model}")
 
         # synchronize before training begins
         torch.distributed.barrier()

@@ -6,6 +6,7 @@
 
 import gc
 import logging
+from functools import partial
 
 from typing import Any, Callable, Dict, Set, Type, Union
 
@@ -15,7 +16,9 @@ from torch import nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
 )
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torchtune import modules
 from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
@@ -41,16 +44,33 @@ def get_ac_policy(model_type, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
     else:
         return ModuleWrapPolicy(modules_to_wrap)
 
+
+def _maybe_fsdp_unwrap(module: nn.Module) -> nn.Module:
+    """
+    Unwrap a module if it is wrapped by FSDP.
+
+    Args:
+        module (nn.Module): Module to unwrap.
+
+    Returns:
+        nn.Module: Unwrapped module.
+    """
+    if isinstance(module, FSDP):
+        return module.module
+    return module
+
+
 def _llama3_ac_policy(module: nn.Module, recurse: bool, modules_to_wrap, **kwargs):
     # Label that output_proj should be wrapped individually.
     if isinstance(module, modules.TransformerDecoder):
-        targ = module.output.module
-        assert isinstance(targ, torch.nn.Linear)
+        targ = _maybe_fsdp_unwrap(module.output)
         targ._ac_wrap = True
     if recurse:
         return True
 
-    # Wrap output_proj individually.
+    # Wrap output_proj individually. Manual check for module not being FSDP,
+    # since when attributes are accessed on FSDP module, FSDP forwards the attribute
+    # access, and we don't want
     if getattr(module, "_ac_wrap", False) and not isinstance(module, FSDP):
         return True
 
