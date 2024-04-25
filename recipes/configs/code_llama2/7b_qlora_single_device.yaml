@@ -21,7 +21,7 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.lora_code_llama2.qlora_code_llama2_7b
+  _component_: torchtune.models.code_llama2.qlora_code_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
