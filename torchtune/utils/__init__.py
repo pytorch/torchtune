@@ -47,6 +47,7 @@ from .memory import (  # noqa
     OptimizerInBackwardWrapper,
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
+    get_ac_policy,
 )
 from .precision import (
     get_dtype,
@@ -71,6 +72,7 @@ __all__ = [
     "is_distributed",
     "list_dtypes",
     "lora_fsdp_wrap_policy",
+    "get_ac_policy",
     "llama3_full_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",

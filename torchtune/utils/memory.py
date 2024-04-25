@@ -23,6 +23,40 @@ _log: logging.Logger = get_logger()
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
 
 
+def get_ac_policy(model_type, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
+    """
+    Get the activation checkpointing policy for the model.
+
+    Args:
+        model_type (str): Model type.
+        modules_to_wrap (Set[Type]): Set of module types to wrap.
+
+    Returns:
+        ACWrapPolicyType: Policy to wrap module.
+    """
+    if str(model_type) == "LLAMA3":
+        # ensure torch.nn.Embedding activations are checkpointed.
+        modules_to_wrap.add(torch.nn.Embedding)
+        return partial(_llama3_ac_policy, modules_to_wrap=modules_to_wrap)
+    else:
+        return ModuleWrapPolicy(modules_to_wrap)
+
+def _llama3_ac_policy(module: nn.Module, recurse: bool, modules_to_wrap, **kwargs):
+    # Label that output_proj should be wrapped individually.
+    if isinstance(module, modules.TransformerDecoder):
+        targ = module.output.module
+        assert isinstance(targ, torch.nn.Linear)
+        targ._ac_wrap = True
+    if recurse:
+        return True
+
+    # Wrap output_proj individually.
+    if getattr(module, "_ac_wrap", False) and not isinstance(module, FSDP):
+        return True
+
+    return isinstance(module, tuple(modules_to_wrap))
+
+
 def set_activation_checkpointing(
     model: nn.Module, auto_wrap_policy: ACWrapPolicyType, **kwargs
 ) -> None:

@@ -197,9 +197,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=ckpt_dict[utils.OPT_KEY]
-            if self._resume_from_checkpoint
-            else None,
+            opt_state_dict=(
+                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
+            ),
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -291,7 +291,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # across all available GPUs.
         model = FSDP(
             module=model,
-            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
+            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
+                model_type=self._checkpointer._model_type,
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -300,11 +303,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                lambda module: (
+                    module.to_empty(device=torch.device("cuda"), recurse=False)
+                    if not self._is_rank_zero
+                    else None
                 )
-                if not self._is_rank_zero
-                else None
             ),
         )
 
@@ -314,7 +317,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model,
+                auto_wrap_policy=utils.get_ac_policy(
+                    model_type=self._checkpointer._model_type,
+                    modules_to_wrap={modules.TransformerDecoderLayer},
+                ),
             )
 
         if self._is_rank_zero:
