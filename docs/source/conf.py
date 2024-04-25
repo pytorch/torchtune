@@ -78,11 +78,40 @@ templates_path = ["_templates"]
 #
 source_suffix = [".rst"]
 
+# Get TORCHTUNE_VERSION_DOCS during the build.
+torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
+
+# The code below will cut version displayed in the dropdown like this:
+# tags like v0.1.0 and v0.1.0-rc3 = > 0.1
+# main will remain main
+# the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
+project = "TorchTune"
+if torchtune_version_docs:
+    if torchtune_version_docs.startswith("refs/tags/v"):
+        version = ".".join(
+            torchtune_version_docs.split("/")[-1]
+            .split("-")[0]
+            .lstrip("v")
+            .split(".")[:2]
+        )
+        print(f"Version: {version}")
+        release = version
+        html_title = " ".join((project, version, "documentation"))
+    elif torchtune_version_docs.startswith("refs/heads/"):
+        version = torchtune_version_docs.split("/")[-1]
+        print(f"Version: {version}")
+        release = version
+        html_title = " ".join((project, version, "documentation"))
+# IF TORCHTUNE_VERSION_DOCS not set, set version to main.
+else:
+    version = "main"
+    release = "main"
+    html_title = " ".join((project, version, "documentation"))
+
 # The master toctree document.
 master_doc = "index"
 
 # General information about the project.
-project = "TorchTune"
 copyright = "2023-present, TorchTune Contributors"
 author = "Torch Contributors"
 

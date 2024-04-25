@@ -11,7 +11,7 @@ All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-8B --hf-token <ACCESS_TOKEN>
+    tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <ACCESS_TOKEN>
 
 
 .. autosummary::
