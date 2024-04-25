@@ -60,7 +60,7 @@ to the package *without* installing via ``git clone``, you can install with the 
 
 .. code-block:: bash
 
-    pip install --pre torchtune --index-url https://download.pytorch.org/whl/nightly/cpu --no-cache-dir
+    pip install --pre torchtune --extra-index-url https://download.pytorch.org/whl/nightly/cpu --no-cache-dir
 
 .. note::
 
