@@ -47,6 +47,7 @@ dev = [
     "pytest-integration",
     "tensorboard",
     "wandb",
+    "deeplake",
 ]
 
 [tool.setuptools.dynamic]
