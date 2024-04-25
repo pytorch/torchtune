@@ -1,37 +1,37 @@
 =================================
-Fine-tuning LLaMA3 with Chat Data
+Fine-tuning Llama3 with Chat Data
 =================================
 
-LLaMA3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
+Llama3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we'll cover what you need to know to get you quickly started on preparing your own
-custom chat dataset for fine-tuning LLaMA3.
+custom chat dataset for fine-tuning Llama3.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` You will learn:
 
-      * How the LLaMA3 format differs from LLaMA2
+      * How the Llama3 format differs from Llama2
       * All about prompt templates and special tokens
-      * How to use your own chat dataset to fine-tune LLaMA3
+      * How to use your own chat dataset to fine-tune Llama3
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
       * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
-      * Know how to :ref:`download LLaMA3 weights <llama3_label>`
+      * Know how to :ref:`download Llama3 weights <llama3_label>`
 
 
-Template changes from LLaMA2 to LLaMA3
+Template changes from Llama2 to Llama3
 --------------------------------------
 
-The LLaMA2 chat model requires a specific template when prompting the pre-trained
+The Llama2 chat model requires a specific template when prompting the pre-trained
 model. Since the chat model was pretrained with this prompt template, if you want to run
 inference on the model, you'll need to use the same template for optimal performance
 on chat data. Otherwise, the model will just perform standard text completion, which
 may or may not align with your intended use case.
 
-From the `official LLaMA2 prompt
+From the `official Llama2 prompt
 template guide <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2>`_
-for the LLaMA2 chat model, we can see that special tags are added:
+for the Llama2 chat model, we can see that special tags are added:
 
 .. code-block:: text
 
@@ -41,9 +41,9 @@ for the LLaMA2 chat model, we can see that special tags are added:
 
     Hi! I am a human. [/INST] Hello there! Nice to meet you! I'm Meta AI, your friendly AI assistant </s>
 
-LLaMA3 `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
-the template from LLaMA2 to better support multiturn conversations. The same text
-in the LLaMA3 format would look like this:
+Llama3 `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
+the template from Llama2 to better support multiturn conversations. The same text
+in the Llama3 format would look like this:
 
 .. code-block:: text
 
@@ -56,8 +56,8 @@ in the LLaMA3 format would look like this:
     Hello there! Nice to meet you! I'm Meta AI, your friendly AI assistant<|eot_id|>
 
 The tags are entirely different, and they are actually encoded differently than in
-LLaMA2. Let's walk through tokenizing an example with the LLaMA2 template and the
-LLaMA3 template to understand how.
+Llama2. Let's walk through tokenizing an example with the Llama2 template and the
+Llama3 template to understand how.
 
 
 Tokenizing prompt templates & special tokens
@@ -108,12 +108,12 @@ which simply structures a prompt with flavor text to indicate a certain task.
     #     ),
     # ]
 
-There are also special tokens used by LLaMA2, which are not in the prompt template.
+There are also special tokens used by Llama2, which are not in the prompt template.
 If you look at our :class:`~torchtune.data.Llama2ChatFormat` class, you'll notice that
 we don't include the :code:`<s>` and :code:`</s>` tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let's tokenize this example with the
-:class:`~torchtune.modules.tokenizers.SentencePieceTokenizer` used by LLaMA2 to see
+:class:`~torchtune.modules.tokenizers.SentencePieceTokenizer` used by Llama2 to see
 why.
 
 .. code-block:: python
@@ -161,8 +161,8 @@ token.
     print(tokenizer.encode("<s>", add_bos=False, add_eos=False))
     # [529, 29879, 29958]
 
-Now let's take a look at LLaMA3's formatting to see how it's tokenized differently
-than LLaMA2.
+Now let's take a look at Llama3's formatting to see how it's tokenized differently
+than Llama2.
 
 .. code-block:: python
 
@@ -179,7 +179,7 @@ than LLaMA2.
     # artists of all time: 2Pac, Rakim, N.W.A., Run-D.M.C., and Nas.<|eot_id|>'
 
 .. note::
-    We used the ``tokenize_messages`` API for LLaMA3, which is different than
+    We used the ``tokenize_messages`` API for Llama3, which is different than
     encode. It simply manages adding all the special tokens in the correct
     places after encoding the individual messages.
 
@@ -216,7 +216,7 @@ This would wrap around the user message, with the assistant message untouched.
 
     f"Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
-You can fine-tune LLaMA2 with this template even though the model was originally pre-trained
+You can fine-tune Llama2 with this template even though the model was originally pre-trained
 with the :class:`~torchtune.data.Llama2ChatFormat`, as long as this is what the model
 sees during inference. The model should be robust enough to adapt to a new template.
 
@@ -224,13 +224,13 @@ sees during inference. The model should be robust enough to adapt to a new templ
 Fine-tuning on a custom chat dataset
 ------------------------------------
 
-Let's test our understanding by trying to fine-tune the LLaMA3-8B instruct model with a custom
+Let's test our understanding by trying to fine-tune the Llama3-8B instruct model with a custom
 chat dataset. We'll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.
 
 Let's say we have a local dataset saved as a CSV file that contains questions
 and answers from an online forum. How can we get something like this into a format
-LLaMA3 understands and tokenizes correctly?
+Llama3 understands and tokenizes correctly?
 
 .. code-block:: python
 
@@ -245,7 +245,7 @@ LLaMA3 understands and tokenizes correctly?
     #     "The first thing to know is the communication is one-way...",
     # ]
 
-The LLaMA3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenTokenizer`,
+The Llama3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenTokenizer`,
 expects the input to be in the :class:`~torchtune.data.Message` format. Let's
 quickly write a function that can parse a single row from our csv file into
 the Message dataclass.
@@ -271,7 +271,7 @@ the Message dataclass.
 
         return messages
 
-Since we're fine-tuning LLaMA3, the tokenizer will handle formatting the prompt for
+Since we're fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
 Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceTokenizer`,
 we would need to use a chat format like :class:`~torchtune.data.MistralChatFormat` to format
