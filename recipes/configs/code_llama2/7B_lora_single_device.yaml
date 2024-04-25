@@ -87,3 +87,8 @@ metric_logger:
   log_dir: ${output_dir}/torchtune_perf_tracing.json
 output_dir: /tmp/lora_code_llama2_finetune_output
 log_every_n_steps: null
+
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
+  output_dir: ${output_dir}/torchtune_perf_tracing.json
