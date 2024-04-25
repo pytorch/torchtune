@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
+import time
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
@@ -112,8 +113,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -420,6 +421,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
             )
 
+        # Initialize tokens count and running loss (for grad accumulation)
+        t0 = time.perf_counter()
+        running_loss = 0
+        num_tokens = 0
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
@@ -428,7 +434,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
             # Optionally profile the training loop
             with self._profiler:
-                for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+                pbar = tqdm(total=self._steps_per_epoch)
+                for idx, batch in enumerate(self._dataloader):
                     if (
                         self.max_steps_per_epoch is not None
                         and (idx // self._gradient_accumulation_steps)
@@ -441,6 +448,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     input_ids, labels = batch
                     input_ids = input_ids.to(self._device)
+                    num_tokens += input_ids.numel()
                     labels = labels.to(self._device)
 
                     logits = self._model(input_ids)
@@ -450,38 +458,49 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     logits = logits.transpose(1, 2)
                     # Compute loss
                     loss = self._loss_fn(logits, labels)
-
-                    if self.total_training_steps % self._log_every_n_steps == 0:
-                        pbar.set_description(
-                            f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}"
-                        )
-                        self._metric_logger.log_dict(
-                            {
-                                "loss": loss.item(),
-                                "lr": self._optimizer.param_groups[0]["lr"],
-                                "gpu_resources": torch.cuda.memory_allocated(),
-                            },
-                            step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                        )
                     loss = loss / self._gradient_accumulation_steps
+                    running_loss += loss
                     loss.backward()
+
+                    # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
                         self._optimizer.step()
                         self._optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
                         # Update the number of steps when the weights are updated
                         self.total_training_steps += 1
-                    # Log peak memory for iteration
-                    if (
-                        self.total_training_steps % self._log_peak_memory_every_n_steps
-                        == 0
-                        and self._device.type == "cuda"
-                    ):
-                        # Log peak memory for iteration
-                        memory_stats = utils.get_memory_stats(device=self._device)
-                        self._metric_logger.log_dict(
-                            memory_stats, step=self.total_training_steps
+
+                        loss_to_log = running_loss.item()
+                        pbar.update(1)
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
                         )
+
+                        # Log per-step metrics
+                        if self.total_training_steps % self._log_every_n_steps == 0:
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "tokens_per_second": num_tokens / time_per_step,
+                            }
+                            if (
+                                self._device.type == "cuda"
+                                and self._log_peak_memory_stats
+                            ):
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.total_training_steps,
+                            )
+
+                        # Reset running stats for the next step
+                        running_loss = 0
+                        num_tokens = 0
+                        t0 = time.perf_counter()
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
