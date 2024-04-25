@@ -6,19 +6,19 @@
 
 from typing import Dict, List, Optional, Tuple
 
-from torch.utils.data import Dataset, Sampler
+from torch.utils.data import Dataset
 from tqdm import tqdm
 
 
 class PackedDataset(Dataset):
     """
-    Performs greedy sample packing on a provided dataset with provided sampler.
-    This is done as a single preprocessing step before training begins.
+    Performs greedy sample packing on a provided dataset. This is done as a single
+    preprocessing step before training begins. Shuffling is done outside of this
+    class on packed samples as part of the dataloader.
 
     The class loads, tokenizes, and packs examples on initialization - no tokenization is done during training.
 
-    The general flow on initialization is:
-    optionally shuffle sample -> load sample -> tokenize and add to buffer ->
+    The general flow on initialization is: load tokenized sample -> add to buffer ->
         when buffer is long enough, add to self.samples.
 
     During training, returns self.samples[idx] as input and label.
@@ -26,7 +26,6 @@ class PackedDataset(Dataset):
     Args:
         ds (Dataset): dataset to sample pack. This should return a tuple of tokenized
             inputs and labels.
-        sampler (Sampler): sampler that will choose samples from the dataset in a given order
         max_seq_len (int): Maximum number of tokens to pack
         max_rows (Optional[int]): maximum number of samples to pack. Default is None, which will pack as many samples as possible.
     """
@@ -34,12 +33,10 @@ class PackedDataset(Dataset):
     def __init__(
         self,
         ds: Dataset,
-        sampler: Sampler,
         max_seq_len: int,
         max_rows: Optional[int] = None,
     ) -> None:
         self.ds = ds
-        self.sampler = sampler
         self.max_seq_len = max_seq_len
         self.max_rows = max_rows
         # where final samples will be held
@@ -48,21 +45,19 @@ class PackedDataset(Dataset):
 
     def _pack(self) -> None:
         """
-        Iterate through the dataset using the sampler. Use a buffer to hold
-        samples until max_seq_len, then append the buffer to self.samples as
-        a single "packed" sample. Continue until max_rows or end of dataset.
+        Iterate through the dataset. Use a buffer to hold samples until max_seq_len,
+        then append the buffer to self.samples as a single "packed" sample. Continue
+        until max_rows or end of dataset.
         """
         # buffer to hold samples until they are long enough to be added to self.samples
         buffer = {
             "input_ids": [],
             "labels": [],
         }
-        n_total = self.max_rows or len(self.ds)
 
-        for _ in tqdm(range(n_total), desc="Packing dataset", dynamic_ncols=True):
-            input_ids, labels = next(self.sampler)
-            buffer["input_ids"].append(input_ids)
-            buffer["labels"].append(labels)
+        for input_ids, labels in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
+            buffer["input_ids"].extend(input_ids)
+            buffer["labels"].extend(labels)
 
             # If buffer has reached max_seq_len, append packed sample
             while len(buffer["input_ids"]) > self.max_seq_len:
@@ -71,7 +66,7 @@ class PackedDataset(Dataset):
                 )
                 buffer = {k: v[self.max_seq_len :] for k, v in buffer.items()}
                 assert len(buffer["input_ids"]) == len(buffer["labels"])
-                if len(self.samples) >= self.max_rows:
+                if self.max_rows is not None and len(self.samples) >= self.max_rows:
                     break
 
     def __len__(self):
