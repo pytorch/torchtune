@@ -67,7 +67,7 @@ def generate(
     max_generated_tokens: int,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    eos_id: Optional[int] = None,
+    stop_tokens: Optional[List[int]] = None,
     custom_generate_next_token: Optional[Callable] = None,
 ) -> torch.Tensor:
     """
@@ -82,8 +82,8 @@ def generate(
         temperature (float): value to scale the predicted logits by. Default is 1.0
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within
             the top_k probabilities. Default is None
-        eos_id (Optional[int]): If specified, generation is stopped when the eos token is
-            generated. Default is None
+        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these
+            tokens are generated. Default: None
         custom_generate_next_token (Optional[Callable]): If specified, we'll use the custom
             generate_next_token function (e.g. compiled function) when generating the tokens,
             otherwise we'll use the default `geenrate_next_token` function. Default is None
@@ -137,7 +137,7 @@ def generate(
 
         generated_tokens.append(token)
 
-        if eos_id is not None and token == eos_id:
+        if stop_tokens is not None and token in stop_tokens:
             break
 
         # update the position before we generate the next token

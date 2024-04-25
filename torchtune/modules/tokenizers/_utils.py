@@ -15,6 +15,7 @@ class Tokenizer(Protocol):
     bos_id: int
     eos_id: int
     pad_id: int
+    stop_tokens: List[int]  # Tokens indicating that generation should stop
 
     def encode(self, text: str, **kwargs) -> List[int]:
         """
