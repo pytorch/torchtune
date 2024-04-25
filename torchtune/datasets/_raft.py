@@ -2,7 +2,7 @@ from torchtune.data import RAFTInstructTemplate
 from torchtune.datasets._instruct_raft import InstructDatasetDeepLakeRAFT
 from torchtune.modules.tokenizers import Tokenizer
 
-activeloop_dataset = "hub://{YOUR_ACTIVELOOP_ORG}/{YOUR_DATASET_NAME}"
+activeloop_dataset = "hub://manufe/raft_format_dataset_biomedical"  # Replace with your ActiveLoop dataset
 
 
 def raft_dataset(
