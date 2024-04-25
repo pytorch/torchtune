@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Fine-tuning LLaMA3 with Chat Data &mdash; TorchTune main documentation</title>
+  <title>Fine-tuning Llama3 with Chat Data &mdash; TorchTune main documentation</title>
   
 
   
@@ -272,7 +272,7 @@
 <li class="toctree-l1"><a class="reference internal" href="qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-tuning LLaMA3 with Chat Data</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -329,7 +329,7 @@
       </li>
 
         
-      <li>Fine-tuning LLaMA3 with Chat Data</li>
+      <li>Fine-tuning Llama3 with Chat Data</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -366,10 +366,10 @@
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
   <section id="fine-tuning-llama3-with-chat-data">
-<h1>Fine-tuning LLaMA3 with Chat Data<a class="headerlink" href="#fine-tuning-llama3-with-chat-data" title="Permalink to this heading">¶</a></h1>
-<p>LLaMA3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
+<h1>Fine-tuning Llama3 with Chat Data<a class="headerlink" href="#fine-tuning-llama3-with-chat-data" title="Permalink to this heading">¶</a></h1>
+<p>Llama3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we’ll cover what you need to know to get you quickly started on preparing your own
-custom chat dataset for fine-tuning LLaMA3.</p>
+custom chat dataset for fine-tuning Llama3.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -378,9 +378,9 @@ custom chat dataset for fine-tuning LLaMA3.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M7.693 1.066a.75.75 0 01.614 0l7.25 3.25a.75.75 0 010 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 01.133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.75.75 0 01-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 01-.75.75h-3a.75.75 0 01-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 010-1.368l7.25-3.25zM2.583 5L8 7.428 13.416 5 8 2.572 2.583 5zM2.5 11.25c0-.388.125-.611.25-.735a.704.704 0 01.5-.203c.19 0 .37.071.5.203.125.124.25.347.25.735v2.25H2.5v-2.25z"></path></svg> You will learn:</div>
 <ul class="simple">
-<li><p class="sd-card-text">How the LLaMA3 format differs from LLaMA2</p></li>
+<li><p class="sd-card-text">How the Llama3 format differs from Llama2</p></li>
 <li><p class="sd-card-text">All about prompt templates and special tokens</p></li>
-<li><p class="sd-card-text">How to use your own chat dataset to fine-tune LLaMA3</p></li>
+<li><p class="sd-card-text">How to use your own chat dataset to fine-tune Llama3</p></li>
 </ul>
 </div>
 </div>
@@ -392,7 +392,7 @@ custom chat dataset for fine-tuning LLaMA3.</p>
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" d="M2 4a1 1 0 100-2 1 1 0 000 2zm3.75-1.5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zm0 5a.75.75 0 000 1.5h8.5a.75.75 0 000-1.5h-8.5zM3 8a1 1 0 11-2 0 1 1 0 012 0zm-1 6a1 1 0 100-2 1 1 0 000 2z"></path></svg> Prerequisites</div>
 <ul class="simple">
 <li><p class="sd-card-text">Be familiar with <a class="reference internal" href="datasets.html#dataset-tutorial-label"><span class="std std-ref">configuring datasets</span></a></p></li>
-<li><p class="sd-card-text">Know how to <a class="reference internal" href="llama3.html#llama3-label"><span class="std std-ref">download LLaMA3 weights</span></a></p></li>
+<li><p class="sd-card-text">Know how to <a class="reference internal" href="llama3.html#llama3-label"><span class="std std-ref">download Llama3 weights</span></a></p></li>
 </ul>
 </div>
 </div>
@@ -400,15 +400,15 @@ custom chat dataset for fine-tuning LLaMA3.</p>
 </div>
 </div>
 <section id="template-changes-from-llama2-to-llama3">
-<h2>Template changes from LLaMA2 to LLaMA3<a class="headerlink" href="#template-changes-from-llama2-to-llama3" title="Permalink to this heading">¶</a></h2>
-<p>The LLaMA2 chat model requires a specific template when prompting the pre-trained
+<h2>Template changes from Llama2 to Llama3<a class="headerlink" href="#template-changes-from-llama2-to-llama3" title="Permalink to this heading">¶</a></h2>
+<p>The Llama2 chat model requires a specific template when prompting the pre-trained
 model. Since the chat model was pretrained with this prompt template, if you want to run
 inference on the model, you’ll need to use the same template for optimal performance
 on chat data. Otherwise, the model will just perform standard text completion, which
 may or may not align with your intended use case.</p>
-<p>From the <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2">official LLaMA2 prompt
+<p>From the <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2">official Llama2 prompt
 template guide</a>
-for the LLaMA2 chat model, we can see that special tags are added:</p>
+for the Llama2 chat model, we can see that special tags are added:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;s&gt;[INST] &lt;&lt;SYS&gt;&gt;
 You are a helpful, respectful, and honest assistant.
 &lt;&lt;/SYS&gt;&gt;
@@ -416,9 +416,9 @@ You are a helpful, respectful, and honest assistant.
 Hi! I am a human. [/INST] Hello there! Nice to meet you! I&#39;m Meta AI, your friendly AI assistant &lt;/s&gt;
 </pre></div>
 </div>
-<p>LLaMA3 <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">overhauled</a>
-the template from LLaMA2 to better support multiturn conversations. The same text
-in the LLaMA3 format would look like this:</p>
+<p>Llama3 <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">overhauled</a>
+the template from Llama2 to better support multiturn conversations. The same text
+in the Llama3 format would look like this:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;system&lt;|end_header_id|&gt;
 
 You are a helpful, respectful, and honest assistant.&lt;|eot_id|&gt;&lt;|start_header_id|&gt;user&lt;|end_header_id|&gt;
@@ -429,8 +429,8 @@ Hello there! Nice to meet you! I&#39;m Meta AI, your friendly AI assistant&lt;|e
 </pre></div>
 </div>
 <p>The tags are entirely different, and they are actually encoded differently than in
-LLaMA2. Let’s walk through tokenizing an example with the LLaMA2 template and the
-LLaMA3 template to understand how.</p>
+Llama2. Let’s walk through tokenizing an example with the Llama2 template and the
+Llama3 template to understand how.</p>
 </section>
 <section id="tokenizing-prompt-templates-special-tokens">
 <h2>Tokenizing prompt templates &amp; special tokens<a class="headerlink" href="#tokenizing-prompt-templates-special-tokens" title="Permalink to this heading">¶</a></h2>
@@ -475,12 +475,12 @@ which simply structures a prompt with flavor text to indicate a certain task.</p
 <span class="c1"># ]</span>
 </pre></div>
 </div>
-<p>There are also special tokens used by LLaMA2, which are not in the prompt template.
+<p>There are also special tokens used by Llama2, which are not in the prompt template.
 If you look at our <a class="reference internal" href="../generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a> class, you’ll notice that
 we don’t include the <code class="code docutils literal notranslate"><span class="pre">&lt;s&gt;</span></code> and <code class="code docutils literal notranslate"><span class="pre">&lt;/s&gt;</span></code> tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let’s tokenize this example with the
-<a class="reference internal" href="../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentencePieceTokenizer</span></code></a> used by LLaMA2 to see
+<a class="reference internal" href="../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentencePieceTokenizer</span></code></a> used by Llama2 to see
 why.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">SentencePieceTokenizer</span>
 
@@ -520,8 +520,8 @@ token.</p>
 <span class="c1"># [529, 29879, 29958]</span>
 </pre></div>
 </div>
-<p>Now let’s take a look at LLaMA3’s formatting to see how it’s tokenized differently
-than LLaMA2.</p>
+<p>Now let’s take a look at Llama3’s formatting to see how it’s tokenized differently
+than Llama2.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">TikTokenTokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">TikTokenTokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B/original/tokenizer.model&quot;</span><span class="p">)</span>
@@ -537,7 +537,7 @@ than LLaMA2.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>We used the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> API for LLaMA3, which is different than
+<p>We used the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> API for Llama3, which is different than
 encode. It simply manages adding all the special tokens in the correct
 places after encoding the individual messages.</p>
 </div>
@@ -567,18 +567,18 @@ This would wrap around the user message, with the assistant message untouched.</
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="sa">f</span><span class="s2">&quot;Summarize this dialogue:</span><span class="se">\n</span><span class="si">{</span><span class="n">dialogue</span><span class="si">}</span><span class="se">\n</span><span class="s2">---</span><span class="se">\n</span><span class="s2">Summary:</span><span class="se">\n</span><span class="s2">&quot;</span>
 </pre></div>
 </div>
-<p>You can fine-tune LLaMA2 with this template even though the model was originally pre-trained
+<p>You can fine-tune Llama2 with this template even though the model was originally pre-trained
 with the <a class="reference internal" href="../generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat" title="torchtune.data.Llama2ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">Llama2ChatFormat</span></code></a>, as long as this is what the model
 sees during inference. The model should be robust enough to adapt to a new template.</p>
 </section>
 <section id="fine-tuning-on-a-custom-chat-dataset">
 <h2>Fine-tuning on a custom chat dataset<a class="headerlink" href="#fine-tuning-on-a-custom-chat-dataset" title="Permalink to this heading">¶</a></h2>
-<p>Let’s test our understanding by trying to fine-tune the LLaMA3-8B instruct model with a custom
+<p>Let’s test our understanding by trying to fine-tune the Llama3-8B instruct model with a custom
 chat dataset. We’ll walk through how to set up our data so that it can be tokenized
 correctly and fed into our model.</p>
 <p>Let’s say we have a local dataset saved as a CSV file that contains questions
 and answers from an online forum. How can we get something like this into a format
-LLaMA3 understands and tokenizes correctly?</p>
+Llama3 understands and tokenizes correctly?</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
 
 <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="s1">&#39;your_file.csv&#39;</span><span class="p">,</span> <span class="n">nrows</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -591,7 +591,7 @@ LLaMA3 understands and tokenizes correctly?</p>
 <span class="c1"># ]</span>
 </pre></div>
 </div>
-<p>The LLaMA3 tokenizer class, <a class="reference internal" href="../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TikTokenTokenizer</span></code></a>,
+<p>The Llama3 tokenizer class, <a class="reference internal" href="../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TikTokenTokenizer</span></code></a>,
 expects the input to be in the <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> format. Let’s
 quickly write a function that can parse a single row from our csv file into
 the Message dataclass.</p>
@@ -615,7 +615,7 @@ the Message dataclass.</p>
     <span class="k">return</span> <span class="n">messages</span>
 </pre></div>
 </div>
-<p>Since we’re fine-tuning LLaMA3, the tokenizer will handle formatting the prompt for
+<p>Since we’re fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
 Mistral-7B model which uses the <a class="reference internal" href="../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer" title="torchtune.modules.tokenizers.SentencePieceTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SentencePieceTokenizer</span></code></a>,
 we would need to use a chat format like <a class="reference internal" href="../generated/torchtune.data.MistralChatFormat.html#torchtune.data.MistralChatFormat" title="torchtune.data.MistralChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">MistralChatFormat</span></code></a> to format
@@ -709,8 +709,8 @@ config and update it to use your new dataset.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">Fine-tuning LLaMA3 with Chat Data</a><ul>
-<li><a class="reference internal" href="#template-changes-from-llama2-to-llama3">Template changes from LLaMA2 to LLaMA3</a></li>
+<li><a class="reference internal" href="#">Fine-tuning Llama3 with Chat Data</a><ul>
+<li><a class="reference internal" href="#template-changes-from-llama2-to-llama3">Template changes from Llama2 to Llama3</a></li>
 <li><a class="reference internal" href="#tokenizing-prompt-templates-special-tokens">Tokenizing prompt templates &amp; special tokens</a></li>
 <li><a class="reference internal" href="#when-should-i-use-a-prompt-template">When should I use a prompt template?</a></li>
 <li><a class="reference internal" href="#fine-tuning-on-a-custom-chat-dataset">Fine-tuning on a custom chat dataset</a></li>

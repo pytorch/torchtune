@@ -269,7 +269,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning LLaMA3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -406,7 +406,7 @@
 <div class="viewcode-block" id="Llama2ChatFormat"><a class="viewcode-back" href="../../../generated/torchtune.data.Llama2ChatFormat.html#torchtune.data.Llama2ChatFormat">[docs]</a><span class="k">class</span> <span class="nc">Llama2ChatFormat</span><span class="p">(</span><span class="n">ChatFormat</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Chat format that formats human and system prompts with appropriate tags</span>
-<span class="sd">    used in LLaMA2 pre-training. Taken from Meta&#39;s official `LLaMA inference</span>
+<span class="sd">    used in Llama2 pre-training. Taken from Meta&#39;s official `Llama inference</span>
 <span class="sd">    repository &lt;https://github.com/meta-llama/llama/blob/main/llama/generation.py&gt;`_.</span>
 
 <span class="sd">    Example:</span>
@@ -450,7 +450,7 @@
             <span class="k">if</span> <span class="n">message</span><span class="o">.</span><span class="n">role</span> <span class="o">==</span> <span class="s2">&quot;system&quot;</span><span class="p">:</span>
                 <span class="n">content</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">system</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">content</span><span class="o">=</span><span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">)</span>
                 <span class="n">system_message</span> <span class="o">=</span> <span class="n">content</span>
-                <span class="c1"># Incorporate the system message in the user message - LLaMA2 only</span>
+                <span class="c1"># Incorporate the system message in the user message - Llama2 only</span>
                 <span class="c1"># looks for the &lt;&lt;SYS&gt;&gt; tags and not the explicit role so this will</span>
                 <span class="c1"># be treated the same as an actual system message. We do this because</span>
                 <span class="c1"># of the nesting of the system prompt in the user message.</span>

@@ -272,7 +272,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning LLaMA3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -400,7 +400,7 @@ turns does not fit within <code class="docutils literal notranslate"><span class
 and converts to a list of <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> that follows the Llama format with the expected keys</p></li>
 <li><p><strong>chat_format</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><em>ChatFormat</em></a><em>]</em>) – template used to format the chat. This is used to add structured text around the actual
 messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not
-as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, <code class="docutils literal notranslate"><span class="pre">chat_format</span></code> is not needed,
+as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, <code class="docutils literal notranslate"><span class="pre">chat_format</span></code> is not needed,
 unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
 template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them. For a list of all possible
 chat formats, check out <a class="reference internal" href="../api_ref_data.html#chat-formats"><span class="std std-ref">Chat formats</span></a>. Default: None.</p></li>

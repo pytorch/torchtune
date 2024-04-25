@@ -269,7 +269,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning LLaMA3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
@@ -416,7 +416,7 @@
 <span class="sd">            and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys</span>
 <span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual</span>
 <span class="sd">            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
-<span class="sd">            as special tokens. In models like LLaMA3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
+<span class="sd">            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
 <span class="sd">            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the</span>
 <span class="sd">            template do not match the column/key names in the dataset, use ``column_map`` to map them. For a list of all possible</span>
 <span class="sd">            chat formats, check out :ref:`chat_formats`. Default: None.</span>
