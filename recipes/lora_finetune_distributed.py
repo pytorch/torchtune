@@ -18,7 +18,9 @@ from omegaconf import DictConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._tensor import DTensor
 from torch.optim import Optimizer
+from torch.optim.optimizer import _foreach_supported_types
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft import LoRALinear
@@ -28,6 +30,10 @@ from torchtune.modules.peft.peft_utils import (
     set_trainable_params,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+
+# use foreach on CUDA
+if DTensor not in _foreach_supported_types:
+    _foreach_supported_types.append(DTensor)
 
 from tqdm import tqdm
 
