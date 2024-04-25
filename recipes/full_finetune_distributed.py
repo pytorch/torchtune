@@ -106,8 +106,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -439,6 +439,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # zero out the gradients before starting training
         self._optimizer.zero_grad()
 
+        # Initialize tokens count and running loss (for grad accumulation)
+        t0 = time.perf_counter()
+        running_loss = 0
+        num_tokens = 0
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -446,9 +451,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            for idx, batch in enumerate(
-                pbar := tqdm(self._dataloader, disable=not (rank == 0))
-            ):
+            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+            for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -458,6 +462,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
+                num_tokens += input_ids.numel()
                 labels = labels.to(self._device)
 
                 logits = self._model(input_ids)
@@ -468,26 +473,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
 
-                # Note: We're always logging the loss before normalizing it
-                # Check if this is the norm or not
-                if (
-                    self.total_training_steps % self._log_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "gpu_mem_alloc": torch.cuda.memory_allocated() / 1e9,
-                            "gpu_mem_reserved": torch.cuda.memory_reserved() / 1e9,
-                        },
-                        step=self.total_training_steps,
-                    )
-
                 loss = loss / self._gradient_accumulation_steps
+                running_loss += loss
                 loss.backward()
 
+                # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
@@ -495,16 +485,34 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
 
-                # Log peak memory for iteration
-                if (
-                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._is_rank_zero
-                ):
-                    # Log peak memory for iteration
-                    memory_stats = utils.get_memory_stats(device=self._device)
-                    self._metric_logger.log_dict(
-                        memory_stats, step=self.total_training_steps
+                    loss_to_log = running_loss.item()
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
                     )
+
+                    # Log per-step metrics
+                    if (
+                        self.total_training_steps % self._log_every_n_steps == 0
+                        and self._is_rank_zero
+                    ):
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
+                            "lr": self._optimizer.param_groups[0]["lr"],
+                            "tokens_per_second": num_tokens / time_per_step,
+                        }
+                        if self._log_peak_memory_stats:
+                            log_dict.update(utils.get_memory_stats(device=self._device))
+                        self._metric_logger.log_dict(
+                            log_dict,
+                            step=self.total_training_steps,
+                        )
+
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
