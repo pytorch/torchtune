@@ -6,7 +6,7 @@
 &nbsp;
 &nbsp;
 
-torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-8B with LoRA, QLoRA and Full fine-tune in the [Llama3](#llama3) section! We also support 70B fine-tuning with LoRA! 🚀 🦙
+torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-8B-Instruct with LoRA, QLoRA and Full fine-tune in the [Llama3](#llama3) section! We also support 70B fine-tuning with LoRA! 🚀 🦙
 
 # torchtune
 
@@ -86,40 +86,61 @@ This table captures the minimum memory requirements for our different recipes us
 
 ## Llama3
 
-torchtune supports fine-tuning for the Llama3 8B and 70B models. We currently support LoRA, QLoRA and Full-finetune on a single GPU as well as LoRA and Full fine-tune on multiple devices for the 8B model, and LoRA on multiple devices for the 70B model. For all the details, take a look at our [tutorial](https://pytorch.org/torchtune/stable/tutorials/llama3.html).
+torchtune supports fine-tuning for the Llama3 8B and 70B size models. We currently support LoRA, QLoRA and full fine-tune on a single GPU as well as LoRA and full fine-tune on multiple devices for the 8B model, and LoRA on multiple devices for the 70B model. For all the details, take a look at our [tutorial](https://pytorch.org/torchtune/stable/tutorials/llama3.html).
 
+**Note**: our Llama3 LoRA and QLoRA configs default to the instruct fine-tuned models.
+This is because not all special token embeddings are initialized in the base 8B and 70B models.
 
 In our initial experiments for Llama3-8B, QLoRA has a peak allocated memory of ``~9GB`` while LoRA on a single GPU has a peak allocated memory of ``~19GB``. To get started, you can use our default configs to kick off training.
 
-- 8B LoRA on a single GPU.
+### Single GPU
+
+LoRA 8B
 
 ```bash
 tune run lora_finetune_single_device --config llama3/8B_lora_single_device
 ```
 
-- 8B QLoRA on a single GPU
+QLoRA 8B
 
 ```bash
 tune run lora_finetune_single_device --config llama3/8B_qlora_single_device
 ```
 
-- 8B LoRA on 2 GPUs
+Full 8B
 
 ```bash
-tune run --nproc_per_node 4 lora_finetune_distributed --config llama3/8B_lora
+tune run full_finetune_single_device --config llama3/8B_full_single_device
 ```
 
-- 8B Full fine-tune on 2 GPUs
+### Multi GPU
+
+Full 8B
 
 ```bash
-tune run --nproc_per_node 2 full_finetune_distributed --config llama3/8B_full
+tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full
 ```
 
-- 70B LoRA finetune on 8 GPUs
+LoRA 8B
+
+```bash
+tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
+```
+
+LoRA 70B
+
+Note that the download command for the Meta-Llama3 70B model slightly differs from download commands for the 8B models. This is because we use the HuggingFace [safetensor](https://huggingface.co/docs/safetensors/en/index) model format to load the model. To download the 70B model, run
+```bash
+tune download meta-llama/Meta-Llama-3-70b --hf-token <> --output-dir /tmp/Meta-Llama-3-70b --ignore-patterns "original/consolidated*"
+```
+
+Then, a finetune can be kicked off:
 
 ```bash
 tune run --nproc_per_node 8 lora_finetune_distributed --config recipes/configs/llama3/70B_lora.yaml
 ```
+
+You can find a full list of all our Llama3 configs [here.](recipes/configs/llama3)
 
 
 &nbsp;
