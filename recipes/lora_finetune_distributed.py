@@ -343,6 +343,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
+            # TODO: implement local -> DTensor
             opt_state_dict = utils.transform_opt_state_dict(
                 opt_state_dict, self._model, optimizer
             )
