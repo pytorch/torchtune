@@ -43,7 +43,7 @@ resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.wikitext_dataset
+  _component_: torchtune.datasets.cnn_dailymail_articles_dataset
 seed: null
 shuffle: True
 batch_size: 2
@@ -72,7 +72,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.WandBLogger
   log_dir: ${output_dir}
   project: torchtune
-  name: wikitext
+  name: cnn_dailymail
 log_every_n_steps: null
 
 # Environment

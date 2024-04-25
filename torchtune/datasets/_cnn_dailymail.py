@@ -10,23 +10,21 @@ from torchtune.datasets._text_completion import TextCompletionDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
-def wikitext_dataset(
+def cnn_dailymail_articles_dataset(
     tokenizer: Tokenizer,
-    source: str = "wikitext",
-    subset: str = "wikitext-103-raw-v1",
+    source: str = "ccdv/cnn_dailymail",
     max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
-    Support for family of datasets similar to `wikitext <https://huggingface.co/datasets/wikitext>`_,
-    an unstructured text corpus consisting of articles from Wikipedia.
+    Support for family of datasets similar to `CNN / DailyMail <https://huggingface.co/datasets/ccdv/cnn_dailymail>`_,
+    a corpus of news articles. This builder only extracts the articles and not the highlights for
+    general text completion tasks.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        subset (str): name of subset of data to use, see the `wikitext page <https://huggingface.co/datasets/wikitext#data-fields>`_
-            for available subsets.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
@@ -39,9 +37,9 @@ def wikitext_dataset(
     return TextCompletionDataset(
         tokenizer=tokenizer,
         source=source,
-        column="text",
+        column="article",
         max_seq_len=max_seq_len,
-        name=subset,
         split="train",
+        name="3.0.0",
         **load_dataset_kwargs,
     )

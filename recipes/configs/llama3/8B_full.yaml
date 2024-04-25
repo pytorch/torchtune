@@ -25,8 +25,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.cnn_dailymail_articles_dataset
 seed: null
 shuffle: True
 
@@ -71,7 +70,9 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.WandBLogger
   log_dir: ${output_dir}
+  project: torchtune
+  name: cnn_dailymail
 output_dir: /tmp/alpaca-llama3-finetune
 log_every_n_steps: null
