@@ -409,6 +409,9 @@
             <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">WHITESPACE_CHARS</span><span class="p">]</span>
         <span class="p">)</span>
 
+        <span class="c1"># During generation, stop when eos_id is encountered</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">}</span>
+
 <div class="viewcode-block" id="SentencePieceTokenizer.encode"><a class="viewcode-back" href="../../../../generated/torchtune.modules.tokenizers.SentencePieceTokenizer.html#torchtune.modules.tokenizers.SentencePieceTokenizer.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
