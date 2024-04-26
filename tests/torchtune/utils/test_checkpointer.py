@@ -161,7 +161,7 @@ class TestHFLlama2FullModelCheckpointer:
         return FullModelHFCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file],
-            model_type=ModelType.LLAMA2,
+            model_type='LLAMA2',
             output_dir=tmp_path,
         )
 
@@ -173,7 +173,7 @@ class TestHFLlama2FullModelCheckpointer:
         return FullModelHFCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file_1, checkpoint_file_2],
-            model_type=ModelType.LLAMA2,
+            model_type='LLAMA2',
             output_dir=tmp_path,
         )
 
