@@ -11,6 +11,7 @@ from torchao.quantization.quant_api import (
     apply_weight_only_int8_quant,
     Int4WeightOnlyGPTQQuantizer,
     Int4WeightOnlyQuantizer,
+    Int8DynActInt4WeightQuantizer,
     Quantizer,
 )
 
@@ -18,6 +19,7 @@ __all__ = [
     "Int4WeightOnlyQuantizer",
     "Int4WeightOnlyGPTQQuantizer",
     "Int8WeightOnlyQuantizer",
+    "Int8DynActInt4WeightQuantizer",
     "get_quantizer_mode",
 ]
 
@@ -34,6 +36,7 @@ _quantizer_to_mode = {
     Int4WeightOnlyQuantizer: "4w",
     Int8WeightOnlyQuantizer: "8w",
     Int4WeightOnlyGPTQQuantizer: "4w-gptq",
+    Int8DynActInt4WeightQuantizer: "8da4w",
 }
 
 
