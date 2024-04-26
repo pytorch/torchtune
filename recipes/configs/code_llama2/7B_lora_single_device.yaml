@@ -10,12 +10,12 @@
 #   pip install bitsandbytes
 #
 # To launch on a single device, run the following command from root:
-#   tune run full_finetune_single_device --config code_llama2/7B_lora_single_device
+#   tune run lora_finetune_single_device --config code_llama2/7B_lora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run full_finetune_single_device --config llama2/7B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config code_llama2/7B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
@@ -85,7 +85,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}/torchtune_perf_tracing.json
 output_dir: /tmp/lora_code_llama2_finetune_output
-log_every_n_steps: null
+log_every_n_steps: 1
 
 profiler:
   _component_: torchtune.utils.profiler

@@ -12,7 +12,6 @@ from ._model_builders import (  # noqa
     lora_code_llama2_70b,
     lora_code_llama2_7b,
     qlora_code_llama2_13b,
-    qlora_code_llama2_70b,
     qlora_code_llama2_7b,
 )
 
@@ -24,6 +23,5 @@ __all__ = [
     "lora_code_llama2_70b",
     "lora_code_llama2_7b",
     "qlora_code_llama2_13b",
-    "qlora_code_llama2_70b",
     "qlora_code_llama2_7b",
 ]
