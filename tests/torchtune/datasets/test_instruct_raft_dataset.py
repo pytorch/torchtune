@@ -8,8 +8,6 @@ from unittest import mock
 
 from tests.test_utils import DummyTokenizer
 
-from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-
 from torchtune.datasets import InstructDatasetDeepLakeRAFT
 
 
@@ -27,9 +25,7 @@ class DummyTemplate:
 
 
 class TestInstructDatasetDeepLakeRAFT:
-    template = DummyTemplate(
-        "Instruction:\n{instruction}\n\nResponse: "
-    )
+    template = DummyTemplate("Instruction:\n{instruction}\n\nResponse: ")
     expected_tokenized_prompts = [
         [0, 12, 4, 2, 3, 2, 12, 10, 9, 1, 5, 4, 4, 3, 6, 2, 4, -1]
     ]
@@ -40,7 +36,6 @@ class TestInstructDatasetDeepLakeRAFT:
                 "instruction": "This is not an instruction.",
                 "cot_answer": "I never know what I'm doing, do you?",
             },
-
         ]
 
     @mock.patch("torchtune.datasets._instruct_raft.load_deep_lake_dataset")

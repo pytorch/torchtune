@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 from torchtune.data import RAFTInstructTemplate
 from torchtune.datasets._instruct_raft import InstructDatasetDeepLakeRAFT
 from torchtune.modules.tokenizers import Tokenizer
@@ -6,10 +12,10 @@ activeloop_dataset = "hub://manufe/raft_format_dataset_biomedical"  # Replace wi
 
 
 def raft_dataset(
-        tokenizer: Tokenizer,
-        source: str = activeloop_dataset,
-        train_on_input: bool = True,
-        max_seq_len: int = 512,
+    tokenizer: Tokenizer,
+    source: str = activeloop_dataset,
+    train_on_input: bool = True,
+    max_seq_len: int = 512,
 ) -> InstructDatasetDeepLakeRAFT:
     """
     Load a dataset in RAFT format from ActiveLoop's DeepLake platform.
@@ -25,10 +31,12 @@ def raft_dataset(
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists. Default is 512.
 
     Returns:
-        InstructDatasetDeepLakeRAFT: A dataset configured with the provided source data, tokenizer, and template for RAFT format.
+        InstructDatasetDeepLakeRAFT: A dataset configured with the provided source data, tokenizer,
+        and template for RAFT format.
 
     Note:
-        The RAFT format and its usage in this function are based on the paper "RAFT: Adapting Language Model to Domain Specific RAG" by Zhang et al.
+        The RAFT format and its usage in this function are based on the paper "RAFT: Adapting Language Model
+        to Domain Specific RAG" by Zhang et al.
         For more information, refer to the paper at: https://arxiv.org/html/2403.10131v1
 
     Example:

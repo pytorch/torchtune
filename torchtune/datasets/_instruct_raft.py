@@ -3,9 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import os
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
-
 
 import numpy as np
 from torch.utils.data import Dataset
@@ -17,9 +15,9 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
+from torchtune.datasets._utils import load_deep_lake_dataset
 
 from torchtune.modules.tokenizers import Tokenizer
-from torchtune.datasets._utils import load_deep_lake_dataset
 
 
 class InstructDatasetDeepLakeRAFT(Dataset):
