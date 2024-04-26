@@ -12,7 +12,11 @@ from torch import nn, Tensor
 
 class Phi3RotaryPositionalEmbeddings(nn.Module):
     """
+    RoPE Embeddings used in the Phi3 model.
+    Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct
 
+    This class is not numerically equivalent to the RoPE Embedding module
+    used by Llama2 and Llama3.
 
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
@@ -53,9 +57,9 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         # a shape of [max_seq_len, dim // 2]
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
-        # # cache includes both the cos and sin components and so the output shape is
-        # # [max_seq_len, dim // 2, 2]
-        # cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
+        # We cache the cos and sin embeddings instead of the IDs. This helps
+        # ensure we have correct behavior when training with bf16
+        # Size: [max_seq_len, (dim * 2)]
         freqs = torch.cat([idx_theta, idx_theta], dim=-1)
         cache = torch.cat([freqs.cos(), freqs.sin()], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
@@ -92,5 +96,9 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         x2 = x[..., x.shape[-1] // 2 :]
         rotated = torch.cat((-x2, x1), dim=-1)
 
+        # cos: [s, h_d]
+        # x: [b, s, n_h, n_d]
+        # For the matrix multiplication to line up, transpose the input
+        # and the rotated input
         x_out = (x.transpose(1,2) * cos) + (rotated.transpose(1,2) * sin)
         return x_out.transpose(1,2).type_as(x)

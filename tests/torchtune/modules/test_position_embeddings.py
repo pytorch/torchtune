@@ -102,7 +102,9 @@ class TestRotaryPositionEmbedding:
 
 class TestPhi3RotaryPositionalEmbeddings:
     """
-
+    Class for testing the Phi3 models RoPE Embeddings. The expected tensors are
+    computed from the reference implementation here:
+    https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/modeling_phi3.py
     """
 
     @pytest.fixture
