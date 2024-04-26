@@ -18,6 +18,7 @@ from torchtune.data import (
     sharegpt_to_llama2_messages,
     validate_messages,
 )
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -110,6 +111,7 @@ def chat_dataset(
     chat_format: Optional[str] = None,
     max_seq_len: int,
     train_on_input: bool = False,
+    packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> ChatDataset:
     """
@@ -128,6 +130,7 @@ def chat_dataset(
             check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        packed (bool): Whether or not to pack the dataset prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Examples:
@@ -162,7 +165,7 @@ def chat_dataset(
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
-    return ChatDataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
@@ -171,3 +174,4 @@ def chat_dataset(
         train_on_input=train_on_input,
         **load_dataset_kwargs,
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds

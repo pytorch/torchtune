@@ -16,6 +16,7 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -107,12 +108,14 @@ class InstructDataset(Dataset):
 
 
 def instruct_dataset(
+    *,
     tokenizer: Tokenizer,
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
     max_seq_len: Optional[int] = None,
+    packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> InstructDataset:
     """
@@ -132,12 +135,13 @@ def instruct_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        packed (bool): Whether or not to pack the dataset prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Returns:
         InstructDataset: the configured InstructDataset
     """
-    return InstructDataset(
+    ds = InstructDataset(
         tokenizer=tokenizer,
         source=source,
         template=_get_instruct_template(template),
@@ -146,3 +150,4 @@ def instruct_dataset(
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
