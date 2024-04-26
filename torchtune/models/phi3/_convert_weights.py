@@ -21,6 +21,9 @@ _PHI3_MINI = {
 
 def phi3_hf_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
+    Convertor from HF state dict to torchtune state dict. This handles:
+    - Splitting the fused q,k and v matrix
+    - Splitting the fused gate and up projection matrix
     """
     converted_state_dict = {}
 
@@ -42,6 +45,9 @@ def phi3_hf_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tens
 
 def phi3_tune_to_hf(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
+    Convertor from torchtune state dict to HF state dict. This handles:
+    - Fusing q,k and v matrix
+    - Fusing gate and up projection matrix
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _PHI3_MINI.items()}

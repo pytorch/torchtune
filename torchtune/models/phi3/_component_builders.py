@@ -14,9 +14,9 @@ from torchtune.modules import (
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 
 """
-Component builders for the Mistral 7B models and popular variants such as LoRA.
+Component builders for the Phi3 4K Mini Instruct model.
 
-TorchTune provides composable building blocks. Builder functions help
+torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
 - The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
@@ -38,15 +38,6 @@ def phi3(
     rope_base: int = 10_000,
 ) -> TransformerDecoder:
     """
-    Build the decoder assoicated with the mistral model. This includes:
-    - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
-    - RMS Norm layer applied to the output of the transformer
-    - Final projection into token space
-
-    This does NOT currently include inference-time optimizations such as
-    sliding-window attention
-
     Args:
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
@@ -64,7 +55,7 @@ def phi3(
         rope_base (int): base for the rotary positional embeddings. Default: 10_000
 
     Returns:
-        TransformerDecoder: Instantiation of mistral model.
+        TransformerDecoder: Instantiation of Phi3 Mini 4K Instruct model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -106,7 +97,7 @@ def phi3(
 
 def phi3_mlp(dim: int, hidden_dim: int) -> FeedForward:
     """
-    Build the MLP layer associated with the Mistral model.
+    Build the MLP layer associated with the Phi3 Mini 4K Instruct model.
     """
     gate_proj = nn.Linear(dim, hidden_dim, bias=False)
     down_proj = nn.Linear(hidden_dim, dim, bias=False)
