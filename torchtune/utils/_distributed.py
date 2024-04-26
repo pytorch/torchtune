@@ -14,13 +14,13 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from torch.distributed.fsdp import ShardingStrategy
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
     LoRALinear,
 )
-from torchtune.utils._checkpointing._checkpointer_utils import ModelType
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -217,7 +217,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def get_full_finetune_fsdp_wrap_policy(
-    model_type: ModelType, modules_to_wrap: Set[Type]
+    model_type: str, modules_to_wrap: Set[Type]
 ) -> FSDPPolicyType:
     """
     Retrieves an FSDP wrapping policy based on the specified ``model_type`` and ``modules_to_wrap``.
@@ -225,15 +225,16 @@ def get_full_finetune_fsdp_wrap_policy(
     and output projection in addition to the modules specified in ``modules_to_wrap`` to maximize memory savings.
     For all other models, only the modules specified will be wrapped.
     Args:
-        model_type (ModelType): Model type.
+        model_type (str): Model type.
         modules_to_wrap (Set[Type]): Set of module types to wrap.
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
     """
-    # TODO: don't know why model_type == ModelType.LLAMA3 does not work
-    if str(model_type) == "LLAMA3":
+    if model_type == "LLAMA3":
+        print(f"RV {model_type} -- returning llama3 wrap policy", flush=True)
         return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
     else:
+        print(f"RV {model_type} -- returning llama2 wrap policy", flush=True)
         return ModuleWrapPolicy(modules_to_wrap)
 
 

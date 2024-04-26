@@ -22,7 +22,6 @@ from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     StateDictType,
 )
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -291,11 +290,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # across all available GPUs.
         model = FSDP(
             module=model,
-            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
-            # auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
-            #     model_type=self._checkpointer._model_type,
-            #     modules_to_wrap={modules.TransformerDecoderLayer},
-            # ),
+            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
+                model_type=str(self._checkpointer._model_type),
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -319,11 +317,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
                 model,
-                auto_wrap_policy={modules.TransformerDecoderLayer},
-                # auto_wrap_policy=utils.get_ac_policy(
-                #     model_type=self._checkpointer._model_type,
-                #     modules_to_wrap={modules.TransformerDecoderLayer},
-                # ),
+                auto_wrap_policy=utils.get_ac_policy(
+                    model_type=str(self._checkpointer._model_type),
+                    modules_to_wrap={modules.TransformerDecoderLayer},
+                ),
             )
 
         if self._is_rank_zero:

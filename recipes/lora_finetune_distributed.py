@@ -353,7 +353,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model,
                 auto_wrap_policy=utils.get_ac_policy(
-                    model_type=self._checkpointer._model_type,
+                    model_type=str(self._checkpointer._model_type),
                     modules_to_wrap={modules.TransformerDecoderLayer},
                 ),
             )

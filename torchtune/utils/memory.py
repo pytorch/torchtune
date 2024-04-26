@@ -26,7 +26,7 @@ _log: logging.Logger = get_logger()
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
 
 
-def get_ac_policy(model_type, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
+def get_ac_policy(model_type: str, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
     """
     Get the activation checkpointing policy for the model.
 
@@ -37,7 +37,7 @@ def get_ac_policy(model_type, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
     Returns:
         ACWrapPolicyType: Policy to wrap module.
     """
-    if str(model_type) == "LLAMA3":
+    if model_type == "LLAMA3":
         # ensure torch.nn.Embedding activations are checkpointed.
         modules_to_wrap.add(torch.nn.Embedding)
         return partial(_llama3_ac_policy, modules_to_wrap=modules_to_wrap)

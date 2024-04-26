@@ -20,7 +20,6 @@ from ._distributed import (  # noqa
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
-    llama3_full_fsdp_wrap_policy,
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
@@ -42,12 +41,12 @@ from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
+    get_ac_policy,
     get_memory_stats,
     log_memory_stats,
     OptimizerInBackwardWrapper,
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
-    get_ac_policy,
 )
 from .precision import (
     get_dtype,
@@ -73,7 +72,6 @@ __all__ = [
     "list_dtypes",
     "lora_fsdp_wrap_policy",
     "get_ac_policy",
-    "llama3_full_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
