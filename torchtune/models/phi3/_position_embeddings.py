@@ -10,6 +10,7 @@ import torch
 
 from torch import nn, Tensor
 
+
 class Phi3RotaryPositionalEmbeddings(nn.Module):
     """
     RoPE Embeddings used in the Phi3 model.
@@ -100,5 +101,5 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         # x: [b, s, n_h, n_d]
         # For the matrix multiplication to line up, transpose the input
         # and the rotated input
-        x_out = (x.transpose(1,2) * cos) + (rotated.transpose(1,2) * sin)
-        return x_out.transpose(1,2).type_as(x)
+        x_out = (x.transpose(1, 2) * cos) + (rotated.transpose(1, 2) * sin)
+        return x_out.transpose(1, 2).type_as(x)

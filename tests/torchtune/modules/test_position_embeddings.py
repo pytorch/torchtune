@@ -11,9 +11,9 @@ import torch
 
 from tests.test_utils import assert_expected
 from torch import tensor
+from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
-from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 from torchtune.utils.seed import set_seed
 
 
@@ -129,7 +129,9 @@ class TestPhi3RotaryPositionalEmbeddings:
         _, _, head_dim, _, max_seq_len = input_params
         return Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
 
-    def test_forward(self, input: tensor, rope_phi3: Phi3RotaryPositionalEmbeddings) -> None:
+    def test_forward(
+        self, input: tensor, rope_phi3: Phi3RotaryPositionalEmbeddings
+    ) -> None:
         x_out = rope_phi3(input)
 
         # check the numerics of the computed tensor

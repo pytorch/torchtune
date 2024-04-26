@@ -26,7 +26,6 @@ class ModelType(Enum):
     PHI3_MINI = "phi3_mini"
 
 
-
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     """
     Utility to recover and validate the path for a given file within a given directory.
