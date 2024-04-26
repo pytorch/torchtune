@@ -7,6 +7,7 @@ from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
     RMSNorm,
+    RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
@@ -61,6 +62,7 @@ def phi3(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    # rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,

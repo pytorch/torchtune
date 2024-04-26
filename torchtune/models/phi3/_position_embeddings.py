@@ -21,7 +21,7 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
 
     Args:
         dim (int): Embedding dimension. This is usually set to the dim of each
-            head in the attention module computed as ````embed_dim`` // ``num_heads````
+            head in the attention module computed as ``embed_dim`` // ``num_heads``
         max_seq_len (int): Maximum expected sequence length for the
             model, if exceeded the cached freqs will be recomputed
         base (int): The base for the geometric progression used to compute
@@ -89,9 +89,15 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         seq_len = x.size(1)
         head_dim = x.size(-1)
 
+        # extract the values based on whether input_pos is set or not. When
+        # input_pos is provided, we're in inference mode
+        rope_cache = (
+            self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
+        )
+
         # [s, h_d]
-        cos = self.cache[:seq_len, :head_dim]
-        sin = self.cache[:seq_len, head_dim:]
+        cos = rope_cache[:, :head_dim]
+        sin = rope_cache[:, head_dim:]
 
         x1 = x[..., : x.shape[-1] // 2]
         x2 = x[..., x.shape[-1] // 2 :]

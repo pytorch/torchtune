@@ -12,7 +12,7 @@ import torch
 
 """
 Model builders build specific instantiations using component builders. For example
-the ``mistral_7b`` model builder uses the ``mistral`` component builder.
+the ``phi3_mini`` model builder uses the ``phi3`` component builder.
 """
 
 
@@ -38,5 +38,5 @@ def phi3_mini() -> TransformerDecoder:
 
 def phi3_tokenizer(path: str) -> SentencePieceTokenizer:
     tokenizer = SentencePieceTokenizer(path)
-    tokenizer.pad_id = 32000
+    tokenizer.pad_id = 0
     return tokenizer
