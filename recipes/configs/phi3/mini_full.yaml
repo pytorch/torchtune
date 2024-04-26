@@ -1,10 +1,6 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
 # using a Phi3 Mini 4K Instruct
 #
-# This config uses hyperparameters based on small set of experiments and information
-# available on various forums. These are not meant to replicate the numbers
-# from the paper
-#
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download microsoft/Phi-3-mini-4k-instruct --output-dir ./Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
@@ -19,12 +15,12 @@
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # Single device full finetuning requires more memory optimizations. It's
-# best to use 7B_full_single_device.yaml for those cases
+# best to use mini_low_memory.yaml for those cases
 
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi3.phi3_tokenizer
-  path: /data/users/kartikayk/cpts/Phi-3-mini-4k-instruct/tokenizer.model
+  path: /tmp/cpts/Phi-3-mini-4k-instruct/tokenizer.model
 
 # Dataset
 dataset:
@@ -39,13 +35,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /data/users/kartikayk/cpts/Phi-3-mini-4k-instruct
+  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: /data/users/kartikayk/cpts/Phi-3-mini-4k-instruct
+  output_dir: /tmp/Phi-3-mini-4k-instruct
   model_type: PHI3_MINI
 resume_from_checkpoint: False
 
@@ -74,5 +70,5 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/Mistral-7B-v0.1/
+output_dir: /tmp/Phi-3-mini-4k-instruct
 log_every_n_steps: null
