@@ -15,6 +15,14 @@ from torchtune.modules import KVCache
 from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
 
+class ReversibleEmbedding(nn.Module):
+    """
+    This is just a very simple module which allows to call independently this module for final output
+    """
+
+    def forward(self, x, emb_weights):
+        return F.linear(x, emb_weights)
+
 class GemmaTransformerDecoder(nn.Module):
     """
     Transformer Decoder derived from the Gemma architecture. A key difference between
@@ -66,7 +74,8 @@ class GemmaTransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
-
+        self.output = ReversibleEmbedding()
+        
     def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
@@ -130,5 +139,5 @@ class GemmaTransformerDecoder(nn.Module):
         h = self.norm(h)
 
         # shape: [b, s, v]
-        output = F.linear(h, self.tok_embeddings.weight).float()
+        output = self.output(h, self.tok_embeddings.weight).float()
         return output
