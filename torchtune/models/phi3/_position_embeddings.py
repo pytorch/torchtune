@@ -85,7 +85,7 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         TODO: The implementation below can be made more efficient
         for inference.
         """
-        # input tensor has shape [b, s, n_h, n_d]
+        # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
         head_dim = x.size(-1)
 
@@ -104,7 +104,7 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         rotated = torch.cat((-x2, x1), dim=-1)
 
         # cos: [s, h_d]
-        # x: [b, s, n_h, n_d]
+        # x: [b, s, n_h, h_d]
         # For the matrix multiplication to line up, transpose the input
         # and the rotated input
         x_out = (x.transpose(1, 2) * cos) + (rotated.transpose(1, 2) * sin)
