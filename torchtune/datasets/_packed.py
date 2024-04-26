@@ -55,7 +55,9 @@ class PackedDataset(Dataset):
             "labels": [],
         }
 
-        for input_ids, labels in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
+        for input_ids, labels in tqdm(
+            self.ds, desc="Packing dataset", dynamic_ncols=True
+        ):
             buffer["input_ids"].extend(input_ids)
             buffer["labels"].extend(labels)
 
@@ -67,7 +69,7 @@ class PackedDataset(Dataset):
                 buffer = {k: v[self.max_seq_len :] for k, v in buffer.items()}
                 assert len(buffer["input_ids"]) == len(buffer["labels"])
                 if self.max_rows is not None and len(self.samples) >= self.max_rows:
-                    break
+                    return
 
     def __len__(self):
         return len(self.samples)
