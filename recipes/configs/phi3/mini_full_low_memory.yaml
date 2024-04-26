@@ -1,4 +1,4 @@
-# Config for multi-device full finetuning in full_finetune_distributed.py
+# Config for single device full finetuning in full_finetune_single_device.py
 # using a Phi3 Mini 4K Instruct
 #
 # This config uses hyperparameters based on small set of experiments and information
@@ -9,17 +9,19 @@
 # this run:
 #   tune download microsoft/Phi-3-mini-4k-instruct --output-dir ./Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
 #
-# Run this config on 4 GPUs using the following:
-#  tune run --nproc_per_node 4 recipes/full_finetune_distributed.py --config recipes/configs/phi3/mini_full.yaml
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
+#
+# To launch on a single device, run the following command from root:
+#   tune run full_finetune_single_device --config recipes/config/phi3/mini_full_low_memory.yaml
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 4 recipes/full_finetune_distributed.py --config recipes/configs/phi3/mini_full.yaml checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run full_finetune_single_device --config recipes/config/phi3/mini_full_low_memory.yaml checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works best when the model is being fine-tuned on 2+ GPUs.
-# Single device full finetuning requires more memory optimizations. It's
-# best to use 7B_full_single_device.yaml for those cases
+# This config works only for training on single device.
 
 # Tokenizer
 tokenizer:
@@ -53,13 +55,13 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 3
 optimizer:
-  _component_: torch.optim.AdamW
+  _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
-
+optimizer_in_bwd: True
 
 # Training env
 device: cuda
@@ -69,6 +71,9 @@ enable_activation_checkpointing: True
 
 # Reduced precision
 dtype: bf16
+
+# Model compilation
+compile: False
 
 # Logging
 metric_logger:
