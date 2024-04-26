@@ -231,10 +231,8 @@ def get_full_finetune_fsdp_wrap_policy(
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
     """
     if model_type == "LLAMA3":
-        print(f"RV {model_type} -- returning llama3 wrap policy", flush=True)
         return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
     else:
-        print(f"RV {model_type} -- returning llama2 wrap policy", flush=True)
         return ModuleWrapPolicy(modules_to_wrap)
 
 

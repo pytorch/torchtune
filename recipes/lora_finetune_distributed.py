@@ -120,7 +120,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = True
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+
+        # training attributes
+        self._enable_activation_checkpointing = cfg.enable_activation_checkpointing
 
         # These attributes constitute the recipe state and are updated by ``load_checkpoint``
         # when ``resume_from_checkpoint`` is ``True``
@@ -214,9 +217,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                checkpoint_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
-            ),
+            opt_state_dict=checkpoint_dict[utils.OPT_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -338,11 +341,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: (
-                    module.to_empty(device=torch.device("cuda"), recurse=False)
-                    if not self._is_rank_zero
-                    else None
+                lambda module: module.to_empty(
+                    device=torch.device("cuda"), recurse=False
                 )
+                if not self._is_rank_zero
+                else None
             ),
         )
 
@@ -351,16 +354,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model,
-                auto_wrap_policy=utils.get_ac_policy(
-                    model_type=str(self._checkpointer._model_type),
-                    modules_to_wrap={modules.TransformerDecoderLayer},
-                ),
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
-            print(f"RV CREATED -- model {model}")
 
         # synchronize before training begins
         torch.distributed.barrier()
