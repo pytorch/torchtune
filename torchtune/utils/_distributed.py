@@ -14,14 +14,15 @@ import torch
 import torch.distributed as dist
 import torch.distributed._composable.fsdp
 from torch import nn
-from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor import distribute_tensor
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
     ShardingStrategy,
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torch.optim import Optimizer
+
+# from torch.optim import Optimizer
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
@@ -301,6 +302,8 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return lora_wrap_fsdp
 
 
+# remove if torch.distributed.checkpoint
+# implements rank0 load and broadcoast
 def load_from_full_state_dict(
     model: torch.distributed._composable.fsdp.FSDP,
     full_sd: Dict[str, Any],
@@ -327,41 +330,28 @@ def load_from_full_state_dict(
     model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
-def get_full_model_state_dict(
-    model: torch.distributed._composable.fsdp.FSDP,
-    is_rank_zero: bool,
-) -> Dict[str, Any]:
-    sharded_sd = model.state_dict()
-    cpu_state_dict = {}
-    for param_name, sharded_param in sharded_sd.items():
-        full_param = sharded_param.full_tensor()
-        if is_rank_zero:
-            cpu_state_dict[param_name] = full_param.cpu()
-        else:
-            del full_param
-    return cpu_state_dict
-
-
-def get_full_optimizer_state_dict(
-    opt: Optimizer,
-    is_rank_zero: bool,
-) -> Dict[str, Any]:
-    sharded_sd = opt.state_dict()
-    sharded_state = sharded_sd["state"]
-    full_state = {}
-    for group_id, sharded_group in sharded_state.items():
-        group_state = {}
-        for attr, sharded_tensor in sharded_group.items():
-            if isinstance(sharded_tensor, DTensor):
-                full_tensor = sharded_tensor.full_tensor()
-            else:
-                full_tensor = sharded_tensor
-            if is_rank_zero:
-                group_state[attr] = full_tensor.cpu()
-            else:
-                del full_tensor
-        full_state[group_id] = group_state
-    return {
-        "param_groups": sharded_sd["param_groups"],
-        "state": full_state,
-    }
+# remove if torch.distributed.checkpoint
+# implements rank0 load and broadcoast
+# def get_full_optimizer_state_dict(
+#     opt: Optimizer,
+#     is_rank_zero: bool,
+# ) -> Dict[str, Any]:
+#     sharded_sd = opt.state_dict()
+#     sharded_state = sharded_sd["state"]
+#     full_state = {}
+#     for group_id, sharded_group in sharded_state.items():
+#         group_state = {}
+#         for attr, sharded_tensor in sharded_group.items():
+#             if isinstance(sharded_tensor, DTensor):
+#                 full_tensor = sharded_tensor.full_tensor()
+#             else:
+#                 full_tensor = sharded_tensor
+#             if is_rank_zero:
+#                 group_state[attr] = full_tensor.cpu()
+#             else:
+#                 del full_tensor
+#         full_state[group_id] = group_state
+#     return {
+#         "param_groups": sharded_sd["param_groups"],
+#         "state": full_state,
+#     }
