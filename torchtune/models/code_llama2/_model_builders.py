@@ -206,7 +206,7 @@ def lora_code_llama2_70b(
     """
     Builder for creating a Code-Llama2 70B model with LoRA enabled.
 
-    The Llama2 defaults are the same as in :func:`~torchtune.models.llama2.code_llama2_13b`,
+    The Llama2 defaults are the same as in :func:`~torchtune.models.llama2.code_llama2_70b`,
     while LoRA default params are based on
     https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
 
@@ -223,7 +223,7 @@ def lora_code_llama2_70b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Code-Llama2 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Code-Llama2 70B model with LoRA applied
     """
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
