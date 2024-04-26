@@ -20,6 +20,7 @@ from torchtune.modules.peft.lora import (
     _lora_b_init_params,
     LoRALinear,
 )
+from torchtune.utils._checkpointing._checkpointer_utils import ModelType
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -216,19 +217,27 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def get_full_finetune_fsdp_wrap_policy(
-    model_type, modules_to_wrap: Set[Type]
+    model_type: ModelType, modules_to_wrap: Set[Type]
 ) -> FSDPPolicyType:
     """
-    DOC
+    Retrieves an FSDP wrapping policy based on the specified ``model_type`` and ``modules_to_wrap``.
+    Specifically, for Llama3 model variants, the policy returned will wrap the model's token embedding
+    and output projection in addition to the modules specified in ``modules_to_wrap`` to maximize memory savings.
+    For all other models, only the modules specified will be wrapped.
+    Args:
+        model_type (ModelType): Model type.
+        modules_to_wrap (Set[Type]): Set of module types to wrap.
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
     """
     # TODO: don't know why model_type == ModelType.LLAMA3 does not work
     if str(model_type) == "LLAMA3":
-        return llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
+        return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
     else:
         return ModuleWrapPolicy(modules_to_wrap)
 
 
-def llama3_full_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+def _llama3_full_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     """
     A default policy for wrapping Llama-3 style models for full finetuning using FSDP. Specifically,
     this will wrap the model's token embedding and output projection into their own FSDP units to
