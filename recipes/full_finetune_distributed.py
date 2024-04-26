@@ -106,7 +106,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
-        self._log_peak_memory_stats = True
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # _is_rank_zero is used primarily for logging. In the future, the logger
         # should directly take care of this
@@ -196,9 +196,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # checkpoint. Transforming the opt state dict is handled by this method
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
-            opt_state_dict=(
-                ckpt_dict[utils.OPT_KEY] if self._resume_from_checkpoint else None
-            ),
+            opt_state_dict=ckpt_dict[utils.OPT_KEY]
+            if self._resume_from_checkpoint
+            else None,
         )
 
         self._loss_fn = config.instantiate(cfg.loss)
@@ -302,11 +302,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             sync_module_states=True,
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
-                lambda module: (
-                    module.to_empty(device=torch.device("cuda"), recurse=False)
-                    if not self._is_rank_zero
-                    else None
+                lambda module: module.to_empty(
+                    device=torch.device("cuda"), recurse=False
                 )
+                if not self._is_rank_zero
+                else None
             ),
         )
 
@@ -326,7 +326,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
-            print(f"RV --- fully wrapped model: {model}")
 
         # synchronize before training begins
         torch.distributed.barrier()
