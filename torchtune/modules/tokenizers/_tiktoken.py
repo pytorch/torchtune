@@ -134,6 +134,9 @@ class TikTokenTokenizer(Tokenizer):
         self.eot_id = self._encode_special_token(eot_id)
         self.python_tag = self._encode_special_token(python_tag)
 
+        # During generation, stop when either eos_id or eot_id is encountered
+        self.stop_tokens = {self.eos_id, self.eot_id}
+
     def _validate_special_tokens(
         self,
         *,
