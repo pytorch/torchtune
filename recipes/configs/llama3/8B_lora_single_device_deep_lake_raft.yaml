@@ -75,7 +75,6 @@ metric_logger:
 log_every_n_steps: null
 
 # Logging with WandBLogger
-#output_dir: D:/Triton 500/ArtificialIntelligence/10 - ACTIVELOOP PROJECT FOLDER/9 - RAFT/torchtune/lora_finetune_output
 #metric_logger:
 #  _component_: torchtune.utils.metric_logging.WandBLogger
 #  # the W&B project to log to
