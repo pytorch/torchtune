@@ -6,7 +6,7 @@
 
 import torch
 
-from tests.test_utils import init_weights_with_constant
+from tests.test_utils import fixed_init_model
 from tests.torchtune.models.mistral.scripts.mistral_reference import Transformer
 from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
 
@@ -36,8 +36,25 @@ def compare_decoder(
     # generate input tensor used by both implementations
     x_input = torch.randint(low=0, high=vocab_size, size=(bsz, seq_len))
 
+    # current implementation; initialize with constant to compare outputs
+    mistral_model = mistral(
+        vocab_size=vocab_size,
+        embed_dim=embed_dim,
+        num_layers=n_layers,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        max_seq_len=max_seq_len,
+        intermediate_dim=intermediate_dim,
+        norm_eps=norm_eps,
+        rope_base=rope_base,
+    )
+    fixed_init_model(mistral_model)
+
+    with torch.no_grad():
+        mistral_model_out = mistral_model(x_input)
+
     # initialize reference implementation with constant weights
-    ref_decoder = Transformer(
+    ref_mistral_model = Transformer(
         vocab_size=vocab_size,
         n_layers=n_layers,
         n_heads=num_heads,
@@ -49,33 +66,37 @@ def compare_decoder(
         rope_base=rope_base,
         norm_eps=norm_eps,
     )
-    init_weights_with_constant(ref_decoder, constant=0.05)
+    # fixed_init_model(ref_mistral_model)
+    # for k, v in mistral_model.state_dict().items():
+    #     print(k, v.shape)
+    mapped_sd = {}
+    for k, v in mistral_model.state_dict().items():
+        new_k = k.replace("attn", "attention")
+        new_k = (
+            new_k.replace("q_proj", "wq")
+            .replace("k_proj", "wk")
+            .replace("v_proj", "wv")
+            .replace("output_proj", "wo")
+        )
+        new_k = new_k.replace("mlp", "feed_forward")
+        new_k = new_k.replace("feed_forward_norm.scale", "ffn_norm.weight")
+        new_k = new_k.replace("sa_norm.scale", "attention_norm.weight")
+
+        new_k = new_k.replace("norm.scale", "norm.weight")
+        mapped_sd[new_k] = v
+
+    ref_mistral_model.load_state_dict(mapped_sd)
 
     with torch.no_grad():
-        decoder_out_ref = ref_decoder(x_input, torch.arange(seq_len))
+        red_mistral_model_out = ref_mistral_model(x_input, torch.arange(seq_len))
 
-    # current implementation; initialize with constant to compare outputs
-    decoder = mistral(
-        vocab_size=vocab_size,
-        embed_dim=embed_dim,
-        num_layers=n_layers,
-        num_heads=num_heads,
-        num_kv_heads=num_kv_heads,
-        max_seq_len=max_seq_len,
-        intermediate_dim=intermediate_dim,
-        norm_eps=norm_eps,
-        rope_base=rope_base,
+    # # value: torch.tensor(18.2749)
+    print(f"mistral_model_out.mean(): {mistral_model_out.mean()}")
+    print(f"red_mistral_model_out.mean(): {red_mistral_model_out.mean()}")
+
+    torch.testing.assert_close(
+        mistral_model_out, red_mistral_model_out, atol=1e-2, rtol=1e-2
     )
-    init_weights_with_constant(decoder, constant=0.05)
-
-    with torch.no_grad():
-        decoder_out = decoder(x_input)
-
-    # value: torch.tensor(0.15999)
-    print(f"decoder_out.mean(): {decoder_out.mean()}")
-    print(f"decoder_out_ref.mean(): {decoder_out_ref.mean()}")
-
-    torch.testing.assert_close(decoder_out, decoder_out_ref, atol=1e-2, rtol=1e-2)
 
 
 if __name__ == "__main__":

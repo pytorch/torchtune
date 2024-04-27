@@ -29,15 +29,18 @@ class TestMistral:
     def test_forward(self, inputs):
         model = mistral(
             vocab_size=MistralTestConfig.VOCAB_SIZE,
-            num_layers=MistralTestConfig.NUM_LAYERS,
-            num_heads=MistralTestConfig.NUM_HEADS,
-            num_kv_heads=MistralTestConfig.NUM_KV_HEADS,
             embed_dim=MistralTestConfig.EMBED_DIM,
+            num_heads=MistralTestConfig.NUM_HEADS,
+            num_layers=MistralTestConfig.NUM_LAYERS,
+            num_kv_heads=MistralTestConfig.NUM_KV_HEADS,
             max_seq_len=MistralTestConfig.MAX_SEQ_LEN,
+            intermediate_dim=MistralTestConfig.INTERMEDIATE_DIM,
+            norm_eps=MistralTestConfig.NORM_EPS,
+            rope_base=MistralTestConfig.ROPE_BASE,
         )
-        fixed_init_model(model, min_val=-0.25, max_val=0.5)
+        fixed_init_model(model)
         actual = model(inputs)
-        expected = torch.tensor(3.9763)
+        expected = torch.tensor(18.2749)
         assert actual.shape == (
             MistralTestConfig.BSZ,
             MistralTestConfig.SEQ_LEN,

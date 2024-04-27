@@ -262,15 +262,10 @@ class Transformer(nn.Module):
             head_dim, max_seq_len * 2, theta=rope_base
         )  # removed .to("cuda")
 
-    def forward(
-        self,
-        input_ids: torch.Tensor,
-    ):
+    def forward(self, input_ids: torch.Tensor, positions: torch.Tensor):
         _, seqlen = input_ids.shape
         h = self.tok_embeddings(input_ids)
-        freqs_cis = self.freqs_cis[
-            :seqlen
-        ]  # adding indexing for sequence len without passing in positions
+        freqs_cis = self.freqs_cis[positions]
         mask: Optional[torch.Tensor] = None
         if input_ids.shape[1] > 1:
             seqlen = input_ids.shape[1]
