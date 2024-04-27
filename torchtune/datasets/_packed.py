@@ -28,6 +28,11 @@ class PackedDataset(Dataset):
             inputs and labels.
         max_seq_len (int): Maximum number of tokens to pack
         max_rows (Optional[int]): maximum number of samples to pack. Default is None, which will pack as many samples as possible.
+        split_samples (bool): if the last sample in a pack does not fit in ``max_seq_len``,
+            split the sample into the next pack, or move it to the beginning of the next pack.
+            For pre-training, typically this is set to True for general text completion. For
+            fine-tuning, typically this is set to False to avoid truncating sentences in instruct
+            tuning. Default is False.
     """
 
     def __init__(
@@ -35,10 +40,12 @@ class PackedDataset(Dataset):
         ds: Dataset,
         max_seq_len: int,
         max_rows: Optional[int] = None,
+        split_samples: bool = False,
     ) -> None:
         self.ds = ds
         self.max_seq_len = max_seq_len
         self.max_rows = max_rows
+        self.split_samples = split_samples
         # where final samples will be held
         self.samples: List[Dict[str, List[int]]] = []
         self._pack()
@@ -50,26 +57,54 @@ class PackedDataset(Dataset):
         until max_rows or end of dataset.
         """
         # buffer to hold samples until they are long enough to be added to self.samples
-        buffer = {
+        current_pack = {
             "input_ids": [],
             "labels": [],
         }
+        # Keep track of what index the previous sample ends in case we need
+        # to end a pack early
+        previous_sample_boundary = 0
 
         for input_ids, labels in tqdm(
             self.ds, desc="Packing dataset", dynamic_ncols=True
         ):
-            buffer["input_ids"].extend(input_ids)
-            buffer["labels"].extend(labels)
-
-            # If buffer has reached max_seq_len, append packed sample
-            while len(buffer["input_ids"]) > self.max_seq_len:
-                self.samples.append(
-                    {k: v[: self.max_seq_len] for k, v in buffer.items()}
+            # If the dataset outputs samples that are larger than the specified
+            # max_seq_len and we're unable to split it, user needs to modify
+            # one of the two parameters
+            if len(input_ids) > self.max_seq_len and not self.split_samples:
+                raise ValueError(
+                    f"Dataset sample is too long ({len(input_ids)} > {self.max_seq_len}). "
+                    "Please set `split_samples=True` or increase `max_seq_len`."
                 )
-                buffer = {k: v[self.max_seq_len :] for k, v in buffer.items()}
-                assert len(buffer["input_ids"]) == len(buffer["labels"])
-                if self.max_rows is not None and len(self.samples) >= self.max_rows:
-                    return
+
+            current_pack["input_ids"].extend(input_ids)
+            current_pack["labels"].extend(labels)
+
+            if len(current_pack["input_ids"]) > self.max_seq_len:
+                current_pack = self._add_pack(
+                    current_pack=current_pack,
+                    boundary=self.max_seq_len
+                    if self.split_samples
+                    else previous_sample_boundary,
+                )
+
+            previous_sample_boundary = len(current_pack["input_ids"])
+            if self.max_rows is not None and len(self.samples) >= self.max_rows:
+                break
+
+        if len(current_pack["input_ids"]) > 0 and (
+            self.max_rows is None or len(self.samples) < self.max_rows
+        ):
+            self.samples.append(dict(current_pack))
+
+    def _add_pack(
+        self, current_pack: Dict[str, List[int]], boundary: int
+    ) -> Dict[str, List[int]]:
+        """
+        Add the current pack to self.samples and return what's remaining of the pack.
+        """
+        self.samples.append({k: v[:boundary] for k, v in current_pack.items()})
+        return {k: v[boundary:] for k, v in current_pack.items()}
 
     def __len__(self):
         return len(self.samples)
