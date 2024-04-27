@@ -6,10 +6,9 @@
 
 from unittest import mock
 
+from datasets import Dataset
 from tests.test_utils import DummyTokenizer
-
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-
 from torchtune.datasets import InstructDataset
 
 
@@ -60,6 +59,34 @@ class TestInstructDataset:
             -1,
         ],
         [0, 12, 4, 2, 2, 12, 10, 6, 4, 2, 2, 6, 10, 9, 1, 6, 4, 4, 3, 6, 2, 4, -1],
+        [
+            0,
+            12,
+            4,
+            2,
+            3,
+            2,
+            12,
+            10,
+            6,
+            4,
+            2,
+            3,
+            2,
+            6,
+            10,
+            9,
+            1,
+            5,
+            4,
+            4,
+            3,
+            6,
+            2,
+            4,
+            -1,
+        ],
+        [0, 12, 4, 2, 2, 12, 10, 6, 4, 2, 2, 6, 10, 9, 1, 6, 4, 4, 3, 6, 2, 4, -1],
     ]
 
     def get_samples(self):
@@ -78,7 +105,7 @@ class TestInstructDataset:
 
     @mock.patch("torchtune.datasets._instruct.load_dataset")
     def test_get_item_no_train_on_input(self, mock_load_dataset):
-        mock_load_dataset.return_value = self.get_samples()
+        mock_load_dataset.return_value = Dataset.from_list(self.get_samples())
         prompt_lengths = (16, 14)
         expected_labels = [
             [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
@@ -104,7 +131,7 @@ class TestInstructDataset:
 
     @mock.patch("torchtune.datasets._instruct.load_dataset")
     def test_get_item_train_on_input(self, mock_load_dataset):
-        mock_load_dataset.return_value = self.get_samples()
+        mock_load_dataset.return_value = Dataset.from_list(self.get_samples())
         expected_labels = self.expected_tokenized_prompts
 
         dataset = InstructDataset(
@@ -116,6 +143,56 @@ class TestInstructDataset:
         )
         assert len(dataset) == 2
         mock_load_dataset.assert_called_once()
+
+        for i in range(len(dataset)):
+            prompt, label = dataset[i]
+            assert prompt == self.expected_tokenized_prompts[i]
+            assert label == expected_labels[i]
+
+    @mock.patch("torchtune.datasets._instruct.load_dataset")
+    def test_multisource_get_item_no_train_on_input(self, mock_load_dataset):
+        mock_load_dataset.return_value = Dataset.from_list(self.get_samples())
+        prompt_lengths = (16, 14)
+        expected_labels = [
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
+            + [1, 5, 4, 4, 3, 6, 2, 4, -1],
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
+            + [1, 6, 4, 4, 3, 6, 2, 4, -1],
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
+            + [1, 5, 4, 4, 3, 6, 2, 4, -1],
+            [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
+            + [1, 6, 4, 4, 3, 6, 2, 4, -1],
+        ]
+
+        dataset = InstructDataset(
+            tokenizer=DummyTokenizer(),
+            source=["iam/agoofy/goober", "youare/agoofy/goobers"],
+            template=self.template,
+            transform=dummy_transform,
+            train_on_input=False,
+        )
+        assert len(dataset) == 4
+        assert mock_load_dataset.call_count == 2
+
+        for i in range(len(dataset)):
+            prompt, label = dataset[i]
+            assert prompt == self.expected_tokenized_prompts[i]
+            assert label == expected_labels[i]
+
+    @mock.patch("torchtune.datasets._instruct.load_dataset")
+    def test_multisource_get_item_train_on_input(self, mock_load_dataset):
+        mock_load_dataset.return_value = Dataset.from_list(self.get_samples())
+        expected_labels = self.expected_tokenized_prompts
+
+        dataset = InstructDataset(
+            tokenizer=DummyTokenizer(),
+            source=["iam/agoofy/goober", "youare/agoofy/goobers"],
+            template=self.template,
+            transform=dummy_transform,
+            train_on_input=True,
+        )
+        assert len(dataset) == 4
+        assert mock_load_dataset.call_count == 2
 
         for i in range(len(dataset)):
             prompt, label = dataset[i]

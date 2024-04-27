@@ -7,7 +7,7 @@
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
-from datasets import load_dataset, concatenate_datasets
+from datasets import concatenate_datasets, load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_instruct_template
 from torchtune.data import (
@@ -38,7 +38,7 @@ class InstructDataset(Dataset):
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        source (str | List[str]): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
@@ -125,7 +125,7 @@ def instruct_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        source (str | List[str]): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (str): class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
