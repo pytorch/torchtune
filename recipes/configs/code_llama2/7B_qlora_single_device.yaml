@@ -1,0 +1,92 @@
+# Config for single device QLoRA finetuning in lora_finetune_single_device.py
+# using a Code-Llama2 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#     tune download codellama/CodeLlama-7b-hf --output-dir /tmp/CodeLlama-7b-hf
+#
+# To launch on a single device, run the following command from root:
+#   tune run lora_finetune_single_device --config code_llama2/7B_qlora_single_device
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run lora_finetune_single_device --config code_llama2/7B_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+# Model Arguments
+model:
+  _component_: torchtune.models.code_llama2.qlora_code_llama2_7b
+  lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/CodeLlama-7b-hf/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  train_on_input: True
+seed: null
+shuffle: True
+
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/CodeLlama-7b-hf
+  checkpoint_files: [
+    pytorch_model-00001-of-00003.bin,
+    pytorch_model-00002-of-00003.bin,
+    pytorch_model-00003-of-00003.bin
+  ]
+  adapter_checkpoint: null
+  recipe_checkpoint: null
+  output_dir: /tmp/CodeLlama-7b-hf
+  model_type: LLAMA2
+resume_from_checkpoint: False
+
+# Fine-tuning arguments and training
+batch_size: 2
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 64
+compile: False
+
+optimizer:
+  _component_: torch.optim.AdamW
+  weight_decay: 0.01
+  lr: 3e-4
+
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+
+# Training environment
+device: cuda
+enable_activation_checkpointing: True
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/qlora_code_llama2_finetune_output
+log_every_n_steps: 1
+log_peak_memory_stats: False
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
+  output_dir: ${output_dir}/torchtune_perf_tracing.json

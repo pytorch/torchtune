@@ -102,7 +102,7 @@ class InferenceRecipe:
                 max_generated_tokens=2,
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
-                eos_id=self._tokenizer.eos_id,
+                stop_tokens=self._tokenizer.stop_tokens,
                 custom_generate_next_token=custom_generate_next_token,
             )
             t = time.perf_counter() - t0
@@ -115,7 +115,7 @@ class InferenceRecipe:
             max_generated_tokens=cfg.max_new_tokens,
             temperature=cfg.temperature,
             top_k=cfg.top_k,
-            eos_id=self._tokenizer.eos_id,
+            stop_tokens=self._tokenizer.stop_tokens,
             custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0
