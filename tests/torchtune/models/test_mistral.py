@@ -7,17 +7,9 @@
 import pytest
 import torch
 from tests.test_utils import fixed_init_model
+from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
 from torchtune.models.mistral import mistral
 from torchtune.utils.seed import set_seed
-
-EMBED_DIM = 128
-NUM_LAYERS = 4
-NUM_HEADS = 16
-NUM_KV_HEADS = 8
-VOCAB_SIZE = 32000
-MAX_SEQ_LEN = 2048
-BSZ = 2
-SEQ_LEN = 100
 
 
 @pytest.fixture(autouse=True)
@@ -28,19 +20,27 @@ def random():
 class TestMistral:
     @pytest.fixture
     def inputs(self):
-        return torch.randint(0, VOCAB_SIZE, (BSZ, SEQ_LEN))
+        return torch.randint(
+            0,
+            MistralTestConfig.VOCAB_SIZE,
+            (MistralTestConfig.BSZ, MistralTestConfig.SEQ_LEN),
+        )
 
     def test_forward(self, inputs):
         model = mistral(
-            vocab_size=VOCAB_SIZE,
-            num_layers=NUM_LAYERS,
-            num_heads=NUM_HEADS,
-            num_kv_heads=NUM_KV_HEADS,
-            embed_dim=EMBED_DIM,
-            max_seq_len=MAX_SEQ_LEN,
+            vocab_size=MistralTestConfig.VOCAB_SIZE,
+            num_layers=MistralTestConfig.NUM_LAYERS,
+            num_heads=MistralTestConfig.NUM_HEADS,
+            num_kv_heads=MistralTestConfig.NUM_KV_HEADS,
+            embed_dim=MistralTestConfig.EMBED_DIM,
+            max_seq_len=MistralTestConfig.MAX_SEQ_LEN,
         )
         fixed_init_model(model, min_val=-0.25, max_val=0.5)
         actual = model(inputs)
         expected = torch.tensor(3.9763)
-        assert actual.shape == (BSZ, SEQ_LEN, VOCAB_SIZE)
+        assert actual.shape == (
+            MistralTestConfig.BSZ,
+            MistralTestConfig.SEQ_LEN,
+            MistralTestConfig.VOCAB_SIZE,
+        )
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-4)

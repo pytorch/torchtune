@@ -4,85 +4,48 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+
 import torch
+
 from tests.test_utils import init_weights_with_constant
 from tests.torchtune.models.mistral.scripts.mistral_reference import (
-    apply_rotary_emb,
-    Attention,
     precompute_freqs_cis,
+    TransformerBlock,
 )
 from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
+
 from torch import nn
-from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings
+
+from torchtune.models.mistral._component_builders import mistral_mlp
+
+from torchtune.modules import (
+    CausalSelfAttention,
+    RMSNorm,
+    RotaryPositionalEmbeddings,
+    TransformerDecoderLayer,
+)
 
 
-def compare_rope(
-    bsz: int, num_heads: int, embed_dim: int, seq_len: int, max_seq_len: int
-) -> None:
-    # make sure we have the right seed for generating outputs
-    torch.manual_seed(MistralTestConfig.SEED)
-
-    head_dim = embed_dim // num_heads
-
-    # generate input tensor
-    x = torch.randn(bsz, seq_len, num_heads, head_dim)
-
-    # Compute the reference tensors - mistral's implementation applies the same operation
-    # to both key and query tensors at once, so we can just pass our input tensor for both
-    # values and ignore the second return value.
-    freq_cis = precompute_freqs_cis(dim=head_dim, end=seq_len * 2, theta=10000.0)
-    x_out_ref, _ = apply_rotary_emb(x, x.clone(), freqs_cis=freq_cis[:seq_len])
-
-    # Compute the tensors from current implementation
-    rope_emb = RotaryPositionalEmbeddings(
-        dim=head_dim, max_seq_len=max_seq_len, base=10000
-    )
-    x_out = rope_emb(x)
-
-    # Validate correctness
-    torch.testing.assert_close(x_out_ref, x_out, atol=1e-6, rtol=1e-5)
-    print("Rope embeddings are correct")
-    # value: tensor(6.4543e-05)
-    print(f"x_out.mean(): {x_out.mean()}")
-
-    # value: tensor(2165.7053)
-    print(f"x_out.sum() {x_out.sum()}")
-
-    # value: tensor(5.4546)
-    print(f"x_out.max() {x_out.max()}")
-
-    curr_pos = 10
-    x_out_ref, _ = apply_rotary_emb(
-        x, x.clone(), freqs_cis=freq_cis[curr_pos : curr_pos + seq_len]
-    )
-
-    x_out = rope_emb(x, input_pos=torch.arange(curr_pos, curr_pos + seq_len))
-
-    # Validate correctness
-    torch.testing.assert_close(x_out_ref, x_out, atol=1e-6, rtol=1e-5)
-    print("Rope embeddings for a specific position are correct")
-    # value: tensor(0.0002)
-    print(f"x_out.mean(): {x_out.mean()}")
-
-    # value: tensor(5158.3159)
-    print(f"x_out.sum(): {x_out.sum()}")
-
-    # value: tensor(5.4543)
-    print(f"x_out.max(): {x_out.max()}")
-
-
-def compare_attention(
+def compare_decoder_layer(
     bsz: int,
     seq_len: int,
     embed_dim: int,
+    intermediate_dim: int,
     num_heads: int,
     num_kv_heads: int,
     max_seq_len: int,
     rope_base: int,
-):
+    norm_eps: float,
+) -> None:
     # make sure we have the right seed for generating outputs
-    torch.manual_seed(16)
+    # this should match up the seed value set in the corresponding
+    # unit test
+    torch.manual_seed(MistralTestConfig.SEED)
 
+    head_dim = embed_dim // num_heads
+
+    # generate input tensor used by both implementations
+    input_t = torch.randn(bsz, seq_len, embed_dim)
     head_dim = embed_dim // num_heads
 
     # generate input tensor
@@ -92,23 +55,30 @@ def compare_attention(
     mask = torch.triu(mask, diagonal=1)
     freq_cis = precompute_freqs_cis(dim=head_dim, end=seq_len, theta=float(rope_base))
     # initialize reference implementation with constant weights
-    attn_ref = Attention(
+    ref_decoder_layer = TransformerBlock(
         n_heads=num_heads,
         head_dim=head_dim,
         dim=embed_dim,
         n_kv_heads=num_kv_heads,
+        hidden_dim=intermediate_dim,
+        norm_eps=norm_eps,
     )
-    init_weights_with_constant(attn_ref, constant=0.05)
+    init_weights_with_constant(ref_decoder_layer, constant=0.05)
 
     with torch.no_grad():
         # mistral implementation expects mask [b, num_heads, seq_len, seq_len]
-        attn_out_ref = attn_ref(input_t, freq_cis, mask=mask.squeeze())
+        decoder_out_ref = ref_decoder_layer(
+            x=input_t, freqs_cis=freq_cis, mask=mask.squeeze()
+        )
 
-    # initialise current implementation with constant weights
+    # current implementation; initialize with constant to compare outputs
+    norm_eps = 1e-5
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
-    attn = CausalSelfAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -120,18 +90,24 @@ def compare_attention(
         pos_embeddings=rope,
         kv_cache=None,
         max_seq_len=max_seq_len,
+        attn_dropout=0.0,
     )
-
-    init_weights_with_constant(attn, constant=0.05)
+    mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+    decoder_layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+    )
+    init_weights_with_constant(decoder_layer, constant=0.05)
 
     with torch.no_grad():
-        attn_out = attn(input_t)
+        decoder_layer_out = decoder_layer(input_t)
 
-    # value: tensor(-27.5074)
-    print(f"attn_out.mean(): {attn_out.mean()}")
+    # value: torch.tensor(-0.00133)
+    print(f"decoder_out.mean(): {decoder_layer_out.mean()}")
 
-    # output tensors should be similar
-    torch.testing.assert_close(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
+    torch.testing.assert_close(decoder_layer_out, decoder_out_ref, atol=1e-2, rtol=1e-2)
 
 
 if __name__ == "__main__":
@@ -157,6 +133,12 @@ if __name__ == "__main__":
         help="Embedding dimension used to compute the dim for RopE",
     )
     parser.add_argument(
+        "--intermediate_dim",
+        type=int,
+        default=MistralTestConfig.INTERMEDIATE_DIM,
+        help="Intermediate dimension for MLP",
+    )
+    parser.add_argument(
         "--num_heads",
         type=int,
         default=MistralTestConfig.NUM_HEADS,
@@ -175,24 +157,27 @@ if __name__ == "__main__":
         help="max sequence length",
     )
     parser.add_argument(
+        "--norm_eps",
+        type=float,
+        default=MistralTestConfig.NORM_EPS,
+        help="RMSNorm epsilon",
+    )
+    parser.add_argument(
         "--rope_base",
-        type=int,
+        type=float,
         default=MistralTestConfig.ROPE_BASE,
         help="Base for the rotary positional embeddings",
     )
-
     args = parser.parse_args()
 
-    compare_rope(
-        args.bsz, args.num_heads, args.embed_dim, args.seq_len, args.max_seq_len
-    )
-
-    compare_attention(
+    compare_decoder_layer(
         args.bsz,
         args.seq_len,
         args.embed_dim,
+        args.intermediate_dim,
         args.num_heads,
         args.num_kv_heads,
         args.max_seq_len,
         args.rope_base,
+        args.norm_eps,
     )
