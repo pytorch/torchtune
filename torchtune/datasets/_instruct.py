@@ -7,7 +7,7 @@
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_instruct_template
 from torchtune.data import (
@@ -56,7 +56,7 @@ class InstructDataset(Dataset):
     def __init__(
         self,
         tokenizer: Tokenizer,
-        source: str,
+        source: str | List[str],
         template: InstructTemplate,
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
@@ -65,7 +65,10 @@ class InstructDataset(Dataset):
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        self._data = load_dataset(source, **load_dataset_kwargs)
+        if isinstance(source, str):
+            source = [source]
+        datasets = [load_dataset(s, **load_dataset_kwargs) for s in source]
+        self._data = concatenate_datasets(datasets)
         self.template = template
         self._transform = transform
         self._column_map = column_map
@@ -108,7 +111,7 @@ class InstructDataset(Dataset):
 
 def instruct_dataset(
     tokenizer: Tokenizer,
-    source: str,
+    source: str | List[str],
     template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,

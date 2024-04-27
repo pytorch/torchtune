@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_chat_format
 from torchtune.data import (
@@ -66,7 +66,7 @@ class ChatDataset(Dataset):
         self,
         *,
         tokenizer: Tokenizer,
-        source: str,
+        source: str | List[str],
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
         chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
@@ -74,7 +74,10 @@ class ChatDataset(Dataset):
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        self._data = load_dataset(source, **load_dataset_kwargs)
+        if isinstance(source, str):
+            source = [source]
+        datasets = [load_dataset(s, **load_dataset_kwargs) for s in source]
+        self._data = concatenate_datasets(datasets)
         self._convert_to_messages = convert_to_messages
         self.chat_format = chat_format
         self.max_seq_len = max_seq_len
@@ -105,7 +108,7 @@ class ChatDataset(Dataset):
 def chat_dataset(
     *,
     tokenizer: Tokenizer,
-    source: str,
+    source: str | List[str],
     conversation_style: str,
     chat_format: Optional[str] = None,
     max_seq_len: int,
