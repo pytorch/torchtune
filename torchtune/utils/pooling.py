@@ -27,17 +27,15 @@ def pool_sequence_logits(
 
     # inspired by the HF implementation:
     # https://github.com/huggingface/transformers/blob/928331381ef6ce0622c0b1ac704299046b3afa21/src/transformers/models/mistral/modeling_mistral.py#L1339
-    if padding_token_idx is None:
-        sequence_lengths = -1
+
+    # calculate per-batch-element sequence lengths by finding EOS padding tokens
+    padding_mask = tokens == padding_token_idx
+    if padding_mask.any():
+        sequence_lengths = (
+            padding_mask.logical_not().sum(-1).to(logits.device).sub(1).clip(0)
+        )
     else:
-        # calculate per-batch-element sequence lengths by finding EOS padding tokens
-        padding_mask = tokens == padding_token_idx
-        if padding_mask.any():
-            sequence_lengths = (
-                padding_mask.logical_not().sum(-1).to(logits.device).sub(1).clip(0)
-            )
-        else:
-            sequence_lengths = -1
+        sequence_lengths = -1
 
     # grab logits for the last non-padding token for each sequence in the batch
     return logits[torch.arange(batch_size, device=logits.device), sequence_lengths]

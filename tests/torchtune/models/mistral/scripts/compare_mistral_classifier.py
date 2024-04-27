@@ -167,13 +167,13 @@ def compare_mistral_classifier(
 
 
 if __name__ == "__main__":
-    # (bsz, embed_dim, seq_len, n_classes)
+    # (bsz, embed_dim, seq_len, n_classes) # expected
     test_cases = [
-        (2, 64, 64, 2),
-        (64, 512, 512, 200),
-        (1, 256, 512, 1),
+        (2, 64, 64, 2),  # 22.6879
+        (64, 128, 256, 200),  # 36.8238
+        (1, 256, 512, 1),  # 110.2561
     ]
-    for bsz, embed_dun, seq_len, n_classes in test_cases:
+    for bsz, embed_dim, seq_len, n_classes in test_cases:
         compare_mistral_classifier(
             bsz,
             seq_len,
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             num_layers=4,
             num_heads=16,
             num_kv_heads=8,
-            embed_dim=128,
+            embed_dim=embed_dim,
             intermediate_dim=512,
             max_seq_len=2048,
         )
