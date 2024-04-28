@@ -378,6 +378,7 @@
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">utils</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.models</span> <span class="kn">import</span> <span class="n">convert_weights</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.phi3</span> <span class="kn">import</span> <span class="n">phi3_hf_to_tune</span><span class="p">,</span> <span class="n">phi3_tune_to_hf</span>
 <span class="kn">from</span> <span class="nn">torchtune.utils._checkpointing._checkpointer_utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">get_path</span><span class="p">,</span>
     <span class="n">ModelType</span><span class="p">,</span>
@@ -662,7 +663,7 @@
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">model_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">=</span> <span class="n">ModelType</span><span class="p">[</span><span class="n">model_type</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span> <span class="o">=</span> <span class="n">resume_from_checkpoint</span>
 
@@ -744,12 +745,15 @@
             <span class="k">del</span> <span class="n">state_dict</span>
             <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
 
-        <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">hf_to_tune</span><span class="p">(</span>
-            <span class="n">merged_state_dict</span><span class="p">,</span>
-            <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
-            <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_hf_to_tune</span><span class="p">(</span><span class="n">merged_state_dict</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">hf_to_tune</span><span class="p">(</span>
+                <span class="n">merged_state_dict</span><span class="p">,</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">:</span>
             <span class="n">adapter_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_adapter_checkpoint</span><span class="p">)</span>
@@ -783,12 +787,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
-        <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
-            <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
-            <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
-            <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+            <span class="p">)</span>
 
         <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
         <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
