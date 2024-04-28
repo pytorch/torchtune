@@ -6,41 +6,29 @@
 
 from typing import List, Tuple
 
-from omegaconf import DictConfig
 from torch.utils.data import Dataset
-from torchtune import config, utils
-from tqdm import tqdm
+
+from torchtune import utils
 
 log = utils.get_logger("DEBUG")
 
 
 class MultiDataset(Dataset):
-    def __init__(self, datasets: DictConfig[DictConfig], tokenizer):
+    def __init__(self, datasets: List[List[Dataset]]):
         self._datasets = datasets
-        self._tokenizer = tokenizer
-        self._data = []
-
-        # Load all datasets one by one
-        for dataset in datasets:
-            self._data.extend(self._loading_dataset(dataset))
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        return self._data[index]
+        if index < 0 or index >= self.__len__():
+            raise IndexError("Index out of range")
+
+        cumulative_index = 0
+        for dataset in self._datasets:
+            # Let's check if the index is in the dataset
+            if cumulative_index + len(dataset) > index:
+                # If yes, then prepare the sample and return it
+                return dataset[index - cumulative_index]  # noqa
+            # Otherwise, go to the next dataset
+            cumulative_index += len(dataset)
 
     def __len__(self) -> int:
-        return len(self._data)
-
-    def _loading_dataset(
-        self, dataset: DictConfig
-    ) -> List[Tuple[List[int], List[int]]]:
-        """
-        Loads the dataset from provided omegaconf object, and returns it as a list.
-        Each element in the list is a tuple of tokens and labels.
-        """
-        log.info(f"Loading dataset {dataset.source}")
-        items = config.instantiate(dataset, tokenizer=self._tokenizer)
-
-        output = []
-        for tokens, labels in tqdm(items):
-            output.append((tokens, labels))
-        return output
+        return sum(len(sublist) for sublist in self._datasets)
