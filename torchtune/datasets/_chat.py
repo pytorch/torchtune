@@ -15,8 +15,8 @@ from torchtune.data import (
     ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
     Message,
-    sharegpt_to_llama2_messages,
     openai_to_llama2_messages,
+    sharegpt_to_llama2_messages,
     validate_messages,
 )
 from torchtune.modules.tokenizers import Tokenizer
