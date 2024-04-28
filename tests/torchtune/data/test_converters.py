@@ -15,7 +15,7 @@ CHAT_SAMPLE = {
     "assistant": "A father in Russia allowed his 8-year-old child to drive his car on an icy road and recorded the event. The child appeared to be handling the situation well, showcasing their driving skills despite the challenging conditions.",  # noqa: B950
 }
 
-EXPECTED_MESSAGE = [
+EXPECTED_MESSAGE_TRAIN_ON_INPUT = [
     Message(
         role="system",
         content=CHAT_SAMPLE["system"],
@@ -30,22 +30,33 @@ EXPECTED_MESSAGE = [
     ),
 ]
 
+EXPECTED_MESSAGE = [
+    Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+    Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
 
 class TestSharegptToLlama2Messages:
-    samples = [
-        {
-            "from": "system",
-            "value": CHAT_SAMPLE["system"],
-        },
-        {
-            "from": "user",
-            "value": CHAT_SAMPLE["user"],
-        },
-        {
-            "from": "assistant",
-            "value": CHAT_SAMPLE["assistant"],
-        },
-    ]
+    samples = {
+        "conversations": [
+            {
+                "from": "system",
+                "value": CHAT_SAMPLE["system"],
+            },
+            {
+                "from": "human",
+                "value": CHAT_SAMPLE["user"],
+            },
+            {
+                "from": "gpt",
+                "value": CHAT_SAMPLE["assistant"],
+            },
+        ]
+    }
 
     def test_conversion(self):
         converted_messages = sharegpt_to_llama2_messages(self.samples)
@@ -56,7 +67,9 @@ class TestSharegptToLlama2Messages:
         converted_messages = sharegpt_to_llama2_messages(
             self.samples, train_on_input=True
         )
-        for converted, expected in zip(converted_messages, EXPECTED_MESSAGE):
+        for converted, expected in zip(
+            converted_messages, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
             assert converted == expected
 
 
@@ -65,16 +78,16 @@ class TestOpenaiToLlama2Messages:
         "id": "DUMMY",
         "conversations": [
             {
-                "from": "system",
-                "value": CHAT_SAMPLE["system"],
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
             },
             {
-                "from": "user",
-                "value": CHAT_SAMPLE["user"],
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
             },
             {
-                "from": "assistant",
-                "value": CHAT_SAMPLE["assistant"],
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
             },
         ],
     }
@@ -83,38 +96,44 @@ class TestOpenaiToLlama2Messages:
         "id": "DUMMY",
         "messages": [
             {
-                "from": "system",
-                "value": CHAT_SAMPLE["system"],
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
             },
             {
-                "from": "user",
-                "value": CHAT_SAMPLE["user"],
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
             },
             {
-                "from": "assistant",
-                "value": CHAT_SAMPLE["assistant"],
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
             },
         ],
     }
 
-    def test_conversion(self):
+    def test_conversion_conversations_key(self):
         converted_messages_1 = openai_to_llama2_messages(self.samples_1)
         for converted, expected in zip(converted_messages_1, EXPECTED_MESSAGE):
             assert converted == expected
 
+    def test_conversion_messages_key(self):
         converted_messages_2 = openai_to_llama2_messages(self.samples_2)
         for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
             assert converted == expected
 
-    def test_conversion_train_on_input(self):
+    def test_conversion_conversations_key_train_on_input(self):
         converted_messages_1 = openai_to_llama2_messages(
             self.samples_1, train_on_input=True
         )
-        for converted, expected in zip(converted_messages_1, EXPECTED_MESSAGE):
+        for converted, expected in zip(
+            converted_messages_1, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
             assert converted == expected
 
+    def test_conversion_messages_key_train_on_input(self):
         converted_messages_2 = openai_to_llama2_messages(
             self.samples_2, train_on_input=True
         )
-        for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
+        for converted, expected in zip(
+            converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
             assert converted == expected
