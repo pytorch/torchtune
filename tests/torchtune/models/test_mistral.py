@@ -14,7 +14,7 @@ from torchtune.utils.seed import set_seed
 
 @pytest.fixture(autouse=True)
 def random():
-    set_seed(16)
+    set_seed(MistralTestConfig.SEED)
 
 
 class TestMistral:
