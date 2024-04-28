@@ -91,7 +91,9 @@ def openai_to_llama2_messages(
         sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
             to a list of dict messages.
         train_on_input (bool): whether the prompt should remain unmasked. Default: False
-        messages_key (str): the key in the sample that contains the messages. Default: "messages"
+
+    Raises:
+        ValueError: If the sample does not contain "messages" or "conversations" key.
 
     Returns:
         List[Message]: A list of messages with "role" and "content" fields.
@@ -101,7 +103,9 @@ def openai_to_llama2_messages(
     elif "conversations" in sample:
         messages_key = "conversations"
     else:
-        raise ValueError(f"Sample does not contain 'messages' or 'conversations' key. Existing keys: {sample.keys()}")
+        raise ValueError(
+            f"Sample does not contain 'messages' or 'conversations' key. Existing keys: {sample.keys()}"
+        )
     conversations = sample[messages_key]
 
     messages = []
