@@ -338,7 +338,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
         if isinstance(cfg_dataset, ListConfig):
-            ds = utils.MultiDataset(datasets=cfg_dataset, tokenizer=self._tokenizer)
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenzier=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = utils.MultiDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
