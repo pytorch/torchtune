@@ -320,10 +320,11 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         DistributedSamplers with Map-style Datasets which fit into memory. Other samplers,
         iterable datasets and streaming datasets are not supported.
         """
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+        if isinstance(cfg_dataset.get(0), DictConfig):
+            ds = utils.MultiDataset(datasets=cfg_dataset, tokenizer=self._tokenizer)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,

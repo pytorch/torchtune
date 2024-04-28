@@ -357,10 +357,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+
+        if isinstance(cfg_dataset.get(0), DictConfig):
+            ds = utils.MultiDataset(datasets=cfg_dataset, tokenizer=self._tokenizer)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=world_size,
