@@ -40,7 +40,7 @@ EXPECTED_MESSAGE = [
 ]
 
 
-class TestSharegptToLlama2Messages:
+class TestShareGPTToLlama2Messages:
     samples = {
         "conversations": [
             {
@@ -73,7 +73,7 @@ class TestSharegptToLlama2Messages:
             assert converted == expected
 
 
-class TestOpenaiToLlama2Messages:
+class TestOpenAIToLlama2Messages:
     samples_1 = {
         "id": "DUMMY",
         "conversations": [
