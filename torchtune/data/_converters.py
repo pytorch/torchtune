@@ -106,8 +106,6 @@ def openai_to_llama2_messages(
 
     messages = []
     for message in conversations:
-        role = message["role"]
-        content = message["content"]
-        masked = (role != "assistant") and (not train_on_input)
-        messages.append(Message(role=role, content=content, masked=masked))
+        message["masked"] = (message["role"] != "assistant") and (not train_on_input)
+        messages.append(Message.from_dict(message))
     return messages
