@@ -7,7 +7,7 @@
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
-from datasets import concatenate_datasets, load_dataset
+from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_instruct_template
 from torchtune.data import (
@@ -38,7 +38,7 @@ class InstructDataset(Dataset):
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str | List[str]): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
@@ -56,7 +56,7 @@ class InstructDataset(Dataset):
     def __init__(
         self,
         tokenizer: Tokenizer,
-        source: str | List[str],
+        source: str,
         template: InstructTemplate,
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
@@ -65,10 +65,7 @@ class InstructDataset(Dataset):
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        if isinstance(source, str):
-            source = [source]
-        datasets = [load_dataset(s, **load_dataset_kwargs) for s in source]
-        self._data = concatenate_datasets(datasets)
+        self._data = load_dataset(source, **load_dataset_kwargs)
         self.template = template
         self._transform = transform
         self._column_map = column_map
@@ -111,7 +108,7 @@ class InstructDataset(Dataset):
 
 def instruct_dataset(
     tokenizer: Tokenizer,
-    source: str | List[str],
+    source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
     train_on_input: bool = False,
@@ -125,7 +122,7 @@ def instruct_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str | List[str]): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (str): class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.

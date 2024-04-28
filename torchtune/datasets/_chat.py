@@ -8,7 +8,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
 
 import numpy as np
 
-from datasets import concatenate_datasets, load_dataset
+from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_chat_format
 from torchtune.data import (
@@ -47,7 +47,7 @@ class ChatDataset(Dataset):
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
-        source (str | List[str]): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
@@ -66,7 +66,7 @@ class ChatDataset(Dataset):
         self,
         *,
         tokenizer: Tokenizer,
-        source: str | List[str],
+        source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
         chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
@@ -74,10 +74,7 @@ class ChatDataset(Dataset):
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        if isinstance(source, str):
-            source = [source]
-        datasets = [load_dataset(s, **load_dataset_kwargs) for s in source]
-        self._data = concatenate_datasets(datasets)
+        self._data = load_dataset(source, **load_dataset_kwargs)
         self._convert_to_messages = convert_to_messages
         self.chat_format = chat_format
         self.max_seq_len = max_seq_len
@@ -108,7 +105,7 @@ class ChatDataset(Dataset):
 def chat_dataset(
     *,
     tokenizer: Tokenizer,
-    source: str | List[str],
+    source: str,
     conversation_style: str,
     chat_format: Optional[str] = None,
     max_seq_len: int,
@@ -122,7 +119,7 @@ def chat_dataset(
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
-        source (str | List[str]): path string of dataset, anything supported by Hugging Face's ``load_dataset``
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
             for automatic conversion to the Llama style. Supported styles are: "sharegpt"
