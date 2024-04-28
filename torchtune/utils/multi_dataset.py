@@ -16,6 +16,7 @@ log = utils.get_logger("DEBUG")
 class MultiDataset(Dataset):
     def __init__(self, datasets: List[List[Dataset]]):
         self._datasets = datasets
+        self._len = sum(len(sublist) for sublist in datasets)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
         if index < 0 or index >= len(self):
@@ -31,4 +32,4 @@ class MultiDataset(Dataset):
             cumulative_index += len(dataset)
 
     def __len__(self) -> int:
-        return sum(len(sublist) for sublist in self._datasets)
+        return self._len
