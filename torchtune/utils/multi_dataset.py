@@ -19,9 +19,6 @@ class MultiDataset(Dataset):
         self._len = sum(len(sublist) for sublist in datasets)
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        if index < 0 or index >= len(self):
-            raise IndexError("Index out of range")
-
         cumulative_index = 0
         for dataset in self._datasets:
             # Let's check if the index is in the dataset
