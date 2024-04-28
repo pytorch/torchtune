@@ -31,7 +31,7 @@ EXPECTED_MESSAGE = [
 ]
 
 
-class TestSharegptToLlama2Messages:
+class TestShareGPTToLlama2Messages:
     samples = [
         {
             "from": "system",
