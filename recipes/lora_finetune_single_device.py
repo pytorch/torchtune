@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
@@ -337,7 +337,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        if isinstance(cfg_dataset.get(0), DictConfig):
+        if isinstance(cfg_dataset, ListConfig):
             ds = utils.MultiDataset(datasets=cfg_dataset, tokenizer=self._tokenizer)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
