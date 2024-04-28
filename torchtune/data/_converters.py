@@ -57,7 +57,7 @@ def sharegpt_to_llama2_messages(
     return messages
 
 
-def standard_chat_to_llama2_messages(
+def openai_to_llama2_messages(
     sample: Mapping[str, Any],
     train_on_input: bool = False,
 ) -> List[Message]:
@@ -65,7 +65,7 @@ def standard_chat_to_llama2_messages(
     Convert a chat sample adhering to the OpenAI API standard chat format to the Llama2 chat format.
 
     OpenAI API standard chat format follows::
-
+    Check https://platform.openai.com/docs/guides/text-generation/chat-completions-api for more details
         {
             # key could be "messages" OR "conversations"
             "messages": [

@@ -16,7 +16,7 @@ from torchtune.data import (
     CROSS_ENTROPY_IGNORE_IDX,
     Message,
     sharegpt_to_llama2_messages,
-    standard_chat_to_llama2_messages,
+    openai_to_llama2_messages,
     validate_messages,
 )
 from torchtune.modules.tokenizers import Tokenizer
@@ -160,8 +160,8 @@ def chat_dataset(
     """
     if conversation_style == "sharegpt":
         convert_to_messages = sharegpt_to_llama2_messages
-    elif conversation_style == "standard_chat":
-        convert_to_messages = standard_chat_to_llama2_messages
+    elif conversation_style == "openai":
+        convert_to_messages = openai_to_llama2_messages
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
