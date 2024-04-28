@@ -60,7 +60,7 @@ class TestShareGPTToLlama2Messages:
             assert converted == expected
 
 
-class TestOpenaiToLlama2Messages:
+class TestOpenAIToLlama2Messages:
     samples_1 = {
         "id": "DUMMY",
         "conversations": [
