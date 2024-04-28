@@ -418,6 +418,63 @@
         <span class="n">masked</span> <span class="o">=</span> <span class="p">(</span><span class="n">role</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">train_on_input</span><span class="p">)</span>
         <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="p">(</span><span class="n">role</span><span class="o">=</span><span class="n">role</span><span class="p">,</span> <span class="n">content</span><span class="o">=</span><span class="n">content</span><span class="p">,</span> <span class="n">masked</span><span class="o">=</span><span class="n">masked</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">messages</span></div>
+
+
+<span class="k">def</span> <span class="nf">openai_to_llama2_messages</span><span class="p">(</span>
+    <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert a chat sample adhering to the OpenAI API standard chat format to the Llama2 chat format.</span>
+
+<span class="sd">    OpenAI API `standard chat format &lt;https://platform.openai.com/docs/guides/text-generation/chat-completions-api&gt;`_ follows::</span>
+<span class="sd">        {</span>
+<span class="sd">            # key could be &quot;messages&quot; OR &quot;conversations&quot;</span>
+<span class="sd">            &quot;messages&quot;: [</span>
+<span class="sd">                {</span>
+<span class="sd">                    &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
+<span class="sd">                    &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">                },</span>
+<span class="sd">                ...</span>
+<span class="sd">            ]</span>
+<span class="sd">        }</span>
+
+<span class="sd">    Llama2 follows::</span>
+
+<span class="sd">        [</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;role&quot;: &lt;system|user|assistant&gt;,</span>
+<span class="sd">                &quot;content&quot;: &lt;message&gt;,</span>
+<span class="sd">            },</span>
+<span class="sd">            ...</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        sample (Mapping[str, Any]): a single data sample with &quot;conversations&quot; field pointing</span>
+<span class="sd">            to a list of dict messages.</span>
+<span class="sd">        train_on_input (bool): whether the prompt should remain unmasked. Default: False</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If the sample does not contain &quot;messages&quot; or &quot;conversations&quot; key.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Message]: A list of messages with &quot;role&quot; and &quot;content&quot; fields.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s2">&quot;messages&quot;</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
+        <span class="n">messages_key</span> <span class="o">=</span> <span class="s2">&quot;messages&quot;</span>
+    <span class="k">elif</span> <span class="s2">&quot;conversations&quot;</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">:</span>
+        <span class="n">messages_key</span> <span class="o">=</span> <span class="s2">&quot;conversations&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Sample does not contain &#39;messages&#39; or &#39;conversations&#39; key. Existing keys: </span><span class="si">{</span><span class="n">sample</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+    <span class="n">conversations</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="n">messages_key</span><span class="p">]</span>
+
+    <span class="n">messages</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">conversations</span><span class="p">:</span>
+        <span class="n">message</span><span class="p">[</span><span class="s2">&quot;masked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="s2">&quot;role&quot;</span><span class="p">]</span> <span class="o">!=</span> <span class="s2">&quot;assistant&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="n">train_on_input</span><span class="p">)</span>
+        <span class="n">messages</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">message</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">messages</span>
 </pre></div>
 
              </article>
