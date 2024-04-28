@@ -17,6 +17,7 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 from tests.test_utils import assert_expected, captured_output
 
 from torchtune.utils.metric_logging import (
+    ClearMLLogger,
     DiskLogger,
     StdoutLogger,
     TensorBoardLogger,
@@ -165,3 +166,23 @@ class TestWandBLogger:
             expected_config_path = "torchtune_config.yaml"
             mock_save.assert_called_once_with(cfg, expected_config_path)
             mock_wandb_save.assert_called_once_with(expected_config_path)
+
+
+class TestClearmlLogger:
+    def test_clearml_import(self):
+        # Test to ensure that the ClearmlLogger handles the absence of `clearml` gracefully
+        with patch(
+            "builtins.__import__", side_effect=ImportError("No module named 'clearml'")
+        ):
+            with self.assertRaises(ImportError):
+                logger = ClearMLLogger(project="test_project")
+                self.assertIsNone(logger._task)
+
+    def test_log_dict(self) -> None:
+        with patch("clearml.Task") as mock_log:
+            logger = ClearMLLogger(project="test_project")
+            metric_dict = {f"log_dict_{i}": float(i) ** 2 for i in range(5)}
+            logger.log_dict(metric_dict, 1)
+            logger.close()
+
+            mock_log.assert_called_with(metric_dict, step=1)
