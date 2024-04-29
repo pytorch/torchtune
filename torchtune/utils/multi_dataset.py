@@ -16,17 +16,24 @@ log = utils.get_logger("DEBUG")
 class MultiDataset(Dataset):
     def __init__(self, datasets: List[List[Dataset]]):
         self._datasets = datasets
-        self._len = sum(len(sublist) for sublist in datasets)
+        self._len = sum(len(dataset) for dataset in datasets)
+        self._indexes = []
+
+        # Calculate distribution of indexes in all datasets
+        cumulative_index = 0
+        for idx, dataset in enumerate(datasets):
+            next_cumulative_index = cumulative_index + len(dataset)
+            self._indexes.append((cumulative_index, next_cumulative_index, idx))
+            cumulative_index = next_cumulative_index
+
+        log.debug(f"Datasets summary length: {self._len}")
+        log.debug(f"Datasets indexes: {self._indexes}")
 
     def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        cumulative_index = 0
-        for dataset in self._datasets:
-            # Let's check if the index is in the dataset
-            if cumulative_index + len(dataset) > index:
-                # If yes, then prepare the sample and return it
-                return dataset[index - cumulative_index]  # noqa
-            # Otherwise, go to the next dataset
-            cumulative_index += len(dataset)
+        for start, stop, dataset_index in self._indexes:
+            if start <= index < stop:
+                dataset = self._datasets[dataset_index]
+                return dataset[index - start]  # noqa
 
     def __len__(self) -> int:
         return self._len
