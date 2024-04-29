@@ -49,6 +49,20 @@ class SentencePieceTokenizer:
         # During generation, stop when eos_id is encountered
         self.stop_tokens = {self.eos_id}
 
+    def add_special_tokens(self, special_tokens: List[str]) -> None:
+        """Add special tokens to the tokenizer.
+
+        Args:
+            special_tokens (List[str]): A list of special tokens to add.
+        """
+        import pdb
+        pdb.set_trace()
+        for token in special_tokens:
+            new_token = SentencePieceProcessor().ModelProto().SentencePiece()
+            new_token.piece = token
+            new_token.score = 0
+            self.tokenizer.pieces.append(token)
+
     def encode(
         self,
         text: str,

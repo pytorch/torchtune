@@ -37,6 +37,36 @@ def phi3_mini() -> TransformerDecoder:
     )
 
 def phi3_tokenizer(path: str) -> SentencePieceTokenizer:
+    """Phi-3 Mini tokenizer.
+
+    Args:
+        path (str): Path to the SPM tokenizer model.
+
+    Note:
+        This tokenizer includes typical LM EOS and BOS tokens like
+        <s>, </s>, and <unk>. However, to support chat completion,
+        it is also augmented with special tokens like <|endoftext|>
+        and <|assistant|>.
+
+    Returns:
+        SentencePieceTokenizer: Instantiation of the SPM tokenizer.
+    """
+    special_tokens = [
+        "<|endoftext|>",
+        "<|assistant|>",
+        "<|placeholder1|>",
+        "<|placeholder2|>",
+        "<|placeholder3|>",
+        "<|placeholder4|>",
+        "<|system|>",
+        "<|end|>",
+        "<|placeholder5|>",
+        "<|placeholder6|>",
+        "<|user|>",
+    ]
     tokenizer = SentencePieceTokenizer(path)
-    tokenizer.pad_id = 0
+    tokenizer.add_special_tokens(special_tokens)
+    tokenizer.eos_id = 32_000
+    tokenizer.pad_id = 32_000
+
     return tokenizer
