@@ -638,6 +638,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
                 loss.backward()
+                grad_norm = nn.utils.clip_grad_norm_(
+                    self._model.parameters(), max_norm=self._max_norm
+                )
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -680,6 +683,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
                             .mean()
                             .cpu(),
                             "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
+                            "grad_norm": grad_norm,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
