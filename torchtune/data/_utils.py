@@ -55,8 +55,4 @@ def validate_messages(
             raise ValueError(
                 f"Two consecutive user messages at index {i} and {i - 1} in messages"
             )
-        if message.role == "system" and i > 0:
-            raise ValueError(
-                f"System message at index {i} in messages, but system messages must come first"
-            )
         last_turn = message.role
