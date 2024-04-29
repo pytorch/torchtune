@@ -12,7 +12,7 @@ from typing import Mapping, Optional, Union
 
 from numpy import ndarray
 from omegaconf import DictConfig, OmegaConf
-from torch import Tensor
+from torch import nn, Tensor
 
 from torchtune.utils import get_logger
 from torchtune.utils._distributed import get_world_size_and_rank
@@ -21,6 +21,17 @@ from typing_extensions import Protocol
 Scalar = Union[Tensor, ndarray, int, float]
 
 log = get_logger("DEBUG")
+
+
+def compute_grad_norm(model: nn.Module) -> float:
+    """Compute models grad norm"""
+    total_norm = 0.0
+    for p in model.parameters():
+        if p.grad is not None:
+            param_norm = p.grad.detach().data.norm(2)
+            total_norm += param_norm.item() ** 2
+
+    return total_norm**0.5
 
 
 class MetricLoggerInterface(Protocol):

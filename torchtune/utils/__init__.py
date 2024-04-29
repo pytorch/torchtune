@@ -46,6 +46,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+from .metric_logging import compute_grad_norm
 from .precision import (
     get_dtype,
     list_dtypes,
@@ -83,4 +84,5 @@ __all__ = [
     "register_optim_in_bwd_hooks",
     "profiler",
     "get_quantizer_mode",
+    "compute_grad_norm",
 ]
