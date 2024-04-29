@@ -420,7 +420,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
                 loss.backward()
-                grad_norm = nn.utils.clip_grad_norm(
+                grad_norm = nn.utils.clip_grad_norm_(
                     self._model.parameters(), max_norm=self._max_norm
                 )
                 # Step with optimizer
