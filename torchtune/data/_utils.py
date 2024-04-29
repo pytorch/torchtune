@@ -27,7 +27,6 @@ def validate_messages(
     Given a list of messages, ensure that messages form a valid
     back-and-forth conversation. An error will be raised if:
 
-    - There is a system message that's not the first message
     - There are two consecutive user messages
     - An assistant message comes before the first user message
     - The message is empty
