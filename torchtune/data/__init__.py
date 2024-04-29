@@ -11,7 +11,10 @@ from torchtune.data._chat_formats import (
     MistralChatFormat,
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._converters import sharegpt_to_llama2_messages
+from torchtune.data._converters import (
+    openai_to_llama2_messages,
+    sharegpt_to_llama2_messages,
+)
 from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
@@ -32,6 +35,7 @@ __all__ = [
     "Llama2ChatFormat",
     "MistralChatFormat",
     "ChatMLFormat",
+    "openai_to_llama2_messages",
     "sharegpt_to_llama2_messages",
     "truncate",
     "Message",
