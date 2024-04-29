@@ -112,6 +112,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
         self._optimizer_in_bwd = cfg.optimizer_in_bwd
+        self._max_norm = cfg.max_norm
 
         # TODO: find a better place / way to perform validation of args that don't yet
         # compose with each other.
@@ -419,8 +420,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
                 loss.backward()
-                grad_norm = utils.compute_grad_norm(self._model)
-
+                grad_norm = nn.utils.clip_grad_norm(
+                    self._model.parameters(), max_norm=self._max_norm
+                )
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     if not self._optimizer_in_bwd:
