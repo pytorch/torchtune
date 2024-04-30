@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-import functools
 from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
 from torch import nn
@@ -33,7 +32,6 @@ class AdapterModule(Protocol):
         pass
 
 
-@functools.lru_cache()
 def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     """
     Return the subset of parameters from a model that correspond to an adapter.
@@ -61,24 +59,6 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
                 current_adapter_params == []
             ), f"Adapter params {current_adapter_params} not converted"
     return adapter_params
-
-
-@functools.lru_cache()
-def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
-    """
-    Given a model containing some adapter weights, return the subset of the model's
-    parameters that correspond to the base model. Assumes that any adapter class has
-    defined the :func:`~torchtune.modules.peft.AdapterModule.adapter_params` method.
-
-    Args:
-        model (nn.Module): Instance of model class containing some adapter params.
-
-    Returns:
-        Dict[str, Any]: the subset of adapted model's state dict containing
-        only the base model's parameters.
-    """
-    adapter_params = get_adapter_params(model)
-    return {k: v for k, v in model.state_dict().items() if k not in adapter_params}
 
 
 def set_trainable_params(model: nn.Module, adapter_params: Dict[str, Any]) -> None:
