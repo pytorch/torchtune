@@ -185,6 +185,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            memory_efficient_wrapping=cfg.get("memory_efficient_wrapping", False),
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -232,6 +233,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        memory_efficient_wrapping: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,

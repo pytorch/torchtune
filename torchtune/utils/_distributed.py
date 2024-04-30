@@ -226,7 +226,7 @@ def get_full_finetune_fsdp_wrap_policy(
     For all other models, only the modules specified will be wrapped.
     Args:
         memory_efficient_wrapping (bool): If ``True``, will also wrap embedding and output projection layers
-            with FSDP.
+        with FSDP.
         modules_to_wrap (Set[Type]): Set of module types to wrap.
 
     Note:
