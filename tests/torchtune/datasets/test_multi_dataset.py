@@ -6,7 +6,7 @@
 
 import pytest
 from datasets import Dataset
-from torchtune.utils.multi_dataset import MultiDataset
+from torchtune.datasets._multi import MultiDataset
 
 
 class TestMultiDataset:

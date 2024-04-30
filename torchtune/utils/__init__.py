@@ -46,7 +46,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
-from .multi_dataset import MultiDataset
+
 from .precision import (
     get_dtype,
     list_dtypes,
@@ -84,5 +84,4 @@ __all__ = [
     "register_optim_in_bwd_hooks",
     "profiler",
     "get_quantizer_mode",
-    "MultiDataset",
 ]
