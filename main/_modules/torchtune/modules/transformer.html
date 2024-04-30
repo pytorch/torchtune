@@ -569,7 +569,7 @@
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
 
-        <span class="c1"># shape: [b, s, v]</span>
+        <span class="c1"># shape: [b, s, out_dim] - out_dim is usually the vocab size</span>
         <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output</span><span class="p">(</span><span class="n">h</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
