@@ -14,7 +14,6 @@ checkpointer:
     pytorch_model-00001-of-00002.bin,
     pytorch_model-00002-of-00002.bin,
   ]
-  recipe_checkpoint: null
   output_dir: /tmp/Llama-2-7b-hf
   model_type: LLAMA2
 
