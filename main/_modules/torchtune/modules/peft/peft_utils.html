@@ -368,7 +368,6 @@
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
-<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Literal</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Protocol</span><span class="p">,</span> <span class="n">Set</span>
 
 <span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span>
@@ -396,8 +395,7 @@
         <span class="k">pass</span></div></div>
 
 
-<div class="viewcode-block" id="get_adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params">[docs]</a><span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">get_adapter_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
+<div class="viewcode-block" id="get_adapter_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.get_adapter_params.html#torchtune.modules.peft.get_adapter_params">[docs]</a><span class="k">def</span> <span class="nf">get_adapter_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Return the subset of parameters from a model that correspond to an adapter.</span>
 <span class="sd">    Assumes that any adapter class has defined the</span>
@@ -424,24 +422,6 @@
                 <span class="n">current_adapter_params</span> <span class="o">==</span> <span class="p">[]</span>
             <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;Adapter params </span><span class="si">{</span><span class="n">current_adapter_params</span><span class="si">}</span><span class="s2"> not converted&quot;</span>
     <span class="k">return</span> <span class="n">adapter_params</span></div>
-
-
-<span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">_get_base_model_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Given a model containing some adapter weights, return the subset of the model&#39;s</span>
-<span class="sd">    parameters that correspond to the base model. Assumes that any adapter class has</span>
-<span class="sd">    defined the :func:`~torchtune.modules.peft.AdapterModule.adapter_params` method.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        model (nn.Module): Instance of model class containing some adapter params.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        Dict[str, Any]: the subset of adapted model&#39;s state dict containing</span>
-<span class="sd">        only the base model&#39;s parameters.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">adapter_params</span> <span class="o">=</span> <span class="n">get_adapter_params</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
-    <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">adapter_params</span><span class="p">}</span>
 
 
 <div class="viewcode-block" id="set_trainable_params"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.set_trainable_params.html#torchtune.modules.peft.set_trainable_params">[docs]</a><span class="k">def</span> <span class="nf">set_trainable_params</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">adapter_params</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
