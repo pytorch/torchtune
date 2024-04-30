@@ -1,9 +1,9 @@
 from typing import List
 
 from torchtune.models.phi3._component_builders import phi3
+from torchtune.models.phi3._sentencepiece import SentencePieceTokenizer
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import SentencePieceTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 
@@ -51,22 +51,5 @@ def phi3_tokenizer(path: str) -> SentencePieceTokenizer:
     Returns:
         SentencePieceTokenizer: Instantiation of the SPM tokenizer.
     """
-    special_tokens = [
-        "<|endoftext|>",
-        "<|assistant|>",
-        "<|placeholder1|>",
-        "<|placeholder2|>",
-        "<|placeholder3|>",
-        "<|placeholder4|>",
-        "<|system|>",
-        "<|end|>",
-        "<|placeholder5|>",
-        "<|placeholder6|>",
-        "<|user|>",
-    ]
     tokenizer = SentencePieceTokenizer(path)
-    tokenizer.add_special_tokens(special_tokens)
-    tokenizer.eos_id = 32_000
-    tokenizer.pad_id = 32_000
-
     return tokenizer

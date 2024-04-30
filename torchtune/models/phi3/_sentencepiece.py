@@ -34,10 +34,25 @@ class SentencePieceTokenizer:
         spm_model = SentencePieceProcessor()
         spm_model.load(path)
         self.spm_model = spm_model
+
+        self.special_tokens = {
+            "<|endoftext|>": 32000,
+            "<|assistant|>": 32001,
+            "<|placeholder1|>": 32002,
+            "<|placeholder2|>": 32003,
+            "<|placeholder3|>": 32004,
+            "<|placeholder4|>": 32005,
+            "<|system|>": 32006,
+            "<|end|>": 32007,
+            "<|placeholder5|>": 32008,
+            "<|placeholder6|>": 32009,
+            "<|user|>": 32010,
+        }
+
         self.vocab_size = spm_model.vocab_size()
         self.bos_id = spm_model.bos_id()
-        self.eos_id = spm_model.eos_id()
-        self.pad_id = spm_model.pad_id()
+        self.eos_id = self.special_tokens["<|endoftext|>"]
+        self.pad_id = self.special_tokens["<|endoftext|>"]
 
         # This is used in tokenize_messages: if the tokenizer does not
         # encode whitespace, then we can more easily split strings
@@ -48,20 +63,6 @@ class SentencePieceTokenizer:
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = {self.eos_id}
-
-    def add_special_tokens(self, special_tokens: List[str]) -> None:
-        """Add special tokens to the tokenizer.
-
-        Args:
-            special_tokens (List[str]): A list of special tokens to add.
-        """
-        import pdb
-        pdb.set_trace()
-        for token in special_tokens:
-            new_token = .SentencePiece()
-            new_token.piece = token
-            new_token.score = 0
-            self.tokenizer.pieces.append(token)
 
     def encode(
         self,
@@ -163,8 +164,20 @@ class SentencePieceTokenizer:
         tokenized_messages = []
         mask = []
         for message in messages:
-            # If assistant message, this is the end of a turn
-            end_of_turn = message.role == "assistant"
+            # Add special tokens
+            if message.role == "user":
+                tokenized_messages.append(self.special_tokens["<|user|>"])
+                mask.append(message.masked)
+            elif message.role == "assistant":
+                tokenized_messages.append(self.special_tokens["<|assistant|>"])
+                # If assistant message, this is the end of a turn
+                end_of_turn = message.role == "assistant"
+                mask.append(message.masked)
+            elif message.role == "system":
+                tokenized_messages.append(self.special_tokens["<|system|>"])
+                mask.append(message.masked)
+            else:
+                raise ValueError(f"Unknown role {message.role} for message {message.content}")
 
             # Prepend BOS on start of new turns
             if start_of_turn:
@@ -188,6 +201,7 @@ class SentencePieceTokenizer:
                 add_eos=False,
                 trim_leading_whitespace=trim_leading_whitespace,
             )
+            tokens = tokens + [self.special_tokens["<|end|>"]]
             prev_ends_with_space = message.content.endswith(" ")
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
