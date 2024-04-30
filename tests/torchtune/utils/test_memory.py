@@ -65,13 +65,15 @@ class TestSetActivationCheckpointing:
         set_activation_checkpointing(
             l3,
             auto_wrap_policy=utils.get_ac_policy(
-                "LLAMA3", {modules.TransformerDecoderLayer}
+                memory_efficient_wrapping=True,
+                modules_to_wrap={modules.TransformerDecoderLayer},
             ),
         )
         set_activation_checkpointing(
             l2,
             auto_wrap_policy=utils.get_ac_policy(
-                "LLAMA2", {modules.TransformerDecoderLayer}
+                memory_efficient_wrapping=False,
+                modules_to_wrap={modules.TransformerDecoderLayer},
             ),
         )
         assert isinstance(l3.tok_embeddings, CheckpointWrapper)

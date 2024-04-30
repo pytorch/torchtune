@@ -63,6 +63,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+memory_efficient_wrapping: False
 
 # Reduced precision
 dtype: bf16

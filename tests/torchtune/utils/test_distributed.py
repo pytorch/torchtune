@@ -100,7 +100,7 @@ class TestDistributed:
     def test_get_fsdp_wrap_policies(self) -> None:
         with single_box_init():
             llama3_policy = utils.get_full_finetune_fsdp_wrap_policy(
-                model_type="LLAMA3",
+                memory_efficient_wrapping=True,
                 modules_to_wrap={modules.TransformerDecoderLayer},
             )
             l3 = llama3(
@@ -121,7 +121,8 @@ class TestDistributed:
                 assert isinstance(layer, FSDP)
 
             llama2_policy = utils.get_full_finetune_fsdp_wrap_policy(
-                model_type="LLAMA2", modules_to_wrap={modules.TransformerDecoderLayer}
+                memory_efficient_wrapping=False,
+                modules_to_wrap={modules.TransformerDecoderLayer},
             )
             l2 = llama2(
                 vocab_size=64,

@@ -217,7 +217,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def get_full_finetune_fsdp_wrap_policy(
-    model_type: str, modules_to_wrap: Set[Type]
+    memory_efficient_wrapping: bool, modules_to_wrap: Set[Type]
 ) -> FSDPPolicyType:
     """
     Retrieves an FSDP wrapping policy based on the specified ``model_type`` and ``modules_to_wrap``.
@@ -225,12 +225,18 @@ def get_full_finetune_fsdp_wrap_policy(
     and output projection in addition to the modules specified in ``modules_to_wrap`` to maximize memory savings.
     For all other models, only the modules specified will be wrapped.
     Args:
-        model_type (str): Model type.
+        memory_efficient_wrapping (bool): If ``True``, will also wrap embedding and output projection layers
+            with FSDP.
         modules_to_wrap (Set[Type]): Set of module types to wrap.
+
+    Note:
+        ``memory_efficient_wrapping`` memory improvements have currently only been verified on llama3 workloads,
+            to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+            have not been verified and may not see the same improvements.
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
     """
-    if model_type == "LLAMA3":
+    if memory_efficient_wrapping:
         return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
     else:
         return ModuleWrapPolicy(modules_to_wrap)

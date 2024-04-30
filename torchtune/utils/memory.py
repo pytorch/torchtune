@@ -26,21 +26,29 @@ _log: logging.Logger = get_logger()
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
 
 
-def get_ac_policy(model_type: str, modules_to_wrap: Set[Type]) -> ACWrapPolicyType:
+def get_ac_policy(
+    memory_efficient_wrapping: bool, modules_to_wrap: Set[Type]
+) -> ACWrapPolicyType:
     """
-    Get the activation checkpointing policy for the model.
+    Get an activation checkpointing policy to use to wrap a model.
 
     Args:
-        model_type (str): Model type.
+        memory_efficient_wrapping (bool): If ``True``, will also wrap embedding and output projection layers
+            with activation checkpointing.
         modules_to_wrap (Set[Type]): Set of module types to wrap.
+
+    Note:
+        ``memory_efficient_wrapping`` memory improvements have currently only been verified on llama3 workloads,
+            to provide ~15% memory improvement (when used alongside FSDP memory efficient wrapping). Other workloads
+            have not been verified and may not see the same improvements.
 
     Returns:
         ACWrapPolicyType: Policy to wrap module.
     """
-    if model_type == "LLAMA3":
+    if memory_efficient_wrapping:
         # ensure torch.nn.Embedding activations are checkpointed.
         modules_to_wrap.add(torch.nn.Embedding)
-        return partial(_llama3_ac_policy, modules_to_wrap=modules_to_wrap)
+        return partial(_mem_efficient_ac_policy, modules_to_wrap=modules_to_wrap)
     else:
         return ModuleWrapPolicy(modules_to_wrap)
 
@@ -60,7 +68,9 @@ def _maybe_fsdp_unwrap(module: nn.Module) -> nn.Module:
     return module
 
 
-def _llama3_ac_policy(module: nn.Module, recurse: bool, modules_to_wrap, **kwargs):
+def _mem_efficient_ac_policy(
+    module: nn.Module, recurse: bool, modules_to_wrap, **kwargs
+):
     # Label that output_proj should be wrapped individually.
     if isinstance(module, modules.TransformerDecoder):
         targ = _maybe_fsdp_unwrap(module.output)
