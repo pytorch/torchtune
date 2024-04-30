@@ -111,7 +111,7 @@ class TransformerDecoder(nn.Module):
             to setup the :func:`~torchtune.modules.KVCache`
         norm (nn.Module): Callable that applies normalization to the output of the decoder,
             before final MLP.
-        output (nn.Module): Callable that applies a linear transformation to the output of
+        output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
 
     Note:
