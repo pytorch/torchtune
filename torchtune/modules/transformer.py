@@ -129,7 +129,7 @@ class TransformerDecoder(nn.Module):
         num_heads: int,
         head_dim: int,
         norm: nn.Module,
-        output: nn.Module,
+        output: nn.Linear,
     ) -> None:
         super().__init__()
 
@@ -206,5 +206,6 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
+        # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
         return output
