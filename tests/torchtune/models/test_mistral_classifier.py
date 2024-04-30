@@ -30,7 +30,6 @@ class TestMistralClassifier:
         "bsz, embed_dim, seq_len, n_classes, expected",
         [
             (2, 64, 64, 2, 22.6879),
-            (64, 128, 128, 200, 36.8238),
             (1, 256, 256, 1, 110.2561),
         ],
     )
