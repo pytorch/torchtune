@@ -124,7 +124,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.total_training_steps = 0
+        self.global_step = 0
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -227,7 +227,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.total_training_steps = self.epochs_run * self._steps_per_epoch
+        self.global_step = self.epochs_run * self._steps_per_epoch
 
     def _setup_model(
         self,
@@ -483,17 +483,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
+                    self.global_step += 1
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
+                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
                     if (
-                        self.total_training_steps % self._log_every_n_steps == 0
+                        self.global_step % self._log_every_n_steps == 0
                         and self._is_rank_zero
                     ):
                         time_per_step = time.perf_counter() - t0
@@ -506,7 +506,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             log_dict.update(utils.get_memory_stats(device=self._device))
                         self._metric_logger.log_dict(
                             log_dict,
-                            step=self.total_training_steps,
+                            step=self.global_step,
                         )
 
                     # Reset running stats for the next step

@@ -81,11 +81,18 @@ source_suffix = [".rst"]
 # Get TORCHTUNE_VERSION_DOCS during the build.
 torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
 
-# The code below will cut version displayed in the dropdown like this:
-# tags like v0.1.0 and v0.1.0-rc3 = > 0.1
-# main will remain main
-# the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
+# Get TORCHTUNE_VERSION_DOCS during the build.
+torchtune_version_docs = os.environ.get("TORCHTUNE_VERSION_DOCS", None)
+print(f"torchtune_version_docs: {torchtune_version_docs}")
 project = "TorchTune"
+
+# The code below will cut version displayed in the dropdown like this:
+# By default, set to "main".
+# If it's a tag like refs/tags/v1.2.3-rc4 or refs/tags/v1.2.3, or a
+#  refs/heads/release/1.2 then
+# cut to 1.2
+# the version varible is used in layout.html: https://github.com/pytorch/torchtune/blob/main/docs/source/_templates/layout.html#L29
+version = release = "main"
 if torchtune_version_docs:
     if torchtune_version_docs.startswith("refs/tags/v"):
         version = ".".join(
@@ -94,19 +101,11 @@ if torchtune_version_docs:
             .lstrip("v")
             .split(".")[:2]
         )
-        print(f"Version: {version}")
-        release = version
-        html_title = " ".join((project, version, "documentation"))
-    elif torchtune_version_docs.startswith("refs/heads/"):
+    elif torchtune_version_docs.startswith("refs/heads/release/"):
         version = torchtune_version_docs.split("/")[-1]
-        print(f"Version: {version}")
-        release = version
-        html_title = " ".join((project, version, "documentation"))
-# IF TORCHTUNE_VERSION_DOCS not set, set version to main.
-else:
-    version = "main"
-    release = "main"
-    html_title = " ".join((project, version, "documentation"))
+print(f"Version: {version}")
+html_title = " ".join((project, version, "documentation"))
+
 
 # The master toctree document.
 master_doc = "index"

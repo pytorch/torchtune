@@ -43,16 +43,9 @@ jobs:
           python -m pip install -e .
           cd docs
           python -m pip install -r requirements.txt
-      - name: Get the torchtune version
-        run: | 
-          # Get the github.ref_name and save into the
-          # GITHUB_REF variable. This will be passed in
-          # conf.py to display the version in the
-          # site dropdown
-          GITHUB_REF=${{ github.ref }}
-          TORCHTUNE_VERSION_DOCS="${GITHUB_REF}"
-          echo "$TORCHTUNE_VERSION_DOCS"
       - name: Build docs
+        env:
+            TORCHTUNE_VERSION_DOCS: ${{ github.ref }}
         run: |
           cd docs
           make html
