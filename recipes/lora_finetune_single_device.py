@@ -122,7 +122,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.total_training_steps = 0
+        self.global_step = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -230,14 +230,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-            self.total_training_steps = self.epochs_run * self._steps_per_epoch
+            self.global_step = self.epochs_run * self._steps_per_epoch
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.total_epochs * self._steps_per_epoch,
-            last_epoch=self.total_training_steps - 1,
+            last_epoch=self.global_step - 1,
         )
 
         self._profiler_enabled = cfg.profiler.enabled
@@ -468,16 +468,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._optimizer.zero_grad(set_to_none=True)
                         self._lr_scheduler.step()
                         # Update the number of steps when the weights are updated
-                        self.total_training_steps += 1
+                        self.global_step += 1
 
                         loss_to_log = running_loss.item()
                         pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
+                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                         )
 
                         # Log per-step metrics
-                        if self.total_training_steps % self._log_every_n_steps == 0:
+                        if self.global_step % self._log_every_n_steps == 0:
                             time_per_step = time.perf_counter() - t0
                             log_dict = {
                                 "loss": loss_to_log,
@@ -493,7 +493,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 )
                             self._metric_logger.log_dict(
                                 log_dict,
-                                step=self.total_training_steps,
+                                step=self.global_step,
                             )
 
                         # Reset running stats for the next step
