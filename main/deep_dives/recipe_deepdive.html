@@ -536,7 +536,7 @@ interface and exposes a set of APIs. For fine-tuning, the structure of this clas
                 <span class="o">...</span>
                 <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loss_fn</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_training_steps</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_every_n_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_log_every_n_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_metric_logger</span><span class="o">.</span><span class="n">log_dict</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
 
             <span class="n">loss</span><span class="o">.</span><span class="n">backward</span><span class="p">()</span>
@@ -544,7 +544,7 @@ interface and exposes a set of APIs. For fine-tuning, the structure of this clas
             <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">zero_grad</span><span class="p">()</span>
 
             <span class="c1"># Update the number of steps when the weights are updated</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">total_training_steps</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span> <span class="o">+=</span> <span class="mi">1</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">save_checkpoint</span><span class="p">(</span><span class="n">epoch</span><span class="o">=</span><span class="n">curr_epoch</span><span class="p">)</span>
 </pre></div>
