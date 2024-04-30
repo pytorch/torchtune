@@ -33,6 +33,7 @@ Utilities for enabling and working with distributed training.
 
     init_distributed
     get_world_size_and_rank
+    get_full_finetune_fsdp_wrap_policy
 
 .. _mp_label:
 
@@ -60,6 +61,7 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     set_activation_checkpointing
+    get_ac_policy
 
 .. _perf_profiling_label:
 
