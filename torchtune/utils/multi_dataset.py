@@ -33,7 +33,7 @@ class MultiDataset(Dataset):
         for start, stop, dataset_index in self._indexes:
             if start <= index < stop:
                 dataset = self._datasets[dataset_index]
-                return dataset[index - start]  # noqa
+                return dataset[index - start]
 
     def __len__(self) -> int:
         return self._len
