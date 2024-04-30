@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-
+from torchtune.datasets import MultiDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
@@ -360,10 +360,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenzier=self._tokenizer)
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
-            ds = utils.MultiDataset(datasets=datasets)
+            ds = MultiDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 

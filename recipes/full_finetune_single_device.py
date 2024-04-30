@@ -18,7 +18,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-
+from torchtune.datasets import MultiDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
@@ -325,9 +325,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
-            ds = utils.MultiDataset(datasets=datasets)
+            ds = MultiDataset(datasets=datasets)
         else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(config=cfg_dataset, tokenizer=self._tokenizer)
 
         sampler = DistributedSampler(
             ds,

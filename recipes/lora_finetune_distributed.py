@@ -26,6 +26,7 @@ from torch.distributed.fsdp import (
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.datasets import MultiDataset
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -412,10 +413,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
-                config.instantiate(single_cfg_dataset, tokenzier=self._tokenizer)
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
-            ds = utils.MultiDataset(datasets=datasets)
+            ds = MultiDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
