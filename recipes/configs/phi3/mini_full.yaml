@@ -20,7 +20,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.phi3.phi3_tokenizer
-  path: ./model/tokenizer.model
+  path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
 
 # Dataset
 dataset:
@@ -35,13 +35,13 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: ./model
+  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
   checkpoint_files: [
     model-00001-of-00002.safetensors,
     model-00002-of-00002.safetensors
   ]
   recipe_checkpoint: null
-  output_dir: ./finetuned_model
+  output_dir: /tmp/finetuned-phi3-4k-model
   model_type: PHI3_MINI
 resume_from_checkpoint: False
 
@@ -53,8 +53,8 @@ optimizer:
   lr: 5e-6
 loss:
   _component_: torch.nn.CrossEntropyLoss
-max_steps_per_epoch: 500
-gradient_accumulation_steps: 32
+max_steps_per_epoch: null
+gradient_accumulation_steps: 16
 
 # Training env
 device: cuda
@@ -70,4 +70,4 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/Phi-3-mini-4k-instruct
-log_every_n_steps: null
+log_every_n_steps: 1
