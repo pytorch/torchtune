@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, Optional
+from typing import Callable, Optional, Set
 
 import torch
 
@@ -67,7 +67,7 @@ def generate(
     max_generated_tokens: int,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    eos_id: Optional[int] = None,
+    stop_tokens: Optional[Set[int]] = None,
     custom_generate_next_token: Optional[Callable] = None,
 ) -> torch.Tensor:
     """
@@ -82,8 +82,8 @@ def generate(
         temperature (float): value to scale the predicted logits by. Default is 1.0
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within
             the top_k probabilities. Default is None
-        eos_id (Optional[int]): If specified, generation is stopped when the eos token is
-            generated. Default is None
+        stop_tokens (Optional[Set[int]]): If specified, generation is stopped when any of these
+            tokens are generated. Default: None
         custom_generate_next_token (Optional[Callable]): If specified, we'll use the custom
             generate_next_token function (e.g. compiled function) when generating the tokens,
             otherwise we'll use the default `geenrate_next_token` function. Default is None
@@ -95,7 +95,6 @@ def generate(
         ValueError: if max_seq_len supported by the model is smaller than the number of tokens
             requested
     """
-
     prompt_length = prompt.size(0)
 
     if model.max_seq_len < (prompt_length + max_generated_tokens) - 1:
@@ -135,12 +134,11 @@ def generate(
             top_k=top_k,
         ).clone()
 
-        generated_tokens.append(token)
-
-        if eos_id is not None and token == eos_id:
+        if stop_tokens is not None and token.item() in stop_tokens:
             break
+
+        generated_tokens.append(token)
 
         # update the position before we generate the next token
         input_pos += 1
-
     return torch.cat(generated_tokens).tolist()

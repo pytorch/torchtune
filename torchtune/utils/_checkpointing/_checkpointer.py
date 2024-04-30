@@ -15,6 +15,7 @@ import torch
 from torchtune import utils
 
 from torchtune.models import convert_weights
+from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
     ModelType,
@@ -299,7 +300,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             else None
         )
 
-        self._model_type = model_type
+        self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._resume_from_checkpoint = resume_from_checkpoint
 
@@ -381,12 +382,15 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             del state_dict
             gc.collect()
 
-        converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
-            merged_state_dict,
-            num_heads=self._config["num_attention_heads"],
-            num_kv_heads=self._config["num_key_value_heads"],
-            dim=self._config["hidden_size"],
-        )
+        if self._model_type == ModelType.PHI3_MINI:
+            converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
+        else:
+            converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)
@@ -420,12 +424,15 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._output_dir.mkdir(exist_ok=True)
 
         # convert the state_dict back to hf format; do this inplace
-        state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
-            state_dict[utils.MODEL_KEY],
-            num_heads=self._config["num_attention_heads"],
-            num_kv_heads=self._config["num_key_value_heads"],
-            dim=self._config["hidden_size"],
-        )
+        if self._model_type == ModelType.PHI3_MINI:
+            state_dict[utils.MODEL_KEY] = phi3_tune_to_hf(state_dict[utils.MODEL_KEY])
+        else:
+            state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
+                state_dict[utils.MODEL_KEY],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
 
         # split the state_dict into separate dicts, one for each output checkpoint file
         split_state_dicts: Dict[str, Dict[str, torch.Tensor]] = {}

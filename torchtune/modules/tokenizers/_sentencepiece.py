@@ -46,6 +46,9 @@ class SentencePieceTokenizer:
             [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
         )
 
+        # During generation, stop when eos_id is encountered
+        self.stop_tokens = {self.eos_id}
+
     def encode(
         self,
         text: str,
