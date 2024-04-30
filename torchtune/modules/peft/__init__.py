@@ -19,7 +19,6 @@ __all__ = [
     "AdapterModule",
     "get_adapter_params",
     "set_trainable_params",
-    "validate_missing_and_unexpected_for_lora",
     "validate_state_dict_for_lora",
     "disable_adapter",
 ]
