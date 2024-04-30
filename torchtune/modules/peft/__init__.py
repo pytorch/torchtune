@@ -11,6 +11,7 @@ from .peft_utils import (  # noqa
     get_adapter_params,
     LORA_ATTN_MODULES,
     set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
     validate_state_dict_for_lora,
 )
 
