@@ -14,7 +14,7 @@ log = utils.get_logger("DEBUG")
 
 
 class MultiDataset(Dataset):
-    def __init__(self, datasets: List[List[Dataset]]):
+    def __init__(self, datasets: List[Dataset]):
         self._datasets = datasets
         self._len = sum(len(dataset) for dataset in datasets)
         self._indexes = []
