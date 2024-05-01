@@ -57,6 +57,10 @@ optimizer:
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
+clip_grad_norm:
+  enable: False
+  max_norm: 1000.0
+  norm_type: 2
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
@@ -64,7 +68,7 @@ loss:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 2
 # Note: compile for QLoRA is only supported on nightly
 # PyTorch (>= 2.4.0.dev20240408)
 compile: False
@@ -75,6 +79,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
+log_peak_memory_every_n_steps: 1
 
 # Environment
 device: cuda
