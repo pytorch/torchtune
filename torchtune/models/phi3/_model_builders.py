@@ -21,6 +21,10 @@ def phi3_mini() -> TransformerDecoder:
     Builder for creating the Phi3 Mini 4K Instruct Model.
     Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct
 
+    Note:
+        This model does not currently support 128K context length nor optimizations
+        such as sliding window attention.
+
     Returns:
         TransformerDecoder: Instantiation of Phi3 Mini 4K Instruct Model
     """
