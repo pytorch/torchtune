@@ -384,6 +384,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         if self._model_type == ModelType.PHI3_MINI:
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
+        elif self._model_type == ModelType.MISTRAL_REWARD:
+            merged_state_dict["lm_head.weight"] = merged_state_dict.pop("score.weight")
+            converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
         else:
             converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -426,6 +434,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # convert the state_dict back to hf format; do this inplace
         if self._model_type == ModelType.PHI3_MINI:
             state_dict[utils.MODEL_KEY] = phi3_tune_to_hf(state_dict[utils.MODEL_KEY])
+        elif self._model_type == ModelType.MISTRAL_REWARD:
+            state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
+                state_dict[utils.MODEL_KEY],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
+            state_dict[utils.MODEL_KEY]["score.weight"] = state_dict[
+                utils.MODEL_KEY
+            ].pop("lm_head.weight")
         else:
             state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
                 state_dict[utils.MODEL_KEY],

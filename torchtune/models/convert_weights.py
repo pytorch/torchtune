@@ -126,7 +126,7 @@ def hf_to_tune(
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
