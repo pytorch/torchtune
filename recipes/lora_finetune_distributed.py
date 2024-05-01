@@ -357,13 +357,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
-            # TODO: replace transform_opt_state_dict with
-            # torch.distributed.checkpoint.state_dict_loader.load
-            # or implement _distributed.py/load_full_optimizer_state_dict
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            # TODO: replace with _distributed.py/load_full_optimizer_state_dict
+            utils.load_from_full_optimizer_state_dict(
+                optimizer, opt_state_dict, self._device, self._is_rank_zero
             )
-            optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
             log.info("Optimizer and loss are initialized.")
@@ -449,13 +446,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = ptd_state_dict.get_optimizer_state_dict(
-                self._model,
+            # opt_state_dict = ptd_state_dict.get_optimizer_state_dict(
+            #     self._model,
+            #     self._optimizer,
+            #     options=ptd_state_dict.StateDictOptions(
+            #         full_state_dict=True,
+            #         cpu_offload=True,
+            #     ),
+            # )
+            opt_state_dict = utils.get_full_optimizer_state_dict(
                 self._optimizer,
-                options=ptd_state_dict.StateDictOptions(
-                    full_state_dict=True,
-                    cpu_offload=True,
-                ),
+                self._is_rank_zero,
             )
         else:
             opt_state_dict = None

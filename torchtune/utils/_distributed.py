@@ -332,26 +332,69 @@ def load_from_full_state_dict(
 
 # remove if torch.distributed.checkpoint
 # implements rank0 load and broadcoast
-# def get_full_optimizer_state_dict(
-#     opt: Optimizer,
-#     is_rank_zero: bool,
-# ) -> Dict[str, Any]:
-#     sharded_sd = opt.state_dict()
-#     sharded_state = sharded_sd["state"]
-#     full_state = {}
-#     for group_id, sharded_group in sharded_state.items():
-#         group_state = {}
-#         for attr, sharded_tensor in sharded_group.items():
-#             if isinstance(sharded_tensor, DTensor):
-#                 full_tensor = sharded_tensor.full_tensor()
-#             else:
-#                 full_tensor = sharded_tensor
-#             if is_rank_zero:
-#                 group_state[attr] = full_tensor.cpu()
-#             else:
-#                 del full_tensor
-#         full_state[group_id] = group_state
-#     return {
-#         "param_groups": sharded_sd["param_groups"],
-#         "state": full_state,
-#     }
+def get_full_optimizer_state_dict(
+    opt: Optimizer,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    sharded_sd = opt.state_dict()
+    sharded_state = sharded_sd["state"]
+    full_state = {}
+    for group_id, sharded_group in sharded_state.items():
+        group_state = {}
+        for attr, sharded_tensor in sharded_group.items():
+            if isinstance(sharded_tensor, DTensor):
+                full_tensor = sharded_tensor.full_tensor()
+            else:
+                full_tensor = sharded_tensor
+            if is_rank_zero:
+                group_state[attr] = full_tensor.cpu()
+            else:
+                del full_tensor
+        full_state[group_id] = group_state
+    return {
+        "param_groups": sharded_sd["param_groups"],
+        "state": full_state,
+    }
+
+
+# remove if torch.distributed.checkpoint
+# implement rank0 load and broadcast
+def load_from_full_optimizer_state_dict(
+    opt: Optimizer,
+    full_sd: Dict[str, Any],
+    device: torch.device,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    meta_sharded_sd = opt.state_dict()
+    full_state = full_sd["state"]
+    sharded_state = {}
+    for group_id, group_state in full_state:
+        sharded_group_state = {}
+        meta_sharded_group_state = meta_sharded_sd.get(group_id)
+        for attr, full_tensor in group_state.items():
+            meta_sharded_tensor = meta_sharded_group_state.get(attr)
+            if isinstance(meta_sharded_tensor, DTensor):
+                if is_rank_zero:
+                    full_tensor = full_tensor.detach().to(device)
+                else:
+                    full_tensor = torch.empty(
+                        meta_sharded_tensor.size(),
+                        device=device,
+                        dtype=meta_sharded_tensor.dtype,
+                    )
+                torch.distributed.broadcast(full_tensor, src=0)
+                sharded_tensor = distribute_tensor(
+                    full_tensor,
+                    meta_sharded_tensor.device_mesh,
+                    meta_sharded_tensor.placements,
+                )
+                sharded_group_state[attr] = sharded_tensor
+            else:
+                sharded_group_state[attr] = full_tensor
+        sharded_state[group_id] = sharded_group_state
+    opt.load_state_dict(
+        {
+            "param_groups": full_sd["param_groups"],
+            "state": sharded_state,
+        }
+    )
