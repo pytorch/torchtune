@@ -589,7 +589,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         )
 
                 self.epochs_run += 1
-                # self.save_checkpoint(epoch=curr_epoch)
+                self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
