@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
 from torchtune.data._types import Message
+from torchtune.data._utils import truncate
 
 
 class SentencePieceTokenizer:
@@ -194,7 +195,7 @@ class SentencePieceTokenizer:
 
             # Add new line token
             tokenized_messages.extend(new_line_token_id)
-            mask.append(message.masked)
+            mask.extend([message.masked] * len(new_line_token_id))
 
             # Tokenize current message, append with masks
             tokens = self.encode(
@@ -220,5 +221,10 @@ class SentencePieceTokenizer:
             # Break out early if we reach max_seq_len
             if max_seq_len and len(tokenized_messages) >= max_seq_len:
                 break
+
+        # Finally, truncate if necessary
+        if max_seq_len and len(tokenized_messages) >= max_seq_len:
+            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
+            mask = truncate(mask, max_seq_len, message.masked)
 
         return tokenized_messages, mask
