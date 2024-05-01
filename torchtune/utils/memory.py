@@ -18,10 +18,85 @@ from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torchtune.utils.logging import get_logger
 
+from functools import partial
+
+from typing import Any, Callable, Dict, Set, Type, Union
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    apply_activation_checkpointing,
+)
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torchtune import modules
+
 _log: logging.Logger = get_logger()
 
 ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
 
+
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torchtune import modules
+from torchtune.utils.logging import get_logger
+
+_log: logging.Logger = get_logger()
+
+ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
+
+
+def get_ac_policy(
+    memory_efficient_wrapping: bool, modules_to_wrap: Set[Type]
+) -> ACWrapPolicyType:
+    """
+    Get an activation checkpointing policy to use to wrap a model.
+    Args:
+        memory_efficient_wrapping (bool): If ``True``, will also wrap embedding and output projection layers
+            with activation checkpointing.
+        modules_to_wrap (Set[Type]): Set of module types to wrap.
+    Note:
+        ``memory_efficient_wrapping`` memory improvements have currently only been verified on llama3 workloads,
+            to provide ~15% memory improvement (when used alongside FSDP memory efficient wrapping). Other workloads
+            have not been verified and may not see the same improvements.
+    Returns:
+        ACWrapPolicyType: Policy to wrap module.
+    """
+    if memory_efficient_wrapping:
+        # ensure torch.nn.Embedding activations are checkpointed.
+        modules_to_wrap.add(torch.nn.Embedding)
+        return partial(_mem_efficient_ac_policy, modules_to_wrap=modules_to_wrap)
+    else:
+        return ModuleWrapPolicy(modules_to_wrap)
+
+
+def _maybe_fsdp_unwrap(module: nn.Module) -> nn.Module:
+    """
+    Unwrap a module if it is wrapped by FSDP.
+    Args:
+        module (nn.Module): Module to unwrap.
+    Returns:
+        nn.Module: Unwrapped module.
+    """
+    if isinstance(module, FSDP):
+        return module.module
+    return module
+
+
+def _mem_efficient_ac_policy(
+    module: nn.Module, recurse: bool, modules_to_wrap, **kwargs
+):
+    # Label that output_proj should be wrapped individually.
+    if isinstance(module, modules.TransformerDecoder):
+        targ = _maybe_fsdp_unwrap(module.output)
+        targ._ac_wrap = True
+    if recurse:
+        return True
+
+    # Wrap output_proj individually. Manual check for module not being FSDP,
+    # since when attributes are accessed on FSDP module, FSDP forwards the attribute
+    # access, and we don't want
+    if getattr(module, "_ac_wrap", False) and not isinstance(module, FSDP):
+        return True
+
+    return isinstance(module, tuple(modules_to_wrap))
 
 def set_activation_checkpointing(
     model: nn.Module, auto_wrap_policy: ACWrapPolicyType, **kwargs

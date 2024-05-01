@@ -256,7 +256,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerDecoderLayer}
+                model, auto_wrap_policy=utils.get_ac_policy(
+                    memory_efficient_wrapping=True,
+                    modules_to_wrap={modules.TransformerDecoderLayer},
+                )
             )
 
         model.load_state_dict(model_state_dict)
