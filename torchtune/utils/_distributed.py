@@ -22,7 +22,7 @@ from torch.distributed.fsdp import (
 )
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
-# from torch.optim import Optimizer
+from torch.optim import Optimizer
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
