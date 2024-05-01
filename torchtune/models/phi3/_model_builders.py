@@ -42,6 +42,7 @@ def phi3_mini() -> TransformerDecoder:
 
 def phi3_tokenizer(path: str) -> SentencePieceTokenizer:
     """Phi-3 Mini tokenizer.
+    Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json
 
     Args:
         path (str): Path to the SPM tokenizer model.
