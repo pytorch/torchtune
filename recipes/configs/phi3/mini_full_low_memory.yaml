@@ -28,7 +28,7 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.slimorca_dataset
   max_seq_len: 4096
-seed: null
+seed: 123
 shuffle: True
 
 # Model Arguments
@@ -48,14 +48,14 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 16
+batch_size: 2
 epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
 loss:
   _component_: torch.nn.CrossEntropyLoss
-max_steps_per_epoch: null
+max_steps_per_epoch: 12
 gradient_accumulation_steps: 1
 optimizer_in_bwd: True
 
@@ -77,3 +77,9 @@ metric_logger:
   log_dir: ${output_dir}
 output_dir: /tmp/Phi-3-mini-4k-instruct
 log_every_n_steps: 1
+
+# Profiling
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: True
+  output_dir: ${output_dir}/torchtune_perf_tracing.json

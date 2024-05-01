@@ -33,7 +33,7 @@ class AdapterModule(Protocol):
         pass
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
 def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     """
     Return the subset of parameters from a model that correspond to an adapter.
@@ -63,7 +63,7 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
-@functools.lru_cache()
+# @functools.lru_cache()
 def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
     """
     Given a model containing some adapter weights, return the subset of the model's

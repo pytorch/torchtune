@@ -166,7 +166,7 @@ def register_optim_in_bwd_hooks(
 
     def optim_step(param) -> None:
         optim_dict[param].step()
-        optim_dict[param].zero_grad()
+        optim_dict[param].zero_grad(set_to_none=True)
 
     for p in model.parameters():
         p.register_post_accumulate_grad_hook(optim_step)
