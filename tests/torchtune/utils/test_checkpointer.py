@@ -344,7 +344,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         state dict follows the HF_FORMAT for the checkpoint format.
 
         The state dicts supports testing for a single-file checkpoint.
-        Multiple file checkpoints are tested with for Llama2.
+        Multiple file checkpoints are already tested for Llama2.
             * The checkpoint contains layer0 + embed + norm + score keys
             and can be tested in isolation
 
@@ -393,12 +393,12 @@ class TestHFMistralRewardModelFullModelCheckpointer:
     ):
         """
         Test ``load_checkpoint`` and ``save_checkpoint`` method within the
-        FullModelHFCheckpointer for a single checkpoint file for mistral_reward_model.
+        FullModelHFCheckpointer for a single checkpoint file for a mistral reward model.
 
         We test:
         * ``load_checkpoint`` loads the right sets of keys
         * Internal state of the checkpointer is correctly updated
-        * Converted checkpoint can be loaded into the mistral_classifier TorchTune implementation
+        * Converted checkpoint can be loaded into the `mistral_classifier` TorchTune implementation
         * Saved checkpoint keys match the original checkpoint
         """
         # Read the state dict directly from file using torch.load. This will be the state
