@@ -32,7 +32,8 @@ class LoRALinear(nn.Module, AdapterModule):
         rank (int): rank of the low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability. Default: 0.0
-        use_dora (bool): whether to use DORA (weight-Decomposed Low-Rank Adaptation). Default: False
+        use_dora (bool): whether to use DORA (weight-Decomposed Low-Rank Adaptation).
+            Default: False
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
@@ -70,7 +71,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.m = nn.Parameter(F.ones(1, out_dim))
+        self.m = nn.Parameter(F.ones(1, out_dim)) if self.use_dora else None
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
