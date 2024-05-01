@@ -11,7 +11,7 @@ from torchtune.data._types import Message
 from torchtune.data._utils import truncate
 
 
-class SentencePieceTokenizer:
+class Phi3MiniSentencePieceTokenizer:
     """A wrapper around SentencePieceProcessor.
 
     Args:
@@ -123,11 +123,6 @@ class SentencePieceTokenizer:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-        Note: llama2 sentencepiece has problems where in general
-        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
-        We can get around this by prepending s2 with a known token and slicing the
-        beginning off the tokenized s2.
-
         Example:
             >>> tokenizer = SentencePieceTokenizer(tokenizer_path)
             >>> messages = [
@@ -180,7 +175,7 @@ class SentencePieceTokenizer:
             elif message.role == "assistant":
                 tokenized_messages.append(self.special_tokens["<|assistant|>"])
                 # If assistant message, this is the end of a turn
-                end_of_turn = message.role == "assistant"
+                end_of_turn = True
                 mask.append(message.masked)
             elif message.role == "system":
                 if ignore_system_prompts:

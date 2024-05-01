@@ -40,9 +40,6 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         self.max_seq_len = max_seq_len
         self._rope_init()
 
-    def reset_parameters(self):
-        self._rope_init()
-
     def _rope_init(self):
         theta = 1.0 / (
             self.base
