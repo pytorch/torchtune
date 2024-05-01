@@ -32,6 +32,7 @@ class LoRALinear(nn.Module, AdapterModule):
         rank (int): rank of the low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability. Default: 0.0
+        use_dora (bool): whether to use DORA (weight-Decomposed Low-Rank Adaptation). Default: False
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
@@ -45,6 +46,7 @@ class LoRALinear(nn.Module, AdapterModule):
         rank: int,
         alpha: float,
         dropout: float = 0.0,
+        use_dora: bool = False,
         use_bias: bool = False,
         quantize_base: bool = False,
     ):
@@ -54,6 +56,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.alpha = alpha
         self.out_dim = out_dim
         self.use_bias = use_bias
+        self.use_dora = use_dora
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
@@ -67,6 +70,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
+        self.m = nn.Parameter(F.ones(1, out_dim))
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
@@ -128,6 +132,11 @@ class LoRALinear(nn.Module, AdapterModule):
             return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
+        # Adding 1e-6 to avoid division by zero
+        if self.use_dora:
+            return out + self.m * lora_out / (
+                lora_out.norm(p=2, dim=-1, keepdim=True) + 1e-6
+            )
         return out + lora_out
 
 
