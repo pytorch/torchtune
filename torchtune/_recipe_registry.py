@@ -46,7 +46,7 @@ _ALL_RECIPES = [
             Config(
                 name="phi3/mini_full_low_memory",
                 file_path="phi3/mini_full_low_memory.yaml",
-            )
+            ),
         ],
         supports_distributed=False,
     ),

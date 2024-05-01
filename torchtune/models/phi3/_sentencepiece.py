@@ -152,6 +152,9 @@ class SentencePieceTokenizer:
             add_eos (bool): Whether to append EOS after assistant message, default to False
             ignore_system_prompts (bool): Whether to ignore system prompts, default to True.
 
+        Raises:
+            ValueError: If the role is not "user", "assistant", or "system".
+
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
