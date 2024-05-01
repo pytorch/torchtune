@@ -30,6 +30,8 @@ def profiler(
         ContextManager: pytorch profiler context manager
     """
 
+    output_dir = f"./torchtune_perf_tracing_{torch.distributed.get_rank()}.json"
+
     def trace_handler(prof) -> None:
         prof.export_chrome_trace(output_dir)
 
@@ -39,11 +41,13 @@ def profiler(
                 torch.profiler.ProfilerActivity.CPU,
                 torch.profiler.ProfilerActivity.CUDA,
             ],
-            schedule=torch.profiler.schedule(wait=100, warmup=5, active=5, repeat=1),
+            schedule=torch.profiler.schedule(
+                wait=1, warmup=1, active=2, repeat=1, skip_first=1
+            ),
             on_trace_ready=trace_handler,
             record_shapes=True,
             profile_memory=False,
-            with_stack=False,
+            with_stack=True,
         )
         if enabled
         else contextlib.nullcontext()
