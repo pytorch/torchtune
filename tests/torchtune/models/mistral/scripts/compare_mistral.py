@@ -66,9 +66,7 @@ def compare_decoder(
         rope_base=rope_base,
         norm_eps=norm_eps,
     )
-    # fixed_init_model(ref_mistral_model)
-    # for k, v in mistral_model.state_dict().items():
-    #     print(k, v.shape)
+
     mapped_sd = {}
     for k, v in mistral_model.state_dict().items():
         new_k = k.replace("attn", "attention")
