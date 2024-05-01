@@ -206,6 +206,6 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
+        # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
         return output
