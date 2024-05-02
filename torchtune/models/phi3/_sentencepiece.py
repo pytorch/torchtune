@@ -146,7 +146,7 @@ class Phi3MiniSentencePieceTokenizer:
             max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
                 Default: None
             add_eos (bool): Whether to append EOS after assistant message, default to False
-            ignore_system_prompts (bool): Whether to ignore system prompts, default to True.
+            ignore_system_prompts (bool): Whether to ignore system prompts. This matches the HF implementation, default to True.
 
         Raises:
             ValueError: If the role is not "user", "assistant", or "system".
@@ -160,6 +160,7 @@ class Phi3MiniSentencePieceTokenizer:
         tokenized_messages = []
         mask = []
 
+        # The chat template in HF adds a bunch of newlines
         new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
 
         for message in messages:
@@ -197,7 +198,7 @@ class Phi3MiniSentencePieceTokenizer:
                 message.content.rstrip(" "),
                 add_bos=False,
                 add_eos=False,
-                trim_leading_whitespace=True,
+                trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
             )
             tokens = tokens + [self.special_tokens["<|end|>"]] + new_line_token_id
             prev_ends_with_space = message.content.endswith(" ")
