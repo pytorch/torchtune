@@ -47,7 +47,7 @@ class QuantizationRecipe:
                 multiple of groupsize.
             `percdamp`: GPTQ stablization hyperparameter, recommended to be .01
 
-    8da4w:
+    8da4w (PyTorch 2.3+):
         torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
         int8 per token dynamic activation with int4 weight only per axis group quantization
         Args:
