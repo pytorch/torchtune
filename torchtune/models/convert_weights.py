@@ -176,7 +176,7 @@ def tune_to_hf(
         dim (int): Dimension of the model.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in Meta's format.
+        Dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
