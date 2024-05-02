@@ -26,7 +26,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.slimorca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   max_seq_len: 4096
 seed: null
 shuffle: True
@@ -48,7 +48,7 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 16
+batch_size: 4
 epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
