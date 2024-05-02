@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>mistral_7b &mdash; TorchTune main documentation</title>
+  <title>torchtune.models.phi3._model_builders &mdash; TorchTune main documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_mistral_7b" href="torchtune.models.mistral.lora_mistral_7b.html" />
-    <link rel="prev" title="phi3_mini" href="torchtune.models.phi3.phi3_mini.html" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -244,7 +241,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -261,34 +258,34 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -321,7 +318,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../index.html">
+        <a href="../../../../index.html">
           
             Docs
           
@@ -329,16 +326,12 @@
       </li>
 
         
-          <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
+          <li><a href="../../../index.html">Module code</a> &gt;</li>
         
-      <li>mistral_7b</li>
+      <li>torchtune.models.phi3._model_builders</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/generated/torchtune.models.mistral.mistral_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -367,39 +360,77 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="mistral-7b">
-<h1>mistral_7b<a class="headerlink" href="#mistral-7b" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.mistral.mistral_7b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">mistral_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/mistral/_model_builders.html#mistral_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.mistral_7b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
-from <a class="reference external" href="https://mistral.ai/news/announcing-mistral-7b/">https://mistral.ai/news/announcing-mistral-7b/</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Instantiation of Mistral 7B model</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder">TransformerDecoder</a></p>
-</dd>
-</dl>
-</dd></dl>
+  <h1>Source code for torchtune.models.phi3._model_builders</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
 
-</section>
+<span class="kn">from</span> <span class="nn">torchtune.models.phi3._component_builders</span> <span class="kn">import</span> <span class="n">phi3</span>
+<span class="kn">from</span> <span class="nn">torchtune.models.phi3._sentencepiece</span> <span class="kn">import</span> <span class="n">Phi3MiniSentencePieceTokenizer</span>
 
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules.peft</span> <span class="kn">import</span> <span class="n">LORA_ATTN_MODULES</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Model builders build specific instantiations using component builders. For example</span>
+<span class="sd">the ``phi3_mini`` model builder uses the ``phi3`` component builder.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="phi3_mini"><a class="viewcode-back" href="../../../../generated/torchtune.models.phi3.phi3_mini.html#torchtune.models.phi3.phi3_mini">[docs]</a><span class="k">def</span> <span class="nf">phi3_mini</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">TransformerDecoder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builder for creating the Phi3 Mini 4K Instruct Model.</span>
+<span class="sd">    Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This model does not currently support 128K context length nor optimizations</span>
+<span class="sd">        such as sliding window attention.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TransformerDecoder: Instantiation of Phi3 Mini 4K Instruct Model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">phi3</span><span class="p">(</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="mi">32_064</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="mi">3072</span><span class="p">,</span>
+        <span class="n">intermediate_dim</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-5</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">phi3_mini_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Phi3MiniSentencePieceTokenizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Phi-3 Mini tokenizer.</span>
+<span class="sd">    Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): Path to the SPM tokenizer model.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        This tokenizer includes typical LM EOS and BOS tokens like</span>
+<span class="sd">        &lt;s&gt;, &lt;/s&gt;, and &lt;unk&gt;. However, to support chat completion,</span>
+<span class="sd">        it is also augmented with special tokens like &lt;|endoftext|&gt;</span>
+<span class="sd">        and &lt;|assistant|&gt;.</span>
+
+<span class="sd">    Warning:</span>
+<span class="sd">        Microsoft currently opts to ignore system messages citing better performance.</span>
+<span class="sd">        See https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/discussions/51 for more details.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Phi3MiniSentencePieceTokenizer: Instantiation of the SPM tokenizer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">Phi3MiniSentencePieceTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tokenizer</span>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="torchtune.models.mistral.lora_mistral_7b.html" class="btn btn-neutral float-right" title="lora_mistral_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="torchtune.models.phi3.phi3_mini.html" class="btn btn-neutral" title="phi3_mini" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -428,10 +459,7 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">mistral_7b</a></li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -444,23 +472,24 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-         <script src="../_static/jquery.js"></script>
-         <script src="../_static/underscore.js"></script>
-         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../_static/doctools.js"></script>
-         <script src="../_static/clipboard.min.js"></script>
-         <script src="../_static/copybutton.js"></script>
-         <script src="../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
+         <script src="../../../../_static/jquery.js"></script>
+         <script src="../../../../_static/underscore.js"></script>
+         <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../_static/doctools.js"></script>
+         <script src="../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../_static/copybutton.js"></script>
+         <script src="../../../../_static/tabs.js"></script>
+         <script src="../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -575,7 +604,7 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -711,7 +740,7 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

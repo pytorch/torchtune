@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>mistral_7b &mdash; TorchTune main documentation</title>
+  <title>phi3_mini &mdash; TorchTune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_mistral_7b" href="torchtune.models.mistral.lora_mistral_7b.html" />
-    <link rel="prev" title="phi3_mini" href="torchtune.models.phi3.phi3_mini.html" />
+    <link rel="next" title="mistral_7b" href="torchtune.models.mistral.mistral_7b.html" />
+    <link rel="prev" title="lora_llama2_70b" href="torchtune.models.llama2.lora_llama2_70b.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -331,13 +331,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>mistral_7b</li>
+      <li>phi3_mini</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.mistral.mistral_7b.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.phi3.phi3_mini.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -367,16 +367,21 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="mistral-7b">
-<h1>mistral_7b<a class="headerlink" href="#mistral-7b" title="Permalink to this heading">¶</a></h1>
+  <section id="phi3-mini">
+<h1>phi3_mini<a class="headerlink" href="#phi3-mini" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.mistral.mistral_7b">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.mistral.</span></span><span class="sig-name descname"><span class="pre">mistral_7b</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/mistral/_model_builders.html#mistral_7b"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.mistral.mistral_7b" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
-from <a class="reference external" href="https://mistral.ai/news/announcing-mistral-7b/">https://mistral.ai/news/announcing-mistral-7b/</a></p>
+<dt class="sig sig-object py" id="torchtune.models.phi3.phi3_mini">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.phi3.</span></span><span class="sig-name descname"><span class="pre">phi3_mini</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/phi3/_model_builders.html#phi3_mini"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.phi3.phi3_mini" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating the Phi3 Mini 4K Instruct Model.
+Ref: <a class="reference external" href="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct">https://huggingface.co/microsoft/Phi-3-mini-4k-instruct</a></p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This model does not currently support 128K context length nor optimizations
+such as sliding window attention.</p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Instantiation of Mistral 7B model</p>
+<dd class="field-odd"><p>Instantiation of Phi3 Mini 4K Instruct Model</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder">TransformerDecoder</a></p>
@@ -394,10 +399,10 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.mistral.lora_mistral_7b.html" class="btn btn-neutral float-right" title="lora_mistral_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.mistral.mistral_7b.html" class="btn btn-neutral float-right" title="mistral_7b" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.phi3.phi3_mini.html" class="btn btn-neutral" title="phi3_mini" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.llama2.lora_llama2_70b.html" class="btn btn-neutral" title="lora_llama2_70b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -429,7 +434,7 @@ from <a class="reference external" href="https://mistral.ai/news/announcing-mist
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">mistral_7b</a></li>
+<li><a class="reference internal" href="#">phi3_mini</a></li>
 </ul>
 
             </div>
