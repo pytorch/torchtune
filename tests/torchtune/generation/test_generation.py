@@ -113,7 +113,7 @@ class TestTextGenerate:
         torch.manual_seed(42)
         outputs_first = utils.generate(
             model=generation_model,
-            prompt=prompt_tokens,
+            prompt=prompt_tokens.unqueeze(0),
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
@@ -122,7 +122,7 @@ class TestTextGenerate:
         torch.manual_seed(42)
         outputs_second = utils.generate(
             model=generation_model,
-            prompt=prompt_tokens,
+            prompt=prompt_tokens.unqueeze(0),
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,

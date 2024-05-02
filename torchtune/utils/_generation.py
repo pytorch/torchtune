@@ -46,14 +46,14 @@ def generate_next_token(
     temperature: float = 1.0,
     top_k: Optional[int] = None,
 ) -> torch.Tensor:
-    # x: [1, s]
+    # x: [bsz, s]
     # input_pos: [s]
     logits = model(x, input_pos)
 
-    # logits: [1, s, v] where v is vocab_size
+    # logits: [bsz, s, v] where v is vocab_size
     # for sampling we extract the logits for the
     # last token and convert to shape: [v]
-    logits = logits[0, -1]
+    logits = logits[:, -1, :]
 
     # sample the next token
     token = sample(logits, temperature, top_k)
@@ -65,6 +65,7 @@ def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
     max_generated_tokens: int,
+    attention_mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
     stop_tokens: Optional[Set[int]] = None,
@@ -76,7 +77,7 @@ def generate(
     Args:
         model (TransformerDecoder): model used for generation
         prompt (torch.Tensor): tensor with the token IDs associated with the given
-            prompt. This is the output of the relevant tokenizer
+            prompt. This is the output of the relevant tokenizer. It should be of ndim 2.
         max_generated_tokens (int): number of tokens to be generated. This is the max
             since we can stop early based on whether the eos token is respected or not
         temperature (float): value to scale the predicted logits by. Default is 1.0
@@ -89,13 +90,23 @@ def generate(
             otherwise we'll use the default `geenrate_next_token` function. Default is None
 
     Returns:
-        List: list of generated tokens
+        Tensor: generated tokens
 
     Raises:
-        ValueError: if max_seq_len supported by the model is smaller than the number of tokens
+        ValueError: if ``max_seq_len`` supported by the model is smaller than the number of tokens
             requested
+        ValueError: if ``prompt.ndim`` is not 2
     """
-    prompt_length = prompt.size(0)
+    if prompt.ndim != 2:
+        raise ValueError(
+            f"Got prompt of shape {prompt.shape}. Prompt must be 2D, if it's 1D, try ``prompt.unsqueeze(0)``"
+        )
+
+    bsz, prompt_length = prompt.shape
+
+    # convert stop_tokens to tensor for quicker checks
+    if stop_tokens is not None:
+        stop_tokens = torch.tensor(stop_tokens, device=prompt.device)
 
     if model.max_seq_len < (prompt_length + max_generated_tokens) - 1:
         raise ValueError(
@@ -108,19 +119,19 @@ def generate(
 
     # generated_tokens is a list of tensors where each tensor contains tokens
     # needed for the output
-    generated_tokens = [prompt]
+    generated_tokens = prompt
 
     # generate the first token by conditioning on the input prompt
     token = generate_next_token(
         model=model,
         input_pos=torch.arange(0, prompt_length, device=prompt.device),
         # convert the input into [B, S] shape as expected by the model
-        x=prompt.view(1, -1),
+        x=prompt,
         temperature=temperature,
         top_k=top_k,
     ).clone()
 
-    generated_tokens.append(token)
+    generated_tokens = torch.cat([generated_tokens, token], dim=-1)
 
     # generation starts at position=prompt_length and continues till
     # we get the requested number of tokens or we hit eos_id
@@ -129,16 +140,20 @@ def generate(
         token = custom_generate_next_token(
             model=model,
             input_pos=input_pos,
-            x=token.view(1, -1),
+            x=token,
             temperature=temperature,
             top_k=top_k,
         ).clone()
 
-        if stop_tokens is not None and token.item() in stop_tokens:
-            break
+        if stop_tokens is not None:
+            matches = torch.isin(token, stop_tokens)
+            # if all tokens are in the stop_tokens, we stop
+            if matches.all():
+                break
 
-        generated_tokens.append(token)
+        generated_tokens = torch.cat([generated_tokens, token], dim=-1)
 
         # update the position before we generate the next token
         input_pos += 1
-    return torch.cat(generated_tokens).tolist()
+
+    return generated_tokens

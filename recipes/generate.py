@@ -84,7 +84,7 @@ class InferenceRecipe:
     @torch.no_grad()
     def generate(self, cfg: DictConfig):
         tokens = self._tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
-        prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
+        prompt = torch.tensor(tokens, dtype=torch.int, device=self._device).unsqueeze(0)
 
         custom_generate_next_token = None
 
@@ -131,7 +131,7 @@ class InferenceRecipe:
             ]
         )
 
-        tokens_generated = len(generated_tokens) - prompt.size(0)
+        tokens_generated = len(generated_tokens) - prompt.size(1)
         tokens_sec = tokens_generated / t
         logger.info(
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"

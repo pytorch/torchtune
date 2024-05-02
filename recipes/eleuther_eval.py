@@ -7,7 +7,7 @@
 import sys
 import time
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import torch
 from omegaconf import DictConfig
@@ -89,17 +89,24 @@ class _EvalWrapper(HFLM):
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
-    def tok_decode(self, tokens: List[int], **kwargs) -> str:
+    def tok_decode(self, tokens: Union[int, List[int]], **kwargs) -> str:
+        if isinstance(tokens, int):
+            tokens = [tokens]
         return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
     def _model_generate(self, *args, **kwargs):
-        raise RuntimeError(
-            "This recipe does not currently support tasks that evaluate free generation,"
-            "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
+        prompt = kwargs.get("context", "")
+        temperature = kwargs.get("temperature")
+        output = utils.generate(
+            self.model,
+            prompt=prompt,
+            max_generated_tokens=self.max_gen_toks,
+            temperature=temperature,
         )
+        return output
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
