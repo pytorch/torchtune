@@ -14,7 +14,8 @@ import torch
 import torch.distributed as dist
 import torch.distributed._composable.fsdp
 from torch import nn
-from torch.distributed._tensor import distribute_tensor
+from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     MixedPrecision,
@@ -365,12 +366,13 @@ def load_from_full_optimizer_state_dict(
     device: torch.device,
     is_rank_zero: bool,
 ) -> Dict[str, Any]:
-    meta_sharded_sd = opt.state_dict()
+    _init_optim_state(opt)
+    meta_sharded_state = opt.state_dict()["state"]
     full_state = full_sd["state"]
     sharded_state = {}
-    for group_id, group_state in full_state:
+    for group_id, group_state in full_state.items():
         sharded_group_state = {}
-        meta_sharded_group_state = meta_sharded_sd.get(group_id)
+        meta_sharded_group_state = meta_sharded_state.get(group_id)
         for attr, full_tensor in group_state.items():
             meta_sharded_tensor = meta_sharded_group_state.get(attr)
             if isinstance(meta_sharded_tensor, DTensor):
@@ -390,7 +392,7 @@ def load_from_full_optimizer_state_dict(
                 )
                 sharded_group_state[attr] = sharded_tensor
             else:
-                sharded_group_state[attr] = full_tensor
+                sharded_group_state[attr] = full_tensor.detach().to(device)
         sharded_state[group_id] = sharded_group_state
     opt.load_state_dict(
         {
@@ -398,3 +400,18 @@ def load_from_full_optimizer_state_dict(
             "state": sharded_state,
         }
     )
+
+
+def get_full_model_state_dict(
+    model: torch.distributed._composable.fsdp.FSDP,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    sharded_sd = model.state_dict()
+    cpu_state_dict = {}
+    for param_name, sharded_param in sharded_sd.items():
+        full_param = sharded_param.full_tensor()
+        if is_rank_zero:
+            cpu_state_dict[param_name] = full_param.cpu()
+        else:
+            del full_param
+    return cpu_state_dict
