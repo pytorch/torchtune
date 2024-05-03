@@ -33,8 +33,8 @@ CKPT_MODEL_PATHS = {
 }
 
 TOKENIZER_PATHS = {
-    "llam2_tokenizer": "/tmp/test-artifacts/tokenizer.model",
-    "llam3_tokenizer": "/tmp/test-artifacts/tokenizer_llama3.model",
+    "llama2_tokenizer": "/tmp/test-artifacts/tokenizer.model",
+    "llama3_tokenizer": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
 

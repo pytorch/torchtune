@@ -28,6 +28,7 @@ from tests.test_utils import (
     CKPT_MODEL_PATHS,
     gen_log_file_name,
     get_loss_values_from_metric_logger,
+    TOKENIZER_PATHS,
 )
 
 MODEL_TEST_CONFIGS = {
@@ -80,6 +81,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         model_type = config_and_flags[2]
         tokenizer = config_and_flags[3]
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
+        tokenizer_path = Path(TOKENIZER_PATHS(tokenizer))
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
@@ -95,7 +97,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type={model_type} \
-            tokenizer.path='{tokenizer}' \
+            tokenizer.path='{tokenizer_path}' \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
