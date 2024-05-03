@@ -31,6 +31,7 @@ _log: logging.Logger = get_logger()
 FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
 
 FSDPPolicyType.__doc__ = """
+
 A datatype for a function that can be used as an FSDP (https://pytorch.org/docs/stable/fsdp.html) wrapping policy.
 In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
 and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
@@ -245,10 +246,11 @@ def get_full_finetune_fsdp_wrap_policy(
     memory_efficient_fsdp_wrap: bool, modules_to_wrap: Set[Type]
 ) -> FSDPPolicyType:
     """
-    Retrieves an FSDP wrapping policy based on the specified ``model_type`` and ``modules_to_wrap``.
-    Specifically, for Llama3 model variants, the policy returned will wrap the model's token embedding
-    and output projection in addition to the modules specified in ``modules_to_wrap`` to maximize memory savings.
-    For all other models, only the modules specified will be wrapped.
+    Retrieves an FSDP wrapping policy based on the specified flags ``memory_efficient_fsdp_wrap`` and
+    ``modules_to_wrap``. Specifically, if ``memory_efficient_fsdp_wrap`` is set to ``True``, the returned
+    policy will wrap the model's token embedding and output projection in addition to the modules specified
+    to maximize memory savings.
+
     Args:
         memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers
         with FSDP.
