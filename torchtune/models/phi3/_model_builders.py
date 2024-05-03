@@ -112,3 +112,11 @@ def lora_phi3_mini(
         lora_dropout=0.05,
         quantize_base=quantize_base,
     )
+
+
+qlora_phi3_mini = partial(lora_phi3_mini, quantize_base=True)
+qlora_phi3_mini.__doc__ = """
+Builder for creating a Phi3 mini model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_phi3_mini` for full API arguments.
+"""
