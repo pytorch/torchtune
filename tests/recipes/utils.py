@@ -68,6 +68,19 @@ def llama2_test_config() -> List[str]:
     ]
 
 
+def llama3_test_config() -> List[str]:
+    return [
+        "model._component_=torchtune.models.llama3.llama3_8b",
+        "model.vocab_size=128_000",
+        "model.num_layers=4",
+        "model.num_heads=8",
+        "model.embed_dim=128",
+        "model.max_seq_len=1024",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=4",
+    ]
+
+
 def lora_llama2_test_config(
     lora_attn_modules,
     apply_lora_to_mlp: bool = False,

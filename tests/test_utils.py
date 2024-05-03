@@ -28,7 +28,13 @@ CKPT_MODEL_PATHS = {
     "small_test_ckpt_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
     "small_test_ckpt_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
     "small_test_ckpt_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "small_test_ckpt_tune_llama3": "/tmp/test-artifacts/small-ckpt-tune-llama3-05022024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
+}
+
+TOKENIZER_PATHS = {
+    "llam2_tokenizer": "/tmp/test-artifacts/tokenizer.model",
+    "llam3_tokenizer": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
 

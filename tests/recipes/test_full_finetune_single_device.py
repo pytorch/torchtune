@@ -21,6 +21,7 @@ from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     dummy_alpaca_dataset_config,
     llama2_test_config,
+    llama3_test_config,
     write_hf_ckpt_config,
 )
 from tests.test_utils import (
@@ -28,6 +29,11 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
 )
+
+MODEL_TEST_CONFIGS = {
+    "LLAMA2": llama2_test_config(),
+    "LLAMA3": llama3_test_config(),
+}
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -37,7 +43,6 @@ class TestFullFinetuneSingleDeviceRecipe:
             "device=cpu",
             "dtype=fp32",
             "enable_activation_checkpointing=False",
-            "tokenizer.path=/tmp/test-artifacts/tokenizer.model",
             "dataset.train_on_input=False",
             "seed=9",
             "epochs=2",
@@ -52,8 +57,28 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
-    def test_loss(self, compile, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_meta"
+    @pytest.mark.parametrize(
+        "config_and_flags",
+        [
+            (
+                "llama2/7B_full_low_memory",
+                "small_test_ckpt_meta",
+                "LLAMA2",
+                "llama2_tokenizer",
+            ),
+            (
+                "llama3/8B_full_single_device",
+                "small_test_ckpt_tune_llama3",
+                "LLAMA3",
+                "llama3_tokenizer",
+            ),
+        ],
+    )
+    def test_loss(self, compile, config_and_flags, tmpdir, monkeypatch):
+        config = config_and_flags[0]
+        ckpt = config_and_flags[1]
+        model_type = config_and_flags[2]
+        tokenizer = config_and_flags[3]
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -63,18 +88,19 @@ class TestFullFinetuneSingleDeviceRecipe:
             os.environ["TORCH_COMPILE_BACKEND"] = "aot_eager"
         cmd = f"""
         tune run full_finetune_single_device \
-            --config llama2/7B_full_low_memory \
+            --config {config} \
             output_dir={tmpdir} \
             checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type={model_type} \
+            tokenizer.path='{tokenizer}' \
             metric_logger.filename={log_file} \
             compile={compile} \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS(model_type)
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
