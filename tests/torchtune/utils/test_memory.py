@@ -9,9 +9,6 @@ import torch.nn as nn
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torchtune import modules, utils
-from torchtune.models.llama2._component_builders import llama2
-from torchtune.models.llama3._component_builders import llama3
 from torchtune.utils import set_activation_checkpointing
 
 
@@ -43,45 +40,3 @@ class TestSetActivationCheckpointing:
 
         set_activation_checkpointing(model=model, auto_wrap_policy=custom_policy)
         self._verify(model)
-
-    def test_get_ac_policy(self):
-        l3 = llama3(
-            vocab_size=64,
-            num_layers=1,
-            num_heads=4,
-            num_kv_heads=4,
-            embed_dim=64,
-            max_seq_len=128,
-        )
-        l2 = llama2(
-            vocab_size=64,
-            num_layers=1,
-            num_heads=4,
-            num_kv_heads=4,
-            embed_dim=64,
-            max_seq_len=128,
-        )
-
-        set_activation_checkpointing(
-            l3,
-            auto_wrap_policy=utils.get_ac_policy(
-                memory_efficient_wrapping=True,
-                modules_to_wrap={modules.TransformerDecoderLayer},
-            ),
-        )
-        set_activation_checkpointing(
-            l2,
-            auto_wrap_policy=utils.get_ac_policy(
-                memory_efficient_wrapping=False,
-                modules_to_wrap={modules.TransformerDecoderLayer},
-            ),
-        )
-        assert isinstance(l3.tok_embeddings, CheckpointWrapper)
-        assert not isinstance(l2.tok_embeddings, CheckpointWrapper)
-        assert isinstance(l3.output, CheckpointWrapper)
-        assert not isinstance(l2.output, CheckpointWrapper)
-        for layer in l3.layers:
-            assert isinstance(layer, CheckpointWrapper)
-
-        for layer in l2.layers:
-            assert isinstance(layer, CheckpointWrapper)

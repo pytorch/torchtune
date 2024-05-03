@@ -61,7 +61,6 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     set_activation_checkpointing
-    get_ac_policy
 
 .. _perf_profiling_label:
 
