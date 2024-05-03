@@ -200,27 +200,11 @@ def tune_to_hf(
     return converted_state_dict
 
 
-# state dict key mappings from HF's format to TorchTune's format
-_FROM_HF = {
-    "model.embed_tokens.weight": "tok_embeddings.weight",
-    "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
-    "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
-    "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
-    "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
-    "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
-    "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
-    "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
-    "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
-    "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
-    "model.norm.weight": "norm.scale",
-    "lm_head.weight": "output.weight",
-}
-
 _TO_PEFT_KEYS = {
     "lora_a": "lora_A",
     "lora_b": "lora_B",
 }
+
 _TO_PEFT_TARGET_MODULES = {
     "q_proj": "q_proj",
     "k_proj": "k_proj",
