@@ -20,7 +20,7 @@ model:
   _component_: torchtune.models.llama3.qlora_llama3_8b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
   apply_lora_to_mlp: True
-  apply_lora_to_output: True
+  apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
 
@@ -71,10 +71,10 @@ compile: False
 # Logging
 output_dir: /tmp/qlora_finetune_output/
 metric_logger:
-  _component_: torchtune.utils.metric_logging.StdoutLogger
+  _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
-log_peak_memory_stats: True
+log_peak_memory_stats: False
 
 # Environment
 device: cuda
