@@ -48,6 +48,7 @@ You could tweak :code:`max_seq_len` to achieve that directly from the config.
     max_seq_len: 256
 
 It is also possible to train on multiple datasets by combining them into a single :class:`~torchtune.datasets.ConcatDataset`. For example:
+
 .. code-block:: yaml
 
   dataset:
