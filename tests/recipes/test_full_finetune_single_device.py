@@ -81,7 +81,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         model_type = config_and_flags[2]
         tokenizer = config_and_flags[3]
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS(tokenizer))
+        tokenizer_path = Path(TOKENIZER_PATHS[tokenizer])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
@@ -145,6 +145,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
         model_config = llama2_test_config()
@@ -165,6 +166,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
             checkpointer.model_type=LLAMA2 \
+            tokenizer.path=/tmp/test-artifacts/tokenizer.model \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
         """.split()
