@@ -258,8 +258,8 @@ def get_full_finetune_fsdp_wrap_policy(
 
     Note:
         ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads,
-            to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
-            have not been verified and may not see the same improvements.
+        to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+        have not been verified and may not see the same improvements.
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
             argument. Please see documentation for `torchtune.utils.FSDPPolicyType` for additional details.
