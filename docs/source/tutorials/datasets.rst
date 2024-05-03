@@ -47,14 +47,9 @@ You could tweak :code:`max_seq_len` to achieve that directly from the config.
     # Original is 512
     max_seq_len: 256
 
-If you wish to train your model on multiple datasets and apply specific settings to each
-one, such as template, maximum sequence length, or chat format, you will need to adopt a
-different configuration format. This approach allows for a fine-grained customization of
-each dataset included in the training. Here is an example that demonstrates this flexibility:
-
+It is also possible to train on multiple datasets by combining them into a single :class:`~torchtune.datasets.ConcatDataset`. For example:
 .. code-block:: yaml
 
-  # Dataset
   dataset:
     - _component_: torchtune.datasets.instruct_dataset
       source: vicgalle/alpaca-gpt4
@@ -68,8 +63,7 @@ each dataset included in the training. Here is an example that demonstrates this
       split: train
       train_on_input: False
 
-This configuration demonstrates how to seamlessly integrate two datasets from different
-formats for comprehensive training.
+The preceding snippet demonstrates how you can configure each individual dataset's parameters, then combine them into a single concatenated dataset for training.
 
 Customizing instruct templates
 ------------------------------
