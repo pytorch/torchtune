@@ -13,7 +13,7 @@ from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import utils
-from torchtune.models.phi3 import phi3, lora_phi3
+from torchtune.models.phi3 import lora_phi3, phi3
 from torchtune.models.phi3._component_builders import lora_phi3_self_attention
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_merged_lora_ckpt
@@ -185,9 +185,7 @@ class TestLoRAPhi3:
         # Ensure ref_phi state_dict can be loaded into lora_phi with only "lora"
         # keys missing.
         ref_phi_state_dict = ref_phi.state_dict()
-        missing, unexpected = lora_phi.load_state_dict(
-            ref_phi_state_dict, strict=False
-        )
+        missing, unexpected = lora_phi.load_state_dict(ref_phi_state_dict, strict=False)
         assert not unexpected
         assert all(["lora" in key for key in missing])
 
