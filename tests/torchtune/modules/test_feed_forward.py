@@ -9,12 +9,12 @@ from typing import Tuple
 import pytest
 
 import torch
-from torch import Tensor
+
+from tests.test_utils import assert_expected, fixed_init_model
+from torch import nn, Tensor
 
 from torchtune.modules import FeedForward
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)
@@ -39,7 +39,12 @@ class TestFeedForward:
     @pytest.fixture
     def ffn(self, input_params: Tuple[int, int]) -> FeedForward:
         dim, hidden_dim = input_params
-        ff = FeedForward(dim, hidden_dim, linear_class=torch.nn.Linear).eval()
+        gate_proj = nn.Linear(dim, hidden_dim, bias=False)
+        down_proj = nn.Linear(hidden_dim, dim, bias=False)
+        up_proj = nn.Linear(dim, hidden_dim, bias=False)
+        ff = FeedForward(
+            gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj
+        ).eval()
         fixed_init_model(ff)
         ff.eval()
         return ff

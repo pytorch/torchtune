@@ -8,12 +8,13 @@ from typing import Tuple
 
 import pytest
 import torch
+
+from tests.test_utils import assert_expected
 from torch import tensor
+from torchtune.models.phi3 import Phi3RotaryPositionalEmbeddings
 
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected
 
 
 @pytest.fixture(autouse=True)
@@ -65,12 +66,77 @@ class TestRotaryPositionEmbedding:
     def test_forward_with_curr_pos(
         self, input: tensor, rope: RotaryPositionalEmbeddings
     ) -> None:
-        x_out = rope(input, curr_pos=10)
+        (
+            _,
+            seq_len,
+            _,
+            _,
+        ) = input.shape
+        x_out = rope(input, input_pos=torch.arange(seq_len))
+
+        # these values should be exactly the same as test_forward
+        # since in this case input_pos covers the entire input
+        # sequence. This tests that input_pos works as expected i.e.
+        # extracts the embeddings for the relevant positions
+        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
+        assert_expected(x_out.sum(), tensor(2165.7053))
+        assert_expected(x_out.max(), tensor(5.4546))
+
+        # check shapes
+        assert_expected(x_out.shape, input.shape)
+
+    def test_rope_init_meta_device(self, input_params):
+        _, _, head_dim, _, max_seq_len = input_params
+        rope_on_device = RotaryPositionalEmbeddings(
+            dim=head_dim, max_seq_len=max_seq_len
+        )
+        with torch.device("meta"):
+            meta_rope = RotaryPositionalEmbeddings(
+                dim=head_dim, max_seq_len=max_seq_len
+            )
+
+        meta_rope._rope_init()
+        for p1, p2 in zip(rope_on_device.buffers(), meta_rope.buffers()):
+            torch.testing.assert_close(p1, p2)
+
+
+class TestPhi3RotaryPositionalEmbeddings:
+    """
+    Class for testing the Phi3 models RoPE Embeddings. The expected tensors are
+    computed from the reference implementation here:
+    https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/modeling_phi3.py
+    """
+
+    @pytest.fixture
+    def input_params(self) -> Tuple[int, int, int, int]:
+        bsz = 4
+        num_heads = 32
+        embed_dim = 3072
+        seq_len = 60
+        max_seq_len = 4096
+        head_dim = embed_dim // num_heads
+        return bsz, num_heads, head_dim, seq_len, max_seq_len
+
+    @pytest.fixture
+    def input(self, input_params: Tuple[int, int, int, int]) -> tensor:
+        bsz, num_heads, head_dim, seq_len, _ = input_params
+        return torch.randn(bsz, seq_len, num_heads, head_dim)
+
+    @pytest.fixture
+    def rope_phi3(
+        self, input_params: Tuple[int, int, int, int]
+    ) -> Phi3RotaryPositionalEmbeddings:
+        _, _, head_dim, _, max_seq_len = input_params
+        return Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+
+    def test_forward(
+        self, input: tensor, rope_phi3: Phi3RotaryPositionalEmbeddings
+    ) -> None:
+        x_out = rope_phi3(input)
 
         # check the numerics of the computed tensor
-        assert_expected(x_out.mean(), tensor(0.0002), atol=1e-4)
-        assert_expected(x_out.sum(), tensor(5158.3159))
-        assert_expected(x_out.max(), tensor(5.4543))
+        assert_expected(x_out.mean(), tensor(-0.0005), atol=1e-4)
+        assert_expected(x_out.sum(), tensor(-381.0620))
 
         # check shapes
         assert_expected(x_out.shape, input.shape)

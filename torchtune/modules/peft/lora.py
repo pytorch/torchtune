@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-
 import math
 from typing import List
 
@@ -11,8 +10,9 @@ import torch.nn.functional as F
 
 from torch import nn, Tensor
 
+from torchao.dtypes.nf4tensor import linear_nf4, to_nf4
 from torchtune.modules.peft.peft_utils import AdapterModule
-from torchtune.utils.tensor_utils import _copy_tensor
+from torchtune.utils import _register_nf4_dispatch_ops  # noqa: F401
 
 
 class LoRALinear(nn.Module, AdapterModule):
@@ -34,8 +34,8 @@ class LoRALinear(nn.Module, AdapterModule):
         dropout (float): dropout probability. Default: 0.0
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
-        use_bias_in_lora_matrices (bool): whether to add biases to the LoRA matrices
-            A and B. Default: False
+        quantize_base (bool): Whether to quantize base linear weight or not.
+            Default: False
     """
 
     def __init__(
@@ -46,44 +46,69 @@ class LoRALinear(nn.Module, AdapterModule):
         alpha: float,
         dropout: float = 0.0,
         use_bias: bool = False,
-        use_bias_in_lora_matrices: bool = False,
+        quantize_base: bool = False,
     ):
         super().__init__()
+        self.in_dim = in_dim
         self.rank = rank
         self.alpha = alpha
         self.out_dim = out_dim
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
-        # Clone weight / bias directly into the LoRALinear, for 1:1 mapping with how Linear layers are used in
-        # vanilla Transformers.
-        self.register_parameter("weight", nn.Parameter(_copy_tensor(linear.weight)))
-        if use_bias:
-            self.register_parameter("bias", nn.Parameter(_copy_tensor(linear.bias)))
-        else:
-            self.register_parameter("bias", None)
+        self.use_bias = use_bias
+        self._quantize_base = quantize_base
+        weight, bias = self._create_weight_and_bias()
+        # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
+        # this can be used in DPO for treating the lora adapters as the policy model
+        # and disabling it to treat the base model as the reference model
+        self.disabled = False
+        self.register_parameter("weight", nn.Parameter(weight))
+        self.register_parameter(
+            "bias", nn.Parameter(bias) if bias is not None else None
+        )
         self.dropout = nn.Dropout(p=dropout)
-        self.use_bias_in_lora_matrices = use_bias_in_lora_matrices
-        self.lora_a = nn.Linear(
-            in_features=in_dim, out_features=rank, bias=self.use_bias_in_lora_matrices
-        )
-        self.lora_b = nn.Linear(
-            in_features=rank, out_features=out_dim, bias=self.use_bias_in_lora_matrices
-        )
-        self.reset_lora_parameters()
+        self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
+        self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
+        self.merged = False
+        # Note: FSDP's meta device initialization contract assumes that a module's
+        # reset_parameters method only initializes its own parameters (i.e. no child
+        # params are initialized, as is done in initialize_parameters below).
+        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
+        # when using meta device. This is done in
+        # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
+        # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
+        # Without meta device, we only need the following:
+        self.initialize_parameters()
 
-    def reset_lora_parameters(self):
+    def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
-        nn.init.zeros_(self.lora_b.weight)
-        nn.init.kaiming_uniform_(self.lora_a.weight, a=math.sqrt(5))
+        _lora_a_init_params(self.lora_a)
+        _lora_b_init_params(self.lora_b)
+
+    def _create_weight_and_bias(self):
+        """
+        Creates a linear weight and bias tensor, using NF4 dtype if we're quantizing
+        (indicated via quantize_base=True).
+        """
+        in_dim, out_dim, use_bias = self.in_dim, self.out_dim, self.use_bias
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        weight = linear.weight if not self._quantize_base else to_nf4(linear.weight)
+        bias = None
+        if self.use_bias:
+            if self._quantize_base:
+                raise NotImplementedError(
+                    "Quantized LoRALinear does not support bias at the moment."
+                )
+            bias = linear.bias
+        return weight, bias
 
     def adapter_params(self) -> List[str]:
         """
         Return lora_a.weight and lora_b.weight as adapter params.
         If bias is enabled, also return lora_a.bias and lora_b.bias.
         """
+        # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
+        # in this module change.
         adapter_params = ["lora_a.weight", "lora_b.weight"]
-        if self.use_bias_in_lora_matrices:
-            adapter_params.extend(["lora_a.bias", "lora_b.bias"])
         return adapter_params
 
     def forward(self, x: Tensor) -> Tensor:
@@ -93,8 +118,28 @@ class LoRALinear(nn.Module, AdapterModule):
 
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
+
         """
-        out = F.linear(x, self.weight, self.bias)
+        if self._quantize_base:
+            out = linear_nf4(input=x, weight=self.weight)
+        else:
+            out = F.linear(x, self.weight, self.bias)
+        if self.disabled:
+            return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
         return out + lora_out
+
+
+def _lora_a_init_params(x: nn.Linear) -> None:
+    """
+    Initialize LoRA A weight to Kaiming uniform.
+    """
+    nn.init.kaiming_uniform_(x.weight, a=math.sqrt(5))
+
+
+def _lora_b_init_params(x: nn.Linear) -> None:
+    """
+    Initialize LoRA B weight to zeros.
+    """
+    nn.init.zeros_(x.weight)

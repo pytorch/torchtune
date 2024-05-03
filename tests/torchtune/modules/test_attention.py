@@ -9,12 +9,12 @@ from typing import Optional, Tuple
 import pytest
 
 import torch
+
+from tests.test_utils import assert_expected, fixed_init_model
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, fixed_init_model
 
 
 @pytest.fixture(autouse=True)
@@ -31,12 +31,6 @@ class TestCausalSelfAttention:
     in the fixtures below.
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
     """
-
-    def _get_mask(self, inpt: Tensor) -> Tensor:
-        seq_len = inpt.shape[1]
-        mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=inpt.device)
-        mask = torch.triu(mask, diagonal=1).type_as(inpt)
-        return mask
 
     @pytest.fixture
     def input_params(self) -> Tuple[int, int, int]:
@@ -129,8 +123,9 @@ class TestCausalSelfAttention:
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_heads=num_heads,
             head_dim=head_dim,
+            dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
@@ -182,8 +177,9 @@ class TestCausalSelfAttention:
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_heads=num_heads,
             head_dim=head_dim,
+            dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
@@ -241,8 +237,9 @@ class TestCausalSelfAttention:
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
-            n_kv_heads=num_heads,
+            num_heads=num_heads,
             head_dim=head_dim,
+            dtype=torch.float32,
         )
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
@@ -271,14 +268,18 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_gqa_kv_cache(
-        self, input: Tensor, gqa_kv_cache: CausalSelfAttention
+        self, input: Tensor, gqa_kv_cache: CausalSelfAttention, attn_params_gqa
     ) -> None:
-        # seq_len = input.shape[1]
-        # mask = torch.full((1, 1, seq_len, seq_len), float("-inf"), device=input.device)
-        # mask = torch.triu(mask, diagonal=1).type_as(input)
-        mask = self._get_mask(input)
+
+        _, _, _, max_seq_len = attn_params_gqa
+        _, seq_len, _ = input.shape
+
+        causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
+        input_pos = torch.arange(seq_len)
+        mask = causal_mask[None, None, input_pos]
+
         with torch.no_grad():
-            output = gqa_kv_cache(input, mask=mask, curr_pos=0)
+            output = gqa_kv_cache(input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2545.42236328125), atol=1e-8, rtol=1e-3
         )
@@ -293,11 +294,18 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mha_kv_cache(
-        self, input: Tensor, mha_kv_cache: CausalSelfAttention
+        self, input: Tensor, mha_kv_cache: CausalSelfAttention, attn_params_mha
     ) -> None:
-        mask = self._get_mask(input)
+
+        _, _, _, max_seq_len = attn_params_mha
+        _, seq_len, _ = input.shape
+
+        causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
+        input_pos = torch.arange(seq_len)
+        mask = causal_mask[None, None, input_pos]
+
         with torch.no_grad():
-            output = mha_kv_cache(input, mask=mask, curr_pos=0)
+            output = mha_kv_cache(input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2597.248046875), atol=1e-8, rtol=1e-3
         )
@@ -312,11 +320,17 @@ class TestCausalSelfAttention:
         assert_expected(output.shape, input.shape)
 
     def test_forward_mqa_kv_cache(
-        self, input: Tensor, mqa_kv_cache: CausalSelfAttention
+        self, input: Tensor, mqa_kv_cache: CausalSelfAttention, attn_params_mqa
     ) -> None:
-        mask = self._get_mask(input)
+        _, _, _, max_seq_len = attn_params_mqa
+        _, seq_len, _ = input.shape
+
+        causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
+        input_pos = torch.arange(seq_len)
+        mask = causal_mask[None, None, input_pos]
+
         with torch.no_grad():
-            output = mqa_kv_cache(input, mask=mask, curr_pos=0)
+            output = mqa_kv_cache(input, mask=mask, input_pos=input_pos)
         assert_expected(
             output.mean(), torch.tensor(-2108.076660156255), atol=1e-8, rtol=1e-3
         )

@@ -38,7 +38,7 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 
 
 class Attention(nn.Module):
-    def __init__(self, n_heads, n_kv_heads, dim):
+    def __init__(self, n_heads: int, n_kv_heads: int, dim: int):
         super().__init__()
         self.n_kv_heads = n_heads if n_kv_heads is None else n_kv_heads
         self.n_heads = n_heads
@@ -140,7 +140,7 @@ def compare_rope(
     x_out = rope_emb(x)
 
     # Validate correctness
-    assert torch.allclose(x_out_ref, x_out, atol=1e-6)
+    torch.testing.assert_close(x_out_ref, x_out, atol=1e-6, rtol=1e-5)
 
     # value: tensor(6.4543e-05)
     print(x_out.mean())
@@ -156,7 +156,7 @@ def compare_rope(
     x_out = rope_emb(x, curr_pos=10)
 
     # Validate correctness
-    assert torch.allclose(x_out_ref, x_out, atol=1e-6)
+    torch.testing.assert_close(x_out_ref, x_out, atol=1e-6, rtol=1e-5)
 
     # value: tensor(0.0002)
     print(x_out.mean())
@@ -227,7 +227,7 @@ def compare_attention(
     print(attn_out.mean())
 
     # output tensors should be similar
-    assert torch.allclose(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
+    torch.testing.assert_close(attn_out, attn_out_ref, atol=1e-5, rtol=1e-3)
 
 
 if __name__ == "__main__":

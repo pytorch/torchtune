@@ -1,0 +1,36 @@
+# Config for running the InferenceRecipe in generate.py to generate output from an LLM
+#
+# To launch, run the following command from root torchtune directory:
+#    tune run generate --config generation
+
+# Model arguments
+model:
+  _component_: torchtune.models.llama2.llama2_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Llama-2-7b-hf/
+  checkpoint_files: [
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin,
+  ]
+  output_dir: /tmp/Llama-2-7b-hf/
+  model_type: LLAMA2
+
+device: cuda
+dtype: bf16
+
+seed: 1234
+
+# Tokenizer arguments
+tokenizer:
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/Llama-2-7b-hf/tokenizer.model
+
+# Generation arguments; defaults taken from gpt-fast
+prompt: "Hello, my name is"
+max_new_tokens: 300
+temperature: 0.6 # 0.8 and 0.6 are popular values to try
+top_k: 300
+
+quantizer: null

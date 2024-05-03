@@ -46,7 +46,7 @@ class LoRALinearRef(nn.Linear, LoRALayer):
         fan_in_fan_out: bool = False,
         # Set this to True if the layer to replace stores weight like (fan_in, fan_out)
         merge_weights: bool = True,
-        **kwargs
+        **kwargs,
     ):
         nn.Linear.__init__(self, in_features, out_features, **kwargs)
         LoRALayer.__init__(
@@ -153,8 +153,8 @@ def compare_lora(
     )
 
     sd_mapping = {
-        "linear.weight": "weight",
-        "linear.bias": "bias",
+        "weight": "weight",
+        "bias": "bias",
         "lora_a.weight": "lora_A",
         "lora_b.weight": "lora_B",
     }
@@ -164,7 +164,7 @@ def compare_lora(
         output_ref = lora_ref(x_input)
 
     print(output_ref.mean())
-    assert torch.allclose(output_ref, output, atol=1e-6, rtol=1e-6)
+    torch.testing.assert_close(output_ref, output, atol=1e-6, rtol=1e-6)
 
 
 if __name__ == "__main__":

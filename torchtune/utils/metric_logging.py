@@ -8,15 +8,19 @@ import sys
 import time
 from pathlib import Path
 
-from typing import Dict, List, Mapping, Optional, Union
+from typing import Mapping, Optional, Union
 
 from numpy import ndarray
+from omegaconf import DictConfig, OmegaConf
 from torch import Tensor
+
+from torchtune.utils import get_logger
+from torchtune.utils._distributed import get_world_size_and_rank
 from typing_extensions import Protocol
 
-from torchtune.utils.distributed import get_world_size_and_rank
-
 Scalar = Union[Tensor, ndarray, int, float]
+
+log = get_logger("DEBUG")
 
 
 class MetricLoggerInterface(Protocol):
@@ -34,6 +38,14 @@ class MetricLoggerInterface(Protocol):
             name (str): tag name used to group scalars
             data (Scalar): scalar data to log
             step (int): step value to record
+        """
+        pass
+
+    def log_config(self, config: DictConfig) -> None:
+        """Logs the config
+
+        Args:
+            config (DictConfig): config to log
         """
         pass
 
@@ -59,6 +71,8 @@ class DiskLogger(MetricLoggerInterface):
 
     Args:
         log_dir (str): directory to store logs
+        filename (Optional[str]): optional filename to write logs to.
+            Default: None, in which case log_{unixtimestamp}.txt will be used.
         **kwargs: additional arguments
 
     Warning:
@@ -68,11 +82,13 @@ class DiskLogger(MetricLoggerInterface):
         This logger creates a new file based on the current time.
     """
 
-    def __init__(self, log_dir: str, **kwargs):
+    def __init__(self, log_dir: str, filename: Optional[str] = None, **kwargs):
         self.log_dir = Path(log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
-        unix_timestamp = int(time.time())
-        self._file_name = self.log_dir / f"log_{unix_timestamp}.txt"
+        if not filename:
+            unix_timestamp = int(time.time())
+            filename = f"log_{unix_timestamp}.txt"
+        self._file_name = self.log_dir / filename
         self._file = open(self._file_name, "a")
         print(f"Writing logs to {self._file_name}")
 
@@ -119,9 +135,13 @@ class WandBLogger(MetricLoggerInterface):
     For more information about arguments expected by WandB, see https://docs.wandb.ai/ref/python/init.
 
     Args:
-        project (str): WandB project name
-        entity (Optional[str]): WandB entity name
-        group (Optional[str]): WandB group name
+        project (str): WandB project name. Default is `torchtune`.
+        entity (Optional[str]): WandB entity name. If you don't specify an entity,
+            the run will be sent to your default entity, which is usually your username.
+        group (Optional[str]): WandB group name for grouping runs together. If you don't
+            specify a group, the run will be logged as an individual experiment.
+        log_dir (Optional[str]): WandB log directory. If not specified, use the `dir`
+            argument provided in kwargs. Else, use root directory.
         **kwargs: additional arguments to pass to wandb.init
 
     Example:
@@ -143,9 +163,10 @@ class WandBLogger(MetricLoggerInterface):
 
     def __init__(
         self,
-        project: str,
+        project: str = "torchtune",
         entity: Optional[str] = None,
         group: Optional[str] = None,
+        log_dir: Optional[str] = None,
         **kwargs,
     ):
         try:
@@ -156,26 +177,77 @@ class WandBLogger(MetricLoggerInterface):
                 "Alternatively, use the ``StdoutLogger``, which can be specified by setting metric_logger_type='stdout'."
             ) from e
         self._wandb = wandb
-        self._wandb.init(
-            project=project,
-            entity=entity,
-            group=group,
-            reinit=True,
-            resume="allow",
-            config=kwargs,
-        )
+
+        # Use dir if specified, otherwise use log_dir.
+        self.log_dir = kwargs.pop("dir", log_dir)
+
+        _, self.rank = get_world_size_and_rank()
+
+        if self._wandb.run is None and self.rank == 0:
+            # we check if wandb.init got called externally,
+            run = self._wandb.init(
+                project=project,
+                entity=entity,
+                group=group,
+                dir=self.log_dir,
+                **kwargs,
+            )
+
+        if self._wandb.run:
+            self._wandb.run._label(repo="torchtune")
+
+        # define default x-axis (for latest wandb versions)
+        if getattr(self._wandb, "define_metric", None):
+            self._wandb.define_metric("global_step")
+            self._wandb.define_metric("*", step_metric="global_step", step_sync=True)
+
+    def log_config(self, config: DictConfig) -> None:
+        """Saves the config locally and also logs the config to W&B. The config is
+        stored in the same directory as the checkpoint. You can
+        see an example of the logged config to W&B in the following link:
+        https://wandb.ai/capecape/torchtune/runs/6053ofw0/files/torchtune_config_j67sb73v.yaml
+
+        Args:
+            config (DictConfig): config to log
+        """
+        if self._wandb.run:
+            resolved = OmegaConf.to_container(config, resolve=True)
+            self._wandb.config.update(resolved)
+            try:
+                output_config_fname = Path(
+                    os.path.join(
+                        config.checkpointer.checkpoint_dir,
+                        "torchtune_config.yaml",
+                    )
+                )
+                OmegaConf.save(config, output_config_fname)
+
+                log.info(f"Logging {output_config_fname} to W&B under Files")
+                self._wandb.save(
+                    output_config_fname, base_path=output_config_fname.parent
+                )
+
+            except Exception as e:
+                log.warning(
+                    f"Error saving {output_config_fname} to W&B.\nError: \n{e}."
+                    "Don't worry the config will be logged the W&B workspace"
+                )
 
     def log(self, name: str, data: Scalar, step: int) -> None:
-        self._wandb.log({name: data}, step=step)
+        if self._wandb.run:
+            self._wandb.log({name: data, "global_step": step})
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
-        self._wandb.log(payload, step=step)
+        if self._wandb.run:
+            self._wandb.log({**payload, "global_step": step})
 
     def __del__(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
     def close(self) -> None:
-        self._wandb.finish()
+        if self._wandb.run:
+            self._wandb.finish()
 
 
 class TensorBoardLogger(MetricLoggerInterface):
@@ -239,41 +311,3 @@ class TensorBoardLogger(MetricLoggerInterface):
         if self._writer:
             self._writer.close()
             self._writer = None
-
-
-ALL_METRIC_LOGGERS: Dict[str, "MetricLoggerInterface"] = {
-    "wandb": WandBLogger,
-    "tensorboard": TensorBoardLogger,
-    "stdout": StdoutLogger,
-    "disk": DiskLogger,
-}
-
-
-def list_metric_loggers() -> List[str]:
-    """List available metric loggers.
-
-    Returns:
-        List[str]: list of available metric loggers
-    """
-    return list(ALL_METRIC_LOGGERS.keys())
-
-
-def get_metric_logger(metric_logger_type: str, **kwargs) -> "MetricLoggerInterface":
-    """Get a metric logger based on provided arguments.
-
-    Args:
-        metric_logger_type (str): name of the metric logger, options are "wandb", "tensorboard", "stdout", "disk".
-        **kwargs: additional arguments to pass to the metric logger
-
-    Raises:
-        ValueError: If ``metric_logger`` str is unknown.
-
-    Returns:
-        MetricLoggerInterface: metric logger
-    """
-    if metric_logger_type not in ALL_METRIC_LOGGERS:
-        raise ValueError(
-            f"Metric logger not recognized. Expected one of {list_metric_loggers}, received {metric_logger_type}."
-        )
-
-    return ALL_METRIC_LOGGERS[metric_logger_type](**kwargs)

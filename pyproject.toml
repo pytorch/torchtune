@@ -1,7 +1,86 @@
+# ---- All project specifications ---- #
+[project]
+name = "torchtune"
+description = "A native-PyTorch library for LLM fine-tuning"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+authors = [
+    { name = "PyTorch Team", email = "packages@pytorch.org" },
+]
+keywords = ["pytorch", "finetuning", "llm"]
+dependencies = [
+    # Hugging Face integrations
+    "datasets",
+    "huggingface_hub",
+    "safetensors",
+
+    # Tokenization
+    "sentencepiece",
+    "tiktoken",
+    "blobfile>=2",
+
+    # Miscellaneous
+    "tqdm",
+    "omegaconf",
+
+    # Quantization
+    "torchao==0.1",
+]
+dynamic = ["version"]
+
+[project.urls]
+GitHub = "https://github.com/pytorch/torchtune"
+Documentation = "https://pytorch.org/torchtune/main/index.html"
+Issues = "https://github.com/pytorch/torchtune/issues"
+
+[project.scripts]
+tune = "torchtune._cli.tune:main"
+
+[project.optional-dependencies]
+dev = [
+    "bitsandbytes>=0.43.0",
+    "pre-commit",
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-integration",
+    "tensorboard",
+    "wandb",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "torchtune.__version__"}
+
+
+# ---- Explicit project build information ---- #
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [""]
+include = ["torchtune*", "recipes*"]
+
+[tool.setuptools.package-data]
+recipes = ["configs/*.yaml", "configs/*/*.yaml"]
+
+
+# ---- Tooling specifications ---- #
+[tool.usort]
+first_party_detection = false
+
+[tool.black]
+target-version = ["py38"]
+
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
-exclude = 'tests/torchtune/models/llama2/scripts/'
+exclude = ['tests/torchtune/models/llama2/scripts/', 'tests/torchtune/models/mistral/scripts/']
 
 [tool.pytest.ini_options]
-addopts = ["--showlocals"] # show local variables in tracebacks
+addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]
+# --showlocals will show local variables in tracebacks
+# --import-mode=prepend will add the root (the parent dir of torchtune/, tests/, recipes/)
+# to `sys.path` when invoking pytest, allowing us to treat `tests` as a package within the tests.
+# --without-integration and --without-slow-integration: default to running unit tests only

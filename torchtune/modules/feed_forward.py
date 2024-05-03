@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import torch.nn.functional as F
 from torch import nn, Tensor
 
 
@@ -12,22 +11,27 @@ class FeedForward(nn.Module):
     """This class implements the feed-forward network derived from Llama2.
 
     Args:
-        dim (int): Input dimension.
-        hidden_dim (int): Hidden dimension.
-        linear_class (nn.Module): Linear module, can be switched with a custom implementation, e.g. LoRALinear.
+        gate_proj (nn.Module): Projection from input dim to hidden dim, fed through activation
+            and multiplied by up_proj.
+        down_proj (nn.Module): Final projection to output dim.
+        up_proj (nn.Module): Projection from input dim to hidden dim, multiplied by
+            activation(gate_proj).
+        activation (nn.Module): Activation function to use. Default is nn.SiLU().
     """
 
     def __init__(
         self,
-        dim: int,
-        hidden_dim: int,
-        linear_class: nn.Module,
+        *,
+        gate_proj: nn.Module,
+        down_proj: nn.Module,
+        up_proj: nn.Module,
+        activation: nn.Module = nn.SiLU(),
     ):
         super().__init__()
-        self.w1 = linear_class(dim, hidden_dim, bias=False)
-        self.w2 = linear_class(hidden_dim, dim, bias=False)
-        self.w3 = linear_class(dim, hidden_dim, bias=False)
-        self.activation = F.silu
+        self.w1 = gate_proj
+        self.w2 = down_proj
+        self.w3 = up_proj
+        self.activation = activation
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(self.activation(self.w1(x)) * self.w3(x))

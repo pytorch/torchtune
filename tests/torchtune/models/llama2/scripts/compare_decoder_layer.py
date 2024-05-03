@@ -17,7 +17,7 @@ from tests.torchtune.models.llama2.scripts.compare_attention import (
 from tests.torchtune.models.llama2.scripts.compare_feed_forward import FeedForwardRef
 
 from torch import nn
-from torchtune.models.llama2 import _scale_hidden_dim_for_mlp
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -156,7 +156,7 @@ def compare_decoder_layer(
     # value: torch.tensor(18261.0156)
     print(layer_out.mean())
 
-    assert torch.allclose(block_out, layer_out, atol=1e-2, rtol=1e-2)
+    torch.testing.assert_close(block_out, layer_out, atol=1e-2, rtol=1e-2)
 
 
 if __name__ == "__main__":

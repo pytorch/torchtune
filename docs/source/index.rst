@@ -1,24 +1,23 @@
-Welcome to the TorchTune Documentation
+Welcome to the torchtune Documentation
 =======================================
 
-**TorchTune** is a Native-PyTorch library for LLM fine-tuning.
+**torchtune** is a Native-PyTorch library for LLM fine-tuning.
 
 Getting Started
 ~~~~~~~~~~~~~~~
 
-Topics in this section will help you get started with TorchTune.
+Topics in this section will help you get started with torchtune.
 
-.. grid:: 2
+.. grid:: 3
 
      .. grid-item-card:: :octicon:`file-code;1em`
-        What is TorchTune?
+        What is torchtune?
         :img-top: _static/img/card-background.svg
         :link: overview.html
         :link-type: url
 
-        A gentle introduction to TorchTune. In this section,
-        you will learn about main features of TorchTune
-        and how you can use them in your projects.
+        A gentle introduction to torchtune and how you can
+        use the library in your projects.
 
      .. grid-item-card:: :octicon:`file-code;1em`
         Installation instructions
@@ -26,22 +25,51 @@ Topics in this section will help you get started with TorchTune.
         :link: install.html
         :link-type: url
 
-        A step-by-step tutorial on how to install TorchTune.
+        A step-by-step tutorial on how to install torchtune.
+
+     .. grid-item-card:: :octicon:`file-code;1em`
+         Finetune your first model
+         :img-top: _static/img/card-background.svg
+         :link: tutorials/first_finetune_tutorial.html
+         :link-type: url
+
+         Follow a simple tutorial to finetune Llama2 with torchtune.
 
 Tutorials
 ~~~~~~~~~
 
 Ready to experiment? Check out some of the interactive
-TorchTune tutorials.
+torchtune tutorials.
 
 .. customcardstart::
 
 .. customcarditem::
-   :header: Template Tutorial
-   :card_description: A template tutorial. To be deleted.
+   :header: Llama3 in torchtune
+   :card_description:
    :image: _static/img/generic-pytorch-logo.png
-   :link: generated_examples/template_tutorial.html
-   :tags: Template
+   :link: tutorials/llama3.html
+   :tags: finetuning,llama3
+
+.. customcarditem::
+   :header: Finetuning with LoRA in torchtune
+   :card_description: Parameter-efficient finetuning of Llama2 using LoRA
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/lora_finetune.html
+   :tags: finetuning,llama2,lora
+
+.. customcarditem::
+   :header: Understanding QLoRA in TorchTune
+   :card_description: Using QLoRA to quantize base model weights and maximize memory savings
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/qlora_finetune.html
+   :tags: finetuning,llama2,qlora
+
+.. customcarditem::
+   :header: End-to-End Workflow with torchtune
+   :card_description: Train, Evaluate, Quantize and then Generate with your LLM.
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/e2e_flow.html
+   :tags: finetuning,quantization,inference,evals,llama2
 
 .. customcardend::
 
@@ -59,17 +87,7 @@ TorchTune tutorials.
 
    overview
    install
-
-
-.. toctree::
-   :glob:
-   :maxdepth: 1
-   :caption: Recipes
-   :hidden:
-
-   recipes/how_to_run
-   recipes/finetune_llm
-   recipes/alpaca_generate
+   tutorials/first_finetune_tutorial
 
 .. toctree::
    :glob:
@@ -77,7 +95,23 @@ TorchTune tutorials.
    :caption: Tutorials
    :hidden:
 
-   generated_examples/template_tutorial
+   tutorials/llama3
+   tutorials/lora_finetune
+   tutorials/qlora_finetune
+   tutorials/e2e_flow
+   tutorials/datasets
+   tutorials/chat
+
+.. toctree::
+   :glob:
+   :maxdepth: 1
+   :caption: Deep-Dives
+   :hidden:
+
+   deep_dives/checkpointer
+   deep_dives/configs
+   deep_dives/recipe_deepdive
+   deep_dives/wandb_logging
 
 .. toctree::
    :glob:
@@ -85,8 +119,9 @@ TorchTune tutorials.
    :caption: API Reference
    :hidden:
 
+   api_ref_config
+   api_ref_data
    api_ref_datasets
-   api_ref_lr_schedulers
    api_ref_models
    api_ref_modules
    api_ref_utilities

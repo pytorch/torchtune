@@ -13,7 +13,7 @@ from tests.test_utils import fixed_init_model
 
 from torch import nn
 
-from torchtune.models.lora_llama2 import _lora_llama_self_attention
+from torchtune.models.llama2._lora_llama2_builders import _lora_llama_self_attention
 from torchtune.modules import CausalSelfAttention, KVCache, RotaryPositionalEmbeddings
 
 try:
@@ -61,7 +61,7 @@ def compare_lora_attention(
     attn_dropout = 0.0
     # Reference implementation: wrap our native causal self-attention with PEFT LoRAConfig
     # Copy-pasted from llama2.py
-    # https://github.com/pytorch-labs/torchtune/blob/e983194629d7f093257225dafb7cbc4e46505cc8/torchtune/models/llama2.py#L88-L114
+    # https://github.com/pytorch/torchtune/blob/e983194629d7f093257225dafb7cbc4e46505cc8/torchtune/models/llama2.py#L88-L114
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     kv_cache = (
@@ -105,7 +105,7 @@ def compare_lora_attention(
     for key in all_keys:
         if key in lora_modules:
             mapped_sd[f"{key}.base_layer.weight"] = lora_llama_attn.state_dict()[
-                f"{key}.linear.weight"
+                f"{key}.weight"
             ]
             mapped_sd[f"{key}.lora_A.default.weight"] = lora_llama_attn.state_dict()[
                 f"{key}.lora_a.weight"
@@ -124,7 +124,7 @@ def compare_lora_attention(
     print(lora_modules, out.mean(), out_ref.mean(), out.shape, out_ref.shape)
 
     # output tensors should be similar
-    assert torch.allclose(out, out_ref, atol=1e-5, rtol=1e-3)
+    torch.testing.assert_close(out, out_ref, atol=1e-5, rtol=1e-3)
 
 
 if __name__ == "__main__":

@@ -10,20 +10,22 @@ import pytest
 
 import torch
 
+from tests.test_utils import assert_expected, init_weights_with_constant
+
 from torch import nn, Tensor
 
-from torchtune.models.llama2 import _scale_hidden_dim_for_mlp, llama2
+from torchtune.models.llama2 import llama2
+from torchtune.models.llama2._component_builders import llama2_mlp
+
+from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
     CausalSelfAttention,
-    FeedForward,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
     TransformerDecoderLayer,
 )
 from torchtune.utils.seed import set_seed
-
-from tests.test_utils import assert_expected, init_weights_with_constant
 
 
 @pytest.fixture(autouse=True)
@@ -80,8 +82,8 @@ class TestTransformerDecoderLayer:
             pos_embeddings=rope,
             max_seq_len=max_seq_len,
         )
-        hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
-        mlp = FeedForward(dim=embed_dim, hidden_dim=hidden_dim, linear_class=nn.Linear)
+        hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
+        mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
         transformer_layer = TransformerDecoderLayer(
             attn=self_attn,
             mlp=mlp,
@@ -114,8 +116,8 @@ class TestTransformerDecoder:
     @pytest.fixture
     def input_params(self) -> Tuple[int, int]:
         batch_size = 4
-        seq_len = 2048
-        vocab_size = 1024
+        seq_len = 512
+        vocab_size = 256
         return batch_size, seq_len, vocab_size
 
     @pytest.fixture
@@ -125,11 +127,11 @@ class TestTransformerDecoder:
 
     @pytest.fixture
     def decoder_params(self) -> Tuple[int, int, int, int, int, int]:
-        vocab_size = 1024
-        embed_dim = 4096
+        vocab_size = 256
+        embed_dim = 512
         num_layers = 2
-        num_heads = 32
-        max_seq_len = 4096
+        num_heads = 8
+        max_seq_len = 512
         num_kv_heads = 8
         return vocab_size, embed_dim, num_layers, num_heads, max_seq_len, num_kv_heads
 
@@ -199,11 +201,11 @@ class TestTransformerDecoder:
             num_kv_heads=num_kv_heads,
             embed_dim=embed_dim,
             max_seq_len=max_seq_len,
-            max_batch_size=4,
         )
         # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
+        decoder.setup_caches(max_batch_size=4, dtype=torch.float32)
         return decoder
 
     def test_forward(
@@ -215,7 +217,7 @@ class TestTransformerDecoder:
         batch_size, seq_len, vocab_size = input_params
         with torch.no_grad():
             output = decoder(input)
-        assert_expected(output.mean(), torch.tensor(163.8399), atol=1e-8, rtol=1e-6)
+        assert_expected(output.mean(), torch.tensor(20.4800), atol=1e-8, rtol=1e-6)
         assert_expected(output.shape, torch.Size([batch_size, seq_len, vocab_size]))
 
     def test_max_seq_len_exceeded(
@@ -232,8 +234,11 @@ class TestTransformerDecoder:
         decoder_with_kv_cache_enabled: TransformerDecoder,
         decoder: TransformerDecoder,
     ) -> None:
+        _, seq_len = input.shape
+        input_pos = torch.arange(seq_len)
+
         with torch.no_grad():
-            output_cache = decoder_with_kv_cache_enabled(input, 0)
+            output_cache = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
 

@@ -8,20 +8,15 @@
 """
 Keys used during checkpoint load and checkpoint save.
 """
+
+# key used for adapter weights such as LoRA weights
+ADAPTER_KEY = "adapter"
 # number of epochs completed thus far
 EPOCHS_KEY = "epochs_run"
-
+MAX_STEPS_KEY = "max_steps_per_epoch"
+MODEL_KEY = "model"
+OPT_KEY = "optimizer"
+SEED_KEY = "seed"
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
 TOTAL_EPOCHS_KEY = "total_epochs"
-
-MAX_STEPS_KEY = "max_steps_per_epoch"
-
-# model weights
-MODEL_KEY = "model"
-
-# optimizer state
-OPT_KEY = "optimizer"
-
-# seed used during training
-SEED_KEY = "seed"

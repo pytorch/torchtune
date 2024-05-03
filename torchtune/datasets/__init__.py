@@ -4,24 +4,23 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torch.utils.data import Dataset
+from torchtune.datasets._alpaca import alpaca_cleaned_dataset, alpaca_dataset
+from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.datasets._grammar import grammar_dataset
+from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.datasets._samsum import samsum_dataset
+from torchtune.datasets._slimorca import slimorca_dataset
+from torchtune.datasets._stack_exchanged_paired import stack_exchanged_paired_dataset
 
-from .alpaca import AlpacaDataset
-from .slimorca import SlimOrcaDataset
-
-ALL_DATASETS = {"alpaca": AlpacaDataset, "slimorca": SlimOrcaDataset}
-
-
-def get_dataset(name: str, **kwargs) -> Dataset:
-    """Get known supported datasets by name"""
-    if name in ALL_DATASETS:
-        return ALL_DATASETS[name](**kwargs)
-    else:
-        raise ValueError(
-            f"Dataset not recognized. Expected one of {ALL_DATASETS}, received {name}"
-        )
-
-
-def list_datasets():
-    """List of availabe datasets supported by `get_dataset`"""
-    return list(ALL_DATASETS)
+__all__ = [
+    "alpaca_dataset",
+    "alpaca_cleaned_dataset",
+    "grammar_dataset",
+    "samsum_dataset",
+    "stack_exchanged_paired_dataset",
+    "InstructDataset",
+    "slimorca_dataset",
+    "ChatDataset",
+    "instruct_dataset",
+    "chat_dataset",
+]

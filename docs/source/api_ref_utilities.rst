@@ -4,88 +4,105 @@ torchtune.utils
 
 .. currentmodule:: torchtune.utils
 
+
+.. _checkpointing_label:
+
+Checkpointing
+-------------
+
+TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
+checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    FullModelHFCheckpointer
+    FullModelMetaCheckpointer
+
 .. _dist_label:
 
 Distributed
-------------
+-----------
+
+Utilities for enabling and working with distributed training.
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    distributed.init_distributed
-    distributed.get_world_size_and_rank
-    distributed.get_fsdp
+    init_distributed
+    get_world_size_and_rank
 
 .. _mp_label:
 
-Mixed Precsion
---------------
+Reduced Precision
+------------------
+
+Utilities for working in a reduced precision setting.
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    precision.get_autocast
-    precision.get_gradient_scaler
-    precision.get_dtype
-    precision.list_dtypes
+    get_dtype
+    list_dtypes
 
 .. _ac_label:
 
 Memory Management
 -----------------
 
+Utilities to reduce memory consumption during training.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    memory.set_activation_checkpointing
+    set_activation_checkpointing
+
+.. _perf_profiling_label:
+
+Performance and Profiling
+-------------------------
+
+TorchTune provides utilities to profile and debug the performance
+of your finetuning job.
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    profiler
+
+.. _metric_logging_label:
 
 Metric Logging
 --------------
 
+Various logging utilities.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    metric_logging.get_metric_logger
     metric_logging.WandBLogger
     metric_logging.TensorBoardLogger
     metric_logging.StdoutLogger
     metric_logging.DiskLogger
 
 Data
------
+----
+
+Utilities for working with data and datasets.
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    checkpointable_dataloader.CheckpointableDataLoader
-    collate.padded_collate
-
-Checkpoint saving & loading
-----------------------------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    checkpoint.save_checkpoint
-    checkpoint.load_checkpoint
+    padded_collate
 
 .. _gen_label:
-
-Generation
-----------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
-
-    generation.GenerationUtils
-    generation.generate_from_prompt
 
 
 Miscellaneous
@@ -95,7 +112,7 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
-    argparse.TuneArgumentParser
-    logging.get_logger
-    device.get_device
-    seed.set_seed
+    TuneRecipeArgumentParser
+    get_logger
+    get_device
+    set_seed
