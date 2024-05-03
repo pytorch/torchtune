@@ -218,8 +218,8 @@ _FROM_HF = {
 }
 
 _TO_PEFT_KEYS = {
-    "lora_a": "lora_A.default",
-    "lora_b": "lora_B.default",
+    "lora_a": "lora_A",
+    "lora_b": "lora_B",
 }
 _TO_PEFT_TARGET_MODULES = {
     "q_proj": "q_proj",
@@ -240,19 +240,19 @@ def tune_to_peft(
     dim: int = 4096,
 ):
     converted_state_dict = {}
-    peft_prefixes = {
-        v: k.replace("model.", "base_model.model.model.decoder.")
-        for k, v in _FROM_HF.items()
-    }
+    # peft_prefixes = {
+    #     v: k.replace("model.", "model.")
+    #     for k, v in _FROM_HF.items()
+    # }
     full_mapping = {}
     for k, v in _TO_PEFT_KEYS.items():
         full_mapping.update(
             {
-                kk.replace(".weight", f".{k}.weight"): vv.replace(
+                vv.replace(".weight", f".{k}.weight"): kk.replace(
                     ".weight", f".{v}.weight"
                 )
-                for kk, vv in peft_prefixes.items()
-                if kk is not None
+                for kk, vv in _FROM_HF.items()
+                if vv is not None
             }
         )
 
@@ -273,5 +273,4 @@ def tune_to_peft(
         elif "k_proj" in key and "lora_B" in key:
             value = _permute_lora_matrix(value, num_kv_heads)
         converted_state_dict[new_key] = value
-
     return converted_state_dict

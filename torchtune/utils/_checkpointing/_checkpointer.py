@@ -412,6 +412,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
+        save_in_peft_format: bool = True,
     ) -> None:
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -459,23 +460,33 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+
         if utils.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
             ).with_suffix(".pt")
-
-            state_dict[utils.ADAPTER_KEY] = convert_weights.tune_to_peft(
-                state_dict[utils.ADAPTER_KEY],
-                num_heads=self._config["num_attention_heads"],
-                num_kv_heads=self._config["num_key_value_heads"],
-                dim=self._config["hidden_size"],
-            )
             torch.save(state_dict[utils.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+            if save_in_peft_format:
+                state_dict[utils.ADAPTER_KEY] = convert_weights.tune_to_peft(
+                    state_dict[utils.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                )
+                peft_output_path = Path.joinpath(
+                    self._output_dir, "adapter_model"
+                ).with_suffix(".bin")
+                torch.save(state_dict[utils.ADAPTER_KEY], peft_output_path)
+                logger.info(
+                    "Adapter checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"saved to {peft_output_path}"
+                )
 
         if utils.ADAPTER_CONFIG in state_dict:
             output_path = Path.joinpath(self._output_dir, "adapter_config.json")
@@ -583,6 +594,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
+        save_in_peft_format: bool = False,
     ) -> None:
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional

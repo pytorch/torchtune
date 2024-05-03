@@ -127,6 +127,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._save_in_peft_format = True  # TODO: add via config
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -417,12 +418,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 self._apply_lora_to_mlp,
                 self._apply_lora_to_output,
             ),
+            "peft_type": "LORA",
         }
         ckpt_dict.update({utils.ADAPTER_CONFIG: adapter_config})
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
+            save_in_peft_format=self._save_in_peft_format,
         )
 
     def train(self) -> None:
