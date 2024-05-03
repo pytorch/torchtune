@@ -71,23 +71,24 @@ def test_peft_integration():
     model_id = "meta-llama/Llama-2-7b-hf"
     peft_model_id = "ebsmothers/test-peft"
 
+    # Load our HF-hub-uploaded adapter into AutoModel class
     peft_model = AutoModelForCausalLM.from_pretrained(model_id)
     peft_model.load_adapter(peft_model_id)
 
     vocab_size, bsz, seq_len = 32000, 2, 128
     inputs = torch.randint(0, vocab_size, (bsz, seq_len))
 
+    # Initialize Llama2 and load merged checkpoint
+    # (just testing that forward lines up)
     tt_model = llama2_7b()
     checkpointer = FullModelHFCheckpointer(
         checkpoint_dir="/data/users/ebs/test_peft_integration",
         checkpoint_files=["hf_model_0001_0.pt", "hf_model_0002_0.pt"],
         model_type="LLAMA2",
         output_dir="/data/users/ebs",
-        # adapter_checkpoint='adapter_0.pt',
     )
     checkpoint_dict = checkpointer.load_checkpoint()
     tt_model.load_state_dict(checkpoint_dict["model"])
-    # tt_model.load_state_dict(checkpoint_dict["adapter"], strict=False)
 
     tt_model.eval()
     peft_model.eval()
