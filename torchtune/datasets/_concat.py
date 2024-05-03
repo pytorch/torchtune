@@ -14,6 +14,44 @@ log = utils.get_logger("DEBUG")
 
 
 class ConcatDataset(Dataset):
+    """
+    A dataset class for concatenating multiple sub-datasets into a single dataset. This class enables the
+    unified handling of different datasets as if they were a single dataset, simplifying tasks such as
+    training models on multiple sources of data simultaneously.
+
+    The class internally manages the aggregation of different datasets and allows transparent indexing across them.
+    However, it requires all constituent datasets to be fully loaded into memory, which might not be optimal for
+    very large datasets.
+
+    Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping
+    of indices to the respective datasets. This approach allows the `ConcatDataset` to delegate data retrieval to
+    the appropriate sub-dataset transparently when a particular index is accessed.
+
+    Note:
+        Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to
+        be loaded into memory. For large-scale scenarios, consider other strategies that might stream data on demand.
+
+    Args:
+        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
+            derived from `torch.utils.data.Dataset`.
+
+    Attributes:
+        _datasets (List[Dataset]): Stores the list of datasets passed during initialization.
+        _len (int): The total combined length of all datasets.
+        _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the
+            ending index, and the dataset index for quick lookup and access during indexing operations.
+
+    Example:
+        >>> dataset1 = MyCustomDataset(params1)
+        >>> dataset2 = MyCustomDataset(params2)
+        >>> concat_dataset = ConcatDataset([dataset1, dataset2])
+        >>> print(len(concat_dataset))  # Total length of both datasets
+        >>> data_point = concat_dataset[1500]  # Accesses an element from the appropriate dataset
+
+    This class primarily focuses on providing a unified interface to access elements from multiple datasets,
+    enhancing the flexibility in handling diverse data sources for training machine learning models.
+    """
+
     def __init__(self, datasets: List[Dataset]):
         self._datasets = datasets
         self._len = sum(len(dataset) for dataset in datasets)
