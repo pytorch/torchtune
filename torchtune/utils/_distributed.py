@@ -32,7 +32,7 @@ FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
 
 FSDPPolicyType.__doc__ = """
 
-A datatype for a function that can be used as an FSDP (https://pytorch.org/docs/stable/fsdp.html) wrapping policy.
+A datatype for a function that can be used as an FSDP wrapping policy.
 In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
 and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
 be directly passed into PyTorch FSDP's ``auto_wrap_policy`` argument to specify how FSDP wraps submodules.
