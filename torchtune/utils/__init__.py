@@ -16,6 +16,7 @@ from ._compile_utils import wrap_compile
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
+    FSDPPolicyType,
     get_full_finetune_fsdp_wrap_policy,
     get_world_size_and_rank,
     init_distributed,
@@ -59,6 +60,7 @@ from .seed import set_seed
 __all__ = [
     "transform_opt_state_dict",
     "get_memory_stats",
+    "FSDPPolicyType",
     "log_memory_stats",
     "get_device",
     "get_dtype",
