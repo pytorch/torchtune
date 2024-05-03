@@ -240,10 +240,6 @@ def tune_to_peft(
     dim: int = 4096,
 ):
     converted_state_dict = {}
-    # peft_prefixes = {
-    #     v: k.replace("model.", "model.")
-    #     for k, v in _FROM_HF.items()
-    # }
     full_mapping = {}
     for k, v in _TO_PEFT_KEYS.items():
         full_mapping.update(
