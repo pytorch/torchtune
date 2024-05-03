@@ -41,7 +41,6 @@ from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
     create_optim_in_bwd_wrapper,
-    get_ac_policy,
     get_memory_stats,
     log_memory_stats,
     OptimizerInBackwardWrapper,
@@ -69,7 +68,6 @@ __all__ = [
     "is_distributed",
     "list_dtypes",
     "lora_fsdp_wrap_policy",
-    "get_ac_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
