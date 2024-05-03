@@ -112,7 +112,7 @@ class Phi3MiniSentencePieceTokenizer:
         """
         ids_for_decode = []
         for token_id in ids:
-            if token_ids in self.special_tokens.values():
+            if token_id in self.special_tokens.values():
                 continue
             else:
                 ids_for_decode.append(token_id)
