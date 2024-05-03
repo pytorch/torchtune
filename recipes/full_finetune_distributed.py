@@ -318,11 +318,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # original activation checkpointing (full) - flip the condition above
         if enable_activation_checkpointing and ac_mode is None:
             utils.set_activation_checkpointing(
-                model,
-                auto_wrap_policy=utils.get_ac_policy(
-                    memory_efficient_fsdp_wrap=False,
-                    modules_to_wrap={modules.TransformerDecoderLayer},
-                ),
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
         if self._is_rank_zero:
