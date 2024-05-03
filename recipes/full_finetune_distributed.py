@@ -185,7 +185,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
-            memory_efficient_wrapping=cfg.get("memory_efficient_wrapping", False),
+            memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -233,7 +233,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
-        memory_efficient_wrapping: bool,
+        memory_efficient_fsdp_wrap: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -293,7 +293,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
-                memory_efficient_wrapping=memory_efficient_wrapping,
+                memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
                 modules_to_wrap={modules.TransformerDecoderLayer},
             ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
@@ -320,7 +320,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             utils.set_activation_checkpointing(
                 model,
                 auto_wrap_policy=utils.get_ac_policy(
-                    memory_efficient_wrapping=False,
+                    memory_efficient_fsdp_wrap=False,
                     modules_to_wrap={modules.TransformerDecoderLayer},
                 ),
             )
