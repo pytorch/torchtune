@@ -45,11 +45,13 @@ def get_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], min_num_param
         if recurse:
             return True
         # Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params
+
         return isinstance(module, tuple(modules_to_wrap)) or sum(p.numel() for p in module.parameters()) > 1000
 
     return functools.partial(my_fsdp_policy, modules_to_wrap=modules_to_wrap)
 
 Please see documentation of ``auto_wrap_policy`` at https://pytorch.org/docs/stable/fsdp.html for additional details.
+
 """
 
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
