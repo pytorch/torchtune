@@ -527,8 +527,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                if self._profiler_enabled:
-                    self._profiler.step()
+                # TODO: remove
+                # if self._profiler_enabled:
+                #     self._profiler.step()
 
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
