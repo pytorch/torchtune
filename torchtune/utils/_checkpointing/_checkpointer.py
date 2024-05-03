@@ -449,16 +449,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             split_state_dicts[cpt_idx].update({key: weight})
 
         # write the partitioned state dicts to the right checkpoint file
-        # for cpt_idx, model_state_dict in split_state_dicts.items():
-        #     output_path = Path.joinpath(
-        #         self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
-        #     ).with_suffix(".pt")
-        #     torch.save(model_state_dict, output_path)
-        #     logger.info(
-        #         "Model checkpoint of size "
-        #         f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-        #         f"saved to {output_path}"
-        #     )
+        for cpt_idx, model_state_dict in split_state_dicts.items():
+            output_path = Path.joinpath(
+                self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(model_state_dict, output_path)
+            logger.info(
+                "Model checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
         if utils.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
@@ -466,9 +466,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
             state_dict[utils.ADAPTER_KEY] = convert_weights.tune_to_peft(
                 state_dict[utils.ADAPTER_KEY],
-                # num_heads=self._config["num_attention_heads"],
-                # num_kv_heads=self._config["num_key_value_heads"],
-                # dim=self._config["hidden_size"],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
             )
             torch.save(state_dict[utils.ADAPTER_KEY], output_path)
             logger.info(
