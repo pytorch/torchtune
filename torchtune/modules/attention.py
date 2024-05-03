@@ -129,7 +129,7 @@ class CausalSelfAttention(nn.Module):
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
             mask (Optional[Tensor]): Optional tensor which contains the mask.
-                Only used during inference. Default is None.
+                Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position
                 of the current token. This is only used during inference. Default is None
 
@@ -210,7 +210,7 @@ class CausalSelfAttention(nn.Module):
             v,
             attn_mask=mask,
             dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None,
+            is_causal=self.kv_cache is None and mask is None,
         )
 
         # reshape the output to be the same shape as the input

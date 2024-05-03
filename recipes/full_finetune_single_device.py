@@ -404,11 +404,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                num_tokens += input_ids.numel()
+                tokens, labels = batch["tokens"], batch["labels"]
+                mask = batch.get("mask", None)
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                logits = self._model(input_ids)
+
+                logits = self._model(tokens, mask=mask)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()

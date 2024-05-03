@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 from torch.utils.data import Dataset
 from tqdm import tqdm
@@ -58,29 +58,29 @@ class PackedDataset(Dataset):
         """
         # buffer to hold samples until they are long enough to be added to self.samples
         current_pack = {
-            "input_ids": [],
+            "tokens": [],
             "labels": [],
         }
         # Keep track of what index the previous sample ends in case we need
         # to end a pack early
         previous_sample_boundary = 0
 
-        for input_ids, labels in tqdm(
+        for tokens, labels in tqdm(
             self.ds, desc="Packing dataset", dynamic_ncols=True
         ):
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
             # one of the two parameters
-            if len(input_ids) > self.max_seq_len and not self.split_samples:
+            if len(tokens) > self.max_seq_len and not self.split_samples:
                 raise ValueError(
-                    f"Dataset sample is too long ({len(input_ids)} > {self.max_seq_len}). "
+                    f"Dataset sample is too long ({len(tokens)} > {self.max_seq_len}). "
                     "Please set `split_samples=True` or increase `max_seq_len`."
                 )
 
-            current_pack["input_ids"].extend(input_ids)
+            current_pack["tokens"].extend(tokens)
             current_pack["labels"].extend(labels)
 
-            if len(current_pack["input_ids"]) > self.max_seq_len:
+            if len(current_pack["tokens"]) > self.max_seq_len:
                 current_pack = self._add_pack(
                     current_pack=current_pack,
                     boundary=self.max_seq_len
@@ -88,11 +88,11 @@ class PackedDataset(Dataset):
                     else previous_sample_boundary,
                 )
 
-            previous_sample_boundary = len(current_pack["input_ids"])
+            previous_sample_boundary = len(current_pack["tokens"])
             if self.max_rows is not None and len(self.samples) >= self.max_rows:
                 break
 
-        if len(current_pack["input_ids"]) > 0 and (
+        if len(current_pack["tokens"]) > 0 and (
             self.max_rows is None or len(self.samples) < self.max_rows
         ):
             self.samples.append(dict(current_pack))
@@ -109,5 +109,5 @@ class PackedDataset(Dataset):
     def __len__(self):
         return len(self.samples)
 
-    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
-        return self.samples[index]["input_ids"], self.samples[index]["labels"]
+    def __getitem__(self, index: int) -> Dict[str, List[int]]:
+        return self.samples[index]

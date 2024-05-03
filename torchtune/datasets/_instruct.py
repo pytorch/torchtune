@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
@@ -76,11 +76,11 @@ class InstructDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+    def __getitem__(self, index: int) -> Dict[str, List[int]]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         transformed_sample = self._transform(sample) if self._transform else sample
 
         prompt = self.template.format(transformed_sample, self._column_map)
@@ -104,7 +104,7 @@ class InstructDataset(Dataset):
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
         assert len(tokens) == len(labels)
 
-        return tokens, labels
+        return {"tokens": tokens, "labels": labels}
 
 
 def instruct_dataset(
