@@ -120,7 +120,7 @@ class InferenceRecipe:
         )
         t = time.perf_counter() - t0
 
-        logger.info(self._tokenizer.decode(generated_tokens))
+        logger.info(self._tokenizer.decode(generated_tokens.tolist()[0]))
 
         model_size = sum(
             [
@@ -131,7 +131,8 @@ class InferenceRecipe:
             ]
         )
 
-        tokens_generated = len(generated_tokens) - prompt.size(1)
+        tokens_generated = generated_tokens.size(1) - len(tokens)
+        print(f"Generated {tokens_generated} tokens in {t:.02f} sec")
         tokens_sec = tokens_generated / t
         logger.info(
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"

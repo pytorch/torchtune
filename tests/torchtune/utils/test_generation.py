@@ -129,3 +129,28 @@ class TestTextGenerate:
         )
 
         assert outputs_first == outputs_second
+
+    def test_generate_with_stop_tokens(self, generation_model, prompt_tokens):
+        """
+        Test to check if the `generate` function produces the same output when run with the same
+        inputs and a fixed seed.
+        """
+        temperature = 0.6
+        top_k = 100
+
+        torch.manual_seed(42)
+
+        stop_tokens = [42]
+
+        prompt_tokens = torch.cat([torch.tensor(stop_tokens).repeat(2, 1), prompt_tokens], dim=-1)
+        outputs_first = utils.generate(
+            model=generation_model,
+            prompt=prompt_tokens.unqueeze(0),
+            max_generated_tokens=10,
+            temperature=temperature,
+            stop_tokens=stop_tokens,
+            top_k=top_k,
+        )
+
+
+        assert outputs_first == outputs_second

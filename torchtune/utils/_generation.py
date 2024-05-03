@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Callable, Optional, Set
+from typing import Callable, List, Optional
 
 import torch
 
@@ -68,7 +68,7 @@ def generate(
     attention_mask: Optional[torch.Tensor] = None,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
-    stop_tokens: Optional[Set[int]] = None,
+    stop_tokens: Optional[List[int]] = None,
     custom_generate_next_token: Optional[Callable] = None,
 ) -> torch.Tensor:
     """
@@ -83,7 +83,7 @@ def generate(
         temperature (float): value to scale the predicted logits by. Default is 1.0
         top_k (Optional[int]): If specified, we prune the sampling to only token ids within
             the top_k probabilities. Default is None
-        stop_tokens (Optional[Set[int]]): If specified, generation is stopped when any of these
+        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these
             tokens are generated. Default: None
         custom_generate_next_token (Optional[Callable]): If specified, we'll use the custom
             generate_next_token function (e.g. compiled function) when generating the tokens,
