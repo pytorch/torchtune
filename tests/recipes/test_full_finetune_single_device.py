@@ -63,12 +63,14 @@ class TestFullFinetuneSingleDeviceRecipe:
         [
             (
                 "llama2/7B_full_low_memory",
+                "torchtune.utils.FullModelMetaCheckpointer",
                 "small_test_ckpt_meta",
                 "LLAMA2",
                 "llama2_tokenizer",
             ),
             (
                 "llama3/8B_full_single_device",
+                "torchtune.utils.FullModelTorchTuneCheckpointer",
                 "small_test_ckpt_tune_llama3",
                 "LLAMA3",
                 "llama3_tokenizer",
@@ -77,9 +79,10 @@ class TestFullFinetuneSingleDeviceRecipe:
     )
     def test_loss(self, compile, config_and_flags, tmpdir, monkeypatch):
         config = config_and_flags[0]
-        ckpt = config_and_flags[1]
-        model_type = config_and_flags[2]
-        tokenizer = config_and_flags[3]
+        ckpt_component = config_and_flags[1]
+        ckpt = config_and_flags[2]
+        model_type = config_and_flags[3]
+        tokenizer = config_and_flags[4]
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         tokenizer_path = Path(TOKENIZER_PATHS[tokenizer])
         ckpt_dir = ckpt_path.parent
@@ -92,7 +95,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         tune run full_finetune_single_device \
             --config {config} \
             output_dir={tmpdir} \
-            checkpointer._component_=torchtune.utils.FullModelMetaCheckpointer
+            checkpointer._component_={ckpt_component} \
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
@@ -102,7 +105,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             compile={compile} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS(model_type)
+        model_config = MODEL_TEST_CONFIGS[model_type]
         cmd = cmd + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd)
