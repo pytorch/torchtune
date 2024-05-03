@@ -131,7 +131,15 @@ def generate(
         top_k=top_k,
     ).clone()
 
+    # add the first token to the generated tokens
     generated_tokens = torch.cat([generated_tokens, token], dim=-1)
+
+    # check if first generated token is a stop token and stop if so
+    if stop_tokens is not None:
+        matches = torch.isin(token, stop_tokens)
+        # if all tokens are in the stop_tokens, we stop
+        if matches.all():
+            return generated_tokens
 
     # generation starts at position=prompt_length and continues till
     # we get the requested number of tokens or we hit eos_id

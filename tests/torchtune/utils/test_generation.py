@@ -113,7 +113,7 @@ class TestTextGenerate:
         torch.manual_seed(42)
         outputs_first = utils.generate(
             model=generation_model,
-            prompt=prompt_tokens.unqueeze(0),
+            prompt=prompt_tokens.unsqueeze(0),
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
@@ -122,35 +122,35 @@ class TestTextGenerate:
         torch.manual_seed(42)
         outputs_second = utils.generate(
             model=generation_model,
-            prompt=prompt_tokens.unqueeze(0),
+            prompt=prompt_tokens.unsqueeze(0),
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
         )
 
-        assert outputs_first == outputs_second
+        assert torch.allclose(outputs_first, outputs_second)
 
     def test_generate_with_stop_tokens(self, generation_model, prompt_tokens):
         """
-        Test to check if the `generate` function produces the same output when run with the same
-        inputs and a fixed seed.
+        Test to check if generation will stop when it hits a stop_token passed in to ``utils.generate``.
         """
         temperature = 0.6
         top_k = 100
 
         torch.manual_seed(42)
 
-        stop_tokens = [42]
+        # Inspecting the output shows this is the first generated token.
+        # We want to test to make sure it stops here
+        stop_tokens = [3376]
 
-        prompt_tokens = torch.cat([torch.tensor(stop_tokens).repeat(2, 1), prompt_tokens], dim=-1)
-        outputs_first = utils.generate(
+        generated_tokens = utils.generate(
             model=generation_model,
-            prompt=prompt_tokens.unqueeze(0),
+            prompt=prompt_tokens.unsqueeze(0),
             max_generated_tokens=10,
             temperature=temperature,
             stop_tokens=stop_tokens,
             top_k=top_k,
         )
 
-
-        assert outputs_first == outputs_second
+        expected_output = torch.tensor([[2, 3, 4, 5, 6, 7, 8, 9, 3376]])
+        assert torch.allclose(generated_tokens, expected_output)
