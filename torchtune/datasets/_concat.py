@@ -13,7 +13,7 @@ from torchtune import utils
 log = utils.get_logger("DEBUG")
 
 
-class MultiDataset(Dataset):
+class ConcatDataset(Dataset):
     def __init__(self, datasets: List[Dataset]):
         self._datasets = datasets
         self._len = sum(len(dataset) for dataset in datasets)

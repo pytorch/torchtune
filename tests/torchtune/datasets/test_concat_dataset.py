@@ -6,10 +6,10 @@
 
 import pytest
 from datasets import Dataset
-from torchtune.datasets._multi import MultiDataset
+from torchtune.datasets._concat import ConcatDataset
 
 
-class TestMultiDataset:
+class TestConcatDataset:
     @pytest.fixture
     def datasets(self):
         ds1 = Dataset.from_list([{"data": f"ds1_{i}"} for i in range(4)])
@@ -22,7 +22,7 @@ class TestMultiDataset:
 
     def test_length(self, datasets):
         """Test the correct computation of total length"""
-        multi_dataset = MultiDataset(datasets)
+        multi_dataset = ConcatDataset(datasets)
 
         # sum of individual datasets lengths
         expected_length = 4 + 8 + 15 + 16 + 23 + 42  # 108
@@ -30,7 +30,7 @@ class TestMultiDataset:
 
     def test_getitem(self, datasets):
         """Test item retrieval across dataset boundaries"""
-        multi_dataset = MultiDataset(datasets)
+        multi_dataset = ConcatDataset(datasets)
 
         # Testing indices across different datasets
         assert multi_dataset[-1] is None  # Index out of range
@@ -47,7 +47,7 @@ class TestMultiDataset:
 
     def test_invalid_index_type(self, datasets):
         """Test handling of invalid index types"""
-        multi_dataset = MultiDataset(datasets)
+        multi_dataset = ConcatDataset(datasets)
 
         with pytest.raises(TypeError):
             multi_dataset["invalid_type"]  # Non-integer index

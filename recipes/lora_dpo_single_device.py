@@ -18,7 +18,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.datasets import MultiDataset
+from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -303,7 +303,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
                 for single_cfg_dataset in cfg_dataset
             ]
-            ds = MultiDataset(datasets=datasets)
+            ds = ConcatDataset(datasets=datasets)
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
 
