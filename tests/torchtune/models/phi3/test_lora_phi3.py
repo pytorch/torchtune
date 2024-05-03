@@ -28,7 +28,7 @@ INTER_DIM = 128
 NUM_HEADS = 4
 NUM_KV_HEADS = 2
 MAX_SEQ_LEN = 64
-import pdb
+
 
 @pytest.fixture(autouse=True)
 def random():
@@ -269,7 +269,6 @@ class TestLoRAPhi3:
                     assert isinstance(module.weight, NF4Tensor)
             # saved state_dict should have bf16 weights.
             qlora_sd = qlora.state_dict()
-            #pdb.set_trace()
             for v in qlora_sd.values():
                 assert v.dtype == dtype
 
