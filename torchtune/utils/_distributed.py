@@ -30,6 +30,28 @@ _log: logging.Logger = get_logger()
 
 FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
 
+FSDPPolicyType.__doc__ = """
+A datatype for a function that can be used as an FSDP (https://pytorch.org/docs/stable/fsdp.html) wrapping policy.
+In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
+and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
+be directly passed into PyTorch FSDP's ``auto_wrap_policy`` argument to specify how FSDP wraps submodules.
+
+The below function serves as an example of creating and returning a function that obeys the contract of
+``FSDPPolicyType``:
+
+def get_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], min_num_params: int):
+
+    def my_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], recurse: bool, min_num_params: int) -> bool:
+        if recurse:
+            return True
+        # Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params
+        return isinstance(module, tuple(modules_to_wrap)) or sum(p.numel() for p in module.parameters()) > 1000
+
+    return functools.partial(my_fsdp_policy, modules_to_wrap=modules_to_wrap)
+
+Please see documentation of ``auto_wrap_policy`` at https://pytorch.org/docs/stable/fsdp.html for additional details.
+"""
+
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
 
 
@@ -197,7 +219,8 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
 
     Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
+        documentation for `torchtune.utils.FSDPPolicyType` for additional details.
     """
 
     def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
@@ -234,7 +257,8 @@ def get_full_finetune_fsdp_wrap_policy(
             to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
             have not been verified and may not see the same improvements.
     Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
+            argument. Please see documentation for `torchtune.utils.FSDPPolicyType` for additional details.
     """
     if memory_efficient_fsdp_wrap:
         return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
