@@ -198,3 +198,80 @@ def tune_to_hf(
         converted_state_dict[new_key] = value
 
     return converted_state_dict
+
+
+# state dict key mappings from HF's format to TorchTune's format
+_FROM_HF = {
+    "model.embed_tokens.weight": "tok_embeddings.weight",
+    "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
+    "model.layers.{}.self_attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
+    "model.layers.{}.self_attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
+    "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
+    "model.layers.{}.self_attn.rotary_emb.inv_freq": None,
+    "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
+    "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
+    "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
+    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
+    "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
+    "model.norm.weight": "norm.scale",
+    "lm_head.weight": "output.weight",
+}
+
+_TO_PEFT_KEYS = {
+    "lora_a": "lora_A.default",
+    "lora_b": "lora_B.default",
+}
+_TO_PEFT_TARGET_MODULES = {
+    "q_proj": "q_proj",
+    "k_proj": "k_proj",
+    "v_proj": "v_proj",
+    "output_proj": "o_proj",
+    "w1": "gate_proj",
+    "w2": "down_proj",
+    "w3": "up_proj",
+    "output": "lm_head",
+}
+
+
+def tune_to_peft(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
+):
+    converted_state_dict = {}
+    peft_prefixes = {
+        v: k.replace("model.", "base_model.model.model.decoder.")
+        for k, v in _FROM_HF.items()
+    }
+    full_mapping = {}
+    for k, v in _TO_PEFT_KEYS.items():
+        full_mapping.update(
+            {
+                kk.replace(".weight", f".{k}.weight"): vv.replace(
+                    ".weight", f".{v}.weight"
+                )
+                for kk, vv in peft_prefixes.items()
+                if kk is not None
+            }
+        )
+
+    head_dim = dim // num_heads
+
+    def _permute_lora_matrix(t, n_heads):
+        return (
+            t.view(n_heads, head_dim // 2, 2, rank)
+            .transpose(1, 2)
+            .reshape((head_dim * n_heads), rank)
+        )
+
+    for key, value in state_dict.items():
+        new_key = get_mapped_key(key, full_mapping)
+        converted_state_dict[new_key] = value
+        if "q_proj" in key and "lora_B" in key:
+            value = _permute_lora_matrix(value, num_heads)
+        elif "k_proj" in key and "lora_B" in key:
+            value = _permute_lora_matrix(value, num_kv_heads)
+        converted_state_dict[new_key] = value
+
+    return converted_state_dict

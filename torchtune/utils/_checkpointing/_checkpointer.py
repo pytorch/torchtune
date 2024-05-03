@@ -241,10 +241,16 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
+        if utils.ADAPTER_CONFIG in state_dict:
+            output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+            with open(output_path, "w") as f:
+                json.dump(state_dict[utils.ADAPTER_CONFIG], f)
+
         # If the recipe state needs to be output, first remove the model state dict
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -443,21 +449,27 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             split_state_dicts[cpt_idx].update({key: weight})
 
         # write the partitioned state dicts to the right checkpoint file
-        for cpt_idx, model_state_dict in split_state_dicts.items():
-            output_path = Path.joinpath(
-                self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
-            ).with_suffix(".pt")
-            torch.save(model_state_dict, output_path)
-            logger.info(
-                "Model checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                f"saved to {output_path}"
-            )
-
+        # for cpt_idx, model_state_dict in split_state_dicts.items():
+        #     output_path = Path.joinpath(
+        #         self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
+        #     ).with_suffix(".pt")
+        #     torch.save(model_state_dict, output_path)
+        #     logger.info(
+        #         "Model checkpoint of size "
+        #         f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+        #         f"saved to {output_path}"
+        #     )
         if utils.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
             ).with_suffix(".pt")
+
+            state_dict[utils.ADAPTER_KEY] = convert_weights.tune_to_peft(
+                state_dict[utils.ADAPTER_KEY],
+                # num_heads=self._config["num_attention_heads"],
+                # num_kv_heads=self._config["num_key_value_heads"],
+                # dim=self._config["hidden_size"],
+            )
             torch.save(state_dict[utils.ADAPTER_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
@@ -465,11 +477,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
+        if utils.ADAPTER_CONFIG in state_dict:
+            output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+            with open(output_path, "w") as f:
+                json.dump(state_dict[utils.ADAPTER_CONFIG], f)
+
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -608,6 +626,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
