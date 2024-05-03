@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.models &mdash; TorchTune main documentation</title>
+  <title>torchtune.datasets._concat &mdash; TorchTune main documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="llama3_8b" href="generated/torchtune.models.llama3.llama3_8b.html" />
-    <link rel="prev" title="ConcatDataset" href="generated/torchtune.datasets.ConcatDataset.html" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="_static/js/modernizr.min.js"></script>
+  <script src="../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -244,7 +241,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -261,34 +258,34 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -321,7 +318,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="index.html">
+        <a href="../../../index.html">
           
             Docs
           
@@ -329,14 +326,12 @@
       </li>
 
         
-      <li>torchtune.models</li>
+          <li><a href="../../index.html">Module code</a> &gt;</li>
+        
+      <li>torchtune.datasets._concat</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="_sources/api_ref_models.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -365,137 +360,90 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="torchtune-models">
-<h1>torchtune.models<a class="headerlink" href="#torchtune-models" title="Permalink to this heading">¶</a></h1>
-<section id="llama3">
-<h2>llama3<a class="headerlink" href="#llama3" title="Permalink to this heading">¶</a></h2>
-<p>All models from the <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;
-</pre></div>
-</div>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.llama3_8b.html#torchtune.models.llama3.llama3_8b" title="torchtune.models.llama3.llama3_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.llama3_8b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3 model initialized w/ the default 8b parameter values.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.llama3_70b.html#torchtune.models.llama3.llama3_70b" title="torchtune.models.llama3.llama3_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.llama3_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3 model initialized w/ the default 70B parameter values.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b" title="torchtune.models.llama3.lora_llama3_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.lora_llama3_8b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3 8B model with LoRA enabled.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.qlora_llama3_8b.html#torchtune.models.llama3.qlora_llama3_8b" title="torchtune.models.llama3.qlora_llama3_8b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.qlora_llama3_8b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3 model with QLoRA enabled.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama3.lora_llama3_70b.html#torchtune.models.llama3.lora_llama3_70b" title="torchtune.models.llama3.lora_llama3_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama3.lora_llama3_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama3 70B model with LoRA enabled.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="llama2">
-<h2>llama2<a class="headerlink" href="#llama2" title="Permalink to this heading">¶</a></h2>
-<p>All models from the <a class="reference external" href="https://llama.meta.com/llama2/">Llama2 family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;
-</pre></div>
-</div>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.llama2_7b.html#torchtune.models.llama2.llama2_7b" title="torchtune.models.llama2.llama2_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.llama2_7b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 model initialized w/ the default 7B parameter values from <a class="reference external" href="https://arxiv.org/abs/2307.09288">https://arxiv.org/abs/2307.09288</a></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b" title="torchtune.models.llama2.lora_llama2_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.lora_llama2_7b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 7B model with LoRA enabled.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.qlora_llama2_7b.html#torchtune.models.llama2.qlora_llama2_7b" title="torchtune.models.llama2.qlora_llama2_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.qlora_llama2_7b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 7B model with QLoRA enabled.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.llama2_13b.html#torchtune.models.llama2.llama2_13b" title="torchtune.models.llama2.llama2_13b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.llama2_13b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 model initialized w/ the default 13B parameter values from <a class="reference external" href="https://arxiv.org/abs/2307.09288">https://arxiv.org/abs/2307.09288</a></p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.lora_llama2_13b.html#torchtune.models.llama2.lora_llama2_13b" title="torchtune.models.llama2.lora_llama2_13b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.lora_llama2_13b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 13B model with LoRA enabled.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.qlora_llama2_13b.html#torchtune.models.llama2.qlora_llama2_13b" title="torchtune.models.llama2.qlora_llama2_13b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.qlora_llama2_13b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 13B model with QLoRA enabled.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.llama2_70b.html#torchtune.models.llama2.llama2_70b" title="torchtune.models.llama2.llama2_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.llama2_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 model initialized w/ the default 70B parameter values from <a class="reference external" href="https://arxiv.org/abs/2307.09288">https://arxiv.org/abs/2307.09288</a></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.llama2.lora_llama2_70b.html#torchtune.models.llama2.lora_llama2_70b" title="torchtune.models.llama2.lora_llama2_70b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">llama2.lora_llama2_70b</span></code></a></p></td>
-<td><p>Builder for creating a Llama2 70B model with LoRA enabled.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="phi-3">
-<h2>phi-3<a class="headerlink" href="#phi-3" title="Permalink to this heading">¶</a></h2>
-<p>Models from the <a class="reference external" href="https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/">Phi-3 mini family</a>.</p>
-<p>Pre-trained models can be download from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
-</pre></div>
-</div>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.phi3.phi3_mini.html#torchtune.models.phi3.phi3_mini" title="torchtune.models.phi3.phi3_mini"><code class="xref py py-obj docutils literal notranslate"><span class="pre">phi3.phi3_mini</span></code></a></p></td>
-<td><p>Builder for creating the Phi3 Mini 4K Instruct Model.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="mistral">
-<h2>mistral<a class="headerlink" href="#mistral" title="Permalink to this heading">¶</a></h2>
-<p>All models from <a class="reference external" href="https://mistral.ai/technology/#models">Mistral AI family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1
-</pre></div>
-</div>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.mistral_7b.html#torchtune.models.mistral.mistral_7b" title="torchtune.models.mistral.mistral_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.mistral_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values from <a class="reference external" href="https://mistral.ai/news/announcing-mistral-7b/">https://mistral.ai/news/announcing-mistral-7b/</a></p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.lora_mistral_7b.html#torchtune.models.mistral.lora_mistral_7b" title="torchtune.models.mistral.lora_mistral_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.lora_mistral_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral 7B model with LoRA enabled.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.mistral.qlora_mistral_7b.html#torchtune.models.mistral.qlora_mistral_7b" title="torchtune.models.mistral.qlora_mistral_7b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">mistral.qlora_mistral_7b</span></code></a></p></td>
-<td><p>Builder for creating a Mistral model with QLoRA enabled.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="gemma">
-<h2>gemma<a class="headerlink" href="#gemma" title="Permalink to this heading">¶</a></h2>
-<p>All models from the <a class="reference external" href="https://blog.google/technology/developers/gemma-open-models/">Gemma family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
-</pre></div>
-</div>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.models.gemma.gemma_2b.html#torchtune.models.gemma.gemma_2b" title="torchtune.models.gemma.gemma_2b"><code class="xref py py-obj docutils literal notranslate"><span class="pre">gemma.gemma_2b</span></code></a></p></td>
-<td><p>Builder for creating a Gemma 2B model initialized w/ the default 2b parameter values from: <a class="reference external" href="https://blog.google/technology/developers/gemma-open-models/">https://blog.google/technology/developers/gemma-open-models/</a></p></td>
-</tr>
-</tbody>
-</table>
-</section>
-</section>
+  <h1>Source code for torchtune.datasets._concat</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+
+<span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
+
+<span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">utils</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">utils</span><span class="o">.</span><span class="n">get_logger</span><span class="p">(</span><span class="s2">&quot;DEBUG&quot;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ConcatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset">[docs]</a><span class="k">class</span> <span class="nc">ConcatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dataset class for concatenating multiple sub-datasets into a single dataset. This class enables the</span>
+<span class="sd">    unified handling of different datasets as if they were a single dataset, simplifying tasks such as</span>
+<span class="sd">    training models on multiple sources of data simultaneously.</span>
+
+<span class="sd">    The class internally manages the aggregation of different datasets and allows transparent indexing across them.</span>
+<span class="sd">    However, it requires all constituent datasets to be fully loaded into memory, which might not be optimal for</span>
+<span class="sd">    very large datasets.</span>
+
+<span class="sd">    Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping</span>
+<span class="sd">    of indices to the respective datasets. This approach allows the `ConcatDataset` to delegate data retrieval to</span>
+<span class="sd">    the appropriate sub-dataset transparently when a particular index is accessed.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to</span>
+<span class="sd">        be loaded into memory. For large-scale scenarios, consider other strategies that might stream data on demand.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class</span>
+<span class="sd">            derived from `torch.utils.data.Dataset`.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        _datasets (List[Dataset]): Stores the list of datasets passed during initialization.</span>
+<span class="sd">        _len (int): The total combined length of all datasets.</span>
+<span class="sd">        _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the</span>
+<span class="sd">            ending index, and the dataset index for quick lookup and access during indexing operations.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; dataset1 = MyCustomDataset(params1)</span>
+<span class="sd">        &gt;&gt;&gt; dataset2 = MyCustomDataset(params2)</span>
+<span class="sd">        &gt;&gt;&gt; concat_dataset = ConcatDataset([dataset1, dataset2])</span>
+<span class="sd">        &gt;&gt;&gt; print(len(concat_dataset))  # Total length of both datasets</span>
+<span class="sd">        &gt;&gt;&gt; data_point = concat_dataset[1500]  # Accesses an element from the appropriate dataset</span>
+
+<span class="sd">    This class primarily focuses on providing a unified interface to access elements from multiple datasets,</span>
+<span class="sd">    enhancing the flexibility in handling diverse data sources for training machine learning models.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">datasets</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dataset</span><span class="p">]):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span> <span class="o">=</span> <span class="n">datasets</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_len</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span> <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="c1"># Calculate distribution of indexes in all datasets</span>
+        <span class="n">cumulative_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">datasets</span><span class="p">):</span>
+            <span class="n">next_cumulative_index</span> <span class="o">=</span> <span class="n">cumulative_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">cumulative_index</span><span class="p">,</span> <span class="n">next_cumulative_index</span><span class="p">,</span> <span class="n">idx</span><span class="p">))</span>
+            <span class="n">cumulative_index</span> <span class="o">=</span> <span class="n">next_cumulative_index</span>
+
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Datasets summary length: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_len</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Datasets indexes: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+        <span class="k">for</span> <span class="n">start</span><span class="p">,</span> <span class="n">stop</span><span class="p">,</span> <span class="n">dataset_index</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indexes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="o">&lt;=</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="n">stop</span><span class="p">:</span>
+                <span class="n">dataset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_datasets</span><span class="p">[</span><span class="n">dataset_index</span><span class="p">]</span>
+                <span class="k">return</span> <span class="n">dataset</span><span class="p">[</span><span class="n">index</span> <span class="o">-</span> <span class="n">start</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_len</span></div>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="generated/torchtune.models.llama3.llama3_8b.html" class="btn btn-neutral float-right" title="llama3_8b" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="generated/torchtune.datasets.ConcatDataset.html" class="btn btn-neutral" title="ConcatDataset" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -524,17 +472,7 @@
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">torchtune.models</a><ul>
-<li><a class="reference internal" href="#llama3">llama3</a></li>
-<li><a class="reference internal" href="#llama2">llama2</a></li>
-<li><a class="reference internal" href="#phi-3">phi-3</a></li>
-<li><a class="reference internal" href="#mistral">mistral</a></li>
-<li><a class="reference internal" href="#gemma">gemma</a></li>
-</ul>
-</li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -547,23 +485,24 @@
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-         <script src="_static/jquery.js"></script>
-         <script src="_static/underscore.js"></script>
-         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="_static/doctools.js"></script>
-         <script src="_static/clipboard.min.js"></script>
-         <script src="_static/copybutton.js"></script>
-         <script src="_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+         <script src="../../../_static/jquery.js"></script>
+         <script src="../../../_static/underscore.js"></script>
+         <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../_static/doctools.js"></script>
+         <script src="../../../_static/clipboard.min.js"></script>
+         <script src="../../../_static/copybutton.js"></script>
+         <script src="../../../_static/tabs.js"></script>
+         <script src="../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -678,7 +617,7 @@
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -814,7 +753,7 @@
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

@@ -419,6 +419,22 @@ You could tweak <code class="code docutils literal notranslate"><span class="pre
 <span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256</span>
 </pre></div>
 </div>
+<p>It is also possible to train on multiple datasets by combining them into a single <a class="reference internal" href="../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset" title="torchtune.datasets.ConcatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConcatDataset</span></code></a>. For example:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vicgalle/alpaca-gpt4</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AlpacaInstructTemplate</span>
+<span class="w">    </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">    </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
+<span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">samsum</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SummarizeTemplate</span>
+<span class="w">    </span><span class="nt">column_map</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="s">&quot;output&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;summary&quot;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
+<span class="w">    </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+</pre></div>
+</div>
+<p>The preceding snippet demonstrates how you can configure each individual dataset’s parameters, then combine them into a single concatenated dataset for training.</p>
 <section id="customizing-instruct-templates">
 <h2>Customizing instruct templates<a class="headerlink" href="#customizing-instruct-templates" title="Permalink to this heading">¶</a></h2>
 <p>To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
