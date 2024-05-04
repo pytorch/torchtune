@@ -7,6 +7,7 @@
 from unittest.mock import patch
 
 import pytest
+from datasets import Dataset
 
 from tests.test_utils import get_assets_path
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
@@ -29,13 +30,15 @@ class TestSamsumDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "id": "13818513",
-                "dialogue": "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)",
-                "summary": "Amanda baked cookies and will bring Jerry some tomorrow.",
-            },
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "id": "13818513",
+                    "dialogue": "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)",
+                    "summary": "Amanda baked cookies and will bring Jerry some tomorrow.",
+                },
+            ]
+        )
 
         samsum_ds = samsum_dataset(tokenizer=tokenizer, train_on_input=True)
         input, labels = samsum_ds[0]
@@ -52,13 +55,15 @@ class TestSamsumDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "id": "13818513",
-                "dialogue": "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)",
-                "summary": "Amanda baked cookies and will bring Jerry some tomorrow.",
-            },
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "id": "13818513",
+                    "dialogue": "Amanda: I baked cookies. Do you want some? Jerry: Sure! Amanda: I'll bring you tomorrow :-)",
+                    "summary": "Amanda baked cookies and will bring Jerry some tomorrow.",
+                },
+            ]
+        )
 
         samsum_ds = samsum_dataset(tokenizer=tokenizer)
 

@@ -110,7 +110,13 @@ class Phi3MiniSentencePieceTokenizer:
         Returns:
             str: The decoded text.
         """
-        return self.spm_model.decode(ids)
+        ids_for_decode = []
+        for token_id in ids:
+            if token_id in self.special_tokens.values():
+                continue
+            else:
+                ids_for_decode.append(token_id)
+        return self.spm_model.decode(ids_for_decode)
 
     def tokenize_messages(
         self,
