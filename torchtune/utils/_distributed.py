@@ -303,8 +303,6 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return lora_wrap_fsdp
 
 
-# remove if torch.distributed.checkpoint
-# implements rank0 load and broadcoast
 def load_from_full_state_dict(
     model: torch.distributed._composable.fsdp.FSDP,
     full_sd: Dict[str, Any],
@@ -331,8 +329,6 @@ def load_from_full_state_dict(
     model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
-# remove if torch.distributed.checkpoint
-# implements rank0 load and broadcoast
 def get_full_optimizer_state_dict(
     opt: Optimizer,
     is_rank_zero: bool,
@@ -358,8 +354,6 @@ def get_full_optimizer_state_dict(
     }
 
 
-# remove if torch.distributed.checkpoint
-# implement rank0 load and broadcast
 def load_from_full_optimizer_state_dict(
     opt: Optimizer,
     full_sd: Dict[str, Any],

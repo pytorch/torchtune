@@ -20,7 +20,6 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed._tensor import DTensor
 
-# from torch.distributed.checkpoint import state_dict as ptd_state_dict
 from torch.optim import Optimizer
 from torch.optim.optimizer import _foreach_supported_types
 from torch.utils.data import DataLoader, DistributedSampler
@@ -355,9 +354,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            # Note: technically we should check _contains_fsdp for
-            # just the state dict of the adapter cfg, but should be equivalent
-            # TODO: replace with _distributed.py/load_full_optimizer_state_dict
             utils.load_from_full_optimizer_state_dict(
                 optimizer, opt_state_dict, self._device, self._is_rank_zero
             )
@@ -436,29 +432,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        # TODO: choose ptd or not
-        # cpu_state_dict = ptd_state_dict.get_model_state_dict(
-        #     self._model,
-        #     options=ptd_state_dict.StateDictOptions(
-        #         full_state_dict=True,
-        #         cpu_offload=True,
-        #     ),
-        # )
         cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
         )
 
         if intermediate_checkpoint:
-            # TODO: choose ptd or not
-            # opt_state_dict = ptd_state_dict.get_optimizer_state_dict(
-            #     self._model,
-            #     self._optimizer,
-            #     options=ptd_state_dict.StateDictOptions(
-            #         full_state_dict=True,
-            #         cpu_offload=True,
-            #     ),
-            # )
             opt_state_dict = utils.get_full_optimizer_state_dict(
                 self._optimizer,
                 self._is_rank_zero,
