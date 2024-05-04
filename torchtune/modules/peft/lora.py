@@ -6,6 +6,7 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
@@ -76,6 +77,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
         # Without meta device, we only need the following:
+        self.lora_rng_state = torch.random.get_rng_state()
         self.initialize_parameters()
 
     def initialize_parameters(self):

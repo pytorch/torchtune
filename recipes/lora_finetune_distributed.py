@@ -317,9 +317,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
-                    # to_empty is needed since kaiming_uniform_ is inplace
-                    m.to_empty(device=self._device)
-                    m.initialize_parameters()
+                    # kaiming_uniform_ is inplace
+                    # need cpu and restored rng
+                    m.lora_a.to_empty(device="cpu")
+                    m.lora_b.to_empty(device="cpu")
+                    with torch.random.fork_rng():
+                        torch.random.set_rng_state(m.lora_rng_state)
+                        m.initialize_parameters()
+                        m.lora_a = m.lora_a.to(self._device)
+                        m.lora_b = m.lora_b.to(self._device)
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
 
