@@ -293,12 +293,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        # The model contains LoRA params which won't have any matching keys in
-        # the state dict. As a result, we need to load with strict=False.
-        # Before loading the state dict, ensure the state dict keys for the base
-        # model and adapters (if available) match the keys in the full LoRA model
-        # This is a good sanity check to prevent silent errors
         if self._is_rank_zero:
+            # The model contains LoRA params which won't have any matching keys in
+            # the state dict. As a result, we need to load with strict=False.
+            # Before loading the state dict, ensure the state dict keys for the base
+            # model and adapters (if available) match the keys in the full LoRA model
+            # This is a good sanity check to prevent silent errors
             validate_state_dict_for_lora(
                 lora_attn_modules=cfg_model.lora_attn_modules,
                 apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
