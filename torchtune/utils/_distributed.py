@@ -8,7 +8,7 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
@@ -16,12 +16,7 @@ import torch.distributed._composable.fsdp
 from torch import nn
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed.checkpoint.state_dict import _init_optim_state
-from torch.distributed.fsdp import (
-    FullyShardedDataParallel as FSDP,
-    MixedPrecision,
-    ShardingStrategy,
-)
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.distributed.fsdp import ShardingStrategy
 
 from torch.optim import Optimizer
 from torchtune.modules.peft.lora import (

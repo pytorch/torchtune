@@ -312,7 +312,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 base_model_state_dict_keys=base_model_state_dict.keys(),
             )
 
-        # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
