@@ -24,12 +24,13 @@ from torch.optim import Optimizer
 from torch.optim.optimizer import _foreach_supported_types
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.modules.peft import LoRALinear
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
+    validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -291,6 +292,25 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
+
+        # The model contains LoRA params which won't have any matching keys in
+        # the state dict. As a result, we need to load with strict=False.
+        # Before loading the state dict, ensure the state dict keys for the base
+        # model and adapters (if available) match the keys in the full LoRA model
+        # This is a good sanity check to prevent silent errors
+        if self._is_rank_zero:
+            validate_state_dict_for_lora(
+                lora_attn_modules=cfg_model.lora_attn_modules,
+                apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+                apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
+                full_model_state_dict_keys=model.state_dict().keys(),
+                lora_state_dict_keys=(
+                    lora_weights_state_dict.keys()
+                    if lora_weights_state_dict is not None
+                    else None
+                ),
+                base_model_state_dict_keys=base_model_state_dict.keys(),
+            )
 
         # Note: this needs to be set before wrapping with FSDP
         self.adapter_params = get_adapter_params(model)
