@@ -77,7 +77,8 @@ output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-log_every_n_steps: null
+log_every_n_steps: 1
+log_peak_memory_stats: False
 
 # Environment
 device: cuda

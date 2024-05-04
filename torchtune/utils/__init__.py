@@ -26,7 +26,6 @@ from ._distributed import (  # noqa
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
-    wrap_fsdp,
 )
 from ._generation import generate, generate_next_token  # noqa
 from ._profiler import profiler
@@ -51,10 +50,9 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+
 from .precision import (
-    get_autocast,
     get_dtype,
-    get_gradient_scaler,
     list_dtypes,
     set_default_dtype,
     validate_expected_param_dtype,
@@ -63,16 +61,11 @@ from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
-    "save_checkpoint",
     "transform_opt_state_dict",
-    "validate_checkpoint",
-    "get_autocast",
     "get_memory_stats",
     "log_memory_stats",
     "get_device",
     "get_dtype",
-    "wrap_fsdp",
-    "get_gradient_scaler",
     "get_logger",
     "get_world_size_and_rank",
     "init_distributed",
@@ -87,7 +80,6 @@ __all__ = [
     "validate_expected_param_dtype",
     "wrap_compile",
     "TuneRecipeArgumentParser",
-    "CheckpointableDataLoader",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",

@@ -5,19 +5,20 @@
 # LICENSE file in the root directory of this source tree.
 
 import sys
-
+import time
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -86,8 +87,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             raise RuntimeError("Full bf16 training is not supported on this hardware.")
         # logging attributes
         self._output_dir = cfg.output_dir
-        self._log_every_n_steps = cfg.log_every_n_steps if cfg.log_every_n_steps else 1
-        self._log_peak_memory_every_n_steps = 100
+        self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
+        self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
 
         # These are public properties which are updated by the checkpoint loader
         # when ``resume_from_checkpoint`` is `True` or validated in tests
@@ -95,7 +96,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.total_training_steps = 0
+        self.global_step = 0
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -201,14 +202,14 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-            self.total_training_steps = self.epochs_run * self._steps_per_epoch
+            self.global_step = self.epochs_run * self._steps_per_epoch
 
         # Learning rate scheduler can only be set up after number of steps
         # has been computed
         self._lr_scheduler = self._setup_lr_scheduler(
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.total_epochs * self._steps_per_epoch,
-            last_epoch=self.total_training_steps - 1,
+            last_epoch=self.global_step - 1,
         )
 
     def _setup_model(
@@ -297,10 +298,15 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,
@@ -446,12 +452,18 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         The core training loop.
         """
 
+        # Initialize tokens count and running loss (for grad accumulation)
+        t0 = time.perf_counter()
+        running_loss = 0
+        num_tokens = 0
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             # Update the sampler to ensure data is correctly shuffled across epochs
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
-            for idx, batch in enumerate(pbar := tqdm(self._dataloader)):
+            pbar = tqdm(total=self._steps_per_epoch)
+            for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
                     and (idx // self._gradient_accumulation_steps)
@@ -459,6 +471,8 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 ):
                     break
 
+                # batch is input_ids, labels
+                num_tokens += batch[0].numel()
                 (
                     policy_chosen_log_probs,
                     policy_rejected_log_probs,
@@ -482,12 +496,32 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                 )
                 loss = loss.mean()
                 reward_accuracies = (chosen_rewards > rejected_rewards).float()
-                if self.total_training_steps % self._log_every_n_steps == 0:
-                    pbar.set_description(f"{curr_epoch+1}|{idx+1}|Loss: {loss.item()}")
-                    self._metric_logger.log_dict(
-                        {
-                            "loss": loss.item(),
+
+                loss = loss / self._gradient_accumulation_steps
+                running_loss += loss
+                loss.backward()
+
+                # Step with optimizer
+                if (idx + 1) % self._gradient_accumulation_steps == 0:
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+                    self._lr_scheduler.step()
+                    # Update the number of steps when the weights are updated
+                    self.global_step += 1
+
+                    loss_to_log = running_loss.item()
+                    pbar.update(1)
+                    pbar.set_description(
+                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                    )
+
+                    # Log per-step metrics
+                    if self.global_step % self._log_every_n_steps == 0:
+                        time_per_step = time.perf_counter() - t0
+                        log_dict = {
+                            "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
+                            "tokens_per_second": num_tokens / time_per_step,
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),
@@ -504,28 +538,19 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                             .mean()
                             .cpu(),
                             "logits/chosen": policy_chosen_logits.detach().mean().cpu(),
-                            "gpu_resources": torch.cuda.memory_allocated(),
-                        },
-                        step=self.total_training_steps,  # Each step is unique, not limited to each epoch
-                    )
-                loss = loss / self._gradient_accumulation_steps
-                loss.backward()
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-                    # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
-                # Log peak memory for iteration
-                if (
-                    self.total_training_steps % self._log_peak_memory_every_n_steps == 0
-                    and self._device == torch.device("cuda")
-                ):
-                    # Log peak memory for iteration
-                    memory_stats = utils.get_memory_stats(device=self._device)
-                    self._metric_logger.log_dict(
-                        memory_stats, step=self.total_training_steps
-                    )
+                        }
+                        if self._log_peak_memory_stats:
+                            log_dict.update(utils.get_memory_stats(device=self._device))
+                        self._metric_logger.log_dict(
+                            log_dict,
+                            step=self.global_step,
+                        )
+
+                    # Reset running stats for the next step
+                    running_loss = 0
+                    num_tokens = 0
+                    t0 = time.perf_counter()
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 

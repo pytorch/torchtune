@@ -76,7 +76,7 @@ target-version = ["py38"]
 [tool.pydoclint]
 style = 'google'
 check-return-types = 'False'
-exclude = 'tests/torchtune/models/llama2/scripts/'
+exclude = ['tests/torchtune/models/llama2/scripts/', 'tests/torchtune/models/mistral/scripts/']
 
 [tool.pytest.ini_options]
 addopts = ["--showlocals", "--import-mode=prepend", "--without-integration", "--without-slow-integration"]

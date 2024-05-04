@@ -1,14 +1,16 @@
-====================
-Llama3 in torchtune
-====================
+.. _llama3_label:
+
+========================
+Meta Llama3 in torchtune
+========================
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` You will learn how to:
 
-      * Download the Llama3-8B weights and tokenizer
-      * Fine-tune Llama3-8B with LoRA and QLoRA
-      * Evaluate your fine-tuned Llama3-8B model
+      * Download the Llama3-8B-Instruct weights and tokenizer
+      * Fine-tune Llama3-8B-Instruct with LoRA and QLoRA
+      * Evaluate your fine-tuned Llama3-8B-Instruct model
       * Generate text with your fine-tuned model
       * Quantize your model to speed up generation
 
@@ -19,10 +21,11 @@ Llama3 in torchtune
 
 
 Llama3-8B
-----------
+---------
 
-`Llama3-8B <https://llama.meta.com/llama3>`_ is a new model released by Meta AI that improves upon the performance of the Llama2 family
+`Meta Llama 3 <https://llama.meta.com/llama3>`_ is a new family of models released by Meta AI that improves upon the performance of the Llama2 family
 of models across a `range of different benchmarks <https://huggingface.co/meta-llama/Meta-Llama-3-8B#base-pretrained-models>`_.
+Currently there are two different sizes of Meta Llama 3: 8B and 70B. In this tutorial we will focus on the 8B size model.
 There are a few main changes between Llama2-7B and Llama3-8B models:
 
 - Llama3-8B uses `grouped-query attention <https://arxiv.org/abs/2305.13245>`_ instead of the standard multi-head attention from Llama2-7B
@@ -33,30 +36,30 @@ There are a few main changes between Llama2-7B and Llama3-8B models:
 
 |
 
-Getting access to Llama3-8B
----------------------------
+Getting access to Llama3-8B-Instruct
+------------------------------------
 
-First, let's download the model from Hugging Face. You will need to follow the instructions
+For this tutorial, we will be using the instruction-tuned version of Llama3-8B. First, let's download the model from Hugging Face. You will need to follow the instructions
 on the `official Meta page <https://github.com/meta-llama/llama3/blob/main/README.md>`_ to gain access to the model.
 Next, make sure you grab your Hugging Face token from `here <https://huggingface.co/settings/tokens>`_.
 
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-8B \
+    tune download meta-llama/Meta-Llama-3-8B-Instruct \
         --output-dir <checkpoint_dir> \
         --hf-token <ACCESS TOKEN>
 
 |
 
-Fine-tuning Llama3-8B in torchtune
-----------------------------------
+Fine-tuning Llama3-8B-Instruct in torchtune
+-------------------------------------------
 
 torchtune provides `LoRA <https://arxiv.org/abs/2106.09685>`_, `QLoRA <https://arxiv.org/abs/2305.14314>`_, and full fine-tuning
 recipes for fine-tuning Llama3-8B on one or more GPUs. For more on LoRA in torchtune, see our :ref:`LoRA Tutorial <lora_finetune_label>`.
 For more on QLoRA in torchtune, see our :ref:`QLoRA Tutorial <qlora_finetune_label>`.
 
-Let's take a look at how we can fine-tune Llama3-8B with LoRA on a single device using torchtune. In this example, we will fine-tune
+Let's take a look at how we can fine-tune Llama3-8B-Instruct with LoRA on a single device using torchtune. In this example, we will fine-tune
 for one epoch on a common instruct dataset for illustrative purposes. The basic command for a single-device LoRA fine-tune is
 
 .. code-block:: bash
@@ -75,7 +78,7 @@ We can also add command-line overrides as needed, e.g.
         tokenizer.path=<checkpoint_dir>/tokenizer.model \
         checkpointer.output_dir=<checkpoint_dir>
 
-This will load the Llama3-8B checkpoint and tokenizer from ``<checkpoint_dir>`` used in the ``tune download`` command above,
+This will load the Llama3-8B-Instruct checkpoint and tokenizer from ``<checkpoint_dir>`` used in the ``tune download`` command above,
 then save a final checkpoint in the same directory following the original format. For more details on the
 checkpoint formats supported in torchtune, see our :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
@@ -116,7 +119,7 @@ Try it out!
 Evaluating fine-tuned Llama3-8B models with EleutherAI's Eval Harness
 ---------------------------------------------------------------------
 
-Now that we've fine-tuned Llama3-8B, what's next? Let's take our LoRA-finetuned model from the
+Now that we've fine-tuned our model, what's next? Let's take our LoRA-finetuned model from the
 preceding section and look at a couple different ways we can evaluate its performance on the tasks we care about.
 
 First, torchtune provides an integration with
@@ -176,8 +179,8 @@ Try it for yourself and see what accuracy your model gets!
 
 |
 
-Generating text with our fine-tuned Llama3-8B model
----------------------------------------------------
+Generating text with our fine-tuned Llama3 model
+------------------------------------------------
 
 Next, let's look at one other way we can evaluate our model: generating text! torchtune provides a
 `recipe for generation <https://github.com/pytorch/torchtune/blob/main/recipes/generate.py>`_ as well.
@@ -278,7 +281,7 @@ To quantize the model, we can now run:
 
     [quantize.py:90] Time for quantization: 2.93 sec
     [quantize.py:91] Memory used: 23.13 GB
-    [quantize.py:104] Model checkpoint of size 4.92 GB saved to /tmp/Llama-3-8B-hf/consolidated-4w.pt
+    [quantize.py:104] Model checkpoint of size 4.92 GB saved to /tmp/Llama-3-8B-Instruct-hf/consolidated-4w.pt
 
 We can see that the model is now under 5 GB, or just over four bits for each of the 8B parameters.
 
@@ -334,5 +337,5 @@ Let's re-run generation!
 
 By quantizing the model and running ``torch.compile`` we get over a 3x speedup!
 
-This is just the beginning of what you can do with Llama3-8B using torchtune and the broader ecosystem.
+This is just the beginning of what you can do with Meta Llama3 using torchtune and the broader ecosystem.
 We look forward to seeing what you build!
