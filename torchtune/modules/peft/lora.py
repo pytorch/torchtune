@@ -134,11 +134,17 @@ class LoRALinear(nn.Module, AdapterModule):
             return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
-        # Adding 1e-6 to avoid division by zero
+        # Author mentions this method is faster for the computation purpose:
+        # https://github.com/huggingface/peft/pull/1474#issuecomment-1963402710
         if self.use_dora:
-            return out + self.m * lora_out / (
-                lora_out.norm(p=2, dim=-1, keepdim=True) + 1e-6
-            )
+            weight_norm = torch.linalg.norm(
+                self.weight
+                + (self.alpha / self.rank)
+                * (self.lora_a.weight.T @ self.lora_b.weight.T).T,
+                dim=1,
+            ).to(self.weight.dtype)
+            mag_norm_scale = (self.m / weight_norm - 1).view(1, -1)
+            return mag_norm_scale * out + mag_norm_scale * lora_out
         return out + lora_out
 
 
