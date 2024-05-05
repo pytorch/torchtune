@@ -6,6 +6,7 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
@@ -71,7 +72,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.m = nn.Parameter(F.ones(1, out_dim)) if self.use_dora else None
+        self.m = nn.Parameter(torch.ones(1, out_dim)) if self.use_dora else None
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
