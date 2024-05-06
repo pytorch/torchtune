@@ -158,6 +158,10 @@ class TransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
+    def reset_caches(self):
+        for layer in self.layers:
+            layer.attn.kv_cache.reset()
+
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
