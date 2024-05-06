@@ -53,8 +53,13 @@ class TestFullFinetuneSingleDeviceRecipe:
             "log_every_n_steps=1",
         ] + dummy_alpaca_dataset_config()
 
-    def _fetch_expected_loss_values(self):
-        return [10.5201, 10.5217, 10.4945, 10.5136]
+    def _fetch_expected_loss_values(self, model_type):
+        loss_values_map = {
+            "LLAMA2": [10.5201, 10.5217, 10.4945, 10.5136],
+            "LLAMA3": [11.9839, 11.9684, 11.9596, 11.9366],
+        }
+
+        return loss_values_map[model_type]
 
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
@@ -113,7 +118,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values()
+        expected_loss_values = self._fetch_expected_loss_values(model_type)
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-4, atol=1e-4
         )
@@ -180,7 +185,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values()[2:]
+        expected_loss_values = self._fetch_expected_loss_values("LLAMA2")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
