@@ -100,11 +100,15 @@ class _EvalWrapper(HFLM):
     def _model_generate(self, *args, **kwargs):
         prompt = kwargs.get("context", "")
         temperature = kwargs.get("temperature")
+        do_sample = kwargs.get("do_sample", False)
+        print(prompt)
         output = utils.generate(
             self.model,
             prompt=prompt,
             max_generated_tokens=self.max_gen_toks,
-            temperature=temperature,
+            temperature=1.0,
+            top_k=1 if not do_sample else 100,
+            stop_tokens=self._tokenizer.stop_tokens,
         )
         return output
 
@@ -177,8 +181,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
     @torch.no_grad()
     def evaluate(self) -> None:
-        t1 = time.time()
-
         model_eval_wrapper = _EvalWrapper(
             self._model,
             self._tokenizer,
@@ -199,6 +201,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             task_dict,
             limit=self._limit,
         )
+
+        import pdb
+        pdb.set_trace()
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
         for task, res in eleuther_output["results"].items():

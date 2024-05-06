@@ -155,6 +155,9 @@ def generate(
 
         if stop_tokens is not None:
             matches = torch.isin(token, stop_tokens)
+            if token[0].item() == 128001:
+                import pdb
+                pdb.set_trace()
             # if all tokens are in the stop_tokens, we stop
             if matches.all():
                 break

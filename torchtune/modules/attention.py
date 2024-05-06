@@ -203,6 +203,12 @@ class CausalSelfAttention(nn.Module):
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
 
+        # k = k.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
+        # v = v.repeat_interleave(self.num_heads // self.num_kv_heads, dim=1)
+
+        import pdb
+        pdb.set_trace()
+
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
             q,

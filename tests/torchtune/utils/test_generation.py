@@ -78,18 +78,27 @@ class TestTextGenerate:
             max_seq_len=2048,
         )
         init_weights_with_constant(model)
-        model.setup_caches(max_batch_size=1, dtype=dtype)
+        model.setup_caches(max_batch_size=2, dtype=dtype)
         model.eval()
         return model
 
     @pytest.fixture
-    def prompt_tokens(self) -> List[int]:
+    def prompt_tokens(self):
         """
         Pytest fixture to create a list of prompt tokens for testing.
         Returns:
             A list of prompt tokens.
         """
         return torch.arange(2, 10)
+
+    @pytest.fixture
+    def batched_prompt_tokens(self):
+        """
+        Pytest fixture to create a list of prompt tokens for testing.
+        Returns:
+            A list of batched prompt tokens.
+        """
+        return torch.arange(2, 10).repeat(2, 1)
 
     def test_sample_consistency(self):
         """
@@ -153,4 +162,32 @@ class TestTextGenerate:
         )
 
         expected_output = torch.tensor([[2, 3, 4, 5, 6, 7, 8, 9, 3376]])
+        assert torch.allclose(generated_tokens, expected_output)
+
+    def test_batched_generate_with_stop_tokens(self, generation_model, batched_prompt_tokens):
+        """
+        Test to check if generation will stop when it hits a stop_token passed in to ``utils.generate``.
+        """
+        temperature = 0.6
+        top_k = 100
+
+        torch.manual_seed(42)
+
+        # Inspecting the output shows this is the first generated token.
+        # We want to test to make sure it stops here
+        stop_tokens = [3376]
+
+        generated_tokens = utils.generate(
+            model=generation_model,
+            prompt=batched_prompt_tokens,
+            max_generated_tokens=10,
+            temperature=temperature,
+            stop_tokens=stop_tokens,
+            top_k=top_k,
+        )
+
+        expected_output = torch.tensor([
+            [2, 3, 4, 5, 6, 7, 8, 9, 3376],
+            [2, 3, 4, 5, 6, 7, 8, 9, 3376],
+        ])
         assert torch.allclose(generated_tokens, expected_output)

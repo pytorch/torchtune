@@ -23,7 +23,6 @@ class KVCache(nn.Module):
         head_dim (int): per-attention head embedding dimension
         dtype (torch.dtype): dtype for the caches
     """
-
     def __init__(
         self,
         max_batch_size: int,
@@ -42,9 +41,33 @@ class KVCache(nn.Module):
         )
         self.max_batch_size = max_batch_size
 
-    def update(self, input_pos, k_val, v_val) -> Tuple[Tensor, Tensor]:
+    def update(self, input_pos: Tensor, k_val: Tensor, v_val: Tensor) -> Tuple[Tensor, Tensor]:
+        """Update KV cache and return the updated cache.
+
+        Args:
+            input_pos (Tensor):
+            k_val (Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+
+        Raises:
+            ValueError: if ``input_pos`` is longer than the maximum sequence length
+            ValueError: if batch size of ``input_pos`` is bigger than ``self.max_batch_size``
+
+        Returns:
+            Tuple[Tensor, Tensor]: Updated KV cache with key first
+        """
+
         # input_pos: [S], k_val: [B, H, S, D]
-        assert input_pos.shape[0] == k_val.shape[2]
+        if input_pos.shape[0] != k_val.shape[2]:
+            raise ValueError(
+                f"``input_pos`` length {input_pos.shape[0]} must match ``k_val`` length {k_val.shape[2]}"
+            )
+
+        curr_bsz = k_val.shape[0]
+        if curr_bsz > self.max_batch_size:
+            raise ValueError(
+                f"Current batch size {curr_bsz} must be less than or equal to max batch size {self.max_batch_size}"
+            )
 
         k_out = self.k_cache
         v_out = self.v_cache
