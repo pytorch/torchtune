@@ -48,7 +48,7 @@ def generate_next_token(
 ) -> torch.Tensor:
     # x: [1, s]
     # input_pos: [s]
-    logits = model(x, input_pos)
+    logits = model(x, input_pos=input_pos)
 
     # logits: [1, s, v] where v is vocab_size
     # for sampling we extract the logits for the

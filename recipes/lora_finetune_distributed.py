@@ -553,7 +553,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
                 mask = mask.to(self._device) if mask is not None else None
-                input_pos = input_pos.to(self._device) if input_pos is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
 
                 logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n

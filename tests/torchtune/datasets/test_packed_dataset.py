@@ -4,14 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import itertools
+
 import pytest
+import torch
 from tests.test_utils import DummyTokenizer
 from torch.utils.data import Dataset
 
 from torchtune.datasets import PackedDataset
-import math
-import itertools
-import torch
 
 
 class DummyDataset(Dataset):
@@ -47,7 +47,12 @@ class TestPackedDataset:
         num_samples, remainder = divmod(max_seq_len, sample_size)
         if split_samples and remainder > 0:
             num_samples += 1
-        mask = torch.block_diag(*[torch.tril(torch.ones(sample_size, sample_size, dtype=torch.bool)) for i in range(1, num_samples + 1)])
+        mask = torch.block_diag(
+            *[
+                torch.tril(torch.ones(sample_size, sample_size, dtype=torch.bool))
+                for i in range(1, num_samples + 1)
+            ]
+        )
         input_pos = [list(range(sample_size)) for i in range(1, num_samples + 1)]
         input_pos = list(itertools.chain(*input_pos))
         return mask[:max_seq_len, :max_seq_len], input_pos[:max_seq_len]
@@ -67,7 +72,12 @@ class TestPackedDataset:
         # Check we get right number of packs
         assert len(packed) == max_rows
         # Check all fields are same length
-        assert len(packed[0]["tokens"]) == len(packed[0]["labels"]) == len(packed[0]["mask"]) == len(packed[0]["input_pos"])
+        assert (
+            len(packed[0]["tokens"])
+            == len(packed[0]["labels"])
+            == len(packed[0]["mask"])
+            == len(packed[0]["input_pos"])
+        )
         # Check that samples are packed correctly - very last individual sample
         # should have index value of the number of times dataset was iterated over
         if split_samples:
@@ -84,7 +94,9 @@ class TestPackedDataset:
 
         assert packed[-1]["tokens"][-1] == last_index - 1
 
-        expected_mask, expected_input_pos = self._get_expected_mask_and_input_pos(max_seq_len, sample_size, split_samples)
+        expected_mask, expected_input_pos = self._get_expected_mask_and_input_pos(
+            max_seq_len, sample_size, split_samples
+        )
         torch.testing.assert_close(packed[0]["mask"], expected_mask)
         assert packed[0]["input_pos"] == expected_input_pos
 
@@ -95,32 +107,38 @@ class TestPackedDataset:
             [4, 3, 2, 5, 7, -1],
         ]
         expected_mask = [
-            [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
-            [[1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-            [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1]],
-            [[1, 0, 0, 0, 0, 0],
-            [1, 1, 0, 0, 0, 0],
-            [1, 1, 1, 0, 0, 0],
-            [1, 1, 1, 1, 0, 0],
-            [1, 1, 1, 1, 1, 0],
-            [1, 1, 1, 1, 1, 1]],
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+            ],
+            [
+                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+            ],
+            [
+                [1, 0, 0, 0, 0, 0],
+                [1, 1, 0, 0, 0, 0],
+                [1, 1, 1, 0, 0, 0],
+                [1, 1, 1, 1, 0, 0],
+                [1, 1, 1, 1, 1, 0],
+                [1, 1, 1, 1, 1, 1],
+            ],
         ]
         expected_input_pos = [
             [0, 1, 2, 3, 4, 5, 6, 0, 1, 2],
@@ -134,8 +152,15 @@ class TestPackedDataset:
         )
 
         for i in range(len(packed)):
-            prompt, label, mask, input_pos = packed[i]["tokens"], packed[i]["labels"], packed[i]["mask"], packed[i]["input_pos"]
+            prompt, label, mask, input_pos = (
+                packed[i]["tokens"],
+                packed[i]["labels"],
+                packed[i]["mask"],
+                packed[i]["input_pos"],
+            )
             assert prompt == expected_tokenized_prompts[i]
             assert label == expected_tokenized_prompts[i]
             assert input_pos == expected_input_pos[i]
-            torch.testing.assert_close(mask, torch.tensor(expected_mask[i]).to(dtype=torch.bool))
+            torch.testing.assert_close(
+                mask, torch.tensor(expected_mask[i]).to(dtype=torch.bool)
+            )

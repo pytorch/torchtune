@@ -98,7 +98,9 @@ class TestRotaryPositionEmbedding:
             _,
             _,
         ) = input.shape
-        x_out = rope(input, input_pos=torch.arange(seq_len).unsqueeze(0).expand(bsz, seq_len))
+        x_out = rope(
+            input, input_pos=torch.arange(seq_len).unsqueeze(0).expand(bsz, seq_len)
+        )
 
         # these values should be exactly the same as test_forward
         # AND test_forward_with_current_pos. In this case input_pos

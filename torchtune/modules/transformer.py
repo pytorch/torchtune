@@ -160,7 +160,12 @@ class TransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
-    def forward(self, tokens: Tensor, mask: Optional[Tensor] = None, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self,
+        tokens: Tensor,
+        mask: Optional[Tensor] = None,
+        input_pos: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]

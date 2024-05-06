@@ -6,9 +6,10 @@
 
 from typing import Dict, List, Optional
 
+import torch
+
 from torch.utils.data import Dataset
 from tqdm import tqdm
-import torch
 
 
 class PackedDataset(Dataset):
@@ -68,9 +69,7 @@ class PackedDataset(Dataset):
         # to end a pack early
         previous_sample_boundary = 0
 
-        for tokens, labels in tqdm(
-            self.ds, desc="Packing dataset", dynamic_ncols=True
-        ):
+        for tokens, labels in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
             # one of the two parameters
@@ -106,7 +105,9 @@ class PackedDataset(Dataset):
         if len(current_pack["tokens"]) > 0 and (
             self.max_rows is None or len(self.samples) < self.max_rows
         ):
-            current_pack = self._add_pack(current_pack=current_pack, boundary=len(current_pack["tokens"]))
+            current_pack = self._add_pack(
+                current_pack=current_pack, boundary=len(current_pack["tokens"])
+            )
             assert len(current_pack["tokens"]) == 0
 
     def _add_pack(

@@ -56,7 +56,7 @@ class TestSlimOrcaDataset:
             max_seq_len=max_seq_len,
             train_on_input=(max_seq_len == 128),
         )
-        input, label = ds[0]
+        input, label = ds[0]["tokens"], ds[0]["labels"]
         assert len(input) <= max_seq_len
         assert len(label) <= max_seq_len
         assert len(input) == len(label)
