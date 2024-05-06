@@ -223,7 +223,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
-        documentation for `torchtune.utils.FSDPPolicyType` for additional details.
+        documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
 
     def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
@@ -265,16 +265,18 @@ def get_full_finetune_fsdp_wrap_policy(
             argument. Please see documentation for `torchtune.utils.FSDPPolicyType` for additional details.
     """
     if memory_efficient_fsdp_wrap:
-        return _llama3_full_fsdp_wrap_policy(modules_to_wrap=modules_to_wrap)
+        return _memory_efficient_wrap_policy(modules_to_wrap=modules_to_wrap)
     else:
         return ModuleWrapPolicy(modules_to_wrap)
 
 
-def _llama3_full_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     """
-    A default policy for wrapping Llama-3 style models for full finetuning using FSDP. Specifically,
+    A default policy for memory efficient wrapping for full finetuning using FSDP. Specifically,
     this will wrap the model's token embedding and output projection into their own FSDP units to
-    maximize memory savings. After this is done, model will also be hierarchically wrapped
+    maximize memory savings. This helps especially if these layers are particularly large,
+    such as due to a large embedding size.
+    After this is done, model will also be hierarchically wrapped
     based on nn.Module types specified in ``modules_to_wrap``. This function assumes that the
     input model has an attribute ``output`` that is a nn.Linear which is the model's output projection.
     Args:
