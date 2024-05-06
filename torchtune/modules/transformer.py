@@ -142,10 +142,10 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
 
-    def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
-                max_batch_size=max_batch_size,
+                batch_size=batch_size,
                 max_seq_len=self.max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
