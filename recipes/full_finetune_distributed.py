@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import init_process_group
@@ -27,7 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-
+from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
@@ -124,7 +124,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.epochs_run = 0
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
-        self.total_training_steps = 0
+        self.global_step = 0
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -227,7 +227,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             and self.max_steps_per_epoch < self._steps_per_epoch
         ):
             self._steps_per_epoch = self.max_steps_per_epoch
-        self.total_training_steps = self.epochs_run * self._steps_per_epoch
+        self.global_step = self.epochs_run * self._steps_per_epoch
 
     def _setup_model(
         self,
@@ -357,10 +357,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=world_size,
@@ -483,17 +489,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     self._optimizer.zero_grad(set_to_none=True)
 
                     # Update the number of steps when the weights are updated
-                    self.total_training_steps += 1
+                    self.global_step += 1
 
                     loss_to_log = running_loss.item()
                     pbar.update(1)
                     pbar.set_description(
-                        f"{curr_epoch+1}|{self.total_training_steps}|Loss: {loss_to_log}"
+                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                     )
 
                     # Log per-step metrics
                     if (
-                        self.total_training_steps % self._log_every_n_steps == 0
+                        self.global_step % self._log_every_n_steps == 0
                         and self._is_rank_zero
                     ):
                         time_per_step = time.perf_counter() - t0
@@ -506,7 +512,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                             log_dict.update(utils.get_memory_stats(device=self._device))
                         self._metric_logger.log_dict(
                             log_dict,
-                            step=self.total_training_steps,
+                            step=self.global_step,
                         )
 
                     # Reset running stats for the next step

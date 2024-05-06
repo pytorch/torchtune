@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Iterator, List, Protocol, Union
+from typing import Iterator, List, Protocol, Set, Union
 
 from torchtune.data._types import Message
 
@@ -15,6 +15,7 @@ class Tokenizer(Protocol):
     bos_id: int
     eos_id: int
     pad_id: int
+    stop_tokens: Set[int]  # Tokens indicating that generation should stop
 
     def encode(self, text: str, **kwargs) -> List[int]:
         """

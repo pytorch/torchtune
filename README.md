@@ -46,8 +46,10 @@ torchtune currently supports the following models.
 |-----------------------------------------------|-----------|
 | [Llama3](https://llama.meta.com/llama3)    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
 | [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B, 70B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
+| [Code-Llama2](https://huggingface.co/codellama)   | 7B, 13B, 70B [[model](torchtune/models/code_llama2/_model_builders.py), [configs](recipes/configs/code_llama2/)] |
 | [Mistral](https://huggingface.co/mistralai)   | 7B [[model](torchtune/models/mistral/_model_builders.py), [configs](recipes/configs/mistral/)] |
 | [Gemma](https://huggingface.co/collections/google/gemma-release-65d5efbccdbb8c4202ec078b)   | 2B [[model](torchtune/models/gemma/_model_builders.py), [configs](recipes/configs/gemma/)] |
+| [Microsoft Phi3](https://huggingface.co/collections/microsoft/phi-3-6626e15e9585a200d2d761e3) | Mini [[model](torchtune/models/phi3/), [configs](recipes/configs/phi3/)]
 
 We'll be adding a number of new models in the coming weeks, including support for 70B versions and MoEs.
 
@@ -149,7 +151,7 @@ You can find a full list of all our Llama3 configs [here.](recipes/configs/llama
 
 ## Installation
 
-**Step 1:** [Install PyTorch](ttps://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release (2.2.2) as well as the preview nightly version.
+**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version.
 
 **Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:
 
@@ -175,6 +177,8 @@ options:
 
 ...
 ```
+
+You can also install the latest and greatest torchtune has to offer by [installing a nightly build](https://pytorch.org/torchtune/main/install.html).
 
 &nbsp;
 

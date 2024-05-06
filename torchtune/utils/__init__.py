@@ -46,6 +46,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
+
 from .precision import (
     get_dtype,
     list_dtypes,
@@ -56,9 +57,7 @@ from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
-    "save_checkpoint",
     "transform_opt_state_dict",
-    "validate_checkpoint",
     "get_memory_stats",
     "log_memory_stats",
     "get_device",
@@ -77,7 +76,6 @@ __all__ = [
     "validate_expected_param_dtype",
     "wrap_compile",
     "TuneRecipeArgumentParser",
-    "CheckpointableDataLoader",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",

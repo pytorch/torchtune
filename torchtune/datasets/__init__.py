@@ -6,6 +6,7 @@
 
 from torchtune.datasets._alpaca import alpaca_cleaned_dataset, alpaca_dataset
 from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
 from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.datasets._instruct_raft import (
@@ -34,4 +35,5 @@ __all__ = [
     "chat_dataset",
     "DeepLakeDataloader",
     "load_deep_lake_dataset",
+    "ConcatDataset",
 ]

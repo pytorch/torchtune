@@ -38,7 +38,7 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 
 
 class Attention(nn.Module):
-    def __init__(self, n_heads, n_kv_heads, dim):
+    def __init__(self, n_heads: int, n_kv_heads: int, dim: int):
         super().__init__()
         self.n_kv_heads = n_heads if n_kv_heads is None else n_kv_heads
         self.n_heads = n_heads
