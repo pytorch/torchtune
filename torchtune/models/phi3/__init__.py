@@ -6,5 +6,14 @@
 
 from ._component_builders import phi3  # noqa
 from ._convert_weights import phi3_hf_to_tune, phi3_tune_to_hf  # noqa
-from ._model_builders import phi3_mini, phi3_tokenizer  # noqa
+from ._model_builders import phi3_mini, phi3_mini_tokenizer  # noqa
 from ._position_embeddings import Phi3RotaryPositionalEmbeddings  # noqa
+
+__all__ = [
+    "phi3_mini",
+    "phi3_mini_tokenizer",
+    "Phi3RotaryPositionalEmbeddings",
+    "phi3_hf_to_tune",
+    "phi3_tune_to_hf",
+    "phi3",
+]

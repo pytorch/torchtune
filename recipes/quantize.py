@@ -46,6 +46,14 @@ class QuantizationRecipe:
                 larger blocks trade off memory for perf, recommended to be a constant
                 multiple of groupsize.
             `percdamp`: GPTQ stablization hyperparameter, recommended to be .01
+
+    8da4w (PyTorch 2.3+):
+        torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+        int8 per token dynamic activation with int4 weight only per axis group quantization
+        Args:
+            `groupsize` (int): a parameter of int4 weight only quantization,
+            it refers to the size of quantization groups which get independent quantization parameters
+            e.g. 32, 64, 128, 256, smaller numbers means more fine grained and higher accuracy
     """
 
     def __init__(self, cfg: DictConfig) -> None:

@@ -13,7 +13,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -26,6 +26,7 @@ from torch.distributed.fsdp import (
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -409,7 +410,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
