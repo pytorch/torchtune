@@ -130,8 +130,11 @@ class CausalSelfAttention(nn.Module):
                 [batch_size x seq_length x embed_dim]
             mask (Optional[Tensor]): Optional tensor which contains the mask.
                 Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b x s].
+                During inference, this indicates the position of the current token.
+                Default is None.
 
         Returns:
             Tensor: output tensor with attention applied

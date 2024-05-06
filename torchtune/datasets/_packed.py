@@ -8,6 +8,7 @@ from typing import Dict, List, Optional
 
 from torch.utils.data import Dataset
 from tqdm import tqdm
+import torch
 
 
 class PackedDataset(Dataset):
@@ -60,6 +61,8 @@ class PackedDataset(Dataset):
         current_pack = {
             "tokens": [],
             "labels": [],
+            "mask": [],
+            "input_pos": [],
         }
         # Keep track of what index the previous sample ends in case we need
         # to end a pack early
@@ -71,14 +74,22 @@ class PackedDataset(Dataset):
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
             # one of the two parameters
-            if len(tokens) > self.max_seq_len and not self.split_samples:
+            seq_len = len(tokens)
+            if seq_len > self.max_seq_len and not self.split_samples:
                 raise ValueError(
                     f"Dataset sample is too long ({len(tokens)} > {self.max_seq_len}). "
                     "Please set `split_samples=True` or increase `max_seq_len`."
                 )
 
-            current_pack["tokens"].extend(tokens)
-            current_pack["labels"].extend(labels)
+            # Create integer mask and position ids for current sample
+            current_sample = {
+                "tokens": tokens,
+                "labels": labels,
+                # Mask is simply a causal mask within this sample length
+                "mask": [torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool))],
+                "input_pos": list(range(seq_len)),
+            }
+            current_pack = {k: v + current_sample[k] for k, v in current_pack.items()}
 
             if len(current_pack["tokens"]) > self.max_seq_len:
                 current_pack = self._add_pack(
@@ -95,7 +106,8 @@ class PackedDataset(Dataset):
         if len(current_pack["tokens"]) > 0 and (
             self.max_rows is None or len(self.samples) < self.max_rows
         ):
-            self.samples.append(dict(current_pack))
+            current_pack = self._add_pack(current_pack=current_pack, boundary=len(current_pack["tokens"]))
+            assert len(current_pack["tokens"]) == 0
 
     def _add_pack(
         self, current_pack: Dict[str, List[int]], boundary: int
@@ -103,8 +115,24 @@ class PackedDataset(Dataset):
         """
         Add the current pack to self.samples and return what's remaining of the pack.
         """
-        self.samples.append({k: v[:boundary] for k, v in current_pack.items()})
-        return {k: v[boundary:] for k, v in current_pack.items()}
+        packing_mask = torch.block_diag(*current_pack["mask"])
+        pack = {
+            "tokens": current_pack["tokens"][:boundary],
+            "labels": current_pack["labels"][:boundary],
+            "mask": packing_mask[:boundary, :boundary],
+            "input_pos": current_pack["input_pos"][:boundary],
+        }
+
+        self.samples.append(pack)
+
+        updated_pack = {
+            "tokens": current_pack["tokens"][boundary:],
+            "labels": current_pack["labels"][boundary:],
+            "mask": [packing_mask[boundary:, boundary:]],
+            "input_pos": current_pack["input_pos"][boundary:],
+        }
+
+        return updated_pack
 
     def __len__(self):
         return len(self.samples)

@@ -77,8 +77,11 @@ class RotaryPositionalEmbeddings(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b x s].
+                During inference, this indicates the position of the current token.
+                Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -107,8 +110,9 @@ class RotaryPositionalEmbeddings(nn.Module):
         xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
 
         # reshape the cache for broadcasting
-        # tensor has shape [1, s, 1, n_d // 2, 2]
-        rope_cache = rope_cache.view(1, xshaped.size(1), 1, xshaped.size(3), 2)
+        # tensor has shape [b, s, 1, n_d // 2, 2] if packed samples,
+        # otherwise has shape [1, s, 1, n_d // 2, 2]
+        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
 
         # tensor has shape [b, s, n_h, n_d // 2, 2]
         x_out = torch.stack(

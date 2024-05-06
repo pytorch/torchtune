@@ -448,11 +448,15 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     tokens, labels = batch["tokens"], batch["labels"]
                     mask = batch.get("mask", None)
+                    input_pos = batch.get("input_pos", None)
+
                     tokens = tokens.to(self._device)
                     num_tokens += tokens.numel()
                     labels = labels.to(self._device)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = input_pos.to(self._device) if input_pos is not None else None
 
-                    logits = self._model(tokens, mask=mask)
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
                     # Shift so that tokens < n predict n
                     logits = logits[..., :-1, :].contiguous()
                     labels = labels[..., 1:].contiguous()

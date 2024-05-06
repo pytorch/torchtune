@@ -46,9 +46,11 @@ class TransformerDecoderLayer(nn.Module):
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
             mask (Optional[Tensor]): Optional tensor which contains the mask.
-                Only used during inference. Default is None.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b x s].
+                During inference, this indicates the position of the current token.
+                Default is None.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -162,9 +164,13 @@ class TransformerDecoder(nn.Module):
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            mask (Optional[Tensor]): Optional tensor which contains the attention mask.
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            mask (Optional[Tensor]): Optional tensor which contains mask to indicate
+                which tokens will participate in the attention calculation, shape [b x s].
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b x s].
+                During inference, this indicates the position of the current token.
+                Default is None.
 
         Note: At the very first step of inference, when the model is provided with a prompt,
         ``input_pos`` would contain the positions of all of the tokens in the prompt

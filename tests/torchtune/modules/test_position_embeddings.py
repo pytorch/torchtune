@@ -85,6 +85,33 @@ class TestRotaryPositionEmbedding:
         # check shapes
         assert_expected(x_out.shape, input.shape)
 
+    def test_forward_with_packed_pos(
+        self, input: tensor, rope: RotaryPositionalEmbeddings
+    ) -> None:
+        """
+        Use input_pos to indicate positions of each token relative to its sequence
+        when sample is packed.
+        """
+        (
+            bsz,
+            seq_len,
+            _,
+            _,
+        ) = input.shape
+        x_out = rope(input, input_pos=torch.arange(seq_len).unsqueeze(0).expand(bsz, seq_len))
+
+        # these values should be exactly the same as test_forward
+        # AND test_forward_with_current_pos. In this case input_pos
+        # covers the entire batch dim and is defined for each sample separately.
+        # This tests that input_pos works as expected i.e.
+        # extracts the embeddings for the relevant positions for each sample
+        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
+        assert_expected(x_out.sum(), tensor(2165.7053))
+        assert_expected(x_out.max(), tensor(5.4546))
+
+        # check shapes
+        assert_expected(x_out.shape, input.shape)
+
     def test_rope_init_meta_device(self, input_params):
         _, _, head_dim, _, max_seq_len = input_params
         rope_on_device = RotaryPositionalEmbeddings(
