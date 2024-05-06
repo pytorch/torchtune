@@ -326,8 +326,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
+            packed = False
         else:
-            ds = config.instantiate(config=cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
             ds,
@@ -344,7 +346,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         log.info("Dataset and Sampler are initialized.")

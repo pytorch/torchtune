@@ -98,8 +98,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
 
-        # extract the values based on whether input_pos is set or not. When
-        # input_pos is provided, we're in inference mode
+        # extract the values based on whether input_pos is set or not
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )

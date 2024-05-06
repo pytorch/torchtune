@@ -33,7 +33,7 @@ class DummyDataset(Dataset):
         )
 
     def __getitem__(self, index):
-        return (self._data[index], self._labels[index])
+        return {"tokens": self._data[index], "labels": self._labels[index]}
 
     def __len__(self):
         return len(self._data)

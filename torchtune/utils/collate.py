@@ -12,20 +12,16 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 
-# TokenPair is a pair (tuple) of two lists: tokenized text inputs and labels.
-TokenPair = Tuple[List[int], List[int]]
-
-
 def padded_collate(
-    batch: List[TokenPair],
+    batch: List[Dict[str, Any]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
 
     Args:
-        batch (List[TokenPair]): A list of tuples containing input, label pairs.
+        batch (List[Dict[str, Any]]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -48,12 +44,12 @@ def padded_collate(
         >>> tensor([[4,5,6], [10,-100,-100]])
     """
     input_ids = pad_sequence(
-        [torch.tensor(x[0]) for x in batch],
+        [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
         padding_value=padding_idx,
     )
     labels = pad_sequence(
-        [torch.tensor(x[1]) for x in batch],
+        [torch.tensor(x["labels"]) for x in batch],
         batch_first=True,
         padding_value=ignore_idx,
     )
@@ -72,7 +68,7 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return input_ids, labels
+    return {"tokens": input_ids, "labels": labels}
 
 
 def padded_collate_dpo(
@@ -133,3 +129,62 @@ def padded_collate_dpo(
     )
 
     return concatenated_input_ids, concatenated_labels
+
+
+def _padded_collate_packed(
+    sample: Dict[str, Any],
+    max_seq_len: int,
+    padding_idx: int = 0,
+    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
+) -> Dict[str, torch.Tensor]:
+    """Pad a batch of packed sequences to max sequence length in the batch, and
+    convert integer lists to tensors. Account for attention mask and position
+    ids.
+
+    This is a sample-wise collator and should not be used with the dataloader.
+
+    Sample should look like::
+        {
+            "tokens": List[int],
+            "labels": List[int],
+            "mask": Tensor,
+            "input_pos": List[int],
+        }
+
+    Args:
+        sample (Dict[str, Any]): A dictionary containing tokens, labels, mask,
+            and position ids
+        padding_idx (int): Padding index for input ids. Defaults to 0.
+        ignore_idx (int): Padding index for labels. Defaults to -100.
+
+    Returns:
+        Collated tokens, labels, mask, and position ids.
+    """
+    tokens = sample["tokens"]
+    labels = sample["labels"]
+    mask = sample["mask"]
+    input_pos = sample["input_pos"]
+
+    # Pad to max sequence length
+    tokens = F.pad(
+        torch.tensor(tokens), (0, max_seq_len - len(tokens)), value=padding_idx
+    )
+    labels = F.pad(
+        torch.tensor(labels), (0, max_seq_len - len(labels)), value=ignore_idx
+    )
+    mask = torch.block_diag(
+        mask,
+        torch.zeros(
+            (max_seq_len - mask.shape[0], max_seq_len - mask.shape[0]), dtype=torch.bool
+        ),
+    )
+    input_pos = torch.cat(
+        [torch.tensor(input_pos), torch.arange(input_pos[-1] + 1, max_seq_len)]
+    )
+
+    return {
+        "tokens": tokens,
+        "labels": labels,
+        "mask": mask,
+        "input_pos": input_pos,
+    }

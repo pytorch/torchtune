@@ -364,8 +364,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
+            packed = False
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
             ds,
@@ -382,7 +384,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         if self._is_rank_zero:

@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 import torch
 
 from torch.utils.data import Dataset
+from torchtune.utils.collate import _padded_collate_packed
 from tqdm import tqdm
 
 
@@ -23,7 +24,11 @@ class PackedDataset(Dataset):
     The general flow on initialization is: load tokenized sample -> add to buffer ->
         when buffer is long enough, add to self.samples.
 
-    During training, returns self.samples[idx] as input and label.
+    During training, returns self.samples[idx] as input, label, attention mask, and
+    position ids. The attention mask is a lower triangular block mask to prevent
+    samples from cross-attending within a pack. The position ids indicate the position
+    of each token relative to its sample within a pack. These are all padded to max
+    sequence length, so a batch-wise collator is not needed.
 
     Args:
         ds (Dataset): dataset to sample pack. This should return a tuple of tokenized
@@ -124,6 +129,7 @@ class PackedDataset(Dataset):
             "input_pos": current_pack["input_pos"][:boundary],
         }
 
+        padded_pack = _padded_collate_packed(pack, self.max_seq_len)
         self.samples.append(pack)
 
         updated_pack = {
