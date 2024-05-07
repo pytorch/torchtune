@@ -48,13 +48,15 @@ class DummyRealDataset(Dataset):
 
 
 class TestPackedDataset:
-    def _get_expected_mask_and_input_pos(self, max_seq_len, sample_size, split_samples):
+    def _get_expected_mask_and_input_pos(
+        self, max_seq_len, sample_size, split_across_pack
+    ):
         """
         Generate expected integer mask and position ids for given max sequence
         length and sample length
         """
         num_samples, remainder = divmod(max_seq_len, sample_size)
-        if split_samples and remainder > 0:
+        if split_across_pack and remainder > 0:
             num_samples += 1
         mask = torch.block_diag(
             *[
@@ -66,7 +68,7 @@ class TestPackedDataset:
         input_pos = list(itertools.chain(*input_pos))
 
         # Emulate mask and position id padding
-        if not split_samples and remainder > 0:
+        if not split_across_pack and remainder > 0:
             mask = torch.block_diag(
                 mask,
                 torch.eye(remainder, dtype=torch.bool),
@@ -77,18 +79,20 @@ class TestPackedDataset:
 
     @pytest.mark.parametrize("max_seq_len", [10, 25])
     @pytest.mark.parametrize("sample_size", [2, 5])
-    @pytest.mark.parametrize("max_rows", [5, 10])
-    @pytest.mark.parametrize("split_samples", [True, False])
-    def test_packed_dataset(self, max_seq_len, sample_size, max_rows, split_samples):
+    @pytest.mark.parametrize("max_packs", [5, 10])
+    @pytest.mark.parametrize("split_across_pack", [True, False])
+    def test_packed_dataset(
+        self, max_seq_len, sample_size, max_packs, split_across_pack
+    ):
         dataset = DummyDataset(sample_size)
         packed = PackedDataset(
             dataset,
             max_seq_len=max_seq_len,
-            max_rows=max_rows,
-            split_samples=split_samples,
+            max_packs=max_packs,
+            split_across_pack=split_across_pack,
         )
         # Check we get right number of packs
-        assert len(packed) == max_rows
+        assert len(packed) == max_packs
         # Check all fields are same length
         assert (
             len(packed[0]["tokens"])
@@ -98,10 +102,10 @@ class TestPackedDataset:
         )
         # Check that samples are packed correctly - very last individual sample
         # should have index value of the number of times dataset was iterated over
-        if split_samples:
+        if split_across_pack:
             # If we split samples, we'll know how many samples by taking the
             # full length and dividing by sample size
-            last_index, remainder = divmod(max_rows * max_seq_len, sample_size)
+            last_index, remainder = divmod(max_packs * max_seq_len, sample_size)
             # Account for remaining sample that didn't fit in window
             last_index = last_index if remainder > 0 else last_index - 1
         else:
@@ -109,7 +113,7 @@ class TestPackedDataset:
             # how much fits in a single window and multiplying by max rows.
             # If there is a remainder, this will end up being a pad token.
             last_index = (
-                (max_seq_len // sample_size) * max_rows - 1
+                (max_seq_len // sample_size) * max_packs - 1
                 if max_seq_len % sample_size == 0
                 else 0
             )
@@ -117,7 +121,7 @@ class TestPackedDataset:
         assert packed[-1]["tokens"][-1].item() == last_index
 
         expected_mask, expected_input_pos = self._get_expected_mask_and_input_pos(
-            max_seq_len, sample_size, split_samples
+            max_seq_len, sample_size, split_across_pack
         )
         torch.testing.assert_close(packed[0]["mask"], expected_mask)
         torch.testing.assert_close(packed[0]["input_pos"], expected_input_pos)
@@ -186,7 +190,7 @@ class TestPackedDataset:
         packed = PackedDataset(
             DummyRealDataset(),
             max_seq_len=10,
-            split_samples=True,
+            split_across_pack=True,
         )
 
         for i in range(len(packed)):
