@@ -77,15 +77,17 @@ def generate(
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
 
+    # generate the first token conditioned on the prompt
     token = generate_next_token(
         model,
-        torch.arange(0, seq_length, device=prompt.device),
-        prompt,
-        temperature,
-        top_k,
+        input_pos=torch.arange(0, seq_length, device=prompt.device),
+        x=prompt,
+        temperature=temperature,
+        top_k=top_k,
     )
     generated_tokens = torch.cat([generated_tokens, token], dim=-1)
 
+    # stop early if we reach a stop token in every seq
     if stop_tokens is not None:
         stop_token_reached_curr = torch.isin(token, stop_tokens)
         stop_token_reached |= stop_token_reached_curr.flatten()
@@ -94,12 +96,15 @@ def generate(
 
     input_pos = torch.tensor([seq_length], device=prompt.device)
     for _ in range(max_generated_tokens - 1):
+        # update stop_token_mask if we reached a stop token in a previous step
         if stop_tokens is not None:
             stop_token_mask = torch.cat(
                 [stop_token_mask, ~stop_token_reached.reshape(2, -1)], dim=-1
             )
 
-        token = custom_generate_next_token(model, input_pos, token, temperature, top_k)
+        token = custom_generate_next_token(
+            model, input_pos=input_pos, x=token, temperature=temperature, top_k=top_k
+        )
 
         generated_tokens = torch.cat([generated_tokens, token], dim=-1)
         input_pos += 1
@@ -110,6 +115,7 @@ def generate(
             if stop_token_reached.all().item():
                 break
 
+    # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens = generated_tokens * stop_token_mask
 
