@@ -252,8 +252,7 @@ def get_full_finetune_fsdp_wrap_policy(
     to maximize memory savings.
 
     Args:
-        memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers
-        with FSDP.
+        memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers with FSDP.
         modules_to_wrap (Set[Type]): Set of module types to wrap.
 
     Note:
@@ -262,7 +261,7 @@ def get_full_finetune_fsdp_wrap_policy(
         have not been verified and may not see the same improvements.
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
-            argument. Please see documentation for `torchtune.utils.FSDPPolicyType` for additional details.
+            argument. Please see documentation for const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
     if memory_efficient_fsdp_wrap:
         return _memory_efficient_wrap_policy(modules_to_wrap=modules_to_wrap)
