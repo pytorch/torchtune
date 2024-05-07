@@ -26,6 +26,9 @@ class DummyDataset(Dataset):
             "labels": [index] * self.sample_size,
         }
 
+    def __len__(self):
+        return 1000
+
 
 class DummyRealDataset(Dataset):
     def __init__(self):
@@ -39,6 +42,9 @@ class DummyRealDataset(Dataset):
     def __getitem__(self, index):
         tokens = self.tokenizer.encode(self.samples_list[index])
         return {"tokens": tokens, "labels": tokens}
+
+    def __len__(self):
+        return len(self.samples_list)
 
 
 class TestPackedDataset:
