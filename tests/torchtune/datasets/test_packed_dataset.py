@@ -21,7 +21,10 @@ class DummyDataset(Dataset):
     def __getitem__(self, index):
         if index >= 1000:
             raise IndexError()
-        return [index] * self.sample_size, [index] * self.sample_size
+        return {
+            "tokens": [index] * self.sample_size,
+            "labels": [index] * self.sample_size,
+        }
 
 
 class DummyRealDataset(Dataset):
@@ -35,7 +38,7 @@ class DummyRealDataset(Dataset):
 
     def __getitem__(self, index):
         tokens = self.tokenizer.encode(self.samples_list[index])
-        return tokens, tokens
+        return {"tokens": tokens, "labels": tokens}
 
 
 class TestPackedDataset:
@@ -55,7 +58,16 @@ class TestPackedDataset:
         )
         input_pos = [list(range(sample_size)) for i in range(1, num_samples + 1)]
         input_pos = list(itertools.chain(*input_pos))
-        return mask[:max_seq_len, :max_seq_len], input_pos[:max_seq_len]
+
+        # Emulate mask and position id padding
+        if not split_samples and remainder > 0:
+            mask = torch.block_diag(
+                mask,
+                torch.eye(remainder, dtype=torch.bool),
+            )
+            input_pos.extend(list(range(sample_size, sample_size + remainder)))
+
+        return mask[:max_seq_len, :max_seq_len], torch.tensor(input_pos[:max_seq_len])
 
     @pytest.mark.parametrize("max_seq_len", [10, 25])
     @pytest.mark.parametrize("sample_size", [2, 5])
@@ -85,65 +97,85 @@ class TestPackedDataset:
             # full length and dividing by sample size
             last_index, remainder = divmod(max_rows * max_seq_len, sample_size)
             # Account for remaining sample that didn't fit in window
-            last_index = last_index + 1 if remainder > 0 else last_index
+            last_index = last_index if remainder > 0 else last_index - 1
         else:
             # If we don't split samples, we know how many samples by taking
             # how much fits in a single window and multiplying by max rows.
-            # We don't account for remainder sample because we'll hit max rows.
-            last_index = (max_seq_len // sample_size) * max_rows
+            # If there is a remainder, this will end up being a pad token.
+            last_index = (
+                (max_seq_len // sample_size) * max_rows - 1
+                if max_seq_len % sample_size == 0
+                else 0
+            )
 
-        assert packed[-1]["tokens"][-1] == last_index - 1
+        assert packed[-1]["tokens"][-1].item() == last_index
 
         expected_mask, expected_input_pos = self._get_expected_mask_and_input_pos(
             max_seq_len, sample_size, split_samples
         )
         torch.testing.assert_close(packed[0]["mask"], expected_mask)
-        assert packed[0]["input_pos"] == expected_input_pos
+        torch.testing.assert_close(packed[0]["input_pos"], expected_input_pos)
 
     def test_packed_dataset_real_data(self):
         expected_tokenized_prompts = [
-            [0, 4, 2, 1, 7, 4, -1, 0, 1, 9],
-            [5, 2, 6, 4, 3, 8, -1, 0, 4, 3],
-            [4, 3, 2, 5, 7, -1],
+            torch.tensor([0, 4, 2, 1, 7, 4, -1, 0, 1, 9]),
+            torch.tensor([5, 2, 6, 4, 3, 8, -1, 0, 4, 3]),
+            torch.tensor([4, 3, 2, 5, 7, -1, 0, 0, 0, 0]),
+        ]
+        expected_tokenized_labels = [
+            torch.tensor([0, 4, 2, 1, 7, 4, -1, 0, 1, 9]),
+            torch.tensor([5, 2, 6, 4, 3, 8, -1, 0, 4, 3]),
+            torch.tensor([4, 3, 2, 5, 7, -1, -100, -100, -100, -100]),
         ]
         expected_mask = [
-            [
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-            ],
-            [
-                [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
-                [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
-                [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
-            ],
-            [
-                [1, 0, 0, 0, 0, 0],
-                [1, 1, 0, 0, 0, 0],
-                [1, 1, 1, 0, 0, 0],
-                [1, 1, 1, 1, 0, 0],
-                [1, 1, 1, 1, 1, 0],
-                [1, 1, 1, 1, 1, 1],
-            ],
+            torch.tensor(
+                [
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                ]
+            ),
+            torch.tensor(
+                [
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 1, 1],
+                ]
+            ),
+            torch.tensor(
+                [
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 1, 0, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                ]
+            ),
         ]
         expected_input_pos = [
-            [0, 1, 2, 3, 4, 5, 6, 0, 1, 2],
-            [3, 4, 5, 6, 7, 8, 9, 0, 1, 2],
-            [3, 4, 5, 6, 7, 8],
+            torch.tensor([0, 1, 2, 3, 4, 5, 6, 0, 1, 2]),
+            torch.tensor([3, 4, 5, 6, 7, 8, 9, 0, 1, 2]),
+            # Padded position ids cannot go beyond max seq_len - 1
+            torch.tensor([3, 4, 5, 6, 7, 8, 9, 9, 9, 9]),
         ]
         packed = PackedDataset(
             DummyRealDataset(),
@@ -158,9 +190,7 @@ class TestPackedDataset:
                 packed[i]["mask"],
                 packed[i]["input_pos"],
             )
-            assert prompt == expected_tokenized_prompts[i]
-            assert label == expected_tokenized_prompts[i]
-            assert input_pos == expected_input_pos[i]
-            torch.testing.assert_close(
-                mask, torch.tensor(expected_mask[i]).to(dtype=torch.bool)
-            )
+            torch.testing.assert_close(prompt, expected_tokenized_prompts[i])
+            torch.testing.assert_close(label, expected_tokenized_labels[i])
+            torch.testing.assert_close(input_pos, expected_input_pos[i])
+            torch.testing.assert_close(mask, expected_mask[i].to(dtype=torch.bool))

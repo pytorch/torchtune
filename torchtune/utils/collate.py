@@ -172,16 +172,19 @@ def _padded_collate_packed(
     labels = F.pad(
         torch.tensor(labels), (0, max_seq_len - len(labels)), value=ignore_idx
     )
-    mask = torch.block_diag(
-        mask,
-        torch.eye(max_seq_len - mask.shape[0], dtype=torch.bool),
+    # For attention mask, simply use identity matrix for the pad tokens
+    mask_pad = torch.eye(max_seq_len - mask.shape[0], dtype=torch.bool)
+    mask = torch.block_diag(mask, mask_pad)
+    # For position ids, continue to increment for pad tokens
+    input_pos_pad = torch.arange(
+        input_pos[-1] + 1, max_seq_len - len(input_pos) + input_pos[-1] + 1
     )
+    # Do not go beyond max_seq_len - 1
+    input_pos_pad = input_pos_pad.clamp(max=max_seq_len - 1)
     input_pos = torch.cat(
         [
             torch.tensor(input_pos),
-            torch.arange(
-                input_pos[-1] + 1, max_seq_len - len(input_pos) + input_pos[-1] + 1
-            ),
+            input_pos_pad,
         ]
     )
 
