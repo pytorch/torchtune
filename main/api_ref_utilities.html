@@ -387,11 +387,17 @@ checkpointing, please see the <a class="reference internal" href="deep_dives/che
 <p>Utilities for enabling and working with distributed training.</p>
 <table class="autosummary longtable docutils align-default">
 <tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed" title="torchtune.utils.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.FSDPPolicyType.html#torchtune.utils.FSDPPolicyType" title="torchtune.utils.FSDPPolicyType"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a></p></td>
+<td><p>A datatype for a function that can be used as an FSDP wrapping policy.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed" title="torchtune.utils.init_distributed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">init_distributed</span></code></a></p></td>
 <td><p>Initialize torch.distributed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank" title="torchtune.utils.get_world_size_and_rank"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_world_size_and_rank</span></code></a></p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank" title="torchtune.utils.get_world_size_and_rank"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_world_size_and_rank</span></code></a></p></td>
 <td><p>Function that gets the current world size (aka total number of ranks) and rank number of the current trainer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.utils.get_full_finetune_fsdp_wrap_policy.html#torchtune.utils.get_full_finetune_fsdp_wrap_policy" title="torchtune.utils.get_full_finetune_fsdp_wrap_policy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_full_finetune_fsdp_wrap_policy</span></code></a></p></td>
+<td><p>Retrieves an FSDP wrapping policy based on the specified flags <code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> and <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>.</p></td>
 </tr>
 </tbody>
 </table>

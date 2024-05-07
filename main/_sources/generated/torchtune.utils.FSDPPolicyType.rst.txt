@@ -1,0 +1,6 @@
+﻿torchtune.utils.FSDPPolicyType
+==============================
+
+.. currentmodule:: torchtune.utils
+
+.. autodata:: FSDPPolicyType
