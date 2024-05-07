@@ -72,7 +72,9 @@ def generate(
     bsz, seq_length = prompt.size()
     generated_tokens = prompt.clone()
     stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
-    stop_token_mask = torch.ones((bsz, seq_length + 1), device=prompt.device)
+    stop_token_mask = torch.ones(
+        (bsz, seq_length + 1), dtype=torch.int32, device=prompt.device
+    )
 
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
@@ -99,7 +101,7 @@ def generate(
         # update stop_token_mask if we reached a stop token in a previous step
         if stop_tokens is not None:
             stop_token_mask = torch.cat(
-                [stop_token_mask, ~stop_token_reached.reshape(2, -1)], dim=-1
+                [stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1
             )
 
         token = custom_generate_next_token(
