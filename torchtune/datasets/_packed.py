@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 import torch
 
 from torch.utils.data import Dataset
+from torchtune.utils import get_world_size_and_rank
 from torchtune.utils.collate import _padded_collate_packed
 from tqdm import tqdm
 
@@ -74,7 +75,12 @@ class PackedDataset(Dataset):
         # to end a pack early
         previous_sample_boundary = 0
 
-        for batch in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
+        # Only show progress bar on rank 0
+        _, rank = get_world_size_and_rank()
+        if rank == 0:
+            pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
+
+        for batch in self.ds:
             tokens, labels = batch["tokens"], batch["labels"]
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
@@ -86,7 +92,8 @@ class PackedDataset(Dataset):
                     "Please set `split_samples=True` or increase `max_seq_len`."
                 )
 
-            # Create integer mask and position ids for current sample
+            # Create integer mask and position ids for current sample and extend
+            # current pack
             current_sample = {
                 "tokens": tokens,
                 "labels": labels,
@@ -96,6 +103,8 @@ class PackedDataset(Dataset):
             }
             current_pack = {k: v + current_sample[k] for k, v in current_pack.items()}
 
+            # If the current pack is long enough, add it to self.samples and retain
+            # any truncated samples for next pack, if splitting samples
             if len(current_pack["tokens"]) > self.max_seq_len:
                 current_pack = self._add_pack(
                     current_pack=current_pack,
@@ -104,10 +113,13 @@ class PackedDataset(Dataset):
                     else previous_sample_boundary,
                 )
 
+            if rank == 0:
+                pbar.update()
             previous_sample_boundary = len(current_pack["tokens"])
             if self.max_rows is not None and len(self.samples) >= self.max_rows:
                 break
 
+        # Add the last pack with remaining samples that did not fit in previous
         if len(current_pack["tokens"]) > 0 and (
             self.max_rows is None or len(self.samples) < self.max_rows
         ):
@@ -120,7 +132,7 @@ class PackedDataset(Dataset):
         self, current_pack: Dict[str, List[int]], boundary: int
     ) -> Dict[str, List[int]]:
         """
-        Add the current pack to self.samples and return what's remaining of the pack.
+        Pad and add the current pack to self.samples and return what's remaining.
         """
         packing_mask = torch.block_diag(*current_pack["mask"])
         pack = {

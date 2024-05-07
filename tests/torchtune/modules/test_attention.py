@@ -276,7 +276,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = gqa_kv_cache(input, mask=mask, input_pos=input_pos)
@@ -302,7 +302,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = mha_kv_cache(input, mask=mask, input_pos=input_pos)
@@ -327,7 +327,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = mqa_kv_cache(input, mask=mask, input_pos=input_pos)

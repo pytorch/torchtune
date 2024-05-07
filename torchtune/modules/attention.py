@@ -127,8 +127,8 @@ class CausalSelfAttention(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional tensor which contains the mask.
-                Default is None.
+            mask (Optional[Tensor]): Optional tensor which contains the attention mask
+                with shape [batch_size x 1 x seq_length x seq_length]. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -204,11 +204,6 @@ class CausalSelfAttention(nn.Module):
         # Update key-value cache
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
-
-        if mask is not None:
-            if len(mask.shape) == 2:
-                mask = mask.unsqueeze(1)
-            mask = mask.expand(bsz, self.num_heads, seq_len, seq_len)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(

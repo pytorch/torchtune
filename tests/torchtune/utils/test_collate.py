@@ -77,8 +77,8 @@ class TestSamplePadSequence:
                 [
                     [True, False, False, False],
                     [True, True, False, False],
-                    [False, False, False, False],
-                    [False, False, False, False],
+                    [False, False, True, False],
+                    [False, False, False, True],
                 ]
             ),
         )

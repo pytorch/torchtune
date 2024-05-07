@@ -45,7 +45,8 @@ class TransformerDecoderLayer(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional tensor which contains the mask.
+            mask (Optional[Tensor]): Optional tensor which contains the attention mask
+                with shape [batch_size x 1 x seq_length x seq_length]. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -170,7 +171,7 @@ class TransformerDecoder(nn.Module):
         Args:
             tokens (Tensor): input tensor with shape [b x s]
             mask (Optional[Tensor]): Optional tensor which contains mask to indicate
-                which tokens will participate in the attention calculation, shape [b x s].
+                which tokens will participate in the attention calculation, shape [b x s x s].
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
@@ -200,6 +201,10 @@ class TransformerDecoder(nn.Module):
 
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
+
+        # shape: [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
 
         if self.causal_mask is not None:
             if input_pos is None:
