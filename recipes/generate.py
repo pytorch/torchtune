@@ -77,7 +77,7 @@ class InferenceRecipe:
 
         # Ensure the cache is setup on the right device
         with self._device:
-            model.setup_caches(max_batch_size=1, dtype=self._dtype)
+            model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 

@@ -205,7 +205,7 @@ class TestTransformerDecoder:
         # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
-        decoder.setup_caches(max_batch_size=4, dtype=torch.float32)
+        decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
     def test_forward(
