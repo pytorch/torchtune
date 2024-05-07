@@ -74,7 +74,8 @@ class PackedDataset(Dataset):
         # to end a pack early
         previous_sample_boundary = 0
 
-        for tokens, labels in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
+        for batch in tqdm(self.ds, desc="Packing dataset", dynamic_ncols=True):
+            tokens, labels = batch["tokens"], batch["labels"]
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
             # one of the two parameters
@@ -130,7 +131,7 @@ class PackedDataset(Dataset):
         }
 
         padded_pack = _padded_collate_packed(pack, self.max_seq_len)
-        self.samples.append(pack)
+        self.samples.append(padded_pack)
 
         updated_pack = {
             "tokens": current_pack["tokens"][boundary:],

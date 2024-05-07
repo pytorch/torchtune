@@ -174,12 +174,15 @@ def _padded_collate_packed(
     )
     mask = torch.block_diag(
         mask,
-        torch.zeros(
-            (max_seq_len - mask.shape[0], max_seq_len - mask.shape[0]), dtype=torch.bool
-        ),
+        torch.eye(max_seq_len - mask.shape[0], dtype=torch.bool),
     )
     input_pos = torch.cat(
-        [torch.tensor(input_pos), torch.arange(input_pos[-1] + 1, max_seq_len)]
+        [
+            torch.tensor(input_pos),
+            torch.arange(
+                input_pos[-1] + 1, max_seq_len - len(input_pos) + input_pos[-1] + 1
+            ),
+        ]
     )
 
     return {

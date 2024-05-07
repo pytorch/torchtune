@@ -51,7 +51,10 @@ class TestSamplePadSequence:
             "tokens": [2, 5],
             "labels": [3, 7],
             "mask": torch.tensor([[True, False], [True, True]]),
-            "input_pos": [0, 1],
+            # Let the first token be the end of the previous sample (pos 8),
+            # and the second token the start of the next sample (pos 0). Collate
+            # should continue from 0 -> 1, 2, ...
+            "input_pos": [8, 0],
         }
 
         padded = _padded_collate_packed(
@@ -79,4 +82,4 @@ class TestSamplePadSequence:
                 ]
             ),
         )
-        torch.testing.assert_close(padded_input_pos, torch.tensor([0, 1, 2, 3]))
+        torch.testing.assert_close(padded_input_pos, torch.tensor([8, 0, 1, 2]))

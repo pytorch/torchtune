@@ -7,7 +7,6 @@
 from typing import Optional
 
 from torch import nn, Tensor
-
 from torchtune.modules.kv_cache import KVCache
 
 
@@ -205,6 +204,9 @@ class CausalSelfAttention(nn.Module):
         # Update key-value cache
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
+
+        # [b, 1, s, s]
+        mask = mask.unsqueeze(1) if mask is not None else None
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
