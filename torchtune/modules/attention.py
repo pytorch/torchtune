@@ -205,8 +205,10 @@ class CausalSelfAttention(nn.Module):
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
 
-        # [b, 1, s, s]
-        mask = mask.unsqueeze(1) if mask is not None else None
+        if mask is not None:
+            if len(mask.shape) == 2:
+                mask = mask.unsqueeze(1)
+            mask = mask.expand(bsz, self.num_heads, seq_len, seq_len)
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
