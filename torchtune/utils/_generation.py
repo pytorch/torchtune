@@ -43,6 +43,7 @@ def generate_next_token(model, input_pos, x, temperature=1.0, top_k=None):
 def generate(
     model: TransformerDecoder,
     prompt: torch.Tensor,
+    *,
     max_generated_tokens: int,
     temperature: float = 1.0,
     top_k: Optional[int] = None,
@@ -73,6 +74,9 @@ def generate(
     stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
     stop_token_mask = torch.ones((bsz, seq_length + 1), device=prompt.device)
 
+    if custom_generate_next_token is None:
+        custom_generate_next_token = generate_next_token
+
     token = generate_next_token(
         model,
         torch.arange(0, seq_length, device=prompt.device),
@@ -95,11 +99,7 @@ def generate(
                 [stop_token_mask, ~stop_token_reached.reshape(2, -1)], dim=-1
             )
 
-        token = (
-            custom_generate_next_token(model, input_pos, token, temperature, top_k)
-            if custom_generate_next_token
-            else generate_next_token(model, input_pos, token, temperature, top_k)
-        )
+        token = custom_generate_next_token(model, input_pos, token, temperature, top_k)
 
         generated_tokens = torch.cat([generated_tokens, token], dim=-1)
         input_pos += 1
