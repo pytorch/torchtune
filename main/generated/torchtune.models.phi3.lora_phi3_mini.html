@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>phi3_mini &mdash; TorchTune main documentation</title>
+  <title>lora_phi3_mini &mdash; TorchTune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="lora_phi3_mini" href="torchtune.models.phi3.lora_phi3_mini.html" />
-    <link rel="prev" title="lora_llama2_70b" href="torchtune.models.llama2.lora_llama2_70b.html" />
+    <link rel="next" title="qlora_phi3_mini" href="torchtune.models.phi3.qlora_phi3_mini.html" />
+    <link rel="prev" title="phi3_mini" href="torchtune.models.phi3.phi3_mini.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -331,13 +331,13 @@
         
           <li><a href="../api_ref_models.html">torchtune.models</a> &gt;</li>
         
-      <li>phi3_mini</li>
+      <li>lora_phi3_mini</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.models.phi3.phi3_mini.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.models.phi3.lora_phi3_mini.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -367,24 +367,35 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="phi3-mini">
-<h1>phi3_mini<a class="headerlink" href="#phi3-mini" title="Permalink to this heading">¶</a></h1>
+  <section id="lora-phi3-mini">
+<h1>lora_phi3_mini<a class="headerlink" href="#lora-phi3-mini" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.models.phi3.phi3_mini">
-<span class="sig-prename descclassname"><span class="pre">torchtune.models.phi3.</span></span><span class="sig-name descname"><span class="pre">phi3_mini</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/phi3/_model_builders.html#phi3_mini"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.phi3.phi3_mini" title="Permalink to this definition">¶</a></dt>
-<dd><p>Builder for creating the Phi3 Mini 4K Instruct Model.
-Ref: <a class="reference external" href="https://huggingface.co/microsoft/Phi-3-mini-4k-instruct">https://huggingface.co/microsoft/Phi-3-mini-4k-instruct</a></p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This model does not currently support 128K context length nor optimizations
-such as sliding window attention.</p>
-</div>
+<dt class="sig sig-object py" id="torchtune.models.phi3.lora_phi3_mini">
+<span class="sig-prename descclassname"><span class="pre">torchtune.models.phi3.</span></span><span class="sig-name descname"><span class="pre">lora_phi3_mini</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lora_attn_modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Literal" title="(in Python v3.12)"><span class="pre">Literal</span></a><span class="p"><span class="pre">[</span></span><span class="s"><span class="pre">'q_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'k_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'v_proj'</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="s"><span class="pre">'output_proj'</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_lora_to_mlp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">apply_lora_to_output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_rank</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">8</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lora_alpha</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quantize_base</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></span><a class="reference internal" href="../_modules/torchtune/models/phi3/_model_builders.html#lora_phi3_mini"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.phi3.lora_phi3_mini" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builder for creating a Phi3 Mini (3.8b) model with LoRA enabled.</p>
+<p>The Phi3 defaults are the same as in <a class="reference internal" href="torchtune.models.phi3.phi3_mini.html#torchtune.models.phi3.phi3_mini" title="torchtune.models.phi3.phi3_mini"><code class="xref py py-func docutils literal notranslate"><span class="pre">phi3_mini()</span></code></a>,
+while LoRA default params are based on
+<a class="reference external" href="https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43">https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43</a>.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Instantiation of Phi3 Mini 4K Instruct Model</p>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lora_attn_modules</strong> (<em>List</em><em>[</em><em>LORA_ATTN_MODULES</em><em>]</em>) – list of which linear layers
+LoRA should be applied to in each self-attention block. Options are
+<code class="docutils literal notranslate"><span class="pre">{&quot;q_proj&quot;,</span> <span class="pre">&quot;k_proj&quot;,</span> <span class="pre">&quot;v_proj&quot;,</span> <span class="pre">&quot;output_proj&quot;}</span></code>.</p></li>
+<li><p><strong>apply_lora_to_mlp</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether to apply LoRA to the MLP in each transformer layer.
+Default: False</p></li>
+<li><p><strong>apply_lora_to_output</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether to apply LoRA to the model’s final output projection.
+Default: False</p></li>
+<li><p><strong>lora_rank</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – rank of each low-rank approximation</p></li>
+<li><p><strong>lora_alpha</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – scaling factor for the low-rank approximation</p></li>
+<li><p><strong>quantize_base</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether to quantize base model weights</p></li>
+</ul>
 </dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder">TransformerDecoder</a></p>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Instantiation of Phi3 Mini model with LoRA applied</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder">TransformerDecoder</a></p>
 </dd>
 </dl>
 </dd></dl>
@@ -399,10 +410,10 @@ such as sliding window attention.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.models.phi3.lora_phi3_mini.html" class="btn btn-neutral float-right" title="lora_phi3_mini" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.models.phi3.qlora_phi3_mini.html" class="btn btn-neutral float-right" title="qlora_phi3_mini" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.models.llama2.lora_llama2_70b.html" class="btn btn-neutral" title="lora_llama2_70b" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.models.phi3.phi3_mini.html" class="btn btn-neutral" title="phi3_mini" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -434,7 +445,7 @@ such as sliding window attention.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">phi3_mini</a></li>
+<li><a class="reference internal" href="#">lora_phi3_mini</a></li>
 </ul>
 
             </div>
