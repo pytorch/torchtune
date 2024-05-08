@@ -5,6 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 import os
+
+# import pickle
 import sys
 import time
 
@@ -19,9 +21,9 @@ from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.checkpoint.state_dict import (
-    get_model_state_dict,
+    # get_model_state_dict,
     get_optimizer_state_dict,
-    set_model_state_dict,
+    # set_model_state_dict,
     set_optimizer_state_dict,
     StateDictOptions,
 )
@@ -42,6 +44,8 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+torch.cuda.memory._record_memory_history(max_entries=100000)
 
 
 class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
@@ -321,30 +325,38 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m)
         fully_shard(model)
 
-        # set_model_state_dict infers device from model params
-        model.to_empty(device=self._device)
-        set_model_state_dict(
-            model,
-            model_state_dict=base_model_state_dict,
-            options=StateDictOptions(
-                broadcast_from_rank0=True, full_state_dict=True, strict=False
-            ),
+        utils.load_from_full_model_state_dict(
+            model, base_model_state_dict, self._device, self._is_rank_zero
         )
+        # model.to_empty(device=self._device)
+        # set_model_state_dict(
+        #     model,
+        #     model_state_dict=base_model_state_dict,
+        #     options=StateDictOptions(
+        #         broadcast_from_rank0=True, full_state_dict=True, strict=False
+        #     ),
+        # )
         if lora_weights_state_dict:
-            set_model_state_dict(
-                model,
-                model_state_dict=lora_weights_state_dict,
-                options=StateDictOptions(
-                    broadcast_from_rank0=True, full_state_dict=True, strict=False
-                ),
+            utils.load_from_full_model_state_dict(
+                model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
+            # set_model_state_dict(
+            #     model,
+            #     model_state_dict=lora_weights_state_dict,
+            #     options=StateDictOptions(
+            #         broadcast_from_rank0=True, full_state_dict=True, strict=False
+            #     ),
+            # )
 
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                    m.lora_a.to_empty(device=self._device)
+                    m.lora_b.to_empty(device=self._device)
                     m.initialize_parameters()
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
+        model = model.to(self._device)
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
@@ -360,6 +372,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             log.info(
                 f"Model init and checkpoint loading took {time.perf_counter() - init_start:.2f} secs"
             )
+            # pickle.dump(torch.cuda.memory._snapshot(), open('lora_finetune_distributed.pickle', 'wb'))
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
 
@@ -465,10 +478,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-        cpu_state_dict = get_model_state_dict(
+        cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
-            options=StateDictOptions(full_state_dict=True, cpu_offload=True),
+            self._is_rank_zero,
         )
+        # cpu_state_dict = get_model_state_dict(
+        #     self._model,
+        #     options=StateDictOptions(full_state_dict=True, cpu_offload=True),
+        # )
 
         if intermediate_checkpoint:
             opt_state_dict = get_optimizer_state_dict(

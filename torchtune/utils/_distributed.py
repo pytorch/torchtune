@@ -8,11 +8,13 @@
 import logging
 import os
 from itertools import chain
-from typing import Callable, Dict, Set, Tuple, Type
+from typing import Any, Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
 from torch import nn
+from torch.distributed._composable.fsdp import FSDPModule
+from torch.distributed._tensor import distribute_tensor
 from torch.distributed.fsdp import ShardingStrategy
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
@@ -212,3 +214,44 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         return isinstance(module, tuple(modules_to_wrap))
 
     return lora_wrap_fsdp
+
+
+def load_from_full_model_state_dict(
+    model: FSDPModule,
+    full_sd: Dict[str, Any],
+    device: torch.device,
+    is_rank_zero: bool,
+):
+    meta_sharded_sd = model.state_dict()
+    sharded_sd = {}
+    for param_name, full_tensor in full_sd.items():
+        sharded_meta_param = meta_sharded_sd.get(param_name)
+        if is_rank_zero:
+            full_tensor = full_tensor.detach().to(device)
+        else:
+            full_tensor = torch.empty(
+                sharded_meta_param.size(),
+                device=device,
+                dtype=sharded_meta_param.dtype,
+            )
+        torch.distributed.broadcast(full_tensor, src=0)
+        sharded_tensor = distribute_tensor(
+            full_tensor, sharded_meta_param.device_mesh, sharded_meta_param.placements
+        )
+        sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+    model.load_state_dict(sharded_sd, strict=False, assign=True)
+
+
+def get_full_model_state_dict(
+    model: FSDPModule,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    sharded_sd = model.state_dict()
+    cpu_state_dict = {}
+    for param_name, sharded_param in sharded_sd.items():
+        full_param = sharded_param.full_tensor()
+        if is_rank_zero:
+            cpu_state_dict[param_name] = full_param.cpu()
+        else:
+            del full_param
+    return cpu_state_dict
