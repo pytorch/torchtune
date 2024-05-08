@@ -95,7 +95,7 @@ def test_peft_integration():
     with torch.no_grad():
         peft_out = peft_model(inputs)
         tt_out = tt_model(inputs)
-    print(torch.max(torch.abs(peft_out.logits - tt_out)))
+    print(f"Maximum difference: {torch.max(torch.abs(peft_out.logits - tt_out))}")
 
 
 if __name__ == "__main__":
