@@ -42,6 +42,14 @@ def gemma_2b() -> GemmaTransformerDecoder:
 
 
 def gemma_tokenizer(path: str) -> SentencePieceTokenizer:
+    """Tokenizer for Gemma models.
+
+    Args:
+        path (str): Path to tokenizer file.
+
+    Returns:
+        SentencePieceTokenizer: Instantiation of Gemma tokenizer.
+    """
     tokenizer = SentencePieceTokenizer(path)
     tokenizer.pad_id = 0
     return tokenizer
