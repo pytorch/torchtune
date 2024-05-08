@@ -6,6 +6,7 @@
 
 
 # Not for land, just for testing
+import argparse
 import runpy
 import sys
 
@@ -67,13 +68,12 @@ def run_lora_finetune():
     runpy.run_path(TUNE_PATH, run_name="__main__")
 
 
-def test_peft_integration():
-    model_id = "meta-llama/Llama-2-7b-hf"
-    # peft_model_id = "ebsmothers/test-peft"
-    peft_model_id = "/data/users/ebs/test_peft_integration"
+def test_peft_integration(checkpoint_dir):
 
+    # Build PEFT model
+    model_id = "meta-llama/Llama-2-7b-hf"
     model = AutoModelForCausalLM.from_pretrained(model_id)
-    peft_model = PeftModel.from_pretrained(model, peft_model_id)
+    peft_model = PeftModel.from_pretrained(model, checkpoint_dir)
 
     vocab_size, bsz, seq_len = 32000, 2, 128
     inputs = torch.randint(0, vocab_size, (bsz, seq_len))
@@ -82,7 +82,7 @@ def test_peft_integration():
     # (just testing that forward lines up)
     tt_model = llama2_7b()
     checkpointer = FullModelHFCheckpointer(
-        checkpoint_dir="/data/users/ebs/test_peft_integration",
+        checkpoint_dir=checkpoint_dir,
         checkpoint_files=["hf_model_0001_0.pt", "hf_model_0002_0.pt"],
         model_type="LLAMA2",
         output_dir="/data/users/ebs",
@@ -100,4 +100,11 @@ def test_peft_integration():
 
 if __name__ == "__main__":
     # test_permute()
-    test_peft_integration()
+    parser = argparse.ArgumentParser(description="PEFT integration tests")
+    parser.add_argument(
+        "--checkpoint-dir",
+        type=str,
+        help="Directory containing fine-tuned checkpoint",
+    )
+    args = parser.parse_args()
+    test_peft_integration(args.checkpoint_dir)

@@ -471,7 +471,9 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
             if save_in_peft_format:
-                state_dict[utils.ADAPTER_KEY] = convert_weights.tune_to_peft(
+                state_dict[
+                    utils.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
                     state_dict[utils.ADAPTER_KEY],
                     num_heads=self._config["num_attention_heads"],
                     num_kv_heads=self._config["num_key_value_heads"],
@@ -488,6 +490,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 )
 
         if utils.ADAPTER_CONFIG in state_dict:
+            state_dict[
+                utils.ADAPTER_CONFIG
+            ] = convert_weights.tune_to_peft_adapter_config(
+                state_dict[utils.ADAPTER_CONFIG]
+            )
             output_path = Path.joinpath(self._output_dir, "adapter_config.json")
             with open(output_path, "w") as f:
                 json.dump(state_dict[utils.ADAPTER_CONFIG], f)

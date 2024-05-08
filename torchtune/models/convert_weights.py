@@ -6,7 +6,7 @@
 
 import re
 
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 
@@ -217,7 +217,26 @@ _TO_PEFT_TARGET_MODULES = {
 }
 
 
-def tune_to_peft(
+def tune_to_peft_adapter_config(
+    adapter_config: Dict[str, Any],
+):
+    expected_keys = ["target_modules", "r", "lora_alpha"]
+    if not all([x in adapter_config.keys() for x in expected_keys]):
+        raise ValueError(
+            f"PEFT adapter config requires {expected_keys}, found {adapter_config.keys()}"
+        )
+
+    for k in adapter_config["target_modules"]:
+        if k not in _TO_PEFT_TARGET_MODULES:
+            raise ValueError(f"Unknown target module {k}")
+    adapter_config["target_modules"] = list(
+        map(_TO_PEFT_TARGET_MODULES.get, adapter_config["target_modules"])
+    )
+
+    return adapter_config
+
+
+def tune_to_peft_adapter_weights(
     state_dict: Dict[str, torch.Tensor],
     num_heads: int = 32,
     num_kv_heads: int = 32,
