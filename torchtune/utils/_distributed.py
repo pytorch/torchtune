@@ -14,6 +14,7 @@ import torch
 import torch.distributed as dist
 import torch.distributed._composable.fsdp
 from torch import nn
+from torch.distributed._composable.fsdp import FSDPModule
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
@@ -219,7 +220,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def load_from_full_state_dict(
-    model: torch.distributed._composable.fsdp.FSDP,
+    model: FSDPModule,
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
@@ -262,13 +263,17 @@ def get_full_optimizer_state_dict(
                 group_state[attr] = full_tensor.cpu()
             else:
                 del full_tensor
-        full_state[group_id] = group_state
+        if is_rank_zero:
+            full_state[group_id] = group_state
+        else:
+            del group_state
     return {
         "param_groups": sharded_sd["param_groups"],
         "state": full_state,
     }
 
 
+# only load from rank0
 def load_from_full_optimizer_state_dict(
     opt: Optimizer,
     full_sd: Dict[str, Any],
@@ -312,7 +317,7 @@ def load_from_full_optimizer_state_dict(
 
 
 def get_full_model_state_dict(
-    model: torch.distributed._composable.fsdp.FSDP,
+    model: FSDPModule,
     is_rank_zero: bool,
 ) -> Dict[str, Any]:
     sharded_sd = model.state_dict()
