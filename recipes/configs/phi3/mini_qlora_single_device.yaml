@@ -64,8 +64,6 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-# Note: compile for QLoRA is only supported on nightly
-# PyTorch (>= 2.4.0.dev20240408)
 compile: False
 
 # Logging

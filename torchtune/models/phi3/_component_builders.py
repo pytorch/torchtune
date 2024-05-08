@@ -71,7 +71,6 @@ def phi3(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    # rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -144,7 +143,7 @@ def lora_phi3(
 ) -> TransformerDecoder:
     """
     Return a version of Phi3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
-    with LoRA applied to some of the linear layers in its self-attention modules.
+    with LoRA applied based on the passed in configuration.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -343,7 +342,6 @@ def lora_phi3_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = Phi3RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    # rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
