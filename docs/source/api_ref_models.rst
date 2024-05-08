@@ -64,6 +64,9 @@ Tokenizer
 Usage
 ^^^^^
 
+With code
+~~~~~~~~~
+
 .. code-block:: python
 
     from torchtune.models.llama3 import llama3_8b, llama3_tokenizer
@@ -78,6 +81,28 @@ Usage
     model = llama3_8b()
     model.load_state_dict(state_dict)
     tokenizer = llama3_tokenizer(path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
+
+With a config
+~~~~~~~~~~~~~
+
+.. code-block:: yaml
+
+    tokenizer:
+        _component_: torchtune.models.llama3.llama3_tokenizer
+        path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+
+    checkpointer:
+        _component_: torchtune.utils.FullModelMetaCheckpointer
+        checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+        checkpoint_files: [
+            consolidated.00.pth
+        ]
+        recipe_checkpoint: null
+        output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+        model_type: LLAMA3
+
+    model:
+        _component_: torchtune.models.llama3.llama3_8b
 
 
 Llama2
