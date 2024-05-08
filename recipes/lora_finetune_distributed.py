@@ -282,11 +282,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
               the correct device.
         """
 
-        if self._device.type != "cuda":
-            raise ValueError(
-                f'FSDP needs device="cuda" but found device={self._device.type}'
-            )
-
         if self._is_rank_zero:
             log.info("FSDP is enabled. Model init and checkpoint loading on Rank 0 ...")
             init_start = time.perf_counter()
