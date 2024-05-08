@@ -460,7 +460,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
-
         if utils.ADAPTER_KEY in state_dict:
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"

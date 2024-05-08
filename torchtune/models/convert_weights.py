@@ -239,6 +239,7 @@ def tune_to_peft(
     head_dim = dim // num_heads
 
     def _permute_lora_matrix(t, n_heads):
+        rank = t.shape[-1]
         return (
             t.view(n_heads, head_dim // 2, 2, rank)
             .transpose(1, 2)
@@ -247,10 +248,9 @@ def tune_to_peft(
 
     for key, value in state_dict.items():
         new_key = get_mapped_key(key, full_mapping)
-        converted_state_dict[new_key] = value
-        if "q_proj" in key and "lora_B" in key:
+        if "q_proj" in new_key and "lora_B" in new_key:
             value = _permute_lora_matrix(value, num_heads)
-        elif "k_proj" in key and "lora_B" in key:
+        elif "k_proj" in new_key and "lora_B" in new_key:
             value = _permute_lora_matrix(value, num_kv_heads)
-        converted_state_dict[new_key] = value
+        converted_state_dict["base_model.model." + new_key] = value
     return converted_state_dict

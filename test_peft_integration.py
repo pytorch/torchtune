@@ -10,6 +10,7 @@ import runpy
 import sys
 
 import torch
+from peft import PeftModel
 from tests.common import TUNE_PATH
 from torch import nn
 from torchtune.models.llama2 import llama2_7b
@@ -59,21 +60,20 @@ def run_lora_finetune():
     --config llama2/7B_lora_single_device \
     gradient_accumulation_steps=1 \
     max_steps_per_epoch=100 \
+    dtype=fp32 \
     checkpointer.output_dir=/data/users/ebs/test_peft_integration \
     """.split()
     sys.argv = tune_cmd
     runpy.run_path(TUNE_PATH, run_name="__main__")
 
 
-# First run run_lora_finetune and upload to hub
-# via huggingface-cli upload ebsmothers/test-peft /data/users/ebs/test_peft_integration
 def test_peft_integration():
     model_id = "meta-llama/Llama-2-7b-hf"
-    peft_model_id = "ebsmothers/test-peft"
+    # peft_model_id = "ebsmothers/test-peft"
+    peft_model_id = "/data/users/ebs/test_peft_integration"
 
-    # Load our HF-hub-uploaded adapter into AutoModel class
-    peft_model = AutoModelForCausalLM.from_pretrained(model_id)
-    peft_model.load_adapter(peft_model_id)
+    model = AutoModelForCausalLM.from_pretrained(model_id)
+    peft_model = PeftModel.from_pretrained(model, peft_model_id)
 
     vocab_size, bsz, seq_len = 32000, 2, 128
     inputs = torch.randint(0, vocab_size, (bsz, seq_len))
@@ -92,9 +92,9 @@ def test_peft_integration():
 
     tt_model.eval()
     peft_model.eval()
-
-    peft_out = model(inputs)
-    tt_out = tt_model(inputs)
+    with torch.no_grad():
+        peft_out = peft_model(inputs)
+        tt_out = tt_model(inputs)
     print(torch.max(torch.abs(peft_out.logits - tt_out)))
 
 
