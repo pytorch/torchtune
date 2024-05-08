@@ -59,7 +59,6 @@ class InstructDatasetDeepLakeRAFT(Dataset):
         template: InstructTemplate,
         transform: Optional[Callable] = None,
         column_map: Optional[Dict[str, str]] = None,
-        train_on_input: bool = True,
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -68,7 +67,6 @@ class InstructDatasetDeepLakeRAFT(Dataset):
         self.template = template
         self._transform = transform
         self._column_map = column_map
-        self.train_on_input = train_on_input
         self.max_seq_len = max_seq_len
 
     def __len__(self):
@@ -88,7 +86,7 @@ class InstructDatasetDeepLakeRAFT(Dataset):
             else "cot_answer"
         )
         messages = [
-            Message(role="user", content=prompt, masked=(not self.train_on_input)),
+            Message(role="user", content=prompt),
             Message(role="assistant", content=transformed_sample[key_output]),
         ]
 
@@ -110,7 +108,6 @@ def instruct_dataset_raft(
     source: str,
     template: str,
     column_map: Optional[Dict[str, str]] = None,
-    train_on_input: bool = False,
     max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> InstructDatasetDeepLakeRAFT:
@@ -126,7 +123,6 @@ def instruct_dataset_raft(
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
-        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
@@ -140,7 +136,6 @@ def instruct_dataset_raft(
         source=source,
         template=_get_instruct_template(template),
         column_map=column_map,
-        train_on_input=train_on_input,
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )

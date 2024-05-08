@@ -39,7 +39,7 @@ class TestInstructDatasetDeepLakeRAFT:
         ]
 
     @mock.patch("torchtune.datasets._instruct_raft.load_deep_lake_dataset")
-    def test_get_item_train_on_input(self, mock_load_deep_lake_dataset):
+    def test_get_item_train(self, mock_load_deep_lake_dataset):
         mock_load_deep_lake_dataset.return_value = self.get_samples()
         expected_labels = self.expected_tokenized_prompts
 
@@ -48,7 +48,6 @@ class TestInstructDatasetDeepLakeRAFT:
             source="iam/agoofy/goober",
             template=self.template,
             transform=dummy_transform,
-            train_on_input=True,
         )
         assert len(dataset) == 1
         mock_load_deep_lake_dataset.assert_called_once()
