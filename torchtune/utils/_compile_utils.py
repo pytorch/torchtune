@@ -8,8 +8,6 @@ import os
 
 from torch import nn
 
-_TORCH_COMPILE_WRAPPER_PREFIX = "_orig_mod."
-
 
 def wrap_compile(model: nn.Module) -> nn.Module:
     """
