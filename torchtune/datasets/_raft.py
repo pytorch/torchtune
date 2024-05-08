@@ -14,8 +14,7 @@ activeloop_dataset = "hub://manufe/raft_format_dataset_biomedical"  # Replace wi
 def raft_dataset(
     tokenizer: Tokenizer,
     source: str = activeloop_dataset,
-    train_on_input: bool = True,
-    max_seq_len: int = 512,
+    max_seq_len: int = 4096,
 ) -> InstructDatasetDeepLakeRAFT:
     """
     Load a dataset in RAFT format from ActiveLoop's DeepLake platform.
@@ -27,7 +26,6 @@ def raft_dataset(
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenizer must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Deep Lake Datasets.
-        train_on_input (bool): Whether the model is trained on the input or not. Default is True.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists. Default is 512.
 
     Returns:
@@ -49,6 +47,5 @@ def raft_dataset(
         tokenizer=tokenizer,
         source=source,
         template=RAFTInstructTemplate,
-        train_on_input=train_on_input,
         max_seq_len=max_seq_len,
     )
