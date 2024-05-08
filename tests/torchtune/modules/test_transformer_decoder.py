@@ -252,16 +252,23 @@ class TestTransformerDecoder:
 
         with torch.no_grad():
             _ = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
-            kv_cache_val = decoder_with_kv_cache_enabled.layers[
+            kv_cache_k_val = decoder_with_kv_cache_enabled.layers[
                 0
             ].attn.kv_cache.k_cache.clone()
+            kv_cache_v_val = decoder_with_kv_cache_enabled.layers[
+                0
+            ].attn.kv_cache.v_cache.clone()
 
         decoder_with_kv_cache_enabled.reset_caches()
-        kv_cache_val_reset = decoder_with_kv_cache_enabled.layers[
+        kv_cache_k_val_reset = decoder_with_kv_cache_enabled.layers[
             0
         ].attn.kv_cache.k_cache.clone()
+        kv_cache_v_val_reset = decoder_with_kv_cache_enabled.layers[
+            0
+        ].attn.kv_cache.v_cache.clone()
 
-        assert not torch.allclose(kv_cache_val, kv_cache_val_reset)
+        assert not torch.allclose(kv_cache_k_val, kv_cache_k_val_reset)
+        assert not torch.allclose(kv_cache_v_val, kv_cache_v_val_reset)
 
     def test_kv_cache_batch_size_exceeded(
         self,
