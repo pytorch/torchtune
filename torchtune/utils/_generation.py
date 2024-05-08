@@ -148,7 +148,7 @@ def generate(
             )
 
         tokens = custom_generate_next_token(
-            model, input_pos=input_pos, x=token, temperature=temperature, top_k=top_k
+            model, input_pos=input_pos, x=tokens, temperature=temperature, top_k=top_k
         )
 
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
