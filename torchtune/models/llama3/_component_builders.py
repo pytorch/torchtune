@@ -53,9 +53,11 @@ def llama3(
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Llama3 model. This includes:
+    Builder the decoder associated with the Llama3 model.
+
+    This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of ``TransformerDecoderLayer`` blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -77,7 +79,7 @@ def llama3(
         norm_eps (float): epsilon in RMS norms.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 model.
+        TransformerDecoder: Instantiation of a Llama3 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
