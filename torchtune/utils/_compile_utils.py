@@ -11,11 +11,7 @@ from torch import nn
 
 def wrap_compile(model: nn.Module) -> nn.Module:
     """
-    Wraps the model with torch.compile. This function will also
-    register a state_dict post hook that allows state_dicts produced
-    with torch.compile training to behave as regular eager mode models.
-    In particular, it strips away a torch.compile specific prefix
-    added to the state_dict by torch.compile.
+    Wraps the model with torch.compile.
 
     Args:
         model (nn.Module): model to wrap with compile.
