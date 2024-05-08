@@ -321,6 +321,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m)
         fully_shard(model)
 
+        # set_model_state_dict infers device from model params
         model.to_empty(device=self._device)
         set_model_state_dict(
             model,
@@ -481,6 +482,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Now that we have the model and opt state dict, create the actual checkpoint dict
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
+
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_key_filter = lambda x: x in self.adapter_params
