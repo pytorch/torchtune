@@ -270,6 +270,13 @@ class TestTransformerDecoder:
         assert not torch.allclose(kv_cache_k_val, kv_cache_k_val_reset)
         assert not torch.allclose(kv_cache_v_val, kv_cache_v_val_reset)
 
+    def test_kv_cache_reset_values_fails_when_not_enabled_first(
+        self,
+        decoder: TransformerDecoder,
+    ) -> None:
+        with pytest.raises(RuntimeError, match="Key value caches are not setup"):
+            decoder.reset_caches()
+
     def test_kv_cache_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,

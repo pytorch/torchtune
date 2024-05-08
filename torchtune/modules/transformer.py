@@ -159,6 +159,11 @@ class TransformerDecoder(nn.Module):
         )
 
     def reset_caches(self):
+        if self.layers[0].attn.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+
         for layer in self.layers:
             layer.attn.kv_cache.reset()
 
