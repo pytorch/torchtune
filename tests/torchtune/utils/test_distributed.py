@@ -15,8 +15,9 @@ import torch.nn as nn
 from tests.test_utils import single_box_init
 from torch.distributed import launcher
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torchtune import utils
-from torchtune.models.llama2._component_builders import lora_llama2
+from torchtune import modules, utils
+from torchtune.models.llama2._component_builders import llama2, lora_llama2
+from torchtune.models.llama3._component_builders import llama3
 from torchtune.modules import TransformerDecoderLayer
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import get_adapter_params, set_trainable_params
@@ -95,6 +96,51 @@ class TestDistributed:
 
         with pytest.raises(RuntimeError, match="Unexpected param or buffer"):
             utils.validate_no_params_on_meta_device(model)
+
+    def test_get_fsdp_wrap_policies(self) -> None:
+        with single_box_init():
+            llama3_policy = utils.get_full_finetune_fsdp_wrap_policy(
+                memory_efficient_fsdp_wrap=True,
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            )
+            l3 = llama3(
+                vocab_size=64,
+                num_layers=1,
+                num_heads=4,
+                num_kv_heads=4,
+                embed_dim=64,
+                max_seq_len=128,
+            )
+            wrapped_l3 = FSDP(
+                l3, auto_wrap_policy=llama3_policy, device_id=torch.device("cpu")
+            )
+            # Ensure embedding, output proj, and transformer decoder blocks are wrapped
+            assert isinstance(wrapped_l3.tok_embeddings, FSDP)
+            assert isinstance(wrapped_l3.output, FSDP)
+            for layer in wrapped_l3.layers:
+                assert isinstance(layer, FSDP)
+
+            llama2_policy = utils.get_full_finetune_fsdp_wrap_policy(
+                memory_efficient_fsdp_wrap=False,
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            )
+            l2 = llama2(
+                vocab_size=64,
+                num_layers=1,
+                num_heads=4,
+                num_kv_heads=4,
+                embed_dim=64,
+                max_seq_len=128,
+            )
+            wrapped_l2 = FSDP(
+                l2, auto_wrap_policy=llama2_policy, device_id=torch.device("cpu")
+            )
+            # Ensure embedding, output proj, and transformer decoder blocks are not wrapped
+            assert not isinstance(wrapped_l2.tok_embeddings, FSDP)
+            assert not isinstance(wrapped_l2.output, FSDP)
+            # Ensure transformer decoder blocks are wrapped
+            for layer in wrapped_l2.layers:
+                assert isinstance(layer, FSDP)
 
 
 N_LAYERS = 3
