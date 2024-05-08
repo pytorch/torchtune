@@ -46,3 +46,4 @@ Class representations for the above dataset builders.
 
     InstructDataset
     ChatDataset
+    ConcatDataset
