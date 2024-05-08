@@ -5,6 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 from ._component_builders import lora_mistral, mistral, mistral_classifier
+from ._convert_weights import (  # noqa
+    mistral_reward_hf_to_tune,
+    mistral_reward_tune_to_hf,
+)
 from ._model_builders import (
     lora_mistral_7b,
     lora_mistral_classifier,

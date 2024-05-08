@@ -13,7 +13,7 @@ import pytest
 import torch
 from torch import randn
 
-from torchtune.models import llama2
+from torchtune.models import llama2, mistral
 from torchtune.utils._checkpointing import FullModelHFCheckpointer
 from torchtune.utils._checkpointing._checkpointer_utils import safe_torch_load
 from torchtune.utils.seed import set_seed
@@ -292,6 +292,153 @@ class TestHFLlama2FullModelCheckpointer:
 
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
         assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
+
+
+class TestHFMistralRewardModelFullModelCheckpointer:
+    @pytest.fixture
+    def weight_dtype(self):
+        return torch.float16
+
+    @pytest.fixture
+    def state_dict(self, weight_dtype):
+        """
+        State dict for a HF format mistral reward model checkpoint. This state dict is
+        "complete" and can be loaded into a TorchTune model once correctly converted.
+        """
+        state_dict = {
+            "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+            "model.layers.0.input_layernorm.weight": randn(_DIM, dtype=weight_dtype),
+            "model.layers.0.self_attn.q_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.k_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.v_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.o_proj.weight": randn(
+                _DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.post_attention_layernorm.weight": randn(
+                _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.gate_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.down_proj.weight": randn(
+                _DIM, _HIDDEN_DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.up_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.norm.weight": randn(_DIM, dtype=weight_dtype),
+            "score.weight": randn(1, _DIM, dtype=weight_dtype),
+        }
+        return state_dict
+
+    @pytest.fixture
+    def mistral_reward_model_hf_checkpoint(self, tmp_path, state_dict):
+        """
+        Fixture which creates a checkpoint file for the Mistral reward model. The
+        state dict follows the HF_FORMAT for the checkpoint format.
+
+        The state dicts supports testing for a single-file checkpoint.
+        Multiple file checkpoints are already tested for Llama2.
+            * The checkpoint contains layer0 + embed + norm + score keys
+            and can be tested in isolation
+
+        The model corresponds to the following config:
+            * num_layers: 1
+            * num_heads: 4
+            * num_kv_heads: 4
+            * embed_dim: 64
+            * max_seq_len: 128
+            * num_classes: 1
+            * intermediate_dim: 256
+
+        """
+        checkpoint_file = tmp_path / "mistral_reward_model_hf_checkpoint.pt"
+
+        torch.save(state_dict, checkpoint_file)
+
+        config = {
+            "hidden_size": 64,
+            "num_attention_heads": 4,
+            "num_key_value_heads": 4,
+            "num_classes": 1,
+        }
+        config_file = Path.joinpath(tmp_path, "config.json")
+        with config_file.open("w") as f:
+            json.dump(config, f)
+
+        return checkpoint_file
+
+    @pytest.fixture
+    def single_file_checkpointer(
+        self, mistral_reward_model_hf_checkpoint, tmp_path
+    ) -> FullModelHFCheckpointer:
+        checkpoint_file = mistral_reward_model_hf_checkpoint
+        return FullModelHFCheckpointer(
+            checkpoint_dir=tmp_path,
+            checkpoint_files=[checkpoint_file],
+            model_type="MISTRAL_REWARD",
+            output_dir=tmp_path,
+        )
+
+    def test_load_save_checkpoint_single_file(
+        self,
+        single_file_checkpointer: FullModelHFCheckpointer,
+        mistral_reward_model_hf_checkpoint: Path,
+    ):
+        """
+        Test ``load_checkpoint`` and ``save_checkpoint`` method within the
+        FullModelHFCheckpointer for a single checkpoint file for a mistral reward model.
+
+        We test:
+        * ``load_checkpoint`` loads the right sets of keys
+        * Internal state of the checkpointer is correctly updated
+        * Converted checkpoint can be loaded into the `mistral_classifier` TorchTune implementation
+        * Saved checkpoint keys match the original checkpoint
+        """
+        # Read the state dict directly from file using torch.load. This will be the state
+        # dict we test against
+        checkpoint_file = mistral_reward_model_hf_checkpoint
+        orig_state_dict = safe_torch_load(checkpoint_file)
+
+        # Converted state dict from the checkpointer
+        state_dict = single_file_checkpointer.load_checkpoint()
+        # Check that we've loaded all the keys
+        assert len(state_dict["model"].keys()) == len(orig_state_dict.keys())
+
+        # the keys in original state dict should match up with the keys in the weight_map
+        for key in orig_state_dict.keys():
+            if "inv_freq" in key:
+                continue
+            assert key in single_file_checkpointer._weight_map
+
+        # loading the state dict into the model implementation should work correctly
+        model = mistral.mistral_classifier(
+            num_classes=1,
+            vocab_size=_VOCAB_SIZE,
+            num_layers=1,
+            num_heads=_NUM_HEADS,
+            num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
+            intermediate_dim=_HIDDEN_DIM,
+            max_seq_len=128,
+        )
+        model.load_state_dict(state_dict["model"])
+
+        single_file_checkpointer.save_checkpoint(state_dict, epoch=1)
+
+        # Reload the output checkpoint file and compare to the original checkpoint. This
+        # assumes we know what the name of the file is. This is fine, breaking this logic
+        # should be something we capture through this test
+        output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
+        output_state_dict = safe_torch_load(output_file)
+
+        assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
 
 
 class TestCheckpointerUtils:

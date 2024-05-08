@@ -17,6 +17,8 @@ from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
     get_full_model_state_dict,
+    FSDPPolicyType,
+    get_full_finetune_fsdp_wrap_policy,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
@@ -61,6 +63,7 @@ from .seed import set_seed
 __all__ = [
     "transform_opt_state_dict",
     "get_memory_stats",
+    "FSDPPolicyType",
     "log_memory_stats",
     "get_device",
     "get_dtype",
@@ -70,6 +73,7 @@ __all__ = [
     "is_distributed",
     "list_dtypes",
     "lora_fsdp_wrap_policy",
+    "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
     "set_activation_checkpointing",
