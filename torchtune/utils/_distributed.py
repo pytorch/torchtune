@@ -8,23 +8,18 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, Dict, Set, Tuple, Type
+from typing import Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
-import torch.distributed._composable.fsdp
 from torch import nn
-from torch.distributed._composable.fsdp import FSDPModule
-from torch.distributed._tensor import distribute_tensor, DTensor
-from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
-
-from torch.optim import Optimizer
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
     LoRALinear,
 )
+
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
 
@@ -217,115 +212,3 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         return isinstance(module, tuple(modules_to_wrap))
 
     return lora_wrap_fsdp
-
-
-def load_from_full_state_dict(
-    model: FSDPModule,
-    full_sd: Dict[str, Any],
-    device: torch.device,
-    is_rank_zero: bool,
-):
-    meta_sharded_sd = model.state_dict()
-    sharded_sd = {}
-    for param_name, full_tensor in full_sd.items():
-        sharded_meta_param = meta_sharded_sd.get(param_name)
-        if is_rank_zero:
-            full_tensor = full_tensor.detach().to(device)
-        else:
-            full_tensor = torch.empty(
-                sharded_meta_param.size(),
-                device=device,
-                dtype=sharded_meta_param.dtype,
-            )
-        torch.distributed.broadcast(full_tensor, src=0)
-        sharded_tensor = distribute_tensor(
-            full_tensor, sharded_meta_param.device_mesh, sharded_meta_param.placements
-        )
-        sharded_sd[param_name] = nn.Parameter(sharded_tensor)
-    model.load_state_dict(sharded_sd, strict=False, assign=True)
-
-
-def get_full_optimizer_state_dict(
-    opt: Optimizer,
-    is_rank_zero: bool,
-) -> Dict[str, Any]:
-    sharded_sd = opt.state_dict()
-    sharded_state = sharded_sd["state"]
-    full_state = {}
-    for group_id, sharded_group in sharded_state.items():
-        group_state = {}
-        for attr, sharded_tensor in sharded_group.items():
-            if isinstance(sharded_tensor, DTensor):
-                full_tensor = sharded_tensor.full_tensor()
-            else:
-                full_tensor = sharded_tensor
-            if is_rank_zero:
-                group_state[attr] = full_tensor.cpu()
-            else:
-                del full_tensor
-        if is_rank_zero:
-            full_state[group_id] = group_state
-        else:
-            del group_state
-    return {
-        "param_groups": sharded_sd["param_groups"],
-        "state": full_state,
-    }
-
-
-# only load from rank0
-def load_from_full_optimizer_state_dict(
-    opt: Optimizer,
-    full_sd: Dict[str, Any],
-    device: torch.device,
-    is_rank_zero: bool,
-) -> Dict[str, Any]:
-    _init_optim_state(opt)
-    meta_sharded_state = opt.state_dict()["state"]
-    full_state = full_sd["state"]
-    sharded_state = {}
-    for group_id, group_state in full_state.items():
-        sharded_group_state = {}
-        meta_sharded_group_state = meta_sharded_state.get(group_id)
-        for attr, full_tensor in group_state.items():
-            meta_sharded_tensor = meta_sharded_group_state.get(attr)
-            if isinstance(meta_sharded_tensor, DTensor):
-                if is_rank_zero:
-                    full_tensor = full_tensor.detach().to(device)
-                else:
-                    full_tensor = torch.empty(
-                        meta_sharded_tensor.size(),
-                        device=device,
-                        dtype=meta_sharded_tensor.dtype,
-                    )
-                torch.distributed.broadcast(full_tensor, src=0)
-                sharded_tensor = distribute_tensor(
-                    full_tensor,
-                    meta_sharded_tensor.device_mesh,
-                    meta_sharded_tensor.placements,
-                )
-                sharded_group_state[attr] = sharded_tensor
-            else:
-                sharded_group_state[attr] = full_tensor.detach().to(device)
-        sharded_state[group_id] = sharded_group_state
-    opt.load_state_dict(
-        {
-            "param_groups": full_sd["param_groups"],
-            "state": sharded_state,
-        }
-    )
-
-
-def get_full_model_state_dict(
-    model: FSDPModule,
-    is_rank_zero: bool,
-) -> Dict[str, Any]:
-    sharded_sd = model.state_dict()
-    cpu_state_dict = {}
-    for param_name, sharded_param in sharded_sd.items():
-        full_param = sharded_param.full_tensor()
-        if is_rank_zero:
-            cpu_state_dict[param_name] = full_param.cpu()
-        else:
-            del full_param
-    return cpu_state_dict

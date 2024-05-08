@@ -16,13 +16,9 @@ from ._compile_utils import wrap_compile
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
-    get_full_model_state_dict,
-    get_full_optimizer_state_dict,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,
-    load_from_full_optimizer_state_dict,
-    load_from_full_state_dict,
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
