@@ -56,7 +56,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
     def test_loss(self, compile, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_meta"
+        ckpt = "LLAMA2_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -105,7 +105,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         reason="Please install a nightly build of torch to run this test.",
     )
     def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_meta"
+        ckpt = "LLAMA2_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -157,7 +157,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "small_test_ckpt_hf"
+        ckpt = "LLAMA2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -222,7 +222,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 

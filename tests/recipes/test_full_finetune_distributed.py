@@ -48,7 +48,7 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_hf"
+        ckpt = "LLAMA2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)

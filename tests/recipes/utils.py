@@ -12,6 +12,12 @@ from typing import List
 import torch
 from torch.utils.data import Dataset
 
+CKPT_COMPONENT_MAP = {
+    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.utils.FullModelMetaCheckpointer",
+    "hf": "torchtune.utils.FullModelHFCheckpointer",
+}
+
 
 class DummyDataset(Dataset):
     def __init__(self, **kwargs):
@@ -120,3 +126,9 @@ def write_hf_ckpt_config(ckpt_dir: str):
     config_file = Path.joinpath(Path(ckpt_dir), "config.json")
     with config_file.open("w") as f:
         json.dump(config, f)
+
+
+MODEL_TEST_CONFIGS = {
+    "LLAMA2": llama2_test_config(),
+    "LLAMA3": llama3_test_config(),
+}

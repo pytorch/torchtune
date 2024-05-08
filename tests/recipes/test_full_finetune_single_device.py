@@ -19,9 +19,10 @@ import torch
 from tests.common import TUNE_PATH
 
 from tests.recipes.utils import (
+    CKPT_COMPONENT_MAP,
     dummy_alpaca_dataset_config,
     llama2_test_config,
-    llama3_test_config,
+    MODEL_TEST_CONFIGS,
     write_hf_ckpt_config,
 )
 from tests.test_utils import (
@@ -30,11 +31,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
 )
-
-MODEL_TEST_CONFIGS = {
-    "LLAMA2": llama2_test_config(),
-    "LLAMA3": llama3_test_config(),
-}
 
 
 class TestFullFinetuneSingleDeviceRecipe:
@@ -64,32 +60,17 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.integration_test
     @pytest.mark.parametrize("compile", [True, False])
     @pytest.mark.parametrize(
-        "config_and_flags",
+        "config, model_type, ckpt_type",
         [
-            (
-                "llama2/7B_full_low_memory",
-                "torchtune.utils.FullModelMetaCheckpointer",
-                "small_test_ckpt_meta",
-                "LLAMA2",
-                "llama2_tokenizer",
-            ),
-            (
-                "llama3/8B_full_single_device",
-                "torchtune.utils.FullModelTorchTuneCheckpointer",
-                "small_test_ckpt_tune_llama3",
-                "LLAMA3",
-                "llama3_tokenizer",
-            ),
+            ("llama2/7B_full_low_memory", "LLAMA2", "meta"),
+            ("llama3/8B_full_single_device", "LLAMA3", "tune"),
         ],
     )
-    def test_loss(self, compile, config_and_flags, tmpdir, monkeypatch):
-        config = config_and_flags[0]
-        ckpt_component = config_and_flags[1]
-        ckpt = config_and_flags[2]
-        model_type = config_and_flags[3]
-        tokenizer = config_and_flags[4]
+    def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
+        ckpt_component = CKPT_COMPONENT_MAP[ckpt_type]
+        ckpt = model_type + "_" + ckpt_type
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
-        tokenizer_path = Path(TOKENIZER_PATHS[tokenizer])
+        tokenizer_path = Path(TOKENIZER_PATHS[model_type])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
 
@@ -133,7 +114,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "small_test_ckpt_hf"
+        ckpt = "LLAMA2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -223,7 +204,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         full_batch_size = 4
         micro_batch_size = 1
         gradient_accumulation_steps = full_batch_size // micro_batch_size
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         no_grad_accum_log_file = gen_log_file_name(tmpdir, suffix="no_grad_accum")

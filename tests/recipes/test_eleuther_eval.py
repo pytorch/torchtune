@@ -21,7 +21,7 @@ from tests.test_utils import CKPT_MODEL_PATHS
 class TestEleutherEval:
     @pytest.mark.integration_test
     def test_torchtune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -67,7 +67,7 @@ class TestEleutherEval:
     @pytest.mark.integration_test
     @pytest.mark.usefixtures("hide_available_pkg")
     def test_eval_recipe_errors_without_lm_eval(self, caplog, monkeypatch, tmpdir):
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 

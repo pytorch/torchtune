@@ -52,7 +52,7 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -96,7 +96,7 @@ class TestLoRAFinetuneDistributedRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "small_test_ckpt_hf"
+        ckpt = "LLAMA2_hf"
         expected_loss_values = self._fetch_expected_loss_values()
 
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -162,7 +162,7 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
-        ckpt = "small_test_ckpt_tune"
+        ckpt = "LLAMA2_tune"
 
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
