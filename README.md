@@ -75,7 +75,7 @@ Single-GPU recipes expose a number of memory optimizations that aren't available
 This table captures the peak memory usage and training speed for recipes in torchtune.
 
 | Example HW Resources | Finetuning Method | Model   | Setting    | Peak Memory per GPU (GB) | Training Speed (tokens/sec) |
-|----------------------|-------------------|---------|------------|---------------------|----------------|
+|:-:|:-:|:-:|:-:|:-:|:-:|
 | 1 x RTX 4090 |     QLoRA         |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 12.3 GB | 1856  |
 | 1 x RTX 4090 |     LoRA          |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 21.3 GB | 2582  |
 | 2 x RTX 4090 |     LoRA          |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 16.2 GB | 2768  |
