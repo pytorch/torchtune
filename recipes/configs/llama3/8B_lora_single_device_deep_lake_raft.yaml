@@ -28,11 +28,11 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B/original/tokenizer.model
+  path: llama3/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B/original/
+  checkpoint_dir: llama3/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
@@ -44,7 +44,6 @@ resume_from_checkpoint: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.raft_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 batch_size: 2
@@ -83,7 +82,7 @@ log_every_n_steps: 1
 
 # Environment
 device: cuda
-dtype: fp32
+dtype: bf16
 enable_activation_checkpointing: True
 
 # Profiler (disabled)
