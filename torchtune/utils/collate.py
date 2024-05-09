@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -13,7 +13,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 
 def padded_collate(
-    batch: List[Dict[str, Any]],
+    batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
@@ -21,7 +21,7 @@ def padded_collate(
     convert integer lists to tensors.
 
     Args:
-        batch (List[Dict[str, Any]]): A list of tuples containing input, label pairs.
+        batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -72,7 +72,7 @@ def padded_collate(
 
 
 def padded_collate_dpo(
-    batch: List[Dict[str, Any]],
+    batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -83,7 +83,7 @@ def padded_collate_dpo(
     sequence component, such as input_ids or labels.
 
     Args:
-        batch (List[Dict[str, Any]]): A list of dictionaries, where each dictionary
+        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary
             represents a sequence with multiple components, 'chosen_input_ids',
             'chosen_labels', 'rejected_input_ids', and 'rejected_labels' are required.
         padding_idx (int): Padding index for input ids. Defaults to 0.
@@ -129,68 +129,3 @@ def padded_collate_dpo(
     )
 
     return concatenated_input_ids, concatenated_labels
-
-
-def _padded_collate_packed(
-    sample: Dict[str, Any],
-    max_seq_len: int,
-    padding_idx: int = 0,
-    ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-) -> Dict[str, torch.Tensor]:
-    """Pad a batch of packed sequences to max sequence length in the batch, and
-    convert integer lists to tensors. Account for attention mask and position
-    ids.
-
-    This is a sample-wise collator and should not be used with the dataloader.
-
-    Sample should look like::
-        {
-            "tokens": List[int],
-            "labels": List[int],
-            "mask": Tensor,
-            "input_pos": List[int],
-        }
-
-    Args:
-        sample (Dict[str, Any]): A dictionary containing tokens, labels, mask,
-            and position ids
-        padding_idx (int): Padding index for input ids. Defaults to 0.
-        ignore_idx (int): Padding index for labels. Defaults to -100.
-
-    Returns:
-        Collated tokens, labels, mask, and position ids.
-    """
-    tokens = sample["tokens"]
-    labels = sample["labels"]
-    mask = sample["mask"]
-    input_pos = sample["input_pos"]
-
-    # Pad to max sequence length
-    tokens = F.pad(
-        torch.tensor(tokens), (0, max_seq_len - len(tokens)), value=padding_idx
-    )
-    labels = F.pad(
-        torch.tensor(labels), (0, max_seq_len - len(labels)), value=ignore_idx
-    )
-    # For attention mask, simply use identity matrix for the pad tokens
-    mask_pad = torch.eye(max_seq_len - mask.shape[0], dtype=torch.bool)
-    mask = torch.block_diag(mask, mask_pad)
-    # For position ids, continue to increment for pad tokens
-    input_pos_pad = torch.arange(
-        input_pos[-1] + 1, max_seq_len - len(input_pos) + input_pos[-1] + 1
-    )
-    # Do not go beyond max_seq_len - 1
-    input_pos_pad = input_pos_pad.clamp(max=max_seq_len - 1)
-    input_pos = torch.cat(
-        [
-            torch.tensor(input_pos),
-            input_pos_pad,
-        ]
-    )
-
-    return {
-        "tokens": tokens,
-        "labels": labels,
-        "mask": mask,
-        "input_pos": input_pos,
-    }

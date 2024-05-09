@@ -12,8 +12,8 @@ from torchtune.modules.tokenizers import Tokenizer
 
 
 def slimorca_dataset(
-    *,
     tokenizer: Tokenizer,
+    *,
     source: str = "Open-Orca/SlimOrca-Dedup",
     chat_format: Optional[str] = None,
     max_seq_len: int = 1024,

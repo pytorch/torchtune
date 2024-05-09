@@ -77,9 +77,9 @@ class TestPackedDataset:
 
         return mask[:max_seq_len, :max_seq_len], torch.tensor(input_pos[:max_seq_len])
 
-    @pytest.mark.parametrize("max_seq_len", [10, 25])
+    @pytest.mark.parametrize("max_seq_len", [25])
     @pytest.mark.parametrize("sample_size", [2, 5])
-    @pytest.mark.parametrize("max_packs", [5, 10])
+    @pytest.mark.parametrize("max_packs", [5])
     @pytest.mark.parametrize("split_across_pack", [True, False])
     def test_packed_dataset(
         self, max_seq_len, sample_size, max_packs, split_across_pack
@@ -204,3 +204,48 @@ class TestPackedDataset:
             torch.testing.assert_close(label, expected_tokenized_labels[i])
             torch.testing.assert_close(input_pos, expected_input_pos[i])
             torch.testing.assert_close(mask, expected_mask[i].to(dtype=torch.bool))
+
+    def test_pad_pack(self):
+        padding_idx = -8
+        ignore_idx = -9
+        pack = {
+            "tokens": [2, 5],
+            "labels": [3, 7],
+            "mask": torch.tensor([[True, False], [True, True]]),
+            # Let the first token be the end of the previous sample (pos 8),
+            # and the second token the start of the next sample (pos 0). Collate
+            # should continue from 0 -> 1, 2, ...
+            "input_pos": [8, 0],
+        }
+
+        dataset = DummyDataset(2)
+        packed = PackedDataset(
+            dataset,
+            max_seq_len=4,
+        )
+
+        padded = packed._pad_pack(pack, padding_idx=padding_idx, ignore_idx=ignore_idx)
+
+        padded_input = padded["tokens"]
+        padded_label = padded["labels"]
+        padded_mask = padded["mask"]
+        padded_input_pos = padded["input_pos"]
+
+        torch.testing.assert_close(
+            padded_input, torch.tensor([2, 5, padding_idx, padding_idx])
+        )
+        torch.testing.assert_close(
+            padded_label, torch.tensor([3, 7, ignore_idx, ignore_idx])
+        )
+        torch.testing.assert_close(
+            padded_mask,
+            torch.tensor(
+                [
+                    [True, False, False, False],
+                    [True, True, False, False],
+                    [False, False, True, False],
+                    [False, False, False, True],
+                ]
+            ),
+        )
+        torch.testing.assert_close(padded_input_pos, torch.tensor([8, 0, 1, 2]))

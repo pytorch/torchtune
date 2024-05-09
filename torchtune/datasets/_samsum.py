@@ -9,8 +9,8 @@ from torchtune.modules.tokenizers import Tokenizer
 
 
 def samsum_dataset(
-    *,
     tokenizer: Tokenizer,
+    *,
     source: str = "samsum",
     train_on_input: bool = False,
     packed: bool = False,

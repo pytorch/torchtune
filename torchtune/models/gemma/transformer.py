@@ -84,7 +84,11 @@ class GemmaTransformerDecoder(nn.Module):
         )
 
     def forward(
-        self, tokens: Tensor, mask: Optional[Tensor], input_pos: Optional[Tensor] = None
+        self,
+        tokens: Tensor,
+        *,
+        mask: Optional[Tensor],
+        input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:

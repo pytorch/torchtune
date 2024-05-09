@@ -204,9 +204,6 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
-        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
-        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
             embed_dim=embed_dim,
@@ -231,9 +228,6 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
-        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
-        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         kv_cache = KVCache(
             max_batch_size=4,
             max_seq_len=max_seq_len,
@@ -342,7 +336,7 @@ class TestCausalSelfAttention:
         gqa: CausalSelfAttention,
     ) -> None:
         with pytest.raises(Exception):
-            output = gqa(input_max_len_exceeded)
+            _ = gqa(input_max_len_exceeded)
 
     def test_max_batch_size_exceeded(
         self,

@@ -72,16 +72,16 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
-                of each token relative to its sample when packed, shape [b x s].
+                of each token relative to its sample when packed, shape [bsz, seq_len].
                 During inference, this indicates the position of the current token.
-                Default is None.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied

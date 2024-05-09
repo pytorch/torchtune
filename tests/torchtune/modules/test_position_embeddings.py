@@ -30,6 +30,10 @@ class TestRotaryPositionEmbedding:
     https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
     """
 
+    EXPECTED_X_OUT_MEAN = tensor(6.4543e-05)
+    EXPECTED_X_OUT_SUM = tensor(2165.7053)
+    EXPECTED_X_OUT_MAX = tensor(5.4546)
+
     @pytest.fixture
     def input_params(self) -> Tuple[int, int, int, int]:
         bsz = 4
@@ -56,9 +60,9 @@ class TestRotaryPositionEmbedding:
         x_out = rope(input)
 
         # check the numerics of the computed tensor
-        assert_expected(x_out.mean(), tensor(6.4543e-05))
-        assert_expected(x_out.sum(), tensor(2165.7053))
-        assert_expected(x_out.max(), tensor(5.4546))
+        assert_expected(x_out.mean(), self.EXPECTED_X_OUT_MEAN)
+        assert_expected(x_out.sum(), self.EXPECTED_X_OUT_SUM)
+        assert_expected(x_out.max(), self.EXPECTED_X_OUT_MAX)
 
         # check shapes
         assert_expected(x_out.shape, input.shape)
@@ -78,9 +82,9 @@ class TestRotaryPositionEmbedding:
         # since in this case input_pos covers the entire input
         # sequence. This tests that input_pos works as expected i.e.
         # extracts the embeddings for the relevant positions
-        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
-        assert_expected(x_out.sum(), tensor(2165.7053))
-        assert_expected(x_out.max(), tensor(5.4546))
+        assert_expected(x_out.mean(), self.EXPECTED_X_OUT_MEAN, atol=1e-4)
+        assert_expected(x_out.sum(), self.EXPECTED_X_OUT_SUM)
+        assert_expected(x_out.max(), self.EXPECTED_X_OUT_MAX)
 
         # check shapes
         assert_expected(x_out.shape, input.shape)
@@ -107,9 +111,9 @@ class TestRotaryPositionEmbedding:
         # covers the entire batch dim and is defined for each sample separately.
         # This tests that input_pos works as expected i.e.
         # extracts the embeddings for the relevant positions for each sample
-        assert_expected(x_out.mean(), tensor(6.4543e-05), atol=1e-4)
-        assert_expected(x_out.sum(), tensor(2165.7053))
-        assert_expected(x_out.max(), tensor(5.4546))
+        assert_expected(x_out.mean(), self.EXPECTED_X_OUT_MEAN, atol=1e-4)
+        assert_expected(x_out.sum(), self.EXPECTED_X_OUT_SUM)
+        assert_expected(x_out.max(), self.EXPECTED_X_OUT_MAX)
 
         # check shapes
         assert_expected(x_out.shape, input.shape)

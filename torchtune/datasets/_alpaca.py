@@ -11,8 +11,8 @@ from torchtune.modules.tokenizers import Tokenizer
 
 
 def alpaca_dataset(
-    *,
     tokenizer: Tokenizer,
+    *,
     source: str = "tatsu-lab/alpaca",
     train_on_input: bool = True,
     max_seq_len: int = 512,

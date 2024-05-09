@@ -9,8 +9,8 @@ from torchtune.modules.tokenizers import Tokenizer
 
 
 def grammar_dataset(
-    *,
     tokenizer: Tokenizer,
+    *,
     source: str = "liweili/c4_200m",
     train_on_input: bool = False,
     packed: bool = False,

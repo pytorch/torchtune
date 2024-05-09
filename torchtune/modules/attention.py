@@ -120,6 +120,7 @@ class CausalSelfAttention(nn.Module):
     def forward(
         self,
         x: Tensor,
+        *,
         mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
@@ -127,13 +128,17 @@ class CausalSelfAttention(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            mask (Optional[Tensor]): Optional tensor which contains the attention mask
-                with shape [batch_size x 1 x seq_length x seq_length]. Default is None.
+            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+                with shape [batch_size x seq_length x seq_length]. This is applied after
+                the query-key multiplication and before the softmax. A value of True in row i
+                and column j means token i attends to token j. A value of False means token i
+                does not attend to token j. If no mask is specified, a causal mask
+                is used by default. Default is None.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
-                Default is None.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with attention applied
@@ -193,8 +198,8 @@ class CausalSelfAttention(nn.Module):
         v = v.reshape(bsz, seq_len, -1, self.head_dim)
 
         # Apply positional embeddings
-        q = self.pos_embeddings(q, input_pos)
-        k = self.pos_embeddings(k, input_pos)
+        q = self.pos_embeddings(q, input_pos=input_pos)
+        k = self.pos_embeddings(k, input_pos=input_pos)
 
         # [b, n_h, s, h_d]
         q = q.transpose(1, 2)
@@ -204,6 +209,10 @@ class CausalSelfAttention(nn.Module):
         # Update key-value cache
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
+
+        # shape: [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
 
         # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
         output = nn.functional.scaled_dot_product_attention(
