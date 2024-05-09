@@ -111,6 +111,14 @@ _ALL_RECIPES = [
                 name="gemma/2B_qlora_single_device",
                 file_path="gemma/2B_qlora_single_device.yaml",
             ),
+            Config(
+                name="phi3/mini_lora_single_device",
+                file_path="phi3/mini_lora_single_device.yaml",
+            ),
+            Config(
+                name="phi3/mini_qlora_single_device",
+                file_path="phi3/mini_qlora_single_device.yaml",
+            ),
         ],
         supports_distributed=False,
     ),
@@ -147,6 +155,7 @@ _ALL_RECIPES = [
             Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
             Config(name="mistral/7B_lora", file_path="mistral/7B_lora.yaml"),
             Config(name="gemma/2B_lora", file_path="gemma/2B_lora.yaml"),
+            Config(name="phi3/mini_lora", file_path="phi3/mini_lora.yaml"),
         ],
         supports_distributed=True,
     ),

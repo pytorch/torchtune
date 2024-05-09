@@ -67,6 +67,7 @@ device: cuda
 enable_activation_checkpointing: False
 ac_mode: 'selective'  # ['selective', 'full']
 ac_option: 2 # [int] = ac every positive int layer
+memory_efficient_fsdp_wrap: False
 
 
 # Reduced precision

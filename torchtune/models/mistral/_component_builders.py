@@ -148,7 +148,7 @@ def lora_mistral(
 ) -> TransformerDecoder:
     """
     Return a version of Mistral (an instance of :func:`~torchtune.modules.TransformerDecoder`)
-    with LoRA applied to some of the linear layers in its self-attention modules.
+    with LoRA applied based on the passed in configuration.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
