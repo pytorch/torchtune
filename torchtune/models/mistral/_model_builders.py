@@ -10,8 +10,10 @@ from torchtune.models.mistral._component_builders import (
     lora_mistral,
     mistral_classifier,
     lora_mistral_classifier,
+    mistral_lm,
 )
 
+from torchtune.models.mistral.transformer import TransformerLM, TransformerLMWithValueHead
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import SentencePieceTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -188,3 +190,50 @@ Builder for creating a Mistral classifier model with QLoRA enabled. Base model w
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_mistral_classifier_7b` for full API arguments.
 """
+
+
+def mistral_7b_lm() -> TransformerLM:
+    """
+    Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
+    from https://mistral.ai/news/announcing-mistral-7b/
+
+
+    Returns:
+        TransformerDecoder: Instantiation of Mistral 7B model
+    """
+    return mistral_lm(
+        vocab_size=32_000,
+        num_layers=32,
+        num_heads=32,
+        num_kv_heads=8,
+        embed_dim=4096,
+        intermediate_dim=14336,
+        max_seq_len=32768,
+        attn_dropout=0.0,
+        norm_eps=1e-5,
+    )
+
+
+from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
+
+
+def mistral_test_lm_value_head() -> TransformerLMWithValueHead:
+    """
+    Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
+    from https://mistral.ai/news/announcing-mistral-7b/
+
+
+    Returns:
+        TransformerDecoder: Instantiation of Mistral 7B model
+    """
+    return mistral_lm(
+        vocab_size=MistralTestConfig.VOCAB_SIZE,
+        num_layers=MistralTestConfig.NUM_LAYERS,
+        num_heads=MistralTestConfig.NUM_HEADS,
+        num_kv_heads=MistralTestConfig.NUM_KV_HEADS,
+        embed_dim=MistralTestConfig.EMBED_DIM,
+        intermediate_dim=MistralTestConfig.INTERMEDIATE_DIM,
+        max_seq_len=MistralTestConfig.MAX_SEQ_LEN,
+        attn_dropout=MistralTestConfig.ATTN_DROPOUT,
+        norm_eps=MistralTestConfig.NORM_EPS,
+    )
