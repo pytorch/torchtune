@@ -30,9 +30,6 @@ You can find all model checkpoints on the `official Meta Llama model page <https
 Model architectures
 ^^^^^^^^^^^^^^^^^^^
 
-Default sizes
-~~~~~~~~~~~~~
-
 These are models utilizing the default sizes released by the Meta team.
 
 .. autosummary::
@@ -44,9 +41,6 @@ These are models utilizing the default sizes released by the Meta team.
     qlora_llama3_8b
     llama3_70b
     lora_llama3_70b
-
-Generic builders
-~~~~~~~~~~~~~~~~
 
 If you want to experiment with different sizes of models or train a model from scratch, we also provide generic builder
 functions for our models. These builders **will not** work out-of-the-box with pretrained checkpoints.
@@ -70,8 +64,7 @@ Tokenizer
 Usage
 ^^^^^
 
-With code
-~~~~~~~~~
+You can specify your Llama3 model through code...
 
 .. code-block:: python
 
@@ -88,8 +81,7 @@ With code
     model.load_state_dict(state_dict)
     tokenizer = llama3_tokenizer(path="/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
 
-With a config
-~~~~~~~~~~~~~
+... or using a YAML config
 
 .. code-block:: yaml
 
