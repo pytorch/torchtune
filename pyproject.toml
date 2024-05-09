@@ -26,6 +26,9 @@ dependencies = [
 
     # Quantization
     "torchao==0.1",
+
+    # CI
+    "expecttest==0.1.6",
 ]
 dynamic = ["version"]
 
