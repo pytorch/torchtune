@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>TransformerDecoder &mdash; TorchTune main documentation</title>
+  <title>generate &mdash; TorchTune main documentation</title>
   
 
   
@@ -41,8 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="SentencePieceTokenizer" href="torchtune.modules.tokenizers.SentencePieceTokenizer.html" />
-    <link rel="prev" title="TransformerDecoderLayer" href="torchtune.modules.TransformerDecoderLayer.html" />
+    <link rel="prev" title="set_seed" href="torchtune.utils.set_seed.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -287,8 +286,8 @@
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -329,15 +328,15 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+          <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>TransformerDecoder</li>
+      <li>generate</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.TransformerDecoder.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.generate.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -367,98 +366,48 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="transformerdecoder">
-<h1>TransformerDecoder<a class="headerlink" href="#transformerdecoder" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.</span></span><span class="sig-name descname"><span class="pre">TransformerDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tok_embeddings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Embedding.html#torch.nn.Embedding" title="(in PyTorch v2.3)"><span class="pre">Embedding</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer" title="torchtune.modules.transformer.TransformerDecoderLayer"><span class="pre">TransformerDecoderLayer</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_layers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">head_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">norm</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.3)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">output</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Linear.html#torch.nn.Linear" title="(in PyTorch v2.3)"><span class="pre">Linear</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Transformer Decoder derived from the Llama2 architecture.</p>
+  <section id="generate">
+<h1>generate<a class="headerlink" href="#generate" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.utils.generate">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">generate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.transformer.TransformerDecoder"><span class="pre">TransformerDecoder</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">prompt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_generated_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">pad_id</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">temperature</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">top_k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop_tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">custom_generate_next_token</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_generation.html#generate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.generate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates tokens from a model conditioned on a prompt.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>tok_embeddings</strong> (<em>nn.Embedding</em>) – PyTorch embedding layer, to be used to move
-tokens to an embedding space.</p></li>
-<li><p><strong>layer</strong> (<a class="reference internal" href="torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer" title="torchtune.modules.TransformerDecoderLayer"><em>TransformerDecoderLayer</em></a>) – Transformer Decoder layer.</p></li>
-<li><p><strong>num_layers</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Number of Transformer Decoder layers.</p></li>
-<li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – maximum sequence length the model will be run with, as used
-by <a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><code class="xref py py-func docutils literal notranslate"><span class="pre">KVCache()</span></code></a></p></li>
-<li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of query heads. For MHA this is also the
-number of heads for key and value. This is used to setup the
-<a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><code class="xref py py-func docutils literal notranslate"><span class="pre">KVCache()</span></code></a></p></li>
-<li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – embedding dimension for each head in self-attention. This is used
-to setup the <a class="reference internal" href="torchtune.modules.KVCache.html#torchtune.modules.KVCache" title="torchtune.modules.KVCache"><code class="xref py py-func docutils literal notranslate"><span class="pre">KVCache()</span></code></a></p></li>
-<li><p><strong>norm</strong> (<em>nn.Module</em>) – Callable that applies normalization to the output of the decoder,
-before final MLP.</p></li>
-<li><p><strong>output</strong> (<em>nn.Linear</em>) – Callable that applies a linear transformation to the output of
-the decoder.</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder" title="torchtune.modules.TransformerDecoder"><em>TransformerDecoder</em></a>) – model used for generation</p></li>
+<li><p><strong>prompt</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – tensor with the token IDs associated with the given prompt,
+with shape either [seq_length] or [bsz x seq_length]</p></li>
+<li><p><strong>max_generated_tokens</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of tokens to be generated</p></li>
+<li><p><strong>pad_id</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – token ID to use for padding, default 0.</p></li>
+<li><p><strong>temperature</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – value to scale the predicted logits by, default 1.0.</p></li>
+<li><p><strong>top_k</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – If specified, we prune the sampling to only token ids within the top_k probabilities,
+default None.</p></li>
+<li><p><strong>stop_tokens</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em><em>]</em>) – If specified, generation is stopped when any of these tokens are generated,
+default None.</p></li>
+<li><p><strong>custom_generate_next_token</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – If specified, we’ll use the <code class="docutils literal notranslate"><span class="pre">custom_generate_next_token</span> <span class="pre">function</span></code>.
+This is generally only useful if you want to specify a <code class="docutils literal notranslate"><span class="pre">torch.compile</span></code> version of the generate next token for
+performance reasons. If None, we use the default <code class="docutils literal notranslate"><span class="pre">generate_next_token</span></code> function. Default is None.</p></li>
 </ul>
 </dd>
 </dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Arg values are checked for correctness (eg: <code class="docutils literal notranslate"><span class="pre">attn_dropout</span></code> belongs to [0,1])
-in the module where they are used. This helps reduces the number of raise
-statements in code and improves readability.</p>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">model</span> <span class="o">=</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">llama3</span><span class="o">.</span><span class="n">llama3_8b</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">models</span><span class="o">.</span><span class="n">llama3</span><span class="o">.</span><span class="n">llama3_tokenizer</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prompt</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="p">(</span><span class="s2">&quot;Hi my name is&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output</span> <span class="o">=</span> <span class="n">generate</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">prompt</span><span class="p">,</span> <span class="n">max_generated_tokens</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="go">Hi my name is Jeremy and I&#39;m a friendly language model assistant!</span>
+</pre></div>
 </div>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokens</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_pos</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
-<dd><dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tokens</strong> (<em>Tensor</em>) – input tensor with shape [b x s]</p></li>
-<li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position
-of the current token. This is only used during inference. Default is None</p></li>
-</ul>
-</dd>
-</dl>
-<p>Note: At the very first step of inference, when the model is provided with a prompt,
-<code class="docutils literal notranslate"><span class="pre">input_pos</span></code> would contain the positions of all of the tokens in the prompt
-(eg: <code class="docutils literal notranslate"><span class="pre">torch.arange(prompt_length)</span></code>). This is because we will need to compute the
-KV values for each position.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>output tensor with shape [b x s x v]</p>
+<dd class="field-odd"><p>collection of lists of generated tokens</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>Tensor</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if causal_mask is set but input_pos is None</p>
+<dd class="field-even"><p>List[List[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a>]]</p>
 </dd>
 </dl>
-<dl class="simple">
-<dt>Notation used for tensor shapes:</dt><dd><ul class="simple">
-<li><p>b: batch size</p></li>
-<li><p>s: sequence length</p></li>
-<li><p>v: vocab size</p></li>
-<li><p>d: embed dim</p></li>
-<li><p>m_s: max seq len</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.reset_caches">
-<span class="sig-name descname"><span class="pre">reset_caches</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.reset_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.reset_caches" title="Permalink to this definition">¶</a></dt>
-<dd><p>Reset the key value caches.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.TransformerDecoder.setup_caches">
-<span class="sig-name descname"><span class="pre">setup_caches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.3)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/modules/transformer.html#TransformerDecoder.setup_caches"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.TransformerDecoder.setup_caches" title="Permalink to this definition">¶</a></dt>
-<dd><p>Setup key value caches for attention calculation.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – batch size for the caches.</p></li>
-<li><p><strong>dtype</strong> (<em>torch.dpython:type</em>) – dtype for the caches.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
 </dd></dl>
 
 </section>
@@ -471,10 +420,8 @@ KV values for each position.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.tokenizers.SentencePieceTokenizer.html" class="btn btn-neutral float-right" title="SentencePieceTokenizer" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
-      
-        <a href="torchtune.modules.TransformerDecoderLayer.html" class="btn btn-neutral" title="TransformerDecoderLayer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.set_seed.html" class="btn btn-neutral" title="set_seed" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -506,7 +453,7 @@ KV values for each position.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">TransformerDecoder</a></li>
+<li><a class="reference internal" href="#">generate</a></li>
 </ul>
 
             </div>

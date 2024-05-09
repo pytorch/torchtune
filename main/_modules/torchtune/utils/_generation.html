@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.modules.kv_cache &mdash; TorchTune main documentation</title>
+  <title>torchtune.utils._generation &mdash; TorchTune main documentation</title>
   
 
   
@@ -328,7 +328,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.modules.kv_cache</li>
+      <li>torchtune.utils._generation</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -360,80 +360,178 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.modules.kv_cache</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.utils._generation</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
-<span class="kn">from</span> <span class="nn">torch</span> <span class="kn">import</span> <span class="n">nn</span><span class="p">,</span> <span class="n">Tensor</span>
+<span class="kn">from</span> <span class="nn">torchtune.modules</span> <span class="kn">import</span> <span class="n">TransformerDecoder</span>
 
 
-<div class="viewcode-block" id="KVCache"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache">[docs]</a><span class="k">class</span> <span class="nc">KVCache</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="k">def</span> <span class="nf">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Samples from a multinomial distribution.&quot;&quot;&quot;</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">empty_like</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span><span class="o">.</span><span class="n">exponential_</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">probs</span> <span class="o">/</span> <span class="n">q</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">sample</span><span class="p">(</span>
+    <span class="n">logits</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generic sample from a probability distribution.&quot;&quot;&quot;</span>
+    <span class="c1"># scale the logits based on temperature</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">logits</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">temperature</span><span class="p">,</span> <span class="mf">1e-5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">top_k</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">v</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">top_k</span><span class="p">,</span> <span class="n">logits</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="c1"># select the very last value from the top_k above as the pivot</span>
+        <span class="n">pivot</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="c1"># set everything smaller than pivot value to inf since these</span>
+        <span class="c1"># should be pruned</span>
+        <span class="n">logits</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">logits</span> <span class="o">&lt;</span> <span class="n">pivot</span><span class="p">,</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;Inf&quot;</span><span class="p">),</span> <span class="n">logits</span><span class="p">)</span>
+    <span class="c1"># change logits into probabilities</span>
+    <span class="n">probs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">multinomial_sample_one</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">generate_next_token</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
+    <span class="n">input_pos</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">top_k</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Generates the next tokens.&quot;&quot;&quot;</span>
+    <span class="c1"># model produces logits in [bsz, seq_length, vocab_size]</span>
+    <span class="c1"># we want to take the last token&#39;s logits as the input to the next model call</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">sample</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">update_stop_tokens_tracker</span><span class="p">(</span>
+    <span class="n">tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">stop_token_reached</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Updates which sequences have reached a stop token.&quot;&quot;&quot;</span>
+    <span class="c1"># tokens: [bsz, 1]</span>
+    <span class="c1"># stop_tokens: [num_stop_tokens]</span>
+    <span class="c1"># stop_token_reached: [bsz]</span>
+    <span class="n">stop_token_reached_curr</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isin</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">stop_tokens</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">stop_token_reached</span> <span class="o">|=</span> <span class="n">stop_token_reached_curr</span>
+    <span class="k">return</span> <span class="n">stop_token_reached</span>
+
+
+<div class="viewcode-block" id="generate"><a class="viewcode-back" href="../../../generated/torchtune.utils.generate.html#torchtune.utils.generate">[docs]</a><span class="nd">@torch</span><span class="o">.</span><span class="n">inference_mode</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">generate</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">TransformerDecoder</span><span class="p">,</span>
+    <span class="n">prompt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">max_generated_tokens</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pad_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">temperature</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">top_k</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">stop_tokens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">custom_generate_next_token</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Standalone ``nn.Module`` containing a kv-cache to cache past key and values during inference.</span>
+<span class="sd">    Generates tokens from a model conditioned on a prompt.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        batch_size (int): batch size model will be run with</span>
-<span class="sd">        max_seq_len (int): maximum sequence length model will be run with</span>
-<span class="sd">        num_heads (int): number of heads. We take num_heads instead of num_kv_heads because</span>
-<span class="sd">            the cache is created after we&#39;ve expanded the key and value tensors to have the</span>
-<span class="sd">            same shape as the query tensor. See attention.py for more details</span>
-<span class="sd">        head_dim (int): per-attention head embedding dimension</span>
-<span class="sd">        dtype (torch.dtype): dtype for the caches</span>
+<span class="sd">        model (TransformerDecoder): model used for generation</span>
+<span class="sd">        prompt (torch.Tensor): tensor with the token IDs associated with the given prompt,</span>
+<span class="sd">            with shape either [seq_length] or [bsz x seq_length]</span>
+<span class="sd">        max_generated_tokens (int): number of tokens to be generated</span>
+<span class="sd">        pad_id (int): token ID to use for padding, default 0.</span>
+<span class="sd">        temperature (float): value to scale the predicted logits by, default 1.0.</span>
+<span class="sd">        top_k (Optional[int]): If specified, we prune the sampling to only token ids within the top_k probabilities,</span>
+<span class="sd">            default None.</span>
+<span class="sd">        stop_tokens (Optional[List[int]]): If specified, generation is stopped when any of these tokens are generated,</span>
+<span class="sd">            default None.</span>
+<span class="sd">        custom_generate_next_token (Optional[Callable]): If specified, we&#39;ll use the ``custom_generate_next_token function``.</span>
+<span class="sd">            This is generally only useful if you want to specify a ``torch.compile`` version of the generate next token for</span>
+<span class="sd">            performance reasons. If None, we use the default ``generate_next_token`` function. Default is None.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; model = torchtune.models.llama3.llama3_8b()</span>
+<span class="sd">        &gt;&gt;&gt; tokenizer = torchtune.models.llama3.llama3_tokenizer()</span>
+<span class="sd">        &gt;&gt;&gt; prompt = tokenizer(&quot;Hi my name is&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; output = generate(model, prompt, max_generated_tokens=100)</span>
+<span class="sd">        &gt;&gt;&gt; print(tokenizer.decode(output[0]))</span>
+<span class="sd">        Hi my name is Jeremy and I&#39;m a friendly language model assistant!</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[List[int]]: collection of lists of generated tokens</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">prompt</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="k">if</span> <span class="n">prompt</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">prompt</span>
+    <span class="c1"># convert stop tokens to tensor for easy matching</span>
+    <span class="n">stop_tokens</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">stop_tokens</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">if</span> <span class="n">stop_tokens</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="p">)</span>
+    <span class="n">bsz</span><span class="p">,</span> <span class="n">prompt_length</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">prompt</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="c1"># keeps track at a high level if we&#39;ve already hit a stop token in a sequence so we can early stop</span>
+    <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="c1"># everything in stop_token_mask starts as 1s, and we&#39;ll set them to 0 for sequences</span>
+    <span class="c1"># that already hit a stop token</span>
+    <span class="n">stop_token_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="n">prompt_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span>
+    <span class="p">)</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">head_dim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="n">cache_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="n">head_dim</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
-            <span class="s2">&quot;k_cache&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span>
+    <span class="k">if</span> <span class="n">custom_generate_next_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">custom_generate_next_token</span> <span class="o">=</span> <span class="n">generate_next_token</span>
+
+    <span class="c1"># generate the first tokens conditioned on the prompt</span>
+    <span class="n">tokens</span> <span class="o">=</span> <span class="n">generate_next_token</span><span class="p">(</span>
+        <span class="n">model</span><span class="p">,</span>
+        <span class="n">input_pos</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">prompt_length</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+        <span class="n">x</span><span class="o">=</span><span class="n">prompt</span><span class="p">,</span>
+        <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span>
+        <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_tokens</span><span class="p">,</span> <span class="n">tokens</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># stop early if we reach a stop token in every seq</span>
+    <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">update_stop_tokens_tracker</span><span class="p">(</span>
+            <span class="n">tokens</span><span class="p">,</span> <span class="n">stop_tokens</span><span class="p">,</span> <span class="n">stop_token_reached</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span>
-            <span class="s2">&quot;v_cache&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">cache_shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span>
+        <span class="k">if</span> <span class="n">stop_token_reached</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+            <span class="k">return</span> <span class="n">generated_tokens</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+    <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">prompt_length</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">prompt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_generated_tokens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="c1"># update stop_token_mask if we reached a stop token in a previous step</span>
+        <span class="c1"># by appending the logical not of stop_token_reached to the end of the mask</span>
+        <span class="c1"># reshaped to be bsz first</span>
+        <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stop_token_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">stop_token_mask</span><span class="p">,</span> <span class="o">~</span><span class="n">stop_token_reached</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">bsz</span><span class="p">,</span> <span class="mi">1</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
+            <span class="p">)</span>
+
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">custom_generate_next_token</span><span class="p">(</span>
+            <span class="n">model</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">,</span> <span class="n">x</span><span class="o">=</span><span class="n">tokens</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">,</span> <span class="n">top_k</span><span class="o">=</span><span class="n">top_k</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
 
-<div class="viewcode-block" id="KVCache.reset"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Reset the cache to zero.&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span></div>
+        <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">generated_tokens</span><span class="p">,</span> <span class="n">tokens</span><span class="p">],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">input_pos</span> <span class="o">+=</span> <span class="mi">1</span>
 
-<div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">Tensor</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache and return the updated cache.</span>
+        <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">stop_token_reached</span> <span class="o">=</span> <span class="n">update_stop_tokens_tracker</span><span class="p">(</span>
+                <span class="n">tokens</span><span class="p">,</span> <span class="n">stop_tokens</span><span class="p">,</span> <span class="n">stop_token_reached</span>
+            <span class="p">)</span>
+            <span class="k">if</span> <span class="n">stop_token_reached</span><span class="o">.</span><span class="n">all</span><span class="p">()</span><span class="o">.</span><span class="n">item</span><span class="p">():</span>
+                <span class="k">break</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">            input_pos (Tensor): Current position tensor with shape [S]</span>
-<span class="sd">            k_val (Tensor): Current key tensor with shape [B, H, S, D]</span>
-<span class="sd">            v_val (Tensor): Current value tensor with shape [B, H, S, D]</span>
+    <span class="c1"># mask out generated tokens in seqs that already hit a stop token</span>
+    <span class="k">if</span> <span class="n">stop_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">generated_tokens</span> <span class="o">=</span> <span class="n">generated_tokens</span> <span class="o">*</span> <span class="n">stop_token_mask</span>
+        <span class="c1"># if pad_id is not 0, replace 0 with pad_id</span>
+        <span class="k">if</span> <span class="n">pad_id</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">generated_tokens</span><span class="p">[</span><span class="n">generated_tokens</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">pad_id</span>
 
-<span class="sd">        Raises:</span>
-<span class="sd">            ValueError: if ``input_pos`` is longer than the maximum sequence length</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tuple[Tensor, Tensor]: Updated KV cache with key first</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">k_val</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-
-        <span class="n">k_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">k_cache</span>
-        <span class="n">v_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">v_cache</span>
-        <span class="n">k_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">input_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">k_val</span>
-        <span class="n">v_out</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">input_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">v_val</span>
-
-        <span class="k">return</span> <span class="n">k_out</span><span class="p">,</span> <span class="n">v_out</span></div></div>
+    <span class="k">return</span> <span class="n">generated_tokens</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span></div>
 </pre></div>
 
              </article>
