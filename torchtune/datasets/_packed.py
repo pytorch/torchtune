@@ -25,7 +25,7 @@ class PackedDataset(Dataset):
     The class loads, tokenizes, and packs examples on initialization - no tokenization is done during training.
 
     The general flow on initialization is: load tokenized sample -> add to buffer ->
-        when buffer is long enough, add to self.packs.
+    when buffer is long enough, add to ``self.packs``.
 
     During training, returns self.packs[idx] as input, label, attention mask, and
     position ids. The attention mask is a lower triangular block mask to prevent
@@ -36,6 +36,7 @@ class PackedDataset(Dataset):
     A packed sample is made up of individual smaller sequence length samples jammed together
     within ``max_seq_len``. For example, if max_seq_len is 6 and there are varied
     length samples::
+
         tokens = [
             [S1, S1, S1, S2, S2, pad],
             [S3, S3, S4, S4, pad, pad],
@@ -44,6 +45,7 @@ class PackedDataset(Dataset):
 
     To prevent cross-contamination, the following mask would be returned for the
     first pack in the example::
+
         mask = [
             [1, 0, 0, 0, 0, 0],
             [1, 1, 0, 0, 0, 0],
@@ -54,6 +56,7 @@ class PackedDataset(Dataset):
         ]
 
     The position ids would be::
+
         input_pos = [
             [0, 1, 2, 0, 1, 2],
             [0, 1, 0, 1, 2, 3],
