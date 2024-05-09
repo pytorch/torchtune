@@ -549,7 +549,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                t  # Both are shape [b, s]
+                # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they
                 # exist. Currently, only sample packing in PackedDataset returns these
