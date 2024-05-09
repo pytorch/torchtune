@@ -284,7 +284,7 @@ def get_full_model_state_dict(
             del full_param
     return cpu_state_dict
 
-  
+
 def get_full_finetune_fsdp_wrap_policy(
     memory_efficient_fsdp_wrap: bool, modules_to_wrap: Set[Type]
 ) -> FSDPPolicyType:
