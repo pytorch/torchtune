@@ -13,7 +13,11 @@ from typing import Any, Callable, Dict, Set, Tuple, Type
 import torch
 import torch.distributed as dist
 from torch import nn
-from torch.distributed._composable.fsdp import FSDPModule
+
+try:
+    from torch.distributed._composable.fsdp import FSDPModule
+except ImportError:
+    from torch.distributed._composable.fsdp import FSDP as FSDPModule  # noqa: N811
 from torch.distributed._tensor import distribute_tensor
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -254,15 +258,6 @@ def load_from_full_model_state_dict(
     sharded_sd = {}
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
-        if is_rank_zero:
-            full_tensor = full_tensor.detach().to(device)
-        else:
-            full_tensor = torch.empty(
-                sharded_meta_param.size(),
-                device=device,
-                dtype=sharded_meta_param.dtype,
-            )
-        torch.distributed.broadcast(full_tensor, src=0)
         sharded_tensor = distribute_tensor(
             full_tensor, sharded_meta_param.device_mesh, sharded_meta_param.placements
         )
