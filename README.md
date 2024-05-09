@@ -84,8 +84,8 @@ This table captures the peak memory usage and training speed for recipes in torc
 | 8 x A100     |     LoRA          |  Llama2-70B     |    Batch Size = 4, Seq Length = 4096   | 26.4 GB | 3384  |
 | 8 x A100     |   Full Finetune *   |  Llama2-70B     |    Batch Size = 4, Seq Length = 4096   | 70.4 GB | 2032  |
 
-* = Uses PagedAdamW from bitsandbytes
-** = Uses torch compile
+*= Uses PagedAdamW from bitsandbytes
+**= Uses torch compile
 
 
 &nbsp;
