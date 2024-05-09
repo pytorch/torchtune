@@ -76,14 +76,16 @@ This table captures the peak memory usage and training speed for recipes in torc
 
 | Example HW Resources | Finetuning Method | Model   | Setting    | Peak Memory per GPU (GB) | Training Speed (tokens/sec) |
 |:-:|:-:|:-:|:-:|:-:|:-:|
-| 1 x RTX 4090 |     QLoRA         |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 12.3 GB | 1856  |
+| 1 x RTX 4090 |     QLoRA **         |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 12.3 GB | 3155  |
 | 1 x RTX 4090 |     LoRA          |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 21.3 GB | 2582  |
 | 2 x RTX 4090 |     LoRA          |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 16.2 GB | 2768  |
-| 1 x RTX 4090 |   Full finetune   |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 24.1 GB | 702  |
+| 1 x RTX 4090 |   Full finetune *   |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 24.1 GB | 702  |
 | 4 x RTX 4090 |   Full finetune   |  Llama2-7B      |    Batch Size = 4, Seq Length = 2048   | 24.1 GB | 1388  |
 | 8 x A100     |     LoRA          |  Llama2-70B     |    Batch Size = 4, Seq Length = 4096   | 26.4 GB | 3384  |
-| 8 x A100     |   Full Finetune   |  Llama2-70B     |    Batch Size = 4, Seq Length = 4096   | 70.4 GB | 2032  |
+| 8 x A100     |   Full Finetune *   |  Llama2-70B     |    Batch Size = 4, Seq Length = 4096   | 70.4 GB | 2032  |
 
+* = Uses PagedAdamW from bitsandbytes
+** = Uses torch compile
 
 
 &nbsp;
