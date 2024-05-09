@@ -7,7 +7,7 @@
 import pytest
 import torch
 
-from tests.test_utils import init_weights_with_constant
+from tests.test_utils import fixed_init_model
 
 from torchtune import utils
 from torchtune.models.llama2 import llama2
@@ -29,7 +29,7 @@ class TestTextGenerate:
             num_kv_heads=4,
             max_seq_len=2048,
         )
-        init_weights_with_constant(model)
+        fixed_init_model(model)
         model.setup_caches(batch_size=1, dtype=dtype)
         model.eval()
         return model
@@ -44,7 +44,7 @@ class TestTextGenerate:
             num_kv_heads=4,
             max_seq_len=2048,
         )
-        init_weights_with_constant(model)
+        fixed_init_model(model)
         model.setup_caches(batch_size=2, dtype=dtype)
         model.eval()
         return model

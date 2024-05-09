@@ -143,6 +143,12 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = None
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
                 batch_size=batch_size,
@@ -159,6 +165,7 @@ class TransformerDecoder(nn.Module):
         )
 
     def reset_caches(self):
+        """Reset the key value caches."""
         if self.layers[0].attn.kv_cache is None:
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."

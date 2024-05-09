@@ -53,7 +53,7 @@ class KVCache(nn.Module):
         """Update KV cache and return the updated cache.
 
         Args:
-            input_pos (Tensor):
+            input_pos (Tensor): Current position tensor with shape [S]
             k_val (Tensor): Current key tensor with shape [B, H, S, D]
             v_val (Tensor): Current value tensor with shape [B, H, S, D]
 
@@ -63,7 +63,6 @@ class KVCache(nn.Module):
         Returns:
             Tuple[Tensor, Tensor]: Updated KV cache with key first
         """
-        # input_pos: [S], k_val: [B, H, S, D]
         assert input_pos.shape[0] == k_val.shape[2]
 
         k_out = self.k_cache
