@@ -26,9 +26,6 @@ dependencies = [
 
     # Quantization
     "torchao==0.1",
-
-    # CI
-    "expecttest==0.1.6",
 ]
 dynamic = ["version"]
 
@@ -50,6 +47,7 @@ dev = [
     "pytest-integration",
     "tensorboard",
     "wandb",
+    "expecttest==0.1.6",
 ]
 
 [tool.setuptools.dynamic]
