@@ -53,7 +53,7 @@ def llama3(
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
-    Builder the decoder associated with the Llama3 model.
+    Builder for the decoder associated with the Llama3 model.
 
     This includes:
     - Token embeddings
@@ -71,7 +71,7 @@ def llama3(
             `None`, in which case this is the same as MHA
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
-            by :func:`~torchtune.modules.KVCache`
+            by :class:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
@@ -156,7 +156,7 @@ def lora_llama3(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
+    Return a version of Llama3 (an instance of :class:`~torchtune.modules.TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
 
     Args:
@@ -176,7 +176,7 @@ def lora_llama3(
             `None`, in which case this is the same as MHA
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
-            by :func:`~torchtune.modules.KVCache`
+            by :class:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,

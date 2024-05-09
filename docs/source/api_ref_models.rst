@@ -64,7 +64,7 @@ Tokenizer
 Usage
 ^^^^^
 
-You can specify your Llama3 model through code...
+You can specify your Llama3 model through code ...
 
 .. code-block:: python
 
