@@ -53,7 +53,7 @@ class Phi3MiniSentencePieceTokenizer:
         self.pad_id = self.special_tokens["<|endoftext|>"]
 
         # During generation, stop when eos_id is encountered
-        self.stop_tokens = {self.eos_id}
+        self.stop_tokens = [self.eos_id]
 
     def encode(
         self,
