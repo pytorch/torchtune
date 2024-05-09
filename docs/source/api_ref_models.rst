@@ -10,7 +10,11 @@ Llama3
 
 .. currentmodule:: torchtune.models.llama3
 
-Model architectures from the `Llama3 family <https://llama.meta.com/llama3/>`_.
+`Llama 3 <https://llama.meta.com/llama3/>`_ - released in April of 2024 - is an auto-regressive language model that uses an optimized transformer architecture.
+The tuned versions use supervised fine-tuning (SFT) and reinforcement learning with human feedback (RLHF) to align with human preferences for helpfulness and safety.
+The model was pretrained on over **15 trillion tokens** of data from publicly available sources. The pretraining data has a cutoff of March 2023 for the 8B and December 2023
+for the 70B models respectively. The fine-tuning data includes publicly available instruction datasets, as well as over **10M human-annotated examples**.
+You can read more about the model from the official `model card <https://github.com/meta-llama/llama3/blob/main/MODEL_CARD.md#model-details>`_.
 
 Download the model
 ^^^^^^^^^^^^^^^^^^
@@ -20,6 +24,8 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
 .. code-block:: bash
 
     tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <ACCESS_TOKEN>
+
+You can find all model checkpoints on the `official Meta Llama model page <https://huggingface.co/collections/meta-llama/meta-llama-3-66214712577ca38149ebb2b6>`_.
 
 Model architectures
 ^^^^^^^^^^^^^^^^^^^
@@ -43,7 +49,7 @@ Generic builders
 ~~~~~~~~~~~~~~~~
 
 If you want to experiment with different sizes of models or train a model from scratch, we also provide generic builder
-classes for our models. These with NOT work out-of-the-box with pretrained checkpoints.
+functions for our models. These builders **will not** work out-of-the-box with pretrained checkpoints.
 
 .. autosummary::
     :toctree: generated/
