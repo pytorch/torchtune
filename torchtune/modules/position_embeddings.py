@@ -49,6 +49,10 @@ class RotaryPositionalEmbeddings(nn.Module):
     def reset_parameters(self):
         self._rope_init()
 
+    # Used when using meta device initialization
+    def reset_non_persistent_buffers(self):
+        self._rope_init()
+
     def _rope_init(self):
         theta = 1.0 / (
             self.base
