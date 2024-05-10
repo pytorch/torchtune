@@ -18,24 +18,25 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
-from torch.distributed._tensor import DTensor
-from torch.distributed.checkpoint import state_dict as ptd_state_dict
+from torch.distributed.checkpoint.state_dict import (
+    get_optimizer_state_dict,
+    set_optimizer_state_dict,
+    StateDictOptions,
+)
+
 from torch.optim import Optimizer
 from torch.optim.optimizer import _foreach_supported_types
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft import LoRALinear
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-
-# use foreach on CUDA
-if DTensor not in _foreach_supported_types:
-    _foreach_supported_types.append(DTensor)
 
 from tqdm import tqdm
 
@@ -299,7 +300,25 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        # Note: this needs to be set before wrapping with FSDP
+        if self._is_rank_zero:
+            # The model contains LoRA params which won't have any matching keys in
+            # the state dict. As a result, we need to load with strict=False.
+            # Before loading the state dict, ensure the state dict keys for the base
+            # model and adapters (if available) match the keys in the full LoRA model
+            # This is a good sanity check to prevent silent errors
+            validate_state_dict_for_lora(
+                lora_attn_modules=cfg_model.lora_attn_modules,
+                apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
+                apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
+                full_model_state_dict_keys=model.state_dict().keys(),
+                lora_state_dict_keys=(
+                    lora_weights_state_dict.keys()
+                    if lora_weights_state_dict is not None
+                    else None
+                ),
+                base_model_state_dict_keys=base_model_state_dict.keys(),
+            )
+
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -313,23 +332,23 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m)
         fully_shard(model)
 
-        utils.load_from_full_state_dict(
+        utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
         if lora_weights_state_dict:
-            utils.load_from_full_state_dict(
+            utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
 
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
-                if isinstance(m, 
-                             ) and not lora_weights_state_dict:
-                    # to_empty is needed since kaiming_uniform_ is inplace
-                    m.to_empty(device=self._device)
+                if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                    m.lora_a.to_empty(device=self._device)
+                    m.lora_b.to_empty(device=self._device)
                     m.initialize_parameters()
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
+        model = model.to(self._device)
 
         model = model.to(self._dtype)
 
@@ -357,15 +376,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            # Note: technically we should check _contains_fsdp for
-            # just the state dict of the adapter cfg, but should be equivalent
-            # TODO: replace transform_opt_state_dict with
-            # torch.distributed.checkpoint.state_dict_loader.load
-            # or implement _distributed.py/load_full_optimizer_state_dict
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            set_optimizer_state_dict(
+                self._model,
+                optimizer,
+                optim_state_dict=opt_state_dict,
+                options=StateDictOptions(
+                    broadcast_from_rank0=True, full_state_dict=True
+                ),
             )
-            optimizer.load_state_dict(opt_state_dict)
 
         if self._is_rank_zero:
             log.info("Optimizer and loss are initialized.")
@@ -451,22 +469,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
 
-        cpu_state_dict = ptd_state_dict.get_model_state_dict(
+        cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
-            options=ptd_state_dict.StateDictOptions(
-                full_state_dict=True,
-                cpu_offload=True,
-            ),
+            self._is_rank_zero,
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = ptd_state_dict.get_optimizer_state_dict(
+            opt_state_dict = get_optimizer_state_dict(
                 self._model,
                 self._optimizer,
-                options=ptd_state_dict.StateDictOptions(
-                    full_state_dict=True,
-                    cpu_offload=True,
-                ),
+                options=StateDictOptions(full_state_dict=True, cpu_offload=True),
             )
         else:
             opt_state_dict = None

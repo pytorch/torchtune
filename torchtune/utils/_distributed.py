@@ -8,13 +8,18 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Type, Union
+from typing import Any, Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
 import torch.distributed._composable.fsdp
 from torch import nn
+try:
+    from torch.distributed._composable.fsdp import FSDPModule
+except ImportError:
+    from torch.distributed._composable.fsdp import FSDP as FSDPModule  # noqa: N811
 from torch.distributed._tensor import distribute_tensor
+from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.distributed.fsdp import ShardingStrategy
 from torchtune import modules
@@ -243,10 +248,8 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     return lora_wrap_fsdp
 
 
-# remove if torch.distributed.checkpoint
-# implements rank0 load and broadcoast
-def load_from_full_state_dict(
-    model: torch.distributed._composable.fsdp.FSDP,
+def load_from_full_model_state_dict(
+    model: FSDPModule,
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
@@ -255,15 +258,6 @@ def load_from_full_state_dict(
     sharded_sd = {}
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
-        if is_rank_zero:
-            full_tensor = full_tensor.detach().to(device)
-        else:
-            full_tensor = torch.empty(
-                sharded_meta_param.size(),
-                device=device,
-                dtype=sharded_meta_param.dtype,
-            )
-        torch.distributed.broadcast(full_tensor, src=0)
         sharded_tensor = distribute_tensor(
             full_tensor, sharded_meta_param.device_mesh, sharded_meta_param.placements
         )
@@ -271,31 +265,21 @@ def load_from_full_state_dict(
     model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
-# remove if torch.distributed.checkpoint
-# implements rank0 load and broadcoast
-# def get_full_optimizer_state_dict(
-#     opt: Optimizer,
-#     is_rank_zero: bool,
-# ) -> Dict[str, Any]:
-#     sharded_sd = opt.state_dict()
-#     sharded_state = sharded_sd["state"]
-#     full_state = {}
-#     for group_id, sharded_group in sharded_state.items():
-#         group_state = {}
-#         for attr, sharded_tensor in sharded_group.items():
-#             if isinstance(sharded_tensor, DTensor):
-#                 full_tensor = sharded_tensor.full_tensor()
-#             else:
-#                 full_tensor = sharded_tensor
-#             if is_rank_zero:
-#                 group_state[attr] = full_tensor.cpu()
-#             else:
-#                 del full_tensor
-#         full_state[group_id] = group_state
-#     return {
-#         "param_groups": sharded_sd["param_groups"],
-#         "state": full_state,
-#     }
+
+def get_full_model_state_dict(
+    model: FSDPModule,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    sharded_sd = model.state_dict()
+    cpu_state_dict = {}
+    for param_name, sharded_param in sharded_sd.items():
+        full_param = sharded_param.full_tensor()
+        if is_rank_zero:
+            cpu_state_dict[param_name] = full_param.cpu()
+        else:
+            del full_param
+    return cpu_state_dict
+
 
 def get_full_finetune_fsdp_wrap_policy(
     memory_efficient_fsdp_wrap: bool, modules_to_wrap: Set[Type]
