@@ -27,7 +27,7 @@ git push -u origin
 In addition to updating stable, you need to update the dropdown to include
 the latest version of docs.
 
-In `versions.txt`, add this line in the list (substituting the correct version number here):
+In `versions.txt`, add this line in the list (substituting the correct version number):
 ```
 <li class="toctree-l1">
   <a class="reference internal" href="0.1/">v0.1.0 (stable)</a>
