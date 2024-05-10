@@ -10,7 +10,9 @@ from torchtune.models.mistral._component_builders import (
     lora_mistral,
     mistral_classifier,
     lora_mistral_classifier,
+    # TODO @(SalmanMohammadi): remove
     mistral_lm,
+    mistral_lm_with_value_head,
 )
 
 from torchtune.models.mistral.transformer import TransformerLM, TransformerLMWithValueHead
@@ -214,10 +216,12 @@ def mistral_7b_lm() -> TransformerLM:
     )
 
 
-from tests.torchtune.models.mistral.scripts.mistral_test_config import MistralTestConfig
+# TODO @(SalmanMohammadi): remove
+
+from torchtune.models.mistral import mistral_lm_with_value_head
 
 
-def mistral_test_lm_value_head() -> TransformerLMWithValueHead:
+def mistral_test_lm_value_head():
     """
     Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
     from https://mistral.ai/news/announcing-mistral-7b/
@@ -226,14 +230,12 @@ def mistral_test_lm_value_head() -> TransformerLMWithValueHead:
     Returns:
         TransformerDecoder: Instantiation of Mistral 7B model
     """
-    return mistral_lm(
-        vocab_size=MistralTestConfig.VOCAB_SIZE,
-        num_layers=MistralTestConfig.NUM_LAYERS,
-        num_heads=MistralTestConfig.NUM_HEADS,
-        num_kv_heads=MistralTestConfig.NUM_KV_HEADS,
-        embed_dim=MistralTestConfig.EMBED_DIM,
-        intermediate_dim=MistralTestConfig.INTERMEDIATE_DIM,
-        max_seq_len=MistralTestConfig.MAX_SEQ_LEN,
-        attn_dropout=MistralTestConfig.ATTN_DROPOUT,
-        norm_eps=MistralTestConfig.NORM_EPS,
+    return mistral_lm_with_value_head(
+        vocab_size=512,
+        num_layers=4,
+        num_heads=4,
+        num_kv_heads=2,
+        embed_dim=64,
+        intermediate_dim=512,
+        max_seq_len=256,
     )

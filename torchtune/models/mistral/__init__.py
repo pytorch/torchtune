@@ -20,6 +20,7 @@ from ._model_builders import (
     lora_mistral_classifier,
     mistral_7b,
     mistral_classifier_7b,
+    mistral_test_lm_value_head,
     mistral_tokenizer,
     qlora_mistral_7b,
     qlora_mistral_classifier_7b,
@@ -40,4 +41,5 @@ __all__ = [
     "mistral_lm",
     "mistral_7b_lm",
     "mistral_lm_with_value_head",
+    "mistral_test_lm_value_head",
 ]
