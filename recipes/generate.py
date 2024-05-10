@@ -77,7 +77,7 @@ class InferenceRecipe:
 
         # Ensure the cache is setup on the right device
         with self._device:
-            model.setup_caches(max_batch_size=1, dtype=self._dtype)
+            model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 
@@ -103,6 +103,7 @@ class InferenceRecipe:
                 temperature=cfg.temperature,
                 top_k=cfg.top_k,
                 stop_tokens=self._tokenizer.stop_tokens,
+                pad_id=self._tokenizer.pad_id,
                 custom_generate_next_token=custom_generate_next_token,
             )
             t = time.perf_counter() - t0
@@ -116,11 +117,12 @@ class InferenceRecipe:
             temperature=cfg.temperature,
             top_k=cfg.top_k,
             stop_tokens=self._tokenizer.stop_tokens,
+            pad_id=self._tokenizer.pad_id,
             custom_generate_next_token=custom_generate_next_token,
         )
         t = time.perf_counter() - t0
 
-        logger.info(self._tokenizer.decode(generated_tokens))
+        logger.info(self._tokenizer.decode(generated_tokens[0]))
 
         model_size = sum(
             [
@@ -131,7 +133,7 @@ class InferenceRecipe:
             ]
         )
 
-        tokens_generated = len(generated_tokens) - prompt.size(0)
+        tokens_generated = len(generated_tokens[0]) - prompt.size(0)
         tokens_sec = tokens_generated / t
         logger.info(
             f"Time for inference: {t:.02f} sec total, {tokens_sec:.02f} tokens/sec"
