@@ -57,10 +57,6 @@ optimizer:
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
   num_warmup_steps: 100
-clip_grad_norm:
-  enable: False
-  max_norm: 1000.0
-  norm_type: 2
 
 loss:
   _component_: torch.nn.CrossEntropyLoss

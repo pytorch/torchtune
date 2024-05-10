@@ -12,8 +12,8 @@ from typing import Any, Callable, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
-import torch.distributed._composable.fsdp
 from torch import nn
+
 try:
     from torch.distributed._composable.fsdp import FSDPModule
 except ImportError:
@@ -21,7 +21,6 @@ except ImportError:
 from torch.distributed._tensor import distribute_tensor
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-from torch.distributed.fsdp import ShardingStrategy
 from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
@@ -263,7 +262,6 @@ def load_from_full_model_state_dict(
         )
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     model.load_state_dict(sharded_sd, strict=False, assign=True)
-
 
 
 def get_full_model_state_dict(

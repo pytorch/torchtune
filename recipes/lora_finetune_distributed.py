@@ -25,10 +25,8 @@ from torch.distributed.checkpoint.state_dict import (
 )
 
 from torch.optim import Optimizer
-from torch.optim.optimizer import _foreach_supported_types
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
-from torchtune.modules.peft import LoRALinear
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
@@ -139,10 +137,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-
-        self._enable_clip_grad_norm = cfg.clip_grad_norm.enable
-        self._max_norm = cfg.clip_grad_norm.max_norm
-        self._norm_type = cfg.clip_grad_norm.norm_type
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -265,9 +259,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        self._profiler_enabled = cfg.profiler.enabled
-        self._profiler = config.instantiate(cfg.profiler)
-
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -287,11 +278,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
            d. The ``device_id`` param ensures that the FSDP initialization happens on
               the correct device.
         """
-
-        if self._device.type != "cuda":
-            raise ValueError(
-                f'FSDP needs device="cuda" but found device={self._device.type}'
-            )
 
         if self._is_rank_zero:
             log.info("FSDP is enabled. Model init and checkpoint loading on Rank 0 ...")
@@ -350,7 +336,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.reset_parameters()
         model = model.to(self._device)
 
-        model = model.to(self._dtype)
+        if self._dtype == torch.bfloat16:
+            model = model.to(torch.bfloat16)
 
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
@@ -468,7 +455,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         intermediate_checkpoint = epoch + 1 < self.total_epochs
         # To prevent GPU memory from spiking during checkpoint save,
         # we consolidate the full model and optim state dicts on CPU for rank 0
-
         cpu_state_dict = utils.get_full_model_state_dict(
             self._model,
             self._is_rank_zero,
