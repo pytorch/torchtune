@@ -277,7 +277,7 @@ Check out `tune --help` for all possible CLI commands and options. For more info
 
 ## Design Principles
 
-torchtune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/main/community/design.html)], especially "usability over everything else".
+torchtune embodies PyTorch’s design philosophy [[details](https://pytorch.org/docs/stable/community/design.html)], especially "usability over everything else".
 
 ### Native PyTorch
 
