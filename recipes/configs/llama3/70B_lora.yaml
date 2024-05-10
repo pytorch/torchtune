@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-70b --hf-token <TOKEN> --output-dir /tmp/Meta-Llama-3-70b --ignore-patterns "original/consolidated*"
+#   tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <TOKEN> --output-dir /tmp/Meta-Llama-3-70b --ignore-patterns "original/consolidated*"
 #
 # This config needs 8 GPUs to run
 #   # tune run --nproc_per_node 8 lora_finetune_distributed --config recipes/configs/llama3/70B_lora.yaml
@@ -20,11 +20,11 @@ model:
 
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-70b/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir:  /tmp/Meta-Llama-3-70b
+  checkpoint_dir:  /tmp/Meta-Llama-3-70B-Instruct
   checkpoint_files: [
     model-00001-of-00030.safetensors,
     model-00002-of-00030.safetensors,
@@ -58,7 +58,7 @@ checkpointer:
     model-00030-of-00030.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-70b
+  output_dir: /tmp/Meta-Llama-3-70B-Instruct
   model_type: LLAMA3
 resume_from_checkpoint: False
 
@@ -92,7 +92,8 @@ output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-log_every_n_steps: null
+log_every_n_steps: 1
+log_peak_memory_stats: False
 
 # Environment
 device: cuda

@@ -15,7 +15,6 @@ from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
-    _get_base_model_params,
     AdapterModule,
     disable_adapter,
     get_adapter_params,
@@ -166,19 +165,6 @@ class TestPeftUtils:
         adapter_params = get_adapter_params(model)
         expected = request.getfixturevalue(expected_keys)
         assert set(expected) == set(adapter_params.keys())
-
-    @pytest.mark.parametrize(
-        "model_name, expected_keys",
-        [
-            ("dummy_adapter_parent_model", "dummy_model_expected_base_model_keys"),
-            ("lora_llama2_model", "lora_llama2_expected_base_model_keys"),
-        ],
-    )
-    def test_get_base_model_params(self, request, model_name, expected_keys):
-        model = request.getfixturevalue(model_name)
-        base_model_params = _get_base_model_params(model)
-        expected = request.getfixturevalue(expected_keys)
-        assert set(expected) == set(base_model_params.keys())
 
     @pytest.mark.parametrize(
         "model_name, expected_trainable_keys, expected_frozen_keys",

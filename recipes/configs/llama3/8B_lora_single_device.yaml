@@ -1,9 +1,9 @@
 # Config for single device LoRA finetuning in lora_finetune_single_device.py
-# using a Llama3 8B model
+# using a Llama3 8B Instruct model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download meta-llama/Meta-Llama-3-8B --output-dir /tmp/Meta-Llama-3-8B --hf-token <HF_TOKEN>
+#   tune download meta-llama/Meta-Llama-3-8B-Instruct --output-dir /tmp/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config llama3/8B_lora_single_device
@@ -28,16 +28,16 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B/
+  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
@@ -72,7 +72,8 @@ output_dir: /tmp/lora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-log_every_n_steps: null
+log_every_n_steps: 1
+log_peak_memory_stats: False
 
 # Environment
 device: cuda

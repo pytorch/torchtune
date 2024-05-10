@@ -49,7 +49,7 @@ def slimorca_dataset(
         ValueError: If `max_seq_len` is less than 4.
 
     Returns:
-        ChatDataset: dataset configured with SlimOrca source data and LLaMA2 chat template
+        ChatDataset: dataset configured with SlimOrca source data and Llama2 chat template
 
     Example:
         >>> ds = slimorca_dataset(tokenizer=tokenizer, max_seq_len=10)

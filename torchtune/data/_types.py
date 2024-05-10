@@ -32,3 +32,22 @@ class Message:
     masked: bool = False
     ipython: bool = False
     eot: bool = True
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Message":
+        """
+        Construct a Message from a dictionary.
+
+        Args:
+            d (dict): dictionary containing the fields of the Message.
+
+        Returns:
+            Message: constructed Message.
+        """
+        return cls(
+            role=d["role"],
+            content=d["content"],
+            masked=d.get("masked", False),
+            ipython=d.get("ipython", False),
+            eot=d.get("eot", True),
+        )

@@ -15,26 +15,46 @@ import torch.distributed as dist
 import torch.distributed._composable.fsdp
 from torch import nn
 from torch.distributed._tensor import distribute_tensor
-from torch.distributed.fsdp import (
-    FullyShardedDataParallel as FSDP,
-    MixedPrecision,
-    ShardingStrategy,
-)
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
-
-# from torch.optim import Optimizer
+from torch.distributed.fsdp import ShardingStrategy
+from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
     _lora_b_init_params,
     LoRALinear,
 )
-from torchtune.utils._device import _validate_device_from_env, get_device
+from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
 
 
 FSDPPolicyType: Type = Callable[[nn.Module, bool, int], bool]
+
+FSDPPolicyType.__doc__ = """
+
+A datatype for a function that can be used as an FSDP wrapping policy.
+In particular, this type denotes a function that can accept an nn.Module, a boolean flag, and an integer
+and return a boolean indicating whether the module should be wrapped with FSDP. Objects of this type can
+be directly passed into PyTorch FSDP's ``auto_wrap_policy`` argument to specify how FSDP wraps submodules.
+
+The below function serves as an example of creating and returning a function that obeys the contract of
+``FSDPPolicyType``::
+
+    def get_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], min_num_params: int):
+
+        def my_fsdp_policy(module: nn.Module, modules_to_wrap: Set[Type], recurse: bool, min_num_params: int) -> bool:
+            if recurse:
+                return True
+            # Wrap layers that are of type in ``modules_to_wrap`` and layers with more than min_num_params
+
+            return isinstance(module, tuple(modules_to_wrap)) or sum(p.numel() for p in module.parameters()) > 1000
+
+        return functools.partial(my_fsdp_policy, modules_to_wrap=modules_to_wrap)
+
+Please see documentation of ``auto_wrap_policy`` at https://pytorch.org/docs/stable/fsdp.html for additional details.
+
+"""
 
 _valid_distributed_single_node_nnodes = ["1:1", "1"]
 
@@ -144,86 +164,6 @@ def contains_fsdp(model: nn.Module) -> bool:
     )
 
 
-def wrap_fsdp(
-    model: nn.Module,
-    device: torch.device,
-    dtype: torch.dtype,
-    strategy: Optional[str] = None,
-    auto_wrap_policy: Optional[Union[Set[Type], FSDPPolicyType]] = None,
-    use_meta_device: bool = False,
-    **kwargs,
-) -> nn.Module:
-    """Utility to setup distributed training using the torch.distributed FullyShardedDataParallel (FSDP) module.
-    FSDP allows three primary types of data parallel training (these can be set under "strategy"):
-
-    NO_SHARD:
-        No sharding is done, this is standard Data Parallel training. The is typically fastest if the entire
-        model and optimizer can fit on a single GPU and you just want to split the batch across ranks.
-    SHARD_GRAD_OP:
-        Only gradients and optimizer are sharded across all ranks. This is typically fastest when the
-        model can fit on your GPU but there isn't enough room for a forward and backward pass.
-    FULL_SHARD:
-        All parameters are sharded across all ranks. This is necessary when even the model cannot fit on a
-        single GPU.
-
-    If using sharding, you need to define how the model is sharded. The auto_wrap_policy is a list of model layers
-    and blocks that FSDP will use as shards.
-
-    Args:
-        model (nn.Module): Model to wrap for distributed training.
-        device (torch.device): Device for host model.
-        dtype (torch.dtype): dtype for mixed precision training. FSDP mixed precision will be
-            configured to use this dtype for both computation and communication.
-        strategy (Optional[str]): Sharding strategy to use. Please see
-            torch.distributed.fsdp.ShardingStrategy for options. Default: "FULL_SHARD", which
-            shards parameters, gradients, and optimizer states.
-        auto_wrap_policy (Optional[Union[Set[Type], FSDPPolicyType]]): nn.Module types to recursively apply FSDP to.
-            FSDP will wrap each instance of the specified nn.Module type in its own atomic FSDP unit.
-            Alternatively, this can be a custom callable policy of type FSDPPolicyType, in which case FSDP will
-            be wrapped according to the specified policy.
-            Please see https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy
-            for details on FSDP wrapping and writing wrapping policies.
-            Default: None. In this case, FSDP is only applied to the top level module. In this
-            case, entire model is unsharded during computation and memory is only saved due to
-            sharding optimizer states.
-        use_meta_device (bool): Set this to True if the input model has been initialized on meta device.
-            If so, we will define the `reset_parameters()` method on all submodules
-            to ensure FSDP properly initializes all modules on device given by `device`. Default: False
-        **kwargs: additional arguments to pass to FSDP for distributed training.
-
-    Returns:
-        nn.Module: Model wrapped for distributed training
-
-    Raises:
-        RuntimeError: If environment not setup for distributed training.
-
-    """
-    if dist.is_available() and dist.is_initialized():
-        if use_meta_device:
-            model = prepare_model_for_fsdp_with_meta_device(model)
-        if strategy is None:
-            strategy = "FULL_SHARD"
-        _validate_device_from_env(device)
-        wrap_policy = (
-            ModuleWrapPolicy(auto_wrap_policy)
-            if isinstance(auto_wrap_policy, set)
-            else auto_wrap_policy
-        )
-        mp = MixedPrecision(param_dtype=dtype, reduce_dtype=dtype, buffer_dtype=dtype)
-        return FSDP(
-            model,
-            auto_wrap_policy=wrap_policy,
-            device_id=device,
-            mixed_precision=None,
-            sharding_strategy=_get_sharding_strategy(strategy),
-            **kwargs,
-        )
-    else:
-        raise RuntimeError(
-            "Distributed environment is not setup. Please run init_distributed() first."
-        )
-
-
 def _dummy_reset_params(x: nn.Module) -> None:
     """
     Dummy method for patching no-op reset_parameters() when using
@@ -283,7 +223,8 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
 
     Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
+        documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
 
     def lora_wrap_fsdp(module: nn.Module, recurse: bool, **kwargs):
@@ -355,3 +296,61 @@ def load_from_full_state_dict(
 #         "param_groups": sharded_sd["param_groups"],
 #         "state": full_state,
 #     }
+
+def get_full_finetune_fsdp_wrap_policy(
+    memory_efficient_fsdp_wrap: bool, modules_to_wrap: Set[Type]
+) -> FSDPPolicyType:
+    """
+    Retrieves an FSDP wrapping policy based on the specified flags ``memory_efficient_fsdp_wrap`` and
+    ``modules_to_wrap``. Specifically, if ``memory_efficient_fsdp_wrap`` is set to ``True``, the returned
+    policy will wrap the model's token embedding and output projection in addition to the modules specified
+    to maximize memory savings.
+
+    Args:
+        memory_efficient_fsdp_wrap (bool): If ``True``, will also wrap embedding and output projection layers with FSDP.
+        modules_to_wrap (Set[Type]): Set of module types to wrap.
+
+    Note:
+        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads,
+        to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+        have not been verified and may not see the same improvements.
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
+            argument. Please see documentation for const:`~torchtune.utils.FSDPPolicyType` for additional details.
+    """
+    if memory_efficient_fsdp_wrap:
+        return _memory_efficient_wrap_policy(modules_to_wrap=modules_to_wrap)
+    else:
+        return ModuleWrapPolicy(modules_to_wrap)
+
+
+def _memory_efficient_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
+    """
+    A default policy for memory efficient wrapping for full finetuning using FSDP. Specifically,
+    this will wrap the model's token embedding and output projection into their own FSDP units to
+    maximize memory savings. This helps especially if these layers are particularly large,
+    such as due to a large embedding size.
+    After this is done, model will also be hierarchically wrapped
+    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that the
+    input model has an attribute ``output`` that is a nn.Linear which is the model's output projection.
+    Args:
+        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
+    Returns:
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``.
+    """
+    modules_to_wrap.add(torch.nn.Embedding)
+
+    def llama3_wrap(module: nn.Module, recurse: bool, **kwargs):
+        # Label that output_proj should be wrapped individually.
+        if isinstance(module, modules.TransformerDecoder):
+            module.output._wrap = True
+        if recurse:
+            return True
+
+        # Wrap output_proj individually.
+        if getattr(module, "_wrap", False):
+            return True
+
+        return isinstance(module, tuple(modules_to_wrap))
+
+    return llama3_wrap

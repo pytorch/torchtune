@@ -13,6 +13,7 @@ from torchao.quantization.quant_api import (
     Int4WeightOnlyQuantizer,
     Quantizer,
 )
+from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
 
 __all__ = [
     "Int4WeightOnlyQuantizer",
@@ -35,6 +36,13 @@ _quantizer_to_mode = {
     Int8WeightOnlyQuantizer: "8w",
     Int4WeightOnlyGPTQQuantizer: "4w-gptq",
 }
+
+
+if TORCH_VERSION_AFTER_2_3:
+    from torchao.quantization.quant_api import Int8DynActInt4WeightQuantizer
+
+    __all__.append("Int8DynActInt4WeightQuantizer")
+    _quantizer_to_mode[Int8DynActInt4WeightQuantizer] = "8da4w"
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
