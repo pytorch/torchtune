@@ -10,7 +10,7 @@ torchtune now officially supports Meta Llama3! Check out our recipes for Llama3-
 
 # torchtune
 
-[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune) | [**Design Principles**](#design-principles) | [**Community Contributions**](#community-contributions) | [**License**](#license)
+[**Introduction**](#introduction) | [**Installation**](#installation) | [**Get Started**](#get-started) |  [**Documentation**](https://pytorch.org/torchtune/main/index.html) | [**Design Principles**](#design-principles) | [**Community Contributions**](#community-contributions) | [**License**](#license)
 
 &nbsp;
 
