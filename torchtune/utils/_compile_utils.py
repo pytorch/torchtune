@@ -11,6 +11,9 @@ from torch import nn
 
 _TORCH_COMPILE_WRAPPER_PREFIX = "_orig_mod."
 
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointWrapper,
+)
 
 def wrap_compile(model: nn.Module) -> None:
     """
@@ -29,8 +32,15 @@ def wrap_compile(model: nn.Module) -> None:
     # TORCH_COMPILE_BACKEND can be set as an env var to override default torch.compile backend.
     # Currently only used in unittesting to work around https://github.com/pytorch/torchtune/issues/676
     backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
-    model = torch.compile(model, backend=backend)
-    model._register_state_dict_hook(_remove_torch_compile_prefix)
+    # model = torch.compile(model, backend=backend)
+    # model._register_state_dict_hook(_remove_torch_compile_prefix)
+    # return model
+
+    torch._dynamo.config.inline_inbuilt_nn_modules = True
+    for module in model.modules():
+        if isinstance(module, CheckpointWrapper):
+            module.compile(backend=backend)
+
     return model
 
 

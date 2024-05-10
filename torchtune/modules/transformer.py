@@ -217,6 +217,8 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
+
+            torch._dynamo.mark_dynamic(h, 1)
             h = layer(h, mask, input_pos)
 
         # shape: [b, s, d]
