@@ -600,7 +600,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

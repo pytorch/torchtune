@@ -121,7 +121,7 @@ class TestCausalSelfAttention:
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         head_dim = embed_dim // num_heads
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -175,7 +175,7 @@ class TestCausalSelfAttention:
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -229,7 +229,7 @@ class TestCausalSelfAttention:
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -338,7 +338,7 @@ class TestCausalSelfAttention:
         with pytest.raises(Exception):
             _ = gqa(input_max_len_exceeded)
 
-    def test_max_batch_size_exceeded(
+    def test_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,
         gqa_kv_cache: CausalSelfAttention,

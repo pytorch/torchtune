@@ -25,7 +25,7 @@ from ._distributed import (  # noqa
     prepare_model_for_fsdp_with_meta_device,
     validate_no_params_on_meta_device,
 )
-from ._generation import generate, generate_next_token  # noqa
+from ._generation import generate
 from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
@@ -85,4 +85,5 @@ __all__ = [
     "register_optim_in_bwd_hooks",
     "profiler",
     "get_quantizer_mode",
+    "generate",
 ]
