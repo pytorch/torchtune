@@ -22,7 +22,6 @@ from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     StateDictType,
 )
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
@@ -186,6 +185,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -233,6 +233,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        memory_efficient_fsdp_wrap: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -291,7 +292,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # across all available GPUs.
         model = FSDP(
             module=model,
-            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
+            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
+                memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -506,7 +510,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

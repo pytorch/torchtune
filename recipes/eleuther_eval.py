@@ -55,7 +55,7 @@ class _EvalWrapper(HFLM):
         max_seq_length: int = 4096,
         batch_size: int = 32,
     ):
-        super().__init__(device=str(device))
+        super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
