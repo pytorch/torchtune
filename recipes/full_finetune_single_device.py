@@ -451,7 +451,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type == "cuda" and self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
