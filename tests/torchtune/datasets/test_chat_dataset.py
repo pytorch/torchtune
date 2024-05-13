@@ -7,10 +7,10 @@
 from unittest import mock
 
 import pytest
+from datasets import Dataset
 from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-
 from torchtune.datasets import ChatDataset
 
 
@@ -31,9 +31,11 @@ class DummyChatFormat:
         formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
         formatted_dialogue = []
         for message in messages:
-            content = formats.get(message.role).format(content=message.content)
+            content = formats.get(message["role"]).format(content=message["content"])
             formatted_dialogue.append(
-                Message(role=message.role, content=content, masked=message.masked),
+                Message(
+                    role=message["role"], content=content, masked=message["masked"]
+                ),
             )
         return formatted_dialogue
 
@@ -57,26 +59,30 @@ class TestChatDataset:
         return [
             {
                 "dialogue": [
-                    Message(
-                        role="system", content="You are an AI assistant.", masked=True
-                    ),
-                    Message(
-                        role="user", content="What is the meaning of life?", masked=True
-                    ),
-                    Message(
-                        role="assistant",
-                        content="The meaning of life is 42.",
-                        masked=False,
-                    ),
-                    Message(role="user", content="That's ridiculous.", masked=True),
-                    Message(role="assistant", content="I agree.", masked=False),
+                    {
+                        "role": "system",
+                        "content": "You are an AI assistant.",
+                        "masked": True,
+                    },
+                    {
+                        "role": "user",
+                        "content": "What is the meaning of life?",
+                        "masked": True,
+                    },
+                    {
+                        "role": "assistant",
+                        "content": "The meaning of life is 42.",
+                        "masked": False,
+                    },
+                    {"role": "user", "content": "That's ridiculous.", "masked": True},
+                    {"role": "assistant", "content": "I agree.", "masked": False},
                 ],
             },
         ]
 
     @mock.patch("torchtune.datasets._chat.load_dataset")
     def test_get_item(self, mock_load_dataset, chat_format, dialogue):
-        mock_load_dataset.return_value = dialogue
+        mock_load_dataset.return_value = Dataset.from_list(dialogue)
         expected_tokenized_prompts = [
             [
                 0,
@@ -114,15 +120,7 @@ class TestChatDataset:
         prompt_lengths = (15, 5)
         expected_labels = [
             [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[0]
-            + [
-                3,
-                7,
-                2,
-                4,
-                2,
-                3,
-                -1,
-            ]
+            + [3, 7, 2, 4, 2, 3, -1]
             + [CROSS_ENTROPY_IGNORE_IDX] * prompt_lengths[1]
             + [1, 6, -1]
         ]

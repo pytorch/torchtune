@@ -205,7 +205,7 @@ class TestTransformerDecoder:
         # TODO: fix weight initialization to use fixed_init_model
         init_weights_with_constant(decoder, constant=0.2)
         decoder.eval()
-        decoder.setup_caches(max_batch_size=4, dtype=torch.float32)
+        decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
 
     def test_forward(
@@ -241,6 +241,41 @@ class TestTransformerDecoder:
             output_cache = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
             output_no_cache = decoder(input)
         assert_expected(output_cache.mean(), output_no_cache.mean())
+
+    def test_kv_cache_reset_values(
+        self,
+        input: Tensor,
+        decoder_with_kv_cache_enabled: TransformerDecoder,
+    ) -> None:
+        _, seq_len = input.shape
+        input_pos = torch.arange(seq_len)
+
+        with torch.no_grad():
+            _ = decoder_with_kv_cache_enabled(input, input_pos=input_pos)
+            kv_cache_k_val = decoder_with_kv_cache_enabled.layers[
+                0
+            ].attn.kv_cache.k_cache.clone()
+            kv_cache_v_val = decoder_with_kv_cache_enabled.layers[
+                0
+            ].attn.kv_cache.v_cache.clone()
+
+        decoder_with_kv_cache_enabled.reset_caches()
+        kv_cache_k_val_reset = decoder_with_kv_cache_enabled.layers[
+            0
+        ].attn.kv_cache.k_cache.clone()
+        kv_cache_v_val_reset = decoder_with_kv_cache_enabled.layers[
+            0
+        ].attn.kv_cache.v_cache.clone()
+
+        assert not torch.allclose(kv_cache_k_val, kv_cache_k_val_reset)
+        assert not torch.allclose(kv_cache_v_val, kv_cache_v_val_reset)
+
+    def test_kv_cache_reset_values_fails_when_not_enabled_first(
+        self,
+        decoder: TransformerDecoder,
+    ) -> None:
+        with pytest.raises(RuntimeError, match="Key value caches are not setup"):
+            decoder.reset_caches()
 
     def test_kv_cache_batch_size_exceeded(
         self,

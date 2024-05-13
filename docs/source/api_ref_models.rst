@@ -49,6 +49,25 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.llama2_70b
     llama2.lora_llama2_70b
 
+phi-3
+-----
+
+Models from the `Phi-3 mini family <https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/>`_.
+
+Pre-trained models can be download from the Hugging Face Hub with the following command:
+
+.. code-block:: bash
+
+    tune download microsoft/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    phi3.phi3_mini
+    phi3.lora_phi3_mini
+    phi3.qlora_phi3_mini
+
 
 mistral
 -------
