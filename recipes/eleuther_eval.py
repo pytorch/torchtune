@@ -7,7 +7,7 @@
 import sys
 import time
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union, Tuple
 
 import torch
 from omegaconf import DictConfig
@@ -16,6 +16,7 @@ from torch import nn
 
 from torchtune import config, utils
 from torchtune.modules import TransformerDecoder
+from torch.nn.utils.rnn import pad_sequence
 from torchtune.modules.tokenizers import Tokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
@@ -53,13 +54,17 @@ class _EvalWrapper(HFLM):
         *,
         device: torch.device,
         max_seq_length: int = 4096,
-        batch_size: int = 32,
+        batch_size: int = 8,
     ):
         super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
+
+    @property
+    def model(self):
+        return self._model
 
     @property
     def eot_token_id(self):
@@ -89,17 +94,46 @@ class _EvalWrapper(HFLM):
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
-    def tok_decode(self, tokens: List[int], **kwargs) -> str:
+    def tok_batch_encode(self, text: List[str], **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+        tokenized_text = [self.tok_encode(x) for x in text]
+        if len(tokenized_text) == 1:
+            import pdb
+            pdb.set_trace()
+        x = pad_sequence(
+            [torch.tensor(x) for x in tokenized_text],
+            batch_first=True,
+            padding_value=self._tokenizer.pad_id,
+        )
+        if x.size(1) > self._max_seq_length:
+            x = x[:, :self._max_seq_length]
+        return x, torch.ones_like(x)
+
+    def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
+        if isinstance(tokens, int):
+            tokens = [tokens]
         return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
-    def _model_generate(self, *args, **kwargs):
-        raise RuntimeError(
-            "This recipe does not currently support tasks that evaluate free generation,"
-            "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
+    def _model_generate(self, context: torch.Tensor, **generation_kwargs) -> torch.Tensor:
+        # import pdb
+        # pdb.set_trace()
+        # if context.size(0) != self.batch_size:
+        #     model.setup_caches(batch_size=context.)
+
+        toks = utils.generate(
+            self._model,
+            context,
+            max_generated_tokens=self.max_gen_toks,
+            pad_id=self._tokenizer.pad_id,
+            temperature=0.6,
+            top_k=None,
+            stop_tokens=self._tokenizer.stop_tokens,
         )
+        self._model.reset_caches()
+        return torch.tensor(toks, dtype=torch.int32)
+
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
@@ -158,6 +192,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
+            model.setup_caches(batch_size=self._cfg.batch_size, dtype=self._dtype)
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
@@ -177,6 +212,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             self._tokenizer,
             device=self._device,
             max_seq_length=self._cfg.max_seq_length,
+            batch_size=self._cfg.batch_size,
         )
 
         # Task initialization API changed between v0.4.1 and 0.4.2
@@ -192,6 +228,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             task_dict,
             limit=self._limit,
         )
+
+        # import pdb
+        # pdb.set_trace()
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
         for task, res in eleuther_output["results"].items():
