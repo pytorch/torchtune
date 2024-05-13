@@ -120,7 +120,6 @@ class InferenceRecipe:
             pad_id=self._tokenizer.pad_id,
             custom_generate_next_token=custom_generate_next_token,
         )
-
         t = time.perf_counter() - t0
 
         logger.info(self._tokenizer.decode(generated_tokens[0]))
