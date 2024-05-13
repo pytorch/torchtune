@@ -55,12 +55,14 @@ class _EvalWrapper(HFLM):
         device: torch.device,
         max_seq_length: int = 4096,
         batch_size: int = 8,
+        dtype: torch.dtype = torch.float32,
     ):
         super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
+        self._dtype = dtype
 
     @property
     def model(self):
@@ -129,7 +131,14 @@ class _EvalWrapper(HFLM):
         if do_sample:
             # do_sample signifies more complicated sampling logic, like top_k or
             # top_p. We don't support this yet, so if it's requested, we raise an error.
-            raise RuntimeError("``do_sample`` for generation tasks is not supported yet in torchtune.")
+            raise RuntimeError(
+                "``do_sample`` for generation tasks is not supported yet in torchtune."
+            )
+
+        curr_batch_size = context.size(0)
+        if curr_batch_size != self.batch_size:
+            with context.device:
+                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
 
         toks = utils.generate(
             self._model,
@@ -137,7 +146,7 @@ class _EvalWrapper(HFLM):
             max_generated_tokens=self.max_gen_toks,
             pad_id=self._tokenizer.pad_id,
             temperature=temperature,
-            top_k=None, # do_sample is not supported currently
+            top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
         # Reset key value cache so we can run multiple rounds of generation
@@ -222,6 +231,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             device=self._device,
             max_seq_length=self._cfg.max_seq_length,
             batch_size=self._cfg.batch_size,
+            dtype=self._dtype,
         )
 
         # Task initialization API changed between v0.4.1 and 0.4.2
