@@ -67,7 +67,6 @@ def llama3_70b() -> TransformerDecoder:
 
 def llama3_tokenizer(path: str) -> TikTokenTokenizer:
     tiktoken = TikTokenTokenizer(path)
-    tiktoken.pad_id = 0
     return tiktoken
 
 
