@@ -116,13 +116,7 @@ class Phi3MiniSentencePieceTokenizer:
                 continue
             else:
                 ids_for_decode.append(token_id)
-        try:
-            x = self.spm_model.decode(ids_for_decode)
-        except IndexError:
-            import pdb
-
-            pdb.set_trace()
-        return x
+        return self.spm_model.decode(ids_for_decode)
 
     def tokenize_messages(
         self,
