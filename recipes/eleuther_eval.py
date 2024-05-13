@@ -7,16 +7,16 @@
 import sys
 import time
 
-from typing import Any, Dict, List, Union, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from omegaconf import DictConfig
 
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
 from torchtune.modules import TransformerDecoder
-from torch.nn.utils.rnn import pad_sequence
 from torchtune.modules.tokenizers import Tokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
@@ -94,18 +94,22 @@ class _EvalWrapper(HFLM):
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
-    def tok_batch_encode(self, text: List[str], **kwargs) -> Tuple[torch.Tensor, torch.Tensor]:
+    def tok_batch_encode(
+        self, text: List[str], **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         tokenized_text = [self.tok_encode(x) for x in text]
-        if len(tokenized_text) == 1:
-            import pdb
-            pdb.set_trace()
+
+        # pad left
         x = pad_sequence(
-            [torch.tensor(x) for x in tokenized_text],
+            [
+                torch.tensor(x[::-1]) for x in tokenized_text
+            ],  # first flip each sequence and pad
             batch_first=True,
             padding_value=self._tokenizer.pad_id,
-        )
-        if x.size(1) > self._max_seq_length:
-            x = x[:, :self._max_seq_length]
+        ).flip(
+            dims=[1]
+        )  # flip back to correct order
+
         return x, torch.ones_like(x)
 
     def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
@@ -116,24 +120,21 @@ class _EvalWrapper(HFLM):
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
-    def _model_generate(self, context: torch.Tensor, **generation_kwargs) -> torch.Tensor:
-        # import pdb
-        # pdb.set_trace()
-        # if context.size(0) != self.batch_size:
-        #     model.setup_caches(batch_size=context.)
-
+    def _model_generate(
+        self, context: torch.Tensor, **generation_kwargs
+    ) -> torch.Tensor:
+        temperature = generation_kwargs.get("temperature", 0.0)
         toks = utils.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
             pad_id=self._tokenizer.pad_id,
-            temperature=0.6,
+            temperature=temperature,
             top_k=None,
             stop_tokens=self._tokenizer.stop_tokens,
         )
         self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
-
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
@@ -228,9 +229,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             task_dict,
             limit=self._limit,
         )
-
-        # import pdb
-        # pdb.set_trace()
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
         for task, res in eleuther_output["results"].items():
