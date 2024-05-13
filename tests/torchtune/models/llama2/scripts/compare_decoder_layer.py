@@ -8,8 +8,6 @@ from typing import Optional
 
 import torch
 
-from tests.test_utils import init_weights_with_constant
-
 from tests.torchtune.models.llama2.scripts.compare_attention import (
     Attention,
     precompute_freqs_cis,
@@ -114,7 +112,8 @@ def compare_decoder_layer(
     transformer_block = TransformerBlock(
         n_heads=num_heads, n_kv_heads=num_kv_heads, dim=embed_dim
     )
-    init_weights_with_constant(transformer_block, constant=0.05)
+    for p in transformer_block.parameters():
+        nn.init.constant_(p, 0.05)
 
     with torch.no_grad():
         block_out = transformer_block(x=input_t, freqs_cis=freq_cis, mask=mask)
@@ -148,7 +147,8 @@ def compare_decoder_layer(
         sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
-    init_weights_with_constant(transformer_layer, constant=0.05)
+    for p in transformer_layer.parameters():
+        nn.init.constant_(p, 0.05)
 
     with torch.no_grad():
         layer_out = transformer_layer(input_t)

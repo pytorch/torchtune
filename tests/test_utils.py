@@ -66,11 +66,6 @@ def get_assets_path():
     return Path(__file__).parent / "assets"
 
 
-def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
-    for p in model.parameters():
-        nn.init.constant_(p, constant)
-
-
 def fixed_init_tensor(
     shape: torch.Size,
     min_val: Union[float, int] = 0.0,
