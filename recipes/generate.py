@@ -77,7 +77,7 @@ class InferenceRecipe:
 
         # Ensure the cache is setup on the right device
         with self._device:
-            model.setup_caches(batch_size=2, dtype=self._dtype)
+            model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 
@@ -85,8 +85,6 @@ class InferenceRecipe:
     def generate(self, cfg: DictConfig):
         tokens = self._tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
-
-        prompt = prompt.repeat(2, 1)
 
         custom_generate_next_token = None
 
@@ -125,8 +123,6 @@ class InferenceRecipe:
         t = time.perf_counter() - t0
 
         logger.info(self._tokenizer.decode(generated_tokens[0]))
-        logger.info("*" * 50)
-        logger.info(self._tokenizer.decode(generated_tokens[1]))
 
         model_size = sum(
             [
