@@ -110,7 +110,7 @@ class _EvalWrapper(HFLM):
             dims=[1]
         )  # flip back to correct order
 
-        return x, torch.ones_like(x)
+        return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
 
     def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
         if isinstance(tokens, int):
@@ -124,15 +124,23 @@ class _EvalWrapper(HFLM):
         self, context: torch.Tensor, **generation_kwargs
     ) -> torch.Tensor:
         temperature = generation_kwargs.get("temperature", 0.0)
+
+        do_sample = generation_kwargs.get("do_sample", False)
+        if do_sample:
+            # do_sample signifies more complicated sampling logic, like top_k or
+            # top_p. We don't support this yet, so if it's requested, we raise an error.
+            raise RuntimeError("``do_sample`` for generation tasks is not supported yet in torchtune.")
+
         toks = utils.generate(
             self._model,
             context,
             max_generated_tokens=self.max_gen_toks,
             pad_id=self._tokenizer.pad_id,
             temperature=temperature,
-            top_k=None,
+            top_k=None, # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
+        # Reset key value cache so we can run multiple rounds of generation
         self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
 
