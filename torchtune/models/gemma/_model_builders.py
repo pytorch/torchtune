@@ -89,7 +89,7 @@ def gemma_7b() -> GemmaTransformerDecoder:
     from: https://blog.google/technology/developers/gemma-open-models/
 
     Returns:
-        GemmaTransformerDecoder: Instantiation of Gemma 2B model
+        GemmaTransformerDecoder: Instantiation of Gemma 7B model
     """
     return gemma(
         vocab_size=256_000,

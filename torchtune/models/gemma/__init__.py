@@ -10,4 +10,7 @@ from ._model_builders import (  # noqa
     gemma_tokenizer,
     lora_gemma_2b,
     qlora_gemma_2b,
+    gemma_7b,
+    lora_gemma_7b,
+    qlora_gemma_7b
 )
