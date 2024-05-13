@@ -401,7 +401,7 @@ class CometLogger(MetricLoggerInterface):
 
             # Force "manual" source to log parameters as nested
             self._experiment.__internal_api__log_parameters__(
-                config, framework="torchtune", source="manual", flatten_nested=True
+                resolved, framework="torchtune", source="manual", flatten_nested=True
             )
 
             try:
