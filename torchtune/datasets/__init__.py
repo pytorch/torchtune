@@ -17,6 +17,7 @@ from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
+from torchtune.datasets._wikitext import wikitext_dataset
 
 __all__ = [
     "alpaca_dataset",
@@ -29,11 +30,9 @@ __all__ = [
     "ChatDataset",
     "instruct_dataset",
     "chat_dataset",
-<<<<<<< HEAD
     "text_completion_dataset",
     "TextCompletionDataset",
     "cnn_dailymail_articles_dataset",
-=======
     "ConcatDataset",
->>>>>>> main
+    "wikitext_dataset",
 ]

@@ -22,6 +22,7 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
     samsum_dataset
     slimorca_dataset
     cnn_dailymail_articles_dataset
+    wikitext_dataset
 
 Generic dataset builders
 ------------------------
