@@ -20,7 +20,6 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.checkpoint.state_dict import (
     get_optimizer_state_dict,
-    set_optimizer_state_dict,
     StateDictOptions,
 )
 
@@ -364,13 +363,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            set_optimizer_state_dict(
-                self._model,
+            utils.load_from_full_optimizer_state_dict(
                 optimizer,
-                optim_state_dict=opt_state_dict,
-                options=StateDictOptions(
-                    broadcast_from_rank0=True, full_state_dict=True
-                ),
+                opt_state_dict,
+                self._device,
             )
 
         if self._is_rank_zero:

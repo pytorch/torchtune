@@ -366,16 +366,12 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
         fsdp_optim_to_load = torch.optim.Adam(
             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
         )
-        ptd_state_dict.set_optimizer_state_dict(
-            fsdp_model_to_load,
+        utils.load_from_full_optimizer_state_dict(
             fsdp_optim_to_load,
-            optim_state_dict=copy.deepcopy(optim_full_sd),
-            options=ptd_state_dict.StateDictOptions(
-                broadcast_from_rank0=True, full_state_dict=True
-            ),
+            # mimic mmap=True where every rank see full SD
+            copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
+            torch.device("cuda"),
         )
-        sharded_optim_sd = fsdp_optim_to_load.state_dict()
-        expected_sharded_optim_sd = fsdp_optim_to_save.state_dict()
         for _ in range(epochs):
             inp = torch.randn((2, mlp_dim), device="cuda")
             fsdp_model_to_load(inp).sum().backward()
@@ -404,6 +400,15 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
         )
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
+
+    def _broadcast_full_state_dict(self, full_sd):
+        result = []
+        if self.rank == 0:
+            result.append(full_sd)
+        else:
+            result.append(None)
+        torch.distributed.broadcast_object_list(result, src=0)
+        return result[0]
 
 
 if __name__ == "__main__":
