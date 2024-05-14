@@ -120,7 +120,13 @@ class _EvalWrapper(HFLM):
         return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
-        return self._model(inps)
+        curr_batch_size = inps.size(0)
+        if curr_batch_size != self.batch_size:
+            with inps.device:
+                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+
+        input_pos = torch.arange(inps.size(1), device=inps.device)
+        return self._model(inps, input_pos=input_pos)
 
     def _model_generate(
         self, context: torch.Tensor, **generation_kwargs
