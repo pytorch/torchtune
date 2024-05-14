@@ -152,7 +152,7 @@ def lora_gemma(
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
     """
-    Return a version of Gemma with LoRA applied to some of the linear layers in its self-attention modules.
+    Return a version of Gemma with LoRA applied based on the passed in configuration.
     Note: output projection lora is not supported because it is tied to token embeddings
 
     Args:

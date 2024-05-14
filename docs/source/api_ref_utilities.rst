@@ -31,8 +31,10 @@ Utilities for enabling and working with distributed training.
     :toctree: generated/
     :nosignatures:
 
+    FSDPPolicyType
     init_distributed
     get_world_size_and_rank
+    get_full_finetune_fsdp_wrap_policy
 
 .. _mp_label:
 
@@ -116,3 +118,4 @@ Miscellaneous
     get_logger
     get_device
     set_seed
+    generate

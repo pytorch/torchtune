@@ -19,10 +19,12 @@ from torchtune.utils._distributed import contains_fsdp
 
 
 class ModelType(Enum):
-    LLAMA2 = "llama2"
-    MISTRAL = "mistral"
     GEMMA = "gemma"
+    LLAMA2 = "llama2"
     LLAMA3 = "llama3"
+    MISTRAL = "mistral"
+    PHI3_MINI = "phi3_mini"
+    MISTRAL_REWARD = "mistral_reward"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:

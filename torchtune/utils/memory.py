@@ -7,7 +7,7 @@
 import gc
 import logging
 
-from typing import Any, Dict, Optional, Set
+from typing import Any, Callable, Dict, Set, Type, Union
 
 import torch
 
@@ -20,19 +20,27 @@ from torchtune.utils.logging import get_logger
 
 _log: logging.Logger = get_logger()
 
+ACWrapPolicyType: Type = Union[Set[Type], Callable[[nn.Module, bool, int], bool]]
+
 
 def set_activation_checkpointing(
-    model: nn.Module, auto_wrap_policy: Optional[Set[nn.Module]] = None, **kwargs
+    model: nn.Module, auto_wrap_policy: ACWrapPolicyType, **kwargs
 ) -> None:
-    """Utility to setup activation checkpointing and wrap the model for checkpointing.
+    """Utility to apply activation checkpointing to the passed in model.
 
     Args:
         model (nn.Module): Model to setup activation checkpointing.
-        auto_wrap_policy (Optional[Set[nn.Module]]): Policy to wrap module.
-        **kwargs: additional arguments to pass to torch.distributed activation checkpointing.
+        auto_wrap_policy (ACWrapPolicyType): Policy to wrap module.
+            This can either be a set of ``nn.Module`` types, in which case, modules of the specified type(s)
+            will be wrapped individually with activation checkpointing, or a ``callable`` policy describing
+            how to wrap the model with activation checkpointing. For more information on authoring custom
+            policies, please see this tutorial:
+            https://pytorch.org/tutorials/intermediate/FSDP_adavnced_tutorial.html#transformer-wrapping-policy.
+        **kwargs: additional arguments to pass to ``torch.distributed`` activation checkpointing.
     """
-    wrap_policy = ModuleWrapPolicy(auto_wrap_policy or set())
-    apply_activation_checkpointing(model, auto_wrap_policy=wrap_policy, **kwargs)
+    if isinstance(auto_wrap_policy, set):
+        auto_wrap_policy = ModuleWrapPolicy(auto_wrap_policy)
+    apply_activation_checkpointing(model, auto_wrap_policy=auto_wrap_policy, **kwargs)
 
 
 def cleanup_before_training() -> None:
