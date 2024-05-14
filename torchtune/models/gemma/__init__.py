@@ -7,10 +7,10 @@
 from ._component_builders import gemma  # noqa
 from ._model_builders import (  # noqa
     gemma_2b,
+    gemma_7b,
     gemma_tokenizer,
     lora_gemma_2b,
-    qlora_gemma_2b,
-    gemma_7b,
     lora_gemma_7b,
-    qlora_gemma_7b
+    qlora_gemma_2b,
+    qlora_gemma_7b,
 )

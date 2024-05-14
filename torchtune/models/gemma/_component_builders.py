@@ -314,7 +314,7 @@ def lora_gemma_self_attention(
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
-        else nn.Linear(embed_dim, embed_dim, bias=False)
+        else nn.Linear(num_heads * head_dim, embed_dim, bias=False)
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)

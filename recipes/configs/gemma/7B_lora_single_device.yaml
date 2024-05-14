@@ -2,8 +2,8 @@
 # using a gemma 7B model
 #
 # This config assumes that you've run the following command before launching
-# this run:
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
+# this run (torchtune does not use gguf so you can ignore it to save time and space):
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns "gemma-7b.gguf"
 #
 # To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/7B_lora_single_device
@@ -32,7 +32,7 @@ model:
   _component_: torchtune.models.gemma.lora_gemma_7b
   lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
   apply_lora_to_mlp: True
-  lora_rank: 64
+  lora_rank: 8
   lora_alpha: 16
 
 checkpointer:
@@ -51,7 +51,7 @@ resume_from_checkpoint: False
 
 optimizer:
   _component_: torch.optim.AdamW
-  lr: 2e-5
+  lr: 5e-5
 
 lr_scheduler:
   _component_: torchtune.modules.get_cosine_schedule_with_warmup
@@ -61,10 +61,10 @@ loss:
   _component_: torch.nn.CrossEntropyLoss
 
 # Fine-tuning arguments
-batch_size: 4
-epochs: 3
+batch_size: 8
+epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 2
 compile: False
 
 # Training env
