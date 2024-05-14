@@ -9,8 +9,6 @@ from copy import deepcopy
 import pytest
 import torch
 
-from tests.test_utils import init_weights_with_constant
-
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
@@ -459,8 +457,11 @@ class TestDisableAdapter:
             LoRALinear(in_dim=2, out_dim=6, rank=RANK, alpha=ALPHA),
             nn.Linear(6, 3),
         )
-        init_weights_with_constant(model_ori)
-        init_weights_with_constant(model_lora)
+        # TODO: fix weight initialization to use fixed_init_model
+        for p in model_ori.parameters():
+            nn.init.constant_(p, 1.0)
+        for p in model_lora.parameters():
+            nn.init.constant_(p, 1.0)
         return model_ori, model_lora
 
     def test_disable_adapter(self):
