@@ -136,6 +136,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._save_in_peft_format = cfg.get("save_in_peft_format", False)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
