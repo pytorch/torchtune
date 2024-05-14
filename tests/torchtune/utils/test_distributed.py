@@ -17,7 +17,6 @@ from tests.test_utils import single_box_init
 from torch.distributed import launcher
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.checkpoint import state_dict as ptd_state_dict
-from torch.distributed.checkpoint.state_dict import StateDictOptions
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
@@ -260,10 +259,6 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
         return 2
 
     @skip_if_lt_x_gpu(2)
-    @pytest.mark.skipif(
-        not hasattr(StateDictOptions, "broadcast_from_rank0"),
-        reason="need latest pytorch nightly",
-    )
     def test_state_dict(self):
         is_rank_zero = self.rank == 0
         mlp_dim = 4
