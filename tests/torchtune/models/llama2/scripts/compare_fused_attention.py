@@ -266,7 +266,7 @@ def compare_attn(
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
     if use_kv_cache:
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             n_kv_heads=num_heads,
             head_dim=head_dim,

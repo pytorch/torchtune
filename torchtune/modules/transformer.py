@@ -142,10 +142,16 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
 
-    def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
-                max_batch_size=max_batch_size,
+                batch_size=batch_size,
                 max_seq_len=self.max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
@@ -157,6 +163,16 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        if self.layers[0].attn.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+
+        for layer in self.layers:
+            layer.attn.kv_cache.reset()
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
@@ -206,6 +222,6 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
-        # shape: [b, s, v]
+        # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
         return output

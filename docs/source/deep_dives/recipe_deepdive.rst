@@ -176,7 +176,7 @@ Run forward and backward across all epochs and save checkpoint at end of each ep
                     ...
                     loss = self._loss_fn(logits, labels)
 
-                if self.total_training_steps % self._log_every_n_steps == 0:
+                if self.global_step % self._log_every_n_steps == 0:
                     self._metric_logger.log_dict(...)
 
                 loss.backward()
@@ -184,7 +184,7 @@ Run forward and backward across all epochs and save checkpoint at end of each ep
                 self._optimizer.zero_grad()
 
                 # Update the number of steps when the weights are updated
-                self.total_training_steps += 1
+                self.global_step += 1
 
             self.save_checkpoint(epoch=curr_epoch)
 

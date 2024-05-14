@@ -3,31 +3,31 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir ./Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
 #
 # The default config uses an optimizer from bitsandbytes. If you do not have it installed,
 # you can install it with
 #   pip install bitsandbytes
 #
 # To launch on a single device, run the following command from root:
-#   tune run full_finetune_single_device --config recipes/configs/phi3/mini_full_low_memory.yaml
+#   tune run full_finetune_single_device --config phi3/mini_full_low_memory
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run full_finetune_single_device --config recipes/configs/phi3/mini_full_low_memory.yaml checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run full_finetune_single_device --config phi3/mini_full_low_memory checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
 # Tokenizer
 tokenizer:
-  _component_: torchtune.models.phi3.phi3_tokenizer
+  _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  max_seq_len: 4096
 seed: null
 shuffle: True
 
@@ -49,7 +49,7 @@ resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.PagedAdamW
   lr: 5e-6
@@ -76,4 +76,4 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 output_dir: /tmp/Phi-3-mini-4k-instruct
-log_every_n_steps: null
+log_every_n_steps: 1
