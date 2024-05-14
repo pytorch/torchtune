@@ -307,7 +307,7 @@ def lora_gemma_self_attention(
     )
     output_proj = (
         LoRALinear(
-            embed_dim,
+            num_heads * head_dim,
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
