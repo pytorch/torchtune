@@ -120,19 +120,21 @@ class _EvalWrapper(HFLM):
         return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
-        curr_batch_size = inps.size(0)
-        if curr_batch_size != self.batch_size:
-            with inps.device:
-                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
-
-        input_pos = torch.arange(inps.size(1), device=inps.device)
-        return self._model(inps, input_pos=input_pos)
+        return self._model(inps)
 
     def _model_generate(
         self, context: torch.Tensor, **generation_kwargs
     ) -> torch.Tensor:
-        temperature = generation_kwargs.get("temperature", 0.0)
+        curr_batch_size = context.size(0)
 
+        # Setup caches for a given batch size
+        # Technically this is not necessary, but it's a good way to ensure that
+        # the caches won't error on a different batch size. In addition, caches
+        # are not needed for a regular model call, so we just setup here
+        with context.device:
+            self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+
+        temperature = generation_kwargs.get("temperature", 0.0)
         do_sample = generation_kwargs.get("do_sample", False)
         if do_sample:
             # do_sample signifies more complicated sampling logic, like top_k or
@@ -140,11 +142,6 @@ class _EvalWrapper(HFLM):
             raise RuntimeError(
                 "``do_sample`` for generation tasks is not supported yet in torchtune."
             )
-
-        curr_batch_size = context.size(0)
-        if curr_batch_size != self.batch_size:
-            with context.device:
-                self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
 
         toks = utils.generate(
             self._model,
@@ -155,8 +152,6 @@ class _EvalWrapper(HFLM):
             top_k=None,  # do_sample is not supported currently
             stop_tokens=self._tokenizer.stop_tokens,
         )
-        # Reset key value cache so we can run multiple rounds of generation
-        self._model.reset_caches()
         return torch.tensor(toks, dtype=torch.int32)
 
 
@@ -216,7 +211,6 @@ class EleutherEvalRecipe(EvalRecipeInterface):
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
-            model.setup_caches(batch_size=self._cfg.batch_size, dtype=self._dtype)
         if self._quantization_mode is not None:
             model = self._quantizer.quantize(model)
             model = model.to(device=self._device, dtype=self._dtype)
