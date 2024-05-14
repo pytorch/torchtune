@@ -25,7 +25,6 @@ from tests.test_utils import (
     get_loss_values_from_metric_logger,
     gpu_test,
 )
-from torch.distributed.checkpoint.state_dict import StateDictOptions
 from torchtune import config
 
 
@@ -52,10 +51,6 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(
-        not hasattr(StateDictOptions, "broadcast_from_rank0"),
-        reason="need latest pytorch nightly",
-    )
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
@@ -92,7 +87,6 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(True, reason="resolve FSDP2 optimizer state dict and enable")
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
         is model agnostic, we should run this on the small model only. The test
@@ -167,10 +161,6 @@ class TestLoRAFinetuneDistributedRecipe:
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
-    @pytest.mark.skipif(
-        not hasattr(StateDictOptions, "broadcast_from_rank0"),
-        reason="need latest pytorch nightly",
-    )
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
 

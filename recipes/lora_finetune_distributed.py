@@ -20,7 +20,6 @@ from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.checkpoint.state_dict import (
     get_optimizer_state_dict,
-    set_optimizer_state_dict,
     StateDictOptions,
 )
 
@@ -269,19 +268,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
-           a. To minimize GPU peak memory, we load the model on CPU with the right
-              dtype. To ensure that we don't instantiate ``world_size`` number of models,
-              we initialize on meta_device for all ranks other than rank 0.
-           b. Rank 0 is also responsible for calling ``load_state_dict`` and loading the
-              model weights from checkpoint.
-           c. While wrapping the model with FSDP, we set ``sync_module_states``
-              to TRUE and broadcast module params and buffers from rank 0.
-           d. The ``device_id`` param ensures that the FSDP initialization happens on
-              the correct device.
+           a. To minimize GPU peak memory, we initialize the model on meta device with
+              the right dtype
+           b. All ranks calls ``load_state_dict`` without peaking CPU RAMs since
+              full state dicts are loaded with ``torch.load(mmap=True)``
+           c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
 
         if self._is_rank_zero:
-            log.info("FSDP is enabled. Model init and checkpoint loading on Rank 0 ...")
+            log.info(
+                "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
+            )
             init_start = time.perf_counter()
 
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
@@ -349,7 +346,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if self._is_rank_zero:
             log.info(
-                f"Model init and checkpoint loading took {time.perf_counter() - init_start:.2f} secs"
+                f"Instantiating model and loading checkpoint took {time.perf_counter() - init_start:.2f} secs"
             )
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
@@ -364,13 +361,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
     ) -> Optimizer:
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
         if opt_state_dict:
-            set_optimizer_state_dict(
-                self._model,
+            utils.load_from_full_optimizer_state_dict(
                 optimizer,
-                optim_state_dict=opt_state_dict,
-                options=StateDictOptions(
-                    broadcast_from_rank0=True, full_state_dict=True
-                ),
+                opt_state_dict,
+                self._device,
             )
 
         if self._is_rank_zero:

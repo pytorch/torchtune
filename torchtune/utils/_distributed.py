@@ -18,9 +18,11 @@ try:
     from torch.distributed._composable.fsdp import FSDPModule
 except ImportError:
     from torch.distributed._composable.fsdp import FSDP as FSDPModule  # noqa: N811
-from torch.distributed._tensor import distribute_tensor
+from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.optim import Optimizer
 from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
@@ -278,6 +280,47 @@ def get_full_model_state_dict(
         else:
             del full_param
     return cpu_state_dict
+
+
+def load_from_full_optimizer_state_dict(
+    opt: Optimizer,
+    full_sd: Dict[str, Any],
+    device: torch.device,
+) -> Dict[str, Any]:
+    PARAMS = "params"  # noqa: N806
+    _init_optim_state(opt)
+    param_groups = opt.state_dict()["param_groups"]
+    state = opt.state_dict()["state"]
+
+    full_param_groups = full_sd["param_groups"]
+    full_state = full_sd["state"]
+
+    for param_group, full_param_group in zip(param_groups, full_param_groups):
+        for key, value in full_param_group.items():
+            if key == PARAMS:
+                continue
+            param_group[key] = value
+        for pid, full_pid in zip(param_group[PARAMS], full_param_group[PARAMS]):
+            if pid not in state:
+                continue
+            param_state = state[pid]
+            full_param_state = full_state[full_pid]
+            for attr, full_tensor in full_param_state.items():
+                sharded_tensor = param_state[attr]
+                if isinstance(sharded_tensor, DTensor):
+                    param_state[attr] = distribute_tensor(
+                        full_tensor,
+                        sharded_tensor.device_mesh,
+                        sharded_tensor.placements,
+                    )
+                else:
+                    param_state[attr] = full_tensor
+    opt.load_state_dict(
+        {
+            "param_groups": param_groups,
+            "state": state,
+        }
+    )
 
 
 def get_full_finetune_fsdp_wrap_policy(
