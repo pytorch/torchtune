@@ -27,6 +27,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
+from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_merged_lora_ckpt,
@@ -279,7 +280,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
             init_start = time.perf_counter()
 
-        with utils.set_default_dtype(self._dtype), self._device:
+        with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
         self.adapter_params = get_adapter_params(model)
@@ -295,13 +296,22 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m, offload_policy=CPUOffloadPolicy(pin_memory=True))
         fully_shard(model, offload_policy=CPUOffloadPolicy(pin_memory=True))
 
-        utils.load_from_full_model_state_dict(
-            model, base_model_state_dict, self._device, self._is_rank_zero
-        )
         if lora_weights_state_dict:
             utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
+        else:
+            with utils.set_default_dtype(self._dtype), self._device:
+                for m in model.modules():
+                    if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                        m.lora_a.to_empty(device=self._device)
+                        m.lora_b.to_empty(device=self._device)
+                        m.initialize_parameters()
+                    if isinstance(m, modules.RotaryPositionalEmbeddings):
+                        m.reset_parameters()
+        utils.load_from_full_model_state_dict(
+            model, base_model_state_dict, self._device, self._is_rank_zero
+        )
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)

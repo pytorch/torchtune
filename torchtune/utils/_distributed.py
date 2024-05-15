@@ -274,6 +274,8 @@ def get_full_model_state_dict(
     sharded_sd = model.state_dict()
     cpu_state_dict = {}
     for param_name, sharded_param in sharded_sd.items():
+        if sharded_param.device.type == "cpu":
+            sharded_param = sharded_param.to("cuda")
         full_param = sharded_param.full_tensor()
         if is_rank_zero:
             cpu_state_dict[param_name] = full_param.cpu()
