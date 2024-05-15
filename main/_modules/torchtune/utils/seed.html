@@ -457,9 +457,10 @@
             <span class="sa">f</span><span class="s2">&quot;Invalid seed value provided: </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">. Value must be in the range [</span><span class="si">{</span><span class="n">min_val</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">max_val</span><span class="si">}</span><span class="s2">]&quot;</span>
         <span class="p">)</span>
     <span class="n">local_seed</span> <span class="o">=</span> <span class="n">seed</span> <span class="o">+</span> <span class="n">rank</span>
-    <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s2">&quot;Setting manual seed to local seed </span><span class="si">{</span><span class="n">local_seed</span><span class="si">}</span><span class="s2">. Local seed is seed + rank = </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&quot;</span>
-    <span class="p">)</span>
+    <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">_log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Setting manual seed to local seed </span><span class="si">{</span><span class="n">local_seed</span><span class="si">}</span><span class="s2">. Local seed is seed + rank = </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2"> + </span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
 
     <span class="n">torch</span><span class="o">.</span><span class="n">manual_seed</span><span class="p">(</span><span class="n">local_seed</span><span class="p">)</span>
     <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">local_seed</span><span class="p">)</span>

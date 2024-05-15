@@ -405,15 +405,16 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">SummarizeTemplate</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">InstructDataset</span>
+<span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">instruct_dataset</span><span class="p">,</span> <span class="n">InstructDataset</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
 
 
 <div class="viewcode-block" id="samsum_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset">[docs]</a><span class="k">def</span> <span class="nf">samsum_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;samsum&quot;</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for summarization datasets and their variants from Hugging Face Datasets.</span>
@@ -434,6 +435,7 @@
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
+<span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        InstructDataset: dataset configured with source data and template</span>
@@ -446,12 +448,13 @@
 <span class="sd">        &gt;&gt;&gt; Batch size: 8</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">return</span> <span class="n">InstructDataset</span><span class="p">(</span>
+    <span class="k">return</span> <span class="n">instruct_dataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">template</span><span class="o">=</span><span class="n">SummarizeTemplate</span><span class="p">,</span>
+        <span class="n">template</span><span class="o">=</span><span class="s2">&quot;SummarizeTemplate&quot;</span><span class="p">,</span>
         <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;summary&quot;</span><span class="p">},</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
+        <span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">,</span>
         <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>

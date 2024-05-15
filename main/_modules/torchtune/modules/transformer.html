@@ -439,6 +439,7 @@
 <div class="viewcode-block" id="TransformerDecoderLayer.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoderLayer.html#torchtune.modules.TransformerDecoderLayer.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
         <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
@@ -446,10 +447,17 @@
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): input tensor with shape</span>
 <span class="sd">                [batch_size x seq_length x embed_dim]</span>
-<span class="sd">            mask (Optional[Tensor]): Optional tensor which contains the mask.</span>
-<span class="sd">                Only used during inference. Default is None.</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position</span>
-<span class="sd">                of the current token. This is only used during inference. Default is None</span>
+<span class="sd">            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask</span>
+<span class="sd">                with shape [batch_size x seq_length x seq_length]. This is applied after</span>
+<span class="sd">                the query-key multiplication and before the softmax. A value of True in row i</span>
+<span class="sd">                and column j means token i attends to token j. A value of False means token i</span>
+<span class="sd">                does not attend to token j. If no mask is specified, a causal mask</span>
+<span class="sd">                is used by default. Default is None.</span>
+<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">                of each token. During training, this is used to indicate the positions</span>
+<span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
+<span class="sd">                During inference, this indicates the position of the current token.</span>
+<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: output tensor with same shape as input</span>
@@ -466,7 +474,7 @@
         <span class="c1"># Input tensor and attention output have the same shape</span>
         <span class="c1"># [b, s, d]</span>
         <span class="c1"># Norm applied before self-attention</span>
-        <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">)</span>
+        <span class="n">attn_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">attn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sa_norm</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
         <span class="c1"># Residual connection; shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="n">attn_out</span> <span class="o">+</span> <span class="n">x</span>
@@ -575,12 +583,26 @@
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
             <span class="n">layer</span><span class="o">.</span><span class="n">attn</span><span class="o">.</span><span class="n">kv_cache</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="TransformerDecoder.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.TransformerDecoder.html#torchtune.modules.TransformerDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tokens</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span>
+        <span class="o">*</span><span class="p">,</span>
+        <span class="n">mask</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            tokens (Tensor): input tensor with shape [b x s]</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position</span>
-<span class="sd">                of the current token. This is only used during inference. Default is None</span>
+<span class="sd">            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask</span>
+<span class="sd">                with shape [b x s x s]. This is applied after the query-key multiplication and</span>
+<span class="sd">                before the softmax. A value of True in row i and column j means token i attends</span>
+<span class="sd">                to token j. A value of False means token i does not attend to token j. If no</span>
+<span class="sd">                mask is specified, a causal mask is used by default. Default is None.</span>
+<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">                of each token. During training, this is used to indicate the positions</span>
+<span class="sd">                of each token relative to its sample when packed, shape [b x s].</span>
+<span class="sd">                During inference, this indicates the position of the current token.</span>
+<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Note: At the very first step of inference, when the model is provided with a prompt,</span>
 <span class="sd">        ``input_pos`` would contain the positions of all of the tokens in the prompt</span>
@@ -606,19 +628,22 @@
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tok_embeddings</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 
-        <span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                     <span class="s2">&quot;Caches are setup, but the position of input token is missing&quot;</span>
                 <span class="p">)</span>
+            <span class="k">if</span> <span class="n">mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;An attention mask was set. Cannot use a non-causal mask for inference&quot;</span>
+                <span class="p">)</span>
             <span class="c1"># shape: [1, input_pos_len, m_s]</span>
             <span class="c1"># in most cases input_pos_len should be 1</span>
-            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_mask</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">]</span>
 
         <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">layers</span><span class="p">:</span>
             <span class="c1"># shape: [b, s, d]</span>
-            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">layer</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">mask</span><span class="o">=</span><span class="n">mask</span><span class="p">,</span> <span class="n">input_pos</span><span class="o">=</span><span class="n">input_pos</span><span class="p">)</span>
 
         <span class="c1"># shape: [b, s, d]</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>

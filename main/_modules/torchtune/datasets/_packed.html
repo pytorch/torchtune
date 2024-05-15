@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.datasets._chat &mdash; TorchTune main documentation</title>
+  <title>torchtune.datasets._packed &mdash; TorchTune main documentation</title>
   
 
   
@@ -366,7 +366,7 @@
         
           <li><a href="../../index.html">Module code</a> &gt;</li>
         
-      <li>torchtune.datasets._chat</li>
+      <li>torchtune.datasets._packed</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
@@ -398,187 +398,281 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <h1>Source code for torchtune.datasets._chat</h1><div class="highlight"><pre>
+  <h1>Source code for torchtune.datasets._packed</h1><div class="highlight"><pre>
 <span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
 <span class="c1"># All rights reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">functional</span> <span class="k">as</span> <span class="n">F</span>
 
-<span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_chat_format</span>
-<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">ChatFormat</span><span class="p">,</span>
-    <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
-    <span class="n">Message</span><span class="p">,</span>
-    <span class="n">openai_to_llama2_messages</span><span class="p">,</span>
-    <span class="n">sharegpt_to_llama2_messages</span><span class="p">,</span>
-    <span class="n">validate_messages</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">torchtune.datasets._packed</span> <span class="kn">import</span> <span class="n">PackedDataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.modules.tokenizers</span> <span class="kn">import</span> <span class="n">Tokenizer</span>
+<span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span>
+<span class="kn">from</span> <span class="nn">torchtune.utils</span> <span class="kn">import</span> <span class="n">get_world_size_and_rank</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
 
 
-<div class="viewcode-block" id="ChatDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset">[docs]</a><span class="k">class</span> <span class="nc">ChatDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="PackedDataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset">[docs]</a><span class="k">class</span> <span class="nc">PackedDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Class that supports any custom dataset with multiturn conversations.</span>
+<span class="sd">    Performs greedy sample packing on a provided dataset. This is done as a single</span>
+<span class="sd">    preprocessing step before training begins. Shuffling is done outside of this</span>
+<span class="sd">    class on packed samples with a ``Sampler`` as part of the dataloader. Currently,</span>
+<span class="sd">    this only supports in-memory map-style datasets.</span>
 
-<span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
-<span class="sd">    load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</span>
+<span class="sd">    The class loads, tokenizes, and packs examples on initialization - no tokenization is done during training.</span>
 
-<span class="sd">    If the column/key names differ from the expected names in the ``ChatFormat``,</span>
-<span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
+<span class="sd">    The general flow on initialization is: load tokenized sample -&gt; add to buffer -&gt;</span>
+<span class="sd">    when buffer is long enough, add to ``self.packs``.</span>
 
-<span class="sd">    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format</span>
-<span class="sd">    and roles::</span>
+<span class="sd">    During training, returns self.packs[idx] as input, label, attention mask, and</span>
+<span class="sd">    position ids. The attention mask is a lower triangular block mask to prevent</span>
+<span class="sd">    samples from cross-attending within a pack. The position ids indicate the position</span>
+<span class="sd">    of each token relative to its sample within a pack. These are all padded to max</span>
+<span class="sd">    sequence length, so a batch-wise collator is not needed.</span>
 
-<span class="sd">        [</span>
-<span class="sd">            Message(</span>
-<span class="sd">                role=&lt;system|user|assistant&gt;,</span>
-<span class="sd">                content=&lt;message&gt;,</span>
-<span class="sd">            ),</span>
-<span class="sd">            ...</span>
+<span class="sd">    A packed sample is made up of individual smaller sequence length samples jammed together</span>
+<span class="sd">    within ``max_seq_len``. For example, if max_seq_len is 6 and there are varied</span>
+<span class="sd">    length samples::</span>
+
+<span class="sd">        tokens = [</span>
+<span class="sd">            [S1, S1, S1, S2, S2, pad],</span>
+<span class="sd">            [S3, S3, S4, S4, pad, pad],</span>
+<span class="sd">            ...,</span>
 <span class="sd">        ]</span>
 
-<span class="sd">    This class supports multi-turn conversations. If a tokenizer sample with multiple</span>
-<span class="sd">    turns does not fit within ``max_seq_len`` then it is truncated.</span>
+<span class="sd">    To prevent cross-contamination, the following mask would be returned for the</span>
+<span class="sd">    first pack in the example::</span>
+
+<span class="sd">        mask = [</span>
+<span class="sd">            [1, 0, 0, 0, 0, 0],</span>
+<span class="sd">            [1, 1, 0, 0, 0, 0],</span>
+<span class="sd">            [1, 1, 1, 0, 0, 0],</span>
+<span class="sd">            [0, 0, 0, 1, 0, 0],</span>
+<span class="sd">            [0, 0, 0, 1, 1, 0],</span>
+<span class="sd">            [0, 0, 0, 0, 0, 1],</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    The position ids would be::</span>
+
+<span class="sd">        input_pos = [</span>
+<span class="sd">            [0, 1, 2, 0, 1, 2],</span>
+<span class="sd">            [0, 1, 0, 1, 2, 3],</span>
+<span class="sd">            ...,</span>
+<span class="sd">        ]</span>
+
+<span class="sd">    The identity matrix is used in the mask for pad tokens instead of a causal mask.</span>
+<span class="sd">    For position ids for pad tokens, we simply continue to increment from the previous</span>
+<span class="sd">    sample normally.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
-<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">        convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample</span>
-<span class="sd">            and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys</span>
-<span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual</span>
-<span class="sd">            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
-<span class="sd">            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
-<span class="sd">            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the</span>
-<span class="sd">            template do not match the column/key names in the dataset, use ``column_map`` to map them. For a list of all possible</span>
-<span class="sd">            chat formats, check out :ref:`chat_formats`. Default: None.</span>
-<span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
+<span class="sd">        ds (Dataset): dataset to sample pack. This should return a dictionary with field</span>
+<span class="sd">            &quot;tokens&quot; and &quot;labels&quot; containing the tokenized and label samples.</span>
+<span class="sd">        max_seq_len (int): Maximum number of tokens to pack</span>
+<span class="sd">        max_packs (Optional[int]): maximum number of packs. Default is None, which will create as many</span>
+<span class="sd">            packs as possible.</span>
+<span class="sd">        split_across_pack (bool): if the last sample in a pack does not fit in ``max_seq_len``,</span>
+<span class="sd">            split the sample into the next pack, or move it entirely to the beginning of the next pack.</span>
+<span class="sd">            For pre-training, typically this is set to True for general text completion. For</span>
+<span class="sd">            fine-tuning, typically this is set to False to avoid truncating sentences in instruct</span>
+<span class="sd">            tuning. Default is False.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="o">*</span><span class="p">,</span>
-        <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
-        <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-        <span class="n">convert_to_messages</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]],</span>
-        <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">ChatFormat</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ds</span><span class="p">:</span> <span class="n">Dataset</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">max_packs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">split_across_pack</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_messages</span> <span class="o">=</span> <span class="n">convert_to_messages</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span> <span class="o">=</span> <span class="n">chat_format</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ds</span> <span class="o">=</span> <span class="n">ds</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">=</span> <span class="n">max_seq_len</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span> <span class="o">=</span> <span class="n">train_on_input</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span> <span class="o">=</span> <span class="n">max_packs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_across_pack</span> <span class="o">=</span> <span class="n">split_across_pack</span>
+        <span class="c1"># where final samples will be held</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_pack</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_pack</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Iterate through the dataset. Use a buffer to hold samples until max_seq_len,</span>
+<span class="sd">        then append the buffer to self.packs as a single &quot;packed&quot; sample. Continue</span>
+<span class="sd">        until max_packs or end of dataset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># buffer to hold samples until they are long enough to be added to self.packs</span>
+        <span class="n">current_pack</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="p">[],</span>
+            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="p">}</span>
+        <span class="c1"># Keep track of what index the previous sample ends in case we need</span>
+        <span class="c1"># to end a pack early</span>
+        <span class="n">previous_sample_boundary</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="c1"># Only show progress bar on rank 0</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">rank</span> <span class="o">=</span> <span class="n">get_world_size_and_rank</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">pbar</span> <span class="o">=</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">),</span> <span class="n">desc</span><span class="o">=</span><span class="s2">&quot;Packing dataset&quot;</span><span class="p">,</span> <span class="n">dynamic_ncols</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ds</span><span class="p">:</span>
+            <span class="n">tokens</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
+            <span class="c1"># If the dataset outputs samples that are larger than the specified</span>
+            <span class="c1"># max_seq_len and we&#39;re unable to split it, user needs to modify</span>
+            <span class="c1"># one of the two parameters</span>
+            <span class="n">seq_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">seq_len</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_across_pack</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Dataset sample is too long (</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span><span class="si">}</span><span class="s2"> &gt; </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="si">}</span><span class="s2">). &quot;</span>
+                    <span class="s2">&quot;Please set `split_across_pack=True` or increase `max_seq_len`.&quot;</span>
+                <span class="p">)</span>
+
+            <span class="c1"># Create integer mask and position ids for current sample and extend</span>
+            <span class="c1"># current pack</span>
+            <span class="n">current_sample</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span>
+                <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+                <span class="c1"># Mask is simply a causal mask within this sample length</span>
+                <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tril</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">))],</span>
+                <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">seq_len</span><span class="p">)),</span>
+            <span class="p">}</span>
+            <span class="n">current_pack</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span> <span class="o">+</span> <span class="n">current_sample</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">current_pack</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
+            <span class="c1"># If the current pack is long enough, add it to self.packs and retain</span>
+            <span class="c1"># any truncated samples for next pack, if splitting samples</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span><span class="p">:</span>
+                <span class="n">current_pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_pack</span><span class="p">(</span>
+                    <span class="n">current_pack</span><span class="o">=</span><span class="n">current_pack</span><span class="p">,</span>
+                    <span class="n">boundary</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_across_pack</span>
+                    <span class="k">else</span> <span class="n">previous_sample_boundary</span><span class="p">,</span>
+                <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">pbar</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+            <span class="n">previous_sample_boundary</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># Add the last pack with remaining samples that did not fit in previous</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_packs</span>
+        <span class="p">):</span>
+            <span class="n">current_pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_pack</span><span class="p">(</span>
+                <span class="n">current_pack</span><span class="o">=</span><span class="n">current_pack</span><span class="p">,</span> <span class="n">boundary</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_add_pack</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">current_pack</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="n">boundary</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Pad and add the current pack to self.packs and return what&#39;s remaining.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># So far we&#39;ve kept a list of causal masks, one for each sample in the pack.</span>
+        <span class="c1"># Now we need to combine them into a single mask for the entire pack.</span>
+        <span class="n">packing_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="o">*</span><span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">])</span>
+        <span class="n">pack</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">][:</span><span class="n">boundary</span><span class="p">],</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">][:</span><span class="n">boundary</span><span class="p">],</span>
+            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">packing_mask</span><span class="p">[:</span><span class="n">boundary</span><span class="p">,</span> <span class="p">:</span><span class="n">boundary</span><span class="p">],</span>
+            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">][:</span><span class="n">boundary</span><span class="p">],</span>
+        <span class="p">}</span>
+
+        <span class="c1"># Resultant shapes after padding</span>
+        <span class="c1"># tokens: [max_seq_len, ]</span>
+        <span class="c1"># labels: [max_seq_len, ]</span>
+        <span class="c1"># mask: [max_seq_len, max_seq_len]</span>
+        <span class="c1"># input_pos: [max_seq_len, ]</span>
+        <span class="n">padded_pack</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pad_pack</span><span class="p">(</span><span class="n">pack</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">padded_pack</span><span class="p">)</span>
+
+        <span class="c1"># Keep sample that did not fit or got truncated for the next pack</span>
+        <span class="n">updated_pack</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">][</span><span class="n">boundary</span><span class="p">:],</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">][</span><span class="n">boundary</span><span class="p">:],</span>
+            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">packing_mask</span><span class="p">[</span><span class="n">boundary</span><span class="p">:,</span> <span class="n">boundary</span><span class="p">:]],</span>
+            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">current_pack</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">][</span><span class="n">boundary</span><span class="p">:],</span>
+        <span class="p">}</span>
+
+        <span class="k">return</span> <span class="n">updated_pack</span>
+
+    <span class="k">def</span> <span class="nf">_pad_pack</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">sample</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+        <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Pad a batch of packed sequences to max sequence length in the batch, and</span>
+<span class="sd">        convert integer lists to tensors. Account for attention mask and position</span>
+<span class="sd">        ids.</span>
+
+<span class="sd">        This is a sample-wise collator and should not be used with the dataloader.</span>
+
+<span class="sd">        Sample should look like::</span>
+<span class="sd">            {</span>
+<span class="sd">                &quot;tokens&quot;: List[int],</span>
+<span class="sd">                &quot;labels&quot;: List[int],</span>
+<span class="sd">                &quot;mask&quot;: Tensor,</span>
+<span class="sd">                &quot;input_pos&quot;: List[int],</span>
+<span class="sd">            }</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            sample (Dict[str, Any]): A dictionary containing tokens, labels, mask,</span>
+<span class="sd">                and position ids</span>
+<span class="sd">            padding_idx (int): Padding index for input ids. Defaults to 0.</span>
+<span class="sd">            ignore_idx (int): Padding index for labels. Defaults to -100.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Collated tokens, labels, mask, and position ids.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;mask&quot;</span><span class="p">]</span>
+        <span class="n">input_pos</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;input_pos&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Pad to max sequence length</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">tokens</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)),</span> <span class="n">value</span><span class="o">=</span><span class="n">padding_idx</span>
+        <span class="p">)</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">labels</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)),</span> <span class="n">value</span><span class="o">=</span><span class="n">ignore_idx</span>
+        <span class="p">)</span>
+        <span class="c1"># For attention mask, simply use identity matrix for the pad tokens</span>
+        <span class="n">mask_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">block_diag</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">mask_pad</span><span class="p">)</span>
+        <span class="c1"># For position ids, continue to increment for pad tokens</span>
+        <span class="n">next_pos</span> <span class="o">=</span> <span class="n">input_pos</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">input_pos_pad</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+            <span class="n">next_pos</span><span class="p">,</span> <span class="n">next_pos</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_pos</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="c1"># Do not go beyond max_seq_len - 1</span>
+        <span class="n">input_pos_pad</span> <span class="o">=</span> <span class="n">input_pos_pad</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="nb">max</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">input_pos</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+            <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">input_pos</span><span class="p">),</span>
+                <span class="n">input_pos_pad</span><span class="p">,</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">labels</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">input_pos</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">assert</span> <span class="n">tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span>
+            <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">,</span>
+            <span class="s2">&quot;mask&quot;</span><span class="p">:</span> <span class="n">mask</span><span class="p">,</span>
+            <span class="s2">&quot;input_pos&quot;</span><span class="p">:</span> <span class="n">input_pos</span><span class="p">,</span>
+        <span class="p">}</span>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-        <span class="n">sample</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_data</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_sample</span><span class="p">(</span><span class="n">sample</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_prepare_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]:</span>
-        <span class="n">messages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_messages</span><span class="p">(</span><span class="n">sample</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_on_input</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">messages</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">chat_format</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">validate_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
-        <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span>
-            <span class="n">messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">max_seq_len</span>
-        <span class="p">)</span>
-        <span class="c1"># Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens</span>
-        <span class="n">labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span> <span class="n">tokens</span><span class="p">))</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">tokens</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span></div>
-
-
-<div class="viewcode-block" id="chat_dataset"><a class="viewcode-back" href="../../../generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset">[docs]</a><span class="k">def</span> <span class="nf">chat_dataset</span><span class="p">(</span>
-    <span class="o">*</span><span class="p">,</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
-    <span class="n">source</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">conversation_style</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">chat_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build a configurable dataset with conversations. This method should be</span>
-<span class="sd">    used to configure a custom chat dataset from the yaml config instead of</span>
-<span class="sd">    using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
-<span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
-<span class="sd">            for automatic conversion to the Llama style. Supported styles are: &quot;sharegpt&quot;</span>
-<span class="sd">        chat_format (Optional[str]): name of ``ChatFormat`` class used to format the messages. See the description in</span>
-<span class="sd">            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,</span>
-<span class="sd">            check out :ref:`chat_formats`. Default: None.</span>
-<span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
-<span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
-<span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
-
-<span class="sd">    Examples:</span>
-<span class="sd">        &gt;&gt;&gt; from torchtune.datasets import chat_dataset</span>
-<span class="sd">        &gt;&gt;&gt; dataset = chat_dataset(</span>
-<span class="sd">        ...   tokenizer=tokenizer,</span>
-<span class="sd">        ...   source=&quot;HuggingFaceH4/no_robots&quot;,</span>
-<span class="sd">        ...   conversation_style=&quot;sharegpt&quot;,</span>
-<span class="sd">        ...   chat_format=ChatMLFormat,</span>
-<span class="sd">        ...   max_seq_len=2096,</span>
-<span class="sd">        ...   train_on_input=True</span>
-<span class="sd">        ... )</span>
-
-<span class="sd">    This can also be accomplished via the yaml config::</span>
-
-<span class="sd">        dataset:</span>
-<span class="sd">            _component_: torchtune.datasets.chat_dataset</span>
-<span class="sd">            source: HuggingFaceH4/no_robots</span>
-<span class="sd">            conversation_style: sharegpt</span>
-<span class="sd">            chat_format: ChatMLFormat</span>
-<span class="sd">            max_seq_len: 2096</span>
-<span class="sd">            train_on_input: True</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">        ChatDataset: the configured :class:`~torchtune.datasets.ChatDataset`</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">        ValueError: if the conversation format is not supported</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;sharegpt&quot;</span><span class="p">:</span>
-        <span class="n">convert_to_messages</span> <span class="o">=</span> <span class="n">sharegpt_to_llama2_messages</span>
-    <span class="k">elif</span> <span class="n">conversation_style</span> <span class="o">==</span> <span class="s2">&quot;openai&quot;</span><span class="p">:</span>
-        <span class="n">convert_to_messages</span> <span class="o">=</span> <span class="n">openai_to_llama2_messages</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unsupported conversation style: </span><span class="si">{</span><span class="n">conversation_style</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-    <span class="n">ds</span> <span class="o">=</span> <span class="n">ChatDataset</span><span class="p">(</span>
-        <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
-        <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">convert_to_messages</span><span class="p">,</span>
-        <span class="n">chat_format</span><span class="o">=</span><span class="n">_get_chat_format</span><span class="p">(</span><span class="n">chat_format</span><span class="p">)</span> <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="k">return</span> <span class="n">PackedDataset</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">)</span> <span class="k">if</span> <span class="n">packed</span> <span class="k">else</span> <span class="n">ds</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">packs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span></div>
 </pre></div>
 
              </article>

@@ -473,13 +473,16 @@
         <span class="n">cache</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">torch</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">),</span> <span class="n">torch</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">idx_theta</span><span class="p">)],</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;cache&quot;</span><span class="p">,</span> <span class="n">cache</span><span class="p">,</span> <span class="n">persistent</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
+<div class="viewcode-block" id="RotaryPositionalEmbeddings.forward"><a class="viewcode-back" href="../../../generated/torchtune.modules.RotaryPositionalEmbeddings.html#torchtune.modules.RotaryPositionalEmbeddings.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tensor</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Args:</span>
 <span class="sd">            x (Tensor): input tensor with shape</span>
 <span class="sd">                [bsz, seq_len, num_heads, head_dim]</span>
-<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position</span>
-<span class="sd">                of the current token. This is only used during inference. Default is None</span>
+<span class="sd">            input_pos (Optional[Tensor]): Optional tensor which contains the position ids</span>
+<span class="sd">                of each token. During training, this is used to indicate the positions</span>
+<span class="sd">                of each token relative to its sample when packed, shape [bsz, seq_len].</span>
+<span class="sd">                During inference, this indicates the position of the current token.</span>
+<span class="sd">                If none, assume the index of the token is its position id. Default is None.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: output tensor with RoPE applied</span>
@@ -496,8 +499,7 @@
         <span class="c1"># input tensor has shape [b, s, n_h, n_d]</span>
         <span class="n">seq_len</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
-        <span class="c1"># extract the values based on whether input_pos is set or not. When</span>
-        <span class="c1"># input_pos is provided, we&#39;re in inference mode</span>
+        <span class="c1"># extract the values based on whether input_pos is set or not</span>
         <span class="n">rope_cache</span> <span class="o">=</span> <span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[:</span><span class="n">seq_len</span><span class="p">]</span> <span class="k">if</span> <span class="n">input_pos</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">input_pos</span><span class="p">]</span>
         <span class="p">)</span>
@@ -508,8 +510,9 @@
         <span class="n">xshaped</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">float</span><span class="p">()</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># reshape the cache for broadcasting</span>
-        <span class="c1"># tensor has shape [1, s, 1, n_d // 2, 2]</span>
-        <span class="n">rope_cache</span> <span class="o">=</span> <span class="n">rope_cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># tensor has shape [b, s, 1, n_d // 2, 2] if packed samples,</span>
+        <span class="c1"># otherwise has shape [1, s, 1, n_d // 2, 2]</span>
+        <span class="n">rope_cache</span> <span class="o">=</span> <span class="n">rope_cache</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="n">xshaped</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># tensor has shape [b, s, n_h, n_d // 2, 2]</span>
         <span class="n">x_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span>
