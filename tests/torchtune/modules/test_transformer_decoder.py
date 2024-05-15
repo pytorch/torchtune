@@ -10,7 +10,7 @@ import pytest
 
 import torch
 
-from tests.test_utils import assert_expected, init_weights_with_constant
+from tests.test_utils import assert_expected
 
 from torch import nn, Tensor
 
@@ -90,7 +90,9 @@ class TestTransformerDecoderLayer:
             sa_norm=RMSNorm(dim=embed_dim),
             mlp_norm=RMSNorm(dim=embed_dim),
         )
-        init_weights_with_constant(transformer_layer, constant=0.05)
+        # TODO: fix weight initialization to use fixed_init_model
+        for p in transformer_layer.parameters():
+            nn.init.constant_(p, 0.05)
         transformer_layer.eval()
         return transformer_layer
 
@@ -178,7 +180,8 @@ class TestTransformerDecoder:
             max_seq_len=max_seq_len,
         )
         # TODO: fix weight initialization to use fixed_init_model
-        init_weights_with_constant(decoder, constant=0.2)
+        for p in decoder.parameters():
+            nn.init.constant_(p, 0.2)
         decoder.eval()
         return decoder
 
@@ -203,7 +206,8 @@ class TestTransformerDecoder:
             max_seq_len=max_seq_len,
         )
         # TODO: fix weight initialization to use fixed_init_model
-        init_weights_with_constant(decoder, constant=0.2)
+        for p in decoder.parameters():
+            nn.init.constant_(p, 0.2)
         decoder.eval()
         decoder.setup_caches(batch_size=4, dtype=torch.float32)
         return decoder
