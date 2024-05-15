@@ -25,8 +25,8 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.wikitext_dataset
+  max_seq_len: 8192
 seed: null
 shuffle: True
 
@@ -46,8 +46,8 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 2
-epochs: 3
+batch_size: 4
+epochs: 1
 
 optimizer:
   _component_: torch.optim.AdamW
@@ -72,8 +72,10 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.WandBLogger
   log_dir: ${output_dir}
+  project: torchtune
+  name: wikitext
 output_dir: /tmp/alpaca-llama3-finetune
 log_every_n_steps: 1
 log_peak_memory_stats: False

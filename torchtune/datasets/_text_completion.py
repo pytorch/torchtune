@@ -15,7 +15,7 @@ from torchtune.modules.tokenizers import Tokenizer
 class TextCompletionDataset(Dataset):
     """
     Freeform dataset for any unstructured text corpus. Quickly load any dataset
-    from Hugging Face or local disk and tokenize it correctly for your model.
+    from Hugging Face or local disk and tokenize it for your model.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
@@ -58,8 +58,6 @@ class TextCompletionDataset(Dataset):
 
         # No need to offset labels by 1 - happens in the recipe
         labels = tokens.copy()
-
-        assert len(tokens) == len(labels)
 
         return tokens, labels
 
