@@ -300,15 +300,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
-        else:
-            with utils.set_default_dtype(self._dtype), self._device:
-                for m in model.modules():
-                    if isinstance(m, LoRALinear) and not lora_weights_state_dict:
-                        m.lora_a.to_empty(device=self._device)
-                        m.lora_b.to_empty(device=self._device)
-                        m.initialize_parameters()
-                    if isinstance(m, modules.RotaryPositionalEmbeddings):
-                        m.reset_parameters()
+
+        with utils.set_default_dtype(self._dtype), self._device:
+            for m in model.modules():
+                if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                    m.lora_a.to_empty(device=self._device)
+                    m.lora_b.to_empty(device=self._device)
+                    m.initialize_parameters()
+                if isinstance(m, modules.RotaryPositionalEmbeddings):
+                    m.reset_parameters()
         utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
