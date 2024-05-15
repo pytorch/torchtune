@@ -196,14 +196,6 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
         self.total_epochs = self.num_steps // self.batch_size
 
-        # Learning rate scheduler can only be set up after number of steps
-        # has been computed
-        self._lr_scheduler = self._setup_lr_scheduler(
-            cfg_lr_scheduler=cfg.lr_scheduler,
-            num_training_steps=self.num_steps,
-            last_epoch=self.global_step - 1,
-        )
-
         # setup adaptive KL controller
         self.kl_controller = AdaptiveKLController(
             cfg.kl_init, cfg.kl_target, cfg.kl_horizon
@@ -475,6 +467,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                             if j % self._gradient_accumulation_steps == 0:
                                 self._optimizer.step()
+                                self._optimizer.zero_grad(set_to_none=True)
+
             self.save_checkpoint(epoch=curr_epoch)
             pbar.update(1)
             pbar.set_description(f"{curr_epoch+1}|{self.global_step}|reward: {loss}")

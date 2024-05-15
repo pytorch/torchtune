@@ -160,8 +160,6 @@ class TestTextGenerate:
             ],
         ]
 
-        print(torch.where(output != expected_output, output))
-
         assert output == expected_output
 
     def test_stop_tokens(self, generation_model, prompt_tokens):
