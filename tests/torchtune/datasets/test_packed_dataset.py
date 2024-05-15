@@ -237,7 +237,7 @@ class TestPackedDataset:
         torch.testing.assert_close(
             padded_label, torch.tensor([3, 7, ignore_idx, ignore_idx])
         )
-        torch.testing.assert_close(
+        assert torch.equal(
             padded_mask,
             torch.tensor(
                 [

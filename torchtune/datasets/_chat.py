@@ -131,7 +131,7 @@ def chat_dataset(
             check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
-        packed (bool): Whether or not to pack the dataset prior to training. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Examples:

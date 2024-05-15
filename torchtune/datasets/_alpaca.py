@@ -38,7 +38,7 @@ def alpaca_dataset(
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             Default is 512, but we recommend setting this to the highest you can fit in memory and
             is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        packed (bool): Whether or not to pack the dataset prior to training. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Returns:
         InstructDataset: dataset configured with source data and template

@@ -74,7 +74,7 @@ class PackedDataset(Dataset):
         max_packs (Optional[int]): maximum number of packs. Default is None, which will create as many
             packs as possible.
         split_across_pack (bool): if the last sample in a pack does not fit in ``max_seq_len``,
-            split the sample into the next pack, or move it to the beginning of the next pack.
+            split the sample into the next pack, or move it entirely to the beginning of the next pack.
             For pre-training, typically this is set to True for general text completion. For
             fine-tuning, typically this is set to False to avoid truncating sentences in instruct
             tuning. Default is False.

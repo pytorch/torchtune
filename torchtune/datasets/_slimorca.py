@@ -41,7 +41,7 @@ def slimorca_dataset(
             This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.
             Default is 1024.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
-        packed (bool): Whether or not to pack the dataset prior to training. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Raises:
         ValueError: If `max_seq_len` is less than 4.
