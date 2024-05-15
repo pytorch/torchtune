@@ -32,6 +32,7 @@ tokenizer:
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
+  max_seq_len: 64
 seed: null
 shuffle: True
 
@@ -71,6 +72,21 @@ ppo_epochs: 4
 ppo_batch_size: 2
 ppo_backward_batch_size: 2
 gradient_accumulation_steps: 1
+
+# ppo args
+gamma: 0.99
+lmbda: 0.95
+whiten_rewards: False
+# generation arguments
+max_generated_tokens: 32
+temperature: 0.7
+top_k: null
+top_p: 1.0
+
+# kl controller arguments
+kl_init: 0.2
+kl_target: 6
+kl_horizon: 10000
 
 optimizer:
   _component_: torch.optim.AdamW

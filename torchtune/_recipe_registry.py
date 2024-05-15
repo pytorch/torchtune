@@ -144,7 +144,7 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
-    # TODO @(SalmanMohammadi): rename
+    # TODO (SalmanMohammadi): rename
     Recipe(
         name="lora_ppo_single_device",
         file_path="lora_ppo_single_device.py",

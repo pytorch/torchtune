@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 from torch import nn, Tensor
@@ -129,14 +129,19 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
 
 class TransformerLMWithValueHead(nn.Module):
     def __init__(
-        self, decoder: TransformerDecoderWithHiddenOutput, output: nn.Linear
+        self,
+        decoder: TransformerDecoderWithHiddenOutput,
+        lm_output: nn.Linear,
+        embed_dim: int,
     ) -> None:
         super().__init__()
         self.decoder = decoder
-        self.output = output
-        self.value_head = nn.Linear(decoder.head_dim, 1)
+        self.lm_output = lm_output
+        self.value_head = nn.Linear(embed_dim, 1)
 
-    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self, tokens: Tensor, input_pos: Optional[Tensor] = None
+    ) -> Tuple[Tensor, Tensor]:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
@@ -165,11 +170,11 @@ class TransformerLMWithValueHead(nn.Module):
         h = self.decoder(tokens, input_pos)
 
         # shape: [b, s, v]
-        lm_output = self.output(h).float()
+        lm_out = self.lm_output(h).float()
 
         # shape: [b, s, 1]
-        value_output = self.value_head(h)
-        return lm_output, value_output
+        value_out = self.value_head(h)
+        return lm_out, value_out
 
 
 class TransformerLM(nn.Module):

@@ -6,13 +6,15 @@
 
 import sys
 
-# from copy import deepcopy
+from copy import deepcopy
 
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 
-import torch
+import numpy as np
 
+import torch
+import torch.nn.functional as F
 from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
@@ -22,6 +24,7 @@ from torchtune import config, modules, utils
 # from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import ConcatDataset
+from torchtune.models.mistral.utils import generate_next_token_with_value_head_model
 
 # from torchtune.modules.peft.peft_utils import (
 #     disable_adapter,
@@ -31,9 +34,28 @@ from torchtune.datasets import ConcatDataset
 #     validate_state_dict_for_lora,
 # )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils.pooling import pool_sequence_logits
+from torchtune.utils.ppo_utils import (
+    AdaptiveKLController,
+    estimate_advantages,
+    get_rewards,
+    whiten,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
+
+import scipy
+
+
+def discounted_cumsum(x: np.ndarray, gamma: float) -> np.ndarray:
+    """
+    rllab method for exponentially discounted cumulative sum of vectors.
+    Args:
+        x: A vector of length n [x0, x1, ..., xn]
+        gamma: discount factor in [0, 1]
+    """
+    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
 
 class LoRAPPORecipeSingleDevice(FTRecipeInterface):
@@ -116,13 +138,16 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             model_state_dict=model_checkpoint_dict[utils.MODEL_KEY],
             reward_model_state_dict=reward_model_checkpoint_dict[utils.MODEL_KEY],
         )
+        # setup response length
+        self.max_generated_tokens = cfg.max_generated_tokens
+        self._model.max_seq_len = self.max_generated_tokens
         # setup tokenizer
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
 
         # create a ref copy of the base model and disable grad
         # TODO dont need this if we use lora
-        # self._ref_model = deepcopy(self._model)
+        self._ref_model = deepcopy(self._model)
 
         # setup opt
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
@@ -135,7 +160,10 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         )
 
         # setup lossfn
-
+        # ppo args
+        self.gamma = cfg.gamma
+        self.lmbda = cfg.lmbda
+        self.whiten_rewards = cfg.whiten_rewards
         # TODO
 
         # sampler and dataloader depends on the tokenizer and should be set
@@ -151,6 +179,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         # batch_size - number of samples in a batch
         # ppo_epochs - number of epochs to optimise the policy over a batch of episodes
         # ppo_batch_size - number of minibatches (sampled from a single batch) to optimise the policy over
+        # max_generated_tokens - maximum number of tokens to generate in a single forward pass
         self.num_steps = cfg.num_steps
         self.batch_size = cfg.batch_size
         self.ppo_epochs = cfg.ppo_epochs
@@ -160,6 +189,10 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         )
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        self.temperature = cfg.temperature
+        self.top_k = cfg.top_k
+        self.top_p = cfg.top_p
+
         self.total_epochs = self.num_steps // self.batch_size
 
         # Learning rate scheduler can only be set up after number of steps
@@ -168,6 +201,11 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             cfg_lr_scheduler=cfg.lr_scheduler,
             num_training_steps=self.num_steps,
             last_epoch=self.global_step - 1,
+        )
+
+        # setup adaptive KL controller
+        self.kl_controller = AdaptiveKLController(
+            cfg.kl_init, cfg.kl_target, cfg.kl_horizon
         )
 
         self._profiler_enabled = cfg.profiler.enabled
@@ -288,55 +326,145 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
         return sampler, dataloader
 
-    def estimate_advantages(
-        self, rewards: torch.Tensor, values: torch.Tensor
-    ) -> torch.Tensor:
-        pass
-
     def train(self) -> None:
         """
         The core training loop."""
+        step_ = 0
         for curr_epoch in range(self.total_epochs):
             self._sampler.set_epoch(curr_epoch)
-            with self._profiler:
-                pbar = tqdm(total=self.num_steps)
-                for idx, batch in enumerate(self._dataloader):
-                    if self._profiler_enabled:
-                        self._profiler.step()
 
+            with self._profiler:
+
+                pbar = tqdm(total=self.num_steps)
+                batch = next(iter(self._dataloader))
+                if self._profiler_enabled:
+                    self._profiler.step()
+
+                # generating the current trajectory in inference mode
+                with torch.no_grad():
                     # this should support any dataset format
                     input_ids, *_ = batch
                     input_ids = input_ids.to(self._device)
 
-                    # policy and value estimates for the current optimisation step
+                    responses = utils.generate(
+                        model=self._model,
+                        prompt=input_ids,
+                        max_generated_tokens=self.max_generated_tokens,
+                        pad_id=self._tokenizer.pad_id,
+                        temperature=self.temperature,
+                        top_k=self.top_k,
+                        # generate until max_generated_tokens is reached
+                        stop_tokens=None,
+                        custom_generate_next_token=generate_next_token_with_value_head_model,
+                    )
+
+                    ref_responses = utils.generate(
+                        model=self._ref_model,
+                        prompt=input_ids,
+                        max_generated_tokens=self.max_generated_tokens,
+                        pad_id=self._tokenizer.pad_id,
+                        temperature=self.temperature,
+                        top_k=self.top_k,
+                        # generate until max_generated_tokens is reached
+                        stop_tokens=self._tokenizer.eos_id,
+                        custom_generate_next_token=generate_next_token_with_value_head_model,
+                    )
+
+                    # ref policy and value estimates for the current trajectory
                     # pi_{theta_old] and V_{phi_old}
-                    logits, v = self._model(input_ids)
+                    # [b, s, v], [b, s, 1]
+                    context_length = input_ids.shape[1]
+                    responses = torch.tensor(responses).to(self._device)
+                    logits, values = self._model(responses)
 
-                    # reference logits from reference model
-                    ref_logits = self._ref_model(input_ids)
+                    values = values[:, context_length - 1 : -1].squeeze(-1)
+                    logits = logits[:, context_length - 1 : -1]
+                    logits /= self.temperature
+                    # shape [b, s]
+                    logprobs = torch.gather(
+                        F.log_softmax(logits, dim=-1),
+                        2,
+                        responses[:, context_length:].unsqueeze(-1),
+                    ).squeeze(-1)
 
-                    # return for episode
-                    rewards = self._reward_model(input_ids)
+                    del logits
 
-                    advantages = self.estimate_advantages
+                    ref_responses = torch.tensor(ref_responses).to(self._device)
+                    ref_logits, _ = self._ref_model(responses)
 
-                    for cur_ppo_epoch in self.ppo_epochs:
-                        # TODO (SalmanMohammadi): Add support for early stopping
-                        # shuffle batch indices
-                        batch_idxs = torch.randperm(self.batch_size)
-                        for i in range(0, self.batch_size, self.ppo_batch_size):
-                            mini_batch_idxs = batch_idxs[i : i + self.ppo_batch_size]
-                            for j in range(
-                                0, self.ppo_batch_size, self.ppo_backward_batch_size
-                            ):
-                                # forward pass
-                                # grab preds, value estimates from policy at current batch optimisation step
-                                # loss function
-                                # loss.backward
-                                if j % self._gradient_accumulation_steps == 0:
-                                    self._optimizer.step()
+                    ref_logits = ref_logits[:, context_length - 1 : -1]
+                    ref_logits /= self.temperature
+                    # shape [b, s]
+                    ref_logprobs = torch.gather(
+                        F.log_softmax(ref_logits, dim=-1),
+                        2,
+                        responses[:, context_length:].unsqueeze(-1),
+                    ).squeeze(-1)
+
+                    del ref_logits
+
+                    # run reward model on query-response sequences: shape [b, 1]
+                    # TODO (SalmanMohammadi): Add support for _reward_model and _model using different tokenizers
+                    # TODO (SalmanMohammadi): use a classifier signature here rather than value head
+                    _, scores = self._reward_model(responses)
+                    scores = pool_sequence_logits(
+                        input_ids, scores, self._tokenizer.pad_id
+                    ).squeeze()
+                    rewards, kl, kl_rewards = get_rewards(
+                        scores, logprobs, ref_logprobs, self.kl_controller.value
+                    )
+
+                    if self.whiten_rewards:
+                        # shifting mean is disabled for rewards
+                        # https://github.com/huggingface/trl/blob/d1aa0b6b2c8dfd78c0f771759d1ff2469c0e5ed2/trl/trainer/ppo_trainer.py#L1155
+                        rewards = whiten(rewards)
+
+                    advantages, returns = estimate_advantages(
+                        values, rewards, self.gamma, self.lmbda
+                    )
+
+                for cur_ppo_epoch in self.ppo_epochs:
+                    # TODO (SalmanMohammadi): Add support for early stopping
+                    # shuffle batch indices every epoch
+                    batch_idxs = torch.randperm(self.batch_size)
+                    for i in range(0, self.batch_size, self.ppo_batch_size):
+                        mini_batch_idxs = batch_idxs[i : i + self.ppo_batch_size]
+                        for j in range(
+                            0, self.ppo_batch_size, self.ppo_backward_batch_size
+                        ):
+                            backward_batch_idxs = mini_batch_idxs[
+                                j : j + self.ppo_backward_batch_size
+                            ]
+
+                            backward_returns = returns[backward_batch_idxs]
+                            backward_advantages = advantages[backward_batch_idxs]
+                            backward_logprobs = logprobs[backward_batch_idxs]
+                            backward_responses = responses[backward_batch_idxs]
+                            backward_values = values[backward_batch_idxs]
+
+                            # policy and value estimates for the current optimisation step
+                            # pi_{theta] and V_{phi}
+                            # [b, s, v], [b, s, 1]
+                            pi_logits, phi_output = self._model(backward_responses)
+                            pi_logits = pi_logits[:, context_length - 1 : -1]
+                            pi_logits /= self.temperature
+                            pi_logprobs = F.log_softmax(pi_logits, dim=-1)
+
+                            phi_output = phi_output[:, context_length - 1 : -1].squeeze(
+                                -1
+                            )
+
+                            # forward pass
+
+                            # grab preds, value estimates from policy at current batch optimisation step
+                            # loss function
+                            # loss.backward
+                            if j % self._gradient_accumulation_steps == 0:
+                                self._optimizer.step()
 
             self.save_checkpoint(epoch=curr_epoch)
+            pbar.update(1)
+            pbar.set_description(f"{curr_epoch+1}|{self.global_step}|reward: {reward}")
 
             # sample queries and rewards from dataset
             # sample reference outputs
@@ -353,17 +481,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             # 		    if j % grad_accm_steps == 0:
             # 			    optimizer.step()
 
-        # # grab queries, responses, scores
-        # queries [seq_len], responses [response_len], scores [response_len]
-        # maybe config can have a
-        # reward:
-        #   some specification of a reward source
-        #   these will be something we pre-specify, like from a dataset,
-        #   or even some custom metric
-        #   or a reward model
-        #   maybe in setup we can have a get_rewards(ppo_config)
-        #   which will assume either a specific dataset format, or a reward model
-        #
+            # log shit, save checkpoints, update kl controller
         pass
 
     def cleanup(self, **kwargs) -> None:
@@ -383,7 +501,7 @@ def recipe_main(cfg: DictConfig) -> None:
     print(cfg.checkpointer.output_dir)
     recipe = LoRAPPORecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
-    # recipe.train()
+    recipe.train()
     # recipe.cleanup()
 
 

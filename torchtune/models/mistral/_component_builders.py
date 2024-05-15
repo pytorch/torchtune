@@ -18,7 +18,7 @@ from torchtune.modules import (
     TransformerDecoder,
     TransformerDecoderLayer,
 )
-from torchtune.models.mistral.transformer import (
+from torchtune.models.mistral.modules.transformer import (
     TransformerDecoderWithHiddenOutput,
     TransformerLMWithValueHead,
     TransformerLM,
@@ -777,5 +777,5 @@ def mistral_lm_with_value_head(
         head_dim=head_dim,
         norm=RMSNorm(embed_dim, eps=norm_eps),
     )
-    output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-    return TransformerLMWithValueHead(decoder=decoder, output=output_proj)
+    lm_output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
+    return TransformerLMWithValueHead(decoder=decoder, lm_output=lm_output_proj, embed_dim=embed_dim)

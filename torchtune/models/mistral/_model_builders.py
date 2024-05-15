@@ -10,12 +10,12 @@ from torchtune.models.mistral._component_builders import (
     lora_mistral,
     mistral_classifier,
     lora_mistral_classifier,
-    # TODO @(SalmanMohammadi): remove
+    # TODO (SalmanMohammadi): remove
     mistral_lm,
     mistral_lm_with_value_head,
 )
 
-from torchtune.models.mistral.transformer import TransformerLM, TransformerLMWithValueHead
+from torchtune.models.mistral.modules.transformer import TransformerLM, TransformerLMWithValueHead
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.tokenizers import SentencePieceTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -216,7 +216,7 @@ def mistral_7b_lm() -> TransformerLM:
     )
 
 
-# TODO @(SalmanMohammadi): remove
+# TODO (SalmanMohammadi): remove
 
 from torchtune.models.mistral import mistral_lm_with_value_head
 
