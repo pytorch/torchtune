@@ -316,9 +316,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 fully_shard(m)
         fully_shard(model)
 
-        utils.load_from_full_model_state_dict(
-            model, base_model_state_dict, self._device, self._is_rank_zero
-        )
         if lora_weights_state_dict:
             utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
@@ -332,7 +329,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     m.initialize_parameters()
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
-        model = model.to(self._device)
+
+        utils.load_from_full_model_state_dict(
+            model, base_model_state_dict, self._device, self._is_rank_zero
+        )
 
         if self._dtype == torch.bfloat16:
             model = model.to(torch.bfloat16)
