@@ -135,6 +135,6 @@ class TestChatDataset:
         assert len(ds) == 1
         mock_load_dataset.assert_called_once()
 
-        prompt, label = ds[0]
+        prompt, label = ds[0]["tokens"], ds[0]["labels"]
         assert prompt == expected_tokenized_prompts[0]
         assert label == expected_labels[0]
