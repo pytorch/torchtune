@@ -83,10 +83,17 @@ class GemmaTransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
-    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self,
+        tokens: Tensor,
+        *,
+        mask: Optional[Tensor],
+        input_pos: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
+            mask (Optional[Tensor]): Optional tensor which contains the attention mask.
             input_pos (Optional[Tensor]): Optional tensor which contains the position
                 of the current token. This is only used during inference. Default is None
 
@@ -108,11 +115,14 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        mask = None
         if self.causal_mask is not None:
             if input_pos is None:
                 raise ValueError(
                     "Caches are setup, but the position of input token is missing"
+                )
+            if mask is not None:
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
                 )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1

@@ -72,13 +72,16 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [bsz, seq_len, num_heads, head_dim]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [bsz, seq_len].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -95,8 +98,7 @@ class RotaryPositionalEmbeddings(nn.Module):
         # input tensor has shape [b, s, n_h, n_d]
         seq_len = x.size(1)
 
-        # extract the values based on whether input_pos is set or not. When
-        # input_pos is provided, we're in inference mode
+        # extract the values based on whether input_pos is set or not
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
@@ -107,8 +109,9 @@ class RotaryPositionalEmbeddings(nn.Module):
         xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
 
         # reshape the cache for broadcasting
-        # tensor has shape [1, s, 1, n_d // 2, 2]
-        rope_cache = rope_cache.view(1, xshaped.size(1), 1, xshaped.size(3), 2)
+        # tensor has shape [b, s, 1, n_d // 2, 2] if packed samples,
+        # otherwise has shape [1, s, 1, n_d // 2, 2]
+        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
 
         # tensor has shape [b, s, n_h, n_d // 2, 2]
         x_out = torch.stack(

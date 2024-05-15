@@ -125,7 +125,7 @@ class TestInstructDataset:
         mock_load_dataset.assert_called_once()
 
         for i in range(len(dataset)):
-            prompt, label = dataset[i]
+            prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
 
@@ -145,6 +145,6 @@ class TestInstructDataset:
         mock_load_dataset.assert_called_once()
 
         for i in range(len(dataset)):
-            prompt, label = dataset[i]
+            prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
