@@ -98,7 +98,12 @@ lr_scheduler:
   num_warmup_steps: 100
 
 loss:
-  _component_: torch.nn.CrossEntropyLoss
+  _component_: torchtune.modules.loss.PPOLoss
+  gamma: 0.99
+  lmbda: 0.95
+  epsilon: 0.2
+  value_coeff: 0.5
+  value_clip_range: 0.1
 
 # Training env
 device: mps

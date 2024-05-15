@@ -159,12 +159,12 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        # setup lossfn
-        # ppo args
-        self.gamma = cfg.gamma
-        self.lmbda = cfg.lmbda
+        # GAE hyperparameters
+        self.gamma = cfg.loss.gamma
+        self.lmbda = cfg.loss.lmbda
         self.whiten_rewards = cfg.whiten_rewards
-        # TODO
+        self._loss_fn = config.instantiate(cfg.loss)
+        log.info("Loss is initialized.")
 
         # sampler and dataloader depends on the tokenizer and should be set
         # setup afterit is initialized
@@ -189,6 +189,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         )
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
+        # trajectory generation args
         self.temperature = cfg.temperature
         self.top_k = cfg.top_k
         self.top_p = cfg.top_p
@@ -370,11 +371,14 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                         custom_generate_next_token=generate_next_token_with_value_head_model,
                     )
 
+                    # TODO pad out responses to max_generated_tokens
+
                     # ref policy and value estimates for the current trajectory
                     # pi_{theta_old] and V_{phi_old}
                     # [b, s, v], [b, s, 1]
                     context_length = input_ids.shape[1]
                     responses = torch.tensor(responses).to(self._device)
+                    # TODO (SalmanMohammadi) implement minibatch model forward pass
                     logits, values = self._model(responses)
 
                     values = values[:, context_length - 1 : -1].squeeze(-1)
@@ -390,6 +394,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     del logits
 
                     ref_responses = torch.tensor(ref_responses).to(self._device)
+                    # TODO (SalmanMohammadi) implement minibatch model forward pass
                     ref_logits, _ = self._ref_model(responses)
 
                     ref_logits = ref_logits[:, context_length - 1 : -1]
@@ -423,7 +428,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                         values, rewards, self.gamma, self.lmbda
                     )
 
-                for cur_ppo_epoch in self.ppo_epochs:
+                for cur_ppo_epoch in range(self.ppo_epochs):
                     # TODO (SalmanMohammadi): Add support for early stopping
                     # shuffle batch indices every epoch
                     batch_idxs = torch.randperm(self.batch_size)
@@ -444,45 +449,36 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                             # policy and value estimates for the current optimisation step
                             # pi_{theta] and V_{phi}
-                            # [b, s, v], [b, s, 1]
+                            # TODO (SalmanMohammadi) implement minibatch model forward pass
                             pi_logits, phi_output = self._model(backward_responses)
                             pi_logits = pi_logits[:, context_length - 1 : -1]
                             pi_logits /= self.temperature
-                            pi_logprobs = F.log_softmax(pi_logits, dim=-1)
+                            pi_logprobs = torch.gather(
+                                F.log_softmax(pi_logits, dim=-1),
+                                2,
+                                backward_responses[:, context_length:].unsqueeze(-1),
+                            ).squeeze(-1)
 
                             phi_output = phi_output[:, context_length - 1 : -1].squeeze(
                                 -1
                             )
 
-                            # forward pass
+                            loss, policy_loss, value_loss = self._loss_fn(
+                                backward_logprobs,
+                                pi_logprobs,
+                                backward_advantages,
+                                backward_values,
+                                backward_returns,
+                            )
 
-                            # grab preds, value estimates from policy at current batch optimisation step
-                            # loss function
-                            # loss.backward
+                            # grab some some stats for logging
+
                             if j % self._gradient_accumulation_steps == 0:
                                 self._optimizer.step()
-
             self.save_checkpoint(epoch=curr_epoch)
             pbar.update(1)
-            pbar.set_description(f"{curr_epoch+1}|{self.global_step}|reward: {reward}")
-
-            # sample queries and rewards from dataset
-            # sample reference outputs
-            # sample responses and value estimations from current policy
-            # for ppo_epoch in ppo_eoppchs:
-            #   break condition
-            #   shuffle batch indiex
-            #   for i in 0, batch_size, step=mini_batch_size:
-            # 	    for j in 0, mini_batch_size, step=micro_batch_size:
-            # 		    #forward pass - grab preds, value estimates
-            # 		    #from policy at current batch optimisation step
-            # 		    # loss fn
-            # 		    # loss.backward
-            # 		    if j % grad_accm_steps == 0:
-            # 			    optimizer.step()
-
-            # log shit, save checkpoints, update kl controller
-        pass
+            pbar.set_description(f"{curr_epoch+1}|{self.global_step}|reward: {loss}")
+            self.kl_controller.step(kl, curr_epoch)
 
     def cleanup(self, **kwargs) -> None:
         self._metric_logger.close()
@@ -502,7 +498,7 @@ def recipe_main(cfg: DictConfig) -> None:
     recipe = LoRAPPORecipeSingleDevice(cfg=cfg)
     recipe.setup(cfg=cfg)
     recipe.train()
-    # recipe.cleanup()
+    recipe.cleanup()
 
 
 if __name__ == "__main__":
