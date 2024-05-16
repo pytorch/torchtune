@@ -28,7 +28,7 @@ class AdaptiveKLController:
         self.target = target
         self.horizon = horizon
 
-    def update(self, current, n_steps) -> None:
+    def update(self, current: float, n_steps: int) -> None:
         """
         Updates the KL coefficient value based on the current KL value and the number of steps.
 
@@ -73,7 +73,6 @@ def get_rewards(
     # 3. calculate total reward by summing above
     # return all
     kl = logprobs - ref_logprobs
-
     kl_reward = -kl_controller_value * kl
 
     total_reward = kl_reward.clone()

@@ -38,10 +38,15 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.mistral.mistral_test_lm_value_head
+  _component_: torchtune.models.mistral.lora_mistral_test_lm_with_value_head
+  lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
 
 reward_model:
-  _component_: torchtune.models.mistral.mistral_test_lm_value_head
+  _component_: torchtune.models.mistral.mistral_test_with_lm_value_head
 
 checkpointer:
   _component_: torchtune.utils.FullModelTorchTuneCheckpointer
@@ -66,10 +71,10 @@ resume_from_checkpoint: False
 output_dir: target/
 
 # Fine-tuning arguments
-batch_size: 2
+batch_size: 64
 num_steps: 10000
 ppo_epochs: 4
-ppo_batch_size: 2
+ppo_batch_size: 4
 ppo_backward_batch_size: 2
 gradient_accumulation_steps: 1
 
@@ -84,7 +89,7 @@ top_k: null
 top_p: 1.0
 
 # kl controller arguments
-kl_init: 0.2
+init_kl_coef: 0.2
 kl_target: 6
 kl_horizon: 10000
 
@@ -109,9 +114,6 @@ enable_activation_checkpointing: True
 
 # Reduced precision
 dtype: fp32
-
-# Model compilation
-compile: False
 
 # Logging
 metric_logger:

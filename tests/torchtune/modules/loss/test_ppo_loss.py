@@ -39,7 +39,7 @@ class TestPPOLoss:
         )
 
         # ratio will be clipped between 1 - epsilon, 1 + epsilon
-        # ppo objective becomes advantages * (1 - epsilon) or  (1 + epsilon),
+        # ppo objective becomes advantages * (1 - epsilon) or  advantages * (1 + epsilon),
         # which is < advantages * unclipped ratios
         # policy loss is max (-ppo objective, -advantages * unclipped ratios)
         expected_loss = -advantages.mean()
