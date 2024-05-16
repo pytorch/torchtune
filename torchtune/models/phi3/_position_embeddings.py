@@ -96,9 +96,9 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         )
 
         # reshape the cache for broadcasting
-        # tensor has shape [b, s, 1, h_d] if packed samples,
-        # otherwise has shape [1, s, 1, h_d]
-        rope_cache = rope_cache.view(-1, seq_len, 1, head_dim)
+        # tensor has shape [b, s, 1, h_d * 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d * 2]
+        rope_cache = rope_cache.view(-1, seq_len, 1, head_dim * 2)
 
         # [b, s, 1, h_d]
         cos = rope_cache[..., :head_dim]
@@ -110,7 +110,5 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
 
         # cos: [b, s, 1, h_d]
         # x: [b, s, n_h, h_d]
-        # For the matrix multiplication to line up, transpose the input
-        # and the rotated input
-        x_out = (x.transpose(1, 2) * cos) + (rotated.transpose(1, 2) * sin)
-        return x_out.transpose(1, 2).type_as(x)
+        x_out = (x * cos) + (rotated * sin)
+        return x_out.type_as(x)
