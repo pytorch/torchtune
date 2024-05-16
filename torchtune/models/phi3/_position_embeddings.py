@@ -69,9 +69,12 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         """
         Args:
             x (Tensor): input tensor with shape
-                [bsz, seq_len, num_heads, head_dim]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+                [b, s, n_h, h_d]
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b, s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied
