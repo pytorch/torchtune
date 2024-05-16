@@ -20,7 +20,7 @@ from tests.test_utils import CKPT_MODEL_PATHS
 
 class TestEleutherEval:
     @pytest.mark.integration_test
-    def test_torchtune_checkpoint_eval_results(self, caplog, monkeypatch, tmpdir):
+    def test_torchtune_checkpoint_eval_results(self, capsys, monkeypatch, tmpdir):
         ckpt = "small_test_ckpt_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
@@ -47,10 +47,11 @@ class TestEleutherEval:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        err_log = caplog.messages[-1]
-        log_search_results = re.search(r"'acc,none': (\d+\.\d+)", err_log)
-        assert log_search_results is not None
-        acc_result = float(log_search_results.group(1))
+        out = capsys.readouterr().out
+
+        search_results = re.search(r"acc(?:_norm)?\s*\|?\s*([\d.]+)", out.strip())
+        assert search_results is not None
+        acc_result = float(search_results.group(1))
         assert math.isclose(acc_result, 0.3, abs_tol=0.05)
 
     @pytest.fixture
