@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 
@@ -17,6 +18,7 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import init_process_group
 from torch.distributed.fsdp import (
+    CPUOffload,
     FullOptimStateDictConfig,
     FullStateDictConfig,
     FullyShardedDataParallel as FSDP,
@@ -186,6 +188,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
             memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
+            fsdp_cpu_offload=cfg.get("fsdp_cpu_offload", False),
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -234,6 +237,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
         memory_efficient_fsdp_wrap: bool,
+        fsdp_cpu_offload: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -296,6 +300,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
                 modules_to_wrap={modules.TransformerDecoderLayer},
             ),
+            cpu_offload=CPUOffload(offload_params=fsdp_cpu_offload),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -563,6 +568,10 @@ def recipe_main(cfg: DictConfig) -> None:
         )
 
     init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    if cfg.get("fsdp_cpu_offload", False):
+        threads = os.cpu_count() // torch.distributed.get_world_size()
+        torch.set_num_threads(threads)
+        log.info(f"Set intra op parallelism no. of threads to {threads}")
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
