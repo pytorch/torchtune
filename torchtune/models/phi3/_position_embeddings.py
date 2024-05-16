@@ -95,15 +95,20 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
 
-        # [s, h_d]
-        cos = rope_cache[:, :head_dim]
-        sin = rope_cache[:, head_dim:]
+        # reshape the cache for broadcasting
+        # tensor has shape [b, s, 1, h_d] if packed samples,
+        # otherwise has shape [1, s, 1, h_d]
+        rope_cache = rope_cache.view(-1, seq_len, 1, head_dim)
+
+        # [b, s, 1, h_d]
+        cos = rope_cache[..., :head_dim]
+        sin = rope_cache[..., head_dim:]
 
         x1 = x[..., : x.shape[-1] // 2]
         x2 = x[..., x.shape[-1] // 2 :]
         rotated = torch.cat((-x2, x1), dim=-1)
 
-        # cos: [s, h_d]
+        # cos: [b, s, 1, h_d]
         # x: [b, s, n_h, h_d]
         # For the matrix multiplication to line up, transpose the input
         # and the rotated input
