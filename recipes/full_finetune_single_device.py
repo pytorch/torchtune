@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 from functools import partial
@@ -260,7 +261,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             log.info("Compiling model with torch.compile...")
-            model = utils.wrap_compile(model)
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            model.compile(backend=backend)
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
