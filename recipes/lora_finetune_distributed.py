@@ -311,8 +311,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        for m in model.modules():
-            if isinstance(m, modules.TransformerDecoderLayer):
+        for m in reversed(list(model.modules())):
+            if (
+                isinstance(m, nn.Linear)
+                and m.weight.requires_grad
+                or isinstance(m, modules.TransformerDecoderLayer)
+            ):
                 fully_shard(m)
         fully_shard(model)
 
