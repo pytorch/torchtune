@@ -10,61 +10,50 @@ from sentencepiece import SentencePieceProcessor
 from torchtune.data._types import Message
 from torchtune.data._utils import truncate
 
-WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
-
-class Tokenizer:
+class Phi3MiniSentencePieceTokenizer:
     """A wrapper around SentencePieceProcessor.
 
     Args:
-        spm_model (SentencePieceProcessor): The SentencePiece model.
-        vocab_size (int): The size of the vocabulary.
-        bos_id (int): The ID of the beginning-of-sentence token.
-        eos_id (int): The ID of the end-of-sentence token.
-        pad_id (int): The ID of the padding token.
+        path (str): Path to pretrained tokenizer file.
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = Tokenizer.from_file("/path/to/spm_model")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = SentencePieceTokenizer("/path/to/spm_model")
+        >>> tokenized_text = SentencePieceTokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
         self,
-        spm_model: SentencePieceProcessor,
-        vocab_size: int,
-        bos_id: int,
-        eos_id: int,
-        pad_id: int,
+        path: str,
     ):
+        spm_model = SentencePieceProcessor()
+        spm_model.load(path)
         self.spm_model = spm_model
-        self.vocab_size = vocab_size
-        self.bos_id = bos_id
-        self.eos_id = eos_id
-        self.pad_id = pad_id
 
-        # This is used in tokenize_messages: if the tokenizer does not
-        # encode whitespace, then we can more easily split strings
-        # on whitespace characters and encode them separately.
-        self.encodes_whitespace = any(
-            [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
-        )
+        self.special_tokens = {
+            "<|endoftext|>": 32000,
+            "<|assistant|>": 32001,
+            "<|placeholder1|>": 32002,
+            "<|placeholder2|>": 32003,
+            "<|placeholder3|>": 32004,
+            "<|placeholder4|>": 32005,
+            "<|system|>": 32006,
+            "<|end|>": 32007,
+            "<|placeholder5|>": 32008,
+            "<|placeholder6|>": 32009,
+            "<|user|>": 32010,
+        }
 
-    @classmethod
-    def from_file(cls, path: str) -> "Tokenizer":
-        """Initialize a `Tokenizer` instance from a SentencePiece model file.
+        self.vocab_size = spm_model.vocab_size()
+        self.bos_id = spm_model.bos_id()
+        self.eos_id = self.special_tokens["<|endoftext|>"]
+        self.pad_id = self.special_tokens["<|endoftext|>"]
 
-        Args:
-            path (str): The path to the SentencePiece model file.
-
-        Returns:
-            Tokenizer: A `Tokenizer` instance.
-        """
-        spm = SentencePieceProcessor()
-        spm.load(path)
-        return cls(spm, spm.vocab_size(), spm.bos_id(), spm.eos_id(), spm.pad_id())
+        # During generation, stop when eos_id is encountered
+        self.stop_tokens = [self.eos_id]
 
     def encode(
         self,
@@ -121,21 +110,27 @@ class Tokenizer:
         Returns:
             str: The decoded text.
         """
-        return self.spm_model.decode(ids)
+        ids_for_decode = []
+        for token_id in ids:
+            if token_id in self.special_tokens.values():
+                continue
+            else:
+                ids_for_decode.append(token_id)
+        return self.spm_model.decode(ids_for_decode)
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
+        max_seq_len: Optional[int] = None,
+        *,
+        add_eos: bool = False,
+        ignore_system_prompts: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-        Note: llama2 sentencepiece has problems where in general
-        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
-        We can get around this by prepending s2 with a known token and slicing the
-        beginning off the tokenized s2.
-
         Example:
-            >>> tokenizer = Tokenizer.from_file(tokenizer_path)
+            >>> tokenizer = SentencePieceTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -156,6 +151,11 @@ class Tokenizer:
                 and masked attributes.
             max_seq_len (Optional[int]): A max sequence length to truncate tokens to.
                 Default: None
+            add_eos (bool): Whether to append EOS after assistant message, default to False
+            ignore_system_prompts (bool): Whether to ignore system prompts. This matches the HF implementation, default to True.
+
+        Raises:
+            ValueError: If the role is not "user", "assistant", or "system".
 
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
@@ -165,38 +165,54 @@ class Tokenizer:
         prev_ends_with_space = False
         tokenized_messages = []
         mask = []
-        for message in messages:
-            # If assistant message, this is the end of a turn
-            end_of_turn = message.role == "assistant"
 
+        # The chat template in HF adds a bunch of newlines
+        new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
+
+        for message in messages:
             # Prepend BOS on start of new turns
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
                 mask.append(message.masked)
 
-            # We want to trim leading whitespace on the next message when
-            # (a) it is a continuation of the turn (i.e. not the first message)
-            # (b) the vocabulary explicitly encodes whitespace characters, and
-            # (c) the previous message did not end with a space
-            trim_leading_whitespace = (
-                (not start_of_turn)
-                and self.encodes_whitespace
-                and not prev_ends_with_space
-            )
+            # Add special tokens
+            if message.role == "user":
+                tokenized_messages.append(self.special_tokens["<|user|>"])
+                mask.append(message.masked)
+            elif message.role == "assistant":
+                tokenized_messages.append(self.special_tokens["<|assistant|>"])
+                # If assistant message, this is the end of a turn
+                end_of_turn = True
+                mask.append(message.masked)
+            elif message.role == "system":
+                if ignore_system_prompts:
+                    continue
+                else:
+                    tokenized_messages.append(self.special_tokens["<|system|>"])
+                    mask.append(message.masked)
+            else:
+                raise ValueError(
+                    f"Unknown role '{message.role}' for message: '{message.content}'"
+                )
+
+            # Add new line token
+            tokenized_messages.extend(new_line_token_id)
+            mask.extend([message.masked] * len(new_line_token_id))
 
             # Tokenize current message, append with masks
             tokens = self.encode(
                 message.content.rstrip(" "),
                 add_bos=False,
                 add_eos=False,
-                trim_leading_whitespace=trim_leading_whitespace,
+                trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
             )
+            tokens = tokens + [self.special_tokens["<|end|>"]] + new_line_token_id
             prev_ends_with_space = message.content.endswith(" ")
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 
             # If assistant message, append EOS at end
-            if end_of_turn:
+            if end_of_turn and add_eos:
                 tokenized_messages.append(self.eos_id)
                 mask.append(message.masked)
                 end_of_turn = False
@@ -209,7 +225,7 @@ class Tokenizer:
                 break
 
         # Finally, truncate if necessary
-        if max_seq_len:
+        if max_seq_len and len(tokenized_messages) >= max_seq_len:
             tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, message.masked)
 

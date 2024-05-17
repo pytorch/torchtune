@@ -47,6 +47,25 @@ You could tweak :code:`max_seq_len` to achieve that directly from the config.
     # Original is 512
     max_seq_len: 256
 
+It is also possible to train on multiple datasets by combining them into a single :class:`~torchtune.datasets.ConcatDataset`. For example:
+
+.. code-block:: yaml
+
+  dataset:
+    - _component_: torchtune.datasets.instruct_dataset
+      source: vicgalle/alpaca-gpt4
+      template: AlpacaInstructTemplate
+      split: train
+      train_on_input: True
+    - _component_: torchtune.datasets.instruct_dataset
+      source: samsum
+      template: SummarizeTemplate
+      column_map: {"output": "summary"}
+      split: train
+      train_on_input: False
+
+The preceding snippet demonstrates how you can configure each individual dataset's parameters, then combine them into a single concatenated dataset for training.
+
 Customizing instruct templates
 ------------------------------
 

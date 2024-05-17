@@ -66,8 +66,6 @@ loss:
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 16
-# Note: compile for QLoRA is only supported on nightly
-# PyTorch (>= 2.4.0.dev20240408)
 compile: False
 
 # Logging
@@ -76,6 +74,7 @@ metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
+log_peak_memory_stats: False
 
 # Environment
 device: cuda

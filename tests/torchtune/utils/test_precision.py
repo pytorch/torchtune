@@ -7,19 +7,14 @@
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 
-import contextlib
 from unittest import mock
 
 import pytest
 import torch
 
-from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-
 from torchtune.utils.precision import (
     _set_float32_precision,
-    get_autocast,
     get_dtype,
-    get_gradient_scaler,
     list_dtypes,
     set_default_dtype,
     validate_expected_param_dtype,
@@ -60,29 +55,6 @@ class TestPrecisionUtils:
             RuntimeError, match="bf16 precision was requested but not available"
         ):
             get_dtype(torch.bfloat16)
-
-    def test_grad_scaler(self):
-        """
-        Tests that the correct gradient scaler is returned based on precision.
-        """
-        assert isinstance(get_gradient_scaler(fsdp=False), torch.cuda.amp.GradScaler)
-        assert isinstance(get_gradient_scaler(fsdp=True), ShardedGradScaler)
-
-    def test_autocast(self):
-        """
-        Tests that the correct autocast manager is returned based on precision.
-        """
-        device = torch.device("cpu")
-        for dtype in [torch.float16]:
-            assert isinstance(
-                get_autocast(device=device, dtype=dtype),
-                torch.autocast,
-            )
-        for dtype in [torch.float32, torch.float64]:
-            assert isinstance(
-                get_autocast(device=device, dtype=dtype),
-                contextlib.nullcontext,
-            )
 
     def test_list_dtyes(self):
         assert set(list_dtypes()) == {"fp16", "bf16", "fp32", "fp64"}

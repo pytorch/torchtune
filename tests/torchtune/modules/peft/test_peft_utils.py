@@ -9,13 +9,10 @@ from copy import deepcopy
 import pytest
 import torch
 
-from tests.test_utils import init_weights_with_constant
-
 from torch import nn
 from torchtune.models.llama2 import llama2, lora_llama2
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
-    _get_base_model_params,
     AdapterModule,
     disable_adapter,
     get_adapter_params,
@@ -166,19 +163,6 @@ class TestPeftUtils:
         adapter_params = get_adapter_params(model)
         expected = request.getfixturevalue(expected_keys)
         assert set(expected) == set(adapter_params.keys())
-
-    @pytest.mark.parametrize(
-        "model_name, expected_keys",
-        [
-            ("dummy_adapter_parent_model", "dummy_model_expected_base_model_keys"),
-            ("lora_llama2_model", "lora_llama2_expected_base_model_keys"),
-        ],
-    )
-    def test_get_base_model_params(self, request, model_name, expected_keys):
-        model = request.getfixturevalue(model_name)
-        base_model_params = _get_base_model_params(model)
-        expected = request.getfixturevalue(expected_keys)
-        assert set(expected) == set(base_model_params.keys())
 
     @pytest.mark.parametrize(
         "model_name, expected_trainable_keys, expected_frozen_keys",
@@ -473,8 +457,11 @@ class TestDisableAdapter:
             LoRALinear(in_dim=2, out_dim=6, rank=RANK, alpha=ALPHA),
             nn.Linear(6, 3),
         )
-        init_weights_with_constant(model_ori)
-        init_weights_with_constant(model_lora)
+        # TODO: fix weight initialization to use fixed_init_model
+        for p in model_ori.parameters():
+            nn.init.constant_(p, 1.0)
+        for p in model_lora.parameters():
+            nn.init.constant_(p, 1.0)
         return model_ori, model_lora
 
     def test_disable_adapter(self):

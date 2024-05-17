@@ -7,12 +7,12 @@
 from unittest.mock import patch
 
 import pytest
+from datasets import Dataset
 
 from tests.test_utils import get_assets_path
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-
 from torchtune.datasets import alpaca_cleaned_dataset, alpaca_dataset
-from torchtune.modules.tokenizer import Tokenizer
+from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 
 class TestAlpacaDataset:
@@ -20,7 +20,7 @@ class TestAlpacaDataset:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return Tokenizer.from_file(str(get_assets_path() / "m.model"))
+        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
 
     @patch("torchtune.datasets._instruct.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
@@ -29,20 +29,22 @@ class TestAlpacaDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "instruction": "Give three tips for staying healthy.",
-                "input": "",
-                "output": (
-                    "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
-                    "2. Exercise regularly to keep your body active and strong."
-                    "3. Get enough sleep and maintain a consistent sleep schedule."
-                ),
-            }
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "instruction": "Give three tips for staying healthy.",
+                    "input": "",
+                    "output": (
+                        "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
+                        "2. Exercise regularly to keep your body active and strong."
+                        "3. Get enough sleep and maintain a consistent sleep schedule."
+                    ),
+                }
+            ]
+        )
 
         alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -56,17 +58,19 @@ class TestAlpacaDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "instruction": "Give three tips for staying healthy.",
-                "input": "",
-                "output": (
-                    "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
-                    "2. Exercise regularly to keep your body active and strong."
-                    "3. Get enough sleep and maintain a consistent sleep schedule."
-                ),
-            }
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "instruction": "Give three tips for staying healthy.",
+                    "input": "",
+                    "output": (
+                        "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
+                        "2. Exercise regularly to keep your body active and strong."
+                        "3. Get enough sleep and maintain a consistent sleep schedule."
+                    ),
+                }
+            ]
+        )
 
         alpaca_ds = alpaca_dataset(tokenizer=tokenizer, train_on_input=False)
 
@@ -77,7 +81,7 @@ class TestAlpacaDataset:
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -91,20 +95,22 @@ class TestAlpacaDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "instruction": "Give three tips for staying healthy.",
-                "input": "",
-                "output": (
-                    "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
-                    "2. Exercise regularly to keep your body active and strong."
-                    "3. Get enough sleep and maintain a consistent sleep schedule."
-                ),
-            }
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "instruction": "Give three tips for staying healthy.",
+                    "input": "",
+                    "output": (
+                        "1.Eat a balanced diet and make sure to include plenty of fruits and vegetables."
+                        "2. Exercise regularly to keep your body active and strong."
+                        "3. Get enough sleep and maintain a consistent sleep schedule."
+                    ),
+                }
+            ]
+        )
 
         alpaca_ds = alpaca_cleaned_dataset(tokenizer=tokenizer)
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id

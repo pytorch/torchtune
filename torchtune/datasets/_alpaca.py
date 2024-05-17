@@ -6,16 +6,17 @@
 
 from functools import partial
 
-from torchtune.data import AlpacaInstructTemplate
-from torchtune.datasets._instruct import InstructDataset
-from torchtune.modules import Tokenizer
+from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def alpaca_dataset(
     tokenizer: Tokenizer,
+    *,
     source: str = "tatsu-lab/alpaca",
     train_on_input: bool = True,
     max_seq_len: int = 512,
+    packed: bool = False,
 ) -> InstructDataset:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
@@ -37,6 +38,7 @@ def alpaca_dataset(
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             Default is 512, but we recommend setting this to the highest you can fit in memory and
             is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Returns:
         InstructDataset: dataset configured with source data and template
@@ -49,12 +51,13 @@ def alpaca_dataset(
         >>> Batch size: 8
     """
 
-    return InstructDataset(
+    return instruct_dataset(
         tokenizer=tokenizer,
         source=source,
-        template=AlpacaInstructTemplate,
+        template="AlpacaInstructTemplate",
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
+        packed=packed,
         split="train",
     )
 

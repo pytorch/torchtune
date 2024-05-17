@@ -8,8 +8,6 @@ import math
 
 import torch
 
-from tests.test_utils import init_weights_with_constant
-
 from torch import nn
 
 from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings
@@ -38,7 +36,7 @@ def repeat_kv(x: torch.Tensor, n_rep: int) -> torch.Tensor:
 
 
 class Attention(nn.Module):
-    def __init__(self, n_heads, n_kv_heads, dim):
+    def __init__(self, n_heads: int, n_kv_heads: int, dim: int):
         super().__init__()
         self.n_kv_heads = n_heads if n_kv_heads is None else n_kv_heads
         self.n_heads = n_heads
@@ -195,7 +193,8 @@ def compare_attention(
 
     # reference implementation; initialize with constant to compare outputs
     attn_ref = Attention(n_heads=num_heads, n_kv_heads=num_kv_heads, dim=embed_dim)
-    init_weights_with_constant(attn_ref, constant=0.05)
+    for p in attn_ref.parameters():
+        nn.init.constant_(p, 0.05)
 
     with torch.no_grad():
         attn_out_ref = attn_ref(input_t, freq_cis, mask)
@@ -218,7 +217,8 @@ def compare_attention(
         max_seq_len=max_seq_len,
         attn_dropout=0.0,
     )
-    init_weights_with_constant(attn, constant=0.05)
+    for p in attn.parameters():
+        nn.init.constant_(p, 0.05)
 
     with torch.no_grad():
         attn_out = attn(input_t)

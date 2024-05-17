@@ -18,7 +18,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -39,8 +39,8 @@ def torch_version_ge(version: str) -> bool:
     return version in torch.__version__ or torch.__version__ >= version
 
 
-# Inherit from tokenizer class to reuse its tokenize_messages method
-class DummyTokenizer(Tokenizer):
+# Inherit from SentencePieceTokenizer class to reuse its tokenize_messages method
+class DummyTokenizer(SentencePieceTokenizer):
     def __init__(self):
         self.encodes_whitespace = False
 
@@ -64,11 +64,6 @@ class DummyTokenizer(Tokenizer):
 
 def get_assets_path():
     return Path(__file__).parent / "assets"
-
-
-def init_weights_with_constant(model: nn.Module, constant: float = 1.0) -> None:
-    for p in model.parameters():
-        nn.init.constant_(p, constant)
 
 
 def fixed_init_tensor(

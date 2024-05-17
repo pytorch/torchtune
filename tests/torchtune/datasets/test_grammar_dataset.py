@@ -7,12 +7,13 @@
 from unittest.mock import patch
 
 import pytest
+from datasets import Dataset
 
 from tests.test_utils import get_assets_path
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.datasets import grammar_dataset
-from torchtune.modules.tokenizer import Tokenizer
+from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 
 class TestGrammarDataset:
@@ -20,7 +21,7 @@ class TestGrammarDataset:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return Tokenizer.from_file(str(get_assets_path() / "m.model"))
+        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
 
     @patch("torchtune.datasets._instruct.load_dataset")
     def test_label_no_masking(self, load_dataset, tokenizer):
@@ -29,15 +30,17 @@ class TestGrammarDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "input": "Bitcoin is for $7,094 this morning, which CoinDesk says.",
-                "output": "Bitcoin goes for $7,094 this morning, according to CoinDesk.",
-            }
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "input": "Bitcoin is for $7,094 this morning, which CoinDesk says.",
+                    "output": "Bitcoin goes for $7,094 this morning, according to CoinDesk.",
+                }
+            ]
+        )
 
         grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=True)
-        input, labels = grammar_ds[0]
+        input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -51,12 +54,14 @@ class TestGrammarDataset:
         """
 
         # mock the call to HF datasets
-        load_dataset.return_value = [
-            {
-                "input": "Bitcoin is for $7,094 this morning, which CoinDesk says.",
-                "output": "Bitcoin goes for $7,094 this morning, according to CoinDesk.",
-            }
-        ]
+        load_dataset.return_value = Dataset.from_list(
+            [
+                {
+                    "input": "Bitcoin is for $7,094 this morning, which CoinDesk says.",
+                    "output": "Bitcoin goes for $7,094 this morning, according to CoinDesk.",
+                }
+            ]
+        )
 
         grammar_ds = grammar_dataset(tokenizer=tokenizer)
 
@@ -69,7 +74,7 @@ class TestGrammarDataset:
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = grammar_ds[0]
+        input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id

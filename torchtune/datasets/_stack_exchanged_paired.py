@@ -6,11 +6,12 @@
 
 from torchtune.data import StackExchangedPairedTemplate
 from torchtune.datasets._preference import PreferenceDataset
-from torchtune.modules import Tokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def stack_exchanged_paired_dataset(
     tokenizer: Tokenizer,
+    *,
     source: str = "lvwerra/stack-exchange-paired",
     max_seq_len: int = 1024,
 ) -> PreferenceDataset:

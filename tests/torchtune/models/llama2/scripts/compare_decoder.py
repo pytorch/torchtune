@@ -6,8 +6,6 @@
 
 import torch
 
-from tests.test_utils import init_weights_with_constant
-
 from tests.torchtune.models.llama2.scripts.compare_attention import precompute_freqs_cis
 from tests.torchtune.models.llama2.scripts.compare_decoder_layer import (
     RMSNormRef,
@@ -103,7 +101,8 @@ def compare_decoder(
         max_seq_len=max_seq_len,
         n_kv_heads=num_kv_heads,
     )
-    init_weights_with_constant(decoder_ref, constant=0.2)
+    for p in model.parameters():
+        nn.init.constant_(decoder_ref, 0.2)
 
     with torch.no_grad():
         output_ref = decoder_ref(x_input)
@@ -117,7 +116,8 @@ def compare_decoder(
         max_seq_len=max_seq_len,
         num_kv_heads=num_kv_heads,
     )
-    init_weights_with_constant(decoder, constant=0.2)
+    for p in model.parameters():
+        nn.init.constant_(decoder, 0.2)
 
     with torch.no_grad():
         output = decoder(x_input)

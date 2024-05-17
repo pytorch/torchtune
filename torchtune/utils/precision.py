@@ -5,25 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import contextlib
-from typing import (
-    ContextManager,
-    Dict,
-    Generator,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from pkg_resources import packaging
 
-from torch.cuda.amp import GradScaler
-from torch.distributed.fsdp.sharded_grad_scaler import ShardedGradScaler
-
-from torchtune.utils._device import _validate_device_from_env
 from torchtune.utils.logging import get_logger
 
 log = get_logger()
@@ -67,9 +53,7 @@ def list_dtypes() -> List[str]:
 def verify_bf16_support():
     return (
         torch.cuda.is_available()
-        and torch.version.cuda
         and torch.cuda.is_bf16_supported()
-        and packaging.version.parse(torch.version.cuda).release >= (11, 0)
         and torch.distributed.is_nccl_available()
         and torch.cuda.nccl.version() >= (2, 10)
     ) or (
@@ -127,44 +111,6 @@ def get_dtype(
         )
 
     return torch_dtype
-
-
-def get_gradient_scaler(fsdp: bool = False) -> Union[GradScaler, ShardedGradScaler]:
-    """
-    Returns a gradient scaler for mixed-precision training.
-
-    Args:
-        fsdp (bool): Whether FSDP is being used for training, in which case a shard-aware gradient scaler is returned.
-
-    Returns:
-        Union[GradScaler, ShardedGradScaler]: Gradient scaler object
-    """
-    return GradScaler(enabled=True) if not fsdp else ShardedGradScaler(enabled=True)
-
-
-def get_autocast(dtype: torch.dtype, device: torch.device) -> ContextManager:
-    """
-    Intelligently determines, based on the dtype if mixed precision training is supported and
-    returns the builtin torch.autocast if applicable.
-
-    Reference: https://pytorch.org/docs/stable/amp.html#torch.autocast
-
-    Args:
-        dtype (torch.dtype): dtype used to determine if mixed precision training is used.
-        device (torch.device): Pytorch device.
-    Returns:
-        Autocast manager object if using half precision, otherwise null context
-    """
-    manager = None
-    if dtype in (torch.float16, torch.bfloat16):
-        # Note some devices do not support autocasting, and will raise an error.
-        _validate_device_from_env(device)
-        return torch.autocast(
-            device_type=device.type,
-            dtype=dtype,
-        )
-    else:
-        return contextlib.nullcontext()
 
 
 @contextlib.contextmanager

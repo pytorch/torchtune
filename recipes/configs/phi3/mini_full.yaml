@@ -1,0 +1,74 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Phi3 Mini 4K Instruct
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#
+# Run this config on 4 GPUs using the following:
+#  tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nproc_per_node 4 full_finetune_distributed --config phi3/mini_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# Single device full finetuning requires more memory optimizations. It's
+# best to use mini_low_memory.yaml for those cases
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.phi3.phi3_mini_tokenizer
+  path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  max_seq_len: 4096
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.phi3.phi3_mini
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
+  checkpoint_files: [
+    model-00001-of-00002.safetensors,
+    model-00002-of-00002.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Phi-3-mini-4k-instruct
+  model_type: PHI3_MINI
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 2
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 5e-6
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 16
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: False
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/Phi-3-mini-4k-instruct
+log_every_n_steps: 1

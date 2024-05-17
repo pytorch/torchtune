@@ -45,7 +45,7 @@ _FROM_HF = {
 }
 
 
-def _get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
+def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     try:
         if "layers" in key:
             # Replace layer number with "{}" to create key for lookup
@@ -82,7 +82,7 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
     converted_state_dict = {}
     for key, value in state_dict.items():
         if key not in ["rope.freqs"]:  # Skip loading the position embeddings
-            new_key = _get_mapped_key(key, _FROM_META)
+            new_key = get_mapped_key(key, _FROM_META)
             converted_state_dict[new_key] = value
 
     return converted_state_dict
@@ -104,7 +104,7 @@ def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
     inverted_mapping_dict = {v: k for k, v in _FROM_META.items()}
 
     for key, value in state_dict.items():
-        new_key = _get_mapped_key(key, inverted_mapping_dict)
+        new_key = get_mapped_key(key, inverted_mapping_dict)
         converted_state_dict[new_key] = value
 
     return converted_state_dict
@@ -126,7 +126,7 @@ def hf_to_tune(
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -149,7 +149,7 @@ def hf_to_tune(
 
     for key, value in state_dict.items():
         if "rotary_emb.inv_freq" not in key:  # Skip loading the position embeddings
-            new_key = _get_mapped_key(key, _FROM_HF)
+            new_key = get_mapped_key(key, _FROM_HF)
             if "q_proj" in key:
                 value = _permute(value, num_heads)
             elif "k_proj" in key:
@@ -176,7 +176,7 @@ def tune_to_hf(
         dim (int): Dimension of the model.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in Meta's format.
+        Dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
@@ -190,7 +190,7 @@ def tune_to_hf(
         )
 
     for key, value in state_dict.items():
-        new_key = _get_mapped_key(key, inverted_mapping_dict)
+        new_key = get_mapped_key(key, inverted_mapping_dict)
         if "q_proj" in key:
             value = _permute(value, num_heads)
         elif "k_proj" in key:
