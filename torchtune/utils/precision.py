@@ -7,6 +7,7 @@
 import contextlib
 from typing import Dict, Generator, Iterable, List, Optional, Tuple
 
+import packaging
 import torch
 import torch.nn as nn
 
