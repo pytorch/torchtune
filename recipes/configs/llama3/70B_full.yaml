@@ -77,10 +77,10 @@ batch_size: 2
 epochs: 3
 
 optimizer:
-  _component_: bitsandbytes.optim.PagedAdamW
+  _component_: torch.optim.AdamW
   lr: 2e-5
-    #  foreach: False
-    #fused: True
+  foreach: False
+  fused: True
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
@@ -94,7 +94,7 @@ device: cuda
 # Memory management
 enable_activation_checkpointing: True
 memory_efficient_fsdp_wrap: True
-  #fsdp_cpu_offload: True
+fsdp_cpu_offload: True
 
 # Reduced precision
 dtype: bf16
