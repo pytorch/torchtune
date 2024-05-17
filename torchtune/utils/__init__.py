@@ -56,6 +56,7 @@ from .precision import (
 )
 from .quantization import get_quantizer_mode
 from .seed import set_seed
+from .version import torch_version_ge
 
 __all__ = [
     "transform_opt_state_dict",
@@ -78,6 +79,7 @@ __all__ = [
     "set_seed",
     "validate_expected_param_dtype",
     "TuneRecipeArgumentParser",
+    "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
