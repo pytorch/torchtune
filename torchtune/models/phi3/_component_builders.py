@@ -201,6 +201,7 @@ def lora_phi3(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            lora_dropout=lora_dropout,
         )
     else:
         mlp = phi3_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
@@ -216,7 +217,7 @@ def lora_phi3(
 
     # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -303,6 +304,7 @@ def lora_phi3_self_attention(
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
@@ -314,6 +316,7 @@ def lora_phi3_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
@@ -325,6 +328,7 @@ def lora_phi3_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
@@ -336,6 +340,7 @@ def lora_phi3_self_attention(
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
