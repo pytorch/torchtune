@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 import torch
 from omegaconf import OmegaConf
+from packaging import version
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     dummy_alpaca_dataset_config,
@@ -50,6 +51,9 @@ class TestLoRAFinetuneDistributedRecipe:
         return [10.5136, 10.4857, 10.5292, 10.5345]
 
     @pytest.mark.integration_test
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0", reason=""
+    )
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"
@@ -86,6 +90,9 @@ class TestLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0", reason=""
+    )
     @gpu_test(gpu_count=2)
     def test_training_state_on_resume(self, tmpdir, monkeypatch):
         """Test whether the recipe state is correctly updated on resume. Since this
@@ -160,6 +167,9 @@ class TestLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0", reason=""
+    )
     @gpu_test(gpu_count=2)
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
         ckpt = "small_test_ckpt_tune"

@@ -291,8 +291,9 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
             inp = torch.randn((2, mlp_dim), device="cuda")
             base_model(inp).sum().backward()
             for param in base_model.parameters():
-                torch.distributed.all_reduce(param.grad)
-                param.grad.detach().div_(self.world_size)
+                torch.distributed.all_reduce(
+                    param.grad, op=torch.distributed.ReduceOp.AVG
+                )
             base_optim.step()
             base_optim.zero_grad()
             fsdp_model_to_save(inp).sum().backward()
