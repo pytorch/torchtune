@@ -134,7 +134,7 @@ class GemmaTransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask, input_pos)
+            h = layer(h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)
