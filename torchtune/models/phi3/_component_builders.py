@@ -45,7 +45,7 @@ def phi3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: int = 10000,
+    rope_base: int = 10_000,
 ) -> TransformerDecoder:
     """
     Args:
@@ -133,7 +133,7 @@ def lora_phi3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: int = 10000,
+    rope_base: int = 10_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,

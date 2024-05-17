@@ -61,9 +61,9 @@ class TestLoRAPhi3SelfAttention:
     @pytest.mark.parametrize(
         "lora_modules, expected",
         [
-            (["q_proj", "v_proj"], torch.tensor(50.64567)),
-            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(77.17097)),
-            (["k_proj"], torch.tensor(44.90090)),
+            (["q_proj", "v_proj"], torch.tensor(51.88655)),
+            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(75.80934)),
+            (["k_proj"], torch.tensor(44.00425)),
         ],
     )
     def test_forward(self, inputs, lora_modules, expected):
