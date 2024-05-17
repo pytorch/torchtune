@@ -133,7 +133,7 @@ def lora_phi3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: float = 500000.0,
+    rope_base: int = 10_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -167,6 +167,8 @@ def lora_phi3(
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         norm_eps (float): epsilon in RMS norms.
+        rope_base (int): base value for Rotary Position Embeddings.
+            Default: 10000
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -253,7 +255,7 @@ def lora_phi3_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: float = 500000.0,
+    rope_base: int = 10_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -278,6 +280,8 @@ def lora_phi3_self_attention(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        rope_base (int): base value for Rotary Position Embeddings.
+            Default: 10000
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
