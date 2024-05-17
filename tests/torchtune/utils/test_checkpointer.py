@@ -14,8 +14,14 @@ import torch
 from torch import randn
 
 from torchtune.models import llama2, mistral
+from torchtune.modules.peft.peft_utils import (
+    get_adapter_params,
+    get_lora_module_names,
+    validate_missing_and_unexpected_for_lora,
+)
 from torchtune.utils._checkpointing import FullModelHFCheckpointer
 from torchtune.utils._checkpointing._checkpointer_utils import safe_torch_load
+from torchtune.utils.constants import ADAPTER_CONFIG, ADAPTER_KEY
 from torchtune.utils.seed import set_seed
 
 _VOCAB_SIZE = 100
@@ -292,6 +298,144 @@ class TestHFLlama2FullModelCheckpointer:
 
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
         assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
+
+    def test_save_checkpoint_in_peft_format(
+        self,
+        single_file_checkpointer: FullModelHFCheckpointer,
+        llama2_hf_checkpoints: Tuple[Path, Path],
+    ):
+        """
+        Test save_checkpoint method within the FullModelCheckpointer for
+        integration with HF PEFT (i.e. save_in_peft_format=True).
+
+        We test that:
+        * The file adapter_config.json contains the fields required by PEFT
+        and the correct values
+        * The state dict keys of the saved adapter checkpoint are remapped as expected
+        * The state dict values of the saved adapter checkpoint (after key remapping)
+        match those in torchtune for parameters that are not permuted by HF
+        # The state dict values of the saved adapter checkpoint (after key remapping)
+        do not match those in torchtune for parameters that are permuted by HF, but the
+        sums along the dimension of permutation match
+        """
+
+        # Define LoRA params for this test
+        lora_attn_modules = ["q_proj", "output_proj"]
+        apply_lora_to_mlp = True
+        apply_lora_to_output = True
+        lora_rank = 4
+        lora_alpha = 8
+
+        checkpoint_file, _ = llama2_hf_checkpoints
+        state_dict = single_file_checkpointer.load_checkpoint()
+
+        # Build LoRA Llama2 model and load in base model weights
+        model = llama2.lora_llama2(
+            lora_attn_modules=lora_attn_modules,
+            apply_lora_to_mlp=apply_lora_to_mlp,
+            apply_lora_to_output=apply_lora_to_output,
+            vocab_size=_VOCAB_SIZE,
+            num_layers=1,
+            num_heads=_NUM_HEADS,
+            num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
+            max_seq_len=128,
+            lora_rank=lora_rank,
+            lora_alpha=lora_alpha,
+        )
+        missing, unexpected = model.load_state_dict(state_dict["model"], strict=False)
+        validate_missing_and_unexpected_for_lora(
+            lora_attn_modules=lora_attn_modules,
+            apply_lora_to_mlp=apply_lora_to_mlp,
+            apply_lora_to_output=apply_lora_to_output,
+            base_missing=missing,
+            base_unexpected=unexpected,
+        )
+
+        # LoRA B params are zero-initialized, randomly initialize them to make
+        # the test of their permutation on checkpoint save nontrivial
+        lora_b_sd = {
+            k: torch.randn_like(v)
+            for k, v in model.state_dict().items()
+            if "lora_b" in k
+        }
+        model.load_state_dict(lora_b_sd, strict=False)
+
+        # Construct the adapter weights and config and save using checkpointer
+        adapter_params = get_adapter_params(model)
+        adapter_key_filter = lambda x: x in adapter_params
+        expected_adapter_state_dict = {
+            k: v for k, v in model.state_dict().items() if adapter_key_filter(k)
+        }
+        adapter_config = {
+            "r": lora_rank,
+            "lora_alpha": lora_alpha,
+            "target_modules": get_lora_module_names(
+                lora_attn_modules,
+                apply_lora_to_mlp,
+                apply_lora_to_output,
+            ),
+            "peft_type": "LORA",
+        }
+        state_dict.update({ADAPTER_KEY: expected_adapter_state_dict})
+        state_dict.update({ADAPTER_CONFIG: adapter_config})
+        single_file_checkpointer.save_checkpoint(state_dict, epoch=1)
+
+        # Load saved adapter weights and config from file for comparison
+        adapter_weights_file = Path.joinpath(
+            checkpoint_file.parent, "adapter_model.bin"
+        )
+        actual_adapter_state_dict = safe_torch_load(adapter_weights_file)
+
+        adapter_config_file = Path.joinpath(
+            checkpoint_file.parent, "adapter_config.json"
+        )
+        with open(adapter_config_file, "r") as f:
+            adapter_config = json.load(f)
+
+        expected_target_modules = [
+            "down_proj",
+            "gate_proj",
+            "lm_head",
+            "o_proj",
+            "q_proj",
+            "up_proj",
+        ]
+        assert sorted(adapter_config["target_modules"]) == expected_target_modules
+
+        # Map PEFT keys back to torchtune keys
+        peft_to_tt = {
+            "o_proj": "output_proj",
+            "gate_proj": "w1",
+            "down_proj": "w2",
+            "up_proj": "w3",
+            "lm_head": "output",
+        }
+        for k, v in actual_adapter_state_dict.items():
+            new_k = k.replace("base_model.model.", "").replace("self_attn", "attn")
+            if "lm_head" not in new_k:
+                new_k = new_k.replace("model.", "")
+            for kk, vv in peft_to_tt.items():
+                if kk in k:
+                    new_k = new_k.replace(kk, vv)
+            new_k = new_k.replace("lora_A", "lora_a").replace("lora_B", "lora_b")
+
+            # LoRA B matrix for Q should not match due to Q and K permutation
+            # However, since they're permuted along embed dim, their sum along that axis should match
+            if "lora_b" in new_k and "q_proj" in new_k:
+                assert not torch.allclose(
+                    actual_adapter_state_dict[k], expected_adapter_state_dict[new_k]
+                )
+                torch.testing.assert_close(
+                    actual_adapter_state_dict[k].sum(dim=0),
+                    expected_adapter_state_dict[new_k].sum(dim=0),
+                )
+
+            # All other matrices should match exactly
+            if "lora_b" not in new_k:
+                torch.testing.assert_close(
+                    actual_adapter_state_dict[k], expected_adapter_state_dict[new_k]
+                )
 
 
 class TestHFMistralRewardModelFullModelCheckpointer:

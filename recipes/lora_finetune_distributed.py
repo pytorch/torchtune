@@ -136,7 +136,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
-        self._save_in_peft_format = cfg.get("save_in_peft_format", False)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -478,6 +477,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # to be sent to the checkpointer and ultimately written to file
         if self._is_rank_zero:
 
+            # if training is in-progress, checkpoint the optimizer state and recipe state
+            # as well.
+            if intermediate_checkpoint:
+                checkpoint_dict.update(
+                    {
+                        utils.OPT_KEY: opt_state_dict,
+                        utils.SEED_KEY: self.seed,
+                        utils.EPOCHS_KEY: self.epochs_run,
+                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
+                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
+                    }
+                )
+
             # Filter out the adapter keys and weights from the model state dict. These will
             # be saved separately
             adapter_key_filter = lambda x: x in self.adapter_params
@@ -493,19 +505,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 alpha=self._lora_alpha,
             )
             checkpoint_dict.update({utils.MODEL_KEY: merged_state_dict})
-
-            # if training is in-progress, checkpoint the optimizer state and recipe state
-            # as well.
-            if intermediate_checkpoint:
-                checkpoint_dict.update(
-                    {
-                        utils.OPT_KEY: opt_state_dict,
-                        utils.SEED_KEY: self.seed,
-                        utils.EPOCHS_KEY: self.epochs_run,
-                        utils.TOTAL_EPOCHS_KEY: self.total_epochs,
-                        utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
-                    }
-                )
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,

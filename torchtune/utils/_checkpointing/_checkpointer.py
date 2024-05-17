@@ -391,7 +391,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-
         if self._model_type == ModelType.PHI3_MINI:
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
         elif self._model_type == ModelType.MISTRAL_REWARD:
@@ -423,7 +422,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
-        save_in_peft_format: bool = True,
     ) -> None:
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
@@ -479,16 +477,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
         if utils.ADAPTER_KEY in state_dict:
-            output_path = Path.joinpath(
-                self._output_dir, f"adapter_{epoch}"
-            ).with_suffix(".pt")
-            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
-            logger.info(
-                "Adapter checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                f"saved to {output_path}"
-            )
-            if save_in_peft_format:
+            # Phi-3-mini uses fused QKV in PEFT, this will not work as expected
+            # if only a proper subset of Q, K, V have been fine-tuned
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "Saving Phi-3-mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
+            else:
                 state_dict[
                     utils.ADAPTER_KEY
                 ] = convert_weights.tune_to_peft_adapter_weights(
@@ -507,15 +502,32 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     f"saved to {peft_output_path}"
                 )
 
-        if utils.ADAPTER_CONFIG in state_dict:
-            state_dict[
-                utils.ADAPTER_CONFIG
-            ] = convert_weights.tune_to_peft_adapter_config(
-                state_dict[utils.ADAPTER_CONFIG]
+            # Save torchtune format adapter weights even if we save PEFT format
+            # This way we can resume no matter what (and memory footprint of adapter weights is small)
+            output_path = Path.joinpath(
+                self._output_dir, f"adapter_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
             )
-            output_path = Path.joinpath(self._output_dir, "adapter_config.json")
-            with open(output_path, "w") as f:
-                json.dump(state_dict[utils.ADAPTER_CONFIG], f)
+
+        if utils.ADAPTER_CONFIG in state_dict:
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "PEFT integration for Phi-3 mini is not supported, skipping adapter config save"
+                )
+            else:
+                state_dict[
+                    utils.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    state_dict[utils.ADAPTER_CONFIG]
+                )
+                output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+                with open(output_path, "w") as f:
+                    json.dump(state_dict[utils.ADAPTER_CONFIG], f)
 
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
@@ -618,7 +630,6 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         state_dict: Dict[str, Any],
         epoch: int,
         intermediate_checkpoint: bool = False,
-        save_in_peft_format: bool = False,
     ) -> None:
         """
         Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
