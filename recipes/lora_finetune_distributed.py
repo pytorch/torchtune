@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -17,7 +17,7 @@ from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
-from torch.distributed._composable.fsdp import CPUOffloadPolicy, fully_shard
+from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.checkpoint.state_dict import (
     get_optimizer_state_dict,
     StateDictOptions,
@@ -213,6 +213,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+            cfg_fsdp=cfg.fsdp if hasattr(cfg, "fsdp") else None,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -264,6 +265,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        cfg_fsdp: Optional[Union[DictConfig, None]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -291,10 +293,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
-        for m in model.modules():
-            if isinstance(m, modules.TransformerDecoderLayer):
-                fully_shard(m, offload_policy=CPUOffloadPolicy(pin_memory=True))
-        fully_shard(model, offload_policy=CPUOffloadPolicy(pin_memory=True))
+        fsdp_kwargs = {}
+        if cfg_fsdp and cfg_fsdp.cpu_offload:
+            from torch.distributed._composable.fsdp import CPUOffloadPolicy
+
+            fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
+
+        for m in reversed(list(model.modules())):
+            if (
+                isinstance(m, nn.Linear)
+                and m.weight.requires_grad
+                or isinstance(m, modules.TransformerDecoderLayer)
+            ):
+                fully_shard(m, **fsdp_kwargs)
+        fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
             utils.load_from_full_model_state_dict(
