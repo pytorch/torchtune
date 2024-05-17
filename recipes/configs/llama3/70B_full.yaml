@@ -11,7 +11,7 @@
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nproc_per_node 4 full_finetune_distributed --config llama3/70B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config is only tested on an 8xA100 machine.
 
