@@ -436,10 +436,10 @@ the rotation angles</p></li>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<em>Tensor</em>) – input tensor with shape
-[bsz, seq_len, num_heads, head_dim]</p></li>
+[b, s, n_h, h_d]</p></li>
 <li><p><strong>input_pos</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Optional tensor which contains the position ids
 of each token. During training, this is used to indicate the positions
-of each token relative to its sample when packed, shape [bsz, seq_len].
+of each token relative to its sample when packed, shape [b, s].
 During inference, this indicates the position of the current token.
 If none, assume the index of the token is its position id. Default is None.</p></li>
 </ul>
