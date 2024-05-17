@@ -26,6 +26,7 @@ from ._distributed import (  # noqa
 )
 from ._generation import generate
 from ._profiler import profiler
+from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
 from .constants import (  # noqa
@@ -56,7 +57,6 @@ from .precision import (
 )
 from .quantization import get_quantizer_mode
 from .seed import set_seed
-from .version import torch_version_ge
 
 __all__ = [
     "transform_opt_state_dict",

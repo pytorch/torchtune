@@ -115,7 +115,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 )
             else:
                 # We are fusing + CPU offloading - check to make sure we're in a nightly.
-                if not not utils.torch_version_ge("2.4.0"):
+                if not utils.torch_version_ge("2.4.0"):
                     raise RuntimeError(
                         "Using fused optimizer on CPU is only supported in PyTorch nightly."
                     )
