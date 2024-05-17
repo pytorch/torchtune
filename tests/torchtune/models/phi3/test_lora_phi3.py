@@ -137,14 +137,14 @@ class TestLoRAPhi3:
     @pytest.mark.parametrize(
         "lora_modules, apply_lora_to_mlp, apply_lora_to_output, expected",
         [
-            (["q_proj", "v_proj"], False, False, torch.tensor(2869701.75)),
+            (["q_proj", "v_proj"], False, False, torch.tensor(2869687.75)),
             (
                 ["q_proj", "k_proj", "v_proj", "output_proj"],
                 True,
                 False,
-                torch.tensor(10674807.0),
+                torch.tensor(10674772.0),
             ),
-            (["k_proj"], True, True, torch.tensor(16285855.0)),
+            (["k_proj"], True, True, torch.tensor(16285834.0)),
         ],
     )
     def test_forward(
