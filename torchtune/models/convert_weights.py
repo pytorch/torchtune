@@ -200,11 +200,13 @@ def tune_to_hf(
     return converted_state_dict
 
 
+# Mapping from torchtune LoRA module names to PEFT LoRA module names
 _TO_PEFT_KEYS = {
     "lora_a": "lora_A",
     "lora_b": "lora_B",
 }
 
+# Mapping from torchtune module names to target modules for PEFT adapter config
 _TO_PEFT_TARGET_MODULES = {
     "q_proj": "q_proj",
     "k_proj": "k_proj",
@@ -244,6 +246,9 @@ def tune_to_peft_adapter_weights(
 ):
     converted_state_dict = {}
     full_mapping = {}
+    # Rather than recreate a separate mapping for LoRA adapter weights, we just
+    # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
+    # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
     for k, v in _TO_PEFT_KEYS.items():
         full_mapping.update(
             {

@@ -476,7 +476,19 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )
+
         if utils.ADAPTER_KEY in state_dict:
+            # Save torchtune format adapter weights even if we save PEFT format
+            # This way we can resume no matter what (and memory footprint of adapter weights is small)
+            output_path = Path.joinpath(
+                self._output_dir, f"adapter_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
             # Phi-3-mini uses fused QKV in PEFT, this will not work as expected
             # if only a proper subset of Q, K, V have been fine-tuned
             if self._model_type == ModelType.PHI3_MINI:
@@ -501,18 +513,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                     f"saved to {peft_output_path}"
                 )
-
-            # Save torchtune format adapter weights even if we save PEFT format
-            # This way we can resume no matter what (and memory footprint of adapter weights is small)
-            output_path = Path.joinpath(
-                self._output_dir, f"adapter_{epoch}"
-            ).with_suffix(".pt")
-            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
-            logger.info(
-                "Adapter checkpoint of size "
-                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
-                f"saved to {output_path}"
-            )
 
         if utils.ADAPTER_CONFIG in state_dict:
             if self._model_type == ModelType.PHI3_MINI:
