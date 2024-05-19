@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 
@@ -19,6 +19,7 @@ from torchtune.data import (
     sharegpt_to_llama2_messages,
     validate_messages,
 )
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -84,11 +85,11 @@ class ChatDataset(Dataset):
     def __len__(self):
         return len(self._data)
 
-    def __getitem__(self, index: int) -> Tuple[List[int], List[int]]:
+    def __getitem__(self, index: int) -> Dict[str, List[int]]:
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
         if self.chat_format is not None:
             messages = self.chat_format.format(messages)
@@ -100,7 +101,7 @@ class ChatDataset(Dataset):
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
         assert len(tokens) == len(labels)
 
-        return tokens, labels
+        return {"tokens": tokens, "labels": labels}
 
 
 def chat_dataset(
@@ -111,6 +112,7 @@ def chat_dataset(
     chat_format: Optional[str] = None,
     max_seq_len: int,
     train_on_input: bool = False,
+    packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> ChatDataset:
     """
@@ -129,6 +131,7 @@ def chat_dataset(
             check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
     Examples:
@@ -165,7 +168,7 @@ def chat_dataset(
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
-    return ChatDataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
@@ -174,3 +177,4 @@ def chat_dataset(
         train_on_input=train_on_input,
         **load_dataset_kwargs,
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds

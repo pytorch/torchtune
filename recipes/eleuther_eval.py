@@ -27,6 +27,7 @@ try:
     from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict
+    from lm_eval.utils import make_table
 except ImportError:
     logger.error(
         "Recipe requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
@@ -55,7 +56,7 @@ class _EvalWrapper(HFLM):
         max_seq_length: int = 4096,
         batch_size: int = 32,
     ):
-        super().__init__(device=str(device))
+        super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
@@ -187,15 +188,16 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         task_dict = get_task_dict(self._tasks)
         logger.info(f"Running evaluation on {self._tasks} tasks.")
-        eleuther_output = evaluate(
+        output = evaluate(
             model_eval_wrapper,
             task_dict,
             limit=self._limit,
         )
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
-        for task, res in eleuther_output["results"].items():
-            logger.info(f"{task}: {res}")
+
+        formatted_output = make_table(output)
+        print(formatted_output)
 
 
 @config.parse

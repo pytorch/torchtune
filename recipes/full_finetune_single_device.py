@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import os
 import sys
 import time
 from functools import partial
@@ -260,7 +261,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Compile model, if enabled.
         if compile_model:
             log.info("Compiling model with torch.compile...")
-            model = utils.wrap_compile(model)
+            backend = os.environ.get("TORCH_COMPILE_BACKEND", "inductor")
+            model.compile(backend=backend)
         if self._device.type == "cuda":
             memory_stats = utils.get_memory_stats(device=self._device)
             utils.log_memory_stats(memory_stats)
@@ -326,8 +328,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
+            packed = False
         else:
-            ds = config.instantiate(config=cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
             ds,
@@ -344,7 +348,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -409,11 +415,23 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     == self.max_steps_per_epoch
                 ):
                     break
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                num_tokens += input_ids.numel()
+
+                # Both are shape [b, s]
+                tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. Currently, only sample packing in PackedDataset returns these
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
+
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                logits = self._model(input_ids)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
@@ -451,7 +469,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 if self._optimizer_in_bwd
                                 else self._optimizer.param_groups[0]["lr"]
                             ),
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._device.type == "cuda" and self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

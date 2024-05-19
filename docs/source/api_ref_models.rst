@@ -65,6 +65,8 @@ Pre-trained models can be download from the Hugging Face Hub with the following 
     :nosignatures:
 
     phi3.phi3_mini
+    phi3.lora_phi3_mini
+    phi3.qlora_phi3_mini
 
 
 mistral

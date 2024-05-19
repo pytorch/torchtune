@@ -13,6 +13,7 @@ from torchtune.datasets._instruct_raft import (
     instruct_dataset_raft,
     InstructDatasetDeepLakeRAFT,
 )
+from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._raft import raft_dataset
 from torchtune.datasets._samsum import samsum_dataset
 from torchtune.datasets._slimorca import slimorca_dataset
@@ -33,6 +34,7 @@ __all__ = [
     "instruct_dataset",
     "instruct_dataset_raft",
     "chat_dataset",
+    "PackedDataset",
     "DeepLakeDataloader",
     "load_deep_lake_dataset",
     "ConcatDataset",
