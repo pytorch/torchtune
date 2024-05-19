@@ -10,11 +10,10 @@ from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
-import numpy as np
-
 import torch
 import torch.nn.functional as F
 from omegaconf import DictConfig, ListConfig
+from pkg_resources import packaging
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -43,18 +42,6 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
-import scipy
-
-
-def discounted_cumsum(x: np.ndarray, gamma: float) -> np.ndarray:
-    """
-    rllab method for exponentially discounted cumulative sum of vectors.
-    Args:
-        x: A vector of length n [x0, x1, ..., xn]
-        gamma: discount factor in [0, 1]
-    """
-    return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
-
 
 class LoRAPPORecipeSingleDevice(FTRecipeInterface):
     def __init__(self, cfg: DictConfig) -> None:
@@ -69,12 +56,17 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
         # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+        if self._dtype == torch.bfloat16 and self._device != torch.device("cpu"):
+            if torch.cuda.is_available():
+                if not torch.cuda.is_bf16_supported():
+                    raise RuntimeError(
+                        "Full bf16 training is not supported on this hardware."
+                    )
+            elif torch.backends.mps.is_available():
+                if packaging.version.parse(torch.__version__).release < (2, 3):
+                    raise RuntimeError(
+                        "Full bf16 training is not supported on this hardware."
+                    )
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
@@ -90,33 +82,13 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
 
-    def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
-        """
-        Extract the checkpoint state from file and validate. If resume_from_checkpoint
-        is True, this also includes the recipe state.
-        """
-        self._checkpointer = config.instantiate(
-            cfg_checkpointer,
-            resume_from_checkpoint=self._resume_from_checkpoint,
-        )
-        checkpoint_dict = self._checkpointer.load_checkpoint()
-
-        if self._resume_from_checkpoint:
-            if utils.ADAPTER_KEY not in checkpoint_dict:
-                raise ValueError(
-                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
-                )
-            # _update_recipe_state will throw an exception if the recipe state is not correctly loaded
-            # no need to check here
-            self._update_recipe_state(checkpoint_dict)
-        return checkpoint_dict
-
     def save_checkpoint(self, epoch: int) -> None:
         """
         Checkpoint the state of the recipe. The constructed checkpoint state dict
         contains the following information:
         - Merged weights with key MODEL_KEY
         - Adapter weights with key ADAPTER_KEY
+        - Value head weights with key VALUE_HEAD_KEY
         - Relevant recipe state if training is not complete
 
         Checkpointer will save the merged weights, adapter weights and recipe state in
@@ -138,6 +110,14 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         # Move to CPU to avoid a copy on GPU
         state_dict = {k: v.cpu() for k, v in self._model.state_dict().items()}
 
+        # split off the value head weights
+        value_head_state_dict = {
+            "value_head.weight": state_dict.pop("value_head.weight"),
+            "value_head.bias": state_dict.pop("value_head.bias"),
+        }
+        ckpt_dict.update({utils.VALUE_HEAD_KEY: value_head_state_dict})
+
+        # save base model as usual
         # Construct the full state dict with LoRA weights merged into base LLM weights
         merged_state_dict = get_merged_lora_ckpt(
             state_dict,
@@ -152,6 +132,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             k: v for k, v in self._model.state_dict().items() if adapter_key_filter(k)
         }
         ckpt_dict.update({utils.ADAPTER_KEY: adapter_state_dict})
+
         self._checkpointer.save_checkpoint(
             ckpt_dict,
             epoch=epoch,
@@ -186,13 +167,35 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         # log config with parameter override
         self._metric_logger.log_config(cfg)
 
+        # setup checkpointers
+        self._checkpointer = config.instantiate(
+            cfg.checkpointer,
+            resume_from_checkpoint=self._resume_from_checkpoint,
+        )
+        self._reward_checkpointer = config.instantiate(
+            cfg.reward_checkpointer,
+            # reward model is never being trained
+            # base model checkpointer handles recipe state
+            resume_from_checkpoint=False,
+        )
         # load base model checkpoint
-        model_checkpoint_dict = self.load_checkpoint(cfg_checkpointer=cfg.checkpointer)
+        model_checkpoint_dict = self._checkpointer.load_checkpoint()
 
         # load reward model checkpoint
-        reward_model_checkpoint_dict = self.load_checkpoint(
-            cfg_checkpointer=cfg.reward_checkpointer
-        )
+        reward_model_checkpoint_dict = self._reward_checkpointer.load_checkpoint()
+
+        # update recipe state
+        if self._resume_from_checkpoint:
+            # _update_recipe_state will throw an exception if the recipe state is not correctly loaded
+            if utils.ADAPTER_KEY not in model_checkpoint_dict:
+                raise ValueError(
+                    "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
+                )
+            if utils.VALUE_HEAD_KEY not in model_checkpoint_dict:
+                raise ValueError(
+                    "Value head weights not found. Please ensure a valid value head checkpoint is provided."
+                )
+            self._update_recipe_state(model_checkpoint_dict)
 
         # ``_setup_model`` handles initialization and loading the state dict. This method
         # should be called before ``_setup_optimizer`` since transforming the optimizer
@@ -205,6 +208,11 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             reward_model_state_dict=reward_model_checkpoint_dict[utils.MODEL_KEY],
             model_lora_weights_state_dict=(
                 model_checkpoint_dict[utils.ADAPTER_KEY]
+                if self._resume_from_checkpoint
+                else None
+            ),
+            value_head_state_dict=(
+                model_checkpoint_dict[utils.VALUE_HEAD_KEY]
                 if self._resume_from_checkpoint
                 else None
             ),
@@ -222,7 +230,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=(
-                self._model.state_dict() if self._resume_from_checkpoint else None
+                model_checkpoint_dict[utils.OPT_KEY]
+                if self._resume_from_checkpoint
+                else None
             ),
         )
 
@@ -246,15 +256,19 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         # batch_size - number of samples in a batch
         # ppo_epochs - number of epochs to optimise the policy over a batch of episodes
         # ppo_batch_size - number of minibatches (sampled from a single batch) to optimise the policy over
-        # max_generated_tokens - maximum number of tokens to generate in a single forward pass
         self.num_steps = cfg.num_steps
         self.batch_size = cfg.batch_size
         self.ppo_epochs = cfg.ppo_epochs
         self.ppo_batch_size = cfg.ppo_batch_size
-        self.ppo_backward_batch_size = (
-            cfg.ppo_batch_size // cfg.gradient_accumulation_steps
-        )
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        if self.ppo_batch_size % self._gradient_accumulation_steps != 0:
+            raise ValueError(
+                f"ppo_batch_size ({self.ppo_batch_size})  must be "
+                f"exactly divisible by gradient_accumulation_steps ({cfg._gradient_accumulation_steps})."
+            )
+        self.ppo_backward_batch_size = (
+            cfg.ppo_batch_size // self._gradient_accumulation_steps
+        )
 
         # trajectory generation args
         self.temperature = cfg.temperature
@@ -262,9 +276,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         self.top_p = cfg.top_p
 
         self.total_epochs = self.num_steps // self.batch_size
-        self._steps_per_epoch = (
-            len(self._dataloader) // self._gradient_accumulation_steps
-        )
+        self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        # one "step" is an update over a batch of trajectories
+        self._steps_per_epoch = len(self._dataloader) // self.batch_size
         self.global_step = self.epochs_run * self._steps_per_epoch
 
         # setup adaptive KL controller
@@ -283,6 +297,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         model_state_dict: Dict[str, Any],
         reward_model_state_dict: Dict[str, Any],
         model_lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        value_head_state_dict: Optional[Dict[str, Any]] = None,
     ) -> nn.Module:
 
         with utils.set_default_dtype(self._dtype), self._device:
@@ -299,25 +314,35 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 model, auto_wrap_policy={TransformerLMWithValueHead}
             )
 
+        # add placeholder value head key to base model state dict keys
+        # to ensure wrapped model is validated correctly
+
+        model_state_dict_keys = list(model_state_dict.keys())
+        model_state_dict_keys += ["value_head.weight", "value_head.bias"]
+
+        state_dict = model.state_dict()
+
         validate_state_dict_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,
             apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
             apply_lora_to_output=cfg_model.apply_lora_to_output,
-            full_model_state_dict_keys=model.state_dict().keys(),
+            # base model state dict keys
+            full_model_state_dict_keys=state_dict.keys(),
             lora_state_dict_keys=(
                 model_lora_weights_state_dict.keys()
                 if model_lora_weights_state_dict is not None
                 else None
             ),
-            base_model_state_dict_keys=model_state_dict.keys(),
         )
-        value_head_state_dict = model.state_dict()
+
         for k, v in model_state_dict.items():
-            if k in value_head_state_dict:
-                value_head_state_dict[k] = v
+            if k in state_dict:
+                state_dict[k] = v
+            elif value_head_state_dict is not None and "value" in k:
+                state_dict[k] = value_head_state_dict[k]
 
         # load checkpoints
-        model.load_state_dict(value_head_state_dict)
+        model.load_state_dict(state_dict)
         reward_model.load_state_dict(reward_model_state_dict)
 
         # Validate model was loaded in with the expected dtype.
@@ -404,7 +429,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         """
         The core training loop."""
         step_ = 0
-        for curr_epoch in range(self.total_epochs):
+        for curr_epoch in range(self.epochs_run, self.total_epochs):
             self._sampler.set_epoch(curr_epoch)
 
             with self._profiler:
@@ -481,8 +506,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                     # run reward model on query-response sequences: shape [b, 1]
                     # TODO (SalmanMohammadi): Add support for _reward_model and _model using different tokenizers
-                    # TODO (SalmanMohammadi): use a classifier signature here rather than value head
-                    _, scores = self._reward_model(responses)
+                    scores = self._reward_model(responses)
                     scores = pool_sequence_logits(
                         input_ids, scores, self._tokenizer.pad_id
                     ).squeeze()
@@ -541,24 +565,26 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 backward_values,
                                 backward_returns,
                             )
-
+                            loss.backward()
                             # grab some some stats for logging
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
 
-                            if j % self._gradient_accumulation_steps == 0:
-                                self._optimizer.step()
-                                self._optimizer.zero_grad(set_to_none=True)
-                                self.global_step += 1
-
+            self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
             pbar.update(1)
             pbar.set_description(
                 f"{curr_epoch+1}|{self.global_step}|reward: {rewards.sum(1).mean()}| loss: {loss}"
             )
-
+            self.global_step += 1
             kl = logprobs - ref_logprobs
             self.kl_controller.update(kl.sum(1).mean().item(), curr_epoch)
 
     def cleanup(self, **kwargs) -> None:
+        import os
+
+        os.rmdir(self._output_dir)
+        print("removed output dir")
         self._metric_logger.close()
 
 

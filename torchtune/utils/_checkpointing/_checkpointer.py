@@ -16,8 +16,10 @@ from torchtune import utils
 
 from torchtune.models import convert_weights
 from torchtune.models.mistral import (
+    hf_to_tune_lm,
     mistral_reward_hf_to_tune,
     mistral_reward_tune_to_hf,
+    tune_to_hf_lm,
 )
 from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.utils._checkpointing._checkpointer_utils import (
@@ -395,6 +397,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
             )
+        elif self._model_type == ModelType.LM_MISTRAL:
+            converted_state_dict[utils.MODEL_KEY] = hf_to_tune_lm(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
         else:
             converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -439,6 +448,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             state_dict[utils.MODEL_KEY] = phi3_tune_to_hf(state_dict[utils.MODEL_KEY])
         elif self._model_type == ModelType.MISTRAL_REWARD:
             state_dict[utils.MODEL_KEY] = mistral_reward_tune_to_hf(
+                state_dict[utils.MODEL_KEY],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
+        elif self._model_type == ModelType.LM_MISTRAL:
+            state_dict[utils.MODEL_KEY] = tune_to_hf_lm(
                 state_dict[utils.MODEL_KEY],
                 num_heads=self._config["num_attention_heads"],
                 num_kv_heads=self._config["num_key_value_heads"],

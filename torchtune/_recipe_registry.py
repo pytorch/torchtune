@@ -150,8 +150,8 @@ _ALL_RECIPES = [
         file_path="lora_ppo_single_device.py",
         configs=[
             Config(
-                name="mistral/7B_ppo",
-                file_path="mistral/7B_ppo.yaml",
+                name="mistral/7B_lora_ppo",
+                file_path="mistral/7B_lora_ppo.yaml",
             ),
         ],
         supports_distributed=False,

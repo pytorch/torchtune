@@ -26,19 +26,20 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.mistral.mistral_tokenizer
-  path:  ${output_dir}/tokenizer.model
+  path:  ./target/weights/mistral_base/tokenizer.model
 
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
   train_on_input: True
-  max_seq_len: 64
+  max_seq_len: 32
 seed: null
 shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.mistral.lora_mistral_test_lm_with_value_head
+  _component_: torchtune.models.mistral.lora_mistral_lm_with_value_head_7b
+  # _component_: torchtune.models.mistral.lora_mistral_test_lm
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
@@ -46,36 +47,45 @@ model:
   lora_alpha: 16
 
 reward_model:
-  _component_: torchtune.models.mistral.mistral_test_with_lm_value_head
+  _component_: torchtune.models.mistral.mistral_classifier_7b
+
 
 checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
-  checkpoint_dir: ${output_dir}
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  # _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  checkpoint_dir: ./target/weights/mistral_base/
+  # checkpoint_dir: ${output_dir}/base/
   checkpoint_files: [
-    "mistral_test_lm_value_head.pt"
+    "pytorch_model-00001-of-00003.bin",
+    "pytorch_model-00002-of-00003.bin",
+    "pytorch_model-00003-of-00003.bin"
   ]
+
   recipe_checkpoint: null
-  output_dir: ${output_dir}
-  model_type: MISTRAL_REWARD
+  adapter_checkpoint: null
+  output_dir: ${output_dir}/base/
+  model_type: LM_MISTRAL
 
 reward_checkpointer:
-  _component_: torchtune.utils.FullModelTorchTuneCheckpointer
-  checkpoint_dir: ${output_dir}
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: ./target/weights/mistral_reward/
   checkpoint_files: [
-    "mistral_test_lm_value_head.pt"
+    "model-00001-of-00003.safetensors",
+    "model-00002-of-00003.safetensors",
+    "model-00003-of-00003.safetensors"
   ]
-  recipe_checkpoint: null
-  output_dir: ${output_dir}
+  output_dir: ${output_dir}/reward
   model_type: MISTRAL_REWARD
+
 resume_from_checkpoint: False
-output_dir: target/
+output_dir: target/full_7b
 
 # Fine-tuning arguments
 batch_size: 64
 num_steps: 10000
 ppo_epochs: 4
-ppo_batch_size: 4
-ppo_backward_batch_size: 2
+ppo_batch_size: 2
+# ppo_backward_batch_size: 2
 gradient_accumulation_steps: 1
 
 # ppo args
@@ -113,7 +123,7 @@ device: mps
 enable_activation_checkpointing: True
 
 # Reduced precision
-dtype: fp32
+dtype: bf16
 
 # Logging
 metric_logger:

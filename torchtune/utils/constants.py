@@ -20,3 +20,5 @@ SEED_KEY = "seed"
 # total number of epochs for training; resumed training runs for
 # (total_epochs - epochs_run) number of epochs
 TOTAL_EPOCHS_KEY = "total_epochs"
+# value head key
+VALUE_HEAD_KEY = "value_head"
