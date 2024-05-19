@@ -368,6 +368,7 @@ you can also add more advanced behavior.
     dataset = chat_dataset(
         tokenizer=tokenizer,
         source="my/dataset/path",
+        split="train",
         conversation_style="openai",
         chat_format="import.path.to.CustomChatFormat",
     )
@@ -432,6 +433,7 @@ supported by Hugging Face's ``load_dataset``, including csv, json, txt, and more
     dataset = instruct_dataset(
         tokenizer=tokenizer,
         source="csv",
+        split="train",
         template="import.path.to.CustomTemplate"
         data_files="path/to/my/data.csv",
     )
@@ -439,6 +441,7 @@ supported by Hugging Face's ``load_dataset``, including csv, json, txt, and more
     dataset = instruct_dataset(
         tokenizer=tokenizer,
         source="json",
+        split="train",
         template="import.path.to.CustomTemplate"
         data_files="https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json",
         # You can also pass in any kwarg that load_dataset accepts
