@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import init_process_group
@@ -22,12 +22,11 @@ from torch.distributed.fsdp import (
     FullyShardedDataParallel as FSDP,
     StateDictType,
 )
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 
 from torchtune import config, modules, utils
-
+from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
@@ -186,6 +185,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self._model = self._setup_model(
             cfg_model=cfg.model,
             enable_activation_checkpointing=cfg.enable_activation_checkpointing,
+            memory_efficient_fsdp_wrap=cfg.get("memory_efficient_fsdp_wrap", False),
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
             ac_mode=cfg.get("ac_mode", None),
             ac_option=cfg.get("ac_option", None),
@@ -233,6 +233,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self,
         cfg_model: DictConfig,
         enable_activation_checkpointing: bool,
+        memory_efficient_fsdp_wrap: bool,
         model_state_dict: Dict[str, Any],
         ac_mode: Optional[str] = None,
         ac_option: Optional[int] = None,
@@ -291,7 +292,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # across all available GPUs.
         model = FSDP(
             module=model,
-            auto_wrap_policy=ModuleWrapPolicy({modules.TransformerDecoderLayer}),
+            auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
+                memory_efficient_fsdp_wrap=memory_efficient_fsdp_wrap,
+                modules_to_wrap={modules.TransformerDecoderLayer},
+            ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
@@ -357,10 +361,18 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+            packed = False
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=world_size,
@@ -376,7 +388,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         if self._is_rank_zero:
@@ -460,12 +474,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                num_tokens += input_ids.numel()
-                labels = labels.to(self._device)
+                # Both are shape [b, s]
+                tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. Currently, only sample packing in PackedDataset returns these
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                logits = self._model(input_ids)
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
+                labels = labels.to(self._device)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
@@ -500,7 +524,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

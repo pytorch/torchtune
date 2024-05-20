@@ -152,7 +152,7 @@ def lora_gemma(
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
     """
-    Return a version of Gemma with LoRA applied to some of the linear layers in its self-attention modules.
+    Return a version of Gemma with LoRA applied based on the passed in configuration.
     Note: output projection lora is not supported because it is tied to token embeddings
 
     Args:
@@ -209,6 +209,7 @@ def lora_gemma(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            lora_dropout=lora_dropout,
         )
     else:
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
@@ -278,6 +279,7 @@ def lora_gemma_self_attention(
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
@@ -289,6 +291,7 @@ def lora_gemma_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
@@ -300,6 +303,7 @@ def lora_gemma_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
@@ -311,6 +315,7 @@ def lora_gemma_self_attention(
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules

@@ -7,12 +7,13 @@
 import sys
 import time
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Tuple, Union
 
 import torch
 from omegaconf import DictConfig
 
 from torch import nn
+from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
 from torchtune.modules import TransformerDecoder
@@ -27,6 +28,7 @@ try:
     from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
     from lm_eval.tasks import get_task_dict
+    from lm_eval.utils import make_table
 except ImportError:
     logger.error(
         "Recipe requires EleutherAI Eval Harness v0.4. Please install with `pip install lm_eval==0.4.*`"
@@ -53,13 +55,19 @@ class _EvalWrapper(HFLM):
         *,
         device: torch.device,
         max_seq_length: int = 4096,
-        batch_size: int = 32,
+        batch_size: int = 8,
+        dtype: torch.dtype = torch.float32,
     ):
-        super().__init__(device=str(device))
+        super().__init__(pretrained="gpt2", device=str(device))
         self._model = model
         self._tokenizer = tokenizer
         self._max_seq_length = max_seq_length
         self._batch_size = batch_size
+        self._dtype = dtype
+
+    @property
+    def model(self):
+        return self._model
 
     @property
     def eot_token_id(self):
@@ -89,17 +97,63 @@ class _EvalWrapper(HFLM):
         # https://github.com/pytorch-labs/gpt-fast/blob/main/eval.py#L123.
         return self._tokenizer.encode(text=text, add_bos=False, add_eos=False)
 
-    def tok_decode(self, tokens: List[int], **kwargs) -> str:
+    def tok_batch_encode(
+        self, text: List[str], **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        tokenized_text = [self.tok_encode(x) for x in text]
+
+        # pad left
+        x = pad_sequence(
+            [
+                torch.tensor(x[::-1]) for x in tokenized_text
+            ],  # first flip each sequence and pad
+            batch_first=True,
+            padding_value=self._tokenizer.pad_id,
+        ).flip(
+            dims=[1]
+        )  # flip back to correct order
+
+        return x, torch.ones_like(x)  # return 'mask' b/c it's expected by the harness
+
+    def tok_decode(self, tokens: Union[List[int], int], **kwargs) -> str:
+        if isinstance(tokens, int):
+            tokens = [tokens]
         return self._tokenizer.decode(tokens)
 
     def _model_call(self, inps: torch.Tensor, **kwargs) -> torch.Tensor:
         return self._model(inps)
 
-    def _model_generate(self, *args, **kwargs):
-        raise RuntimeError(
-            "This recipe does not currently support tasks that evaluate free generation,"
-            "e.g. `truthfulqa_gen` or `bigbench_color_generate_until`."
+    def _model_generate(
+        self, context: torch.Tensor, **generation_kwargs
+    ) -> torch.Tensor:
+        curr_batch_size = context.size(0)
+
+        # Setup caches for a given batch size
+        # Technically this is not necessary, but it's a good way to ensure that
+        # the caches won't error on a different batch size. In addition, caches
+        # are not needed for a regular model call, so we just setup here
+        with context.device:
+            self._model.setup_caches(batch_size=curr_batch_size, dtype=self._dtype)
+
+        temperature = generation_kwargs.get("temperature", 0.0)
+        do_sample = generation_kwargs.get("do_sample", False)
+        if do_sample:
+            # do_sample signifies more complicated sampling logic, like top_k or
+            # top_p. We don't support this yet, so if it's requested, we raise an error.
+            raise RuntimeError(
+                "``do_sample`` for generation tasks is not supported yet in torchtune."
+            )
+
+        toks = utils.generate(
+            self._model,
+            context,
+            max_generated_tokens=self.max_gen_toks,
+            pad_id=self._tokenizer.pad_id,
+            temperature=temperature,
+            top_k=None,  # do_sample is not supported currently
+            stop_tokens=self._tokenizer.stop_tokens,
         )
+        return torch.tensor(toks, dtype=torch.int32)
 
 
 class EleutherEvalRecipe(EvalRecipeInterface):
@@ -177,6 +231,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             self._tokenizer,
             device=self._device,
             max_seq_length=self._cfg.max_seq_length,
+            batch_size=self._cfg.batch_size,
+            dtype=self._dtype,
         )
 
         # Task initialization API changed between v0.4.1 and 0.4.2
@@ -187,15 +243,16 @@ class EleutherEvalRecipe(EvalRecipeInterface):
 
         task_dict = get_task_dict(self._tasks)
         logger.info(f"Running evaluation on {self._tasks} tasks.")
-        eleuther_output = evaluate(
+        output = evaluate(
             model_eval_wrapper,
             task_dict,
             limit=self._limit,
         )
 
         logger.info(f"Eval completed in {time.time() - t1:.02f} seconds.")
-        for task, res in eleuther_output["results"].items():
-            logger.info(f"{task}: {res}")
+
+        formatted_output = make_table(output)
+        print(formatted_output)
 
 
 @config.parse

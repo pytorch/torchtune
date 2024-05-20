@@ -157,7 +157,7 @@ def lora_llama2(
 ) -> TransformerDecoder:
     """
     Return a version of Llama2 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
-    with LoRA applied to some of the linear layers in its self-attention modules.
+    with LoRA applied based on the passed in configuration.
 
     Args:
         lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
@@ -218,6 +218,7 @@ def lora_llama2(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            lora_dropout=lora_dropout,
         )
     else:
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
@@ -233,7 +234,7 @@ def lora_llama2(
 
     # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -323,6 +324,7 @@ def lora_llama2_self_attention(
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
@@ -334,6 +336,7 @@ def lora_llama2_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
@@ -345,6 +348,7 @@ def lora_llama2_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
@@ -356,6 +360,7 @@ def lora_llama2_self_attention(
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules

@@ -121,7 +121,7 @@ class TestCausalSelfAttention:
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         head_dim = embed_dim // num_heads
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -175,7 +175,7 @@ class TestCausalSelfAttention:
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -204,9 +204,6 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
-        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
-        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
         attn = CausalSelfAttention(
             embed_dim=embed_dim,
@@ -231,11 +228,8 @@ class TestCausalSelfAttention:
         num_heads, num_kv_heads, embed_dim, max_seq_len = attn_params_mqa
         head_dim = embed_dim // num_heads
         num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-        q_proj = (nn.Linear(embed_dim, num_heads * head_dim, bias=False),)
-        k_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
-        v_proj = (nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),)
         kv_cache = KVCache(
-            max_batch_size=4,
+            batch_size=4,
             max_seq_len=max_seq_len,
             num_heads=num_heads,
             head_dim=head_dim,
@@ -276,7 +270,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = gqa_kv_cache(input, mask=mask, input_pos=input_pos)
@@ -302,7 +296,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = mha_kv_cache(input, mask=mask, input_pos=input_pos)
@@ -327,7 +321,7 @@ class TestCausalSelfAttention:
 
         causal_mask = torch.tril(torch.ones(max_seq_len, max_seq_len, dtype=torch.bool))
         input_pos = torch.arange(seq_len)
-        mask = causal_mask[None, None, input_pos]
+        mask = causal_mask[None, input_pos]
 
         with torch.no_grad():
             output = mqa_kv_cache(input, mask=mask, input_pos=input_pos)
@@ -342,9 +336,9 @@ class TestCausalSelfAttention:
         gqa: CausalSelfAttention,
     ) -> None:
         with pytest.raises(Exception):
-            output = gqa(input_max_len_exceeded)
+            _ = gqa(input_max_len_exceeded)
 
-    def test_max_batch_size_exceeded(
+    def test_batch_size_exceeded(
         self,
         input_max_bs_exceeded: Tensor,
         gqa_kv_cache: CausalSelfAttention,

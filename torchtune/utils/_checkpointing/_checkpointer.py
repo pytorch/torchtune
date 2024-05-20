@@ -15,6 +15,10 @@ import torch
 from torchtune import utils
 
 from torchtune.models import convert_weights
+from torchtune.models.mistral import (
+    mistral_reward_hf_to_tune,
+    mistral_reward_tune_to_hf,
+)
 from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
@@ -384,6 +388,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         if self._model_type == ModelType.PHI3_MINI:
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
+        elif self._model_type == ModelType.MISTRAL_REWARD:
+            converted_state_dict[utils.MODEL_KEY] = mistral_reward_hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
         else:
             converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -426,6 +437,13 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # convert the state_dict back to hf format; do this inplace
         if self._model_type == ModelType.PHI3_MINI:
             state_dict[utils.MODEL_KEY] = phi3_tune_to_hf(state_dict[utils.MODEL_KEY])
+        elif self._model_type == ModelType.MISTRAL_REWARD:
+            state_dict[utils.MODEL_KEY] = mistral_reward_tune_to_hf(
+                state_dict[utils.MODEL_KEY],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+            )
         else:
             state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
                 state_dict[utils.MODEL_KEY],
