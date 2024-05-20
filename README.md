@@ -175,7 +175,7 @@ And should see the following output:
 ```bash
 usage: tune [-h] {ls,cp,download,run,validate} ...
 
-Welcome to the TorchTune CLI!
+Welcome to the torchtune CLI!
 
 options:
   -h, --help            show this help message and exit
