@@ -11,7 +11,7 @@ class FTRecipeInterface(Protocol):
     """
     This class provides a loose structure which every LLM fine-tuning recipe
     should follow. Please note that the interface itself should not be a vehicle for
-    code reuse. TorchTune strictly prohibits implementation inheritance in the codebase.
+    code reuse. torchtune strictly prohibits implementation inheritance in the codebase.
 
     A few notes about the design and the need for this interface:
     - This interface is meant to help recipe-writers organize their code in a way
@@ -64,7 +64,7 @@ class EvalRecipeInterface(Protocol):
     """
     This class provides a loose structure which every LLM evaluation recipe
     should follow. Please note that the interface itself should not be a vehicle for
-    code reuse. TorchTune strictly prohibits implementation inheritance in the codebase.
+    code reuse. torchtune strictly prohibits implementation inheritance in the codebase.
     """
 
     def load_checkpoint(self, **kwargs) -> None:
