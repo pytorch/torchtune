@@ -48,7 +48,7 @@ def gemma(
     norm_embeddings: bool = True,
 ) -> GemmaTransformerDecoder:
     """
-    Build the decoder associated with the gemma model. This includes:
+    Build the decoder associated with the Gemma model. This includes:
     - Token embeddings
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer

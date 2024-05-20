@@ -53,9 +53,11 @@ def llama3(
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Llama3 model. This includes:
+    Builder for the decoder associated with the Llama3 model.
+
+    This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of ``TransformerDecoderLayer`` blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -69,7 +71,7 @@ def llama3(
             `None`, in which case this is the same as MHA
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
-            by :func:`~torchtune.modules.KVCache`
+            by :class:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
@@ -77,7 +79,7 @@ def llama3(
         norm_eps (float): epsilon in RMS norms.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 model.
+        TransformerDecoder: Instantiation of a Llama3 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -154,7 +156,7 @@ def lora_llama3(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
+    Return a version of Llama3 (an instance of :class:`~torchtune.modules.TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
 
     Args:
@@ -174,7 +176,7 @@ def lora_llama3(
             `None`, in which case this is the same as MHA
         embed_dim (int): embedding dimension for self-attention
         max_seq_len (int): maximum sequence length the model will be run with, as used
-            by :func:`~torchtune.modules.KVCache`
+            by :class:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,

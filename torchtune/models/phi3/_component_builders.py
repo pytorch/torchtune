@@ -48,6 +48,8 @@ def phi3(
     rope_base: int = 10_000,
 ) -> TransformerDecoder:
     """
+    Build the decoder associated with the Phi-3 Mini model.
+
     Args:
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
