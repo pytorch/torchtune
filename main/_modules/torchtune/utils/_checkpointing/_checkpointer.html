@@ -10,7 +10,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.utils._checkpointing._checkpointer &mdash; TorchTune main documentation</title>
+  <title>torchtune.utils._checkpointing._checkpointer &mdash; torchtune main documentation</title>
   
 
   
@@ -434,26 +434,26 @@
 
 <span class="k">class</span> <span class="nc">_CheckpointerInterface</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Interface implemented by Checkpointers in TorchTune.</span>
+<span class="sd">    Interface implemented by Checkpointers in torchtune.</span>
 
-<span class="sd">    TorchTune checkpointers are designed to be composable components which can be plugged</span>
+<span class="sd">    torchtune checkpointers are designed to be composable components which can be plugged</span>
 <span class="sd">    into any training recipe. Each checkpointer supports a specific set of models and training</span>
 <span class="sd">    scenarios making these easy to understand, debug and extend. For example, the</span>
 <span class="sd">    ``FullModelCheckpointer``s are used for loading and saving all of the model weights.</span>
 <span class="sd">    This checkpointer can be used for Full-Finetuning scenarios or PEFT where the output is a</span>
 <span class="sd">    merged checkpoint. In case the current suite of checkpointers are inadequate,</span>
-<span class="sd">    users are encouraged to implement their own and contribute back to TorchTune.</span>
+<span class="sd">    users are encouraged to implement their own and contribute back to torchtune.</span>
 
-<span class="sd">    TorchTune is also designed to be &quot;state-dict invariant&quot;. This means the checkpointer</span>
+<span class="sd">    torchtune is also designed to be &quot;state-dict invariant&quot;. This means the checkpointer</span>
 <span class="sd">    ensures that the output checkpoint has the same format as the original checkpoint i.e.</span>
 <span class="sd">    the output checkpoint has the same keys split across the same number of files as the original</span>
-<span class="sd">    checkpoint. Being &quot;state-dict invariant&quot; allows users to seamlessly use TorchTune checkpoints</span>
+<span class="sd">    checkpoint. Being &quot;state-dict invariant&quot; allows users to seamlessly use torchtune checkpoints</span>
 <span class="sd">    with their favorite post-training tools from the open-source ecosystem without writing</span>
-<span class="sd">    TorchTune-specific convertors. To be &quot;state-dict invariant&quot;, the ``load_checkpoint`` and</span>
+<span class="sd">    torchtune-specific convertors. To be &quot;state-dict invariant&quot;, the ``load_checkpoint`` and</span>
 <span class="sd">    ``save_checkpoint`` methods make use of the weight convertors available in</span>
 <span class="sd">    ``torchtune/models/&lt;model_folder&gt;``.</span>
 
-<span class="sd">    TorchTune Checkpointers support two checkpointing scenarios:</span>
+<span class="sd">    torchtune Checkpointers support two checkpointing scenarios:</span>
 <span class="sd">        * End-of-training Checkpointing. The model weights at the end of a completed training</span>
 <span class="sd">            run are written out to file. The checkpointer ensures that the output checkpoint</span>
 <span class="sd">            files have the same keys as the input checkpoint file used to begin training. The</span>
@@ -503,7 +503,7 @@
 <span class="k">class</span> <span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in a format compatible with</span>
-<span class="sd">    TorchTune. No conversion of weights is required.</span>
+<span class="sd">    torchtune. No conversion of weights is required.</span>
 
 <span class="sd">    Currently this supports reading a single checkpoint file only. This will likely change as</span>
 <span class="sd">    we add support for larger models.</span>
@@ -522,7 +522,7 @@
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Currently we only support reading from a single TorchTune checkpoint file. &quot;</span>
+                <span class="s2">&quot;Currently we only support reading from a single torchtune checkpoint file. &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;Got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> files instead.&quot;</span>
             <span class="p">)</span>
 
@@ -557,7 +557,7 @@
 
     <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.</span>
+<span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 
 <span class="sd">        The output state_dict has the following format, with keys other than &quot;model&quot; only present if</span>
 <span class="sd">        ``resume_from_checkpoint`` is True:</span>
@@ -598,7 +598,7 @@
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
+<span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state. The output state dicts have the following formats:</span>
 
@@ -669,7 +669,7 @@
 <span class="sd">    we read the files in the right order, we sort the checkpoint file names before reading</span>
 <span class="sd">    - Checkpoint conversion to and from HF&#39;s format requires access to model params which are</span>
 <span class="sd">    read directly from the &quot;config.json&quot; file. This helps ensure we either load the weights</span>
-<span class="sd">    correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune&#39;s</span>
+<span class="sd">    correctly or error out in case of discrepancy between the HF checkpoint file and torchtune&#39;s</span>
 <span class="sd">    model implementations.</span>
 
 <span class="sd">    Args:</span>
@@ -744,16 +744,16 @@
 
 <div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load TorchTune checkpoint from file.</span>
+<span class="sd">        Load torchtune checkpoint from file.</span>
 
 <span class="sd">        The keys and weights from across all checkpoint files are merged into a single state_dict.</span>
 <span class="sd">        We preserve the &quot;state_dict key&quot; &lt;-&gt; &quot;checkpoint file mapping&quot; in weight_map so we can</span>
 <span class="sd">        write the state dict correctly in ``save_checkpoint``.</span>
 
-<span class="sd">        Before returning, the model state dict is converted to a TorchTune compatible format using.</span>
+<span class="sd">        Before returning, the model state dict is converted to a torchtune compatible format using.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            state_dict (Dict[str, Any]): TorchTune checkpoint state dict</span>
+<span class="sd">            state_dict (Dict[str, Any]): torchtune checkpoint state dict</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the values in the input state_dict are not Tensors</span>
@@ -764,7 +764,7 @@
         <span class="n">merged_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="c1"># converted_state_dict is the final state_dict passed to the recipe after the</span>
-        <span class="c1"># keys are converted into the TorchTune format. This optionally also contains</span>
+        <span class="c1"># keys are converted into the torchtune format. This optionally also contains</span>
         <span class="c1"># the recipe state and adapter weights</span>
         <span class="n">converted_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -820,7 +820,7 @@
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
+<span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state.</span>
 
@@ -935,7 +935,7 @@
         <span class="c1"># Fail fast if ``checkpoint_files`` is invalid</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Currently we only support reading from a single TorchTune checkpoint file. &quot;</span>
+                <span class="s2">&quot;Currently we only support reading from a single torchtune checkpoint file. &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;Got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">checkpoint_files</span><span class="p">)</span><span class="si">}</span><span class="s2"> files instead.&quot;</span>
             <span class="p">)</span>
 
@@ -964,7 +964,7 @@
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.</span>
+<span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
@@ -986,7 +986,7 @@
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
+<span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state.</span>
 
@@ -1050,7 +1050,7 @@
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2023-present, TorchTune Contributors.
+        &copy; Copyright 2023-present, torchtune Contributors.
 
     </p>
   </div>

@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>FullModelMetaCheckpointer &mdash; TorchTune main documentation</title>
+  <title>FullModelMetaCheckpointer &mdash; torchtune main documentation</title>
   
 
   
@@ -438,13 +438,13 @@ resume training from a previous run. Default is False</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.utils.FullModelMetaCheckpointer.load_checkpoint">
 <span class="sig-name descname"><span class="pre">load_checkpoint</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer.html#FullModelMetaCheckpointer.load_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.FullModelMetaCheckpointer.load_checkpoint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Load TorchTune checkpoint from file. Currently only loading from a single file is supported.</p>
+<dd><p>Load torchtune checkpoint from file. Currently only loading from a single file is supported.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.utils.FullModelMetaCheckpointer.save_checkpoint">
 <span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">state_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epoch</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">intermediate_checkpoint</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer.html#FullModelMetaCheckpointer.save_checkpoint"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.FullModelMetaCheckpointer.save_checkpoint" title="Permalink to this definition">¶</a></dt>
-<dd><p>Save TorchTune checkpoint to file. If <code class="docutils literal notranslate"><span class="pre">intermediate_checkpoint</span></code> is True, an additional
+<dd><p>Save torchtune checkpoint to file. If <code class="docutils literal notranslate"><span class="pre">intermediate_checkpoint</span></code> is True, an additional
 checkpoint file <code class="docutils literal notranslate"><span class="pre">recipe_state.pt</span></code> is created in <code class="docutils literal notranslate"><span class="pre">_output_dir</span></code> which contains the recipe
 state.</p>
 <dl class="field-list simple">
@@ -487,7 +487,7 @@ and (if applicable) adapter weights are created. Default is False</p></li>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2023-present, TorchTune Contributors.
+        &copy; Copyright 2023-present, torchtune Contributors.
 
     </p>
   </div>

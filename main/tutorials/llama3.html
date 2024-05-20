@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Meta Llama3 in torchtune &mdash; TorchTune main documentation</title>
+  <title>Meta Llama3 in torchtune &mdash; torchtune main documentation</title>
   
 
   
@@ -509,7 +509,7 @@ For example, on two devices:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">2</span><span class="w"> </span>lora_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama3/8B_lora
 </pre></div>
 </div>
-<p>Finally, if we want to use even less memory, we can leverage TorchTune’s QLoRA recipe via:</p>
+<p>Finally, if we want to use even less memory, we can leverage torchtune’s QLoRA recipe via:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_qlora_single_device
 </pre></div>
 </div>
@@ -679,7 +679,7 @@ with your favorite inference engine.</p>
 <p>Let’s take our quantized model and run the same generation again.
 First, we’ll make one more change to our <code class="docutils literal notranslate"><span class="pre">custom_generation_config.yaml</span></code>.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">checkpointer</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># we need to use the custom TorchTune checkpointer</span>
+<span class="w">  </span><span class="c1"># we need to use the custom torchtune checkpointer</span>
 <span class="w">  </span><span class="c1"># instead of the HF checkpointer for loading</span>
 <span class="w">  </span><span class="c1"># quantized models</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.utils.FullModelTorchTuneCheckpointer</span>
@@ -744,7 +744,7 @@ We look forward to seeing what you build!</p>
 
   <div role="contentinfo">
     <p>
-        &copy; Copyright 2023-present, TorchTune Contributors.
+        &copy; Copyright 2023-present, torchtune Contributors.
 
     </p>
   </div>
