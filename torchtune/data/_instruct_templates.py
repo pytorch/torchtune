@@ -87,6 +87,44 @@ class AlpacaInstructTemplate(InstructTemplate):
         return prompt
 
 
+class RAFTInstructTemplate(InstructTemplate):
+    """
+    Prompt template for RAFT-style datasets. Template prompt changes slightly depending
+    on an instruction.
+    """
+
+    template = {
+        "prompt": (
+            "Carefully read and analyze the provided documents to answer the question that follows. "
+            "Provide a detailed, step-by-step explanation of your reasoning, demonstrating how you arrived at your"
+            " conclusion based on the information given in the documents.\n\n"
+            "### Instruction:\n{instruction}\n\n### Response:\n"
+        ),
+    }
+
+    @classmethod
+    def format(
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from instruction.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with instruction
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                placeholder names in the template to the column names in the sample.
+                If None, assume these are identical.
+
+        Returns:
+            The formatted prompt
+        """
+        column_map = column_map or {}
+        key_instruction = column_map.get("instruction", "instruction")
+
+        prompt = cls.template["prompt"].format(instruction=sample[key_instruction])
+        return prompt
+
+
 class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
     Prompt template for grammar correction datasets.
