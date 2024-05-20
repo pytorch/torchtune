@@ -21,7 +21,6 @@ from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     CKPT_COMPONENT_MAP,
     dummy_alpaca_dataset_config,
-    llama2_test_config,
     MODEL_TEST_CONFIGS,
     write_hf_ckpt_config,
 )
@@ -137,7 +136,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS("LLAMA2")
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -224,7 +223,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             metric_logger.filename={no_grad_accum_log_file} \
         """.split()
 
-        model_config = llama2_test_config()
+        model_config = MODEL_TEST_CONFIGS("LLAMA2")
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
