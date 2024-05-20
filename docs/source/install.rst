@@ -29,7 +29,7 @@ And should see the following output:
 
     usage: tune [-h] {download,ls,cp,run,validate} ...
 
-    Welcome to the TorchTune CLI!
+    Welcome to the torchtune CLI!
 
     options:
     -h, --help            show this help message and exit

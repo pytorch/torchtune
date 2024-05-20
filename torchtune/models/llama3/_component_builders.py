@@ -28,7 +28,7 @@ from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
 """
 Component builders for the Llama3 model and popular variants such as LoRA.
 
-TorchTune provides composable building blocks. Builder functions help
+torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
 - The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
