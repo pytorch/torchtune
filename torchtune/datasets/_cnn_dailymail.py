@@ -40,6 +40,9 @@ def cnn_dailymail_articles_dataset(
         column="article",
         max_seq_len=max_seq_len,
         split="train",
+        # This is used to specify the version of the dataset, a required argument
+        # by the cnn_dailymail dataset builder:
+        # https://huggingface.co/datasets/ccdv/cnn_dailymail/blob/main/cnn_dailymail.py#L80
         name="3.0.0",
         **load_dataset_kwargs,
     )
