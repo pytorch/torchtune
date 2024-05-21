@@ -650,6 +650,7 @@
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -661,7 +662,8 @@
 
 <div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checkpointer which reads and writes checkpoints in HF&#39;s format. Example includes</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in HF&#39;s format. For LoRA models this includes</span>
+<span class="sd">    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Example includes</span>
 <span class="sd">    the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)</span>
 
 <span class="sd">    A few notes about the checkpoint reading logic:</span>
@@ -786,8 +788,11 @@
             <span class="c1"># delete the state_dict to free up memory; TODO check if this del is needed</span>
             <span class="k">del</span> <span class="n">state_dict</span>
             <span class="n">gc</span><span class="o">.</span><span class="n">collect</span><span class="p">()</span>
-
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Converting Phi-3 Mini weights from HF format.&quot;</span>
+                <span class="s2">&quot;Note that conversion of adapter weights into PEFT format is not supported.&quot;</span>
+            <span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_hf_to_tune</span><span class="p">(</span><span class="n">merged_state_dict</span><span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">MISTRAL_REWARD</span><span class="p">:</span>
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">mistral_reward_hf_to_tune</span><span class="p">(</span>
@@ -874,6 +879,8 @@
             <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+            <span class="c1"># Save torchtune format adapter weights even if we save PEFT format</span>
+            <span class="c1"># This way we can resume no matter what (and memory footprint of adapter weights is small)</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;adapter_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
@@ -884,11 +891,55 @@
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
 
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">state_dict</span><span class="p">[</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_peft_adapter_weights</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="n">peft_output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s2">&quot;adapter_model&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.bin&quot;</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">],</span> <span class="n">peft_output_path</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">peft_output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="s2">&quot;PEFT integration for Phi-3 Mini is not supported, skipping adapter config save&quot;</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">state_dict</span><span class="p">[</span>
+                    <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_peft_adapter_config</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s2">&quot;adapter_config.json&quot;</span><span class="p">)</span>
+                <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">output_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                    <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">],</span> <span class="n">f</span><span class="p">)</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
         <span class="c1"># and if it exists, remove the adapter state dict as well</span>
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -1027,6 +1078,7 @@
         <span class="k">if</span> <span class="n">intermediate_checkpoint</span><span class="p">:</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">)</span>
             <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="s2">&quot;recipe_state.pt&quot;</span><span class="p">)</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
             <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
