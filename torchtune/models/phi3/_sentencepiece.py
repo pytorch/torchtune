@@ -7,8 +7,7 @@
 from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.data._types import Message
-from torchtune.data._utils import truncate
+from torchtune.data import Message, truncate
 
 
 class Phi3MiniSentencePieceTokenizer:

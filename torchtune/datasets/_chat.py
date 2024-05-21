@@ -75,9 +75,9 @@ class ChatDataset(Dataset):
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
-        if chat_format is not None and not isinstance(chat_format, ChatFormat):
+        if chat_format is not None and not isinstance(chat_format(), ChatFormat):
             raise ValueError(
-                f"chat_format must be a ChatFormat class, not {type(chat_format)}"
+                f"chat_format must be a ChatFormat class, not {type(chat_format())}"
             )
 
         self._tokenizer = tokenizer

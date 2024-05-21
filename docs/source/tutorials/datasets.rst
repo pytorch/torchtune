@@ -62,7 +62,7 @@ to load in your data, whether local or on the hub.
 You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
 to specify which dataset on the hub to download. Additionally, all builders accept
 any keyword-arguments that ``load_dataset()`` supports. You can see a full list
-on Hugging Face's `documentation.<https://huggingface.co/docs/datasets/en/loading>`_
+on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loading>`_
 
 .. code-block:: python
 
@@ -97,8 +97,15 @@ on Hugging Face's `documentation.<https://huggingface.co/docs/datasets/en/loadin
 Setting max sequence length
 ---------------------------
 
-Generally, you want the max sequence length return in each data sample to match the
-context window size of your model. You can also decrease this value to reduce memory usage
+The default collator :func:`~torchtune.utils.collate.padded_collate` used in all
+our training recipes will pad samples to the max sequence length within the batch,
+not globally. If you wish to set an upper limit on the max sequence length globally,
+you can specify it in the dataset builder with ``max_seq_len``. Any sample in the dataset
+that is longer than ``max_seq_len`` will be truncated in :func:`~torchtune.data.truncate`.
+The tokenizer's EOS ids are ensured to be the last token, except in :class:`~torchtune.datasets.TextCompletionDataset`.
+
+Generally, you want the max sequence length returned in each data sample to match the context window
+size of your model. You can also decrease this value to reduce memory usage
 depending on your hardware constraints.
 
 .. code-block:: python
@@ -129,7 +136,9 @@ Sample packing
 --------------
 
 You can use sample packing with any of the single dataset builders by passing in
-:code:`packed=True`.
+:code:`packed=True`. This requires some pre-processing of the dataset which may
+slow down time-to-first-batch, but can introduce significant training speedups
+depending on the dataset.
 
 .. code-block:: python
 
