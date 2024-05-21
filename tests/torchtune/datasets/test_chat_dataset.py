@@ -9,12 +9,12 @@ from unittest import mock
 import pytest
 from datasets import Dataset
 from tests.test_utils import DummyTokenizer
-from torchtune.data import Message
+from torchtune.data import ChatFormat, Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ChatDataset
 
 
-class DummyChatFormat:
+class DummyChatFormat(ChatFormat):
 
     B_SYS, E_SYS = "System:\n", "\n"
     B_INST, E_INST = "User:\n", "\nAssistant:\n"
@@ -52,7 +52,7 @@ def _are_messages_equal(messages_a, messages_b):
 class TestChatDataset:
     @pytest.fixture
     def chat_format(self):
-        return DummyChatFormat()
+        return DummyChatFormat
 
     @pytest.fixture
     def dialogue(self):

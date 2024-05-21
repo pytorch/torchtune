@@ -10,7 +10,7 @@ import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.config._utils import _get_chat_format
+from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
     ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
@@ -75,6 +75,11 @@ class ChatDataset(Dataset):
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
+        if chat_format is not None and not isinstance(chat_format(), ChatFormat):
+            raise ValueError(
+                f"chat_format must be a ChatFormat class, not {type(chat_format())}"
+            )
+
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self._convert_to_messages = convert_to_messages
@@ -125,8 +130,8 @@ def chat_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
-            for automatic conversion to the Llama style. Supported styles are: "sharegpt"
-        chat_format (Optional[str]): name of ``ChatFormat`` class used to format the messages. See the description in
+            for automatic conversion to the Llama style. Supported styles are: "sharegpt", "openai"
+        chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in
             :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,
             check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
@@ -140,7 +145,7 @@ def chat_dataset(
         ...   tokenizer=tokenizer,
         ...   source="HuggingFaceH4/no_robots",
         ...   conversation_style="sharegpt",
-        ...   chat_format=ChatMLFormat,
+        ...   chat_format="torchtune.data.ChatMLFormat",
         ...   max_seq_len=2096,
         ...   train_on_input=True
         ... )
@@ -151,12 +156,13 @@ def chat_dataset(
             _component_: torchtune.datasets.chat_dataset
             source: HuggingFaceH4/no_robots
             conversation_style: sharegpt
-            chat_format: ChatMLFormat
+            chat_format: torchtune.data.ChatMLFormat
             max_seq_len: 2096
             train_on_input: True
 
     Returns:
-        ChatDataset: the configured :class:`~torchtune.datasets.ChatDataset`
+        ChatDataset or PackedDataset: the configured :class:`~torchtune.datasets.ChatDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:
         ValueError: if the conversation format is not supported
@@ -172,7 +178,9 @@ def chat_dataset(
         tokenizer=tokenizer,
         source=source,
         convert_to_messages=convert_to_messages,
-        chat_format=_get_chat_format(chat_format) if chat_format is not None else None,
+        chat_format=_get_component_from_path(chat_format)
+        if chat_format is not None
+        else None,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,

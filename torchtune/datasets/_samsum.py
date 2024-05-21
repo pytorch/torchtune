@@ -50,7 +50,7 @@ def samsum_dataset(
     return instruct_dataset(
         tokenizer=tokenizer,
         source=source,
-        template="SummarizeTemplate",
+        template="torchtune.data.SummarizeTemplate",
         column_map={"output": "summary"},
         train_on_input=train_on_input,
         packed=packed,
