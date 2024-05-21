@@ -22,15 +22,15 @@ def wikitext_dataset(
     an unstructured text corpus consisting of articles from Wikipedia.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         subset (str): name of subset of data to use, see the `wikitext page <https://huggingface.co/datasets/wikitext#data-fields>`_
             for available subsets.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Returns:
         TextCompletionDataset: the configured TextCompletionDataset

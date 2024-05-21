@@ -18,14 +18,14 @@ class TextCompletionDataset(Dataset):
     from Hugging Face or local disk and tokenize it for your model.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (str): name of column in the sample that contains the text data
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
     """
 
     def __init__(
@@ -75,17 +75,36 @@ def text_completion_dataset(
     using `TextDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
-        source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (str): name of column in the sample that contains the text data
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
-        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
+        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
+
+    Examples:
+        >>> from torchtune.datasets import text_completion_dataset
+        >>> dataset = text_completion_dataset(
+        ...   tokenizer=tokenizer,
+        ...   source="allenai/c4",
+        ...   column="text",
+        ...   max_seq_len=2096,
+        ...   data_dir="realnewslike",
+        ... )
+
+    This can also be accomplished via the yaml config::
+
+        dataset:
+            _component_: torchtune.datasets.text_completion_dataset
+            source: allenai/c4
+            column: text
+            max_seq_len: 2096
+            data_dir: realnewslike
 
     Returns:
-        TextCompletionDataset: the configured TextCompletionDataset
+        TextCompletionDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
     """
     return TextCompletionDataset(
         tokenizer=tokenizer,
