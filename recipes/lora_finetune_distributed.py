@@ -33,6 +33,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft import LoRALinear
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
 )
@@ -279,6 +280,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
            c. We register (pre-)forward hooks with ``fully_shard`` instead of wrapping `nn.Module`
         """
 
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
+        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
+
         if self._is_rank_zero:
             log.info(
                 "FSDP is enabled. Instantiating model and loading checkpoint on Rank 0 ..."
@@ -496,6 +503,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         utils.MAX_STEPS_KEY: self.max_steps_per_epoch,
                     }
                 )
+
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            checkpoint_dict.update({utils.ADAPTER_CONFIG: adapter_config})
 
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
