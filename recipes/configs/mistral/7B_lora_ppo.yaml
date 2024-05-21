@@ -30,7 +30,7 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
   train_on_input: True
   max_seq_len: 32
 seed: null
@@ -81,7 +81,7 @@ resume_from_checkpoint: False
 output_dir: target/full_7b
 
 # Fine-tuning arguments
-batch_size: 64
+batch_size: 2
 num_steps: 10000
 ppo_epochs: 4
 ppo_batch_size: 2
@@ -93,10 +93,10 @@ gamma: 0.99
 lmbda: 0.95
 whiten_rewards: False
 # generation arguments
+forward_batch_size: 1
 max_generated_tokens: 32
 temperature: 0.7
 top_k: null
-top_p: 1.0
 
 # kl controller arguments
 init_kl_coef: 0.2

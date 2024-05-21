@@ -1028,4 +1028,4 @@ def lora_mistral_lm_with_value_head(
             )
         )
 
-    return TransformerLMWithValueHead(decoder=decoder, lm_output=lm_output_proj, embed_dim=embed_dim)
+    return TransformerLMWithValueHead(decoder=decoder, output=lm_output_proj, embed_dim=embed_dim)

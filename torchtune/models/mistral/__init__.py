@@ -9,7 +9,6 @@ from ._component_builders import (
     lora_mistral_lm_with_value_head,
     mistral,
     mistral_classifier,
-    mistral_lm_with_value_head,
 )
 from ._convert_weights import (  # noqa
     hf_to_tune_lm,
@@ -24,7 +23,7 @@ from ._model_builders import (
     lora_mistral_lm_with_value_head_7b,
     mistral_7b,
     mistral_classifier_7b,
-    mistral_test_with_lm_value_head,
+    mistral_lm_7b,
     mistral_tokenizer,
     qlora_mistral_7b,
     qlora_mistral_classifier_7b,
@@ -43,10 +42,7 @@ __all__ = [
     "lora_mistral_classifier_7b",
     "qlora_mistral_classifier_7b",
     "mistral_lm",
-    "mistral_7b_lm",
-    "mistral_lm_with_value_head",
-    # TODO (SalmanMohammadi): remove
-    "mistral_test_with_lm_value_head",
+    "mistral_lm_7b",
     "lora_mistral_lm_with_value_head",
     "lora_mistral_lm",
     "lora_mistral_lm_with_value_head_7b",

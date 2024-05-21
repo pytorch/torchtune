@@ -240,9 +240,20 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
             ).with_suffix(".pt")
-            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            torch.save(state_dict[utils.VALUE_HEAD_KEY], output_path)
             logger.info(
                 "Adapter checkpoint of size "
+                f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                f"saved to {output_path}"
+            )
+
+        if utils.VALUE_HEAD_KEY in state_dict:
+            output_path = Path.joinpath(
+                self._output_dir, f"value_head_{epoch}"
+            ).with_suffix(".pt")
+            torch.save(state_dict[utils.ADAPTER_KEY], output_path)
+            logger.info(
+                "Value head checkpoint of size "
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
                 f"saved to {output_path}"
             )

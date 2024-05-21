@@ -219,7 +219,10 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         )
         # setup response length
         self.max_generated_tokens = cfg.max_generated_tokens
-        self._model.max_seq_len = self.max_generated_tokens
+
+        # update model seq len to reduce KV-cache size
+        self._model.decoder.max_seq_len = self.max_generated_tokens
+
         # setup tokenizer
         self._tokenizer = config.instantiate(cfg.tokenizer)
         log.info("Tokenizer is initialized from file.")
@@ -273,7 +276,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         # trajectory generation args
         self.temperature = cfg.temperature
         self.top_k = cfg.top_k
-        self.top_p = cfg.top_p
+        self.forward_batch_size = cfg.forward_batch_size
 
         self.total_epochs = self.num_steps // self.batch_size
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -316,7 +319,6 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
         # add placeholder value head key to base model state dict keys
         # to ensure wrapped model is validated correctly
-
         model_state_dict_keys = list(model_state_dict.keys())
         model_state_dict_keys += ["value_head.weight", "value_head.bias"]
 
@@ -382,6 +384,31 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         log.info("Learning rate scheduler is initialized.")
         return lr_scheduler
 
+    def batched_generate(self, input_ids: torch.Tensor, model: nn.Module):
+        outputs = []
+        forward_batch_size = min(len(input_ids), self.forward_batch_size)
+        for batch_start in range(0, input_ids.shape[0], forward_batch_size):
+            batch_end = min(batch_start + forward_batch_size, input_ids.shape[0])
+            batch_input_ids = input_ids[batch_start:batch_end]
+            with self._device:
+                model.decoder.setup_caches(
+                    batch_size=batch_input_ids.shape[0], dtype=self._dtype
+                )
+            outputs.append(
+                utils.generate(
+                    model=model,
+                    prompt=batch_input_ids,
+                    max_generated_tokens=self.max_generated_tokens,
+                    temperature=self.temperature,
+                    top_k=self.top_k,
+                    stop_tokens=self._tokenizer.stop_tokens,
+                    pad_id=self._tokenizer.pad_id,
+                    custom_generate_next_token=generate_next_token_with_value_head_model,
+                )
+            )
+            model.decoder.reset_caches()
+        return outputs
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
@@ -389,9 +416,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         batch_size: int,
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
-        All data related setup happens here. Currently this recipe only supports
-        Map-style Datasets which fit into memory and an option for random shuffling.
-        Samplers, iterable datasets, and streaming datasets are not supported.
+        All data related setup happens here.
         """
         if isinstance(cfg_dataset, ListConfig):
             datasets = [
@@ -428,7 +453,6 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
     def train(self) -> None:
         """
         The core training loop."""
-        step_ = 0
         for curr_epoch in range(self.epochs_run, self.total_epochs):
             self._sampler.set_epoch(curr_epoch)
 
@@ -440,32 +464,17 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     self._profiler.step()
 
                 # generating the current trajectory in inference mode
-                with torch.no_grad(), disable_adapter(self._model):
+                with torch.no_grad():
                     # this should support any dataset format
                     input_ids, *_ = batch
                     input_ids = input_ids.to(self._device)
+                    responses = self.batched_generate(tokens.unsqueeze(0), self._model)
 
-                    responses = utils.generate(
-                        model=self._model,
-                        prompt=input_ids,
-                        max_generated_tokens=self.max_generated_tokens,
-                        pad_id=self._tokenizer.pad_id,
-                        temperature=self.temperature,
-                        top_k=self.top_k,
-                        stop_tokens=self._tokenizer.eos_id,
-                        custom_generate_next_token=generate_next_token_with_value_head_model,
-                    )
-
-                    ref_responses = utils.generate(
-                        model=self._model,
-                        prompt=input_ids,
-                        max_generated_tokens=self.max_generated_tokens,
-                        pad_id=self._tokenizer.pad_id,
-                        temperature=self.temperature,
-                        top_k=self.top_k,
-                        stop_tokens=self._tokenizer.eos_id,
-                        custom_generate_next_token=generate_next_token_with_value_head_model,
-                    )
+                    # generating with lora adapters disabled gives us the pre-finetuning ref model
+                    with disable_adapter(self._model):
+                        ref_responses = self.batched_generate(
+                            tokens.unsqueeze(0), self._model
+                        )
 
                     # TODO pad out responses to max_generated_tokens
 
@@ -571,20 +580,27 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                             self._optimizer.zero_grad(set_to_none=True)
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            # self.save_checkpoint(epoch=curr_epoch)
+
             pbar.update(1)
             pbar.set_description(
                 f"{curr_epoch+1}|{self.global_step}|reward: {rewards.sum(1).mean()}| loss: {loss}"
             )
-            self.global_step += 1
+
             kl = logprobs - ref_logprobs
+            log_dict = {
+                "loss": loss.item(),
+                "reward": rewards.sum(1).mean().item(),
+                "kl": kl.sum(1).mean().item(),
+            }
+            self._metric_logger.log_dict(
+                log_dict,
+                step=self.global_step,
+            )
+            self.global_step += 1
             self.kl_controller.update(kl.sum(1).mean().item(), curr_epoch)
 
     def cleanup(self, **kwargs) -> None:
-        import os
-
-        os.rmdir(self._output_dir)
-        print("removed output dir")
         self._metric_logger.close()
 
 

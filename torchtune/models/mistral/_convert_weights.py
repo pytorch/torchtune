@@ -37,7 +37,7 @@ _FROM_HF_LM = {
     "model.layers.{}.input_layernorm.weight": "decoder.layers.{}.sa_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "decoder.layers.{}.mlp_norm.scale",
     "model.norm.weight": "decoder.norm.scale",
-    "lm_head.weight": "lm_output.weight",
+    "lm_head.weight": "output.weight",
 }
 
 

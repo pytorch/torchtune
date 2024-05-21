@@ -61,10 +61,16 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
 
-    def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
-                max_batch_size=max_batch_size,
+                batch_size=batch_size,
                 max_seq_len=self.max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
@@ -76,6 +82,16 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
         self.causal_mask = torch.tril(
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        if self.layers[0].attn.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+
+        for layer in self.layers:
+            layer.attn.kv_cache.reset()
 
     def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
         """
@@ -131,12 +147,12 @@ class TransformerLMWithValueHead(nn.Module):
     def __init__(
         self,
         decoder: TransformerDecoderWithHiddenOutput,
-        lm_output: nn.Linear,
+        output: nn.Linear,
         embed_dim: int,
     ) -> None:
         super().__init__()
         self.decoder = decoder
-        self.lm_output = lm_output
+        self.output = output
         self.value_head = nn.Linear(embed_dim, 1)
 
     def forward(
@@ -170,11 +186,11 @@ class TransformerLMWithValueHead(nn.Module):
         h = self.decoder(tokens, input_pos)
 
         # shape: [b, s, v]
-        lm_out = self.lm_output(h).float()
+        lm_output = self.output(h).float()
 
         # shape: [b, s, 1]
-        value_out = self.value_head(h)
-        return lm_out, value_out
+        value_output = self.value_head(h)
+        return lm_output, value_output
 
 
 class TransformerLM(nn.Module):
