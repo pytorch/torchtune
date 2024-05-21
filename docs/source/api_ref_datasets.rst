@@ -51,3 +51,4 @@ Class representations for the above dataset builders.
     ChatDataset
     TextCompletionDataset
     ConcatDataset
+    PackedDataset
