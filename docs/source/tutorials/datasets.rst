@@ -11,7 +11,9 @@ This tutorial will guide you through how to set up a dataset to fine-tune on.
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
       * How to quickly get started with built-in datasets
-      * How to configure existing dataset classes from the config
+      * How to use any dataset from Hugging Face Hub
+      * How to use instruct, chat, or text completion datasets
+      * How to configure datasets from code, config, or command-line
       * How to fully customize your own dataset
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
@@ -21,53 +23,193 @@ This tutorial will guide you through how to set up a dataset to fine-tune on.
 Datasets are a core component of fine-tuning workflows that serve as a "steering
 wheel" to guide LLM generation for a particular use case. Many publicly shared
 open-source datasets have become popular for fine-tuning LLMs and serve as a great
-starting point to train your model. We support several widely used datasets to help
-quickly bootstrap your fine-tuning. Let's walk through how to set up a common one for fine-tuning.
+starting point to train your model. torchtune gives you the tools to download external
+community datasets, load in custom local datasets, or create your own datasets.
 
-You can easily specify a dataset directly from the config file:
+Built-in datasets
+-----------------
 
-.. code-block:: yaml
+To use one of the built-in datasets in the library, simply import and call the dataset builder
+function. You can see a list of all supported datasets :ref:`here<datasets>`.
 
-  # Dataset
-  dataset:
-    _component_: torchtune.datasets.alpaca_dataset
+.. code-block:: python
 
-This will indicate to the recipes to create a dataset object that iterates over samples
-from `tatsu-lab/alpaca on HuggingFace datasets <https://huggingface.co/datasets/tatsu-lab/alpaca>`_.
+    from torchtune.datasets import alpaca_dataset
 
-We also expose common knobs to tweak the dataset for your needs. For example, let's say
-you'd like to reduce the memory footprint of each batch without changing the batch size.
-You could tweak :code:`max_seq_len` to achieve that directly from the config.
-
-.. code-block:: yaml
-
-  # Dataset
-  dataset:
-    _component_: torchtune.datasets.alpaca_dataset
-    # Original is 512
-    max_seq_len: 256
-
-It is also possible to train on multiple datasets by combining them into a single :class:`~torchtune.datasets.ConcatDataset`. For example:
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = alpaca_dataset(tokenizer)
 
 .. code-block:: yaml
 
-  dataset:
-    - _component_: torchtune.datasets.instruct_dataset
-      source: vicgalle/alpaca-gpt4
-      template: AlpacaInstructTemplate
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.alpaca_dataset
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.alpaca_dataset
+
+Hugging Face datasets
+---------------------
+
+We provide first class support for datasets on the Hugging Face hub. Under the hood,
+all of our built-in datasets and dataset builders are using Hugging Face's ``load_dataset()``
+to load in your data, whether local or on the hub.
+
+You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
+to specify which dataset on the hub to download. Additionally, all builders accept
+any keyword-arguments that ``load_dataset()`` supports. You can see a full list
+on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loading>`_
+
+.. code-block:: python
+
+    from torchtune.datasets import text_completion_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = text_completion_dataset(
+        tokenizer,
+        source="allenai/c4",
+        # Keyword-arguments that are passed into load_dataset
+        split="train",
+        data_dir="realnewslike",
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.text_completion_dataset
+      source: allenai/c4
       split: train
-      train_on_input: True
-    - _component_: torchtune.datasets.instruct_dataset
-      source: samsum
-      template: SummarizeTemplate
-      column_map: {"output": "summary"}
-      split: train
-      train_on_input: False
+      data_dir: realnewslike
 
-The preceding snippet demonstrates how you can configure each individual dataset's parameters, then combine them into a single concatenated dataset for training.
+.. code-block:: bash
 
-Customizing instruct templates
-------------------------------
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.text_completion_dataset dataset.source=allenai/c4 \
+    dataset.split=train dataset.data_dir=realnewslike
+
+Setting max sequence length
+---------------------------
+
+The default collator :func:`~torchtune.utils.collate.padded_collate` used in all
+our training recipes will pad samples to the max sequence length within the batch,
+not globally. If you wish to set an upper limit on the max sequence length globally,
+you can specify it in the dataset builder with ``max_seq_len``. Any sample in the dataset
+that is longer than ``max_seq_len`` will be truncated in :func:`~torchtune.data.truncate`.
+The tokenizer's EOS ids are ensured to be the last token, except in :class:`~torchtune.datasets.TextCompletionDataset`.
+
+Generally, you want the max sequence length returned in each data sample to match the context window
+size of your model. You can also decrease this value to reduce memory usage
+depending on your hardware constraints.
+
+.. code-block:: python
+
+    from torchtune.datasets import alpaca_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = alpaca_dataset(
+        tokenizer=tokenizer,
+        max_seq_len=4096,
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.alpaca_dataset
+      max_seq_len: 4096
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset.max_seq_len=4096
+
+Sample packing
+--------------
+
+You can use sample packing with any of the single dataset builders by passing in
+:code:`packed=True`. This requires some pre-processing of the dataset which may
+slow down time-to-first-batch, but can introduce significant training speedups
+depending on the dataset.
+
+.. code-block:: python
+
+    from torchtune.datasets import alpaca_dataset, PackedDataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = alpaca_dataset(
+        tokenizer=tokenizer,
+        packed=True,
+    )
+    print(isinstance(dataset, PackedDataset))  # True
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.alpaca_dataset
+      packed: True
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset.packed=True
+
+
+Custom unstructured text corpus
+-------------------------------
+
+For continued pre-training, typically a similar data setup to pre-training is used
+for a simple text completion task. This means no instruct templates, chat formats,
+and minimal special tokens (only BOS and EOS). To specify an unstructured text corpus,
+you can use the :func:`~torchtune.datasets.text_completion_dataset` builder with
+a Hugging Face dataset or a custom local corpus. Here is how to specify it for local
+files:
+
+.. code-block:: python
+
+    from torchtune.datasets import text_completion_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = text_completion_dataset(
+        tokenizer,
+        source="txt",
+        data_files="path/to/my_data.txt",
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.text_completion_dataset
+      source: txt
+      data_files: path/to/my_data.txt
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.text_completion_dataset dataset.source=txt \
+    dataset.data_files=path/to/my_data.txt
+
+Custom instruct dataset and instruct templates
+----------------------------------------------
+
+If you have a custom instruct dataset that's not already provided in the library,
+you can use the :func:`~torchtune.datasets.instruct_dataset` builder and specify
+the source path. Instruct datasets typically have multiple columns with text that
+are formatted into a prompt template.
 
 To fine-tune an LLM on a particular task, a common approach is to create a fixed instruct
 template that guides the model to generate output with a specific goal. Instruct templates
@@ -82,7 +224,7 @@ structures the data in the following way:
     "Write a response that appropriately completes the request.\n\n"
     "### Instruction:\n{instruction}\n\n### Input:\n{input}\n\n### Response:\n"
 
-Here is an example of sample that is formatted with :class:`~torchtune.data.AlpacaInstructTemplate`:
+Here is an example of a sample that is formatted with :class:`~torchtune.data.AlpacaInstructTemplate`:
 
 .. code-block:: python
 
@@ -106,34 +248,63 @@ Here is an example of sample that is formatted with :class:`~torchtune.data.Alpa
     # ### Response:
     #
 
-We provide `other instruct templates <https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py>`_
+We provide `other instruct templates <data>`
 for common tasks such summarization and grammar correction. If you need to create your own
-instruct template for a custom task, you can create your own :class:`~torchtune.data.InstructTemplate`
-class and point to it in the config.
+instruct template for a custom task, you can inherit from :class:`~torchtune.data.InstructTemplate`
+and create your own class.
+
+.. code-block:: python
+
+    from torchtune.datasets import instruct_dataset
+    from torchtune.data import InstructTemplate
+
+    class CustomTemplate(InstructTemplate):
+        # Define the template as string with {} as placeholders for data columns
+        template = ...
+
+        # Implement this method
+        @classmethod
+        def format(
+            cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+        ) -> str:
+            ...
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = instruct_dataset(
+        tokenizer=tokenizer,
+        source="my/dataset/path",
+        template="import.path.to.CustomTemplate",
+    )
 
 .. code-block:: yaml
 
+    # YAML config
     dataset:
       _component_: torchtune.datasets.instruct_dataset
-      source: mydataset/onthehub
-      template: CustomTemplate
-      train_on_input: True
-      max_seq_len: 512
+      source: my/dataset/path
+      template: import.path.to.CustomTemplate
 
-Customizing chat formats
-------------------------
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.instruct_dataset dataset.source=my/dataset/path \
+    dataset.template=import.path.to.CustomTemplate
+
+
+Custom chat dataset and chat formats
+------------------------------------
+
+If you have a custom chat/conversational dataset that's not already provided in the library,
+you can use the :func:`~torchtune.datasets.chat_dataset` builder and specify
+the source path. Chat datasets typically have a single column with multiple back
+and forth messages between the user and assistant.
+
 Chat formats are similar to instruct templates, except that they format system,
-user, and assistant messages in a list of messages (see :class:`~torchtune.data.ChatFormat`)
+user, and assistant messages into a list of messages (see :class:`~torchtune.data.ChatFormat`)
 for a conversational dataset. These can be configured quite similarly to instruct
 datasets.
-
-.. code-block:: yaml
-
-    dataset:
-      _component_: torchtune.datasets.chat_dataset
-      source: Open-Orca/SlimOrca-Dedup
-      conversation_style: sharegpt
-      chat_format: Llama2ChatFormat
 
 Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatFormat`:
 
@@ -172,12 +343,140 @@ Here is how messages would be formatted using the :class:`~torchtune.data.Llama2
 Note that the system message is now incorporated in the user message. If you create custom ChatFormats
 you can also add more advanced behavior.
 
+.. code-block:: python
+
+    from torchtune.datasets import chat_dataset
+    from torchtune.data import ChatFormat
+
+    class CustomChatFormat(ChatFormat):
+        # Define templates for system, user, assistant messages
+        # as strings with {} as placeholders for message content
+        system = ...
+        user = ...
+        assistant = ...
+
+        # Implement this method
+        @classmethod
+        def format(
+            cls,
+            sample: List[Message],
+        ) -> List[Message]:
+            ...
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = chat_dataset(
+        tokenizer=tokenizer,
+        source="my/dataset/path",
+        conversation_style="openai",
+        chat_format="import.path.to.CustomChatFormat",
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.chat_dataset
+      source: my/dataset/path
+      conversation_style: openai
+      chat_format: import.path.to.CustomChatFormat
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.chat_dataset dataset.source=my/dataset/path \
+    dataset.conversation_style=openai dataset.chat_format=import.path.to.CustomChatFormat
+
+
+Multiple in-memory datasets
+---------------------------
+
+It is also possible to train on multiple datasets and configure them individually.
+You can even mix instruct and chat datasets or other custom datasets.
+
+.. code-block:: yaml
+
+  # YAML config
+  dataset:
+    - _component_: torchtune.datasets.instruct_dataset
+      source: vicgalle/alpaca-gpt4
+      template: torchtune.data.AlpacaInstructTemplate
+      split: train
+      train_on_input: True
+    - _component_: torchtune.datasets.instruct_dataset
+      source: samsum
+      template: torchtune.data.SummarizeTemplate
+      column_map: {"output": "summary"}
+      split: train
+      train_on_input: False
+    - _component_: torchtune.datasets.chat_dataset
+      ...
+
+
+Local and remote datasets
+-------------------------
+
+To use a dataset saved on your local hard drive, simply specify the file type for
+``source`` and pass in the ``data_files`` argument using any of the dataset
+builder functions. We support all `file types <https://huggingface.co/docs/datasets/en/loading#local-and-remote-files>`_
+supported by Hugging Face's ``load_dataset``, including csv, json, txt, and more.
+
+.. code-block:: python
+
+    from torchtune.datasets import instruct_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    # Local files
+    dataset = instruct_dataset(
+        tokenizer=tokenizer,
+        source="csv",
+        template="import.path.to.CustomTemplate"
+        data_files="path/to/my/data.csv",
+    )
+    # Remote files
+    dataset = instruct_dataset(
+        tokenizer=tokenizer,
+        source="json",
+        template="import.path.to.CustomTemplate"
+        data_files="https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json",
+        # You can also pass in any kwarg that load_dataset accepts
+        field="data",
+    )
+
+.. code-block:: yaml
+
+    # YAML config - local files
+    dataset:
+      _component_: torchtune.datasets.instruct_dataset
+      source: csv
+      template: import.path.to.CustomTemplate
+      data_files: path/to/my/data.csv
+
+    # YAML config - remote files
+    dataset:
+      _component_: torchtune.datasets.instruct_dataset
+      source: json
+      template: import.path.to.CustomTemplate
+      data_files: https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json
+      field: data
+
+.. code-block:: bash
+
+    # Command line - local files
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.chat_dataset dataset.source=csv \
+    dataset.template=import.path.to.CustomTemplate dataset.data_files=path/to/my/data.csv
+
 Fully customized datasets
 -------------------------
 
-More advanced tasks and dataset formats may require you to create your own dataset
+More advanced tasks and dataset formats that don't fit into the templating and processing
+that :class:`~torchtune.datasets.InstructDataset`, :class:`~torchtune.datasets.ChatDataset`,
+and :class:`~torchtune.datasets.TextCompletionDataset` provide may require you to create your own dataset
 class for more flexibility. Let's walk through the :class:`~torchtune.datasets.PreferenceDataset`,
-which has custom functionality for RLHF preference data, to understand what you'll need to do.
+which has custom functionality for RLHF preference data, as an example to understand what you'll need to do.
 
 If you take a look at the code for the :class:`~torchtune.datasets.PreferenceDataset` class,
 you'll notice it's quite similar to :class:`~torchtune.datasets.InstructDataset` with a few
@@ -208,10 +507,7 @@ adjustments for chosen and rejected samples in preference data.
         np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
     )
 
-If any of the existing dataset classes do not serve your purposes, you can similarly
-use one of them as a starting point and add the functionality you need.
-
-To be able to use your custom dataset from the config, you will need to create
+For a specific dataset that's easy to customize from the config, you can create
 a builder function. This is the builder function for the :func:`~torchtune.datasets.stack_exchanged_paired_dataset`,
 which creates a :class:`~torchtune.datasets.PreferenceDataset` configured to use
 a paired dataset from Hugging Face. Notice that we've also had
@@ -237,7 +533,7 @@ to add a custom instruct template as well.
             data_dir="data/rl",
         )
 
-Now we can easily specify our custom dataset from the config.
+Now we can easily specify our custom dataset from the config, or from command-line.
 
 .. code-block:: yaml
 
@@ -245,3 +541,9 @@ Now we can easily specify our custom dataset from the config.
     dataset:
       _component_: torchtune.datasets.stack_exchanged_paired_dataset
       max_seq_len: 512
+
+.. code-block:: bash
+
+    # Command line - local files
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.stack_exchanged_paired_dataset dataset.max_seq_len=512

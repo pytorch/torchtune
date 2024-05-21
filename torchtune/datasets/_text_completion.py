@@ -21,7 +21,8 @@ class TextCompletionDataset(Dataset):
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        column (str): name of column in the sample that contains the text data
+        column (Optional[str]): name of column in the sample that contains the text data. This is typically required
+            for Hugging Face datasets or tabular data, but can be omitted for local datasets. Default is None.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
@@ -32,7 +33,7 @@ class TextCompletionDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        column: str,
+        column: Optional[str] = None,
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -49,7 +50,7 @@ class TextCompletionDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
-        prompt = sample[self._column]
+        prompt = sample[self._column] if self._column is not None else sample
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
 
         # Truncate if needed, but don't coerce EOS id
@@ -65,7 +66,7 @@ class TextCompletionDataset(Dataset):
 def text_completion_dataset(
     tokenizer: Tokenizer,
     source: str,
-    column: str,
+    column: Optional[str] = None,
     max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
@@ -78,7 +79,8 @@ def text_completion_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        column (str): name of column in the sample that contains the text data
+        column (Optional[str]): name of column in the sample that contains the text data. This is typically required
+            for Hugging Face datasets or tabular data, but can be omitted for local datasets. Default is None.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.

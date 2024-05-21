@@ -54,7 +54,7 @@ def alpaca_dataset(
     return instruct_dataset(
         tokenizer=tokenizer,
         source=source,
-        template="AlpacaInstructTemplate",
+        template="torchtune.data.AlpacaInstructTemplate",
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
         packed=packed,

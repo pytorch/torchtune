@@ -11,15 +11,11 @@ from unittest import mock
 import pytest
 from omegaconf import OmegaConf
 from torchtune.config._utils import (
-    _get_chat_format,
     _get_component_from_path,
-    _get_instruct_template,
     _merge_yaml_and_cli_args,
-    _try_get_component,
     InstantiationError,
     log_config,
 )
-from torchtune.data import AlpacaInstructTemplate, Llama2ChatFormat
 from torchtune.utils.argparse import TuneRecipeArgumentParser
 
 _CONFIG = {
@@ -115,34 +111,6 @@ class TestUtils:
             ValueError, match="Command-line overrides must be in the form of key=value"
         ):
             _ = _merge_yaml_and_cli_args(yaml_args, cli_args)
-
-    def test_try_get_component(self):
-        # Test a valid classname
-        template = _try_get_component(
-            module_path="torchtune.data._instruct_templates",
-            component_name="AlpacaInstructTemplate",
-            class_type="InstructTemplate",
-        )
-        assert template == AlpacaInstructTemplate
-
-        # Test an invalid class
-        with pytest.raises(
-            ValueError,
-            match="Invalid InstructTemplate class",
-        ):
-            _ = _try_get_component(
-                module_path="torchtune.data._instruct_templates",
-                component_name="InvalidTemplate",
-                class_type="InstructTemplate",
-            )
-
-    def test_get_instruct_template(self):
-        assert (
-            _get_instruct_template("AlpacaInstructTemplate") == AlpacaInstructTemplate
-        )
-
-    def test_get_chat_format(self):
-        assert _get_chat_format("Llama2ChatFormat") == Llama2ChatFormat
 
     def test_log_config(self, capsys):
         cfg = OmegaConf.create({"test": {"a": 1, "b": 2}})
