@@ -11,7 +11,9 @@ This tutorial will guide you through how to set up a dataset to fine-tune on.
     .. grid-item-card:: :octicon:`mortar-board;1em;` What you will learn
 
       * How to quickly get started with built-in datasets
-      * How to configure existing dataset classes from the config
+      * How to use any dataset from Hugging Face Hub
+      * How to use instruct, chat, or text completion datasets
+      * How to configure datasets from code, config, or command-line
       * How to fully customize your own dataset
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
@@ -49,6 +51,48 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
     # Command line
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset=torchtune.datasets.alpaca_dataset
+
+Hugging Face datasets
+---------------------
+
+We provide first class support for datasets on the Hugging Face hub. Under the hood,
+all of our built-in datasets and dataset builders are using Hugging Face's ``load_dataset()``
+to load in your data, whether local or on the hub.
+
+You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
+to specify which dataset on the hub to download. Additionally, all builders accept
+any keyword-arguments that ``load_dataset()`` supports. You can see a full list
+on Hugging Face's `documentation.<https://huggingface.co/docs/datasets/en/loading>`_
+
+.. code-block:: python
+
+    from torchtune.datasets import text_completion_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = text_completion_dataset(
+        tokenizer,
+        source="allenai/c4",
+        # Keyword-arguments that are passed into load_dataset
+        split="train",
+        data_dir="realnewslike",
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.text_completion_dataset
+      source: allenai/c4
+      split: train
+      data_dir: realnewslike
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.text_completion_dataset dataset.source=allenai/c4 \
+    dataset.split=train dataset.data_dir=realnewslike
 
 Setting max sequence length
 ---------------------------
@@ -112,6 +156,43 @@ You can use sample packing with any of the single dataset builders by passing in
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset.packed=True
 
+
+Custom unstructured text corpus
+-------------------------------
+
+For continued pre-training, typically a similar data setup to pre-training is used
+for a simple text completion task. This means no instruct templates, chat formats,
+and minimal special tokens (only BOS and EOS). To specify an unstructured text corpus,
+you can use the :func:`~torchtune.datasets.text_completion_dataset` builder with
+a Hugging Face dataset or a custom local corpus. Here is how to specify it for local
+files:
+
+.. code-block:: python
+
+    from torchtune.datasets import text_completion_dataset
+
+    # Load in tokenizer
+    tokenizer = ...
+    dataset = text_completion_dataset(
+        tokenizer,
+        source="txt",
+        data_files="path/to/my_data.txt",
+    )
+
+.. code-block:: yaml
+
+    # YAML config
+    dataset:
+      _component_: torchtune.datasets.text_completion_dataset
+      source: txt
+      data_files: path/to/my_data.txt
+
+.. code-block:: bash
+
+    # Command line
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.text_completion_dataset dataset.source=txt \
+    dataset.data_files=path/to/my_data.txt
 
 Custom instruct dataset and instruct templates
 ----------------------------------------------
@@ -382,9 +463,11 @@ supported by Hugging Face's ``load_dataset``, including csv, json, txt, and more
 Fully customized datasets
 -------------------------
 
-More advanced tasks and dataset formats may require you to create your own dataset
+More advanced tasks and dataset formats that don't fit into the templating and processing
+that :class:`~torchtune.datasets.InstructDataset`, :class:`~torchtune.datasets.ChatDataset`,
+and :class:`~torchtune.datasets.TextCompletionDataset` provide may require you to create your own dataset
 class for more flexibility. Let's walk through the :class:`~torchtune.datasets.PreferenceDataset`,
-which has custom functionality for RLHF preference data, to understand what you'll need to do.
+which has custom functionality for RLHF preference data, as an example to understand what you'll need to do.
 
 If you take a look at the code for the :class:`~torchtune.datasets.PreferenceDataset` class,
 you'll notice it's quite similar to :class:`~torchtune.datasets.InstructDataset` with a few
@@ -415,7 +498,7 @@ adjustments for chosen and rejected samples in preference data.
         np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
     )
 
-To be able to use your custom dataset from the config, you will need to create
+For a specific dataset that's easy to customize from the config, you can create
 a builder function. This is the builder function for the :func:`~torchtune.datasets.stack_exchanged_paired_dataset`,
 which creates a :class:`~torchtune.datasets.PreferenceDataset` configured to use
 a paired dataset from Hugging Face. Notice that we've also had
@@ -441,7 +524,7 @@ to add a custom instruct template as well.
             data_dir="data/rl",
         )
 
-Now we can easily specify our custom dataset from the config.
+Now we can easily specify our custom dataset from the config, or from command-line.
 
 .. code-block:: yaml
 
@@ -449,3 +532,9 @@ Now we can easily specify our custom dataset from the config.
     dataset:
       _component_: torchtune.datasets.stack_exchanged_paired_dataset
       max_seq_len: 512
+
+.. code-block:: bash
+
+    # Command line - local files
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.stack_exchanged_paired_dataset dataset.max_seq_len=512

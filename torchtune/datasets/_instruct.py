@@ -143,8 +143,30 @@ def instruct_dataset(
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
+    Examples:
+        >>> from torchtune.datasets import instruct_dataset
+        >>> dataset = instruct_dataset(
+        ...   tokenizer=tokenizer,
+        ...   source="yahma/alpaca_cleaned",
+        ...   template="torchtune.data.AlpacaInstructTemplate",
+        ...   max_seq_len=2096,
+        ...   train_on_input=True,
+        ...   packed=True,
+        ... )
+
+    This can also be accomplished via the yaml config::
+
+        dataset:
+            _component_: torchtune.datasets.instruct_dataset
+            source: yahma/alpaca_cleaned
+            template: torchtune.data.AlpacaInstructTemplate
+            max_seq_len: 2096
+            train_on_input: True
+            packed: True
+
     Returns:
-        InstructDataset: the configured InstructDataset
+        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
     ds = InstructDataset(
         tokenizer=tokenizer,

@@ -161,7 +161,8 @@ def chat_dataset(
             train_on_input: True
 
     Returns:
-        ChatDataset: the configured :class:`~torchtune.datasets.ChatDataset`
+        ChatDataset or PackedDataset: the configured :class:`~torchtune.datasets.ChatDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:
         ValueError: if the conversation format is not supported
