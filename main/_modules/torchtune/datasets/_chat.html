@@ -411,7 +411,7 @@
 
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_chat_format</span>
+<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">ChatFormat</span><span class="p">,</span>
     <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
@@ -476,6 +476,11 @@
         <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">chat_format</span><span class="p">(),</span> <span class="n">ChatFormat</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;chat_format must be a ChatFormat class, not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">chat_format</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_convert_to_messages</span> <span class="o">=</span> <span class="n">convert_to_messages</span>
@@ -526,8 +531,8 @@
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
-<span class="sd">            for automatic conversion to the Llama style. Supported styles are: &quot;sharegpt&quot;</span>
-<span class="sd">        chat_format (Optional[str]): name of ``ChatFormat`` class used to format the messages. See the description in</span>
+<span class="sd">            for automatic conversion to the Llama style. Supported styles are: &quot;sharegpt&quot;, &quot;openai&quot;</span>
+<span class="sd">        chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in</span>
 <span class="sd">            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,</span>
 <span class="sd">            check out :ref:`chat_formats`. Default: None.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
@@ -541,7 +546,7 @@
 <span class="sd">        ...   tokenizer=tokenizer,</span>
 <span class="sd">        ...   source=&quot;HuggingFaceH4/no_robots&quot;,</span>
 <span class="sd">        ...   conversation_style=&quot;sharegpt&quot;,</span>
-<span class="sd">        ...   chat_format=ChatMLFormat,</span>
+<span class="sd">        ...   chat_format=&quot;torchtune.data.ChatMLFormat&quot;,</span>
 <span class="sd">        ...   max_seq_len=2096,</span>
 <span class="sd">        ...   train_on_input=True</span>
 <span class="sd">        ... )</span>
@@ -552,12 +557,13 @@
 <span class="sd">            _component_: torchtune.datasets.chat_dataset</span>
 <span class="sd">            source: HuggingFaceH4/no_robots</span>
 <span class="sd">            conversation_style: sharegpt</span>
-<span class="sd">            chat_format: ChatMLFormat</span>
+<span class="sd">            chat_format: torchtune.data.ChatMLFormat</span>
 <span class="sd">            max_seq_len: 2096</span>
 <span class="sd">            train_on_input: True</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ChatDataset: the configured :class:`~torchtune.datasets.ChatDataset`</span>
+<span class="sd">        ChatDataset or PackedDataset: the configured :class:`~torchtune.datasets.ChatDataset`</span>
+<span class="sd">            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: if the conversation format is not supported</span>
@@ -573,7 +579,9 @@
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
         <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">convert_to_messages</span><span class="p">,</span>
-        <span class="n">chat_format</span><span class="o">=</span><span class="n">_get_chat_format</span><span class="p">(</span><span class="n">chat_format</span><span class="p">)</span> <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">chat_format</span><span class="o">=</span><span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">chat_format</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">chat_format</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>

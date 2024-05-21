@@ -419,7 +419,7 @@ using <cite>InstructDataset</cite> directly, as it is made to be config friendly
 <li><p><strong>tokenizer</strong> (<em>Tokenizer</em>) – Tokenizer used to encode data. Tokenize must implement an <cite>encode</cite> and <cite>decode</cite> method.</p></li>
 <li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>
 (<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)</p></li>
-<li><p><strong>template</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – class used to format the prompt. If the placeholder variable
+<li><p><strong>template</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – full import path of class used to format the prompt. If the placeholder variable
 names in the template do not match the column/key names in the dataset, use <cite>column_map</cite> to map them.</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names in the template
 to the column/key names in the sample. If None, assume these are identical.</p></li>
@@ -431,11 +431,39 @@ and is supported by the model. For example, llama2-7B supports up to 4096 for se
 <li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <cite>load_dataset</cite>.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>the configured InstructDataset</p>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torchtune.datasets</span> <span class="kn">import</span> <span class="n">instruct_dataset</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">source</span><span class="o">=</span><span class="s2">&quot;yahma/alpaca_cleaned&quot;</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">template</span><span class="o">=</span><span class="s2">&quot;torchtune.data.AlpacaInstructTemplate&quot;</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">2096</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">train_on_input</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">packed</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This can also be accomplished via the yaml config:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="p">:</span>
+    <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">instruct_dataset</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">yahma</span><span class="o">/</span><span class="n">alpaca_cleaned</span>
+    <span class="n">template</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AlpacaInstructTemplate</span>
+    <span class="n">max_seq_len</span><span class="p">:</span> <span class="mi">2096</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">packed</span><span class="p">:</span> <span class="kc">True</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>the configured <a class="reference internal" href="torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructDataset</span></code></a></dt><dd><p>or <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">PackedDataset</span></code></a> if <code class="docutils literal notranslate"><span class="pre">packed=True</span></code></p>
 </dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference internal" href="torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset">InstructDataset</a></p>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset">InstructDataset</a> or <a class="reference internal" href="torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset">PackedDataset</a></p>
 </dd>
 </dl>
 </dd></dl>

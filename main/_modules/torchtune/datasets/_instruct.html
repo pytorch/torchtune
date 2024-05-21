@@ -410,7 +410,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">datasets</span> <span class="kn">import</span> <span class="n">load_dataset</span>
 <span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">Dataset</span>
-<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_instruct_template</span>
+<span class="kn">from</span> <span class="nn">torchtune.config._utils</span> <span class="kn">import</span> <span class="n">_get_component_from_path</span>
 <span class="kn">from</span> <span class="nn">torchtune.data</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
     <span class="n">InstructTemplate</span><span class="p">,</span>
@@ -466,6 +466,11 @@
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">template</span><span class="p">(),</span> <span class="n">InstructTemplate</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;template must be an InstructTemplate class, not </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">template</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">_tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">load_dataset</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">template</span> <span class="o">=</span> <span class="n">template</span>
@@ -528,7 +533,7 @@
 <span class="sd">        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.</span>
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
-<span class="sd">        template (str): class used to format the prompt. If the placeholder variable</span>
+<span class="sd">        template (str): full import path of class used to format the prompt. If the placeholder variable</span>
 <span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
 <span class="sd">            to the column/key names in the sample. If None, assume these are identical.</span>
@@ -539,13 +544,35 @@
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
 
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; from torchtune.datasets import instruct_dataset</span>
+<span class="sd">        &gt;&gt;&gt; dataset = instruct_dataset(</span>
+<span class="sd">        ...   tokenizer=tokenizer,</span>
+<span class="sd">        ...   source=&quot;yahma/alpaca_cleaned&quot;,</span>
+<span class="sd">        ...   template=&quot;torchtune.data.AlpacaInstructTemplate&quot;,</span>
+<span class="sd">        ...   max_seq_len=2096,</span>
+<span class="sd">        ...   train_on_input=True,</span>
+<span class="sd">        ...   packed=True,</span>
+<span class="sd">        ... )</span>
+
+<span class="sd">    This can also be accomplished via the yaml config::</span>
+
+<span class="sd">        dataset:</span>
+<span class="sd">            _component_: torchtune.datasets.instruct_dataset</span>
+<span class="sd">            source: yahma/alpaca_cleaned</span>
+<span class="sd">            template: torchtune.data.AlpacaInstructTemplate</span>
+<span class="sd">            max_seq_len: 2096</span>
+<span class="sd">            train_on_input: True</span>
+<span class="sd">            packed: True</span>
+
 <span class="sd">    Returns:</span>
-<span class="sd">        InstructDataset: the configured InstructDataset</span>
+<span class="sd">        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`</span>
+<span class="sd">            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ds</span> <span class="o">=</span> <span class="n">InstructDataset</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
         <span class="n">source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
-        <span class="n">template</span><span class="o">=</span><span class="n">_get_instruct_template</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
+        <span class="n">template</span><span class="o">=</span><span class="n">_get_component_from_path</span><span class="p">(</span><span class="n">template</span><span class="p">),</span>
         <span class="n">column_map</span><span class="o">=</span><span class="n">column_map</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>

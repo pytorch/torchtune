@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="alpaca_dataset" href="generated/torchtune.datasets.alpaca_dataset.html" />
-    <link rel="prev" title="validate_messages" href="generated/torchtune.data.validate_messages.html" />
+    <link rel="prev" title="truncate" href="generated/torchtune.data.truncate.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -405,6 +405,7 @@
               
   <section id="torchtune-datasets">
 <span id="datasets"></span><h1>torchtune.datasets<a class="headerlink" href="#torchtune-datasets" title="Permalink to this heading">¶</a></h1>
+<p>For a detailed general usage guide, please see our <a class="reference internal" href="tutorials/datasets.html#dataset-tutorial-label"><span class="std std-ref">datasets tutorial</span></a>.</p>
 <section id="example-datasets">
 <h2>Example datasets<a class="headerlink" href="#example-datasets" title="Permalink to this heading">¶</a></h2>
 <p>torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.</p>
@@ -426,10 +427,13 @@
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset" title="torchtune.datasets.slimorca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slimorca_dataset</span></code></a></p></td>
 <td><p>Support for <a class="reference external" href="https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup">SlimOrca-style</a> family of conversational datasets.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.stack_exchanged_paired_dataset.html#torchtune.datasets.stack_exchanged_paired_dataset" title="torchtune.datasets.stack_exchanged_paired_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">stack_exchanged_paired_dataset</span></code></a></p></td>
+<td><p>Family of preference datasets similar to <a class="reference external" href="https://huggingface.co/datasets/lvwerra/stack-exchange-paired">StackExchangePaired data</a>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/ccdv/cnn_dailymail">CNN / DailyMail</a>, a corpus of news articles.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
 <td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/wikitext">wikitext</a>, an unstructured text corpus consisting of articles from Wikipedia.</p></td>
 </tr>
 </tbody>
@@ -473,6 +477,9 @@ These are especially useful for specifying from a YAML config.</p>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PackedDataset</span></code></a></p></td>
 <td><p>Performs greedy sample packing on a provided dataset.</p></td>
 </tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.PreferenceDataset.html#torchtune.datasets.PreferenceDataset" title="torchtune.datasets.PreferenceDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PreferenceDataset</span></code></a></p></td>
+<td><p>Class that supports any custom dataset with instruction-based prompts and a configurable template.</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -489,7 +496,7 @@ These are especially useful for specifying from a YAML config.</p>
         <a href="generated/torchtune.datasets.alpaca_dataset.html" class="btn btn-neutral float-right" title="alpaca_dataset" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="generated/torchtune.data.validate_messages.html" class="btn btn-neutral" title="validate_messages" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="generated/torchtune.data.truncate.html" class="btn btn-neutral" title="truncate" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
