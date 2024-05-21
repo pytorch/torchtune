@@ -249,6 +249,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -260,7 +261,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
 class FullModelHFCheckpointer(_CheckpointerInterface):
     """
-    Checkpointer which reads and writes checkpoints in HF's format. Example includes
+    Checkpointer which reads and writes checkpoints in HF's format. For LoRA models this includes
+    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Example includes
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
     A few notes about the checkpoint reading logic:
@@ -385,8 +387,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-
         if self._model_type == ModelType.PHI3_MINI:
+            logger.warning(
+                "Converting Phi-3 Mini weights from HF format."
+                "Note that conversion of adapter weights into PEFT format is not supported."
+            )
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
         elif self._model_type == ModelType.MISTRAL_REWARD:
             converted_state_dict[utils.MODEL_KEY] = mistral_reward_hf_to_tune(
@@ -473,6 +478,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if utils.ADAPTER_KEY in state_dict:
+            # Save torchtune format adapter weights even if we save PEFT format
+            # This way we can resume no matter what (and memory footprint of adapter weights is small)
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
             ).with_suffix(".pt")
@@ -483,11 +490,55 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
+            else:
+                state_dict[
+                    utils.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[utils.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                )
+                peft_output_path = Path.joinpath(
+                    self._output_dir, "adapter_model"
+                ).with_suffix(".bin")
+                torch.save(state_dict[utils.ADAPTER_KEY], peft_output_path)
+                logger.info(
+                    "Adapter checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"saved to {peft_output_path}"
+                )
+
+        if utils.ADAPTER_CONFIG in state_dict:
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
+                )
+            else:
+                state_dict[
+                    utils.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    state_dict[utils.ADAPTER_CONFIG]
+                )
+                output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+                with open(output_path, "w") as f:
+                    json.dump(state_dict[utils.ADAPTER_CONFIG], f)
+                logger.info(
+                    "Adapter checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"saved to {output_path}"
+                )
+
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -626,6 +677,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
