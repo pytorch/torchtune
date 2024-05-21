@@ -22,6 +22,8 @@ torchtune supports several widely used datasets to help quickly bootstrap your f
     samsum_dataset
     slimorca_dataset
     stack_exchanged_paired_dataset
+    cnn_dailymail_articles_dataset
+    wikitext_dataset
 
 Generic dataset builders
 ------------------------
@@ -35,6 +37,7 @@ These are especially useful for specifying from a YAML config.
 
     instruct_dataset
     chat_dataset
+    text_completion_dataset
 
 Generic dataset classes
 -----------------------
@@ -47,6 +50,7 @@ Class representations for the above dataset builders.
 
     InstructDataset
     ChatDataset
+    TextCompletionDataset
     ConcatDataset
     PackedDataset
     PreferenceDataset

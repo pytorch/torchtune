@@ -39,7 +39,7 @@ class TestHFLlama2FullModelCheckpointer:
     def state_dict_1(self, weight_dtype):
         """
         State dict for a HF format checkpoint. This state dict is "complete" and
-        can be loaded into a TorchTune model once correctly converted.
+        can be loaded into a torchtune model once correctly converted.
         """
         state_dict = {
             "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
@@ -189,7 +189,7 @@ class TestHFLlama2FullModelCheckpointer:
         We test:
         * ``load_checkpoint`` loads the right sets of keys
         * Internal state of the checkpointer is correctly updated
-        * Converted checkpoint can be loaded into the llama2 TorchTune implementation
+        * Converted checkpoint can be loaded into the llama2 torchtune implementation
         * Saved checkpoint keys match the original checkpoint
         """
         # Read the state dict directly from file using torch.load. This will be the state
@@ -243,7 +243,7 @@ class TestHFLlama2FullModelCheckpointer:
         We test:
         * ``load_checkpoint`` loads the right sets of keys
         * Internal state of the checkpointer is correctly updated
-        * Converted checkpoint can be loaded into the llama2 TorchTune implementation
+        * Converted checkpoint can be loaded into the llama2 torchtune implementation
         """
         # Read the state dict directly from files
         checkpoint_file_1, checkpoint_file_2 = llama2_hf_checkpoints
@@ -303,7 +303,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
     def state_dict(self, weight_dtype):
         """
         State dict for a HF format mistral reward model checkpoint. This state dict is
-        "complete" and can be loaded into a TorchTune model once correctly converted.
+        "complete" and can be loaded into a torchtune model once correctly converted.
         """
         state_dict = {
             "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
@@ -398,7 +398,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         We test:
         * ``load_checkpoint`` loads the right sets of keys
         * Internal state of the checkpointer is correctly updated
-        * Converted checkpoint can be loaded into the `mistral_classifier` TorchTune implementation
+        * Converted checkpoint can be loaded into the `mistral_classifier` torchtune implementation
         * Saved checkpoint keys match the original checkpoint
         """
         # Read the state dict directly from file using torch.load. This will be the state

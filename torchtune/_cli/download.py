@@ -93,7 +93,7 @@ class Download(Subcommand):
             required=False,
             default="*.safetensors",
             help="If provided, files matching any of the patterns are not downloaded. Defaults to ignoring "
-            "safetensors files as those are not currently supported in TorchTune.",
+            "safetensors files to avoid downloading duplicate weights.",
         )
 
     def _download_cmd(self, args: argparse.Namespace) -> None:
