@@ -218,14 +218,16 @@ _TO_PEFT_TARGET_MODULES = {
     "output": "lm_head",
 }
 
+# Keys expected in PEFT's adapter_config.json
+_PEFT_CONFIG_EXPECTED_KEYS = ["target_modules", "r", "lora_alpha"]
+
 
 def tune_to_peft_adapter_config(
     adapter_config: Dict[str, Any],
 ):
-    expected_keys = ["target_modules", "r", "lora_alpha"]
-    if not all([x in adapter_config.keys() for x in expected_keys]):
+    if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
         raise ValueError(
-            f"PEFT adapter config requires {expected_keys}, found {adapter_config.keys()}"
+            f"PEFT adapter config requires {_PEFT_CONFIG_EXPECTED_KEYS}, found {adapter_config.keys()}"
         )
 
     for k in adapter_config["target_modules"]:
