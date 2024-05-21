@@ -47,10 +47,15 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device dataset=torchtune.datasets.alpaca_dataset
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.alpaca_dataset
 
 Setting max sequence length
 ---------------------------
+
+Generally, you want the max sequence length return in each data sample to match the
+context window size of your model. You can also decrease this value to reduce memory usage
+depending on your hardware constraints.
 
 .. code-block:: python
 
@@ -73,7 +78,8 @@ Setting max sequence length
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device dataset.max_seq_len=4096
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset.max_seq_len=4096
 
 Sample packing
 --------------
@@ -103,7 +109,8 @@ You can use sample packing with any of the single dataset builders by passing in
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device dataset.packed=True
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset.packed=True
 
 
 Custom instruct dataset and instruct templates
@@ -151,7 +158,7 @@ Here is an example of a sample that is formatted with :class:`~torchtune.data.Al
     # ### Response:
     #
 
-We provide `other instruct templates <https://github.com/pytorch/torchtune/blob/main/torchtune/data/_instruct_templates.py>`_
+We provide `other instruct templates <data>`
 for common tasks such summarization and grammar correction. If you need to create your own
 instruct template for a custom task, you can inherit from :class:`~torchtune.data.InstructTemplate`
 and create your own class.
@@ -191,7 +198,9 @@ and create your own class.
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device dataset=torchtune.datasets.instruct_dataset dataset.source=my/dataset/path dataset.template=import.path.to.CustomTemplate
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.instruct_dataset dataset.source=my/dataset/path \
+    dataset.template=import.path.to.CustomTemplate
 
 
 Custom chat dataset and chat formats
@@ -285,13 +294,16 @@ you can also add more advanced behavior.
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device dataset=torchtune.datasets.chat_dataset dataset.source=my/dataset/path dataset.conversation_style=openai dataset.chat_format=import.path.to.CustomChatFormat
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.chat_dataset dataset.source=my/dataset/path \
+    dataset.conversation_style=openai dataset.chat_format=import.path.to.CustomChatFormat
 
 
 Multiple in-memory datasets
 ---------------------------
 
-It is also possible to train on multiple datasets by combining them into a single :class:`~torchtune.datasets.ConcatDataset`.
+It is also possible to train on multiple datasets and configure them individually.
+You can even mix instruct and chat datasets or other custom datasets.
 
 .. code-block:: yaml
 
@@ -308,8 +320,9 @@ It is also possible to train on multiple datasets by combining them into a singl
       column_map: {"output": "summary"}
       split: train
       train_on_input: False
+    - _component_: torchtune.datasets.chat_dataset
+      ...
 
-The preceding snippet demonstrates how you can configure each individual dataset's parameters, then combine them into a single concatenated dataset for training.
 
 Local and remote datasets
 -------------------------
@@ -341,6 +354,30 @@ supported by Hugging Face's ``load_dataset``, including csv, json, txt, and more
         # You can also pass in any kwarg that load_dataset accepts
         field="data",
     )
+
+.. code-block:: yaml
+
+    # YAML config - local files
+    dataset:
+      _component_: torchtune.datasets.instruct_dataset
+      source: csv
+      template: import.path.to.CustomTemplate
+      data_files: path/to/my/data.csv
+
+    # YAML config - remote files
+    dataset:
+      _component_: torchtune.datasets.instruct_dataset
+      source: json
+      template: import.path.to.CustomTemplate
+      data_files: https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json
+      field: data
+
+.. code-block:: bash
+
+    # Command line - local files
+    tune run full_finetune_single_device --config llama3/8B_full_single_device \
+    dataset=torchtune.datasets.chat_dataset dataset.source=csv \
+    dataset.template=import.path.to.CustomTemplate dataset.data_files=path/to/my/data.csv
 
 Fully customized datasets
 -------------------------

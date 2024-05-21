@@ -75,6 +75,11 @@ class ChatDataset(Dataset):
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
+        if chat_format is not None and not isinstance(chat_format, ChatFormat):
+            raise ValueError(
+                f"chat_format must be a ChatFormat class, not {type(chat_format)}"
+            )
+
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self._convert_to_messages = convert_to_messages

@@ -65,6 +65,11 @@ class InstructDataset(Dataset):
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
+        if not isinstance(template, InstructTemplate):
+            raise ValueError(
+                f"template must be an InstructTemplate class, not {type(template)}"
+            )
+
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self.template = template
