@@ -50,7 +50,7 @@ def grammar_dataset(
     return instruct_dataset(
         tokenizer=tokenizer,
         source=source,
-        template="GrammarErrorCorrectionTemplate",
+        template="torchtune.data.GrammarErrorCorrectionTemplate",
         column_map={"sentence": "input"},
         train_on_input=train_on_input,
         packed=packed,

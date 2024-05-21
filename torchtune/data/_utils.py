@@ -14,6 +14,19 @@ def truncate(
     max_seq_len: int,
     eos_id: Optional[Any] = None,
 ) -> List[Any]:
+    """
+    Truncate a list of tokens to a maximum length. If eos_id is provided, the last
+    token will be replaced with eos_id.
+
+    Args:
+        tokens (List[Any]): list of tokens to truncate
+        max_seq_len (int): maximum length of the list
+        eos_id (Optional[Any]): token to replace the last token with. If None, the
+            last token will not be replaced. Default is None.
+
+    Returns:
+        List[Any]: truncated list of tokens
+    """
     tokens_truncated = tokens[:max_seq_len]
     if eos_id is not None and tokens_truncated[-1] != eos_id:
         tokens_truncated[-1] = eos_id
