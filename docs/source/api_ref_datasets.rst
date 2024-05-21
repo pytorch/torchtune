@@ -6,6 +6,8 @@ torchtune.datasets
 
 .. currentmodule:: torchtune.datasets
 
+For a detailed general usage guide, please see our :ref:`datasets tutorial <dataset_tutorial_label>`.
+
 
 Example datasets
 ----------------
