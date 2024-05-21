@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List
+from typing import Any, List, Optional
 
 from torchtune.data._types import Message
 
@@ -12,10 +12,10 @@ from torchtune.data._types import Message
 def truncate(
     tokens: List[Any],
     max_seq_len: int,
-    eos_id: Any,
+    eos_id: Optional[Any] = None,
 ) -> List[Any]:
     tokens_truncated = tokens[:max_seq_len]
-    if tokens_truncated[-1] != eos_id:
+    if eos_id is not None and tokens_truncated[-1] != eos_id:
         tokens_truncated[-1] = eos_id
     return tokens_truncated
 
