@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>torchtune.datasets &mdash; torchtune main documentation</title>
+  <title>wikitext_dataset &mdash; torchtune main documentation</title>
   
 
   
@@ -27,22 +27,22 @@
 
   
 
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
-  <link rel="stylesheet" href="_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="alpaca_dataset" href="generated/torchtune.datasets.alpaca_dataset.html" />
-    <link rel="prev" title="validate_messages" href="generated/torchtune.data.validate_messages.html" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/design-style.1e8bd061cd6da7fc9cf755528e8ffc24.min.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="instruct_dataset" href="torchtune.datasets.instruct_dataset.html" />
+    <link rel="prev" title="cnn_dailymail_articles_dataset" href="torchtune.datasets.cnn_dailymail_articles_dataset.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +53,16 @@
   
 
   
-  <script src="_static/js/modernizr.min.js"></script>
+  <script src="../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -282,7 +282,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -299,34 +299,34 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="api_ref_utilities.html">torchtune.utils</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -359,7 +359,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="index.html">
+        <a href="../index.html">
           
             Docs
           
@@ -367,13 +367,15 @@
       </li>
 
         
-      <li>torchtune.datasets</li>
+          <li><a href="../api_ref_datasets.html">torchtune.datasets</a> &gt;</li>
+        
+      <li>wikitext_dataset</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="_sources/api_ref_datasets.rst.txt" rel="nofollow"><img src="_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.datasets.wikitext_dataset.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -403,79 +405,36 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="torchtune-datasets">
-<span id="datasets"></span><h1>torchtune.datasets<a class="headerlink" href="#torchtune-datasets" title="Permalink to this heading">¶</a></h1>
-<section id="example-datasets">
-<h2>Example datasets<a class="headerlink" href="#example-datasets" title="Permalink to this heading">¶</a></h2>
-<p>torchtune supports several widely used datasets to help quickly bootstrap your fine-tuning.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset" title="torchtune.datasets.alpaca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_dataset</span></code></a></p></td>
-<td><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a> and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a> from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite> are fields from the dataset.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_cleaned_dataset.html#torchtune.datasets.alpaca_cleaned_dataset" title="torchtune.datasets.alpaca_cleaned_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_cleaned_dataset</span></code></a></p></td>
-<td><p><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a> and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a> from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite> are fields from the dataset.</p>
-</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset" title="torchtune.datasets.grammar_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grammar_dataset</span></code></a></p></td>
-<td><p>Support for grammar correction datasets and their variants from Hugging Face Datasets.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.samsum_dataset.html#torchtune.datasets.samsum_dataset" title="torchtune.datasets.samsum_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">samsum_dataset</span></code></a></p></td>
-<td><p>Support for summarization datasets and their variants from Hugging Face Datasets.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.slimorca_dataset.html#torchtune.datasets.slimorca_dataset" title="torchtune.datasets.slimorca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">slimorca_dataset</span></code></a></p></td>
-<td><p>Support for <a class="reference external" href="https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup">SlimOrca-style</a> family of conversational datasets.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.cnn_dailymail_articles_dataset.html#torchtune.datasets.cnn_dailymail_articles_dataset" title="torchtune.datasets.cnn_dailymail_articles_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">cnn_dailymail_articles_dataset</span></code></a></p></td>
-<td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/ccdv/cnn_dailymail">CNN / DailyMail</a>, a corpus of news articles.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.wikitext_dataset.html#torchtune.datasets.wikitext_dataset" title="torchtune.datasets.wikitext_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">wikitext_dataset</span></code></a></p></td>
-<td><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/wikitext">wikitext</a>, an unstructured text corpus consisting of articles from Wikipedia.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="generic-dataset-builders">
-<h2>Generic dataset builders<a class="headerlink" href="#generic-dataset-builders" title="Permalink to this heading">¶</a></h2>
-<p>torchtune also supports generic dataset builders for common formats like chat models and instruct models.
-These are especially useful for specifying from a YAML config.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.instruct_dataset.html#torchtune.datasets.instruct_dataset" title="torchtune.datasets.instruct_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">instruct_dataset</span></code></a></p></td>
-<td><p>Build a configurable dataset with instruction prompts.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.chat_dataset.html#torchtune.datasets.chat_dataset" title="torchtune.datasets.chat_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">chat_dataset</span></code></a></p></td>
-<td><p>Build a configurable dataset with conversations.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_completion_dataset</span></code></a></p></td>
-<td><p>Build a configurable freeform text dataset with instruction prompts.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="generic-dataset-classes">
-<h2>Generic dataset classes<a class="headerlink" href="#generic-dataset-classes" title="Permalink to this heading">¶</a></h2>
-<p>Class representations for the above dataset builders.</p>
-<table class="autosummary longtable docutils align-default">
-<tbody>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.InstructDataset.html#torchtune.datasets.InstructDataset" title="torchtune.datasets.InstructDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">InstructDataset</span></code></a></p></td>
-<td><p>Class that supports any custom dataset with instruction-based prompts and a configurable template.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.ChatDataset.html#torchtune.datasets.ChatDataset" title="torchtune.datasets.ChatDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ChatDataset</span></code></a></p></td>
-<td><p>Class that supports any custom dataset with multiturn conversations.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset" title="torchtune.datasets.TextCompletionDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">TextCompletionDataset</span></code></a></p></td>
-<td><p>Freeform dataset for any unstructured text corpus.</p></td>
-</tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset" title="torchtune.datasets.ConcatDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ConcatDataset</span></code></a></p></td>
-<td><p>A dataset class for concatenating multiple sub-datasets into a single dataset.</p></td>
-</tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.PackedDataset.html#torchtune.datasets.PackedDataset" title="torchtune.datasets.PackedDataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PackedDataset</span></code></a></p></td>
-<td><p>Performs greedy sample packing on a provided dataset.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
+  <section id="wikitext-dataset">
+<h1>wikitext_dataset<a class="headerlink" href="#wikitext-dataset" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.datasets.wikitext_dataset">
+<span class="sig-prename descclassname"><span class="pre">torchtune.datasets.</span></span><span class="sig-name descname"><span class="pre">wikitext_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tokenizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tokenizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">source</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'wikitext'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">subset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'wikitext-103-raw-v1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_seq_len</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">load_dataset_kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset" title="torchtune.datasets._text_completion.TextCompletionDataset"><span class="pre">TextCompletionDataset</span></a></span></span><a class="reference internal" href="../_modules/torchtune/datasets/_wikitext.html#wikitext_dataset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.datasets.wikitext_dataset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Support for family of datasets similar to <a class="reference external" href="https://huggingface.co/datasets/wikitext">wikitext</a>,
+an unstructured text corpus consisting of articles from Wikipedia.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tokenizer</strong> (<em>Tokenizer</em>) – Tokenizer used to encode data. Tokenize must implement an <code class="docutils literal notranslate"><span class="pre">encode</span></code> and <code class="docutils literal notranslate"><span class="pre">decode</span></code> method.</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
+(<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)</p></li>
+<li><p><strong>subset</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – name of subset of data to use, see the <a class="reference external" href="https://huggingface.co/datasets/wikitext#data-fields">wikitext page</a>
+for available subsets.</p></li>
+<li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
+Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
+and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
+<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>the configured TextCompletionDataset</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="torchtune.datasets.TextCompletionDataset.html#torchtune.datasets.TextCompletionDataset" title="torchtune.datasets.TextCompletionDataset">TextCompletionDataset</a></p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -486,10 +445,10 @@ These are especially useful for specifying from a YAML config.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="generated/torchtune.datasets.alpaca_dataset.html" class="btn btn-neutral float-right" title="alpaca_dataset" accesskey="n" rel="next">Next <img src="_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.datasets.instruct_dataset.html" class="btn btn-neutral float-right" title="instruct_dataset" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="generated/torchtune.data.validate_messages.html" class="btn btn-neutral" title="validate_messages" accesskey="p" rel="prev"><img src="_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.datasets.cnn_dailymail_articles_dataset.html" class="btn btn-neutral" title="cnn_dailymail_articles_dataset" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -521,12 +480,7 @@ These are especially useful for specifying from a YAML config.</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">torchtune.datasets</a><ul>
-<li><a class="reference internal" href="#example-datasets">Example datasets</a></li>
-<li><a class="reference internal" href="#generic-dataset-builders">Generic dataset builders</a></li>
-<li><a class="reference internal" href="#generic-dataset-classes">Generic dataset classes</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#">wikitext_dataset</a></li>
 </ul>
 
             </div>
@@ -541,23 +495,23 @@ These are especially useful for specifying from a YAML config.</p>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-         <script src="_static/jquery.js"></script>
-         <script src="_static/underscore.js"></script>
-         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="_static/doctools.js"></script>
-         <script src="_static/clipboard.min.js"></script>
-         <script src="_static/copybutton.js"></script>
-         <script src="_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+         <script src="../_static/jquery.js"></script>
+         <script src="../_static/underscore.js"></script>
+         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../_static/doctools.js"></script>
+         <script src="../_static/clipboard.min.js"></script>
+         <script src="../_static/copybutton.js"></script>
+         <script src="../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="_static/js/theme.js"></script>
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -672,7 +626,7 @@ These are especially useful for specifying from a YAML config.</p>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="_static/images/pytorch-x.svg">
+    <img class="close-button" src="../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -805,7 +759,7 @@ These are especially useful for specifying from a YAML config.</p>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

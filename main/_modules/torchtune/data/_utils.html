@@ -405,7 +405,7 @@
 <span class="c1"># This source code is licensed under the BSD-style license found in the</span>
 <span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">from</span> <span class="nn">torchtune.data._types</span> <span class="kn">import</span> <span class="n">Message</span>
 
@@ -413,10 +413,10 @@
 <span class="k">def</span> <span class="nf">truncate</span><span class="p">(</span>
     <span class="n">tokens</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">eos_id</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span>
+    <span class="n">eos_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]:</span>
     <span class="n">tokens_truncated</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[:</span><span class="n">max_seq_len</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">eos_id</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">eos_id</span><span class="p">:</span>
         <span class="n">tokens_truncated</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">eos_id</span>
     <span class="k">return</span> <span class="n">tokens_truncated</span>
 
