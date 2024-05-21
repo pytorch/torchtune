@@ -391,7 +391,7 @@ Modify ``custom_generation_config.yaml`` to include the following changes.
 .. code-block:: yaml
 
     checkpointer:
-        # we need to use the custom TorchTune checkpointer
+        # we need to use the custom torchtune checkpointer
         # instead of the HF checkpointer for loading
         # quantized models
         _component_: torchtune.utils.FullModelTorchTuneCheckpointer

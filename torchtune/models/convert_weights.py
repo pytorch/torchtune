@@ -11,7 +11,7 @@ from typing import Dict
 import torch
 
 
-# state dict key mappings from Meta's format to TorchTune's format
+# state dict key mappings from Meta's format to torchtune's format
 _FROM_META = {
     "tok_embeddings.weight": "tok_embeddings.weight",
     "norm.weight": "norm.scale",
@@ -27,7 +27,7 @@ _FROM_META = {
     "layers.{}.feed_forward.w3.weight": "layers.{}.mlp.w3.weight",
 }
 
-# state dict key mappings from HF's format to TorchTune's format
+# state dict key mappings from HF's format to torchtune's format
 _FROM_HF = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
     "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
@@ -66,7 +66,7 @@ def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
 
 def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from Meta's format to TorchTune's format. State dicts
+    Convert a state dict from Meta's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
 
@@ -77,7 +77,7 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
         state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     for key, value in state_dict.items():
@@ -90,12 +90,12 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
 
 def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from TorchTune's format to Meta's format. This function
+    Convert a state dict from torchtune's format to Meta's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in Meta's format.
@@ -118,7 +118,7 @@ def hf_to_tune(
     head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from HF's format to TorchTune's format. State dicts
+    Convert a state dict from HF's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
 
@@ -134,7 +134,7 @@ def hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -165,12 +165,12 @@ def tune_to_hf(
     dim: int = 4096,
 ):
     """
-    Convert a state dict from TorchTune's format to HF's format. This function
+    Convert a state dict from torchtune's format to HF's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.

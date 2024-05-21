@@ -112,7 +112,9 @@ class Phi3MiniSentencePieceTokenizer:
         """
         ids_for_decode = []
         for token_id in ids:
-            if token_id in self.special_tokens.values():
+            # Filter out special tokens and the placeholder tokens added
+            # by the Phi3 team
+            if token_id >= 32_000 and token_id <= 32_064:
                 continue
             else:
                 ids_for_decode.append(token_id)
