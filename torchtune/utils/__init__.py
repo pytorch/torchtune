@@ -29,6 +29,7 @@ from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
 from .constants import (  # noqa
+    ADAPTER_CONFIG,
     ADAPTER_KEY,
     EPOCHS_KEY,
     MAX_STEPS_KEY,

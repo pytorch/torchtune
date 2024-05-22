@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
-from torchtune.config._utils import _get_instruct_template
+from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
     CROSS_ENTROPY_IGNORE_IDX,
     InstructTemplate,
@@ -65,6 +65,11 @@ class InstructDataset(Dataset):
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
+        if not isinstance(template(), InstructTemplate):
+            raise ValueError(
+                f"template must be an InstructTemplate class, not {type(template())}"
+            )
+
         self._tokenizer = tokenizer
         if source.endswith(".json"):
             self._data = load_dataset("json", data_files=source, **load_dataset_kwargs)
@@ -131,7 +136,7 @@ def instruct_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
-        template (str): class used to format the prompt. If the placeholder variable
+        template (str): full import path of class used to format the prompt. If the placeholder variable
             names in the template do not match the column/key names in the dataset, use `column_map` to map them.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical.
@@ -142,13 +147,35 @@ def instruct_dataset(
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.
 
+    Examples:
+        >>> from torchtune.datasets import instruct_dataset
+        >>> dataset = instruct_dataset(
+        ...   tokenizer=tokenizer,
+        ...   source="yahma/alpaca_cleaned",
+        ...   template="torchtune.data.AlpacaInstructTemplate",
+        ...   max_seq_len=2096,
+        ...   train_on_input=True,
+        ...   packed=True,
+        ... )
+
+    This can also be accomplished via the yaml config::
+
+        dataset:
+            _component_: torchtune.datasets.instruct_dataset
+            source: yahma/alpaca_cleaned
+            template: torchtune.data.AlpacaInstructTemplate
+            max_seq_len: 2096
+            train_on_input: True
+            packed: True
+
     Returns:
-        InstructDataset: the configured InstructDataset
+        InstructDataset or PackedDataset: the configured :class:`~torchtune.datasets.InstructDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
     ds = InstructDataset(
         tokenizer=tokenizer,
         source=source,
-        template=_get_instruct_template(template),
+        template=_get_component_from_path(template),
         column_map=column_map,
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,

@@ -30,8 +30,8 @@ def padded_collate(
 
     Example:
         >>> token_pairs = [
-        >>>    ([1, 2, 3], [4, 5, 6]),
-        >>>    ([7,], [10,],),
+        >>>    {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
+        >>>    {"tokens": [7,], "labels": [10,]},
         >>> ]
         >>> inputs, labels = padded_collate(
         >>>    batch=token_pairs,
