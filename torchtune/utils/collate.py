@@ -21,7 +21,7 @@ def padded_collate(
     convert integer lists to tensors.
 
     Args:
-        batch (Dict[str, List[int]]): A list of tuples containing input, label pairs.
+        batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
