@@ -13,7 +13,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 
 def padded_collate(
-    batch: Dict[str, List[int]],
+    batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
