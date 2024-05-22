@@ -50,8 +50,8 @@ class TestFullFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "LLAMA2": [10.5201, 10.5217, 10.4945, 10.5136],
-            "LLAMA3": [11.9839, 11.9684, 11.9596, 11.9366],
+            "llama2": [10.5201, 10.5217, 10.4945, 10.5136],
+            "llama3": [11.9839, 11.9684, 11.9596, 11.9366],
         }
 
         return loss_values_map[model_type]
@@ -61,8 +61,8 @@ class TestFullFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama2/7B_full_low_memory", "LLAMA2", "meta"),
-            ("llama3/8B_full_single_device", "LLAMA3", "tune"),
+            ("llama2/7B_full_low_memory", "llama2", "meta"),
+            ("llama3/8B_full_single_device", "llama3", "tune"),
         ],
     )
     def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
@@ -84,7 +84,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             metric_logger.filename={log_file} \
             compile={compile} \
@@ -113,7 +113,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "LLAMA2_hf"
+        ckpt = "llama2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -136,7 +136,7 @@ class TestFullFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS("LLAMA2")
+        model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -165,7 +165,7 @@ class TestFullFinetuneSingleDeviceRecipe:
         with pytest.raises(SystemExit, match=""):
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
-        expected_loss_values = self._fetch_expected_loss_values("LLAMA2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
@@ -203,7 +203,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
         full_batch_size = 4
         micro_batch_size = 1
         gradient_accumulation_steps = full_batch_size // micro_batch_size
-        ckpt = "LLAMA2_tune"
+        ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         no_grad_accum_log_file = gen_log_file_name(tmpdir, suffix="no_grad_accum")
@@ -223,7 +223,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             metric_logger.filename={no_grad_accum_log_file} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS("LLAMA2")
+        model_config = MODEL_TEST_CONFIGS["llama2"]
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
 
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -242,7 +242,7 @@ class TestFullFinetuneSingleDeviceGradientAccumulation:
             checkpointer.checkpoint_dir={ckpt_dir} \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type=LLAMA2 \
+            checkpointer.model_type=llama2 \
             batch_size={micro_batch_size} \
             gradient_accumulation_steps={gradient_accumulation_steps} \
             output_dir={tmpdir} \

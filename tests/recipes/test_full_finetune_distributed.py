@@ -45,8 +45,8 @@ class TestFullFinetuneDistributedRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "LLAMA2": [10.5136, 10.4813, 10.5088, 10.5250],
-            "LLAMA3": [12.0673, 11.9072, 11.9302, 11.9355],
+            "llama2": [10.5136, 10.4813, 10.5088, 10.5250],
+            "llama3": [12.0673, 11.9072, 11.9302, 11.9355],
         }
         return loss_values_map[model_type]
 
@@ -54,8 +54,8 @@ class TestFullFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama2/7B_full", "LLAMA2", "hf"),
-            ("llama3/8B_full", "LLAMA3", "tune"),
+            ("llama2/7B_full", "llama2", "hf"),
+            ("llama3/8B_full", "llama3", "tune"),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -78,7 +78,7 @@ class TestFullFinetuneDistributedRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             metric_logger.filename={log_file} \
         """.split()

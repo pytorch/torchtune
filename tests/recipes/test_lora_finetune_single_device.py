@@ -47,8 +47,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     def _fetch_expected_loss_values(self, model_type):
         loss_values_map = {
-            "LLAMA2": [10.5209, 10.5269, 10.5130, 10.5242],
-            "LLAMA3": [11.9838, 11.9691, 11.9616, 11.9383],
+            "llama2": [10.5209, 10.5269, 10.5130, 10.5242],
+            "llama3": [11.9838, 11.9691, 11.9616, 11.9383],
         }
         return loss_values_map[model_type]
 
@@ -62,8 +62,8 @@ class TestLoRAFinetuneSingleDeviceRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora_single_device", "LLAMA2", "meta"),
-            ("llama3/8B_lora_single_device", "LLAMA3", "tune"),
+            ("llama2/7B_lora_single_device", "llama2", "meta"),
+            ("llama3/8B_lora_single_device", "llama3", "tune"),
         ],
     )
     def test_loss(self, compile, config, model_type, ckpt_type, tmpdir, monkeypatch):
@@ -86,7 +86,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}] \
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             metric_logger.filename={log_file} \
             compile={compile} \
@@ -113,7 +113,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         reason="Please install a nightly build of torch to run this test.",
     )
     def test_loss_qlora(self, compile, dtype, tmpdir, monkeypatch):
-        ckpt = "LLAMA2_meta"
+        ckpt = "llama2_meta"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -136,7 +136,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             compile={compile} \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["LLAMA2_qlora"]
+        model_config = MODEL_TEST_CONFIGS["llama2_qlora"]
 
         cmd = cmd + self._get_test_config_overrides(dtype_str=dtype) + model_config
         monkeypatch.setattr(sys, "argv", cmd)
@@ -159,7 +159,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             - Make sure final loss matches the expected value of a model successfully resumed from a ckpt
         """
 
-        ckpt = "LLAMA2_hf"
+        ckpt = "llama2_hf"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -182,7 +182,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["LLAMA2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd_1 = cmd_1 + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd_1)
@@ -211,7 +211,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             runpy.run_path(TUNE_PATH, run_name="__main__")
 
         # Second epoch only
-        expected_loss_values = self._fetch_expected_loss_values("LLAMA2")[2:]
+        expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
 
         loss_values = get_loss_values_from_metric_logger(log_file)
         torch.testing.assert_close(
@@ -220,7 +220,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
     @pytest.mark.integration_test
     def test_save_and_load_merged_weights(self, tmpdir, monkeypatch):
-        ckpt = "LLAMA2_tune"
+        ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
 
@@ -236,7 +236,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["LLAMA2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
@@ -252,7 +252,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
         lora_model = config.instantiate(OmegaConf.from_dotlist(model_config).model)
 
         # Build base llama2 model for loading merged weights
-        base_llama2_config = MODEL_TEST_CONFIGS["LLAMA2"]
+        base_llama2_config = MODEL_TEST_CONFIGS["llama2"]
         llama2_model = config.instantiate(
             OmegaConf.from_dotlist(base_llama2_config).model
         )

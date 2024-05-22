@@ -159,16 +159,16 @@ def write_hf_ckpt_config(ckpt_dir: str):
 
 
 MODEL_TEST_CONFIGS = {
-    "LLAMA2": llama2_test_config(),
-    "LLAMA3": llama3_test_config(),
-    "LLAMA2_lora": lora_llama2_test_config(
+    "llama2": llama2_test_config(),
+    "llama3": llama3_test_config(),
+    "llama2_lora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
         apply_lora_to_mlp=False,
         apply_lora_to_output=False,
         lora_rank=8,
         lora_alpha=16,
     ),
-    "LLAMA2_qlora": lora_llama2_test_config(
+    "llama2_qlora": lora_llama2_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
         apply_lora_to_mlp=True,
         apply_lora_to_output=False,
@@ -176,7 +176,7 @@ MODEL_TEST_CONFIGS = {
         lora_alpha=16,
         quantize_base=True,
     ),
-    "LLAMA3_lora": lora_llama3_test_config(
+    "llama3_lora": lora_llama3_test_config(
         lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
         apply_lora_to_mlp=False,
         apply_lora_to_output=False,

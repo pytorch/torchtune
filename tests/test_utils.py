@@ -25,16 +25,16 @@ skip_if_cuda_not_available = unittest.skipIf(
 )
 
 CKPT_MODEL_PATHS = {
-    "LLAMA2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
-    "LLAMA2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
-    "LLAMA2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
-    "LLAMA3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
+    "llama2_tune": "/tmp/test-artifacts/small-ckpt-tune-03082024.pt",
+    "llama2_meta": "/tmp/test-artifacts/small-ckpt-meta-03082024.pt",
+    "llama2_hf": "/tmp/test-artifacts/small-ckpt-hf-03082024.pt",
+    "llama3_tune": "/tmp/test-artifacts/small-ckpt-tune-llama3-05052024.pt",
     "llama2_7b": "/tmp/test-artifacts/llama2-7b-torchtune.pt",
 }
 
 TOKENIZER_PATHS = {
-    "LLAMA2": "/tmp/test-artifacts/tokenizer.model",
-    "LLAMA3": "/tmp/test-artifacts/tokenizer_llama3.model",
+    "llama2": "/tmp/test-artifacts/tokenizer.model",
+    "llama3": "/tmp/test-artifacts/tokenizer_llama3.model",
 }
 
 

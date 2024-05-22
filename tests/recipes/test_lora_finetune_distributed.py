@@ -48,15 +48,15 @@ class TestLoRAFinetuneDistributedRecipe:
         # These values have been validated against single device recipe test via
         # https://gist.github.com/ebsmothers/f1c3db7c66655a23a91e0290360960c4
         loss_values_map = {
-            "LLAMA2": [10.5136, 10.4856, 10.5292, 10.5345],
-            "LLAMA3": [11.9325, 11.9325, 11.9325, 11.9369],
+            "llama2": [10.5136, 10.4856, 10.5292, 10.5345],
+            "llama3": [11.9325, 11.9325, 11.9325, 11.9369],
         }
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
-        ckpt = "LLAMA2_tune"
+        ckpt = "llama2_tune"
         ckpt_path = Path(CKPT_MODEL_PATHS[ckpt])
         ckpt_dir = ckpt_path.parent
         log_file = gen_log_file_name(tmpdir)
@@ -73,13 +73,13 @@ class TestLoRAFinetuneDistributedRecipe:
             tokenizer.path=/tmp/test-artifacts/tokenizer.model \
         """.split()
 
-        model_config = MODEL_TEST_CONFIGS["LLAMA2_lora"]
+        model_config = MODEL_TEST_CONFIGS["llama2_lora"]
 
         cmd = cmd + self._get_test_config_overrides() + model_config
         monkeypatch.setattr(sys, "argv", cmd)
         runpy.run_path(TUNE_PATH, run_name="__main__")
         loss_values = get_loss_values_from_metric_logger(log_file)
-        expected_loss_values = self._fetch_expected_loss_values("LLAMA2")
+        expected_loss_values = self._fetch_expected_loss_values("llama2")
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5
         )
@@ -89,8 +89,8 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora", "LLAMA2", "hf"),
-            ("llama3/8B_lora", "LLAMA3", "tune"),
+            ("llama2/7B_lora", "llama2", "hf"),
+            ("llama3/8B_lora", "llama3", "tune"),
         ],
     )
     def test_training_state_on_resume(
@@ -126,7 +126,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
         """.split()
 
@@ -147,7 +147,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.adapter_checkpoint={os.path.join(tmpdir, "adapter_0.pt")}
             checkpointer.recipe_checkpoint={os.path.join(tmpdir, "recipe_state.pt")}
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
             resume_from_checkpoint=True \
             metric_logger.filename={log_file} \
@@ -168,8 +168,8 @@ class TestLoRAFinetuneDistributedRecipe:
     @pytest.mark.parametrize(
         "recipe_config, model_type, ckpt_type",
         [
-            ("llama2/7B_lora", "LLAMA2", "tune"),
-            ("llama3/8B_lora", "LLAMA3", "tune"),
+            ("llama2/7B_lora", "llama2", "tune"),
+            ("llama3/8B_lora", "llama3", "tune"),
         ],
     )
     @gpu_test(gpu_count=2)
@@ -190,7 +190,7 @@ class TestLoRAFinetuneDistributedRecipe:
             checkpointer.checkpoint_dir='{ckpt_dir}' \
             checkpointer.checkpoint_files=[{ckpt_path}]\
             checkpointer.output_dir={tmpdir} \
-            checkpointer.model_type={model_type} \
+            checkpointer.model_type={model_type.upper()} \
             tokenizer.path='{tokenizer_path}' \
         """.split()
 
