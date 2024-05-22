@@ -304,17 +304,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
-                fully_shard(m)
+                fully_shard(m, **fsdp_kwargs)
             # TransformerDecoderLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
-                    fully_shard(m)
+                    fully_shard(m, **fsdp_kwargs)
             else:
                 if isinstance(m, modules.TransformerDecoderLayer):
-                    fully_shard(m)
-
-        fully_shard(model)
+                    fully_shard(m, **fsdp_kwargs)
+        fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
             utils.load_from_full_model_state_dict(
