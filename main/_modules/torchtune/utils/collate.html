@@ -431,8 +431,8 @@
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; token_pairs = [</span>
-<span class="sd">        &gt;&gt;&gt;    ([1, 2, 3], [4, 5, 6]),</span>
-<span class="sd">        &gt;&gt;&gt;    ([7,], [10,],),</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [1, 2, 3], &quot;labels&quot;: [4, 5, 6]},</span>
+<span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [7,], &quot;labels&quot;: [10,]},</span>
 <span class="sd">        &gt;&gt;&gt; ]</span>
 <span class="sd">        &gt;&gt;&gt; inputs, labels = padded_collate(</span>
 <span class="sd">        &gt;&gt;&gt;    batch=token_pairs,</span>
