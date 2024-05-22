@@ -66,7 +66,11 @@ class InstructDataset(Dataset):
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
-        self._data = load_dataset(source, **load_dataset_kwargs)
+        if source.endswith(".json"):
+            self._data = load_dataset("json", data_files=source, **load_dataset_kwargs)
+        else:
+            self._data = load_dataset(source, **load_dataset_kwargs)
+
         self.template = template
         self._transform = transform
         self._column_map = column_map
