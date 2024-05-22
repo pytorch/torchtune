@@ -39,7 +39,7 @@ class DummyDataset(Dataset):
         )
 
     def __getitem__(self, index):
-        return (self._data[index], self._labels[index])
+        return {"tokens": self._data[index], "labels": self._labels[index]}
 
     def __len__(self):
         return len(self._data)
@@ -55,7 +55,7 @@ def dummy_alpaca_dataset_config():
         "dataset._component_=torchtune.datasets.instruct_dataset",
         "dataset.source='json'",
         f"dataset.data_files={data_files}",
-        "dataset.template=AlpacaInstructTemplate",
+        "dataset.template=torchtune.data.AlpacaInstructTemplate",
         "dataset.split='train'",
     ]
     return out

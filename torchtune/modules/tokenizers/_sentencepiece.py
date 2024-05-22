@@ -7,8 +7,7 @@
 from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.data._types import Message
-from torchtune.data._utils import truncate
+from torchtune.data import Message, truncate
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -47,7 +46,7 @@ class SentencePieceTokenizer:
         )
 
         # During generation, stop when eos_id is encountered
-        self.stop_tokens = {self.eos_id}
+        self.stop_tokens = [self.eos_id]
 
     def encode(
         self,

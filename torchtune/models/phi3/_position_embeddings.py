@@ -69,9 +69,12 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
         """
         Args:
             x (Tensor): input tensor with shape
-                [bsz, seq_len, num_heads, head_dim]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+                [b, s, n_h, h_d]
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b, s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -95,17 +98,20 @@ class Phi3RotaryPositionalEmbeddings(nn.Module):
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
 
-        # [s, h_d]
-        cos = rope_cache[:, :head_dim]
-        sin = rope_cache[:, head_dim:]
+        # reshape the cache for broadcasting
+        # tensor has shape [b, s, 1, h_d * 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d * 2]
+        rope_cache = rope_cache.view(-1, seq_len, 1, head_dim * 2)
+
+        # [b, s, 1, h_d]
+        cos = rope_cache[..., :head_dim]
+        sin = rope_cache[..., head_dim:]
 
         x1 = x[..., : x.shape[-1] // 2]
         x2 = x[..., x.shape[-1] // 2 :]
         rotated = torch.cat((-x2, x1), dim=-1)
 
-        # cos: [s, h_d]
+        # cos: [b, s, 1, h_d]
         # x: [b, s, n_h, h_d]
-        # For the matrix multiplication to line up, transpose the input
-        # and the rotated input
-        x_out = (x.transpose(1, 2) * cos) + (rotated.transpose(1, 2) * sin)
-        return x_out.transpose(1, 2).type_as(x)
+        x_out = (x * cos) + (rotated * sin)
+        return x_out.type_as(x)
