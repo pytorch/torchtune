@@ -18,6 +18,9 @@ from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
 from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointWrapper,
+)
 from torch.distributed.checkpoint.state_dict import (
     get_optimizer_state_dict,
     StateDictOptions,
@@ -312,12 +315,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         for m in reversed(list(model.modules())):
-            if (
-                isinstance(m, nn.Linear)
-                and m.weight.requires_grad
-                or isinstance(m, modules.TransformerDecoderLayer)
-            ):
+            if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m)
+            # TransformerDecoderLayer is wrapped by CheckpointWrapper
+            # when enable_activation_checkpointing
+            if enable_activation_checkpointing:
+                if isinstance(m, CheckpointWrapper):
+                    fully_shard(m)
+            else:
+                if isinstance(m, modules.TransformerDecoderLayer):
+                    fully_shard(m)
+
         fully_shard(model)
 
         if lora_weights_state_dict:
