@@ -126,7 +126,7 @@ QLoRA 8B with Custom Instruct Dataset
 tune run lora_finetune_single_device --config llama3/8B_qlora_single_device_custom_instruct
 ```
 
-Make sure to place your dataset in **./train.json**. The train.json file should follow the format of a list of dictionaries, with each dictionary containing the keys: instruction, input, and output.
+Make sure to place your dataset in **/tmp/train.json**. The train.json file should follow the format of a list of dictionaries, with each dictionary containing the keys: instruction, input, and output.
 
 
 ### Multi GPU

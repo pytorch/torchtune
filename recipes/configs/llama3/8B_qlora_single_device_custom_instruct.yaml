@@ -44,7 +44,7 @@ resume_from_checkpoint: False
 dataset:
   _component_: torchtune.datasets.custom_instruct_dataset
   train_on_input: True
-  dataset_path: ./train.json
+  dataset_path: /tmp/train.json
 seed: null
 shuffle: True
 batch_size: 2
