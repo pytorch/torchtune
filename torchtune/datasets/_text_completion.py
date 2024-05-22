@@ -49,7 +49,7 @@ class TextCompletionDataset(Dataset):
         sample = self._data[index]
         return self._prepare_sample(sample)
 
-    def _prepare_sample(self, sample: Mapping[str, Any]) -> Tuple[List[int], List[int]]:
+    def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column] if self._column is not None else sample
         tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
 
@@ -60,7 +60,7 @@ class TextCompletionDataset(Dataset):
         # No need to offset labels by 1 - happens in the recipe
         labels = tokens.copy()
 
-        return tokens, labels
+        return {"tokens": tokens, "labels": labels}
 
 
 def text_completion_dataset(
