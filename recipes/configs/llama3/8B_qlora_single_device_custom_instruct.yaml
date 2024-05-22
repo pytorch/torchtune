@@ -27,11 +27,11 @@ model:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /home/jeff_yang/tune/llmav3_instruct/original/tokenizer.model
+  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /home/jeff_yang/tune/llmav3_instruct/original/
+  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
@@ -44,7 +44,7 @@ resume_from_checkpoint: False
 dataset:
   _component_: torchtune.datasets.custom_instruct_dataset
   train_on_input: True
-  dataset_path: /home/jeff_yang/tune/dataset/yoga_beginner/train.json
+  dataset_path: ./train.json
 seed: null
 shuffle: True
 batch_size: 2
