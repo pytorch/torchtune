@@ -13,7 +13,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 
 def padded_collate(
-    batch: List[Dict[str, List[int]]],
+    batch: List[Tuple[List[int], List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Dict[str, torch.Tensor]:
@@ -21,7 +21,7 @@ def padded_collate(
     convert integer lists to tensors.
 
     Args:
-        batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
+        batch (List[Tuple[List[int], List[int]]]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -44,12 +44,12 @@ def padded_collate(
         >>> tensor([[4,5,6], [10,-100,-100]])
     """
     input_ids = pad_sequence(
-        [torch.tensor(x["tokens"]) for x in batch],
+        [torch.tensor(x[0]) for x in batch],
         batch_first=True,
         padding_value=padding_idx,
     )
     labels = pad_sequence(
-        [torch.tensor(x["labels"]) for x in batch],
+        [torch.tensor(x[1]) for x in batch],
         batch_first=True,
         padding_value=ignore_idx,
     )
