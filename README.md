@@ -120,6 +120,15 @@ Full 8B
 tune run full_finetune_single_device --config llama3/8B_full_single_device
 ```
 
+QLoRA 8B with Custom Instruct Dataset
+
+```bash
+tune run lora_finetune_single_device --config llama3/8B_qlora_single_device_custom_instruct
+```
+
+Make sure to place your dataset in **./train.json**. The train.json file should follow the format of a list of dictionaries, with each dictionary containing the keys: instruction, input, and output.
+
+
 ### Multi GPU
 
 Full 8B
