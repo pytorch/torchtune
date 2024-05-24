@@ -87,7 +87,7 @@ class GemmaTransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: Optional[Tensor] = None,
+        mask: Optional[Tensor],
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
