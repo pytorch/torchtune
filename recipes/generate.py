@@ -100,7 +100,7 @@ class InferenceRecipe:
             return self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
 
         # Otherwise pass a DictConfig mapping role -> message, format with ChatFormat
-        # .items() will respect order for Python >= 3.7
+        # dict.items() will respect order for Python >= 3.7
         else:
             messages = [Message(role=k, content=v) for k, v in prompt.items()]
             messages += [
@@ -112,8 +112,6 @@ class InferenceRecipe:
 
     @torch.no_grad()
     def generate(self, cfg: DictConfig):
-        # messages = self.convert_prompt_to_messages(cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None))
-        # tokens, _ = self._tokenizer.tokenize_messages(messages, add_eos=False)
         tokens = self.convert_prompt_to_tokens(
             cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None)
         )
