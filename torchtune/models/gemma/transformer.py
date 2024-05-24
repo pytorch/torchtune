@@ -87,13 +87,14 @@ class GemmaTransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: Optional[Tensor],
+        mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
             mask (Optional[Tensor]): Optional tensor which contains the attention mask.
+                Default is None
             input_pos (Optional[Tensor]): Optional tensor which contains the position
                 of the current token. This is only used during inference. Default is None
 
