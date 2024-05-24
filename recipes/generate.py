@@ -6,14 +6,14 @@
 import itertools
 import sys
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
 import torch
 from omegaconf import DictConfig
-
 from torch import nn
 
 from torchtune import config, utils
+from torchtune.data import ChatFormat, InstructTemplate, Message
 
 logger = utils.get_logger("DEBUG")
 
@@ -81,9 +81,42 @@ class InferenceRecipe:
 
         return model
 
+    def convert_prompt_to_tokens(
+        self,
+        prompt: Union[DictConfig, str],
+        chat_format: ChatFormat,
+        instruct_template: InstructTemplate,
+    ) -> List[Message]:
+        # Should only be chat-style prompt or instruct-style prompt
+        if chat_format and instruct_template:
+            raise ValueError(
+                "Cannot pass both chat format and instruct template for generation"
+            )
+
+        # A single string can be formatted with instruct_template
+        if isinstance(prompt, str):
+            if instruct_template:
+                prompt = template.format(prompt)
+            return self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
+
+        # Otherwise pass a DictConfig mapping role -> message, format with ChatFormat
+        # .items() will respect order for Python >= 3.7
+        else:
+            messages = [Message(role=k, content=v) for k, v in prompt.items()]
+            messages += [
+                Message(role="assistant", content="")
+            ]  # TODO: pass via config?
+            if chat_format:
+                messages = chat_format.format(messages)
+            return self._tokenizer.tokenize_messages(messages, add_eos=False)[0]
+
     @torch.no_grad()
     def generate(self, cfg: DictConfig):
-        tokens = self._tokenizer.encode(cfg.prompt, add_bos=True, add_eos=False)
+        # messages = self.convert_prompt_to_messages(cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None))
+        # tokens, _ = self._tokenizer.tokenize_messages(messages, add_eos=False)
+        tokens = self.convert_prompt_to_tokens(
+            cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None)
+        )
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 
         custom_generate_next_token = None
