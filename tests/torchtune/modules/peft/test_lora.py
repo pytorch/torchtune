@@ -61,6 +61,19 @@ class TestLoRALinear:
         return lora_linear
 
     @pytest.fixture
+    def dora_linear(self, in_dim, out_dim) -> LoRALinear:
+        lora_linear = LoRALinear(
+            in_dim=in_dim,
+            out_dim=out_dim,
+            rank=RANK,
+            alpha=ALPHA,
+            use_bias=False,
+            use_dora=True,
+        )
+        fixed_init_model(lora_linear)
+        return lora_linear
+
+    @pytest.fixture
     def qlora_linear(self, in_dim, out_dim) -> LoRALinear:
         with utils.set_default_dtype(torch.bfloat16):
             qlora_linear = LoRALinear(
@@ -94,6 +107,12 @@ class TestLoRALinear:
     def test_forward(self, inputs, lora_linear, out_dim) -> None:
         expected = torch.tensor(EXPECTED_VAL)
         actual = lora_linear(inputs)
+        assert actual.shape == (BSZ, SEQ_LEN, out_dim)
+        torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
+
+    def test_dora_forward(self, inputs, dora_linear, out_dim) -> None:
+        expected = torch.tensor(EXPECTED_VAL)
+        actual = dora_linear(inputs)
         assert actual.shape == (BSZ, SEQ_LEN, out_dim)
         torch.testing.assert_close(actual.mean(), expected, atol=1e-4, rtol=1e-6)
 

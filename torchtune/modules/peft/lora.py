@@ -6,6 +6,7 @@
 import math
 from typing import List
 
+import torch
 import torch.nn.functional as F
 
 from torch import nn, Tensor
@@ -32,6 +33,9 @@ class LoRALinear(nn.Module, AdapterModule):
         rank (int): rank of the low-rank approximation
         alpha (float): scaling factor for the low-rank approximation
         dropout (float): dropout probability. Default: 0.0
+        use_dora (bool): whether to use DORA (weight-Decomposed Low-Rank Adaptation).
+            link to the paper: https://arxiv.org/pdf/2402.09353
+            Default: False
         use_bias (bool): whether to include bias in the original linear layer.
             Default: False
         quantize_base (bool): Whether to quantize base linear weight or not.
@@ -45,6 +49,7 @@ class LoRALinear(nn.Module, AdapterModule):
         rank: int,
         alpha: float,
         dropout: float = 0.0,
+        use_dora: bool = False,
         use_bias: bool = False,
         quantize_base: bool = False,
     ):
@@ -54,6 +59,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.alpha = alpha
         self.out_dim = out_dim
         self.use_bias = use_bias
+        self.use_dora = use_dora
         self._quantize_base = quantize_base
         weight, bias = self._create_weight_and_bias()
         # 'self.disabled' is a flag showing whether to turn off LoRA adapters,
@@ -67,7 +73,8 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.merged = False
+        self.m = nn.Parameter(torch.ones(1, out_dim)) if self.use_dora else None
+        self.dora_initialized = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
@@ -111,6 +118,19 @@ class LoRALinear(nn.Module, AdapterModule):
         adapter_params = ["lora_a.weight", "lora_b.weight"]
         return adapter_params
 
+    def dora_init(self) -> None:
+        weight_norm = self._dora_weight_norm
+        self.m = nn.Parameter(weight_norm, requires_grad=True)
+        self.dora_initialized = True
+
+    @property
+    def _dora_weight_norm(self) -> Tensor:
+        return torch.linalg.norm(
+            self.weight
+            + (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight),
+            dim=1,
+        ).to(self.weight.dtype)
+
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:
@@ -128,6 +148,16 @@ class LoRALinear(nn.Module, AdapterModule):
             return out
         lora_out = self.lora_a(self.dropout(x))
         lora_out = (self.alpha / self.rank) * self.lora_b(lora_out)
+        # Author mentions this method is faster for the computation purpose:
+        # https://github.com/huggingface/peft/pull/1474#issuecomment-1963402710
+        if self.use_dora:
+            # intialize the magnitude vector.
+            if not self.dora_initialized:
+                self.dora_init()
+            weight_norm = self._dora_weight_norm.detach()
+            mag_norm_scale = (self.m / weight_norm).view(1, -1)
+            # PEFT uses: out + (mag_norm_scale - 1) * out  + mag_norm_scale * lora_b(lora_a(x)) * scaling.
+            return (out + lora_out) * mag_norm_scale
         return out + lora_out
 
 
