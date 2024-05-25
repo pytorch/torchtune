@@ -104,3 +104,4 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     :nosignatures:
 
     gemma.gemma_2b
+    gemma.gemma_7b

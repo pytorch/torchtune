@@ -3,9 +3,9 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns "gemma-7b.gguf"
 #
-# To launch on 4 devices, run the following command from root:
+# To launch on a single device, run the following command from root:
 #   tune run lora_finetune_single_device --config gemma/7B_qlora_single_device
 #
 # You can add specific overrides through the command line. For example
@@ -37,7 +37,7 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma/
+  checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
@@ -45,7 +45,7 @@ checkpointer:
     model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma
+  output_dir: /tmp/gemma-7b/
   model_type: GEMMA
 resume_from_checkpoint: False
 
