@@ -138,6 +138,9 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
+        self._fsdp_sharding_strategy = torch.distributed.fsdp.ShardingStrategy[
+            cfg.get("fsdp_sharding_strategy", "FULL_SHARD")
+        ]
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -337,7 +340,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
                 modules_to_wrap={modules.TransformerDecoderLayer}
             ),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
