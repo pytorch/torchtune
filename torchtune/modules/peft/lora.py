@@ -49,7 +49,7 @@ class LoRALinear(nn.Module, AdapterModule):
         rank: int,
         alpha: float,
         dropout: float = 0.0,
-        use_dora: bool = False,
+        use_dora: bool = True,  # TODO(prakyath): add this at each models inference, Do Not make this aas default True.
         use_bias: bool = False,
         quantize_base: bool = False,
     ):
@@ -73,8 +73,7 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.m = nn.Parameter(torch.ones(1, out_dim)) if self.use_dora else None
-        self.dora_initialized = False
+        self.lora_m = nn.Parameter(torch.zeros(1, out_dim))
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
@@ -90,6 +89,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
+        _dora_m_init_params(self.lora_m)
 
     def _create_weight_and_bias(self):
         """
@@ -116,20 +116,33 @@ class LoRALinear(nn.Module, AdapterModule):
         # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
         adapter_params = ["lora_a.weight", "lora_b.weight"]
+        if self.use_dora:
+            adapter_params.append("lora_m")
         return adapter_params
 
-    def dora_init(self) -> None:
+    def init_dora(self) -> None:
+        # this is a seperate function because,
+        # this should be called after model state dict is called.
+        # But We verify and initialize the model arch first before the loading weights.
         weight_norm = self._dora_weight_norm
-        self.m = nn.Parameter(weight_norm, requires_grad=True)
-        self.dora_initialized = True
+        self.lora_m.data = weight_norm.data  # Update the data of 'm' directly
 
     @property
     def _dora_weight_norm(self) -> Tensor:
-        return torch.linalg.norm(
-            self.weight
-            + (self.alpha / self.rank) * (self.lora_b.weight @ self.lora_a.weight),
-            dim=1,
-        ).to(self.weight.dtype)
+        if self._quantize_base:
+            # Convert NF4Tensor to regular Tensor for computation TODO(prakyath): Fix this.
+            weight = to_regular_tensor(self.weight)
+        else:
+            weight = self.weight
+
+        # Perform the operation with regular tensors
+        result = weight + (self.alpha / self.rank) * (
+            self.lora_b.weight @ self.lora_a.weight
+        )
+        norm = torch.linalg.norm(result, dim=1)
+
+        # Convert back if necessary (depending on your requirements)
+        return norm
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -151,11 +164,8 @@ class LoRALinear(nn.Module, AdapterModule):
         # Author mentions this method is faster for the computation purpose:
         # https://github.com/huggingface/peft/pull/1474#issuecomment-1963402710
         if self.use_dora:
-            # intialize the magnitude vector.
-            if not self.dora_initialized:
-                self.dora_init()
             weight_norm = self._dora_weight_norm.detach()
-            mag_norm_scale = (self.m / weight_norm).view(1, -1)
+            mag_norm_scale = (self.lora_m / weight_norm).view(1, -1)
             # PEFT uses: out + (mag_norm_scale - 1) * out  + mag_norm_scale * lora_b(lora_a(x)) * scaling.
             return (out + lora_out) * mag_norm_scale
         return out + lora_out
@@ -173,3 +183,10 @@ def _lora_b_init_params(x: nn.Linear) -> None:
     Initialize LoRA B weight to zeros.
     """
     nn.init.zeros_(x.weight)
+
+
+def _dora_m_init_params(x: nn.Parameter) -> None:
+    """
+    Initialize DORA m to ones.
+    """
+    nn.init.zeros_(x)

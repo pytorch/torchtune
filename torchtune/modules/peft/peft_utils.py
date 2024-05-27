@@ -63,6 +63,13 @@ def get_adapter_params(model: nn.Module) -> Dict[str, nn.Parameter]:
     return adapter_params
 
 
+def activate_dora_parms(model: nn.Module) -> nn.Module:
+    for k, v in model.named_modules():
+        if hasattr(v, "adapter_params") and callable(v.adapter_params):
+            current_adapter_params = v.adapter_params()
+            v.init_dora()  # TODO(prakyath) check if module is LoraLinear and use_dora is true and then apply.
+
+
 @functools.lru_cache()
 def _get_base_model_params(model: nn.Module) -> Dict[str, Any]:
     """

@@ -110,6 +110,17 @@ _ALL_RECIPES = [
         supports_distributed=False,
     ),
     Recipe(
+        name="dora_finetune_single_device",
+        file_path="dora_finetune_single_device.py",
+        configs=[
+            Config(
+                name="llama3/*B_dora_single_device",
+                file_path="llama3/8B_dora_single_device.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
+    Recipe(
         name="lora_dpo_single_device",
         file_path="lora_dpo_single_device.py",
         configs=[
