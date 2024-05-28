@@ -742,6 +742,7 @@ you can also add more advanced behavior.</p>
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">chat_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="o">=</span><span class="s2">&quot;my/dataset/path&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">conversation_style</span><span class="o">=</span><span class="s2">&quot;openai&quot;</span><span class="p">,</span>
     <span class="n">chat_format</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomChatFormat&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -798,6 +799,7 @@ supported by Hugging Face’s <code class="docutils literal notranslate"><span c
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomTemplate&quot;</span>
     <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;path/to/my/data.csv&quot;</span><span class="p">,</span>
 <span class="p">)</span>
@@ -805,6 +807,7 @@ supported by Hugging Face’s <code class="docutils literal notranslate"><span c
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">instruct_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="o">=</span><span class="n">tokenizer</span><span class="p">,</span>
     <span class="n">source</span><span class="o">=</span><span class="s2">&quot;json&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="n">template</span><span class="o">=</span><span class="s2">&quot;import.path.to.CustomTemplate&quot;</span>
     <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;https://rajpurkar.github.io/SQuAD-explorer/dataset/train-v2.0.json&quot;</span><span class="p">,</span>
     <span class="c1"># You can also pass in any kwarg that load_dataset accepts</span>

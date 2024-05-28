@@ -437,6 +437,7 @@ custom chat dataset for fine-tuning Llama3.</p>
 </div>
 </div>
 </div>
+<p>Note: this tutorial requires a version of torchtune &gt; 0.1.1</p>
 <section id="template-changes-from-llama2-to-llama3">
 <h2>Template changes from Llama2 to Llama3<a class="headerlink" href="#template-changes-from-llama2-to-llama3" title="Permalink to this heading">¶</a></h2>
 <p>The Llama2 chat model requires a specific template when prompting the pre-trained
@@ -632,15 +633,15 @@ Llama3 understands and tokenizes correctly?</p>
 <p>The Llama3 tokenizer class, <a class="reference internal" href="../generated/torchtune.modules.tokenizers.TikTokenTokenizer.html#torchtune.modules.tokenizers.TikTokenTokenizer" title="torchtune.modules.tokenizers.TikTokenTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">TikTokenTokenizer</span></code></a>,
 expects the input to be in the <a class="reference internal" href="../generated/torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> format. Let’s
 quickly write a function that can parse a single row from our csv file into
-the Message dataclass.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">message_converter</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
+the Message dataclass. The function also needs to have a train_on_input parameter.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">message_converter</span><span class="p">(</span><span class="n">sample</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">]:</span>
     <span class="n">input_msg</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;input&quot;</span><span class="p">]</span>
     <span class="n">output_msg</span> <span class="o">=</span> <span class="n">sample</span><span class="p">[</span><span class="s2">&quot;output&quot;</span><span class="p">]</span>
 
     <span class="n">user_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
         <span class="n">role</span><span class="o">=</span><span class="s2">&quot;user&quot;</span><span class="p">,</span>
         <span class="n">content</span><span class="o">=</span><span class="n">input_msg</span><span class="p">,</span>
-        <span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Mask if not training on prompt</span>
+        <span class="n">masked</span><span class="o">=</span><span class="ow">not</span> <span class="n">train_on_input</span><span class="p">,</span>  <span class="c1"># Mask if not training on prompt</span>
     <span class="p">)</span>
     <span class="n">assistant_message</span> <span class="o">=</span> <span class="n">Message</span><span class="p">(</span>
         <span class="n">role</span><span class="o">=</span><span class="s2">&quot;assistant&quot;</span><span class="p">,</span>
@@ -672,6 +673,8 @@ object.</p>
         <span class="c1"># For local csv files, we specify &quot;csv&quot; as the source, just like in</span>
         <span class="c1"># load_dataset</span>
         <span class="n">source</span><span class="o">=</span><span class="s2">&quot;csv&quot;</span><span class="p">,</span>
+        <span class="c1"># Default split of &quot;train&quot; is required for local files</span>
+        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
         <span class="n">convert_to_messages</span><span class="o">=</span><span class="n">message_converter</span><span class="p">,</span>
         <span class="c1"># Llama3 does not need a chat format</span>
         <span class="n">chat_format</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
