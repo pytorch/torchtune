@@ -19,6 +19,7 @@ custom chat dataset for fine-tuning Llama3.
       * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
       * Know how to :ref:`download Llama3 weights <llama3_label>`
 
+Note: this tutorial requires a version of torchtune > 0.1.1
 
 Template changes from Llama2 to Llama3
 --------------------------------------
@@ -248,18 +249,18 @@ Llama3 understands and tokenizes correctly?
 The Llama3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenTokenizer`,
 expects the input to be in the :class:`~torchtune.data.Message` format. Let's
 quickly write a function that can parse a single row from our csv file into
-the Message dataclass.
+the Message dataclass. The function also needs to have a train_on_input parameter.
 
 .. code-block:: python
 
-    def message_converter(sample: Mapping[str, Any]) -> List[Message]:
+    def message_converter(sample: Mapping[str, Any], train_on_input: bool) -> List[Message]:
         input_msg = sample["input"]
         output_msg = sample["output"]
 
         user_message = Message(
             role="user",
             content=input_msg,
-            masked=True,  # Mask if not training on prompt
+            masked=not train_on_input,  # Mask if not training on prompt
         )
         assistant_message = Message(
             role="assistant",
@@ -294,6 +295,8 @@ object.
             # For local csv files, we specify "csv" as the source, just like in
             # load_dataset
             source="csv",
+            # Default split of "train" is required for local files
+            split="train",
             convert_to_messages=message_converter,
             # Llama3 does not need a chat format
             chat_format=None,
