@@ -293,6 +293,31 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         utils.validate_expected_param_dtype(
             self.adapter_params.items(), dtype=self._dtype
         )
+        # This is for comparing with peft, remove after comparision.
+        # 1. Get number of trainable parameters.
+        # 2. Get number of total parameters.
+        # 3. If possible extract the name of the trainable parameters
+        # and name of the non-traiable parameter and store in the wandb summary.
+
+        # Calculate total parameters
+        total_params = sum(p.numel() for p in model.parameters())
+        log.info(f"Total parameters: {total_params}")
+
+        # Calculate trainable parameters
+        trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        log.info(f"Trainable parameters: {trainable_params}")
+
+        # Extract names of trainable and non-trainable parameters
+        trainable_names = [
+            name for name, param in model.named_parameters() if param.requires_grad
+        ]
+        non_trainable_names = [
+            name for name, param in model.named_parameters() if not param.requires_grad
+        ]
+
+        # Print names
+        log.info(f"Trainable parameter names: {trainable_names}")
+        log.info(f"Non-trainable parameter names: {non_trainable_names}")
 
         log.info(f"Model is initialized with precision {self._dtype}.")
         # Compile model, if enabled.
