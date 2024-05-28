@@ -53,7 +53,9 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     return file_path
 
 
-def safe_torch_load(checkpoint_path: Path, weights_only: bool = True, mmap: bool = True) -> Dict[str, Any]:
+def safe_torch_load(
+    checkpoint_path: Path, weights_only: bool = True, mmap: bool = True
+) -> Dict[str, Any]:
     """
     Utility to load a checkpoint file in a safe manner.
     """
