@@ -151,10 +151,17 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     yaml_kwargs = vars(yaml_args)
     cli_dotlist = []
     for arg in cli_args:
+        # If CLI override uses the remove flag (~), remove the key from the yaml config
         if arg.startswith("~"):
             dotpath = arg[1:].split("=")[0]
-            _remove_key_with_dotpath(yaml_kwargs, dotpath)
+            try:
+                _remove_key_by_dotpath(yaml_kwargs, dotpath)
+            except (KeyError, ValueError):
+                raise ValueError(
+                    f"Could not find key {dotpath} in yaml config to remove"
+                ) from None
             continue
+        # Get other overrides that should be specified as key=value
         try:
             k, v = arg.split("=")
         except ValueError:
@@ -174,9 +181,11 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     # CLI takes precedence over yaml args
     return OmegaConf.merge(yaml_conf, cli_conf)
 
-def _remove_key_with_dotpath(d: Dict[str, Any], dotpath: str) -> None:
+
+def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
     """
-    Removes a key from a nested dict in place by dotpath.
+    Removes a key specified by dotpath from a nested dict. Errors should handled by
+    the calling function.
 
     Args:
         d (Dict[str, Any]): Dict to remove key from
@@ -184,8 +193,12 @@ def _remove_key_with_dotpath(d: Dict[str, Any], dotpath: str) -> None:
     """
     path = dotpath.split(".")
 
-    def recursive_delete(d: Dict[str, Any], path: List[str]) -> None:
+    def recurse_and_delete(d: Dict[str, Any], path: List[str]) -> None:
         if len(path) == 1:
             del d[path[0]]
         else:
-            recursive_delete(d[path[0]], path[1:])
+            recurse_and_delete(d[path[0]], path[1:])
+            if not d[path[0]]:
+                del d[path[0]]
+
+    recurse_and_delete(nested_dict, path)
