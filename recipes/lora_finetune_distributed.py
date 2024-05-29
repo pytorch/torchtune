@@ -332,9 +332,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
 
-        if self._dtype == torch.bfloat16:
-            model = model.to(torch.bfloat16)
-
         # LoRA hyper-params needed for merging weights while saving checkpoints
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
