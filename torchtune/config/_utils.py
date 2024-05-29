@@ -151,6 +151,10 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
     yaml_kwargs = vars(yaml_args)
     cli_dotlist = []
     for arg in cli_args:
+        if arg.startswith("~"):
+            dotpath = arg[1:].split("=")[0]
+            _remove_key_with_dotpath(yaml_kwargs, dotpath)
+            continue
         try:
             k, v = arg.split("=")
         except ValueError:
@@ -169,3 +173,19 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
 
     # CLI takes precedence over yaml args
     return OmegaConf.merge(yaml_conf, cli_conf)
+
+def _remove_key_with_dotpath(d: Dict[str, Any], dotpath: str) -> None:
+    """
+    Removes a key from a nested dict in place by dotpath.
+
+    Args:
+        d (Dict[str, Any]): Dict to remove key from
+        dotpath (str): dotpath of key to remove, e.g., "a.b.c"
+    """
+    path = dotpath.split(".")
+
+    def recursive_delete(d: Dict[str, Any], path: List[str]) -> None:
+        if len(path) == 1:
+            del d[path[0]]
+        else:
+            recursive_delete(d[path[0]], path[1:])
