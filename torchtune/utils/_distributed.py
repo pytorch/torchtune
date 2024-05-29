@@ -260,10 +260,14 @@ def load_from_full_model_state_dict(
     sharded_sd = {}
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
+        # `.to(dtype)` ensures same dtype when `assign=True`
         sharded_tensor = distribute_tensor(
-            full_tensor, sharded_meta_param.device_mesh, sharded_meta_param.placements
+            full_tensor.to(sharded_meta_param.dtype),
+            sharded_meta_param.device_mesh,
+            sharded_meta_param.placements,
         )
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
+    # choose `assign=True` since we cannot call `copy_` on meta tensor
     model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
