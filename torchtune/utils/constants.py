@@ -9,6 +9,8 @@
 Keys used during checkpoint load and checkpoint save.
 """
 
+# adapter config containing info about LoRA modules, rank, alpha
+ADAPTER_CONFIG = "adapter_config"
 # key used for adapter weights such as LoRA weights
 ADAPTER_KEY = "adapter"
 # number of epochs completed thus far

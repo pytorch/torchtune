@@ -117,8 +117,8 @@ class PackedDataset(Dataset):
         if rank == 0:
             pbar = tqdm(total=len(self.ds), desc="Packing dataset", dynamic_ncols=True)
 
-        for batch in self.ds:
-            tokens, labels = batch["tokens"], batch["labels"]
+        for sample in self.ds:
+            tokens, labels = sample["tokens"], sample["labels"]
             # If the dataset outputs samples that are larger than the specified
             # max_seq_len and we're unable to split it, user needs to modify
             # one of the two parameters
@@ -205,7 +205,7 @@ class PackedDataset(Dataset):
         padding_idx: int = 0,
         ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
     ) -> Dict[str, torch.Tensor]:
-        """Pad a batch of packed sequences to max sequence length in the batch, and
+        """Pad a group of packed sequences to max sequence length in the group, and
         convert integer lists to tensors. Account for attention mask and position
         ids.
 
