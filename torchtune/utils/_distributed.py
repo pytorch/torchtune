@@ -117,6 +117,22 @@ def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
         return False
 
 
+def set_torch_num_threads() -> None:
+    """
+    Sets the number of threads used by torch to utilize all physical CPU
+    cores for intra-op parallelism. Currently, this function sets num_threads
+    to be the number of physical CPU cores divided by the number of GPUs as we
+    use one process per GPU, and this avoids CPU oversubscription. Note that this is
+    currently a rough approximation, and doesn't take into account environments where
+    things like CPU affinity is set.
+    """
+    num_threads = os.cpu_count() // (
+        torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
+    )
+    torch.set_num_threads(num_threads)
+    log.info(f"Set intra op parallelism no. of threads to {num_threads}")
+
+
 def get_world_size_and_rank() -> Tuple[int, int]:
     """Function that gets the current world size (aka total number
     of ranks) and rank number of the current trainer.

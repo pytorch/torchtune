@@ -105,20 +105,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        if cfg.get("fsdp_cpu_offload", False):
-            if not cfg.optimizer.get("fused", False):
-                log.warning(
-                    """
-                    It is highly recommended to use fused optimizer implementation when CPU
-                    offloading, otherwise optimizer will use non vectorized kernels and cause massive slowdown.
-                    """
-                )
-            else:
-                # We are fusing + CPU offloading - check to make sure we're in a nightly.
-                if not utils.torch_version_ge("2.4.0"):
-                    raise RuntimeError(
-                        "Using fused optimizer on CPU is only supported in PyTorch nightly."
-                    )
+        if cfg.get("fsdp_cpu_offload", False) and cfg.get("fused", False) and not utils.torch_version_ge("2.4.0"):
+            raise RuntimeError(
+                "Using fused optimizer on CPU is only supported in PyTorch nightly."
+            )
 
         # logging attributes
         self._output_dir = cfg.output_dir
@@ -213,7 +203,6 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # _setup_optimizer should take in ckpt_dict only if training is resumed from
         # checkpoint. Transforming the opt state dict is handled by this method
-
         self._optimizer = self._setup_optimizer(
             cfg_optimizer=cfg.optimizer,
             opt_state_dict=ckpt_dict[utils.OPT_KEY]
@@ -587,9 +576,7 @@ def recipe_main(cfg: DictConfig) -> None:
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU
-        threads = os.cpu_count() // torch.distributed.get_world_size()
-        torch.set_num_threads(threads)
-        log.info(f"Set intra op parallelism no. of threads to {threads}")
+        utils.set_torch_num_threads()
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 
