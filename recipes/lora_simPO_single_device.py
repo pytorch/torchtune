@@ -480,7 +480,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                     policy_rejected_logits,
                 ) = self.concatenated_forward(self._model, batch)
                 
-                # # This is not needed anymore right?
+                # TODO: This is not needed anymore right?
                 # with torch.no_grad(), disable_adapter(self._model):
                 #     (
                 #         reference_chosen_log_probs,
