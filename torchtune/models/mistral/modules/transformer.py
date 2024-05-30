@@ -93,7 +93,12 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
         for layer in self.layers:
             layer.attn.kv_cache.reset()
 
-    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self,
+        tokens: Tensor,
+        input_pos: Optional[Tensor] = None,
+        mask: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
@@ -123,15 +128,15 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        mask = None
-        if self.causal_mask is not None:
-            if input_pos is None:
-                raise ValueError(
-                    "Caches are setup, but the position of input token is missing"
-                )
-            # shape: [1, input_pos_len, m_s]
-            # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, None, input_pos]
+        if mask is None:
+            if self.causal_mask is not None:
+                if input_pos is None:
+                    raise ValueError(
+                        "Caches are setup, but the position of input token is missing"
+                    )
+                # shape: [1, input_pos_len, m_s]
+                # in most cases input_pos_len should be 1
+                mask = self.causal_mask[None, None, input_pos]
 
         for layer in self.layers:
             # shape: [b, s, d]
@@ -156,7 +161,10 @@ class TransformerLMWithValueHead(nn.Module):
         self.value_head = nn.Linear(embed_dim, 1)
 
     def forward(
-        self, tokens: Tensor, input_pos: Optional[Tensor] = None
+        self,
+        tokens: Tensor,
+        input_pos: Optional[Tensor] = None,
+        mask: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
         """
         Args:
@@ -183,7 +191,7 @@ class TransformerLMWithValueHead(nn.Module):
             - m_s: max seq len
         """
         # shape: [b, s, d]
-        h = self.decoder(tokens, input_pos)
+        h = self.decoder(tokens, input_pos, mask)
 
         # shape: [b, s, v]
         lm_output = self.output(h).float()
@@ -205,7 +213,12 @@ class TransformerLM(nn.Module):
         self.decoder = decoder
         self.output = output
 
-    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self,
+        tokens: Tensor,
+        input_pos: Optional[Tensor] = None,
+        mask: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
@@ -231,7 +244,7 @@ class TransformerLM(nn.Module):
             - m_s: max seq len
         """
         # shape: [b, s, d]
-        h = self.decoder(tokens, input_pos)
+        h = self.decoder(tokens, input_pos, mask)
 
         # shape: [b, s, v]
         lm_output = self.output(h).float()

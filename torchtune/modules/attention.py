@@ -210,7 +210,7 @@ class CausalSelfAttention(nn.Module):
             v,
             attn_mask=mask,
             dropout_p=self.attn_dropout,
-            is_causal=self.kv_cache is None,
+            is_causal=self.kv_cache is None and mask is None,
         )
 
         # reshape the output to be the same shape as the input

@@ -394,7 +394,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 model.decoder.setup_caches(
                     batch_size=batch_input_ids.shape[0], dtype=self._dtype
                 )
-            outputs.append(
+            outputs.extend(
                 utils.generate(
                     model=model,
                     prompt=batch_input_ids,
@@ -468,16 +468,25 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     # this should support any dataset format
                     input_ids, *_ = batch
                     input_ids = input_ids.to(self._device)
-                    responses = self.batched_generate(tokens.unsqueeze(0), self._model)
+
+                    input_ids = self._tokenizer.encode("Hello World") + [
+                        self._tokenizer.pad_id
+                    ]
+                    input_ids = torch.tensor([input_ids, input_ids]).to(self._device)
+                    responses = self.batched_generate(input_ids, self._model)
 
                     # generating with lora adapters disabled gives us the pre-finetuning ref model
                     with disable_adapter(self._model):
-                        ref_responses = self.batched_generate(
-                            tokens.unsqueeze(0), self._model
-                        )
+                        ref_responses = self.batched_generate(input_ids, self._model)
 
                     # TODO pad out responses to max_generated_tokens
 
+                    for input_id, response in zip(input_ids, responses):
+                        print(len(input_id), len(response))
+                        # check for padding
+                        print(response == self._tokenizer.eos_id)
+                        print(response)
+                    sys.exit()
                     # ref policy and value estimates for the current trajectory
                     # pi_{theta_old] and V_{phi_old}
                     # [b, s, v], [b, s, 1]
