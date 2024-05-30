@@ -104,7 +104,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 "full fp16 training is not supported with this recipe. Please use bf16 or fp32 instead."
             )
 
-        if cfg.get("fsdp_cpu_offload", False) and cfg.get("fused", False) and not utils.torch_version_ge("2.4.0"):
+        if (
+            cfg.get("fsdp_cpu_offload", False)
+            and cfg.get("fused", False)
+            and not utils.torch_version_ge("2.4.0")
+        ):
             raise RuntimeError(
                 "Using fused optimizer on CPU is only supported in PyTorch nightly."
             )

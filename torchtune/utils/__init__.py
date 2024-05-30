@@ -15,7 +15,6 @@ from ._checkpointing import (  # noqa
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
-    set_torch_num_threads,
     FSDPPolicyType,
     get_full_finetune_fsdp_wrap_policy,
     get_world_size_and_rank,
@@ -23,6 +22,7 @@ from ._distributed import (  # noqa
     is_distributed,
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
+    set_torch_num_threads,
     validate_no_params_on_meta_device,
 )
 from ._generation import generate
