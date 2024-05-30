@@ -24,9 +24,10 @@ from tests.test_utils import (
     gen_log_file_name,
     get_loss_values_from_metric_logger,
     TOKENIZER_PATHS,
-    torch_version_ge,
 )
 from torchtune import config
+from torchtune.utils import torch_version_ge
+
 
 
 class TestLoRAFinetuneSingleDeviceRecipe:
