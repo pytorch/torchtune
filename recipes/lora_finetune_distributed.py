@@ -321,10 +321,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         with utils.set_default_dtype(self._dtype), self._device:
+            lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
-                    m.lora_a.to_empty(device=self._device)
-                    m.lora_b.to_empty(device=self._device)
+                    m.lora_a.to_empty(device=lora_device)
+                    m.lora_b.to_empty(device=lora_device)
                     m.initialize_parameters()
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
