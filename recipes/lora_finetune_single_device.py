@@ -19,6 +19,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.modules.peft.peft_utils import (
+    activate_dora_params,
     get_adapter_params,
     get_merged_lora_ckpt,
     set_trainable_params,
@@ -256,6 +257,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         self._lora_rank = cfg_model.lora_rank
         self._lora_alpha = cfg_model.lora_alpha
+
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -273,6 +275,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             )
         else:
             lora_missing, lora_unexpected = None, None
+
+        if cfg_model.get("use_dora"):
+            # magnitude vectors for dora are initialized as ones.
+            # Once the weights are loaded, they are replaced by obtaining the norm of the
+            # linear weights. Refer https://arxiv.org/pdf/2402.09353 for more details.
+            activate_dora_params(model)
 
         validate_missing_and_unexpected_for_lora(
             lora_attn_modules=cfg_model.lora_attn_modules,

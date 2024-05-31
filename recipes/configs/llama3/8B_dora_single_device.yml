@@ -17,12 +17,13 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3.lora_llama3_8b
+  _component_: torchtune.models.llama3.dora_llama3_8b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
   lora_rank: 8
   lora_alpha: 16
+  use_dora: True
 
 # Tokenizer
 tokenizer:
