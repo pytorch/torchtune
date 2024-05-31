@@ -44,7 +44,7 @@ def instantiate(
     """
     Given a DictConfig with a _component_ field specifying the object to instantiate and
     additional fields for keyword arguments, create an instance of the specified object.
-    You can use this function to create the exact instance of a TorchTune object you want
+    You can use this function to create the exact instance of a torchtune object you want
     to use in your recipe using the specification from the config.
 
     This function also supports passing in positional args and keyword args within the

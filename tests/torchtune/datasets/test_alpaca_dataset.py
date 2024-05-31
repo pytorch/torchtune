@@ -44,7 +44,7 @@ class TestAlpacaDataset:
         )
 
         alpaca_ds = alpaca_dataset(tokenizer=tokenizer)
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -81,7 +81,7 @@ class TestAlpacaDataset:
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -110,7 +110,7 @@ class TestAlpacaDataset:
         )
 
         alpaca_ds = alpaca_cleaned_dataset(tokenizer=tokenizer)
-        input, labels = alpaca_ds[0]
+        input, labels = alpaca_ds[0]["tokens"], alpaca_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id

@@ -103,7 +103,7 @@ For example, on two devices:
 
     tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
 
-Finally, if we want to use even less memory, we can leverage TorchTune's QLoRA recipe via:
+Finally, if we want to use even less memory, we can leverage torchtune's QLoRA recipe via:
 
 .. code-block:: bash
 
@@ -299,7 +299,7 @@ First, we'll make one more change to our ``custom_generation_config.yaml``.
 .. code-block:: yaml
 
     checkpointer:
-      # we need to use the custom TorchTune checkpointer
+      # we need to use the custom torchtune checkpointer
       # instead of the HF checkpointer for loading
       # quantized models
       _component_: torchtune.utils.FullModelTorchTuneCheckpointer

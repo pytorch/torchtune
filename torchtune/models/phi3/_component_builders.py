@@ -133,7 +133,7 @@ def lora_phi3(
     max_seq_len: int,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
-    rope_base: float = 500000.0,
+    rope_base: int = 10_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -167,6 +167,8 @@ def lora_phi3(
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
         norm_eps (float): epsilon in RMS norms.
+        rope_base (int): base value for Rotary Position Embeddings.
+            Default: 10000
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -201,6 +203,7 @@ def lora_phi3(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            lora_dropout=lora_dropout,
         )
     else:
         mlp = phi3_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
@@ -216,7 +219,7 @@ def lora_phi3(
 
     # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha)
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -252,7 +255,7 @@ def lora_phi3_self_attention(
     num_kv_heads: int,
     max_seq_len: int,
     attn_dropout: float = 0.0,
-    rope_base: float = 500000.0,
+    rope_base: int = 10_000,
     # LoRA args
     lora_rank: int,
     lora_alpha: float,
@@ -277,6 +280,8 @@ def lora_phi3_self_attention(
             by :func:`~torchtune.modules.KVCache`
         attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
             Default: 0.0
+        rope_base (int): base value for Rotary Position Embeddings.
+            Default: 10000
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
@@ -303,6 +308,7 @@ def lora_phi3_self_attention(
             num_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
@@ -314,6 +320,7 @@ def lora_phi3_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
@@ -325,6 +332,7 @@ def lora_phi3_self_attention(
             num_kv_heads * head_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
@@ -336,6 +344,7 @@ def lora_phi3_self_attention(
             embed_dim,
             rank=lora_rank,
             alpha=lora_alpha,
+            dropout=lora_dropout,
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules

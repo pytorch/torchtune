@@ -12,7 +12,6 @@ from ._checkpointing import (  # noqa
     transform_opt_state_dict,
 )
 
-from ._compile_utils import wrap_compile
 from ._device import get_device
 from ._distributed import (  # noqa
     contains_fsdp,
@@ -30,6 +29,7 @@ from ._profiler import profiler
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
 from .constants import (  # noqa
+    ADAPTER_CONFIG,
     ADAPTER_KEY,
     EPOCHS_KEY,
     MAX_STEPS_KEY,
@@ -79,7 +79,6 @@ __all__ = [
     "set_default_dtype",
     "set_seed",
     "validate_expected_param_dtype",
-    "wrap_compile",
     "TuneRecipeArgumentParser",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",

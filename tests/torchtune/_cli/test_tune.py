@@ -21,4 +21,4 @@ class TestTuneCLI:
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
 
-        assert "Welcome to the TorchTune CLI!" in output
+        assert "Welcome to the torchtune CLI!" in output

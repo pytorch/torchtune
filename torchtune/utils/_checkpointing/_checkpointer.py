@@ -35,26 +35,26 @@ logger = get_logger("DEBUG")
 
 class _CheckpointerInterface(Protocol):
     """
-    Interface implemented by Checkpointers in TorchTune.
+    Interface implemented by Checkpointers in torchtune.
 
-    TorchTune checkpointers are designed to be composable components which can be plugged
+    torchtune checkpointers are designed to be composable components which can be plugged
     into any training recipe. Each checkpointer supports a specific set of models and training
     scenarios making these easy to understand, debug and extend. For example, the
     ``FullModelCheckpointer``s are used for loading and saving all of the model weights.
     This checkpointer can be used for Full-Finetuning scenarios or PEFT where the output is a
     merged checkpoint. In case the current suite of checkpointers are inadequate,
-    users are encouraged to implement their own and contribute back to TorchTune.
+    users are encouraged to implement their own and contribute back to torchtune.
 
-    TorchTune is also designed to be "state-dict invariant". This means the checkpointer
+    torchtune is also designed to be "state-dict invariant". This means the checkpointer
     ensures that the output checkpoint has the same format as the original checkpoint i.e.
     the output checkpoint has the same keys split across the same number of files as the original
-    checkpoint. Being "state-dict invariant" allows users to seamlessly use TorchTune checkpoints
+    checkpoint. Being "state-dict invariant" allows users to seamlessly use torchtune checkpoints
     with their favorite post-training tools from the open-source ecosystem without writing
-    TorchTune-specific convertors. To be "state-dict invariant", the ``load_checkpoint`` and
+    torchtune-specific convertors. To be "state-dict invariant", the ``load_checkpoint`` and
     ``save_checkpoint`` methods make use of the weight convertors available in
     ``torchtune/models/<model_folder>``.
 
-    TorchTune Checkpointers support two checkpointing scenarios:
+    torchtune Checkpointers support two checkpointing scenarios:
         * End-of-training Checkpointing. The model weights at the end of a completed training
             run are written out to file. The checkpointer ensures that the output checkpoint
             files have the same keys as the input checkpoint file used to begin training. The
@@ -104,7 +104,7 @@ class _CheckpointerInterface(Protocol):
 class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
     """
     Checkpointer which reads and writes checkpoints in a format compatible with
-    TorchTune. No conversion of weights is required.
+    torchtune. No conversion of weights is required.
 
     Currently this supports reading a single checkpoint file only. This will likely change as
     we add support for larger models.
@@ -123,7 +123,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         # Fail fast if ``checkpoint_files`` is invalid
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single TorchTune checkpoint file. "
+                "Currently we only support reading from a single torchtune checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -158,7 +158,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
     def load_checkpoint(self, weights_only: bool = True) -> Dict[str, Any]:
         """
-        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
+        Load torchtune checkpoint from file. Currently only loading from a single file is supported.
 
         The output state_dict has the following format, with keys other than "model" only present if
         ``resume_from_checkpoint`` is True:
@@ -199,7 +199,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         intermediate_checkpoint: bool = False,
     ) -> None:
         """
-        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state. The output state dicts have the following formats:
 
@@ -262,6 +262,7 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -273,7 +274,8 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
 
 class FullModelHFCheckpointer(_CheckpointerInterface):
     """
-    Checkpointer which reads and writes checkpoints in HF's format. Example includes
+    Checkpointer which reads and writes checkpoints in HF's format. For LoRA models this includes
+    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Example includes
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)
 
     A few notes about the checkpoint reading logic:
@@ -281,7 +283,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     we read the files in the right order, we sort the checkpoint file names before reading
     - Checkpoint conversion to and from HF's format requires access to model params which are
     read directly from the "config.json" file. This helps ensure we either load the weights
-    correctly or error out in case of discrepancy between the HF checkpoint file and TorchTune's
+    correctly or error out in case of discrepancy between the HF checkpoint file and torchtune's
     model implementations.
 
     Args:
@@ -356,16 +358,16 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
-        Load TorchTune checkpoint from file.
+        Load torchtune checkpoint from file.
 
         The keys and weights from across all checkpoint files are merged into a single state_dict.
         We preserve the "state_dict key" <-> "checkpoint file mapping" in weight_map so we can
         write the state dict correctly in ``save_checkpoint``.
 
-        Before returning, the model state dict is converted to a TorchTune compatible format using.
+        Before returning, the model state dict is converted to a torchtune compatible format using.
 
         Returns:
-            state_dict (Dict[str, Any]): TorchTune checkpoint state dict
+            state_dict (Dict[str, Any]): torchtune checkpoint state dict
 
         Raises:
             ValueError: If the values in the input state_dict are not Tensors
@@ -376,7 +378,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         merged_state_dict: Dict[str, torch.Tensor] = {}
 
         # converted_state_dict is the final state_dict passed to the recipe after the
-        # keys are converted into the TorchTune format. This optionally also contains
+        # keys are converted into the torchtune format. This optionally also contains
         # the recipe state and adapter weights
         converted_state_dict: Dict[str, Dict[str, torch.Tensor]] = {}
 
@@ -398,8 +400,11 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             # delete the state_dict to free up memory; TODO check if this del is needed
             del state_dict
             gc.collect()
-
         if self._model_type == ModelType.PHI3_MINI:
+            logger.warning(
+                "Converting Phi-3 Mini weights from HF format."
+                "Note that conversion of adapter weights into PEFT format is not supported."
+            )
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
         elif self._model_type == ModelType.MISTRAL_REWARD:
             converted_state_dict[utils.MODEL_KEY] = mistral_reward_hf_to_tune(
@@ -439,7 +444,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         intermediate_checkpoint: bool = False,
     ) -> None:
         """
-        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state.
 
@@ -500,6 +505,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
             )
 
         if utils.ADAPTER_KEY in state_dict:
+            # Save torchtune format adapter weights even if we save PEFT format
+            # This way we can resume no matter what (and memory footprint of adapter weights is small)
             output_path = Path.joinpath(
                 self._output_dir, f"adapter_{epoch}"
             ).with_suffix(".pt")
@@ -510,11 +517,55 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 f"saved to {output_path}"
             )
 
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "Saving Phi-3 Mini adapter weights to PEFT format is not supported, saving to torchtune format instead"
+                )
+            else:
+                state_dict[
+                    utils.ADAPTER_KEY
+                ] = convert_weights.tune_to_peft_adapter_weights(
+                    state_dict[utils.ADAPTER_KEY],
+                    num_heads=self._config["num_attention_heads"],
+                    num_kv_heads=self._config["num_key_value_heads"],
+                    dim=self._config["hidden_size"],
+                )
+                peft_output_path = Path.joinpath(
+                    self._output_dir, "adapter_model"
+                ).with_suffix(".bin")
+                torch.save(state_dict[utils.ADAPTER_KEY], peft_output_path)
+                logger.info(
+                    "Adapter checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"saved to {peft_output_path}"
+                )
+
+        if utils.ADAPTER_CONFIG in state_dict:
+            if self._model_type == ModelType.PHI3_MINI:
+                logger.warning(
+                    "PEFT integration for Phi-3 Mini is not supported, skipping adapter config save"
+                )
+            else:
+                state_dict[
+                    utils.ADAPTER_CONFIG
+                ] = convert_weights.tune_to_peft_adapter_config(
+                    state_dict[utils.ADAPTER_CONFIG]
+                )
+                output_path = Path.joinpath(self._output_dir, "adapter_config.json")
+                with open(output_path, "w") as f:
+                    json.dump(state_dict[utils.ADAPTER_CONFIG], f)
+                logger.info(
+                    "Adapter checkpoint of size "
+                    f"{os.path.getsize(output_path) / 1000**3:.2f} GB "
+                    f"saved to {output_path}"
+                )
+
         # If the recipe state needs to be output, first remove the model state dict
         # and if it exists, remove the adapter state dict as well
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(
@@ -561,7 +612,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         # Fail fast if ``checkpoint_files`` is invalid
         if len(checkpoint_files) != 1:
             raise ValueError(
-                "Currently we only support reading from a single TorchTune checkpoint file. "
+                "Currently we only support reading from a single torchtune checkpoint file. "
                 f"Got {len(checkpoint_files)} files instead."
             )
 
@@ -590,7 +641,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
 
     def load_checkpoint(self) -> Dict[str, Any]:
         """
-        Load TorchTune checkpoint from file. Currently only loading from a single file is supported.
+        Load torchtune checkpoint from file. Currently only loading from a single file is supported.
         """
         state_dict: Dict[str:Any] = {}
         model_state_dict = safe_torch_load(self._checkpoint_path)
@@ -612,7 +663,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         intermediate_checkpoint: bool = False,
     ) -> None:
         """
-        Save TorchTune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state.
 
@@ -653,6 +704,7 @@ class FullModelMetaCheckpointer(_CheckpointerInterface):
         if intermediate_checkpoint:
             _ = state_dict.pop(utils.MODEL_KEY)
             _ = state_dict.pop(utils.ADAPTER_KEY, None)
+            _ = state_dict.pop(utils.ADAPTER_CONFIG, None)
             output_path = Path.joinpath(self._output_dir, "recipe_state.pt")
             torch.save(state_dict, output_path)
             logger.info(

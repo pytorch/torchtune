@@ -25,12 +25,13 @@ tokenizer:
 # Environment
 device: cuda
 dtype: bf16
-seed: 217
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
 
 # EleutherAI specific eval args
 tasks: ["truthfulqa_mc2"]
 limit: null
 max_seq_length: 4096
+batch_size: 8
 
 # Quantization specific args
 quantizer: null
