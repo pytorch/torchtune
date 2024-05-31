@@ -49,7 +49,7 @@ class LoRALinear(nn.Module, AdapterModule):
         rank: int,
         alpha: float,
         dropout: float = 0.0,
-        use_dora: bool = True,  # TODO(prakyath): add this at each models inference, Do Not make this aas default True.
+        use_dora: bool = False,  # TODO(prakyath): add this at each models inference, Do Not make this aas default True.
         use_bias: bool = False,
         quantize_base: bool = False,
     ):
@@ -73,7 +73,8 @@ class LoRALinear(nn.Module, AdapterModule):
         self.dropout = nn.Dropout(p=dropout)
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
-        self.lora_m = nn.Parameter(torch.zeros(1, out_dim))
+        if self.use_dora:
+            self.lora_m = nn.Parameter(torch.zeros(1, out_dim))
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
@@ -89,7 +90,8 @@ class LoRALinear(nn.Module, AdapterModule):
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
         _lora_a_init_params(self.lora_a)
         _lora_b_init_params(self.lora_b)
-        _dora_m_init_params(self.lora_m)
+        if self.use_dora:
+            _dora_m_init_params(self.lora_m)
 
     def _create_weight_and_bias(self):
         """
@@ -129,11 +131,12 @@ class LoRALinear(nn.Module, AdapterModule):
 
     @property
     def _dora_weight_norm(self) -> Tensor:
-        if self._quantize_base:
-            # Convert NF4Tensor to regular Tensor for computation TODO(prakyath): Fix this.
-            weight = to_regular_tensor(self.weight)
-        else:
-            weight = self.weight
+        """
+        Compute the norm of the linear weight and lora adaptor weights.
+        If the base model is quantized, dequantize the weights before computing the norm.
+        Return the norm in NF4 format if the base model is quantized.
+        """
+        weight = self.weight.dequantize() if self._quantize_base else self.weight
 
         # Perform the operation with regular tensors
         result = weight + (self.alpha / self.rank) * (
@@ -141,8 +144,11 @@ class LoRALinear(nn.Module, AdapterModule):
         )
         norm = torch.linalg.norm(result, dim=1)
 
-        # Convert back if necessary (depending on your requirements)
-        return norm
+        # Clamp the norm to avoid division by zero
+        # TODO(Prakyath): Check with torchtune team whether this should be a parameter ?
+        norm = torch.clamp(norm, min=1e-6)
+        # Return the norm in NF4 format.
+        return to_nf4(norm) if self._quantize_base else norm
 
     def forward(self, x: Tensor) -> Tensor:
         """
@@ -189,4 +195,4 @@ def _dora_m_init_params(x: nn.Parameter) -> None:
     """
     Initialize DORA m to ones.
     """
-    nn.init.zeros_(x)
+    nn.init.ones_(x)
