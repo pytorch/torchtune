@@ -481,6 +481,64 @@
 <span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
 <span class="s2">Please see `lora_gemma_2b` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
+
+
+
+<div class="viewcode-block" id="gemma_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.gemma.gemma_7b.html#torchtune.models.gemma.gemma_7b">[docs]</a><span class="k">def</span> <span class="nf">gemma_7b</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builder for creating a Gemma 7B model initialized w/ the default 7b parameter values</span>
+<span class="sd">    from: https://blog.google/technology/developers/gemma-open-models/</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        GemmaTransformerDecoder: Instantiation of Gemma 7B model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">gemma</span><span class="p">(</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="mi">256_000</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="mi">3072</span><span class="p">,</span>
+        <span class="n">intermediate_dim</span><span class="o">=</span><span class="mi">24576</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+    <span class="p">)</span></div>
+    
+    
+<span class="k">def</span> <span class="nf">lora_gemma_7b</span><span class="p">(</span>
+    <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
+    <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">lora_rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">lora_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+    <span class="n">quantize_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GemmaTransformerDecoder</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">lora_gemma</span><span class="p">(</span>
+        <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
+        <span class="n">apply_lora_to_mlp</span><span class="o">=</span><span class="n">apply_lora_to_mlp</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="mi">256_000</span><span class="p">,</span>
+        <span class="n">num_layers</span><span class="o">=</span><span class="mi">28</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">head_dim</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>
+        <span class="n">num_kv_heads</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">embed_dim</span><span class="o">=</span><span class="mi">3072</span><span class="p">,</span>
+        <span class="n">intermediate_dim</span><span class="o">=</span><span class="mi">24576</span><span class="p">,</span>
+        <span class="n">max_seq_len</span><span class="o">=</span><span class="mi">8192</span><span class="p">,</span>
+        <span class="n">attn_dropout</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">norm_eps</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+        <span class="n">lora_rank</span><span class="o">=</span><span class="n">lora_rank</span><span class="p">,</span>
+        <span class="n">lora_alpha</span><span class="o">=</span><span class="n">lora_alpha</span><span class="p">,</span>
+        <span class="n">lora_dropout</span><span class="o">=</span><span class="mf">0.05</span><span class="p">,</span>
+        <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
+    <span class="p">)</span>
+
+<span class="n">qlora_gemma_7b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_gemma_7b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">qlora_gemma_7b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for creating a Gemma model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
+<span class="s2">Please see `lora_gemma_7b` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
              </article>
