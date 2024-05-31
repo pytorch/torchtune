@@ -11,11 +11,7 @@ from torchtune.utils.image_transforms import find_supported_resolutions, GetImag
 from torchvision.transforms import v2
 from torchvision.transforms.v2 import functional as F
 
-"""
-#TODO: llama and llava implemente different resize and pad stragies
-llama pads using 0,0
-llava padas using center + resize
-"""
+
 logger = logging.getLogger(__name__)
 
 ImageInput = Union[
