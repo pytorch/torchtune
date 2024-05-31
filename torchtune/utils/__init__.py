@@ -58,6 +58,11 @@ from .precision import (
 from .quantization import get_quantizer_mode
 from .seed import set_seed
 
+from .image_transforms import (
+    find_supported_resolutions,
+    GetImagePatches
+)
+
 __all__ = [
     "transform_opt_state_dict",
     "get_memory_stats",
@@ -85,4 +90,6 @@ __all__ = [
     "profiler",
     "get_quantizer_mode",
     "generate",
+    "find_supported_resolutions",
+    "GetImagePatches",
 ]
