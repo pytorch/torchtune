@@ -21,10 +21,6 @@ from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     CheckpointWrapper,
 )
-from torch.distributed.checkpoint.state_dict import (
-    get_optimizer_state_dict,
-    StateDictOptions,
-)
 
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -314,6 +310,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
+        # iterating from lowerer modules to higher
+        # eg grouping lora adapters before transformer block
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m)
@@ -336,9 +334,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), self._device:
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
+                    # lora may not be covered in state dict
+                    # if finetune for the 1st time
                     m.lora_a.to_empty(device=self._device)
                     m.lora_b.to_empty(device=self._device)
                     m.initialize_parameters()
+                # RoPE is not covered in state dict
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
 
@@ -465,10 +466,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         if intermediate_checkpoint:
-            opt_state_dict = get_optimizer_state_dict(
-                self._model,
+            opt_state_dict = utils.get_full_optimizer_state_dict(
                 self._optimizer,
-                options=StateDictOptions(full_state_dict=True, cpu_offload=True),
+                self._is_rank_zero,
             )
         else:
             opt_state_dict = None
