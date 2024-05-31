@@ -18,7 +18,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma/tokenizer.model
+  path: /tmp/gemma-7b/tokenizer.model
 
 # Dataset
 dataset:
