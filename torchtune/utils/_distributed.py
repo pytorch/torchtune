@@ -130,7 +130,7 @@ def set_torch_num_threads() -> None:
         torch.distributed.get_world_size() if torch.distributed.is_initialized() else 1
     )
     torch.set_num_threads(num_threads)
-    log.info(f"Set intra op parallelism no. of threads to {num_threads}")
+    _log.info(f"Set intra op parallelism no. of threads to {num_threads}")
 
 
 def get_world_size_and_rank() -> Tuple[int, int]:
