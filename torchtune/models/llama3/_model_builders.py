@@ -121,7 +121,6 @@ def lora_llama3_8b(
         lora_dropout=0.05,
         use_dora=use_dora,
         quantize_base=quantize_base,
-        use_dora=use_dora,
     )
 
 
