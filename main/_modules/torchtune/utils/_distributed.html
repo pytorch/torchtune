@@ -518,6 +518,22 @@
         <span class="k">return</span> <span class="kc">False</span></div>
 
 
+<span class="k">def</span> <span class="nf">set_torch_num_threads</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets the number of threads used by torch to utilize all physical CPU</span>
+<span class="sd">    cores for intra-op parallelism. Currently, this function sets num_threads</span>
+<span class="sd">    to be the number of physical CPU cores divided by the number of GPUs as we</span>
+<span class="sd">    use one process per GPU, and this avoids CPU oversubscription. Note that this is</span>
+<span class="sd">    currently a rough approximation, and doesn&#39;t take into account environments where</span>
+<span class="sd">    things like CPU affinity is set.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">num_threads</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">cpu_count</span><span class="p">()</span> <span class="o">//</span> <span class="p">(</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">()</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">torch</span><span class="o">.</span><span class="n">set_num_threads</span><span class="p">(</span><span class="n">num_threads</span><span class="p">)</span>
+    <span class="n">_log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Set intra op parallelism no. of threads to </span><span class="si">{</span><span class="n">num_threads</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="get_world_size_and_rank"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank">[docs]</a><span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
 <span class="sd">    of ranks) and rank number of the current trainer.</span>
