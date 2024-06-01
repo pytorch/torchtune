@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Union
 from omegaconf import DictConfig, OmegaConf
 
 from torchtune.config._errors import InstantiationError
-from torchtune.data import ChatFormat, InstructTemplate
 from torchtune.utils import get_logger, get_world_size_and_rank
 
 
@@ -170,54 +169,3 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
 
     # CLI takes precedence over yaml args
     return OmegaConf.merge(yaml_conf, cli_conf)
-
-
-def _try_get_component(module_path: str, component_name: str, class_type: str) -> Any:
-    """
-    Try-except wrapper around `_get_component_from_path`, used to quickly retrieve
-    a class from a name string with better error handling.
-
-    Args:
-        module_path (str): path string of the file the class resides in
-        component_name (str): name of the class
-        class_type (str): type of the class, only used for more descriptive error message
-
-
-    Returns:
-        Any: the class
-
-    Raises:
-        ValueError: if the string is not a valid class
-    """
-    try:
-        return _get_component_from_path(module_path + "." + component_name)
-    except InstantiationError:
-        raise ValueError(f"Invalid {class_type} class: '{component_name}'") from None
-
-
-def _get_instruct_template(template: str) -> InstructTemplate:
-    """
-    Get the instruct template class from the template string.
-
-    Args:
-        template (str): class name of template, or string with placeholders
-
-    Returns:
-        InstructTemplate: the prompt template class or the same verified string
-    """
-    return _try_get_component(
-        "torchtune.data._instruct_templates", template, "InstructTemplate"
-    )
-
-
-def _get_chat_format(chat_format: str) -> ChatFormat:
-    """
-    Get the chat format class from a string.
-
-    Args:
-        chat_format (str): class name of the ChatFormat
-
-    Returns:
-        ChatFormat: the chat format class
-    """
-    return _try_get_component("torchtune.data._chat_formats", chat_format, "ChatFormat")

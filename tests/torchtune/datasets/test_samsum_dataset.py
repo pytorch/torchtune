@@ -41,7 +41,7 @@ class TestSamsumDataset:
         )
 
         samsum_ds = samsum_dataset(tokenizer=tokenizer, train_on_input=True)
-        input, labels = samsum_ds[0]
+        input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -74,7 +74,7 @@ class TestSamsumDataset:
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = samsum_ds[0]
+        input, labels = samsum_ds[0]["tokens"], samsum_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id

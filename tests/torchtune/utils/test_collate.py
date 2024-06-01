@@ -19,23 +19,22 @@ class TestBatchPadSequence:
         padding_idx = -8
         ignore_idx = -9
         token_pairs = [
-            ([1, 2, 3], [4, 5, 6]),
-            (
-                [
-                    7,
-                ],
-                [
-                    10,
-                ],
-            ),
+            {
+                "tokens": [1, 2, 3],
+                "labels": [4, 5, 6],
+            },
+            {
+                "tokens": [7],
+                "labels": [10],
+            },
         ]
-        inputs, labels = padded_collate(
+        padded = padded_collate(
             batch=token_pairs,
             padding_idx=padding_idx,
             ignore_idx=ignore_idx,
         )
-        padded_input = inputs[1]
-        padded_label = labels[1]
+        padded_input = padded["tokens"][1]
+        padded_label = padded["labels"][1]
         torch.testing.assert_close(
             padded_input, torch.tensor([7, padding_idx, padding_idx])
         )

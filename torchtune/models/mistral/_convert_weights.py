@@ -34,7 +34,7 @@ def mistral_reward_hf_to_tune(
     head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from HF's format to TorchTune's format, which contains the weights
+    Convert a state dict from HF's format to torchtune's format, which contains the weights
     of a Mistral reward model.
     State dicts from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
@@ -52,7 +52,7 @@ def mistral_reward_hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -83,14 +83,14 @@ def mistral_reward_tune_to_hf(
     dim: int = 4096,
 ) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from TorchTune's format to Hugging Face's format for a Mistral reward model.
+    Convert a state dict from torchtune's format to Hugging Face's format for a Mistral reward model.
 
-    This function takes a state dictionary in TorchTune's format, which contains the weights of a Mistral reward model,
+    This function takes a state dictionary in torchtune's format, which contains the weights of a Mistral reward model,
     and converts it into a format that can be loaded into a Hugging Face model.
     The logic is identical to :func:`~torchtune.models.convert_weights.tune_to_hf`, but with a different mapping.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int, optional): Number of heads in the model. Defaults to 32.
         num_kv_heads (int, optional): Number of heads in the key/value projection layers. Defaults to 32.
         dim (int, optional): Dimension of the model. Defaults to 4096.

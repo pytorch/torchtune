@@ -58,3 +58,4 @@ Helper funcs
     :nosignatures:
 
     validate_messages
+    truncate

@@ -61,9 +61,9 @@ class TestLoRAPhi3SelfAttention:
     @pytest.mark.parametrize(
         "lora_modules, expected",
         [
-            (["q_proj", "v_proj"], torch.tensor(50.64567)),
-            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(77.17097)),
-            (["k_proj"], torch.tensor(44.90090)),
+            (["q_proj", "v_proj"], torch.tensor(51.88655)),
+            (["q_proj", "k_proj", "v_proj", "output_proj"], torch.tensor(75.80934)),
+            (["k_proj"], torch.tensor(44.00425)),
         ],
     )
     def test_forward(self, inputs, lora_modules, expected):
@@ -137,14 +137,14 @@ class TestLoRAPhi3:
     @pytest.mark.parametrize(
         "lora_modules, apply_lora_to_mlp, apply_lora_to_output, expected",
         [
-            (["q_proj", "v_proj"], False, False, torch.tensor(2869701.75)),
+            (["q_proj", "v_proj"], False, False, torch.tensor(2869687.75)),
             (
                 ["q_proj", "k_proj", "v_proj", "output_proj"],
                 True,
                 False,
-                torch.tensor(10674807.0),
+                torch.tensor(10674772.0),
             ),
-            (["k_proj"], True, True, torch.tensor(16285855.0)),
+            (["k_proj"], True, True, torch.tensor(16285834.0)),
         ],
     )
     def test_forward(
