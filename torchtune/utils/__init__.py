@@ -22,10 +22,12 @@ from ._distributed import (  # noqa
     is_distributed,
     lora_fsdp_wrap_policy,
     prepare_model_for_fsdp_with_meta_device,
+    set_torch_num_threads,
     validate_no_params_on_meta_device,
 )
 from ._generation import generate
 from ._profiler import profiler
+from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
 from .constants import (  # noqa
@@ -79,6 +81,7 @@ __all__ = [
     "set_seed",
     "validate_expected_param_dtype",
     "TuneRecipeArgumentParser",
+    "torch_version_ge",
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
