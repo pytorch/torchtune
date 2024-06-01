@@ -170,6 +170,18 @@ _ALL_RECIPES = [
         supports_distributed=True,
     ),
     Recipe(
+        name="lora_finetune_fsdp2",
+        file_path="dev/lora_finetune_fsdp2.py",
+        configs=[
+            Config(name="llama2/7B_lora", file_path="llama2/7B_lora.yaml"),
+            Config(name="llama2/13B_lora", file_path="llama2/13B_lora.yaml"),
+            Config(name="llama2/70B_lora", file_path="llama2/70B_lora.yaml"),
+            Config(name="llama3/70B_lora", file_path="llama3/70B_lora.yaml"),
+            Config(name="llama3/8B_lora", file_path="llama3/8B_lora.yaml"),
+        ],
+        supports_distributed=True,
+    ),
+    Recipe(
         name="generate",
         file_path="generate.py",
         configs=[
