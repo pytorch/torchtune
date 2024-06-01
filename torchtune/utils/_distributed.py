@@ -14,10 +14,6 @@ import torch
 import torch.distributed as dist
 from torch import nn
 
-try:
-    from torch.distributed._composable.fsdp import FSDPModule
-except ImportError:
-    from torch.distributed._composable.fsdp import FSDP as FSDPModule  # noqa: N811
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
@@ -251,7 +247,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def load_from_full_model_state_dict(
-    model: FSDPModule,
+    model: "FSDPModule",
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
@@ -280,7 +276,7 @@ def load_from_full_model_state_dict(
 
 
 def get_full_model_state_dict(
-    model: FSDPModule,
+    model: "FSDPModule",
     is_rank_zero: bool,
 ) -> Dict[str, Any]:
     """
