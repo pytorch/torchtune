@@ -12,7 +12,6 @@ from pathlib import Path
 import pytest
 import torch
 from omegaconf import OmegaConf
-from packaging import version
 from tests.common import TUNE_PATH
 from tests.recipes.utils import (
     CKPT_COMPONENT_MAP,
@@ -55,9 +54,6 @@ class TestLoRAFinetuneDistributedRecipe:
         return loss_values_map[model_type]
 
     @pytest.mark.integration_test
-    @pytest.mark.skipif(
-        version.parse(torch.__version__).base_version < "2.4.0", reason=""
-    )
     @gpu_test(gpu_count=2)
     def test_loss(self, tmpdir, monkeypatch):
         ckpt = "llama2_tune"
@@ -89,9 +85,6 @@ class TestLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.skipif(
-        version.parse(torch.__version__).base_version < "2.4.0", reason=""
-    )
     @gpu_test(gpu_count=2)
     @pytest.mark.parametrize(
         "config, model_type, ckpt_type",
@@ -172,9 +165,6 @@ class TestLoRAFinetuneDistributedRecipe:
         )
 
     @pytest.mark.integration_test
-    @pytest.mark.skipif(
-        version.parse(torch.__version__).base_version < "2.4.0", reason=""
-    )
     @pytest.mark.parametrize(
         "recipe_config, model_type, ckpt_type",
         [
