@@ -276,7 +276,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         else:
             lora_missing, lora_unexpected = None, None
 
-        if cfg_model.get("use_dora"):
+        if cfg_model.get("use_dora", False):
             # magnitude vectors for dora are initialized as ones.
             # Once the weights are loaded, they are replaced by obtaining the norm of the
             # linear weights. Refer https://arxiv.org/pdf/2402.09353 for more details.
