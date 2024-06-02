@@ -38,13 +38,6 @@ TOKENIZER_PATHS = {
 }
 
 
-def torch_version_ge(version: str) -> bool:
-    """
-    Check if torch version is greater than or equal to the given version
-    """
-    return version in torch.__version__ or torch.__version__ >= version
-
-
 # Inherit from SentencePieceTokenizer class to reuse its tokenize_messages method
 class DummyTokenizer(SentencePieceTokenizer):
     def __init__(self):
