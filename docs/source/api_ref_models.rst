@@ -91,7 +91,7 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
 gemma
 -----
 
-All models from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
+Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
 Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
 
@@ -104,3 +104,4 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     :nosignatures:
 
     gemma.gemma_2b
+    gemma.gemma_7b
