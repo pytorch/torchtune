@@ -185,6 +185,7 @@ def lora_llama3(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Whether to use DORA. Default is ``False``.
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -299,6 +300,7 @@ def lora_llama3_self_attention(
         lora_dropout (float): LoRA dropout probability. Default: 0.0
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
+        use_dora (bool): Whether to use DORA. Default is ``False``.
 
     Returns:
         CausalSelfAttention: instantiation of self-attention module with LoRA

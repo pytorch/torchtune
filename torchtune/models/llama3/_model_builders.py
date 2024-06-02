@@ -97,6 +97,7 @@ def lora_llama3_8b(
             Default: False
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
+        use_dora (bool): Whether to use DORA. Default is ``False``.
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
