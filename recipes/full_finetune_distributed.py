@@ -312,7 +312,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 modules_to_wrap={modules.TransformerDecoderLayer},
             ),
             cpu_offload=CPUOffload(offload_params=fsdp_cpu_offload),
-            sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
+            sharding_strategy=self._fsdp_sharding_strategy,
             device_id=self._device,
             # this recipe does not currently support mixed precision training
             mixed_precision=None,
