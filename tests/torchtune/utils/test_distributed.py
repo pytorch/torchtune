@@ -6,21 +6,28 @@
 
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
-# import copy
+import copy
+
+# import os
 from itertools import chain
 
 import pytest
 import torch
+
+# import torch.multiprocessing as mp
 import torch.nn as nn
 
-# from tests.test_utils import gpu_test, single_box_init
-from tests.test_utils import single_box_init
+from tests.test_utils import gpu_test, single_box_init
+
+# from tests.test_utils import single_box_init
 from torch.distributed import launcher
 
-# from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
-# from torch.testing._internal.common_fsdp import FSDPTest, MLP
+from torch.testing._internal.common_fsdp import FSDPTest, MLP
+
+# from torch.testing._internal.common_utils import TestCase
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
@@ -253,155 +260,177 @@ class TestLoRAFSDP:
             assert not b.is_meta, f"buffer {n} is still on meta device!"
 
 
-# class TestFullyShardStateDictMultiProcess(FSDPTest):
-#     @property
-#     def world_size(self) -> int:
-#         return 2
+class TestFullyShardState(FSDPTest):
+    @property
+    def world_size(self) -> int:
+        return 2
 
-#     @gpu_test(gpu_count=2)
-#     def test_state_dict(self):
-#         is_rank_zero = self.rank == 0
-#         mlp_dim = 4
-#         epochs = 5
-#         torch.manual_seed(42)
-#         # base_model is simple DDP
-#         with torch.device("cuda"):
-#             base_model = nn.Sequential(
-#                 MLP(mlp_dim),
-#                 nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
-#                 MLP(mlp_dim),
-#             )
-#             base_optim = torch.optim.Adam(
-#                 base_model.parameters(), weight_decay=0.01, lr=0.01
-#             )
+    # def init_process(self, rank, size, fn, backend='nccl'):
+    #     os.environ['MASTER_ADDR'] = 'localhost'
+    #     os.environ['MASTER_PORT'] = '29430'
+    #     torch.distributed.init_process_group(backend, rank=rank, world_size=size)
+    #     fn(rank)
 
-#         fsdp_model_to_save = copy.deepcopy(base_model)
-#         for module in fsdp_model_to_save:
-#             fully_shard(module)
-#         fully_shard(fsdp_model_to_save)
-#         fsdp_optim_to_save = torch.optim.Adam(
-#             fsdp_model_to_save.parameters(), weight_decay=0.01, lr=0.01
-#         )
+    # @gpu_test(gpu_count=2)
+    # def test_state_dict(self):
+    #     size = torch.cuda.device_count()
+    #     processes = []
+    #     mp.set_start_method("spawn")
+    #     for rank in range(size):
+    #         p = mp.Process(target=self.init_process, args=(rank, size, self._test_state_dict))
+    #         p.start()
+    #         processes.append(p)
 
-#         # inp is different for each rank
-#         torch.manual_seed(42 + self.rank)
+    #     for p in processes:
+    #         p.join()
+    #     torch.distributed.destroy_process_group()
 
-#         # test get full state dict
-#         for _ in range(epochs):
-#             inp = torch.randn((2, mlp_dim), device="cuda")
-#             base_model(inp).sum().backward()
-#             for param in base_model.parameters():
-#                 torch.distributed.all_reduce(
-#                     param.grad, op=torch.distributed.ReduceOp.AVG
-#                 )
-#             base_optim.step()
-#             base_optim.zero_grad()
-#             fsdp_model_to_save(inp).sum().backward()
-#             fsdp_optim_to_save.step()
-#             fsdp_optim_to_save.zero_grad()
-#         expected_model_sd = base_model.state_dict()
-#         expected_optim_sd = base_optim.state_dict()
-#         model_full_sd = utils.get_full_model_state_dict(
-#             fsdp_model_to_save, is_rank_zero
-#         )
-#         optim_full_sd = utils.get_full_optimizer_state_dict(
-#             fsdp_optim_to_save,
-#             is_rank_zero,
-#         )
-#         if is_rank_zero:
-#             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
-#             for key, value in model_full_sd.items():
-#                 self.assertEqual(value, expected_model_sd[key])
-#             self.assertEqual(len(optim_full_sd["param_groups"]), 1)
-#             self.assertEqual(
-#                 len(optim_full_sd["param_groups"]),
-#                 len(expected_optim_sd["param_groups"]),
-#             )
-#             self.assertEqual(
-#                 len(optim_full_sd["param_groups"][0].keys()),
-#                 len(expected_optim_sd["param_groups"][0].keys()),
-#             )
-#             for key, value in optim_full_sd["param_groups"][0].items():
-#                 if key == "params":
-#                     self.assertEqual(
-#                         len(value), len(expected_optim_sd["param_groups"][0][key])
-#                     )
-#                 else:
-#                     self.assertEqual(value, expected_optim_sd["param_groups"][0][key])
-#             self.assertEqual(
-#                 len(optim_full_sd["state"].keys()),
-#                 len(expected_optim_sd["state"].keys()),
-#             )
-#             for actual, expected in zip(
-#                 optim_full_sd["state"].values(), expected_optim_sd["state"].values()
-#             ):
-#                 self.assertEqual(actual, expected)
-#         else:
-#             self.assertEqual(len(model_full_sd), 0)
-#             self.assertEqual(len(optim_full_sd), 0)
+    # def _test_state_dict(self, rank):
+    @gpu_test(gpu_count=2)
+    def test_state_dict(self):
+        rank = self.rank
+        is_rank_zero = rank == 0
+        mlp_dim = 4
+        epochs = 5
+        torch.manual_seed(42)
+        # base_model is simple DDP
+        with torch.device("cuda"):
+            base_model = nn.Sequential(
+                MLP(mlp_dim),
+                nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
+                MLP(mlp_dim),
+            )
+            base_optim = torch.optim.Adam(
+                base_model.parameters(), weight_decay=0.01, lr=0.01
+            )
 
-#         # test set full state dict
-#         with torch.device("meta"):
-#             fsdp_model_to_load = nn.Sequential(
-#                 MLP(mlp_dim),
-#                 nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
-#                 MLP(mlp_dim),
-#             )
-#         for module in fsdp_model_to_load:
-#             fully_shard(module)
-#         fully_shard(fsdp_model_to_load)
-#         utils.load_from_full_model_state_dict(
-#             fsdp_model_to_load,
-#             copy.deepcopy(base_model.state_dict()),
-#             torch.device("cuda"),
-#             is_rank_zero,
-#         )
-#         fsdp_optim_to_load = torch.optim.Adam(
-#             fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
-#         )
-#         utils.load_from_full_optimizer_state_dict(
-#             fsdp_optim_to_load,
-#             # mimic mmap=True where every rank see full SD
-#             copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
-#             torch.device("cuda"),
-#         )
-#         for _ in range(epochs):
-#             inp = torch.randn((2, mlp_dim), device="cuda")
-#             fsdp_model_to_load(inp).sum().backward()
-#             fsdp_model_to_save(inp).sum().backward()
-#             fsdp_optim_to_load.step()
-#             fsdp_optim_to_save.step()
-#             fsdp_optim_to_load.zero_grad()
-#             fsdp_optim_to_save.zero_grad()
-#         sharded_optim_sd = fsdp_optim_to_load.state_dict()
-#         expected_sharded_optim_sd = fsdp_optim_to_save.state_dict()
-#         self.assertEqual(
-#             sharded_optim_sd["param_groups"],
-#             expected_sharded_optim_sd["param_groups"],
-#         )
-#         self.assertEqual(
-#             set(sharded_optim_sd["state"].keys()),
-#             set(expected_sharded_optim_sd["state"].keys()),
-#         )
-#         for key, value in sharded_optim_sd["state"].items():
-#             self.assertEqual(value, expected_sharded_optim_sd["state"][key])
+        fsdp_model_to_save = copy.deepcopy(base_model)
+        for module in fsdp_model_to_save:
+            fully_shard(module)
+        fully_shard(fsdp_model_to_save)
+        fsdp_optim_to_save = torch.optim.Adam(
+            fsdp_model_to_save.parameters(), weight_decay=0.01, lr=0.01
+        )
 
-#         sharded_model_sd = fsdp_model_to_load.state_dict()
-#         expected_sharded_model_sd = fsdp_model_to_save.state_dict()
-#         self.assertEqual(
-#             set(sharded_model_sd.keys()), set(expected_sharded_model_sd.keys())
-#         )
-#         for key, value in sharded_model_sd.items():
-#             self.assertEqual(value, expected_sharded_model_sd[key])
+        # inp is different for each rank
+        torch.manual_seed(42 + rank)
 
-#     def _broadcast_full_state_dict(self, full_sd):
-#         result = []
-#         if self.rank == 0:
-#             result.append(full_sd)
-#         else:
-#             result.append(None)
-#         torch.distributed.broadcast_object_list(result, src=0)
-#         return result[0]
+        # test get full state dict
+        for _ in range(epochs):
+            inp = torch.randn((2, mlp_dim), device="cuda")
+            base_model(inp).sum().backward()
+            for param in base_model.parameters():
+                torch.distributed.all_reduce(
+                    param.grad, op=torch.distributed.ReduceOp.AVG
+                )
+            base_optim.step()
+            base_optim.zero_grad()
+            fsdp_model_to_save(inp).sum().backward()
+            fsdp_optim_to_save.step()
+            fsdp_optim_to_save.zero_grad()
+        expected_model_sd = base_model.state_dict()
+        expected_optim_sd = base_optim.state_dict()
+        model_full_sd = utils.get_full_model_state_dict(
+            fsdp_model_to_save, is_rank_zero
+        )
+        optim_full_sd = utils.get_full_optimizer_state_dict(
+            fsdp_optim_to_save,
+            is_rank_zero,
+        )
+        if is_rank_zero:
+            self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
+            for key, value in model_full_sd.items():
+                self.assertEqual(value, expected_model_sd[key])
+            self.assertEqual(len(optim_full_sd["param_groups"]), 1)
+            self.assertEqual(
+                len(optim_full_sd["param_groups"]),
+                len(expected_optim_sd["param_groups"]),
+            )
+            self.assertEqual(
+                len(optim_full_sd["param_groups"][0].keys()),
+                len(expected_optim_sd["param_groups"][0].keys()),
+            )
+            for key, value in optim_full_sd["param_groups"][0].items():
+                if key == "params":
+                    self.assertEqual(
+                        len(value), len(expected_optim_sd["param_groups"][0][key])
+                    )
+                else:
+                    self.assertEqual(value, expected_optim_sd["param_groups"][0][key])
+            self.assertEqual(
+                len(optim_full_sd["state"].keys()),
+                len(expected_optim_sd["state"].keys()),
+            )
+            for actual, expected in zip(
+                optim_full_sd["state"].values(), expected_optim_sd["state"].values()
+            ):
+                self.assertEqual(actual, expected)
+        else:
+            self.assertEqual(len(model_full_sd), 0)
+            self.assertEqual(len(optim_full_sd), 0)
+
+        # test set full state dict
+        with torch.device("meta"):
+            fsdp_model_to_load = nn.Sequential(
+                MLP(mlp_dim),
+                nn.Sequential(MLP(mlp_dim), nn.Linear(mlp_dim, mlp_dim)),
+                MLP(mlp_dim),
+            )
+        for module in fsdp_model_to_load:
+            fully_shard(module)
+        fully_shard(fsdp_model_to_load)
+        utils.load_from_full_model_state_dict(
+            fsdp_model_to_load,
+            copy.deepcopy(base_model.state_dict()),
+            torch.device("cuda"),
+            is_rank_zero,
+        )
+        fsdp_optim_to_load = torch.optim.Adam(
+            fsdp_model_to_load.parameters(), weight_decay=0.01, lr=0.01
+        )
+        utils.load_from_full_optimizer_state_dict(
+            fsdp_optim_to_load,
+            # mimic mmap=True where every rank see full SD
+            copy.deepcopy(self._broadcast_full_state_dict(optim_full_sd)),
+            torch.device("cuda"),
+        )
+        for _ in range(epochs):
+            inp = torch.randn((2, mlp_dim), device="cuda")
+            fsdp_model_to_load(inp).sum().backward()
+            fsdp_model_to_save(inp).sum().backward()
+            fsdp_optim_to_load.step()
+            fsdp_optim_to_save.step()
+            fsdp_optim_to_load.zero_grad()
+            fsdp_optim_to_save.zero_grad()
+        sharded_optim_sd = fsdp_optim_to_load.state_dict()
+        expected_sharded_optim_sd = fsdp_optim_to_save.state_dict()
+        self.assertEqual(
+            sharded_optim_sd["param_groups"],
+            expected_sharded_optim_sd["param_groups"],
+        )
+        self.assertEqual(
+            set(sharded_optim_sd["state"].keys()),
+            set(expected_sharded_optim_sd["state"].keys()),
+        )
+        for key, value in sharded_optim_sd["state"].items():
+            self.assertEqual(value, expected_sharded_optim_sd["state"][key])
+
+        sharded_model_sd = fsdp_model_to_load.state_dict()
+        expected_sharded_model_sd = fsdp_model_to_save.state_dict()
+        self.assertEqual(
+            set(sharded_model_sd.keys()), set(expected_sharded_model_sd.keys())
+        )
+        for key, value in sharded_model_sd.items():
+            self.assertEqual(value, expected_sharded_model_sd[key])
+
+    def _broadcast_full_state_dict(self, full_sd):
+        result = []
+        if torch.distributed.get_rank() == 0:
+            result.append(full_sd)
+        else:
+            result.append(None)
+        torch.distributed.broadcast_object_list(result, src=0)
+        return result[0]
 
 
 # if __name__ == "__main__":
