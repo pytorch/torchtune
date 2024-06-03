@@ -7,27 +7,18 @@
 # (c) Meta Platforms, Inc. and affiliates. Confidential and proprietary.
 
 import copy
-
-# import os
 from itertools import chain
 
 import pytest
 import torch
-
-# import torch.multiprocessing as mp
 import torch.nn as nn
-
 from tests.test_utils import gpu_test, single_box_init
-
-# from tests.test_utils import single_box_init
 from torch.distributed import launcher
 
 from torch.distributed._composable.fsdp import fully_shard
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
-
-# from torch.testing._internal.common_utils import TestCase
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
@@ -265,27 +256,6 @@ class TestFullyShardState(FSDPTest):
     def world_size(self) -> int:
         return 2
 
-    # def init_process(self, rank, size, fn, backend='nccl'):
-    #     os.environ['MASTER_ADDR'] = 'localhost'
-    #     os.environ['MASTER_PORT'] = '29430'
-    #     torch.distributed.init_process_group(backend, rank=rank, world_size=size)
-    #     fn(rank)
-
-    # @gpu_test(gpu_count=2)
-    # def test_state_dict(self):
-    #     size = torch.cuda.device_count()
-    #     processes = []
-    #     mp.set_start_method("spawn")
-    #     for rank in range(size):
-    #         p = mp.Process(target=self.init_process, args=(rank, size, self._test_state_dict))
-    #         p.start()
-    #         processes.append(p)
-
-    #     for p in processes:
-    #         p.join()
-    #     torch.distributed.destroy_process_group()
-
-    # def _test_state_dict(self, rank):
     @gpu_test(gpu_count=2)
     def test_state_dict(self):
         rank = self.rank
@@ -431,7 +401,3 @@ class TestFullyShardState(FSDPTest):
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
-
-
-# if __name__ == "__main__":
-#     run_tests()
