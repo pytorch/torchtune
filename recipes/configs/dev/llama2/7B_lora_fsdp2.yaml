@@ -1,4 +1,4 @@
-# Config for multi-device LoRA finetuning in lora_finetune_distributed.py
+# Config for multi-device LoRA finetuning with FSDP2 in lora_finetune_fsdp2.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on 2 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama2/7B_lora
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama2/7B_lora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_distributed --config llama2/7B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama2/7B_lora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works best when the model is being fine-tuned on 2+ GPUs.
 # For single device LoRA finetuning please use 7B_lora_single_device.yaml
