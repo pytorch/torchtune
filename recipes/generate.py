@@ -6,13 +6,14 @@
 import itertools
 import sys
 import time
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from omegaconf import DictConfig
 from torch import nn
 
 from torchtune import config, utils
+from torchtune.config._utils import _get_component_from_path
 from torchtune.data import ChatFormat, InstructTemplate, Message
 
 logger = utils.get_logger("DEBUG")
@@ -84,8 +85,8 @@ class InferenceRecipe:
     def convert_prompt_to_tokens(
         self,
         prompt: Union[DictConfig, str],
-        chat_format: ChatFormat,
-        instruct_template: InstructTemplate,
+        chat_format: Optional[ChatFormat],
+        instruct_template: Optional[InstructTemplate],
     ) -> List[Message]:
         # Should only be chat-style prompt or instruct-style prompt
         if chat_format and instruct_template:
@@ -96,17 +97,17 @@ class InferenceRecipe:
         # A single string can be formatted with instruct_template
         if isinstance(prompt, str):
             if instruct_template:
-                prompt = template.format(prompt)
+                instruct_template = _get_component_from_path(instruct_template)
+                prompt = instruct_template.format(prompt)
             return self._tokenizer.encode(prompt, add_bos=True, add_eos=False)
 
         # Otherwise pass a DictConfig mapping role -> message, format with ChatFormat
         # dict.items() will respect order for Python >= 3.7
         else:
             messages = [Message(role=k, content=v) for k, v in prompt.items()]
-            messages += [
-                Message(role="assistant", content="")
-            ]  # TODO: pass via config?
+            messages += [Message(role="assistant", content="")]
             if chat_format:
+                chat_format = _get_component_from_path(chat_format)
                 messages = chat_format.format(messages)
             return self._tokenizer.tokenize_messages(messages, add_eos=False)[0]
 
