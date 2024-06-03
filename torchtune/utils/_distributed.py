@@ -14,11 +14,6 @@ import torch
 import torch.distributed as dist
 from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-
-try:
-    from torch.distributed._composable.fsdp import FSDPModule
-except ImportError:
-    from torch.distributed._composable.fsdp import FSDP as FSDPModule  # noqa: N811
 from torch.distributed._tensor import distribute_tensor, DTensor
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
@@ -268,11 +263,19 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
 
 
 def load_from_full_model_state_dict(
-    model: FSDPModule,
+    model: "FSDPModule",
     full_sd: Dict[str, Any],
     device: torch.device,
     is_rank_zero: bool,
 ):
+    """
+    Converting full state dict into a sharded state dict
+    and loading it into FSDP model
+    - 'full' means plain tensor
+    - 'sharded' means `DTensor` where reach rank has a shard of the plain tensor
+    - `is_rank_zero` matters if only rank 0 pass in non-empty `full_sd` and
+       we need to broadcast from rank 0
+    """
     meta_sharded_sd = model.state_dict()
     sharded_sd = {}
     for param_name, full_tensor in full_sd.items():
@@ -316,9 +319,13 @@ def load_from_full_model_state_dict(
 
 
 def get_full_model_state_dict(
-    model: FSDPModule,
+    model: "FSDPModule",
     is_rank_zero: bool,
 ) -> Dict[str, Any]:
+    """
+    Converting sharded state dict into a full state dict on cpu
+    Returning non-empty result on rank0 to avoid peaking cpu memory
+    """
     sharded_sd = model.state_dict()
     cpu_state_dict = {}
     for param_name, sharded_param in sharded_sd.items():
@@ -330,11 +337,54 @@ def get_full_model_state_dict(
     return cpu_state_dict
 
 
+def get_full_optimizer_state_dict(
+    opt: Optimizer,
+    is_rank_zero: bool,
+) -> Dict[str, Any]:
+    """
+    Converting optimizer state from sharded to full
+    For example, "exp_avg" in AdamW is `DTensor`,
+    "exp_avg.full_tensor()" converts it to plain tensor on rank 0
+    Returning non-empty cpu state dict on rank 0
+    """
+    sharded_sd = opt.state_dict()
+    sharded_state = sharded_sd["state"]
+    full_state = {}
+    for group_id, sharded_group in sharded_state.items():
+        group_state = {}
+        for attr, sharded_tensor in sharded_group.items():
+            if isinstance(sharded_tensor, DTensor):
+                # "exp_avg" in AdamW is `DTensor`
+                full_tensor = sharded_tensor.full_tensor()
+            else:
+                # "step" in AdamW is plain tensor
+                full_tensor = sharded_tensor
+            if is_rank_zero:
+                group_state[attr] = full_tensor.cpu()
+            else:
+                del full_tensor
+        if is_rank_zero:
+            full_state[group_id] = group_state
+        else:
+            del group_state
+    if is_rank_zero:
+        return {
+            "param_groups": sharded_sd["param_groups"],
+            "state": full_state,
+        }
+    else:
+        return {}
+
+
 def load_from_full_optimizer_state_dict(
     opt: Optimizer,
     full_sd: Dict[str, Any],
     device: torch.device,
 ) -> Dict[str, Any]:
+    """
+    Converting full optimizer state to sharded state dict
+    and loading it into optimizer
+    """
     PARAMS = "params"  # noqa: N806
     _init_optim_state(opt)
     param_groups = opt.state_dict()["param_groups"]
@@ -356,12 +406,14 @@ def load_from_full_optimizer_state_dict(
             for attr, full_tensor in full_param_state.items():
                 sharded_tensor = param_state[attr]
                 if isinstance(sharded_tensor, DTensor):
+                    # exp_avg is DTensor
                     param_state[attr] = distribute_tensor(
                         full_tensor,
                         sharded_tensor.device_mesh,
                         sharded_tensor.placements,
                     )
                 else:
+                    # step is plain tensor
                     param_state[attr] = full_tensor
     opt.load_state_dict(
         {

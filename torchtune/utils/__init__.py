@@ -18,6 +18,7 @@ from ._distributed import (  # noqa
     FSDPPolicyType,
     get_full_finetune_fsdp_wrap_policy,
     get_full_model_state_dict,
+    get_full_optimizer_state_dict,
     get_world_size_and_rank,
     init_distributed,
     is_distributed,

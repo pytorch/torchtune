@@ -47,7 +47,7 @@ dev = [
     "pytest-integration",
     "tensorboard",
     "wandb",
-    "expecttest==0.1.6",
+    "expecttest",
 ]
 
 [tool.setuptools.dynamic]

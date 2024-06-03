@@ -12,15 +12,12 @@ from itertools import chain
 import pytest
 import torch
 import torch.nn as nn
-
-from tests.test_utils import single_box_init
+from tests.test_utils import gpu_test, single_box_init
 from torch.distributed import launcher
 from torch.distributed._composable.fsdp import fully_shard
-from torch.distributed.checkpoint import state_dict as ptd_state_dict
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.testing._internal.common_distributed import skip_if_lt_x_gpu
+
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
-from torch.testing._internal.common_utils import run_tests
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
@@ -253,14 +250,15 @@ class TestLoRAFSDP:
             assert not b.is_meta, f"buffer {n} is still on meta device!"
 
 
-class TestFullyShardStateDictMultiProcess(FSDPTest):
+class TestFullyShardState(FSDPTest):
     @property
     def world_size(self) -> int:
         return 2
 
-    @skip_if_lt_x_gpu(2)
+    @gpu_test(gpu_count=2)
     def test_state_dict(self):
-        is_rank_zero = self.rank == 0
+        rank = self.rank
+        is_rank_zero = rank == 0
         mlp_dim = 4
         epochs = 5
         torch.manual_seed(42)
@@ -284,15 +282,16 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
         )
 
         # inp is different for each rank
-        torch.manual_seed(42 + self.rank)
+        torch.manual_seed(42 + rank)
 
         # test get full state dict
         for _ in range(epochs):
             inp = torch.randn((2, mlp_dim), device="cuda")
             base_model(inp).sum().backward()
             for param in base_model.parameters():
-                torch.distributed.all_reduce(param.grad)
-                param.grad.detach().div_(self.world_size)
+                torch.distributed.all_reduce(
+                    param.grad, op=torch.distributed.ReduceOp.AVG
+                )
             base_optim.step()
             base_optim.zero_grad()
             fsdp_model_to_save(inp).sum().backward()
@@ -303,12 +302,9 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
         model_full_sd = utils.get_full_model_state_dict(
             fsdp_model_to_save, is_rank_zero
         )
-        optim_full_sd = ptd_state_dict.get_optimizer_state_dict(
-            fsdp_model_to_save,
+        optim_full_sd = utils.get_full_optimizer_state_dict(
             fsdp_optim_to_save,
-            options=ptd_state_dict.StateDictOptions(
-                full_state_dict=True, cpu_offload=True
-            ),
+            is_rank_zero,
         )
         if is_rank_zero:
             self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
@@ -398,13 +394,9 @@ class TestFullyShardStateDictMultiProcess(FSDPTest):
 
     def _broadcast_full_state_dict(self, full_sd):
         result = []
-        if self.rank == 0:
+        if torch.distributed.get_rank() == 0:
             result.append(full_sd)
         else:
             result.append(None)
         torch.distributed.broadcast_object_list(result, src=0)
         return result[0]
-
-
-if __name__ == "__main__":
-    run_tests()
