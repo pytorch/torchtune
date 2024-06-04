@@ -16,9 +16,13 @@ SMALL_MODEL_URLS=(
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-meta-03082024.pt"
     "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-hf-03082024.pt"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/small-ckpt-tune-llama3-05052024.pt"
 )
 FULL_MODEL_URL=("s3://pytorch-multimodal/llama2-7b-torchtune.pt")
-TOKENIZER_URL=("https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer.model")
+TOKENIZER_URLS=(
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer.model"
+    "https://ossci-datasets.s3.amazonaws.com/torchtune/tokenizer_llama3.model"
+)
 
 LOCAL_DIR="/tmp/test-artifacts"
 S3_URLS=()
@@ -55,9 +59,9 @@ done
 # If either recipe or regression tests are running,
 # fetch the tokenizer
 if ! [ -z "$S3_URLS" ]; then
-    S3_URLS+=(
-        $TOKENIZER_URL
-    )
+    for url in "${TOKENIZER_URLS[@]}"; do
+        S3_URLS+=( "$url" )
+    done
 fi
 
 # Sanity check debug log
