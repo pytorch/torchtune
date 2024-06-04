@@ -8,7 +8,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import torch
-from torchtune.utils._generation import sample
+from torchtune.utils._generation import sample, update_stop_tokens_tracker
 
 
 class AdaptiveKLController:
@@ -273,7 +273,7 @@ def generate(
     # that already hit a stop token
 
     stop_token_mask = torch.ones(
-        (bsz, prompt_length + 1), dtype=torch.int32, device=prompt.device
+        (bsz, prompt_length), dtype=torch.int32, device=prompt.device
     )
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
@@ -308,6 +308,14 @@ def generate(
         )
 
         generated_tokens = torch.cat([generated_tokens, tokens], dim=-1)
+
+        if stop_tokens is not None:
+            stop_token_reached = update_stop_tokens_tracker(
+                tokens, stop_tokens, stop_token_reached
+            )
+            if stop_token_reached.all().item():
+                break
+
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens = generated_tokens * stop_token_mask
