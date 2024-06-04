@@ -1,4 +1,4 @@
-# Config for single device QLoRA with lora_finetune_single_device.py
+# Config for single device QLoRA with lora_finetune_fsdp2.py
 # using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config llama2/7B_qlora_single_device
+#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config 7B_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
@@ -82,10 +82,3 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
-
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
-profiler:
-  _component_: torchtune.utils.profiler
-  enabled: False
-  output_dir: ${output_dir}/torchtune_perf_tracing.json
