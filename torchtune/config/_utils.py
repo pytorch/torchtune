@@ -17,7 +17,7 @@ from torchtune.utils import get_logger, get_world_size_and_rank
 
 def log_config(recipe_name: str, cfg: DictConfig) -> None:
     """
-    Logs the resolved config to rank zero.
+    Logs the resolved config (merged YAML file and CLI overrides) to rank zero.
 
     Args:
         recipe_name (str): name of the recipe to display
