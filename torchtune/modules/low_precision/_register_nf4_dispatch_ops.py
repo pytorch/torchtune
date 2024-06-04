@@ -21,9 +21,9 @@ def clone(func, *args, **kwargs):
     return to_nf4(args[0][0].get_original_weight())
 
 
-# TorchAO have `NF4.copy_` starting from `0.2.0`
 if version("torchao") < "0.2.0":
-
+    # TorchAO have `NF4.copy_` starting from `0.2.0`
+    # it's a superset of `inplace_copy` since it covers `NF4.copy_(NF4)`
     @nf4_tensor_impl([torch.ops.aten.copy_.default])
     def inplace_copy(func, *args, **kwargs):
         """
