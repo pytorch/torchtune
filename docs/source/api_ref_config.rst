@@ -13,3 +13,4 @@ torchtune.config
     instantiate
     parse
     validate
+    log_config
