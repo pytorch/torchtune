@@ -96,6 +96,7 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
     def forward(
         self,
         tokens: Tensor,
+        *,
         input_pos: Optional[Tensor] = None,
         mask: Optional[Tensor] = None,
     ) -> Tensor:
@@ -128,19 +129,22 @@ class TransformerDecoderWithHiddenOutput(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        if mask is None:
-            if self.causal_mask is not None:
-                if input_pos is None:
-                    raise ValueError(
-                        "Caches are setup, but the position of input token is missing"
-                    )
-                # shape: [1, input_pos_len, m_s]
-                # in most cases input_pos_len should be 1
-                mask = self.causal_mask[None, None, input_pos]
+        if self.causal_mask is not None:
+            if input_pos is None:
+                raise ValueError(
+                    "Caches are setup, but the position of input token is missing"
+                )
+            if mask is not None:
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
+            # shape: [1, input_pos_len, m_s]
+            # in most cases input_pos_len should be 1
+            mask = self.causal_mask[None, input_pos]
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask, input_pos)
+            h = layer(h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)
@@ -163,6 +167,7 @@ class TransformerLMWithValueHead(nn.Module):
     def forward(
         self,
         tokens: Tensor,
+        *,
         input_pos: Optional[Tensor] = None,
         mask: Optional[Tensor] = None,
     ) -> Tuple[Tensor, Tensor]:
@@ -217,6 +222,7 @@ class TransformerLM(nn.Module):
         self,
         tokens: Tensor,
         input_pos: Optional[Tensor] = None,
+        *,
         mask: Optional[Tensor] = None,
     ) -> Tensor:
         """

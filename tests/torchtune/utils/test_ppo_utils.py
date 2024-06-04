@@ -6,9 +6,12 @@
 
 import unittest
 
-import torch
-from torchtune.utils.ppo_utils import estimate_advantages, get_rewards, whiten
+import pytest
 
+import torch
+from tests.test_utils import fixed_init_model
+from torchtune.models.llama2 import llama2
+from torchtune.utils.ppo_utils import estimate_advantages, generate, get_rewards, whiten
 
 # class TestAdaptiveKLController(unittest.TestCase):
 #     def test_update(self):
@@ -144,3 +147,87 @@ class TestEstimateAdvantages(unittest.TestCase):
 
         advantages, _ = estimate_advantages(values, rewards, gamma, lmbda)
         torch.testing.assert_close(advantages, advantages, rtol=1e-4, atol=1e-4)
+
+
+class TestGenerate:
+    """
+    Test class for text generation functionality.
+    """
+
+    @pytest.fixture
+    def generation_model(self):
+        model = llama2(
+            vocab_size=4_000,
+            embed_dim=128,
+            num_layers=2,
+            num_heads=4,
+            num_kv_heads=4,
+            max_seq_len=2048,
+        )
+        fixed_init_model(model)
+        model.eval()
+        return model
+
+    @pytest.fixture
+    def prompt_tokens(self):
+        """
+        Pytest fixture to create a list of prompt tokens for testing.
+        """
+        return torch.arange(2, 10)
+
+    @pytest.fixture
+    def prompt_tokens_batched(self):
+        """
+        Pytest fixture to create a batched list of prompt tokens for testing.
+        """
+        return torch.arange(2, 10).repeat(2, 1)
+
+    @pytest.fixture
+    def padded_prompt_tokens(self):
+        """
+        Pytest fixture to create a list of left-padded prompt tokens for testing.
+        """
+        return torch.cat([torch.tensor([0, 0]), torch.arange(2, 10)])
+
+    @pytest.fixture
+    def prompt_tokens_batched_padded(self):
+        """
+        Pytest fixture to create a list of left-padded batched prompt tokens for testing.
+        """
+        return torch.tensor(
+            [
+                [0, 0, 4, 5, 6, 7],
+                [0, 5, 6, 7, 8, 9],
+                [0, 0, 0, 0, 4, 5],
+            ]
+        )
+
+    def test_reproducability_with_and_without_padding(
+        self, generation_model, prompt_tokens, padded_prompt_tokens
+    ):
+        """
+        Test to check if the `generate` function produces the same output for inputs that are left padded
+        and for the same inputs that are not left padded.
+        """
+        temperature = 0.6
+        top_k = 100
+
+        torch.manual_seed(42)
+        outputs_unpadded = generate(
+            model=generation_model,
+            prompt=prompt_tokens,
+            max_generated_tokens=10,
+            temperature=temperature,
+            top_k=top_k,
+        )
+
+        torch.manual_seed(42)
+        outputs_padded = generate(
+            model=generation_model,
+            prompt=padded_prompt_tokens,
+            max_generated_tokens=10,
+            temperature=temperature,
+            top_k=top_k,
+        )
+
+        assert outputs_unpadded[0] == outputs_padded[0][2:]
