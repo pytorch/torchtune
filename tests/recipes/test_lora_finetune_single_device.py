@@ -212,7 +212,7 @@ class TestLoRAFinetuneSingleDeviceRecipe:
 
         # Second epoch only
         expected_loss_values = self._fetch_expected_loss_values("llama2")[2:]
-        loss_values = get_loss_values_from_metric_logger(log_file)[2:4]
+        loss_values = get_loss_values_from_metric_logger(log_file)[:2]
 
         torch.testing.assert_close(
             loss_values, expected_loss_values, rtol=1e-5, atol=1e-5

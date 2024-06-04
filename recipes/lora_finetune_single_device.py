@@ -147,18 +147,28 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 raise ValueError(
                     "Adapter weights not found. Please ensure a valid adapter checkpoint is provided."
                 )
-            # If seed, total_epoch or max_steps_per_epoch don't match,
-            # warn the user
-            if (
-                self.seed != checkpoint_dict[utils.SEED_KEY]
-                or self.total_epochs != checkpoint_dict[utils.TOTAL_EPOCHS_KEY]
-                or self.max_steps_per_epoch != checkpoint_dict[utils.MAX_STEPS_KEY]
-            ):
-                warn(
-                    message="""Configured value for seed, epochs or max_steps_per_epoch
-                    does not match the value stored in checkpoint."""
-                )
+            # _update_recipe_state will throw an exception if the recipe state is not corrctly loaded
+            # no need to check here
+            self._update_recipe_state(checkpoint_dict)
         return checkpoint_dict
+
+    def _update_recipe_state(self, ckpt_dict: Dict[str, Any]) -> None:
+        """
+        Updates the recipe state from checkpoint.
+        """
+        # If seed or max_steps_per_epoch don't match,
+        # warn the user and overwrite
+        if (
+            self.seed != ckpt_dict[utils.SEED_KEY]
+            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
+        ):
+            warn(
+                message="""Configured value for seed or max_steps_per_epoch
+                does not match the value stored in checkpoint."""
+            )
+        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
+        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
 
     def setup(self, cfg: DictConfig) -> None:
         """
