@@ -217,6 +217,10 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             model = model.to(device=self._device, dtype=self._dtype)
 
         model.load_state_dict(model_state_dict)
+
+        # Put model in eval mode.
+        model.eval()
+
         # Validate model was loaded in with the expected dtype.
         utils.validate_expected_param_dtype(model.named_parameters(), dtype=self._dtype)
         logger.info(f"Model is initialized with precision {self._dtype}.")
