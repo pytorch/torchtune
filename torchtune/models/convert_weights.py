@@ -154,6 +154,7 @@ def hf_to_tune(
                 value = _permute(value, num_heads)
             elif "k_proj" in key:
                 value = _permute(value, num_kv_heads)
+
             converted_state_dict[new_key] = value
     return converted_state_dict
 
@@ -163,6 +164,7 @@ def tune_to_hf(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: int = None,
 ):
     """
     Convert a state dict from torchtune's format to HF's format. This function
@@ -180,7 +182,9 @@ def tune_to_hf(
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
-    head_dim = dim // num_heads
+
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute(t, n_heads):
         return (
