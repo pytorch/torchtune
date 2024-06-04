@@ -181,6 +181,10 @@ _ALL_RECIPES = [
                 name="llama2/7B_qlora",
                 file_path="dev/llama2/7B_qlora.yaml",
             ),
+            Config(
+                name="llama2/70B_qlora",
+                file_path="dev/llama2/70B_qlora.yaml",
+            ),
         ],
         supports_distributed=True,
     ),

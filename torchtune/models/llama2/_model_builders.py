@@ -257,3 +257,10 @@ def lora_llama2_70b(
         lora_dropout=lora_dropout,
         quantize_base=quantize_base,
     )
+
+qlora_llama2_70b = partial(lora_llama2_70b, quantize_base=True)
+qlora_llama2_70b.__doc__ = """
+Builder for creating a Llama2 70B model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_llama2_70b` for full API arguments.
+"""
