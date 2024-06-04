@@ -648,6 +648,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">substrs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">text</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">),</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">):</span>
             <span class="n">substr</span> <span class="o">=</span> <span class="n">text</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="n">MAX_ENCODE_CHARS</span><span class="p">]</span>
             <span class="c1"># See https://github.com/openai/tiktoken/issues/195</span>
@@ -736,6 +738,7 @@
         <span class="n">messages</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Message</span><span class="p">],</span>
         <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">tokenize_header</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">add_eos</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Tokenize a list of messages into a list of token ids and masks.</span>
@@ -759,8 +762,9 @@
             <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenized_message</span><span class="p">))</span>
             <span class="k">if</span> <span class="n">max_seq_len</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">max_seq_len</span><span class="p">:</span>
                 <span class="k">break</span>
-        <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">add_eos</span><span class="p">:</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">]</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="n">mask</span> <span class="o">+</span> <span class="p">[</span><span class="kc">True</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">max_seq_len</span><span class="p">:</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">tokens</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
             <span class="n">mask</span> <span class="o">=</span> <span class="n">truncate</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
