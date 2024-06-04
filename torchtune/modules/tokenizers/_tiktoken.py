@@ -247,6 +247,8 @@ class TikTokenTokenizer(Tokenizer):
         """
         substrs: List[str] = []
         tokens = []
+        if not text:
+            return []
         for i in range(0, len(text), MAX_ENCODE_CHARS):
             substr = text[i : i + MAX_ENCODE_CHARS]
             # See https://github.com/openai/tiktoken/issues/195
@@ -335,6 +337,7 @@ class TikTokenTokenizer(Tokenizer):
         messages: List[Message],
         max_seq_len: Optional[int] = None,
         tokenize_header: bool = True,
+        add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -358,8 +361,9 @@ class TikTokenTokenizer(Tokenizer):
             mask = mask + ([message.masked] * len(tokenized_message))
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
-        tokens = tokens + [self.eos_id]
-        mask = mask + [True]
+        if add_eos:
+            tokens = tokens + [self.eos_id]
+            mask = mask + [True]
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)
