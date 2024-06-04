@@ -61,6 +61,9 @@ lr_scheduler:
 loss:
   _component_: torch.nn.CrossEntropyLoss
 
+fsdp:
+  cpu_offload: False
+
 # Training
 epochs: 1
 max_steps_per_epoch: null
