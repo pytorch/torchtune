@@ -201,7 +201,7 @@ files:
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_distributed --config llama3/8B_full \
+    tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full \
     dataset=torchtune.datasets.text_completion_dataset dataset.source=text \
     dataset.data_files=path/to/my_data.txt dataset.split=train
 

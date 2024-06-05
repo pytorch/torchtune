@@ -247,18 +247,22 @@ Removing config fields
 You may need to remove certain parameters from the config when changing components
 through overrides that require different keyword arguments. You can do so by using
 the `~` flag and specify the dotpath of the config field you would like to remove.
-For example, if you want to override a built-in config and use :func:`~torchtune.datasets.text_completion_dataset`
-which does not use the ``train_on_input`` parameter, you can delete it from the
-command-line.
+For example, if you want to override a built-in config and use the ``bitsandbytes.optim.PagedAdamW8bit``
+optimizer, you may need to delete parameters like ``foreach`` or ``fused`` which are
+specific to PyTorch optimizers. Note that this example requires that you have ``bitsandbytes``
+installed.
 
 .. code-block:: yaml
 
-    dataset:
-      _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
+    # In configs/llama3/70B_full.yaml
+    optimizer:
+      _component_: torch.optim.AdamW
+      lr: 2e-5
+      foreach: False
+      fused: True
 
 .. code-block:: bash
 
-    # Change to text_completion_dataset and remove train_on_input
-    tune run lora_finetune_single_device --config my_config.yaml \
-    dataset=torchtune.datasets.text_completion_dataset ~dataset.train_on_input
+    # Change to PagedAdamW8bit and remove fused, foreach
+    tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full \
+    optimizer=bitsandbytes.optim.PagedAdamW8bit ~optimizer.foreach ~optimizer.fused
