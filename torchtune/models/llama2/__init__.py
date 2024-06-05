@@ -15,6 +15,7 @@ from ._model_builders import (  # noqa
     lora_llama2_70b,
     lora_llama2_7b,
     qlora_llama2_13b,
+    qlora_llama2_70b,
     qlora_llama2_7b,
 )
 from ._model_utils import scale_hidden_dim_for_mlp

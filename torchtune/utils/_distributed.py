@@ -8,7 +8,7 @@
 import logging
 import os
 from itertools import chain
-from typing import Any, Callable, Dict, Set, Tuple, Type
+from typing import Any, Callable, cast, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
@@ -19,6 +19,7 @@ from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
+from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import modules
 from torchtune.modules.peft.lora import (
     _lora_a_init_params,
@@ -280,15 +281,42 @@ def load_from_full_model_state_dict(
     sharded_sd = {}
     for param_name, full_tensor in full_sd.items():
         sharded_meta_param = meta_sharded_sd.get(param_name)
-        # `.to(dtype)` ensures same dtype when `assign=True`
-        sharded_tensor = distribute_tensor(
-            full_tensor.to(sharded_meta_param.dtype),
-            sharded_meta_param.device_mesh,
-            sharded_meta_param.placements,
-        )
+        full_tensor = full_tensor.to(sharded_meta_param.dtype).to(device)
+        if isinstance(sharded_meta_param._local_tensor, NF4Tensor):
+            full_tensor = to_nf4(full_tensor)
+            # replicating logic from `_fsdp_param.py`` `_init_sharded_param`
+            # otherwise `distribute_tensor(DTensor(local=NF4))`
+            # requires dispatching `c10d.scatter_``
+            # long-term solution is `swap_tensor`
+            mesh = sharded_meta_param.device_mesh
+            if mesh.ndim > 1:
+                raise NotImplementedError(f"only support 1D FSDP but got {mesh.ndim=}")
+            shard_mesh_dim = 0
+            shard_world_size = mesh.size(shard_mesh_dim)
+            shard_rank = cast(
+                torch.distributed.ProcessGroup, mesh.get_group(shard_mesh_dim)
+            ).rank()
+            chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[shard_rank]
+            sharded_param = full_tensor.new_zeros(chunk.size())
+            sharded_param[: chunk.size(0)].copy_(chunk)
+            sharded_tensor = DTensor(
+                sharded_param,
+                sharded_meta_param.device_mesh,
+                sharded_meta_param.placements,
+                shape=sharded_meta_param.size(),
+                dtype=sharded_meta_param.dtype,
+                requires_grad=sharded_meta_param.requires_grad,
+                stride=sharded_meta_param.stride(),
+            )
+        else:
+            sharded_tensor = distribute_tensor(
+                full_tensor,
+                sharded_meta_param.device_mesh,
+                sharded_meta_param.placements,
+            )
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     # choose `assign=True` since we cannot call `copy_` on meta tensor
-    model.load_state_dict(sharded_sd, strict=False, assign=True)
+    return model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
 def get_full_model_state_dict(
