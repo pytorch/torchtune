@@ -154,6 +154,10 @@ def _merge_yaml_and_cli_args(yaml_args: Namespace, cli_args: List[str]) -> DictC
         # If CLI override uses the remove flag (~), remove the key from the yaml config
         if arg.startswith("~"):
             dotpath = arg[1:].split("=")[0]
+            if "_component_" in dotpath:
+                raise ValueError(
+                    f"Removing components from CLI is not supported: ~{dotpath}"
+                )
             try:
                 _remove_key_by_dotpath(yaml_kwargs, dotpath)
             except (KeyError, ValueError):
@@ -193,12 +197,19 @@ def _remove_key_by_dotpath(nested_dict: Dict[str, Any], dotpath: str) -> None:
     """
     path = dotpath.split(".")
 
+    def delete_non_component(d: Dict[str, Any], key: str) -> None:
+        if _has_component(d[key]):
+            raise ValueError(
+                f"Removing components from CLI is not supported: ~{dotpath}"
+            )
+        del d[key]
+
     def recurse_and_delete(d: Dict[str, Any], path: List[str]) -> None:
         if len(path) == 1:
-            del d[path[0]]
+            delete_non_component(d, path[0])
         else:
             recurse_and_delete(d[path[0]], path[1:])
             if not d[path[0]]:
-                del d[path[0]]
+                delete_non_component(d, path[0])
 
     recurse_and_delete(nested_dict, path)

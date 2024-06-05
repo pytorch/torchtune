@@ -155,10 +155,12 @@ class TestUtils:
                 assert not output
 
     def test_remove_key_by_dotpath(self):
-        # Test removing a component
+        # Test removing a component raises
         cfg = copy.deepcopy(_CONFIG)
-        _remove_key_by_dotpath(cfg, "b")
-        assert "b" not in cfg
+        with pytest.raises(
+            ValueError, match="Removing components from CLI is not supported"
+        ):
+            _remove_key_by_dotpath(cfg, "b")
 
         # Test removing a top-level param
         cfg = copy.deepcopy(_CONFIG)
@@ -172,9 +174,7 @@ class TestUtils:
 
         # Test removing nested one level too deep fails
         cfg = copy.deepcopy(_CONFIG)
-        with pytest.raises(
-            TypeError, match="'int' object does not support item deletion"
-        ):
+        with pytest.raises(TypeError, match="'int' object is not subscriptable"):
             _remove_key_by_dotpath(cfg, "b.c.d")
 
         # Test removing non-existent param fails

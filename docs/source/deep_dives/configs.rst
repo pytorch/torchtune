@@ -107,7 +107,6 @@ keyword arguments not specified in the config if we'd like:
 
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 .. code-block:: python
 
@@ -181,7 +180,6 @@ make it significantly easier to debug.
     # dont do this
     alpaca_dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
     slimorca_dataset:
       ...
 
@@ -189,7 +187,6 @@ make it significantly easier to debug.
     dataset:
       # change this in config or override when needed
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 Use public APIs only
 """"""""""""""""""""
@@ -204,12 +201,10 @@ component dotpath.
     # don't do this
     dataset:
       _component_: torchtune.datasets._alpaca.alpaca_dataset
-      train_on_input: True
 
     # do this
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 
 Command-line overrides
@@ -240,10 +235,30 @@ name directly. Any nested fields in the components can be overridden with dot no
 
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
+
+.. code-block:: bash
+
+    # Change to slimorca_dataset and set train_on_input to True
+    tune run lora_finetune_single_device --config my_config.yaml \
+    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=True
+
+Removing config fields
+^^^^^^^^^^^^^^^^^^^^^^
+You may need to remove certain parameters from the config when changing components
+through overrides that require different keyword arguments. You can do so by using
+the `~` flag and specify the dotpath of the config field you would like to remove.
+For example, if you want to override a built-in config and use :func:`~torchtune.datasets.text_completion_dataset`
+which does not use the ``train_on_input`` parameter, you can delete it from the
+command-line.
+
+.. code-block:: yaml
+
+    dataset:
+      _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
 .. code-block:: bash
 
-    # Change to slimorca_dataset and set train_on_input to False
+    # Change to text_completion_dataset and remove train_on_input
     tune run lora_finetune_single_device --config my_config.yaml \
-    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
+    dataset=torchtune.datasets.text_completion_dataset ~dataset.train_on_input
