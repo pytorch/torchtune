@@ -156,10 +156,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        # If seed or max_steps_per_epoch don't match,
+        # If seed, total_epoch or max_steps_per_epoch don't match,
         # warn the user and overwrite
         if (
             self.seed != ckpt_dict[utils.SEED_KEY]
+            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
             or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
         ):
             warn(
