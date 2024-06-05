@@ -58,9 +58,8 @@ from .precision import (
 from .quantization import get_quantizer_mode
 from .seed import set_seed
 
-from .image_transforms import (
-    find_supported_resolutions,
-    GetImagePatches
+from .image_transforms_utils import (
+    find_supported_resolutions
 )
 
 __all__ = [
@@ -91,5 +90,4 @@ __all__ = [
     "get_quantizer_mode",
     "generate",
     "find_supported_resolutions",
-    "GetImagePatches",
 ]
