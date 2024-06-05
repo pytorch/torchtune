@@ -316,7 +316,7 @@ def load_from_full_model_state_dict(
             )
         sharded_sd[param_name] = nn.Parameter(sharded_tensor)
     # choose `assign=True` since we cannot call `copy_` on meta tensor
-    model.load_state_dict(sharded_sd, strict=False, assign=True)
+    return model.load_state_dict(sharded_sd, strict=False, assign=True)
 
 
 def get_full_model_state_dict(

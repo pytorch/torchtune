@@ -32,6 +32,7 @@ from torchtune.modules.peft.peft_utils import (
     get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
+    validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -320,9 +321,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
-            utils.load_from_full_model_state_dict(
+            lora_missing, lora_unexpected = utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
+        else:
+            lora_missing, lora_unexpected = None, None
 
         with utils.set_default_dtype(self._dtype), self._device:
             lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
@@ -337,14 +340,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
 
-        utils.load_from_full_model_state_dict(
+        base_missing, base_unexpected = utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
-
-        # LoRA hyper-params needed for merging weights while saving checkpoints
-        self._lora_rank = cfg_model.lora_rank
-        self._lora_alpha = cfg_model.lora_alpha
-
+        validate_missing_and_unexpected_for_lora(
+            lora_attn_modules=self._lora_attn_modules,
+            apply_lora_to_mlp=self._apply_lora_to_mlp,
+            apply_lora_to_output=self._apply_lora_to_output,
+            base_missing=base_missing,
+            base_unexpected=base_unexpected,
+            lora_missing=lora_missing,
+            lora_unexpected=lora_unexpected,
+        )
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
