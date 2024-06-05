@@ -16,9 +16,11 @@ from tests.test_utils import gpu_test, single_box_init
 from torch.distributed import launcher
 
 from torch.distributed._composable.fsdp import fully_shard
+from torch.distributed._tensor import DTensor
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
+from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune import modules, utils
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 from torchtune.models.llama3._component_builders import llama3
@@ -237,7 +239,7 @@ class TestLoRAFSDP:
                 embed_dim=EMBED_DIM,
                 max_seq_len=MAX_SEQ_LEN,
                 lora_rank=4,
-                lora_alpha=1.0,
+                lora_alpha=8,
             )
         utils.prepare_model_for_fsdp_with_meta_device(lora)
         for m in lora.modules():
@@ -257,7 +259,7 @@ class TestFullyShardState(FSDPTest):
         return 2
 
     @gpu_test(gpu_count=2)
-    def test_state_dict(self):
+    def test_lora_state_dict(self):
         rank = self.rank
         is_rank_zero = rank == 0
         mlp_dim = 4
@@ -392,6 +394,44 @@ class TestFullyShardState(FSDPTest):
         )
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
+
+    def test_qlora_state_dict(self):
+        is_rank_zero = self.rank == 0
+        torch.manual_seed(42)
+        kwargs = {
+            "lora_attn_modules": ["q_proj", "v_proj", "k_proj", "output_proj"],
+            "apply_lora_to_mlp": True,
+            "apply_lora_to_output": False,
+            "vocab_size": 1024,
+            "num_layers": 3,
+            "num_heads": 4,
+            "num_kv_heads": 2,
+            "embed_dim": 1024,
+            "max_seq_len": 64,
+            "lora_rank": 4,
+            "lora_alpha": 1.0,
+        }
+        with torch.device("cuda"):
+            lora_kwargs = {"quantize_base": False} | kwargs
+            model_lora = lora_llama2(**lora_kwargs)
+        full_sd = model_lora.cpu().state_dict()
+        with torch.device("meta"):
+            qlora_kwargs = {"quantize_base": True} | kwargs
+            model_qlora = lora_llama2(**qlora_kwargs)
+        set_trainable_params(model_qlora, get_adapter_params(model_qlora))
+        for m in model_qlora.modules():
+            if isinstance(m, modules.TransformerDecoderLayer):
+                fully_shard(m)
+        fully_shard(model_qlora)
+        utils.load_from_full_model_state_dict(
+            model_qlora, full_sd, "cuda", is_rank_zero
+        )
+        # LoRALinear base weights should be DTensor(NF4)
+        for name, module in model_qlora.named_modules():
+            if isinstance(module, LoRALinear):
+                self.assertTrue(isinstance(module.weight, DTensor))
+                self.assertTrue(isinstance(module.weight._local_tensor, NF4Tensor))
+                self.assertEqual(module.weight.device.type, "cuda")
 
     def _broadcast_full_state_dict(self, full_sd):
         result = []
