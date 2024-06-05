@@ -179,11 +179,11 @@ _ALL_RECIPES = [
             Config(name="llama2/70B_lora", file_path="dev/llama2/70B_lora_fsdp2.yaml"),
             Config(
                 name="llama2/7B_qlora",
-                file_path="dev/llama2/7B_qlora.yaml",
+                file_path="dev/llama2/7B_qlora_fsdp2.yaml",
             ),
             Config(
                 name="llama2/70B_qlora",
-                file_path="dev/llama2/70B_qlora.yaml",
+                file_path="dev/llama2/70B_qlora_fsdp2.yaml",
             ),
         ],
         supports_distributed=True,
