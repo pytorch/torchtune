@@ -412,11 +412,11 @@ class TestFullyShardState(FSDPTest):
             "lora_alpha": 1.0,
         }
         with torch.device("cuda"):
-            lora_kwargs = {"quantize_base": False} | kwargs
+            lora_kwargs = dict({"quantize_base": False}, **kwargs)
             model_lora = lora_llama2(**lora_kwargs)
         full_sd = model_lora.cpu().state_dict()
         with torch.device("meta"):
-            qlora_kwargs = {"quantize_base": True} | kwargs
+            qlora_kwargs = dict({"quantize_base": True}, **kwargs)
             model_qlora = lora_llama2(**qlora_kwargs)
         set_trainable_params(model_qlora, get_adapter_params(model_qlora))
         for m in model_qlora.modules():
