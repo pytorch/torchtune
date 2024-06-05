@@ -99,7 +99,6 @@ class Llama2ChatFormat(ChatFormat):
             elif message.role == "assistant":
                 # No special formatting needed for assistant message
                 content = message.content
-            assert content != ""
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
@@ -158,7 +157,6 @@ class MistralChatFormat(ChatFormat):
             elif message.role == "assistant":
                 # No special formatting needed for assistant message
                 content = message.content
-            assert content != ""
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
@@ -217,7 +215,6 @@ class ChatMLFormat(ChatFormat):
                 content = cls.assistant.format(
                     content=message.content,
                 )
-            assert content != ""
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )

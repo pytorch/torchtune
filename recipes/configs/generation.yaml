@@ -29,6 +29,8 @@ tokenizer:
 
 # Generation arguments; defaults taken from gpt-fast
 prompt: "Hello, my name is"
+instruct_template: null
+chat_format: null
 max_new_tokens: 300
 temperature: 0.6 # 0.8 and 0.6 are popular values to try
 top_k: 300
