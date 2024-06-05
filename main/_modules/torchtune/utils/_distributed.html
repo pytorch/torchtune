@@ -409,7 +409,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.distributed</span> <span class="k">as</span> <span class="nn">dist</span>
@@ -420,6 +420,7 @@
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp</span> <span class="kn">import</span> <span class="n">ShardingStrategy</span>
 <span class="kn">from</span> <span class="nn">torch.distributed.fsdp.wrap</span> <span class="kn">import</span> <span class="n">ModuleWrapPolicy</span>
 <span class="kn">from</span> <span class="nn">torch.optim</span> <span class="kn">import</span> <span class="n">Optimizer</span>
+<span class="kn">from</span> <span class="nn">torchao.dtypes.nf4tensor</span> <span class="kn">import</span> <span class="n">NF4Tensor</span><span class="p">,</span> <span class="n">to_nf4</span>
 <span class="kn">from</span> <span class="nn">torchtune</span> <span class="kn">import</span> <span class="n">modules</span>
 <span class="kn">from</span> <span class="nn">torchtune.modules.peft.lora</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">_lora_a_init_params</span><span class="p">,</span>
@@ -681,15 +682,42 @@
     <span class="n">sharded_sd</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">param_name</span><span class="p">,</span> <span class="n">full_tensor</span> <span class="ow">in</span> <span class="n">full_sd</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">sharded_meta_param</span> <span class="o">=</span> <span class="n">meta_sharded_sd</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">param_name</span><span class="p">)</span>
-        <span class="c1"># `.to(dtype)` ensures same dtype when `assign=True`</span>
-        <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
-            <span class="n">full_tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-            <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-            <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">placements</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="n">full_tensor</span> <span class="o">=</span> <span class="n">full_tensor</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">_local_tensor</span><span class="p">,</span> <span class="n">NF4Tensor</span><span class="p">):</span>
+            <span class="n">full_tensor</span> <span class="o">=</span> <span class="n">to_nf4</span><span class="p">(</span><span class="n">full_tensor</span><span class="p">)</span>
+            <span class="c1"># replicating logic from `_fsdp_param.py`` `_init_sharded_param`</span>
+            <span class="c1"># otherwise `distribute_tensor(DTensor(local=NF4))`</span>
+            <span class="c1"># requires dispatching `c10d.scatter_``</span>
+            <span class="c1"># long-term solution is `swap_tensor`</span>
+            <span class="n">mesh</span> <span class="o">=</span> <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span>
+            <span class="k">if</span> <span class="n">mesh</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;only support 1D FSDP but got </span><span class="si">{</span><span class="n">mesh</span><span class="o">.</span><span class="n">ndim</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">shard_mesh_dim</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">shard_world_size</span> <span class="o">=</span> <span class="n">mesh</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">shard_mesh_dim</span><span class="p">)</span>
+            <span class="n">shard_rank</span> <span class="o">=</span> <span class="n">cast</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">ProcessGroup</span><span class="p">,</span> <span class="n">mesh</span><span class="o">.</span><span class="n">get_group</span><span class="p">(</span><span class="n">shard_mesh_dim</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">rank</span><span class="p">()</span>
+            <span class="n">chunk</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">chunk</span><span class="p">(</span><span class="n">full_tensor</span><span class="p">,</span> <span class="n">shard_world_size</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">))[</span><span class="n">shard_rank</span><span class="p">]</span>
+            <span class="n">sharded_param</span> <span class="o">=</span> <span class="n">full_tensor</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">chunk</span><span class="o">.</span><span class="n">size</span><span class="p">())</span>
+            <span class="n">sharded_param</span><span class="p">[:</span> <span class="n">chunk</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span><span class="o">.</span><span class="n">copy_</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">DTensor</span><span class="p">(</span>
+                <span class="n">sharded_param</span><span class="p">,</span>
+                <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">placements</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">requires_grad</span><span class="o">=</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">requires_grad</span><span class="p">,</span>
+                <span class="n">stride</span><span class="o">=</span><span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">stride</span><span class="p">(),</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sharded_tensor</span> <span class="o">=</span> <span class="n">distribute_tensor</span><span class="p">(</span>
+                <span class="n">full_tensor</span><span class="p">,</span>
+                <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                <span class="n">sharded_meta_param</span><span class="o">.</span><span class="n">placements</span><span class="p">,</span>
+            <span class="p">)</span>
         <span class="n">sharded_sd</span><span class="p">[</span><span class="n">param_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Parameter</span><span class="p">(</span><span class="n">sharded_tensor</span><span class="p">)</span>
     <span class="c1"># choose `assign=True` since we cannot call `copy_` on meta tensor</span>
-    <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">sharded_sd</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">assign</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 
 <span class="k">def</span> <span class="nf">get_full_model_state_dict</span><span class="p">(</span>

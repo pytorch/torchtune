@@ -658,6 +658,13 @@
         <span class="n">lora_dropout</span><span class="o">=</span><span class="n">lora_dropout</span><span class="p">,</span>
         <span class="n">quantize_base</span><span class="o">=</span><span class="n">quantize_base</span><span class="p">,</span>
     <span class="p">)</span></div>
+
+<span class="n">qlora_llama2_70b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama2_70b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">qlora_llama2_70b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for creating a Llama2 70B model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
+<span class="s2">Please see `lora_llama2_70b` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
              </article>
