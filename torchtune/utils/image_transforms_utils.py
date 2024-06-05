@@ -1,13 +1,4 @@
-from typing import Dict, List, Optional, Union, Tuple
-
-import torch
-from torch import nn
-import torchvision
-from torchvision.transforms import v2
-from torchvision.transforms.v2 import functional as F
 from functools import reduce
-
-import math
 
 def find_closest_aspect_ratio(image_size, patch_size, aspect_ratios):
     image_width, image_height = image_size

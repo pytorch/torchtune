@@ -1,19 +1,19 @@
 import logging
-from typing import List, Optional, Union, Tuple, Dict
+
+import math
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import PIL
 
 import torch
+
+import torchvision
 from torch import nn
 
 from torchtune.utils.image_transforms_utils import find_supported_resolutions
-
-import torchvision
 from torchvision.transforms import v2
 from torchvision.transforms.v2 import functional as F
-
-import math
 
 logger = logging.getLogger(__name__)
 
@@ -294,7 +294,6 @@ class ImageProcessor(nn.Module):
         ],
     ) -> None:
         """
-        Initializes the ImageProcessor module for visual language models.
         Args:
             patch_size (int): Size of the patches to divide the image into.
             possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
