@@ -395,6 +395,7 @@ class TestFullyShardState(FSDPTest):
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
 
+    @gpu_test(gpu_count=2)
     def test_qlora_state_dict(self):
         is_rank_zero = self.rank == 0
         torch.manual_seed(42)
