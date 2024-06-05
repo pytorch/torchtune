@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -32,7 +32,7 @@ from torchtune.modules.peft.peft_utils import (
     get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
-    validate_state_dict_for_lora,
+    validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 
@@ -214,6 +214,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 if self._resume_from_checkpoint
                 else None
             ),
+            cfg_fsdp=cfg.fsdp if hasattr(cfg, "fsdp") else None,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -265,6 +266,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         enable_activation_checkpointing: bool,
         base_model_state_dict: Dict[str, Any],
         lora_weights_state_dict: Optional[Dict[str, Any]] = None,
+        cfg_fsdp: Optional[Union[DictConfig, None]] = None,
     ) -> nn.Module:
         """
         Model initialization has some important considerations:
@@ -290,25 +292,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         with utils.set_default_dtype(self._dtype), torch.device("meta"):
             model = config.instantiate(cfg_model)
 
-        if self._is_rank_zero:
-            # The model contains LoRA params which won't have any matching keys in
-            # the state dict. As a result, we need to load with strict=False.
-            # Before loading the state dict, ensure the state dict keys for the base
-            # model and adapters (if available) match the keys in the full LoRA model
-            # This is a good sanity check to prevent silent errors
-            validate_state_dict_for_lora(
-                lora_attn_modules=cfg_model.lora_attn_modules,
-                apply_lora_to_mlp=cfg_model.apply_lora_to_mlp,
-                apply_lora_to_output=getattr(cfg_model, "apply_lora_to_output", False),
-                full_model_state_dict_keys=model.state_dict().keys(),
-                lora_state_dict_keys=(
-                    lora_weights_state_dict.keys()
-                    if lora_weights_state_dict is not None
-                    else None
-                ),
-                base_model_state_dict_keys=base_model_state_dict.keys(),
-            )
-
         self.adapter_params = get_adapter_params(model)
         set_trainable_params(model, self.adapter_params)
 
@@ -317,47 +300,58 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
+        fsdp_kwargs = {}
+        if cfg_fsdp and cfg_fsdp.cpu_offload:
+            from torch.distributed._composable.fsdp import CPUOffloadPolicy
+
+            fsdp_kwargs["offload_policy"] = CPUOffloadPolicy()
         # iterating from lowerer modules to higher
         # eg grouping lora adapters before transformer block
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
-                fully_shard(m)
+                fully_shard(m, **fsdp_kwargs)
             # TransformerDecoderLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
-                    fully_shard(m)
+                    fully_shard(m, **fsdp_kwargs)
             else:
                 if isinstance(m, modules.TransformerDecoderLayer):
-                    fully_shard(m)
-
-        fully_shard(model)
+                    fully_shard(m, **fsdp_kwargs)
+        fully_shard(model, **fsdp_kwargs)
 
         if lora_weights_state_dict:
-            utils.load_from_full_model_state_dict(
+            lora_missing, lora_unexpected = utils.load_from_full_model_state_dict(
                 model, lora_weights_state_dict, self._device, self._is_rank_zero
             )
+        else:
+            lora_missing, lora_unexpected = None, None
 
         with utils.set_default_dtype(self._dtype), self._device:
+            lora_device = "cpu" if cfg_fsdp and cfg_fsdp.cpu_offload else self._device
             for m in model.modules():
                 if isinstance(m, LoRALinear) and not lora_weights_state_dict:
                     # lora may not be covered in state dict
                     # if finetune for the 1st time
-                    m.lora_a.to_empty(device=self._device)
-                    m.lora_b.to_empty(device=self._device)
+                    m.lora_a.to_empty(device=lora_device)
+                    m.lora_b.to_empty(device=lora_device)
                     m.initialize_parameters()
                 # RoPE is not covered in state dict
                 if isinstance(m, modules.RotaryPositionalEmbeddings):
                     m.reset_parameters()
 
-        utils.load_from_full_model_state_dict(
+        base_missing, base_unexpected = utils.load_from_full_model_state_dict(
             model, base_model_state_dict, self._device, self._is_rank_zero
         )
-
-        # LoRA hyper-params needed for merging weights while saving checkpoints
-        self._lora_rank = cfg_model.lora_rank
-        self._lora_alpha = cfg_model.lora_alpha
-
+        validate_missing_and_unexpected_for_lora(
+            lora_attn_modules=self._lora_attn_modules,
+            apply_lora_to_mlp=self._apply_lora_to_mlp,
+            apply_lora_to_output=self._apply_lora_to_output,
+            base_missing=base_missing,
+            base_unexpected=base_unexpected,
+            lora_missing=lora_missing,
+            lora_unexpected=lora_unexpected,
+        )
         # Ensure no params and buffers are on meta device
         utils.validate_no_params_on_meta_device(model)
 
@@ -590,6 +584,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
