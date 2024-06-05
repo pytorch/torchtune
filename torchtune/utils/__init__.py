@@ -38,6 +38,8 @@ from .constants import (  # noqa
     SEED_KEY,
     TOTAL_EPOCHS_KEY,
 )
+
+from .image_transforms_utils import find_supported_resolutions
 from .logging import get_logger
 from .memory import (  # noqa
     cleanup_before_training,
@@ -57,10 +59,6 @@ from .precision import (
 )
 from .quantization import get_quantizer_mode
 from .seed import set_seed
-
-from .image_transforms_utils import (
-    find_supported_resolutions
-)
 
 __all__ = [
     "transform_opt_state_dict",

@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
 
 import math
@@ -17,9 +23,8 @@ from torchvision.transforms.v2 import functional as F
 
 logger = logging.getLogger(__name__)
 
-ImageInput = Union[
-    "PIL.Image.Image", np.ndarray, "torch.Tensor"
-]  # noqa
+ImageInput = Union["PIL.Image.Image", np.ndarray, "torch.Tensor"]
+
 
 class GetImagePatches(nn.Module):
     def __init__(
@@ -30,15 +35,16 @@ class GetImagePatches(nn.Module):
     ) -> None:
         super().__init__()
         """
-        Class used to divide and image with variable resolutions into patches of equal sizes, including the original image
-        resized to [patch_size, patch_size].
+        Class used to divide and image with variable resolutions into patches of equal sizes,
+        including the original image resized to [patch_size, patch_size].
 
         Forward returns a tensor of shape [num_patches + 1, channels, patch_size, patch_size].
 
         Args:
             possible_resolutions (List[Tuple[int, int]]): List of possible resolutions as [height, width].
             patch_size (int): Size of the patches to divide the image into.
-            resample (Union[str, torchvision.transforms.InterpolationMode]): Resampling method, either 'bilinear', 'bicubic' or torchvision.transforms.InterpolationMode.
+            resample (Union[str, torchvision.transforms.InterpolationMode]):
+            Resampling method, either 'bilinear', 'bicubic' or torchvision.transforms.InterpolationMode.
         """
 
         self.possible_resolutions = torch.tensor(possible_resolutions)
@@ -51,7 +57,7 @@ class GetImagePatches(nn.Module):
             self.resample = torchvision.transforms.InterpolationMode.BICUBIC
         else:
             raise ValueError(
-                f"resample must be of type torchvision.transforms.InterpolationMode or string ['bilinear','bicubic']. Got {resample}."
+                "resample must be of type torchvision.transforms.InterpolationMode or ['bilinear', 'bicubic]."
             )
 
         self.center_crop = v2.CenterCrop(size=patch_size)
@@ -61,7 +67,7 @@ class GetImagePatches(nn.Module):
     @staticmethod
     def _get_new_size_without_distortion(
         image_size: Tuple[int, int],
-        target_resolution: Tuple[int, int],
+        target_resolution: List[int],
     ) -> Tuple[int, int]:
 
         """
@@ -70,7 +76,7 @@ class GetImagePatches(nn.Module):
 
         Args:
             image_size (Tuple[int, int]): The original dimensions of the image (height, width).
-            target_resolution (Tuple[int, int]): The desired resolution to fit the image into (height, width).
+            target_resolution (List[int]): The desired resolution to fit the image into (height, width).
         Returns:
             Tuple[int, int]: The optimal dimensions (height, width) to which the image should be resized.
         Example:
@@ -130,7 +136,7 @@ class GetImagePatches(nn.Module):
     @staticmethod
     def _select_best_resolution(
         original_size: Tuple[int, int], possible_resolutions: torch.Tensor
-    ) -> Tuple[int, int]:
+    ) -> List[int]:
         """
         Selects the best resolution from a list of possible resolutions based on the original size.
 
@@ -146,12 +152,12 @@ class GetImagePatches(nn.Module):
 
         Returns:
             list: The best fit resolution in the format [height, width].
-        
+
         Example:
-            >>> _select_best_resolution((200, 300), [(100, 100), (200, 200), (300, 300), (400, 400)])
-            (300, 300)
-            >>> _select_best_resolution((800, 600), [(600, 800), (1600, 1200), (80, 60)])
-            (1600, 1200)
+            >>> _select_best_resolution((200, 300), torch.tensor[[100, 100], [200, 200], [300, 300], [400, 400]])
+            [300, 300]
+            >>> _select_best_resolution((800, 600), torch.tensor[[600, 800], [1600, 1200], [80, 60]])
+            [1600, 1200]
         """
 
         original_height, original_width = original_size
@@ -211,7 +217,7 @@ class GetImagePatches(nn.Module):
     def forward(self, image: torch.Tensor) -> torch.Tensor:
 
         _, height, width = image.shape
-        image_size = [height, width]
+        image_size = (height, width)
 
         best_resolution = self._select_best_resolution(
             image_size, self.possible_resolutions
@@ -250,7 +256,7 @@ class GetImagePatches(nn.Module):
         # center_cropped to 200x200. First and third patches are not cropped.
         image_patches = [self.center_crop(patch) for patch in image_patches]
 
-        # original image is resized to a square of side self.patch_size
+        # original image is resized, with distortion, to a square of side self.patch_size
         # and concatenated to patches
         patch_sized_image = F.resize(
             image,
@@ -267,37 +273,21 @@ class ImageProcessor(nn.Module):
     def __init__(
         self,
         patch_size: int = 336,
-        possible_resolutions: Optional[List[Tuple[int, int]]] = [
-            (224, 896),
-            (448, 448),
-            (224, 224),
-            (896, 224),
-            (224, 672),
-            (672, 224),
-            (224, 448),
-            (448, 224),
-        ],
+        possible_resolutions: Optional[Tuple[Tuple[int, int]]] = None,
         max_num_chunks: int = 4,
         resample: str = "bicubic",
         do_rescale: bool = True,
         rescale_factor: Union[int, float] = 1 / 255,
         do_normalize: bool = True,
-        image_mean: Optional[Union[float, List[float]]] = [
-            0.48145466,
-            0.4578275,
-            0.40821073,
-        ],
-        image_std: Optional[Union[float, List[float]]] = [
-            0.26862954,
-            0.26130258,
-            0.27577711,
-        ],
+        image_mean: Optional[Union[float, Tuple[float]]] = None,
+        image_std: Optional[Union[float, Tuple[float]]] = None,
     ) -> None:
         """
         Args:
             patch_size (int): Size of the patches to divide the image into.
             possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
-            max_num_chunks (int): Maximum number of chunks for processing high-resolution images.
+            max_num_chunks (int): Only used possible_resolutions is NOT given. Maximum number of chunks for processing
+            high-resolution images.
             resample (str): Resampling method used when resizing images.
             do_rescale (bool): Flag to determine whether to rescale the image by `rescale_factor`.
             rescale_factor (Union[int, float]): Scale factor used if rescaling the image.
@@ -308,6 +298,11 @@ class ImageProcessor(nn.Module):
         super().__init__()
 
         logger.info("Initializating ImageProcessor...")
+
+        if image_mean is None:
+            image_mean = [0.48145466, 0.4578275, 0.40821073]
+        if image_std is None:
+            image_std = [0.26862954, 0.26130258, 0.27577711]
 
         # If possible_resolutions are not given, then calculate possible ones based on max_num_chunks
         if not possible_resolutions:
@@ -326,20 +321,19 @@ class ImageProcessor(nn.Module):
         )
 
         _preprocess = []
-
         if do_rescale:
-            _preprocess.append(
-                v2.Normalize(mean=[0] * 3, std=[1 / rescale_factor] * 3)
-            )
+            _preprocess.append(v2.Normalize(mean=[0] * 3, std=[1 / rescale_factor] * 3))
 
         if do_normalize:
             _preprocess.append(v2.Normalize(mean=image_mean, std=image_std))
 
         self._preprocess = nn.Sequential(*_preprocess)
 
-    def preprocess(self, image: ImageInput) -> Dict[str, torch.Tensor | Tuple[int, int]]:
+    def preprocess(
+        self, image: ImageInput
+    ) -> Dict[str, torch.Tensor | Tuple[int, int]]:
 
-        # Make image have dimension [3, H, W]
+        # Make image have dimension [3, H, W]. Input can be grayscale, RGB, channels-first or last.
         image = F.grayscale_to_rgb_image(F.to_image(image))
         _, height, width = image.shape
 
