@@ -29,7 +29,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
 )
 from ._generation import generate
-from ._profiler import profiler
+from ._profiler import setup_torch_profiler, PROFILER_KEY
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
