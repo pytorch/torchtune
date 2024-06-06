@@ -248,21 +248,20 @@ You may need to remove certain parameters from the config when changing componen
 through overrides that require different keyword arguments. You can do so by using
 the `~` flag and specify the dotpath of the config field you would like to remove.
 For example, if you want to override a built-in config and use the ``bitsandbytes.optim.PagedAdamW8bit``
-optimizer, you may need to delete parameters like ``foreach`` or ``fused`` which are
+optimizer, you may need to delete parameters like ``foreach`` which are
 specific to PyTorch optimizers. Note that this example requires that you have ``bitsandbytes``
 installed.
 
 .. code-block:: yaml
 
-    # In configs/llama3/70B_full.yaml
+    # In configs/llama3/8B_full.yaml
     optimizer:
       _component_: torch.optim.AdamW
       lr: 2e-5
       foreach: False
-      fused: True
 
 .. code-block:: bash
 
     # Change to PagedAdamW8bit and remove fused, foreach
-    tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full \
-    optimizer=bitsandbytes.optim.PagedAdamW8bit ~optimizer.foreach ~optimizer.fused
+    tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full \
+    optimizer=bitsandbytes.optim.PagedAdamW8bit ~optimizer.foreach
