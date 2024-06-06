@@ -184,8 +184,9 @@ files:
     tokenizer = ...
     dataset = text_completion_dataset(
         tokenizer,
-        source="txt",
+        source="text",
         data_files="path/to/my_data.txt",
+        split="train",
     )
 
 .. code-block:: yaml
@@ -193,15 +194,16 @@ files:
     # YAML config
     dataset:
       _component_: torchtune.datasets.text_completion_dataset
-      source: txt
+      source: text
       data_files: path/to/my_data.txt
+      split: train
 
 .. code-block:: bash
 
     # Command line
-    tune run full_finetune_single_device --config llama3/8B_full_single_device \
-    dataset=torchtune.datasets.text_completion_dataset dataset.source=txt \
-    dataset.data_files=path/to/my_data.txt
+    tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full \
+    dataset=torchtune.datasets.text_completion_dataset dataset.source=text \
+    dataset.data_files=path/to/my_data.txt dataset.split=train
 
 Custom instruct dataset and instruct templates
 ----------------------------------------------
@@ -408,7 +410,8 @@ You can even mix instruct and chat datasets or other custom datasets.
     - _component_: torchtune.datasets.instruct_dataset
       source: samsum
       template: torchtune.data.SummarizeTemplate
-      column_map: {"output": "summary"}
+      column_map:
+        output: summary
       split: train
       train_on_input: False
     - _component_: torchtune.datasets.chat_dataset
