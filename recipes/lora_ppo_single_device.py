@@ -21,7 +21,6 @@ from torchtune import config, utils
 
 from torchtune.datasets import ConcatDataset
 from torchtune.models.mistral.modules import TransformerLMWithValueHead
-from torchtune.models.mistral.utils import generate_next_token_with_value_head_model
 
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
@@ -35,7 +34,10 @@ from torchtune.utils.pooling import pool_sequence_logits
 from torchtune.utils.ppo_utils import (
     AdaptiveKLController,
     estimate_advantages,
+    generate,
+    generate_next_token_with_value_head_model,
     get_rewards,
+    left_padded_collate,
     whiten,
 )
 from tqdm import tqdm
@@ -390,12 +392,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         for batch_start in range(0, input_ids.shape[0], forward_batch_size):
             batch_end = min(batch_start + forward_batch_size, input_ids.shape[0])
             batch_input_ids = input_ids[batch_start:batch_end]
-            with self._device:
-                model.decoder.setup_caches(
-                    batch_size=batch_input_ids.shape[0], dtype=self._dtype
-                )
+
             outputs.extend(
-                utils.generate(
+                generate(
                     model=model,
                     prompt=batch_input_ids,
                     max_generated_tokens=self.max_generated_tokens,
@@ -404,16 +403,13 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     stop_tokens=self._tokenizer.stop_tokens,
                     pad_id=self._tokenizer.pad_id,
                     custom_generate_next_token=generate_next_token_with_value_head_model,
+                    dtype=self._dtype,
                 )
             )
-            model.decoder.reset_caches()
         return outputs
 
     def _setup_data(
-        self,
-        cfg_dataset: DictConfig,
-        shuffle: bool,
-        batch_size: int,
+        self, cfg_dataset: DictConfig, shuffle: bool, batch_size: int
     ) -> Tuple[DistributedSampler, DataLoader]:
         """
         All data related setup happens here.
@@ -439,10 +435,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
-                utils.padded_collate,
+                left_padded_collate,
+                max_seq_len=cfg_dataset.max_seq_len,
                 padding_idx=self._tokenizer.pad_id,
-                # TODO (SalmanMohammadi): Add support for other ignore indices
-                ignore_idx=0,
             ),
         )
 
@@ -465,28 +460,16 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                 # generating the current trajectory in inference mode
                 with torch.no_grad():
-                    # this should support any dataset format
-                    input_ids, *_ = batch
+                    # this should support any dataset format since the collator just returns input ids
+                    input_ids = batch
                     input_ids = input_ids.to(self._device)
 
-                    input_ids = self._tokenizer.encode("Hello World") + [
-                        self._tokenizer.pad_id
-                    ]
-                    input_ids = torch.tensor([input_ids, input_ids]).to(self._device)
                     responses = self.batched_generate(input_ids, self._model)
 
                     # generating with lora adapters disabled gives us the pre-finetuning ref model
                     with disable_adapter(self._model):
                         ref_responses = self.batched_generate(input_ids, self._model)
 
-                    # TODO pad out responses to max_generated_tokens
-
-                    for input_id, response in zip(input_ids, responses):
-                        print(len(input_id), len(response))
-                        # check for padding
-                        print(response == self._tokenizer.eos_id)
-                        print(response)
-                    sys.exit()
                     # ref policy and value estimates for the current trajectory
                     # pi_{theta_old] and V_{phi_old}
                     # [b, s, v], [b, s, 1]

@@ -152,7 +152,7 @@ class TestEstimateAdvantages(unittest.TestCase):
 class TestGenerate:
     """
     Test class for incremental text generation functionality in :func:`~torchtune.utils.ppo_utils.generate`.
-    See :func:`~torchtune.tests.utils.test_generation` for context.
+    See `torchtune.tests.utils.test_generation` for context.
     """
 
     @pytest.fixture

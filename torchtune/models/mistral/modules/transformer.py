@@ -196,7 +196,7 @@ class TransformerLMWithValueHead(nn.Module):
             - m_s: max seq len
         """
         # shape: [b, s, d]
-        h = self.decoder(tokens, input_pos, mask)
+        h = self.decoder(tokens, input_pos=input_pos, mask=mask)
 
         # shape: [b, s, v]
         lm_output = self.output(h).float()

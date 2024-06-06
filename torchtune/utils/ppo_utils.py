@@ -4,11 +4,34 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
+from torch.nn.utils.rnn import pad_sequence
 from torchtune.utils._generation import sample, update_stop_tokens_tracker
+
+
+def left_padded_collate(
+    batch: List[Dict[str, List[int]]], max_seq_len: int, padding_idx: int = 0
+) -> torch.Tensor:
+    """
+    Pads a batch of sequences with left padding to the maximum sequence length in the batch.
+    Args:
+        batch (List[Dict[str, List[int]]]): A list of dictionaries containing inputs.
+        max_seq_len (int): The maximum sequence length to pad to.
+        padding_idx (int): The padding index. Defaults to 0.
+    Returns:
+        torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
+
+    """
+    pad_toks = pad_sequence(
+        [torch.tensor(x["tokens"][::-1]) for x in batch],
+        batch_first=True,
+        padding_value=padding_idx,
+    )
+    seq_idxs_rev = torch.arange(max_seq_len - 1, -1, -1)
+    return torch.stack([tok[seq_idxs_rev] for tok in pad_toks])
 
 
 class AdaptiveKLController:
@@ -189,7 +212,7 @@ def get_causal_mask(
     tokens: torch.Tensor,
     *,
     padding_id: int = 0,
-    fill_value: float = torch.finfo(torch.float32).min,
+    dtype: torch.dtype = torch.float32,
 ) -> torch.Tensor:
     """
     Generates a causal attention mask for the given tokens with padding values
@@ -199,13 +222,14 @@ def get_causal_mask(
     Args:
         tokens (torch.Tensor): tensor of token IDs with shape [bsz x seq_length]
         padding_id (int): token ID to use for padding, default 0.
-        fill_value (float): value to fill masked positions with, default torch.finfo(torch.float32).min
+        dtype (torch.dtype): dtype to infer fill value for masking
     Returns:
         torch.Tensor: Casual mask with shape [bsz x seq_length x seq_length]
     """
+    fill_value = torch.finfo(dtype).min
     mask = torch.triu(
         torch.full((tokens.shape[-1], tokens.shape[-1]), fill_value), diagonal=1
-    )
+    ).to(tokens.device, dtype=dtype)
     padding_mask = (
         (tokens == padding_id).unsqueeze(1).expand(-1, tokens.shape[1], tokens.shape[1])
     )
@@ -224,6 +248,7 @@ def generate(
     top_k=None,
     stop_tokens=None,
     custom_generate_next_token=None,
+    dtype: torch.dtype = torch.float32,
 ):
     """
     Generates tokens from a model conditioned on a prompt. In contrast to ~torchtune.utils._generation.generate~,
@@ -287,9 +312,7 @@ def generate(
             )
 
         padding_mask = generated_tokens == pad_id
-        mask = get_causal_mask(generated_tokens, padding_id=pad_id).to(
-            generated_tokens.device
-        )
+        mask = get_causal_mask(generated_tokens, padding_id=pad_id, dtype=dtype)
         if padding_mask is not None:
             input_pos = (~padding_mask).long().cumsum(-1) - (~padding_mask).long()
             input_pos = input_pos.to(device=generated_tokens.device, dtype=torch.int)
