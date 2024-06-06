@@ -7,17 +7,16 @@
 import os
 import sys
 import time
-
 from functools import partial
 from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig, ListConfig
-
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
+
 from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
@@ -28,6 +27,11 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import (
+    PROFILER_KEY,
+    setup_torch_profiler,
+    should_profile,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -97,7 +101,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
-
         self._device = utils.get_device(device=cfg.device)
         # Reduced precision logic
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
@@ -156,41 +159,21 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        try:
-            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-
-            # on mismatch, warn the user and prevent the override
-            if self.seed != ckpt_dict[utils.SEED_KEY]:
-                warn(
-                    message=(
-                        "Config value for seed does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
-                    )
-                )
-                self.seed = ckpt_dict[utils.SEED_KEY]
-            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
-                warn(
-                    message=(
-                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
-                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
-                    )
-                )
-                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
-
-            # on mismatch, warn the user but allow the override
-            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
-                warn(
-                    message=(
-                        "Config value for total_epochs does not match the checkpoint value, "
-                        f"using the config value: {self.total_epochs}"
-                    )
-                )
-
-        except KeyError as e:
-            raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state. "
-                "Are you sure you passed in the right recipe checkpoint?"
-            ) from e
+        # If seed, total_epoch or max_steps_per_epoch don't match,
+        # warn the user and overwrite
+        if (
+            self.seed != ckpt_dict[utils.SEED_KEY]
+            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
+        ):
+            warn(
+                message="""Configured value for seed, epochs or max_steps_per_epoch
+                does not match the value stored in checkpoint."""
+            )
+        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
+        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
+        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -263,8 +246,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        self._profiler_enabled = cfg.profiler.enabled
-        self._profiler = config.instantiate(cfg.profiler)
+        self._profiler_enabled = should_profile(cfg)
+        # Returns a fake profiling context if profiling is not enabled
+        self._profiler = setup_torch_profiler(cfg)
+        if self._profiler_enabled:
+            log.info(
+                f" Profiler is initialized with {OmegaConf.resolve(cfg[PROFILER_KEY])}"
+            )
 
     def _setup_model(
         self,
