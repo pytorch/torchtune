@@ -587,7 +587,7 @@
             <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
-            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">)</span>
+            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span>
 
@@ -815,7 +815,7 @@
             <span class="n">converted_state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
-            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">)</span>
+            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">converted_state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">converted_state_dict</span></div>
 
@@ -1028,7 +1028,7 @@
             <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">adapter_state_dict</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
-            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">)</span>
+            <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
 
