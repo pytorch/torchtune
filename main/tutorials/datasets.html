@@ -576,22 +576,24 @@ files:</p>
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="o">...</span>
 <span class="n">dataset</span> <span class="o">=</span> <span class="n">text_completion_dataset</span><span class="p">(</span>
     <span class="n">tokenizer</span><span class="p">,</span>
-    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;txt&quot;</span><span class="p">,</span>
+    <span class="n">source</span><span class="o">=</span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
     <span class="n">data_files</span><span class="o">=</span><span class="s2">&quot;path/to/my_data.txt&quot;</span><span class="p">,</span>
+    <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.text_completion_dataset</span>
-<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">txt</span>
+<span class="w">  </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text</span>
 <span class="w">  </span><span class="nt">data_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/my_data.txt</span>
+<span class="w">  </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
 </pre></div>
 </div>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Command line</span>
-tune<span class="w"> </span>run<span class="w"> </span>full_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full_single_device<span class="w"> </span><span class="se">\</span>
-<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.text_completion_dataset<span class="w"> </span>dataset.source<span class="o">=</span>txt<span class="w"> </span><span class="se">\</span>
-dataset.data_files<span class="o">=</span>path/to/my_data.txt
+tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full<span class="w"> </span><span class="se">\</span>
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.text_completion_dataset<span class="w"> </span>dataset.source<span class="o">=</span>text<span class="w"> </span><span class="se">\</span>
+dataset.data_files<span class="o">=</span>path/to/my_data.txt<span class="w"> </span>dataset.split<span class="o">=</span>train
 </pre></div>
 </div>
 </section>
@@ -777,7 +779,8 @@ You can even mix instruct and chat datasets or other custom datasets.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
 <span class="w">    </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">samsum</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.data.SummarizeTemplate</span>
-<span class="w">    </span><span class="nt">column_map</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="s">&quot;output&quot;</span><span class="p p-Indicator">:</span><span class="w"> </span><span class="s">&quot;summary&quot;</span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">column_map</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">output</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">summary</span>
 <span class="w">    </span><span class="nt">split</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">train</span>
 <span class="w">    </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.chat_dataset</span>

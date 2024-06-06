@@ -507,7 +507,6 @@ keyword arguments not specified in the config if we’d like:</p>
 
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Note the API of the tokenizer we specified - we need to pass in a path</span>
@@ -575,7 +574,6 @@ make it significantly easier to debug.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># dont do this</span>
 <span class="nt">alpaca_dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 <span class="nt">slimorca_dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">...</span>
 
@@ -583,7 +581,6 @@ make it significantly easier to debug.</p>
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="c1"># change this in config or override when needed</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
 </section>
@@ -597,12 +594,10 @@ component dotpath.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># don&#39;t do this</span>
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets._alpaca.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 
 <span class="c1"># do this</span>
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
 </section>
@@ -630,12 +625,33 @@ via the <code class="code docutils literal notranslate"><span class="pre">_compo
 name directly. Any nested fields in the components can be overridden with dot notation.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.alpaca_dataset</span>
-<span class="w">  </span><span class="nt">train_on_input</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to slimorca_dataset and set train_on_input to False</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to slimorca_dataset and set train_on_input to True</span>
 tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_device<span class="w"> </span>--config<span class="w"> </span>my_config.yaml<span class="w"> </span><span class="se">\</span>
-<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>False
+<span class="nv">dataset</span><span class="o">=</span>torchtune.datasets.slimorca_dataset<span class="w"> </span>dataset.train_on_input<span class="o">=</span>True
+</pre></div>
+</div>
+</section>
+<section id="removing-config-fields">
+<h3>Removing config fields<a class="headerlink" href="#removing-config-fields" title="Permalink to this heading">¶</a></h3>
+<p>You may need to remove certain parameters from the config when changing components
+through overrides that require different keyword arguments. You can do so by using
+the <cite>~</cite> flag and specify the dotpath of the config field you would like to remove.
+For example, if you want to override a built-in config and use the <code class="docutils literal notranslate"><span class="pre">bitsandbytes.optim.PagedAdamW8bit</span></code>
+optimizer, you may need to delete parameters like <code class="docutils literal notranslate"><span class="pre">foreach</span></code> which are
+specific to PyTorch optimizers. Note that this example requires that you have <code class="docutils literal notranslate"><span class="pre">bitsandbytes</span></code>
+installed.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># In configs/llama3/8B_full.yaml</span>
+<span class="nt">optimizer</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.AdamW</span>
+<span class="w">  </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2e-5</span>
+<span class="w">  </span><span class="nt">foreach</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Change to PagedAdamW8bit and remove fused, foreach</span>
+tune<span class="w"> </span>run<span class="w"> </span>--nproc_per_node<span class="w"> </span><span class="m">4</span><span class="w"> </span>full_finetune_distributed<span class="w"> </span>--config<span class="w"> </span>llama3/8B_full<span class="w"> </span><span class="se">\</span>
+<span class="nv">optimizer</span><span class="o">=</span>bitsandbytes.optim.PagedAdamW8bit<span class="w"> </span>~optimizer.foreach
 </pre></div>
 </div>
 </section>
@@ -700,6 +716,7 @@ tune<span class="w"> </span>run<span class="w"> </span>lora_finetune_single_devi
 </li>
 <li><a class="reference internal" href="#command-line-overrides">Command-line overrides</a><ul>
 <li><a class="reference internal" href="#overriding-components">Overriding components</a></li>
+<li><a class="reference internal" href="#removing-config-fields">Removing config fields</a></li>
 </ul>
 </li>
 </ul>
