@@ -246,7 +246,7 @@ class EleutherEvalRecipe(EvalRecipeInterface):
             task_dict = get_task_dict(self._tasks, task_manager)
         else:
             task_dict = get_task_dict(self._tasks)
-            
+
         logger.info(f"Running evaluation on {self._tasks} tasks.")
         output = evaluate(
             model_eval_wrapper,
