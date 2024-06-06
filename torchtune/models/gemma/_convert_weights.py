@@ -13,9 +13,9 @@ from torchtune.models.convert_weights import _FROM_HF, get_mapped_key
 
 def gemma_hf_to_tune(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 32,
-    num_kv_heads: int = 32,
-    dim: int = 4096,
+    num_heads: int = 8,
+    num_kv_heads: int = 1,
+    dim: int = 2048,
     head_dim: int = 256,
 ) -> Dict[str, torch.Tensor]:
     """
@@ -28,9 +28,9 @@ def gemma_hf_to_tune(
 
     Args:
         state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
-        num_heads (int): Number of heads in the model.
-        num_kv_heads (int): Number of heads in the key/value projection layers.
-        dim (int): Dimension of the model.
+        num_heads (int): Number of heads in the model. Defaults to 8.
+        num_kv_heads (int): Number of heads in the key/value projection layers. Defaults to 1.
+        dim (int): Dimension of the model. Defaults to 2048.
         head_dim (int): Dimension of the attention head. This value is explicit in Gemma confs. Defaults to 256.
 
     Returns:
@@ -48,7 +48,7 @@ def gemma_hf_to_tune(
     for key, value in state_dict.items():
         if (
             "rotary_emb.inv_freq" not in key and "lm_head.weight" not in key
-        ):  # Skip loading the position embeddings
+        ):  # Skip loading the position embeddings and output projection weights
             new_key = get_mapped_key(key, _FROM_HF)
             if "q_proj" in key:
                 value = _permute(value, num_heads)
@@ -60,9 +60,9 @@ def gemma_hf_to_tune(
 
 def gemma_tune_to_hf(
     state_dict: Dict[str, torch.Tensor],
-    num_heads: int = 32,
-    num_kv_heads: int = 32,
-    dim: int = 4096,
+    num_heads: int = 8,
+    num_kv_heads: int = 1,
+    dim: int = 2048,
     head_dim: int = 256,
 ) -> Dict[str, torch.Tensor]:
     """
@@ -70,13 +70,14 @@ def gemma_tune_to_hf(
 
     This function takes a state dictionary in TorchTune's format, which contains the weights of a Gemma model,
     and converts it into a format that can be loaded into a Hugging Face model.
-    The logic is identical to :func:`~torchtune.models.convert_weights.tune_to_hf`, but with a different mapping.
+    The logic is identical to :func:`~torchtune.models.convert_weights.tune_to_hf`, but saves the tied
+    output projection weights.
 
     Args:
         state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
-        num_heads (int, optional): Number of heads in the model. Defaults to 32.
-        num_kv_heads (int, optional): Number of heads in the key/value projection layers. Defaults to 32.
-        dim (int, optional): Dimension of the model. Defaults to 4096.
+        num_heads (int, optional): Number of heads in the model. Defaults to 8.
+        num_kv_heads (int, optional): Number of heads in the key/value projection layers. Defaults to 1.
+        dim (int, optional): Dimension of the model. Defaults to 2048.
         head_dim (int): Dimension of the attention head. This value is explicit in Gemma confs. Defaults to 256.
 
     Returns:
