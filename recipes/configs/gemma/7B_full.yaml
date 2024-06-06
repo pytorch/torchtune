@@ -1,17 +1,17 @@
 # Config for multi-device full finetuning in full_finetune_distributed.py
-# using a gemma 2B model
+# using a gemma 7B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-2b --hf-token <HF_TOKEN> --output-dir /tmp/gemma --ignore-patterns ""
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
 #
 # To launch on 4 devices, run the following command from root:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/2B_full
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/7B_full
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/2B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/7B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only when the model is being fine-tuned on 2+ GPUs.
 
@@ -19,7 +19,7 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.gemma.gemma_tokenizer
-  path: /tmp/gemma/tokenizer.model
+  path: /tmp/gemma-7b/tokenizer.model
 
 # Dataset
 dataset:
@@ -29,14 +29,16 @@ shuffle: True
 
 # Model Arguments
 model:
-  _component_: torchtune.models.gemma.gemma_2b
+  _component_: torchtune.models.gemma.gemma_7b
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma/
+  checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors,
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: /tmp/gemma
@@ -44,8 +46,8 @@ checkpointer:
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
-batch_size: 2
-epochs: 3
+batch_size: 1
+epochs: 1
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5

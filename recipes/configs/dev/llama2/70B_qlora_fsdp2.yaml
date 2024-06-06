@@ -1,4 +1,4 @@
-# Config for multi-device LoRA in lora_finetune_distributed.py
+# Config for multi-device QLoRA in lora_finetune_fsdp2.py
 # using a Llama2 70B model
 #
 # This config assumes that you've run the following command before launching
@@ -6,14 +6,14 @@
 #   tune download meta-llama/Llama-2-70b-hf --output-dir /tmp/Llama-2-70b-hf --hf-token <HF_TOKEN>
 #
 # This config needs 8 GPUs to run
-#   # tune run --nproc_per_node 8 lora_finetune_distributed --config llama2/70B_lora
+#   # tune run --nproc_per_node 8 lora_finetune_fsdp2 --config llama2/70B_qlora
 #
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama2.lora_llama2_70b
-  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj']
-  apply_lora_to_mlp: False
+  _component_: torchtune.models.llama2.qlora_llama2_70b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
+  apply_lora_to_mlp: True
   apply_lora_to_output: False
   lora_rank: 16
   lora_alpha: 32
@@ -50,6 +50,7 @@ resume_from_checkpoint: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
+  train_on_input: True
 seed: null
 shuffle: True
 batch_size: 2
@@ -66,13 +67,17 @@ lr_scheduler:
 loss:
   _component_: torch.nn.CrossEntropyLoss
 
+fsdp:
+  cpu_offload: False
+
 # Training
 epochs: 1
 max_steps_per_epoch: null
 gradient_accumulation_steps: 1
+compile: False
 
 # Logging
-output_dir: /tmp/lora_finetune_output
+output_dir: /tmp/qlora_finetune_output
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}

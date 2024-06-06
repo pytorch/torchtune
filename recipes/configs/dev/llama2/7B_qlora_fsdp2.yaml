@@ -1,23 +1,23 @@
-# Config for single device QLoRA with lora_finetune_single_device.py
-# using a Phi3 mini (3.8B) model
+# Config for single device QLoRA with lora_finetune_fsdp2.py
+# using a Llama2 7B model
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download microsoft/Phi-3-mini-4k-instruct --output-dir /tmp/Phi-3-mini-4k-instruct --hf-token <HF_TOKEN> --ignore-patterns ""
+#   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config phi3/mini_qlora_single_device
+#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config phi3/mini_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
 # Model Arguments
 model:
-  _component_: torchtune.models.phi3.qlora_phi3_mini
+  _component_: torchtune.models.llama2.qlora_llama2_7b
   lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
   apply_lora_to_mlp: True
   apply_lora_to_output: False
@@ -25,24 +25,26 @@ model:
   lora_alpha: 16
 
 tokenizer:
-  _component_: torchtune.models.phi3.phi3_mini_tokenizer
-  path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
+  _component_: torchtune.models.llama2.llama2_tokenizer
+  path: /tmp/Llama-2-7b-hf/tokenizer.model
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/Phi-3-mini-4k-instruct
+  checkpoint_dir: /tmp/Llama-2-7b-hf
   checkpoint_files: [
-    model-00001-of-00002.safetensors,
-    model-00002-of-00002.safetensors
+    pytorch_model-00001-of-00002.bin,
+    pytorch_model-00002-of-00002.bin
   ]
+  adapter_checkpoint: null
   recipe_checkpoint: null
-  output_dir: /tmp/Phi-3-mini-4k-instruct
-  model_type: PHI3_MINI
+  output_dir: /tmp/Llama-2-7b-hf
+  model_type: LLAMA2
 resume_from_checkpoint: False
 
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
+  train_on_input: True
 seed: null
 shuffle: True
 batch_size: 2
@@ -58,6 +60,9 @@ lr_scheduler:
 
 loss:
   _component_: torch.nn.CrossEntropyLoss
+
+fsdp:
+  cpu_offload: False
 
 # Training
 epochs: 1
@@ -77,10 +82,3 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
-
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
-profiler:
-  _component_: torchtune.utils.profiler
-  enabled: False
-  output_dir: ${output_dir}/torchtune_perf_tracing.json
