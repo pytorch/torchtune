@@ -1,0 +1,75 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a gemma 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
+#
+# To launch on 4 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/7B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/7B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only when the model is being fine-tuned on 2+ GPUs.
+
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /tmp/gemma-7b/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.gemma.gemma_7b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-7b/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/gemma
+  model_type: GEMMA
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 1
+epochs: 1
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: False
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-gemma-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False

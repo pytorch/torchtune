@@ -29,6 +29,7 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
@@ -166,30 +167,41 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        if not (
-            utils.SEED_KEY in ckpt_dict
-            and utils.TOTAL_EPOCHS_KEY in ckpt_dict
-            and utils.MAX_STEPS_KEY in ckpt_dict
-        ):
+        try:
+            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[utils.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[utils.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                warn(
+                    message=(
+                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                    )
+                )
+                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
+        except KeyError as e:
             raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state."
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
-            )
-        # If seed, total_epoch or max_steps_per_epoch don't match,
-        # warn the user and overwrite
-        if (
-            self.seed != ckpt_dict[utils.SEED_KEY]
-            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
-        ):
-            warn(
-                message="""Configured value for seed, epochs or max_steps_per_epoch
-                does not match the value stored in checkpoint."""
-            )
-        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
-        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+            ) from e
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -277,6 +289,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
            d. The ``device_id`` param ensures that the FSDP initialization happens on
               the correct device.
         """
+
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
+        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         if self._is_rank_zero:
             log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
@@ -417,8 +435,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 for single_cfg_dataset in cfg_dataset
             ]
             ds = ConcatDataset(datasets=datasets)
+            packed = False
         else:
             ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(
             ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
@@ -432,7 +452,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         if self._is_rank_zero:
@@ -506,6 +528,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     }
                 )
 
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            checkpoint_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
@@ -545,18 +579,30 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                num_tokens += input_ids.numel()
-                labels = labels.to(self._device)
+                # Both are shape [b, s]
+                tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. Currently, only sample packing in PackedDataset returns these
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                logits = self._model(input_ids)
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
+                labels = labels.to(self._device)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
@@ -586,7 +632,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))

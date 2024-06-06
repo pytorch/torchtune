@@ -57,7 +57,7 @@ def compare_lora_attention(
     with torch.no_grad():
         out = lora_llama_attn(x)
 
-    max_batch_size = None
+    batch_size = None
     attn_dropout = 0.0
     # Reference implementation: wrap our native causal self-attention with PEFT LoRAConfig
     # Copy-pasted from llama2.py
@@ -66,12 +66,12 @@ def compare_lora_attention(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     kv_cache = (
         KVCache(
-            max_batch_size=max_batch_size,
+            batch_size=batch_size,
             max_seq_len=max_seq_len,
             n_kv_heads=num_heads,
             head_dim=head_dim,
         )
-        if max_batch_size is not None
+        if batch_size is not None
         else None
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)

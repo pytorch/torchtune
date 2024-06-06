@@ -40,7 +40,7 @@ class TestGrammarDataset:
         )
 
         grammar_ds = grammar_dataset(tokenizer=tokenizer, train_on_input=True)
-        input, labels = grammar_ds[0]
+        input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id
@@ -74,7 +74,7 @@ class TestGrammarDataset:
         encoded_prompt = tokenizer.encode(text=prompt, add_bos=True, add_eos=False)
 
         # Generate the input and labels
-        input, labels = grammar_ds[0]
+        input, labels = grammar_ds[0]["tokens"], grammar_ds[0]["labels"]
 
         assert len(input) == len(labels)
         assert labels[-1] == tokenizer.eos_id

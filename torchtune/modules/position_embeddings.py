@@ -72,13 +72,16 @@ class RotaryPositionalEmbeddings(nn.Module):
         cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
-    def forward(self, x: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
-                [bsz, seq_len, num_heads, head_dim]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+                [b, s, n_h, h_d]
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b, s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
 
         Returns:
             Tensor: output tensor with RoPE applied
@@ -92,25 +95,25 @@ class RotaryPositionalEmbeddings(nn.Module):
         TODO: The implementation below can be made more efficient
         for inference.
         """
-        # input tensor has shape [b, s, n_h, n_d]
+        # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
 
-        # extract the values based on whether input_pos is set or not. When
-        # input_pos is provided, we're in inference mode
+        # extract the values based on whether input_pos is set or not
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
 
         # reshape input; the last dimension is used for computing the output.
         # Cast to float to match the reference implementation
-        # tensor has shape [b, s, n_h, n_d // 2, 2]
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
         xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
 
         # reshape the cache for broadcasting
-        # tensor has shape [1, s, 1, n_d // 2, 2]
-        rope_cache = rope_cache.view(1, xshaped.size(1), 1, xshaped.size(3), 2)
+        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d // 2, 2]
+        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
 
-        # tensor has shape [b, s, n_h, n_d // 2, 2]
+        # tensor has shape [b, s, n_h, h_d // 2, 2]
         x_out = torch.stack(
             [
                 xshaped[..., 0] * rope_cache[..., 0]
@@ -121,6 +124,6 @@ class RotaryPositionalEmbeddings(nn.Module):
             -1,
         )
 
-        # tensor has shape [b, s, n_h, n_d]
+        # tensor has shape [b, s, n_h, h_d]
         x_out = x_out.flatten(3)
         return x_out.type_as(x)

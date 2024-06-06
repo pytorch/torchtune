@@ -16,8 +16,8 @@
 # Since we don't want the tests to to incorrectly assume that recipes are
 # importable, we have to explicitly raise an error here.
 
-# TODO: Add proper link to pytorch.org/torchtune/... when the docs are live.
 raise ModuleNotFoundError(
-    "The TorchTune recipes directory isn't a package and you should not import anything from here. "
-    "Refer to our docs for detailed instructions on how to use recipes!"
+    "The torchtune recipes directory isn't a package and you should not import anything from here. "
+    "Refer to our docs for detailed instructions on how to use recipes: "
+    "https://pytorch.org/torchtune/main/deep_dives/recipe_deepdive.html"
 )

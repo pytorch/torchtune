@@ -65,6 +65,8 @@ Pre-trained models can be download from the Hugging Face Hub with the following 
     :nosignatures:
 
     phi3.phi3_mini
+    phi3.lora_phi3_mini
+    phi3.qlora_phi3_mini
 
 
 mistral
@@ -89,7 +91,7 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
 gemma
 -----
 
-All models from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
+Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
 Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
 
@@ -102,3 +104,4 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     :nosignatures:
 
     gemma.gemma_2b
+    gemma.gemma_7b

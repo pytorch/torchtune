@@ -10,7 +10,7 @@ torchtune.utils
 Checkpointing
 -------------
 
-TorchTune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
+torchtune offers checkpointers to allow seamless transitioning between checkpoint formats for training and interoperability with the rest of the ecosystem. For a comprehensive overview of
 checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpointer>`.
 
 .. autosummary::
@@ -31,8 +31,10 @@ Utilities for enabling and working with distributed training.
     :toctree: generated/
     :nosignatures:
 
+    FSDPPolicyType
     init_distributed
     get_world_size_and_rank
+    get_full_finetune_fsdp_wrap_policy
 
 .. _mp_label:
 
@@ -66,7 +68,7 @@ Utilities to reduce memory consumption during training.
 Performance and Profiling
 -------------------------
 
-TorchTune provides utilities to profile and debug the performance
+torchtune provides utilities to profile and debug the performance
 of your finetuning job.
 
 .. autosummary::
@@ -116,3 +118,4 @@ Miscellaneous
     get_logger
     get_device
     set_seed
+    generate

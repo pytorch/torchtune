@@ -28,7 +28,6 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 
@@ -51,7 +50,7 @@ resume_from_checkpoint: False
 batch_size: 2
 epochs: 3
 optimizer:
-  _component_: bitsandbytes.optim.AdamW8bit
+  _component_: bitsandbytes.optim.PagedAdamW8bit
   lr: 2e-5
 loss:
   _component_: torch.nn.CrossEntropyLoss
