@@ -43,7 +43,6 @@ resume_from_checkpoint: False
 # Dataset and Sampler
 dataset:
   _component_: torchtune.datasets.alpaca_cleaned_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 batch_size: 2
