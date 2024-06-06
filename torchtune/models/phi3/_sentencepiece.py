@@ -171,6 +171,10 @@ class Phi3MiniSentencePieceTokenizer:
         new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
 
         for message in messages:
+            # Skip system prompt
+            if ignore_system_prompts and message.role == "system":
+                continue
+
             # Prepend BOS on start of new turns
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
@@ -186,11 +190,8 @@ class Phi3MiniSentencePieceTokenizer:
                 end_of_turn = True
                 mask.append(message.masked)
             elif message.role == "system":
-                if ignore_system_prompts:
-                    continue
-                else:
-                    tokenized_messages.append(self.special_tokens["<|system|>"])
-                    mask.append(message.masked)
+                tokenized_messages.append(self.special_tokens["<|system|>"])
+                mask.append(message.masked)
             else:
                 raise ValueError(
                     f"Unknown role '{message.role}' for message: '{message.content}'"
