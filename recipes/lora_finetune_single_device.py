@@ -27,10 +27,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import (
-    setup_torch_profiler,
-    should_profile,
-)
+from torchtune.utils import setup_torch_profiler, should_profile
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")

@@ -35,10 +35,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import (
-    setup_torch_profiler,
-    should_profile,
-)
+from torchtune.utils import setup_torch_profiler, should_profile
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -272,7 +269,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
-        
+
         # Set up profiler
         self._profiler_enabled = should_profile(cfg)
         self._profiler = setup_torch_profiler(cfg)
@@ -645,7 +642,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                                 "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if self._log_peak_memory_stats:
-                                log_dict.update(utils.get_memory_stats(device=self._device))
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
                             self._metric_logger.log_dict(
                                 log_dict,
                                 step=self.global_step,
@@ -655,7 +654,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         running_loss = 0
                         num_tokens = 0
                         t0 = time.perf_counter()
-                        
+
                         # Step profiler
                         prof.step()
 
