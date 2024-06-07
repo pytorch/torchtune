@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig, ListConfig, OmegaConf
+from omegaconf import DictConfig, ListConfig
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
@@ -28,7 +28,6 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import (
-    PROFILER_KEY,
     setup_torch_profiler,
     should_profile,
 )
@@ -250,9 +249,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Returns a fake profiling context if profiling is not enabled
         self._profiler = setup_torch_profiler(cfg)
         if self._profiler_enabled:
-            log.info(
-                f" Profiler is initialized with {OmegaConf.resolve(cfg[PROFILER_KEY])}"
-            )
+            log.info("Profiler is initialized.")
 
     def _setup_model(
         self,
