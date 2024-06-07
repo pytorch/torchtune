@@ -80,3 +80,33 @@ log_peak_memory_stats: False
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: False
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: /tmp/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  CPU: True
+  CUDA: True
+
+  #`torch.profiler.profile` options
+  profile:
+    # _component_ is optional as the setup method will handle
+    _component_: torch.profiler.profile
+    profile_memory: False
+    with_stack: False
+    record_shapes: True
+    with_flops: False
+  
+  #`torch.profiler.schedule` options
+  schedule:
+    # _component_ is optional as the setup method will handle
+    _component_: torch.profiler.schedule
+    wait: 1
+    warmup: 1
+    active: 1
+    repeat: 1

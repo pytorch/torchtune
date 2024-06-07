@@ -89,7 +89,9 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
-    "profiler",
+    "setup_torch_profiler",
+    "should_profile",
+    "PROFILER_KEY",
     "get_quantizer_mode",
     "generate",
 ]
