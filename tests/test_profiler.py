@@ -129,7 +129,8 @@ def test_instantiate_full(profiler_cfg, reference_profiler_full):
 
 def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     from torchtune.utils._profiler import (
-        _DEFAULT_SCHEDULE_DISTRIBUTED, _DEFAULT_SCHEDULE_SINGLE
+        _DEFAULT_SCHEDULE_DISTRIBUTED,
+        _DEFAULT_SCHEDULE_SINGLE,
     )
 
     cfg = OmegaConf.create(profiler_cfg)
@@ -137,12 +138,16 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     check_profiler_attrs(profiler, reference_profiler_basic)
 
     # Test that after removing schedule, setup method will implement default schedule
-    with patch("torchtune.utils._profiler.get_world_size_and_rank", return_value=(1, 0)):
+    with patch(
+        "torchtune.utils._profiler.get_world_size_and_rank", return_value=(1, 0)
+    ):
         cfg[PROFILER_KEY].pop("schedule")
         profiler = setup_torch_profiler(cfg)
         assert cfg[PROFILER_KEY].schedule == _DEFAULT_SCHEDULE_SINGLE
 
-    with patch("torchtune.utils._profiler.get_world_size_and_rank", return_value=(2, 0)):
+    with patch(
+        "torchtune.utils._profiler.get_world_size_and_rank", return_value=(2, 0)
+    ):
         cfg[PROFILER_KEY].pop("schedule")
         profiler = setup_torch_profiler(cfg)
         assert cfg[PROFILER_KEY].schedule == _DEFAULT_SCHEDULE_DISTRIBUTED

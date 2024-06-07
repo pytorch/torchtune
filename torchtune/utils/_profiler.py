@@ -4,22 +4,64 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import contextlib
+
 import os
 import time
 from functools import partial
 from pathlib import Path
+from typing import ContextManager, Optional
 
 import torch
 import torch.distributed
 from omegaconf import DictConfig, OmegaConf
 from torch._C._profiler import _ExperimentalConfig
-from torch.profiler import tensorboard_trace_handler
+from torch.profiler import profile, tensorboard_trace_handler
+from torchtune import config
+from torchtune.utils import get_world_size_and_rank
 
 from torchtune.utils.logging import get_logger
-from torchtune.utils import get_world_size_and_rank
-from torchtune import config
 
 log = get_logger("INFO")
+
+
+def profiler(
+    enabled: Optional[bool] = False,
+    output_dir: Optional[str] = "./torchtune_perf_tracing.json",
+) -> ContextManager:
+    """
+    Utility component that wraps around `torch.profiler` to profile model's operators.
+    See https://pytorch.org/docs/stable/profiler.html for more details.
+    The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps
+    Note: Enabling pytorch profiler may have training speed reduction.
+
+    Args:
+        enabled (Optional[bool]): Enable pytorch profiler. Default is False.
+        output_dir (Optional[str]): Tracing file output path. Default is "./torchtune_perf_tracing.json".
+
+    Returns:
+        ContextManager: pytorch profiler context manager
+    """
+
+    def trace_handler(prof) -> None:
+        prof.export_chrome_trace(output_dir)
+
+    return (
+        profile(
+            activities=[
+                torch.profiler.ProfilerActivity.CPU,
+                torch.profiler.ProfilerActivity.CUDA,
+            ],
+            schedule=torch.profiler.schedule(wait=100, warmup=5, active=5, repeat=1),
+            on_trace_ready=trace_handler,
+            record_shapes=True,
+            profile_memory=False,
+            with_stack=False,
+        )
+        if enabled
+        else contextlib.nullcontext()
+    )
+
 
 PROFILER_KEY = "profiler"
 _DEFAULT_PROFILER_ACTIVITIES = {
@@ -144,7 +186,7 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
     NOTE: Enabling the profiler may have training speed reduction.
 
     Args:
-        cfg (DictConfig): profiler config with following options:    
+        cfg (DictConfig): profiler config with following options:
         ```
         profiler:
             enabled: bool
@@ -164,7 +206,7 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
                 with_stack: bool
                 record_shapes: bool
                 with_flops: bool
-            
+
             #`torch.profiler.schedule` options
             schedule:
                 # _component_ is optional as the setup method will handle
@@ -178,11 +220,11 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
         torch.profiler.profile | FakeProfiler
 
     IMPORTANT:
-        Profiling memory adds significant overhead to the overhead already introduced by profiling 
+        Profiling memory adds significant overhead to the overhead already introduced by profiling
         and will impact the total training time as well as result in large trace files.
-        The profiling schedule should be set accordingly to minimize this impact 
+        The profiling schedule should be set accordingly to minimize this impact
         (I.e. wait 10, warmup 5, active 1, repeat 1)
-    
+
     Additional notes:
         - `cfg` is modified in-place with the defaults per the comments below
         - the profiler schedule updates with respect to an optimizer step:
