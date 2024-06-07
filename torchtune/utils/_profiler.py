@@ -160,7 +160,7 @@ class FakeProfiler:
     """
     Mock object that minimally mimics behavior of torch.profiler.profile
 
-    Essentially a contextlib.nullcontext object with a `step` method
+    Essentially a nullcontext with no-op methods for `start`, `stop`, and `step`
     """
 
     def __enter__(self):
@@ -169,6 +169,12 @@ class FakeProfiler:
     def __exit__(self, *args):
         pass
 
+    def start(self):
+        pass
+    
+    def stop(self):
+        pass
+    
     def step(self):
         pass
 
