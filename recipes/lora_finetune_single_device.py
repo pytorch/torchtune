@@ -242,11 +242,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        self._profiler_enabled = should_profile(cfg)
-        # Returns a fake profiling context if profiling is not enabled
+        # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
         self._profiler = setup_torch_profiler(cfg)
-        if self._profiler_enabled:
-            log.info("Profiler is initialized.")
+        if should_profile(cfg):
+            log.info(" Profiler is initialized.")
 
     def _setup_model(
         self,
@@ -471,8 +470,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
-                    if self._profiler_enabled:
-                        self._profiler.step()
+                    self._profiler.step()
 
                     # Both are shape [b, s]
                     tokens, labels = batch["tokens"], batch["labels"]

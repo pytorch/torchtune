@@ -164,7 +164,7 @@ class FakeProfiler:
     """
 
     def __enter__(self):
-        pass
+        return self
 
     def __exit__(self, *args):
         pass
@@ -183,7 +183,13 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
     """
     Sets up torch.profiler.profile
 
-    NOTE: Enabling the profiler may have training speed reduction.
+    NOTE: 
+    - Enabling the profiler may have training speed reduction.
+    - Setting `profile_memory: true` will result in large trace files.
+    - The profiler schedule is context dependent:
+        - Calling `profiler.step()` at each batch iteration but outside the gradient accumulation scope will `step` the profiler each forward / backward step
+        - Calling `profiler.step()` each batch iteration but within the gradient accumulation scope will `step` the profiler each optimizer update step such that
+        each `step` contains multiple forward / backward passes.
 
     Args:
         cfg (DictConfig): profiler config with following options:
@@ -219,12 +225,6 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
     Returns:
         torch.profiler.profile | FakeProfiler
 
-    IMPORTANT:
-        Profiling memory adds significant overhead to the overhead already introduced by profiling
-        and will impact the total training time as well as result in large trace files.
-        The profiling schedule should be set accordingly to minimize this impact
-        (I.e. wait 10, warmup 5, active 1, repeat 1)
-
     Additional notes:
         - `cfg` is modified in-place with the defaults per the comments below
         - the profiler schedule updates with respect to an optimizer step:
@@ -240,6 +240,7 @@ def setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
     """
 
     if not should_profile(cfg):
+        OmegaConf.update(cfg, f"{PROFILER_KEY}.enabled", False)
         return FakeProfiler()
 
     cfg[PROFILER_KEY].enabled = cfg[PROFILER_KEY].get("enabled", True)

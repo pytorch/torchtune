@@ -217,11 +217,12 @@ def test_fake_profiler(profiler_cfg):
     profiler = setup_torch_profiler(cfg)
     assert isinstance(profiler, FakeProfiler)
 
-    # Test that fake_profiler.step() does nothing
+    # Test that fake_profiler.step() does nothing both when used as context manager and as standalone object
+    with profiler as prof:
+        prof.step()
     assert profiler.step() is None
-
+    
     # Test missing `profile` key returns fake profiler
-
     cfg.pop(PROFILER_KEY)
     profiler = setup_torch_profiler(cfg)
     assert isinstance(profiler, FakeProfiler)

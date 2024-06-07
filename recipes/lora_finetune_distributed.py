@@ -270,12 +270,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        # Set up profiler
-        self._profiler_enabled = should_profile(cfg)
+        # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
         self._profiler = setup_torch_profiler(cfg)
-        if self._is_rank_zero and self._profiler_enabled:
+        if self._is_rank_zero and should_profile(cfg):
             log.info(" Profiler is instantiated.")
-
+            
     def _setup_model(
         self,
         cfg_model: DictConfig,
