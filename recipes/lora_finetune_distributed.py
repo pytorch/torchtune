@@ -35,7 +35,10 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-
+from torchtune.utils import (
+    setup_torch_profiler,
+    should_profile,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -269,6 +272,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
+        
+        # Set up profiler
+        self._profiler_enabled = should_profile(cfg)
+        self._profiler = setup_torch_profiler(cfg)
+        if self._is_rank_zero and should_profile:
+            log.info(" Profiler is instantiated.")
 
     def _setup_model(
         self,
@@ -564,90 +573,94 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
+        with self._profiler as prof:
+            for curr_epoch in range(self.epochs_run, self.total_epochs):
 
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
-            for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
+                pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+                for idx, batch in enumerate(self._dataloader):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                # Both are shape [b, s]
-                tokens, labels = batch["tokens"], batch["labels"]
-                # Get the attention mask and position ids from the dataset if they
-                # exist. Currently, only sample packing in PackedDataset returns these
-                mask = batch.get("mask", None)  # shape [b, s, s]
-                input_pos = batch.get("input_pos", None)  # shape [b, s]
+                    # Both are shape [b, s]
+                    tokens, labels = batch["tokens"], batch["labels"]
+                    # Get the attention mask and position ids from the dataset if they
+                    # exist. Currently, only sample packing in PackedDataset returns these
+                    mask = batch.get("mask", None)  # shape [b, s, s]
+                    input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                tokens = tokens.to(self._device)
-                num_tokens += tokens.numel()
-                labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
-                input_pos = (
-                    input_pos.to(self._device) if input_pos is not None else None
-                )
-
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                # Shift so that tokens < n predict n
-                logits = logits[..., :-1, :].contiguous()
-                labels = labels[..., 1:].contiguous()
-                logits = logits.transpose(1, 2)
-                # Compute loss
-                loss = self._loss_fn(logits, labels)
-                # free logits otherwise it peaks backward memory
-                del logits
-
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    self._optimizer.step()
-                    self._optimizer.zero_grad(set_to_none=True)
-                    self._lr_scheduler.step()
-
-                    # Update the number of steps when the weights are updated
-                    self.global_step += 1
-
-                    loss_to_log = running_loss.item()
-                    pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                    tokens = tokens.to(self._device)
+                    num_tokens += tokens.numel()
+                    labels = labels.to(self._device)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = (
+                        input_pos.to(self._device) if input_pos is not None else None
                     )
 
-                    # Log per-step metrics
-                    if (
-                        self.global_step % self._log_every_n_steps == 0
-                        and self._is_rank_zero
-                    ):
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                        }
-                        if self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+                    # free logits otherwise it peaks backward memory
+                    del logits
+
+                    loss = loss / self._gradient_accumulation_steps
+                    running_loss += loss
+                    loss.backward()
+
+                    # Step with optimizer
+                    if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        self._lr_scheduler.step()
+
+                        # Update the number of steps when the weights are updated
+                        self.global_step += 1
+
+                        loss_to_log = running_loss.item()
+                        pbar.update(1)
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                         )
 
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
-                    t0 = time.perf_counter()
+                        # Log per-step metrics
+                        if (
+                            self.global_step % self._log_every_n_steps == 0
+                            and self._is_rank_zero
+                        ):
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            }
+                            if self._log_peak_memory_stats:
+                                log_dict.update(utils.get_memory_stats(device=self._device))
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.global_step,
+                            )
 
-            self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+                        # Reset running stats for the next step
+                        running_loss = 0
+                        num_tokens = 0
+                        t0 = time.perf_counter()
+                        
+                        # Step profiler
+                        prof.step()
+
+                self.epochs_run += 1
+                self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         if self._is_rank_zero:
