@@ -98,6 +98,9 @@ max_generated_tokens: 32
 temperature: 0.7
 top_k: null
 
+# reward args
+truncate_after_tokens: 24
+
 # kl controller arguments
 init_kl_coef: 0.2
 kl_target: 6

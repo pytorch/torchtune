@@ -283,25 +283,27 @@ def generate(
         List[List[int]]: collection of lists of generated tokens
     """
     prompt = prompt.view(1, -1) if prompt.ndim == 1 else prompt
-    # convert stop tokens to tensor for easy matching
-    stop_tokens = (
-        torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
-    )
 
     bsz, prompt_length = prompt.size()
     generated_tokens = prompt.clone()
     generated_tokens[generated_tokens == pad_id] = 0
 
-    # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
-    stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
-    # everything in stop_token_mask starts as 1s, and we'll set them to 0 for sequences
-    # that already hit a stop token
+    if stop_tokens is not None:
+        # convert stop tokens to tensor for easy matching
+        stop_tokens = (
+            torch.tensor(stop_tokens, device=prompt.device) if stop_tokens else None
+        )
+        # keeps track at a high level if we've already hit a stop token in a sequence so we can early stop
+        stop_token_reached = torch.zeros(bsz, dtype=torch.bool, device=prompt.device)
+        # everything in stop_token_mask starts as 1s, and we'll set them to 0 for sequences
+        # that already hit a stop token
+        stop_token_mask = torch.ones(
+            (bsz, prompt_length), dtype=torch.int32, device=prompt.device
+        )
 
-    stop_token_mask = torch.ones(
-        (bsz, prompt_length), dtype=torch.int32, device=prompt.device
-    )
     if custom_generate_next_token is None:
         custom_generate_next_token = generate_next_token
+
     for i in range(max_generated_tokens):
         # update stop_token_mask if we reached a stop token in a previous step
         # by appending the logical not of stop_token_reached to the end of the mask

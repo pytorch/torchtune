@@ -219,10 +219,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 else None
             ),
         )
-        # setup response length
-        self.max_generated_tokens = cfg.max_generated_tokens
 
-        # update model seq len to reduce KV-cache size
+        # update model seq len to reduce KV-cache size TODO probably don't need this
         self._model.decoder.max_seq_len = self.max_generated_tokens
 
         # setup tokenizer
@@ -279,6 +277,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         self.temperature = cfg.temperature
         self.top_k = cfg.top_k
         self.forward_batch_size = cfg.forward_batch_size
+        self.max_generated_tokens = cfg.max_generated_tokens
+        self.max_seq_len = cfg.dataset.max_seq_len
+        self.truncate_after_tokens = cfg.truncate_after_tokens
 
         self.total_epochs = self.num_steps // self.batch_size
         self._gradient_accumulation_steps = cfg.gradient_accumulation_steps
@@ -400,7 +401,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     max_generated_tokens=self.max_generated_tokens,
                     temperature=self.temperature,
                     top_k=self.top_k,
-                    stop_tokens=self._tokenizer.stop_tokens,
+                    # disabling truncation since we require some additional logic to handle truncation
+                    stop_tokens=None,
                     pad_id=self._tokenizer.pad_id,
                     custom_generate_next_token=generate_next_token_with_value_head_model,
                     dtype=self._dtype,
@@ -464,19 +466,15 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     input_ids = batch
                     input_ids = input_ids.to(self._device)
 
-                    responses = self.batched_generate(input_ids, self._model)
-
-                    # generating with lora adapters disabled gives us the pre-finetuning ref model
-                    with disable_adapter(self._model):
-                        ref_responses = self.batched_generate(input_ids, self._model)
+                    query_responses = self.batched_generate(input_ids, self._model)
 
                     # ref policy and value estimates for the current trajectory
                     # pi_{theta_old] and V_{phi_old}
                     # [b, s, v], [b, s, 1]
                     context_length = input_ids.shape[1]
-                    responses = torch.tensor(responses).to(self._device)
+                    query_responses = torch.tensor(query_responses).to(self._device)
                     # TODO (SalmanMohammadi) implement minibatch model forward pass
-                    logits, values = self._model(responses)
+                    logits, values = self._model(query_responses)
 
                     values = values[:, context_length - 1 : -1].squeeze(-1)
                     logits = logits[:, context_length - 1 : -1]
@@ -485,14 +483,23 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     logprobs = torch.gather(
                         F.log_softmax(logits, dim=-1),
                         2,
-                        responses[:, context_length:].unsqueeze(-1),
+                        query_responses[:, context_length:].unsqueeze(-1),
                     ).squeeze(-1)
 
                     del logits
 
-                    ref_responses = torch.tensor(ref_responses).to(self._device)
+                    # generating with lora adapters disabled gives us the pre-finetuning ref model
+                    with disable_adapter(self._model):
+                        query_ref_responses = self.batched_generate(
+                            input_ids, self._model
+                        )
+
+                    query_ref_responses = torch.tensor(query_ref_responses).to(
+                        self._device
+                    )
                     # TODO (SalmanMohammadi) implement minibatch model forward pass
-                    ref_logits, _ = self._model(responses)
+                    with disable_adapter(self._model):
+                        ref_logits, _ = self._model(query_ref_responses)
 
                     ref_logits = ref_logits[:, context_length - 1 : -1]
                     ref_logits /= self.temperature
@@ -500,17 +507,40 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     ref_logprobs = torch.gather(
                         F.log_softmax(ref_logits, dim=-1),
                         2,
-                        responses[:, context_length:].unsqueeze(-1),
+                        query_ref_responses[:, context_length:].unsqueeze(-1),
                     ).squeeze(-1)
 
                     del ref_logits
 
-                    # run reward model on query-response sequences: shape [b, 1]
+                    responses = query_responses[:, self.max_seq_len :]
+
+                    # truncate sequences at the first occurence of eos_id and pads
+                    eos_mask = responses == self._tokenizer.eos_token_id
+                    query_responses[:, self.max_seq_len :].masked_fill_(
+                        torch.logical_xor(eos_mask.cumsum(-1), eos_mask),
+                        self._tokenizer.pad_id,
+                    )
+
+                    # run reward model on truncated query-response sequences: shape [b, max_seq_len + max_generated_tokens]
                     # TODO (SalmanMohammadi): Add support for _reward_model and _model using different tokenizers
                     scores = self._reward_model(responses)
+
+                    # shape [b, ]
                     scores = pool_sequence_logits(
-                        input_ids, scores, self._tokenizer.pad_id
+                        responses, scores, self._tokenizer.eos_token_id
                     ).squeeze()
+
+                    # now we mask scores s.t.:
+                    # - sequences without a EOS ID recieve a score of -1
+                    # - sequences with < truncate_after_tokens recieve a score of -1
+                    # see https://iclr-blogposts.github.io/2024/blog/the-n-implementation-details-of-rlhf-with-ppo
+                    # policy-training-implementation-details - point 5.
+                    truncate_mask = (
+                        eos_mask.cumsum(-1).sum(-1) - 1 <= self.truncate_after_tokens
+                    )
+                    scores.masked_fill_(truncate_mask & eos_mask.any(-1), -1.0)
+
+                    # [b, max_seq_len + max_generated_tokens]
                     rewards, kl, kl_rewards = get_rewards(
                         scores, logprobs, ref_logprobs, self.kl_controller.value
                     )
