@@ -17,6 +17,7 @@ Instruct templates
     AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
+    StackExchangedPairedTemplate
 
 .. _chat_formats:
 
@@ -48,7 +49,8 @@ Converters
     :toctree: generated/
     :nosignatures:
 
-    sharegpt_to_llama2_messages
+    get_sharegpt_messages
+    get_openai_messages
 
 Helper funcs
 ------------
