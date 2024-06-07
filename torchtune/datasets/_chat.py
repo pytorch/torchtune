@@ -130,7 +130,7 @@ def chat_dataset(
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
-            for automatic conversion to the Llama style. Supported styles are: "sharegpt", "openai"
+            for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: "sharegpt", "openai"
         chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in
             :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,
             check out :ref:`chat_formats`. Default: None.
