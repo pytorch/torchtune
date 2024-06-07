@@ -273,7 +273,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler
         self._profiler_enabled = should_profile(cfg)
         self._profiler = setup_torch_profiler(cfg)
-        if self._is_rank_zero and should_profile:
+        if self._is_rank_zero and self._profiler_enabled:
             log.info(" Profiler is instantiated.")
 
     def _setup_model(
