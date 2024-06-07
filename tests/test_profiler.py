@@ -222,6 +222,10 @@ def test_fake_profiler(profiler_cfg):
         prof.step()
     assert profiler.step() is None
     
+    # Additional FakeProfiler no-ops
+    assert profiler.start() is None
+    assert profiler.stop() is None
+    
     # Test missing `profile` key returns fake profiler
     cfg.pop(PROFILER_KEY)
     profiler = setup_torch_profiler(cfg)
