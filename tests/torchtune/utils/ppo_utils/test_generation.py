@@ -7,9 +7,9 @@
 import pytest
 
 import torch
-import torchtune.utils.ppo as ppo_utils
 from tests.test_utils import fixed_init_model
 from torchtune.models.llama2 import llama2
+from torchtune.utils import ppo_utils
 
 
 class TestGenerate:

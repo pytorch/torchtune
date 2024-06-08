@@ -7,7 +7,7 @@
 import unittest
 
 import torch
-import torchtune.utils.ppo as ppo_utils
+from torchtune.utils import ppo_utils
 
 
 # class TestAdaptiveKLController(unittest.TestCase):

@@ -30,7 +30,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import ppo as ppo_utils
+from torchtune.utils import ppo_utils
 from torchtune.utils.pooling import pool_sequence_logits
 
 from tqdm import tqdm
@@ -462,7 +462,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     # if any input queries have been left padded, we need to use custom masks
 
                     if (query_responses[:, 0] == 0).any():
-                        masks = get_causal_mask(
+                        masks = ppo_utils.get_causal_mask(
                             query_responses,
                             padding_idx=self._tokenizer.pad_id,
                             dtype=self._dtype,

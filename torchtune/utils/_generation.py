@@ -120,7 +120,7 @@ def generate(
         custom_generate_next_token = generate_next_token
 
     # generate the first tokens conditioned on the prompt
-    tokens = custom_generate_next_token(
+    tokens = generate_next_token(
         model,
         input_pos=torch.arange(0, prompt_length, device=prompt.device),
         x=prompt,
