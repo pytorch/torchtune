@@ -17,7 +17,7 @@ def profiler(
     output_dir: Optional[str] = "./torchtune_perf_tracing.json",
 ) -> ContextManager:
     """
-    Utility component that wraps around `torch.profiler` to profile model's operators.
+    Utility component that wraps around ``torch.profiler`` to profile model's operators.
     See https://pytorch.org/docs/stable/profiler.html for more details.
     The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps
     Note: Enabling pytorch profiler may have training speed reduction.
@@ -27,7 +27,7 @@ def profiler(
         output_dir (Optional[str]): Tracing file output path. Default is "./torchtune_perf_tracing.json".
 
     Returns:
-        ContextManager: pytorch profiler context manager
+        ContextManager: PyTorch profiler context manager
     """
 
     def trace_handler(prof) -> None:

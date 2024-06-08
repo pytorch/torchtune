@@ -367,8 +367,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         optimizer = config.instantiate(cfg_optimizer, self._model.parameters())
 
         if opt_state_dict:
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            opt_state_dict = FSDP.optim_state_dict_to_load(
+                self._model, optimizer, opt_state_dict
             )
             optimizer.load_state_dict(opt_state_dict)
 

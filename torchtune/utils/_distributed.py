@@ -72,6 +72,16 @@ def is_distributed() -> bool:
     """Check if all environment variables required to initialize torch.distributed are set
     and distributed is properly installed. This indicates a distributed run.
     https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization
+
+    Checks the following conditions:
+
+    * torch.distributed is available
+    * master port and master address environment variables are set
+    * world size is >1
+    * rank environment variable is set
+
+    Returns:
+        bool: True if all of the above conditions hold, False otherwise.
     """
     port = os.environ.get("MASTER_PORT", "")
     addr = os.environ.get("MASTER_ADDR", "")
@@ -101,8 +111,8 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
         return tensor
 
 
-def init_distributed(**kwargs: Dict) -> bool:  # noqa: DOC106, DOC109
-    """Initialize torch.distributed.
+def init_distributed(**kwargs: Dict[str, Any]) -> bool:
+    """Initialize ``torch.distributed``.
 
     Args:
         **kwargs (Dict): Additional arguments to pass to torch.distributed.init_process_group.
@@ -140,7 +150,7 @@ def set_torch_num_threads() -> None:
 
 def get_world_size_and_rank() -> Tuple[int, int]:
     """Function that gets the current world size (aka total number
-    of ranks) and rank number of the current trainer.
+    of ranks) and rank number of the current process in the default process group.
 
     Returns:
         Tuple[int, int]: world size, rank
@@ -232,18 +242,24 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
 
 def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     """
-    A default policy for wrapping models trained with LoRA using FSDP. Specifically,
-    this will wrap individual LoRA A & B submodules in their own FSDP units to
+    A default policy for wrapping models trained with LoRA using FSDP.
+
+    FSDP's default behavior is to allocate gradients at the level of FSDP-wrapped modules.
+    This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be
+    allocated for gradients for the entire module.
+
+    In the case of LoRA, where only LoRA A and B matrices are trainable, this means that
+    we need to wrap LoRA A and B submodules in their own FSDP units to
     maximize memory savings. After this is done, model will also be hierarchically wrapped
     based on nn.Module types specified in ``modules_to_wrap``. This function assumes that
     (a) LoRA's A and B matrices are the only trainable weights in the entire model, and
-    (b) we have already set requires_grad = True on LoRA params.
+    (b) we have already set ``requires_grad = True`` on LoRA params.
 
     Args:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
 
     Returns:
-        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
+        Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
         documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
 
@@ -438,12 +454,13 @@ def get_full_finetune_fsdp_wrap_policy(
         modules_to_wrap (Set[Type]): Set of module types to wrap.
 
     Note:
-        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads,
-        to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads
+        where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
         have not been verified and may not see the same improvements.
+
     Returns:
         FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``
-            argument. Please see documentation for const:`~torchtune.utils.FSDPPolicyType` for additional details.
+        argument. Please see documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
     if memory_efficient_fsdp_wrap:
         return _memory_efficient_wrap_policy(modules_to_wrap=modules_to_wrap)
