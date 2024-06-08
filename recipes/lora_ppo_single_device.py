@@ -30,17 +30,9 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import ppo as ppo_utils
 from torchtune.utils.pooling import pool_sequence_logits
-from torchtune.utils.ppo_utils import (
-    AdaptiveKLController,
-    estimate_advantages,
-    generate,
-    generate_next_token_with_value_head_model,
-    get_causal_mask,
-    get_rewards,
-    left_padded_collate,
-    whiten,
-)
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -285,7 +277,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
         self.global_step = self.epochs_run * self._steps_per_epoch
 
         # setup adaptive KL controller
-        self.kl_controller = AdaptiveKLController(
+        self.kl_controller = ppo_utils.AdaptiveKLController(
             cfg.init_kl_coef, cfg.kl_target, cfg.kl_horizon
         )
 
@@ -392,7 +384,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             batch_input_ids = input_ids[batch_start:batch_end]
 
             outputs.extend(
-                generate(
+                ppo_utils.generate(
                     model=model,
                     prompt=batch_input_ids,
                     max_generated_tokens=self.max_generated_tokens,
@@ -401,7 +393,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     # disabling truncation since we require some additional logic to handle truncation
                     stop_tokens=None,
                     pad_id=self._tokenizer.pad_id,
-                    custom_generate_next_token=generate_next_token_with_value_head_model,
+                    custom_generate_next_token=ppo_utils.generate_next_token_with_value_head_model,
                     dtype=self._dtype,
                 )
             )
@@ -434,7 +426,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             sampler=sampler,
             batch_size=batch_size,
             collate_fn=partial(
-                left_padded_collate,
+                ppo_utils.left_padded_collate,
                 max_seq_len=cfg_dataset.max_seq_len,
                 padding_idx=self._tokenizer.pad_id,
             ),
@@ -464,7 +456,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     input_ids = input_ids.to(self._device)
 
                     query_responses = self.batched_generate(input_ids, self._model)
-                    context_length_idx = input_ids.shape[1] - 1
+                    context_length_idx = input_ids.shape[1]
                     query_responses = torch.stack(query_responses).to(self._device)
 
                     # if any input queries have been left padded, we need to use custom masks
@@ -520,7 +512,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     with disable_adapter(self._model):
                         ref_logits, _ = self._model(query_ref_responses)
 
-                    ref_logits = ref_logits[:, context_length_idx:-1]
+                    ref_logits = ref_logits[:, context_length_idx:]
                     ref_logits /= self.temperature
                     # shape [b, max_generated_tokens]
                     ref_logprobs = torch.gather(
@@ -534,7 +526,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     # truncate sequences at the first occurence of eos_id and pads
                     eos_mask = (
                         query_responses[:, context_length_idx:]
-                        == self._tokenizer.eos_token_id
+                        == self._tokenizer.eos_id
                     )
                     query_responses[:, context_length_idx:].masked_fill_(
                         torch.logical_xor(eos_mask.cumsum(-1), eos_mask),
@@ -561,22 +553,22 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     scores.masked_fill_(~truncate_mask | ~eos_mask.any(-1), -1.0)
 
                     # [b, context_length + max_generated_tokens]
-                    rewards, kl, kl_rewards = get_rewards(
+                    rewards, kl, kl_rewards = ppo_utils.get_rewards(
                         scores, logprobs, ref_logprobs, self.kl_controller.value
                     )
 
                     if self.whiten_rewards:
                         # shifting mean is disabled for rewards
                         # https://github.com/huggingface/trl/blob/d1aa0b6b2c8dfd78c0f771759d1ff2469c0e5ed2/trl/trainer/ppo_trainer.py#L1155
-                        rewards = whiten(rewards)
+                        rewards = ppo_utils.whiten(rewards)
 
                     del eos_mask, scores
-                    advantages, returns = estimate_advantages(
+                    advantages, returns = ppo_utils.estimate_advantages(
                         values, rewards, self.gamma, self.lmbda
                     )
 
                 # trajectory generated! time to optimise
-                for cur_ppo_epoch in range(self.ppo_epochs):
+                for _ in range(self.ppo_epochs):
                     # TODO (SalmanMohammadi): Add support for early stopping
                     # shuffle batch indices every epoch
                     batch_idxs = torch.randperm(self.batch_size)
@@ -591,7 +583,6 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                             backward_returns = returns[backward_batch_idxs]
                             backward_advantages = advantages[backward_batch_idxs]
-
                             backward_logprobs = logprobs[backward_batch_idxs]
                             backward_query_responses = query_responses[
                                 backward_batch_idxs
