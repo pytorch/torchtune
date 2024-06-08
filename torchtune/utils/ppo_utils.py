@@ -316,7 +316,7 @@ def generate(
         padding_mask = generated_tokens == pad_id
         mask = get_causal_mask(generated_tokens, padding_id=pad_id, dtype=dtype)
         if padding_mask is not None:
-            input_pos = (~padding_mask).long().cumsum(-1) - (~padding_mask).long()
+            input_pos = (~padding_mask).cumsum(-1) - (~padding_mask).long()
             input_pos = input_pos.to(device=generated_tokens.device, dtype=torch.int)
         else:
             input_pos = torch.arange(
@@ -348,4 +348,4 @@ def generate(
         if pad_id != 0:
             generated_tokens[generated_tokens == 0] = pad_id
 
-    return generated_tokens.tolist()
+    return generated_tokens

@@ -11,7 +11,13 @@ import pytest
 import torch
 from tests.test_utils import fixed_init_model
 from torchtune.models.llama2 import llama2
-from torchtune.utils.ppo_utils import estimate_advantages, generate, get_rewards, whiten
+from torchtune.utils.ppo_utils import (
+    estimate_advantages,
+    generate,
+    get_causal_mask,
+    get_rewards,
+    whiten,
+)
 
 # class TestAdaptiveKLController(unittest.TestCase):
 #     def test_update(self):
@@ -151,7 +157,7 @@ class TestEstimateAdvantages(unittest.TestCase):
 
 class TestGenerate:
     """
-    Test class for incremental text generation functionality in :func:`~torchtune.utils.ppo_utils.generate`.
+    Test class for text generation functionality in :func:`~torchtune.utils.ppo_utils.generate`.
     See `torchtune.tests.utils.test_generation` for context.
     """
 
@@ -280,7 +286,6 @@ class TestGenerate:
         )
 
         expected_output = [[2, 3, 4, 5, 6, 7, 8, 9, 3983]]
-        print(outputs, expected_output)
         assert outputs == expected_output
 
     def test_stop_tokens_batched(self, generation_model, prompt_tokens_batched):
@@ -342,3 +347,85 @@ class TestGenerate:
         ]
 
         assert outputs == expected_outputs
+
+
+class TestGetCausalMask:
+    @pytest.fixture
+    def padded_prompt_tokens(self):
+        """
+        Pytest fixture to create a list of left-padded prompt tokens for testing.
+        """
+        return torch.cat([torch.tensor([0, 0]), torch.arange(2, 6)]).unsqueeze(0)
+
+    @pytest.fixture
+    def padded_prompt_tokens_batched(self):
+        """
+        Pytest fixture to create a list of left-padded batched prompt tokens for testing.
+        """
+        return torch.tensor(
+            [[0, 0, 0, 1, 2, 3], [0, 1, 2, 3, 4, 5], [0, 0, 0, 0, 0, 1]]
+        )
+
+    def test_causal_mask(self, padded_prompt_tokens):
+        """
+        Test to check if the `get_causal_mask` function produces the right output when a prompt is provided.
+        """
+        fill_value = torch.finfo(torch.float32).min
+        attn_mask = torch.tensor(
+            [
+                [False, False, False, False, False, False],
+                [False, False, False, False, False, False],
+                [False, False, True, False, False, False],
+                [False, False, True, True, False, False],
+                [False, False, True, True, True, False],
+                [False, False, True, True, True, True],
+            ]
+        )
+
+        # We need to invert the mask to get the expected output
+        expected_casual_mask = torch.zeros_like(
+            attn_mask, dtype=torch.float32
+        ).masked_fill(~attn_mask, fill_value)[None, :]
+        causal_mask = get_causal_mask(padded_prompt_tokens)
+        torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
+
+    def test_causal_mask_batched(self, padded_prompt_tokens_batched):
+        """
+        Test to check if the `get_causal_mask` function produces the right output when a batched prompt is provided.
+        """
+        fill_value = torch.finfo(torch.float32).min
+        attn_mask = torch.tensor(
+            [
+                [
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, True, False, False],
+                    [False, False, False, True, True, False],
+                    [False, False, False, True, True, True],
+                ],
+                [
+                    [False, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, True, True, False, False, False],
+                    [False, True, True, True, False, False],
+                    [False, True, True, True, True, False],
+                    [False, True, True, True, True, True],
+                ],
+                [
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, False],
+                    [False, False, False, False, False, True],
+                ],
+            ]
+        )
+
+        # We need to invert the mask to get the expected output
+        expected_casual_mask = torch.zeros_like(
+            attn_mask, dtype=torch.float32
+        ).masked_fill(~attn_mask, fill_value)
+        causal_mask = get_causal_mask(padded_prompt_tokens_batched)
+        torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
