@@ -98,7 +98,7 @@ def get_dtype(
     # dtype must be one of the supported precisions
     if torch_dtype not in PRECISION_STR_TO_DTYPE.values():
         raise ValueError(
-            f"Dtype {torch_dtype} must be one of {', '.join(PRECISION_STR_TO_DTYPE.keys())} for finetuning."
+            f"Dtype {torch_dtype} must be one of {', '.join(list(PRECISION_STR_TO_DTYPE.keys()))} for finetuning."
         )
 
     # TODO (rohan-varma): prefer to use get_default_device() here to figure out whether user is training on

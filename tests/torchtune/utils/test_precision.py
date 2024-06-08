@@ -30,7 +30,7 @@ class TestPrecisionUtils:
         """
         Tests that the correct dtype is returned based on the input string.
         """
-        dtypes = [None, torch.half] + PRECISION_STR_TO_DTYPE.keys()
+        dtypes = [None, torch.half] + list(PRECISION_STR_TO_DTYPE.keys())
         expected_dtypes = [
             torch.float32,
             torch.float16,
