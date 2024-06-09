@@ -10,6 +10,7 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
+from torchtune.modules import LayerDropout
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -121,6 +122,8 @@ class TransformerDecoder(nn.Module):
             before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
+        layer_dropout_prob (float): Probability of skipping samples in the transformer
+            layer.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -138,6 +141,7 @@ class TransformerDecoder(nn.Module):
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
+        layer_dropout_prob: float= 0.0,
     ) -> None:
         super().__init__()
 
@@ -149,6 +153,7 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+        self.layer_dropout = LayerDropout(layer_dropout_prob)
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -242,7 +247,7 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask=mask, input_pos=input_pos)
+            h = self.layer_dropout(layer, h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)
