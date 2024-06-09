@@ -10,7 +10,7 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
-from torchtune.modules import LayerDropout
+from torchtune.modules import LayerDropout, create_layer_dropout_modules
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -153,7 +153,8 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
-        self.layer_dropout = LayerDropout(layer_dropout_prob)
+
+        self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, "exp")
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -245,9 +246,9 @@ class TransformerDecoder(nn.Module):
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
 
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
             # shape: [b, s, d]
-            h = self.layer_dropout(layer, h, mask=mask, input_pos=input_pos)
+            h = self.layer_dropouts[i](layer, h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)
