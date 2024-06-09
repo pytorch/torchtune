@@ -142,6 +142,8 @@ class TransformerDecoder(nn.Module):
         norm: nn.Module,
         output: nn.Linear,
         layer_dropout_prob: float= 0.0,
+        layer_dropout_prob_layer_scale: str="exp",
+        layer_dropout_str: str = ":",
     ) -> None:
         super().__init__()
 
@@ -154,7 +156,7 @@ class TransformerDecoder(nn.Module):
         self.head_dim = head_dim
         self.causal_mask = None
 
-        self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, "exp")
+        self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, layer_dropout_prob_layer_scale, layer_dropout_str)
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.

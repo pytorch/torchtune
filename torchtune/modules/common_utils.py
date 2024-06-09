@@ -48,3 +48,30 @@ def reparametrize_as_dtype_state_dict_post_hook(
             state_dict[k] = v.to(dtype)
             if offload_to_cpu:
                 state_dict[k] = state_dict[k].cpu()
+
+def slice_str_to_array(slice_str, length):
+    # Parse the slice string
+    parts = slice_str.split(':')
+    start, end, step = None, None, None
+
+    if len(parts) == 1 and parts[0] != '':
+        start = int(parts[0])
+    elif len(parts) == 2:
+        start = int(parts[0]) if parts[0] != '' else None
+        end = int(parts[1]) if parts[1] != '' else None
+    elif len(parts) == 3:
+        start = int(parts[0]) if parts[0] != '' else None
+        end = int(parts[1]) if parts[1] != '' else None
+        step = int(parts[2]) if parts[2] != '' else None
+
+    # Create a boolean array based on the slice
+    result = [False] * length
+    slice_indices = range(start if start is not None else 0,
+                          end if end is not None else length,
+                          step if step is not None else 1)
+
+    for i in slice_indices:
+        if 0 <= i < length:
+            result[i] = True
+
+    return result

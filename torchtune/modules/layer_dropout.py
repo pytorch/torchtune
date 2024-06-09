@@ -9,6 +9,8 @@ from typing import Callable, Optional
 import math
 import torch
 
+from .common_utils import slice_str_to_array
+
 class LayerDropout(torch.nn.Module):
     def __init__(self, prob=0.0, dim=0, disable_on_eval=True, seed=None):
         super().__init__()
@@ -63,18 +65,18 @@ def get_scale(scale_type: ScaleType, scale_period: int, val: int):
         ScaleType.LOG: math.log(val + 1) / math.log(scale_period + 1),
         ScaleType.SIN: math.sin(0.5 * math.pi * val / scale_period),
         ScaleType.SIGMOID: 1 / (1 + math.exp(-10 * (val / scale_period - 0.5))),
-        ScaleType.STEP: 0 if val < scale_period else 1
     }[scale_type]
 
-def create_layer_dropout_modules(num_layers: int, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, prob_layer_scale_period: Optional[int] = None, disable_on_eval: bool = True):
+def create_layer_dropout_modules(num_layers: int, prob_max: float= 0.0, prob_layer_scale: ScaleType = ScaleType.EXP, layers_str: Optional[str] = None, disable_on_eval: bool = True):
     layer_dropouts = torch.nn.ModuleList()
+    has_dropout = slice_str_to_array(layers_str, num_layers) if layers_str else [True] * num_layers
 
     for layer_id in range(num_layers):
         prob = prob_max * get_scale(
             scale_type = prob_layer_scale,
-            scale_period = num_layers - 1 if prob_layer_scale_period is None else prob_layer_scale_period,
+            scale_period = num_layers - 1,
             val = layer_id,
-        )
+        ) if has_dropout[layer_id] else 0.0
         assert prob >= 0.0 and prob <= prob_max, f"prob={prob} should be between 0 and {prob_max}"
         # We would like each layer to have a different seed, so that we don't have the same samples skipped across layers. Hence, we use the layer_id as a seed for each layer's dropout.
         layer_dropout = LayerDropout(prob, disable_on_eval=disable_on_eval, seed=layer_id)
