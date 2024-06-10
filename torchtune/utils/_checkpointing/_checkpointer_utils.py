@@ -25,6 +25,7 @@ class ModelType(Enum):
     MISTRAL = "mistral"
     PHI3_MINI = "phi3_mini"
     MISTRAL_REWARD = "mistral_reward"
+    LM_MISTRAL = "lm_mistral"
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:

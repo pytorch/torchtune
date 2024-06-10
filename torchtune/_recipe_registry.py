@@ -154,6 +154,18 @@ _ALL_RECIPES = [
         ],
         supports_distributed=True,
     ),
+    # TODO (SalmanMohammadi): rename
+    Recipe(
+        name="lora_ppo_single_device",
+        file_path="lora_ppo_single_device.py",
+        configs=[
+            Config(
+                name="mistral/7B_lora_ppo",
+                file_path="mistral/7B_lora_ppo.yaml",
+            ),
+        ],
+        supports_distributed=False,
+    ),
     Recipe(
         name="lora_finetune_distributed",
         file_path="lora_finetune_distributed.py",

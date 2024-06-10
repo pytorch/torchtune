@@ -1,0 +1,143 @@
+# Config for single device full finetuning in full_finetune_single_device.py
+# using a Mistral 7B model
+#
+# This config uses hyperparameters based on small set of experiments and information
+# available on various forums. These are not meant to replicate the numbers
+# from the paper
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN> --output-dir /tmp/Mistral-7B-v0.1
+#
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
+#
+# To launch on a single device, run the following command from root:
+#   tune run full_finetune_single_device --config mistral/7B_full_low_memory
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run full_finetune_single_device --config mistral/7B_full_low_memory checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.mistral.mistral_tokenizer
+  path:  ./target/weights/mistral_base/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_cleaned_dataset
+  train_on_input: True
+  max_seq_len: 32
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.mistral.lora_mistral_lm_with_value_head_7b
+  # _component_: torchtune.models.mistral.lora_mistral_test_lm
+  lora_attn_modules: ['q_proj', 'v_proj']
+  apply_lora_to_mlp: False
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
+
+reward_model:
+  _component_: torchtune.models.mistral.mistral_classifier_7b
+
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  # _component_: torchtune.utils.FullModelTorchTuneCheckpointer
+  checkpoint_dir: ./target/weights/mistral_base/
+  # checkpoint_dir: ${output_dir}/base/
+  checkpoint_files: [
+    "pytorch_model-00001-of-00003.bin",
+    "pytorch_model-00002-of-00003.bin",
+    "pytorch_model-00003-of-00003.bin"
+  ]
+
+  recipe_checkpoint: null
+  adapter_checkpoint: null
+  output_dir: ${output_dir}/base/
+  model_type: LM_MISTRAL
+
+reward_checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: ./target/weights/mistral_reward/
+  checkpoint_files: [
+    "model-00001-of-00003.safetensors",
+    "model-00002-of-00003.safetensors",
+    "model-00003-of-00003.safetensors"
+  ]
+  output_dir: ${output_dir}/reward
+  model_type: MISTRAL_REWARD
+
+resume_from_checkpoint: False
+output_dir: target/full_7b
+
+# Fine-tuning arguments
+batch_size: 32
+num_steps: 10000
+ppo_epochs: 4
+ppo_batch_size: 2
+ppo_backward_batch_size: 2
+gradient_accumulation_steps: 1
+
+# ppo args
+gamma: 0.99
+lmbda: 0.95
+whiten_rewards: False
+# generation arguments
+forward_batch_size: 2
+max_generated_tokens: 32
+temperature: 0.7
+top_k: null
+
+# reward args
+truncate_after_tokens: 24
+
+# kl controller arguments
+init_kl_coef: 0.2
+kl_target: 6
+kl_horizon: 10000
+
+optimizer:
+  _component_: torch.optim.AdamW
+  weight_decay: 0.01
+  lr: 3e-4
+
+loss:
+  _component_: torchtune.modules.loss.PPOLoss
+  gamma: 0.99
+  lmbda: 0.95
+  epsilon: 0.2
+  value_coeff: 0.5
+  value_clip_range: 0.1
+
+# Training env
+device: mps
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+
+log_every_n_steps: 1
+log_peak_memory_stats: False
+
+
+profiler:
+  _component_: torchtune.utils.profiler
+  enabled: False
+  output_dir: ${output_dir}/torchtune_perf_tracing.json
