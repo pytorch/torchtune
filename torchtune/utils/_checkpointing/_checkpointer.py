@@ -447,7 +447,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         intermediate_checkpoint: bool = False,
     ) -> None:
         """
-        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
+        Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state.
 
