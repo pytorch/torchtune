@@ -23,10 +23,12 @@ def left_padded_collate(
         torch.Tensor: The padded tensor of input ids with shape [batch_size, max_seq_len].
 
     """
+    tokens = torch.zeros(len(batch), max_seq_len, dtype=torch.long) + padding_idx
     pad_toks = pad_sequence(
         [torch.tensor(x["tokens"][::-1]) for x in batch],
         batch_first=True,
         padding_value=padding_idx,
     )
+    tokens[:, : pad_toks.shape[-1]] = pad_toks
     seq_idxs_rev = torch.arange(max_seq_len - 1, -1, -1)
-    return torch.stack([tok[seq_idxs_rev] for tok in pad_toks])
+    return torch.stack([tok[seq_idxs_rev] for tok in tokens])

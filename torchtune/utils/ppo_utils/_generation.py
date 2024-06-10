@@ -50,8 +50,11 @@ def get_causal_mask(
 ) -> torch.Tensor:
     """
     Generates a causal attention mask for the given tokens with padding values
-    correctly masked out, suitable for consumtion by ~torch.nn.functional.scaled_dot_product_attention~
+    correctly masked out, suitable for consumtion by :func:`~torch.nn.functional.scaled_dot_product_attention~`
     where the mask is added to the attention score.
+
+    HF uses a similar implementation internally, see
+    https://github.com/huggingface/transformers/blob/a564d10afe1a78c31934f0492422700f61a0ffc0/src/transformers/models/mistral/modeling_mistral.py#L1096
 
     Args:
         tokens (torch.Tensor): tensor of token IDs with shape [bsz x seq_length]

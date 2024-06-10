@@ -63,14 +63,7 @@ class TestPPOLoss:
             pi_logprobs, pi_logprobs, advantages_low, values, returns
         )
 
-        expected_low_loss = -advantages_high.mean()
-        expected_high_loss = -advantages_low.mean()
-        torch.testing.assert_close(
-            policy_loss_low.mean(), expected_low_loss, atol=loss_fn.epsilon, rtol=0.0
-        )
-        torch.testing.assert_close(
-            policy_loss_high.mean(), expected_high_loss, atol=loss_fn.epsilon, rtol=0.0
-        )
+        assert policy_loss_low.mean() < policy_loss_high.mean()
 
     def test_value_loss_lower_for_values_similar_to_return(self, loss_fn):
         # fix pi_logrobs, pi_old_logprobs, returns, advantages

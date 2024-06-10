@@ -11,19 +11,28 @@ import torch
 from torchtune.utils.ppo_utils import left_padded_collate
 
 
-class TestBatchPadSequence:
+class TestLeftPaddedCollate:
     def test_left_padded_collate(self):
         """
         Tests that shorter input sequences are left-padded to the max seq len.
         """
         padding_idx = -8
-        max_seq_len = 3
+        max_seq_len = 4
         tokens = [
             {
-                "tokens": [1, 2, 3],
+                "tokens": [
+                    1,
+                    2,
+                ],
             },
             {
-                "tokens": [7],
+                "tokens": [3],
+            },
+            {
+                "tokens": [4, 5, 6],
+            },
+            {
+                "tokens": [7, 8, 9, 10],
             },
         ]
         padded_tokens = left_padded_collate(
@@ -32,8 +41,10 @@ class TestBatchPadSequence:
 
         expected_padded_tokens = torch.tensor(
             [
-                [1, 2, 3],
-                [padding_idx, padding_idx, 7],
+                [padding_idx, padding_idx, 1, 2],
+                [padding_idx, padding_idx, padding_idx, 3],
+                [padding_idx, 4, 5, 6],
+                [7, 8, 9, 10],
             ]
         )
         torch.testing.assert_close(padded_tokens, expected_padded_tokens)
