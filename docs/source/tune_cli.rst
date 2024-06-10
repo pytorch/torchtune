@@ -85,8 +85,8 @@ You can find the access token `here <https://huggingface.co/docs/hub/en/security
 **Specify model files you don't want to download**
 
 Some checkpoint directories can be very large and it can eat up a lot of bandwith and local storage to download the all of the files every time, even if you might
-not need a lot of them. This is especially common when the same checkpoint exists in different formats. You can specify patterns to ignore, by default we ignore
-safetensor files, but if you want to include all files you can pass in an empty string.
+not need a lot of them. This is especially common when the same checkpoint exists in different formats. You can specify patterns to ignore to prevent downloading files
+with matching names. By default we ignore safetensor files, but if you want to include all files you can pass in an empty string.
 
 .. code-block:: bash
 
@@ -143,8 +143,8 @@ recipe or config to edit directly for yourself.
 Run a recipe
 ------------
 
-The ``tune run <recipe> --config <config>`` is a conveniance wrapper around `torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_. ``tune run`` allows you to specify your
-recipe and config by name to use library versions, or by path to use your local recipes/configs.
+The ``tune run <recipe> --config <config>`` is a wrapper around `torchrun <https://pytorch.org/docs/stable/elastic/run.html>`_. ``tune run`` allows you to specify
+a built-in recipe or config by name, or by path to use your local recipes/configs.
 
 To run a tune recipe
 
@@ -156,6 +156,22 @@ To run a tune recipe
 
 ``tune run`` supports launching distributed runs by passing through arguments preceding the recipe directly to torchrun. This follows the pattern used by torchrun
 of specifying distributed and host machine flags before the script (recipe). For a full list of available flags for distributed setup, see the `torchrun docs <https://pytorch.org/docs/stable/elastic/run.html>`_.
+
+Some common flags:
+
+.. list-table::
+   :widths: 30 60
+
+   * - \--nproc-per-node
+     - Number of workers per node; supported values: [auto, cpu, gpu, int].
+   * - \--nnodes
+     - Number of nodes, or the range of nodes in form <minimum_nodes>:<maximum_nodes>.
+   * - \--max-restarts
+     - Maximum number of worker group restarts before failing.
+   * - \--rdzv-backend
+     - Rendezvous backend.
+   * - \--rdzv-endpoint
+     - Rendezvous backend endpoint; usually in form <host>:<port>.
 
 .. code-block:: bash
 
@@ -177,6 +193,7 @@ torchtune config or vice versa or you can use both custom configs and recipes.
 **Overriding the config**
 
 You can override existing parameters from the command line using a key=value format. Let’s say you want to set the number of training epochs to 1.
+Further information on config overrides can be found :ref:`here  <cli_override>`.
 
 .. code-block:: bash
 

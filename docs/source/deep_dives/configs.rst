@@ -211,6 +211,7 @@ component dotpath.
       _component_: torchtune.datasets.alpaca_dataset
       train_on_input: True
 
+.. _cli_override:
 
 Command-line overrides
 ----------------------
