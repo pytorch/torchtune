@@ -15,6 +15,9 @@ import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    _CHECKPOINT_WRAPPED_MODULE,
+)
 from torch.distributed.checkpoint.state_dict import _init_optim_state
 from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -329,12 +332,45 @@ def get_full_model_state_dict(
     """
     sharded_sd = model.state_dict()
     cpu_state_dict = {}
-    for param_name, sharded_param in sharded_sd.items():
-        full_param = sharded_param.full_tensor()
-        if is_rank_zero:
-            cpu_state_dict[param_name] = full_param.cpu()
-        else:
-            del full_param
+    has_nf4 = any(
+        isinstance(param._local_tensor, NF4Tensor) for param in model.parameters()
+    )
+    if has_nf4:
+        from torch.distributed._composable.fsdp.fully_shard import FSDPModule
+
+        # Iterating from lowerer modules to higher
+        # Unsharding lora adapters before unsharding transformer block
+        for module_name, module in reversed(list(model.named_modules())):
+            if not isinstance(module, FSDPModule):
+                continue
+            module.unshard(async_op=False)
+            if is_rank_zero:
+                module_name = module_name.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
+                for local_fqn, param in module.named_parameters():
+                    local_fqn = local_fqn.replace(f".{_CHECKPOINT_WRAPPED_MODULE}", "")
+                    if len(module_name) > 0:
+                        full_fqn = module_name + "." + local_fqn
+                    else:
+                        full_fqn = local_fqn
+                    if full_fqn in cpu_state_dict:
+                        continue
+                    if isinstance(param, NF4Tensor):
+                        # upcasting NF4 to original dtype
+                        param = param.to(param.dtype)
+                    if isinstance(param, DTensor):
+                        raise AssertionError(
+                            f"Internal error: expect unsharded {full_fqn} in plain torch.Tensor but got DTensor."
+                            " Might be a bug in get_full_model_state_dict"
+                        )
+                    cpu_state_dict[full_fqn] = param.cpu()
+            module.reshard()
+    else:
+        for param_name, sharded_param in sharded_sd.items():
+            full_param = sharded_param.full_tensor()
+            if is_rank_zero:
+                cpu_state_dict[param_name] = full_param.cpu()
+            else:
+                del full_param
     return cpu_state_dict
 
 
