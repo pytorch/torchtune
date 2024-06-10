@@ -15,7 +15,7 @@ import torch
 from torchtune.utils.precision import (
     _set_float32_precision,
     get_dtype,
-    list_dtypes,
+    PRECISION_STR_TO_DTYPE,
     set_default_dtype,
     validate_expected_param_dtype,
     verify_bf16_support,
@@ -30,7 +30,7 @@ class TestPrecisionUtils:
         """
         Tests that the correct dtype is returned based on the input string.
         """
-        dtypes = [None, torch.half] + list_dtypes()
+        dtypes = [None, torch.half] + list(PRECISION_STR_TO_DTYPE.keys())
         expected_dtypes = [
             torch.float32,
             torch.float16,
@@ -55,9 +55,6 @@ class TestPrecisionUtils:
             RuntimeError, match="bf16 precision was requested but not available"
         ):
             get_dtype(torch.bfloat16)
-
-    def test_list_dtyes(self):
-        assert set(list_dtypes()) == {"fp16", "bf16", "fp32", "fp64"}
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     def test_set_float32_precision(self) -> None:

@@ -391,8 +391,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            opt_state_dict = FSDP.optim_state_dict_to_load(
+                self._model, optimizer, opt_state_dict
             )
             optimizer.load_state_dict(opt_state_dict)
 

@@ -46,8 +46,15 @@ if TORCH_VERSION_AFTER_2_3:
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
-    """Given a quantizer object, returns a string that specifies the type of quantization e.g.
-    4w, which means int4 weight only quantization.
+    """Given a quantizer object, returns a string that specifies the type of quantization.
+
+    For example, in the case of int4 weight only quantization, we'll return "4w".
     If the quantizer is not recognized as a known quantizer, we'll return None
+
+    Args:
+        quantizer (Optional[Callable]): A callable object that implements the `quantize` method.
+
+    Returns:
+        Optional[str]: The quantization mode.
     """
     return _quantizer_to_mode.get(type(quantizer), None)
