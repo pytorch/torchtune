@@ -9,7 +9,6 @@ from ._checkpointing import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
-    transform_opt_state_dict,
 )
 
 from ._device import get_device
@@ -55,17 +54,11 @@ from .memory import (  # noqa
     set_activation_checkpointing,
 )
 
-from .precision import (
-    get_dtype,
-    list_dtypes,
-    set_default_dtype,
-    validate_expected_param_dtype,
-)
+from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
-    "transform_opt_state_dict",
     "get_memory_stats",
     "FSDPPolicyType",
     "log_memory_stats",
@@ -75,7 +68,6 @@ __all__ = [
     "get_world_size_and_rank",
     "init_distributed",
     "is_distributed",
-    "list_dtypes",
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
