@@ -57,9 +57,9 @@ class OptimizerInBackwardWrapper:
     A bare-bones class meant for checkpoint save and load for optimizers running
     in backward. Usage is limited to the following:
 
-    NOTE: This wrapper is only meant to be used for single-device use cases.
-        Distributed use cases such as FSDP, which require specialized
-        optimizer state checkpointing, are not supported.
+    Note:
+        This wrapper is only meant to be used for single-device use cases.
+        Distributed use cases such as FSDP, which require specialized optimizer state checkpointing, are not supported.
 
     Args:
         optim_map (Dict[str, torch.optim.Optimizer]): Mapping from parameter names to optimizers.

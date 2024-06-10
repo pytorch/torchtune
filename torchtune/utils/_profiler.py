@@ -20,14 +20,14 @@ def profiler(
     Utility component that wraps around ``torch.profiler`` to profile model's operators.
     See https://pytorch.org/docs/stable/profiler.html for more details.
     The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps
-    Note: Enabling pytorch profiler may have training speed reduction.
+    Note: Enabling PyTorch profiler may have training speed reduction.
 
     Args:
-        enabled (Optional[bool]): Enable pytorch profiler. Default is False.
+        enabled (Optional[bool]): Enable PyTorch profiler. Default is False.
         output_dir (Optional[str]): Tracing file output path. Default is "./torchtune_perf_tracing.json".
 
     Returns:
-        ContextManager: PyTorch profiler context manager
+        ContextManager: PyTorch profiler as a context manager
     """
 
     def trace_handler(prof) -> None:

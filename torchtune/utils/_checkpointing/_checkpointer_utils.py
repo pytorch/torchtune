@@ -14,16 +14,17 @@ from safetensors import safe_open
 
 
 class ModelType(Enum):
-    """ModelType is used by the checkpointer to distinguish betweeen different model architectures.
+    """ModelType is used by the checkpointer to distinguish between different model architectures.
 
     If you are adding a new model that follows a different format than those in the repo already,
     you can add a new ModelType to gate on weight conversion logic unique to that model.
 
-    Example usage in a checkpointer class:
-    def load_checkpoint(self, ...):
-        ...
-        if self._model_type == MY_NEW_MODEL:
-            state_dict = my_custom_state_dict_mapping(state_dict)
+    Example:
+        >>> # Usage in a checkpointer class
+        >>> def load_checkpoint(self, ...):
+        >>>     ...
+        >>>     if self._model_type == MY_NEW_MODEL:
+        >>>         state_dict = my_custom_state_dict_mapping(state_dict)
     """
 
     GEMMA = "gemma"

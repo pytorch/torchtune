@@ -19,6 +19,8 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
 
     FullModelHFCheckpointer
     FullModelMetaCheckpointer
+    FullModelTorchTuneCheckpointer
+    ModelType
 
 .. _dist_label:
 

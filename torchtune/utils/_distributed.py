@@ -112,7 +112,7 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
 
 
 def init_distributed(**kwargs: Dict[str, Any]) -> bool:
-    """Initialize ``torch.distributed``.
+    """Initialize process group required for ``torch.distributed``.
 
     Args:
         **kwargs (Dict): Additional arguments to pass to torch.distributed.init_process_group.
@@ -259,7 +259,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
 
     Returns:
-        Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
+        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel``. Please see
         documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.
     """
 
