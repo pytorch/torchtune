@@ -516,13 +516,27 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     input_pos.to(self._device) if input_pos is not None else None
                 )
 
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                logits = self._model(tokens, mask=mask, input_pos=input_pos, output_hidden_states=True)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+
+                # Compute early exit loss
+                if self._model.output_hidden_states:
+                    # TODO: calculate early_logits in one shot:
+                    # logits_early = self._model.output(self._model.norm(torch.stack(tuple(self._model.output_hidden_states.values()))))
+                    for layer_id, hidden_state in self._model.output_hidden_states.items():
+                        h_early = self._model.norm(hidden_state)
+                        logits_early = self._model.output(h_early)
+                        # Shift so that tokens < n predict n
+                        logits_early = logits_early[..., :-1, :].contiguous()
+                        logits_early = logits_early.transpose(1, 2)
+                        # Compute early loss
+                        loss_early = self._loss_fn(logits_early, labels)
+                        loss += 0.1 / len(self._model.layers) * loss_early
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss

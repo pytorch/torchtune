@@ -4,7 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import Optional
+from collections import OrderedDict
+from typing import List, Optional, Union
 
 import torch
 from torch import nn, Tensor
@@ -141,8 +142,8 @@ class TransformerDecoder(nn.Module):
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
-        layer_dropout_prob: float= 0.0,
-        layer_dropout_prob_layer_scale: str="exp",
+        layer_dropout_prob: float = 0.5,
+        layer_dropout_prob_layer_scale: str = "exp",
         layer_dropout_str: str = ":",
     ) -> None:
         super().__init__()
@@ -157,6 +158,7 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = None
 
         self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, layer_dropout_prob_layer_scale, layer_dropout_str)
+        self.output_hidden_states = OrderedDict() # TODO: use tensordict?
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -196,6 +198,7 @@ class TransformerDecoder(nn.Module):
         *,
         mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
+        output_hidden_states: Union[bool, List[bool]] = False,
     ) -> Tensor:
         """
         Args:
@@ -235,6 +238,9 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
+        if isinstance(output_hidden_states, bool):
+            output_hidden_states = [output_hidden_states] * len(self.layers)
+
         if self.causal_mask is not None:
             if input_pos is None:
                 raise ValueError(
@@ -251,6 +257,8 @@ class TransformerDecoder(nn.Module):
         for i, layer in enumerate(self.layers):
             # shape: [b, s, d]
             h = self.layer_dropouts[i](layer, h, mask=mask, input_pos=input_pos)
+            if output_hidden_states[i]:
+                self.output_hidden_states[i] = h
 
         # shape: [b, s, d]
         h = self.norm(h)
