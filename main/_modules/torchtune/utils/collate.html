@@ -472,7 +472,7 @@
     <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="n">input_ids</span><span class="p">,</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="n">labels</span><span class="p">}</span></div>
 
 
-<span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
+<div class="viewcode-block" id="padded_collate_dpo"><a class="viewcode-back" href="../../../generated/torchtune.utils.padded_collate_dpo.html#torchtune.utils.padded_collate_dpo">[docs]</a><span class="k">def</span> <span class="nf">padded_collate_dpo</span><span class="p">(</span>
     <span class="n">batch</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span>
     <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
     <span class="n">ignore_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">CROSS_ENTROPY_IGNORE_IDX</span><span class="p">,</span>
@@ -493,6 +493,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded</span>
 <span class="sd">        input ids and labels.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.</span>
+<span class="sd">        AssertionError: if the length of chosen_labels and rejected_labels differ.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; batch = [</span>
@@ -529,7 +533,7 @@
         <span class="n">to_pad_labels</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="n">ignore_idx</span>
     <span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span>
+    <span class="k">return</span> <span class="n">concatenated_input_ids</span><span class="p">,</span> <span class="n">concatenated_labels</span></div>
 </pre></div>
 
              </article>

@@ -500,8 +500,9 @@
 
 
 <div class="viewcode-block" id="get_device"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_device.html#torchtune.utils.get_device">[docs]</a><span class="k">def</span> <span class="nf">get_device</span><span class="p">(</span><span class="n">device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that takes or device or device string, verifies it&#39;s correct and availabe given the machine and</span>
-<span class="sd">    distributed settings, and returns a torch.device.</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that takes an optional device string, verifies it&#39;s correct and available given the machine and</span>
+<span class="sd">    distributed settings, and returns a torch.device. If device string is not provided, this function will</span>
+<span class="sd">    infer the device based on the environment.</span>
 
 <span class="sd">    If CUDA is available and being used, this function also sets the CUDA device.</span>
 
@@ -509,7 +510,7 @@
 <span class="sd">        device (Optional[str]): The name of the device to use.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        device</span>
+<span class="sd">        torch.device: device.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">device</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="n">_get_device_type_from_env</span><span class="p">()</span>

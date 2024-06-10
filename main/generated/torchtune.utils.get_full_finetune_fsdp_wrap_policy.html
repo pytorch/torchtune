@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_dtype" href="torchtune.utils.get_dtype.html" />
+    <link rel="next" title="lora_fsdp_wrap_policy" href="torchtune.utils.lora_fsdp_wrap_policy.html" />
     <link rel="prev" title="get_world_size_and_rank" href="torchtune.utils.get_world_size_and_rank.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -424,17 +424,14 @@ to maximize memory savings.</p>
 </dl>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> memory improvements have currently only been verified on llama3 workloads,
-to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
+<p><code class="docutils literal notranslate"><span class="pre">memory_efficient_fsdp_wrap</span></code> memory improvements have currently only been verified on llama3 workloads
+where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads
 have not been verified and may not see the same improvements.</p>
 </div>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><dl class="simple">
-<dt>Wrapping policy that can be passed into <code class="docutils literal notranslate"><span class="pre">FullyShardedDataParallel</span></code> as the <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code></dt><dd><p>argument. Please see documentation for const:<cite>~torchtune.utils.FSDPPolicyType</cite> for additional details.</p>
-</dd>
-</dl>
-</p>
+<dd class="field-odd"><p>Wrapping policy that can be passed into <code class="docutils literal notranslate"><span class="pre">FullyShardedDataParallel</span></code> as the <code class="docutils literal notranslate"><span class="pre">auto_wrap_policy</span></code>
+argument. Please see documentation for <a class="reference internal" href="torchtune.utils.FSDPPolicyType.html#torchtune.utils.FSDPPolicyType" title="torchtune.utils.FSDPPolicyType"><code class="xref py py-const docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a> for additional details.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
 <dd class="field-even"><p>FSDPPolicyType</p>
@@ -452,7 +449,7 @@ have not been verified and may not see the same improvements.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_dtype.html" class="btn btn-neutral float-right" title="get_dtype" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.lora_fsdp_wrap_policy.html" class="btn btn-neutral float-right" title="lora_fsdp_wrap_policy" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.utils.get_world_size_and_rank.html" class="btn btn-neutral" title="get_world_size_and_rank" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>

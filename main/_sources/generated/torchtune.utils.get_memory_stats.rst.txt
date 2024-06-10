@@ -3,7 +3,7 @@
 .. currentmodule:: torchtune.utils
 
 
-list_dtypes
-===========
+get_memory_stats
+================
 
-.. autofunction:: list_dtypes
+.. autofunction:: get_memory_stats

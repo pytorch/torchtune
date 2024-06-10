@@ -500,13 +500,31 @@
         <span class="o">...</span>
 
 
-<span class="k">class</span> <span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelTorchTuneCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in a format compatible with</span>
 <span class="sd">    torchtune. No conversion of weights is required.</span>
 
 <span class="sd">    Currently this supports reading a single checkpoint file only. This will likely change as</span>
 <span class="sd">    we add support for larger models.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
+<span class="sd">        checkpoint_files (List[str]): List of checkpoint files to load. Since the checkpointer takes care</span>
+<span class="sd">            of sorting by file ID, the order in this list does not matter</span>
+<span class="sd">        model_type (ModelType): Model type of the model for which the checkpointer is being loaded</span>
+<span class="sd">        output_dir (str): Directory to save the checkpoint files</span>
+<span class="sd">        adapter_checkpoint (Optional[str]): Path to the adapter weights. Default is None</span>
+<span class="sd">        recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None</span>
+<span class="sd">        resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to</span>
+<span class="sd">            resume training from a previous run. Default is False</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If more than one checkpoint file is provided</span>
+<span class="sd">        ValueError: If the checkpoint file does not have a .pt extension</span>
+<span class="sd">        ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None</span>
+
+
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -555,20 +573,21 @@
                 <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span> <span class="o">=</span> <span class="n">get_path</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="n">recipe_checkpoint</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weights_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
 
 <span class="sd">        The output state_dict has the following format, with keys other than &quot;model&quot; only present if</span>
 <span class="sd">        ``resume_from_checkpoint`` is True:</span>
-<span class="sd">            {</span>
-<span class="sd">                &quot;model&quot;: {</span>
-<span class="sd">                    &quot;key_1&quot;: weight</span>
-<span class="sd">                    ...</span>
-<span class="sd">                },</span>
-<span class="sd">                &quot;optimizer&quot;: ...,</span>
-<span class="sd">                ...</span>
-<span class="sd">            }</span>
+
+<span class="sd">        &gt;&gt;&gt;     {</span>
+<span class="sd">        &gt;&gt;&gt;         &quot;model&quot;: {</span>
+<span class="sd">        &gt;&gt;&gt;             &quot;key_1&quot;: weight</span>
+<span class="sd">        &gt;&gt;&gt;             ...</span>
+<span class="sd">        &gt;&gt;&gt;         },</span>
+<span class="sd">        &gt;&gt;&gt;         &quot;optimizer&quot;: {...},</span>
+<span class="sd">        &gt;&gt;&gt;         ...</span>
+<span class="sd">        &gt;&gt;&gt;     }</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            weights_only (bool): flag passed down to torch.load. We expose this, because quantized models</span>
@@ -589,9 +608,9 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_resume_from_checkpoint</span><span class="p">:</span>
             <span class="n">recipe_state</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recipe_checkpoint</span><span class="p">,</span> <span class="n">mmap</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="n">state_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">recipe_state</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">state_dict</span>
+        <span class="k">return</span> <span class="n">state_dict</span></div>
 
-    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
+<div class="viewcode-block" id="FullModelTorchTuneCheckpointer.save_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelTorchTuneCheckpointer.html#torchtune.utils.FullModelTorchTuneCheckpointer.save_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">save_checkpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -602,18 +621,18 @@
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state. The output state dicts have the following formats:</span>
 
-<span class="sd">            Model:</span>
-<span class="sd">                {</span>
-<span class="sd">                    &quot;key_1&quot;: weight</span>
-<span class="sd">                    ...</span>
-<span class="sd">                }</span>
-
-<span class="sd">            Recipe State:</span>
-<span class="sd">                {</span>
-<span class="sd">                    &quot;optimizer&quot;: ...,</span>
-<span class="sd">                    &quot;epoch&quot;: ...,</span>
-<span class="sd">                    ...</span>
-<span class="sd">                }</span>
+<span class="sd">        &gt;&gt;&gt; # Model</span>
+<span class="sd">        &gt;&gt;&gt; {</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;key_1&quot;: weight</span>
+<span class="sd">        &gt;&gt;&gt;     ...</span>
+<span class="sd">        &gt;&gt;&gt; }</span>
+<span class="sd">        &gt;&gt;&gt;</span>
+<span class="sd">        &gt;&gt;&gt; # Recipe state</span>
+<span class="sd">        &gt;&gt;&gt; {</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;optimizer&quot;: ...,</span>
+<span class="sd">        &gt;&gt;&gt;     &quot;epoch&quot;: ...,</span>
+<span class="sd">        &gt;&gt;&gt;     ...</span>
+<span class="sd">        &gt;&gt;&gt; }</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            state_dict (Dict[str, Any]): State dict with model and (optionally) recipe state</span>
@@ -657,22 +676,24 @@
                 <span class="s2">&quot;Recipe checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+            <span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="FullModelHFCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelHFCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Checkpointer which reads and writes checkpoints in HF&#39;s format. For LoRA models this includes</span>
-<span class="sd">    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Example includes</span>
-<span class="sd">    the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf)</span>
+<span class="sd">    saving checkpoints in a format that can be loaded into PEFT via e.g. ``from_pretrained``. Examples include</span>
+<span class="sd">    the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf).</span>
 
-<span class="sd">    A few notes about the checkpoint reading logic:</span>
-<span class="sd">    - HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure</span>
-<span class="sd">    we read the files in the right order, we sort the checkpoint file names before reading</span>
-<span class="sd">    - Checkpoint conversion to and from HF&#39;s format requires access to model params which are</span>
-<span class="sd">    read directly from the &quot;config.json&quot; file. This helps ensure we either load the weights</span>
-<span class="sd">    correctly or error out in case of discrepancy between the HF checkpoint file and torchtune&#39;s</span>
-<span class="sd">    model implementations.</span>
+<span class="sd">    Note:</span>
+<span class="sd">        HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure \</span>
+<span class="sd">        we read the files in the right order, we sort the checkpoint file names before reading</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Checkpoint conversion to and from HF&#39;s format requires access to model params which are \</span>
+<span class="sd">        read directly from the ``config.json`` file. This helps ensure we either load the weights \</span>
+<span class="sd">        correctly or error out in case of discrepancy between the HF checkpoint file and torchtune&#39;s \</span>
+<span class="sd">        model implementations.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        checkpoint_dir (str): Directory containing the checkpoint files</span>
@@ -746,13 +767,14 @@
 
 <div class="viewcode-block" id="FullModelHFCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelHFCheckpointer.html#torchtune.utils.FullModelHFCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load torchtune checkpoint from file.</span>
+<span class="sd">        Load HF checkpoint from file.</span>
 
 <span class="sd">        The keys and weights from across all checkpoint files are merged into a single state_dict.</span>
-<span class="sd">        We preserve the &quot;state_dict key&quot; &lt;-&gt; &quot;checkpoint file mapping&quot; in weight_map so we can</span>
+<span class="sd">        We preserve the &quot;state_dict key&quot; &lt;-&gt; &quot;checkpoint file&quot; mapping in weight_map so we can</span>
 <span class="sd">        write the state dict correctly in ``save_checkpoint``.</span>
 
-<span class="sd">        Before returning, the model state dict is converted to a torchtune compatible format using.</span>
+<span class="sd">        Before returning, the model state dict is converted to a torchtune-compatible format using</span>
+<span class="sd">        the appropriate convert_weights function (depending on ``self._model_type``).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            state_dict (Dict[str, Any]): torchtune checkpoint state dict</span>
@@ -826,7 +848,7 @@
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
+<span class="sd">        Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state.</span>
 
@@ -953,7 +975,7 @@
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer">[docs]</a><span class="k">class</span> <span class="nc">FullModelMetaCheckpointer</span><span class="p">(</span><span class="n">_CheckpointerInterface</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Checkpointer which reads and writes checkpoints in Meta&#39;s format. Example includes</span>
+<span class="sd">    Checkpointer which reads and writes checkpoints in Meta&#39;s format. Examples include</span>
 <span class="sd">    the Llama-2-7b model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b)</span>
 
 <span class="sd">    Currently we support reading from a single checkpoint file only. Support for reading from</span>
@@ -1017,7 +1039,7 @@
 
 <div class="viewcode-block" id="FullModelMetaCheckpointer.load_checkpoint"><a class="viewcode-back" href="../../../../generated/torchtune.utils.FullModelMetaCheckpointer.html#torchtune.utils.FullModelMetaCheckpointer.load_checkpoint">[docs]</a>    <span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Load torchtune checkpoint from file. Currently only loading from a single file is supported.</span>
+<span class="sd">        Load Meta checkpoint from file. Currently only loading from a single file is supported.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">:</span><span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">safe_torch_load</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_path</span><span class="p">)</span>
@@ -1039,7 +1061,7 @@
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
+<span class="sd">        Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state.</span>
 

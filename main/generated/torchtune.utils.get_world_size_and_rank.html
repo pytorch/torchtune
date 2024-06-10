@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="get_full_finetune_fsdp_wrap_policy" href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" />
-    <link rel="prev" title="init_distributed" href="torchtune.utils.init_distributed.html" />
+    <link rel="prev" title="is_distributed" href="torchtune.utils.is_distributed.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -411,7 +411,7 @@
 <dt class="sig sig-object py" id="torchtune.utils.get_world_size_and_rank">
 <span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_world_size_and_rank</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_distributed.html#get_world_size_and_rank"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_world_size_and_rank" title="Permalink to this definition">¶</a></dt>
 <dd><p>Function that gets the current world size (aka total number
-of ranks) and rank number of the current trainer.</p>
+of ranks) and rank number of the current process in the default process group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>world size, rank</p>
@@ -435,7 +435,7 @@ of ranks) and rank number of the current trainer.</p>
         <a href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" class="btn btn-neutral float-right" title="get_full_finetune_fsdp_wrap_policy" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.init_distributed.html" class="btn btn-neutral" title="init_distributed" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.is_distributed.html" class="btn btn-neutral" title="is_distributed" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

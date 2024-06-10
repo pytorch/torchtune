@@ -19,6 +19,8 @@ checkpointing, please see the :ref:`checkpointing deep-dive <understand_checkpoi
 
     FullModelHFCheckpointer
     FullModelMetaCheckpointer
+    FullModelTorchTuneCheckpointer
+    ModelType
 
 .. _dist_label:
 
@@ -33,8 +35,10 @@ Utilities for enabling and working with distributed training.
 
     FSDPPolicyType
     init_distributed
+    is_distributed
     get_world_size_and_rank
     get_full_finetune_fsdp_wrap_policy
+    lora_fsdp_wrap_policy
 
 .. _mp_label:
 
@@ -48,7 +52,9 @@ Utilities for working in a reduced precision setting.
     :nosignatures:
 
     get_dtype
-    list_dtypes
+    set_default_dtype
+    validate_expected_param_dtype
+    get_quantizer_mode
 
 .. _ac_label:
 
@@ -62,19 +68,25 @@ Utilities to reduce memory consumption during training.
     :nosignatures:
 
     set_activation_checkpointing
+    OptimizerInBackwardWrapper
+    create_optim_in_bwd_wrapper
+    register_optim_in_bwd_hooks
+
 
 .. _perf_profiling_label:
 
 Performance and Profiling
 -------------------------
 
-torchtune provides utilities to profile and debug the performance
+torchtune provides utilities to profile and debug the memory and performance
 of your finetuning job.
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
+    get_memory_stats
+    log_memory_stats
     profiler
 
 .. _metric_logging_label:
@@ -103,6 +115,7 @@ Utilities for working with data and datasets.
     :nosignatures:
 
     padded_collate
+    padded_collate_dpo
 
 .. _gen_label:
 
@@ -114,8 +127,9 @@ Miscellaneous
     :toctree: generated/
     :nosignatures:
 
-    TuneRecipeArgumentParser
     get_logger
     get_device
     set_seed
     generate
+    torch_version_ge
+    TuneRecipeArgumentParser

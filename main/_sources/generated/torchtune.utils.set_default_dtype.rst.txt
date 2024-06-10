@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils
+
+
+set_default_dtype
+=================
+
+.. autofunction:: set_default_dtype

@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="list_dtypes" href="torchtune.utils.list_dtypes.html" />
-    <link rel="prev" title="get_full_finetune_fsdp_wrap_policy" href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" />
+    <link rel="next" title="set_default_dtype" href="torchtune.utils.set_default_dtype.html" />
+    <link rel="prev" title="lora_fsdp_wrap_policy" href="torchtune.utils.lora_fsdp_wrap_policy.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -410,7 +410,8 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.utils.get_dtype">
 <span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.device" title="(in PyTorch v2.3)"><span class="pre">device</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.3)"><span class="pre">dtype</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/precision.html#get_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_dtype" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get the torch.dtype corresponding to the given precision string.</p>
+<dd><p>Get the torch.dtype corresponding to the given precision string. If no string is passed,
+we will default to torch.float32.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If bf16 precision is requested with a CUDA device, we verify whether the device indeed supports
@@ -428,7 +429,7 @@ a CUDA device is assumed.</p></li>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">
-<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if precision isn’t supported by the precision utils</p></li>
+<li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – if precision isn’t supported by the library</p></li>
 <li><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#RuntimeError" title="(in Python v3.12)"><strong>RuntimeError</strong></a> – if bf16 precision is requested but not available on this hardware.</p></li>
 </ul>
 </dd>
@@ -451,10 +452,10 @@ a CUDA device is assumed.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.list_dtypes.html" class="btn btn-neutral float-right" title="list_dtypes" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.set_default_dtype.html" class="btn btn-neutral float-right" title="set_default_dtype" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" class="btn btn-neutral" title="get_full_finetune_fsdp_wrap_policy" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.lora_fsdp_wrap_policy.html" class="btn btn-neutral" title="lora_fsdp_wrap_policy" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

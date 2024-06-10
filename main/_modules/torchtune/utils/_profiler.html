@@ -418,17 +418,17 @@
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;./torchtune_perf_tracing.json&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContextManager</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Utility component that wraps around `torch.profiler` to profile model&#39;s operators.</span>
+<span class="sd">    Utility component that wraps around ``torch.profiler`` to profile model&#39;s operators.</span>
 <span class="sd">    See https://pytorch.org/docs/stable/profiler.html for more details.</span>
 <span class="sd">    The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps</span>
-<span class="sd">    Note: Enabling pytorch profiler may have training speed reduction.</span>
+<span class="sd">    Note: Enabling PyTorch profiler may have training speed reduction.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">        enabled (Optional[bool]): Enable pytorch profiler. Default is False.</span>
+<span class="sd">        enabled (Optional[bool]): Enable PyTorch profiler. Default is False.</span>
 <span class="sd">        output_dir (Optional[str]): Tracing file output path. Default is &quot;./torchtune_perf_tracing.json&quot;.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        ContextManager: pytorch profiler context manager</span>
+<span class="sd">        ContextManager: PyTorch profiler as a context manager</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">trace_handler</span><span class="p">(</span><span class="n">prof</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>

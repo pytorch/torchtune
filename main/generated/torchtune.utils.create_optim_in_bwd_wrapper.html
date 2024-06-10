@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_logger &mdash; torchtune main documentation</title>
+  <title>create_optim_in_bwd_wrapper &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_device" href="torchtune.utils.get_device.html" />
-    <link rel="prev" title="padded_collate_dpo" href="torchtune.utils.padded_collate_dpo.html" />
+    <link rel="next" title="register_optim_in_bwd_hooks" href="torchtune.utils.register_optim_in_bwd_hooks.html" />
+    <link rel="prev" title="OptimizerInBackwardWrapper" href="torchtune.utils.OptimizerInBackwardWrapper.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -369,13 +369,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>get_logger</li>
+      <li>create_optim_in_bwd_wrapper</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_logger.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.create_optim_in_bwd_wrapper.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -405,21 +405,28 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-logger">
-<h1>get_logger<a class="headerlink" href="#get-logger" title="Permalink to this heading">¶</a></h1>
+  <section id="create-optim-in-bwd-wrapper">
+<h1>create_optim_in_bwd_wrapper<a class="headerlink" href="#create-optim-in-bwd-wrapper" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_logger">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><span class="pre">Logger</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/logging.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a logger with a stream handler.</p>
+<dt class="sig sig-object py" id="torchtune.utils.create_optim_in_bwd_wrapper">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">create_optim_in_bwd_wrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.3)"><span class="pre">Module</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">optim_dict</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.3)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.3)"><span class="pre">Optimizer</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="torchtune.utils.OptimizerInBackwardWrapper.html#torchtune.utils.OptimizerInBackwardWrapper" title="torchtune.utils.memory.OptimizerInBackwardWrapper"><span class="pre">OptimizerInBackwardWrapper</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/memory.html#create_optim_in_bwd_wrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.create_optim_in_bwd_wrapper" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a wrapper for optimizer step running in backward.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The logging level. See <a class="reference external" href="https://docs.python.org/3/library/logging.html#levels">https://docs.python.org/3/library/logging.html#levels</a> for list of levels.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.3)"><em>torch.nn.Module</em></a>) – Model that contains parameters that are being optimized. For now,
+it is assumed that all parameters being optimized belong to a single top-level model.
+<code class="docutils literal notranslate"><span class="pre">named_parameters</span></code> attribute of <code class="docutils literal notranslate"><span class="pre">model</span></code> will be accessed to look up parameter names for
+parameters being optimized.</p></li>
+<li><p><strong>optim_dict</strong> (<em>Dict</em><em>[</em><em>torch.nn.Parameter</em><em>, </em><a class="reference external" href="https://pytorch.org/docs/stable/optim.html#torch.optim.Optimizer" title="(in PyTorch v2.3)"><em>torch.optim.Optimizer</em></a><em>]</em>) – Mapping from
+parameters to optimizers.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The logger.</p>
+<dd class="field-even"><p>Wrapper for optimizer states running in backward.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)">logging.Logger</a></p>
+<dd class="field-odd"><p><code class="docutils literal notranslate"><span class="pre">OptimizerInBackwardWrapper</span></code></p>
 </dd>
 </dl>
 </dd></dl>
@@ -434,10 +441,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_device.html" class="btn btn-neutral float-right" title="get_device" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.register_optim_in_bwd_hooks.html" class="btn btn-neutral float-right" title="register_optim_in_bwd_hooks" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.padded_collate_dpo.html" class="btn btn-neutral" title="padded_collate_dpo" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.OptimizerInBackwardWrapper.html" class="btn btn-neutral" title="OptimizerInBackwardWrapper" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -469,7 +476,7 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_logger</a></li>
+<li><a class="reference internal" href="#">create_optim_in_bwd_wrapper</a></li>
 </ul>
 
             </div>

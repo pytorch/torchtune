@@ -42,7 +42,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="WandBLogger" href="torchtune.utils.metric_logging.WandBLogger.html" />
-    <link rel="prev" title="set_activation_checkpointing" href="torchtune.utils.set_activation_checkpointing.html" />
+    <link rel="prev" title="log_memory_stats" href="torchtune.utils.log_memory_stats.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -410,19 +410,19 @@
 <dl class="py function">
 <dt class="sig sig-object py" id="torchtune.utils.profiler">
 <span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">profiler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enabled</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'./torchtune_perf_tracing.json'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.ContextManager" title="(in Python v3.12)"><span class="pre">ContextManager</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/_profiler.html#profiler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.profiler" title="Permalink to this definition">¶</a></dt>
-<dd><p>Utility component that wraps around <cite>torch.profiler</cite> to profile model’s operators.
+<dd><p>Utility component that wraps around <code class="docutils literal notranslate"><span class="pre">torch.profiler</span></code> to profile model’s operators.
 See <a class="reference external" href="https://pytorch.org/docs/stable/profiler.html">https://pytorch.org/docs/stable/profiler.html</a> for more details.
 The schedule for this profiler is wait 100 steps, warmup 5 steps, trace 5 steps
-Note: Enabling pytorch profiler may have training speed reduction.</p>
+Note: Enabling PyTorch profiler may have training speed reduction.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>enabled</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>]</em>) – Enable pytorch profiler. Default is False.</p></li>
+<li><p><strong>enabled</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a><em>]</em>) – Enable PyTorch profiler. Default is False.</p></li>
 <li><p><strong>output_dir</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – Tracing file output path. Default is “./torchtune_perf_tracing.json”.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>pytorch profiler context manager</p>
+<dd class="field-even"><p>PyTorch profiler as a context manager</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>ContextManager</p>
@@ -443,7 +443,7 @@ Note: Enabling pytorch profiler may have training speed reduction.</p>
         <a href="torchtune.utils.metric_logging.WandBLogger.html" class="btn btn-neutral float-right" title="WandBLogger" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.set_activation_checkpointing.html" class="btn btn-neutral" title="set_activation_checkpointing" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.log_memory_stats.html" class="btn btn-neutral" title="log_memory_stats" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   

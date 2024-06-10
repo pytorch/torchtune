@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_logger &mdash; torchtune main documentation</title>
+  <title>ModelType &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_device" href="torchtune.utils.get_device.html" />
-    <link rel="prev" title="padded_collate_dpo" href="torchtune.utils.padded_collate_dpo.html" />
+    <link rel="next" title="torchtune.utils.FSDPPolicyType" href="torchtune.utils.FSDPPolicyType.html" />
+    <link rel="prev" title="FullModelTorchTuneCheckpointer" href="torchtune.utils.FullModelTorchTuneCheckpointer.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -369,13 +369,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>get_logger</li>
+      <li>ModelType</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_logger.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.ModelType.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -405,23 +405,58 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-logger">
-<h1>get_logger<a class="headerlink" href="#get-logger" title="Permalink to this heading">¶</a></h1>
-<dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_logger">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><span class="pre">Logger</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/logging.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a logger with a stream handler.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The logging level. See <a class="reference external" href="https://docs.python.org/3/library/logging.html#levels">https://docs.python.org/3/library/logging.html#levels</a> for list of levels.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The logger.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)">logging.Logger</a></p>
-</dd>
-</dl>
+  <section id="modeltype">
+<h1>ModelType<a class="headerlink" href="#modeltype" title="Permalink to this heading">¶</a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">ModelType</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">module</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qualname</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/utils/_checkpointing/_checkpointer_utils.html#ModelType"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.ModelType" title="Permalink to this definition">¶</a></dt>
+<dd><p>ModelType is used by the checkpointer to distinguish between different model architectures.</p>
+<p>If you are adding a new model that follows a different format than those in the repo already,
+you can add a new ModelType to gate on weight conversion logic unique to that model.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Usage in a checkpointer class</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">load_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">...</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="o">...</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">MY_NEW_MODEL</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">state_dict</span> <span class="o">=</span> <span class="n">my_custom_state_dict_mapping</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.GEMMA">
+<span class="sig-name descname"><span class="pre">GEMMA</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'gemma'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.GEMMA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gemma family of models. See <code class="xref py py-func docutils literal notranslate"><span class="pre">gemma()</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.LLAMA2">
+<span class="sig-name descname"><span class="pre">LLAMA2</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'llama2'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.LLAMA2" title="Permalink to this definition">¶</a></dt>
+<dd><p>Llama2 family of models. See <code class="xref py py-func docutils literal notranslate"><span class="pre">llama2()</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.LLAMA3">
+<span class="sig-name descname"><span class="pre">LLAMA3</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'llama3'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.LLAMA3" title="Permalink to this definition">¶</a></dt>
+<dd><p>Llama3 family of models. See <code class="xref py py-func docutils literal notranslate"><span class="pre">llama3()</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.MISTRAL">
+<span class="sig-name descname"><span class="pre">MISTRAL</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mistral'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.MISTRAL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mistral family of models. See <code class="xref py py-func docutils literal notranslate"><span class="pre">mistral()</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.MISTRAL_REWARD">
+<span class="sig-name descname"><span class="pre">MISTRAL_REWARD</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'mistral_reward'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.MISTRAL_REWARD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Mistral model with a classification head. See <code class="xref py py-func docutils literal notranslate"><span class="pre">mistral_classifier()</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="torchtune.utils.ModelType.PHI3_MINI">
+<span class="sig-name descname"><span class="pre">PHI3_MINI</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">'phi3_mini'</span></em><a class="headerlink" href="#torchtune.utils.ModelType.PHI3_MINI" title="Permalink to this definition">¶</a></dt>
+<dd><p>Phi-3 family of models. See <code class="xref py py-func docutils literal notranslate"><span class="pre">phi3()</span></code></p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -434,10 +469,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_device.html" class="btn btn-neutral float-right" title="get_device" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.FSDPPolicyType.html" class="btn btn-neutral float-right" title="torchtune.utils.FSDPPolicyType" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.padded_collate_dpo.html" class="btn btn-neutral" title="padded_collate_dpo" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.FullModelTorchTuneCheckpointer.html" class="btn btn-neutral" title="FullModelTorchTuneCheckpointer" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -469,7 +504,7 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_logger</a></li>
+<li><a class="reference internal" href="#">ModelType</a></li>
 </ul>
 
             </div>

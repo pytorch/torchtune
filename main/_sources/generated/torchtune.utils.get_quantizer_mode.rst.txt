@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils
+
+
+get_quantizer_mode
+==================
+
+.. autofunction:: get_quantizer_mode

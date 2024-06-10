@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_logger &mdash; torchtune main documentation</title>
+  <title>validate_expected_param_dtype &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_device" href="torchtune.utils.get_device.html" />
-    <link rel="prev" title="padded_collate_dpo" href="torchtune.utils.padded_collate_dpo.html" />
+    <link rel="next" title="get_quantizer_mode" href="torchtune.utils.get_quantizer_mode.html" />
+    <link rel="prev" title="set_default_dtype" href="torchtune.utils.set_default_dtype.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -369,13 +369,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>get_logger</li>
+      <li>validate_expected_param_dtype</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_logger.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.validate_expected_param_dtype.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -405,21 +405,21 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-logger">
-<h1>get_logger<a class="headerlink" href="#get-logger" title="Permalink to this heading">¶</a></h1>
+  <section id="validate-expected-param-dtype">
+<h1>validate_expected_param_dtype<a class="headerlink" href="#validate-expected-param-dtype" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_logger">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><span class="pre">Logger</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/logging.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a logger with a stream handler.</p>
+<dt class="sig sig-object py" id="torchtune.utils.validate_expected_param_dtype">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">validate_expected_param_dtype</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">named_params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Iterable" title="(in Python v3.12)"><span class="pre">Iterable</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.parameter.Parameter.html#torch.nn.parameter.Parameter" title="(in PyTorch v2.3)"><span class="pre">Parameter</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.3)"><span class="pre">dtype</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/precision.html#validate_expected_param_dtype"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.validate_expected_param_dtype" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validates that all input parameters have the expected dtype.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The logging level. See <a class="reference external" href="https://docs.python.org/3/library/logging.html#levels">https://docs.python.org/3/library/logging.html#levels</a> for list of levels.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>named_params</strong> (Iterable[Tuple[str, <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.Parameter</span></code>]]) – Iterable of named parameters.</p></li>
+<li><p><strong>dtype</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensor_attributes.html#torch.dtype" title="(in PyTorch v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">torch.dtype</span></code></a>) – Expected dtype.</p></li>
+</ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The logger.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)">logging.Logger</a></p>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If any parameter has a different dtype than <cite>dtype</cite>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -434,10 +434,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_device.html" class="btn btn-neutral float-right" title="get_device" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.get_quantizer_mode.html" class="btn btn-neutral float-right" title="get_quantizer_mode" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.padded_collate_dpo.html" class="btn btn-neutral" title="padded_collate_dpo" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.set_default_dtype.html" class="btn btn-neutral" title="set_default_dtype" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -469,7 +469,7 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_logger</a></li>
+<li><a class="reference internal" href="#">validate_expected_param_dtype</a></li>
 </ul>
 
             </div>

@@ -469,17 +469,27 @@
     <span class="k">return</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">ShardingStrategy</span><span class="p">,</span> <span class="n">strategy</span><span class="p">)</span>
 
 
-<span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="is_distributed"><a class="viewcode-back" href="../../../generated/torchtune.utils.is_distributed.html#torchtune.utils.is_distributed">[docs]</a><span class="k">def</span> <span class="nf">is_distributed</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if all environment variables required to initialize torch.distributed are set</span>
 <span class="sd">    and distributed is properly installed. This indicates a distributed run.</span>
 <span class="sd">    https://pytorch.org/docs/stable/distributed.html#environment-variable-initialization</span>
+
+<span class="sd">    Checks the following conditions:</span>
+
+<span class="sd">    * torch.distributed is available</span>
+<span class="sd">    * master port and master address environment variables are set</span>
+<span class="sd">    * world size is &gt;1</span>
+<span class="sd">    * rank environment variable is set</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        bool: True if all of the above conditions hold, False otherwise.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">port</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;MASTER_PORT&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="n">addr</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;MASTER_ADDR&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
     <span class="n">size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;WORLD_SIZE&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
     <span class="n">rank</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;RANK&quot;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
     <span class="n">avlb</span> <span class="o">=</span> <span class="n">dist</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span>
-    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">port</span> <span class="ow">and</span> <span class="n">addr</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">avlb</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">port</span> <span class="ow">and</span> <span class="n">addr</span> <span class="ow">and</span> <span class="n">size</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">rank</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">avlb</span><span class="p">)</span></div>
 
 
 <span class="k">def</span> <span class="nf">_broadcast_tensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">src</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
@@ -502,8 +512,8 @@
         <span class="k">return</span> <span class="n">tensor</span>
 
 
-<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed">[docs]</a><span class="k">def</span> <span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>  <span class="c1"># noqa: DOC106, DOC109</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize torch.distributed.</span>
+<div class="viewcode-block" id="init_distributed"><a class="viewcode-back" href="../../../generated/torchtune.utils.init_distributed.html#torchtune.utils.init_distributed">[docs]</a><span class="k">def</span> <span class="nf">init_distributed</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize process group required for ``torch.distributed``.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        **kwargs (Dict): Additional arguments to pass to torch.distributed.init_process_group.</span>
@@ -541,7 +551,7 @@
 
 <div class="viewcode-block" id="get_world_size_and_rank"><a class="viewcode-back" href="../../../generated/torchtune.utils.get_world_size_and_rank.html#torchtune.utils.get_world_size_and_rank">[docs]</a><span class="k">def</span> <span class="nf">get_world_size_and_rank</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Function that gets the current world size (aka total number</span>
-<span class="sd">    of ranks) and rank number of the current trainer.</span>
+<span class="sd">    of ranks) and rank number of the current process in the default process group.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        Tuple[int, int]: world size, rank</span>
@@ -631,14 +641,20 @@
     <span class="k">return</span> <span class="n">model</span>
 
 
-<span class="k">def</span> <span class="nf">lora_fsdp_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
+<div class="viewcode-block" id="lora_fsdp_wrap_policy"><a class="viewcode-back" href="../../../generated/torchtune.utils.lora_fsdp_wrap_policy.html#torchtune.utils.lora_fsdp_wrap_policy">[docs]</a><span class="k">def</span> <span class="nf">lora_fsdp_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Type</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">FSDPPolicyType</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    A default policy for wrapping models trained with LoRA using FSDP. Specifically,</span>
-<span class="sd">    this will wrap individual LoRA A &amp; B submodules in their own FSDP units to</span>
+<span class="sd">    A default policy for wrapping models trained with LoRA using FSDP.</span>
+
+<span class="sd">    FSDP&#39;s default behavior is to allocate gradients at the level of FSDP-wrapped modules.</span>
+<span class="sd">    This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be</span>
+<span class="sd">    allocated for gradients for the entire module.</span>
+
+<span class="sd">    In the case of LoRA, where only LoRA A and B matrices are trainable, this means that</span>
+<span class="sd">    we need to wrap LoRA A and B submodules in their own FSDP units to</span>
 <span class="sd">    maximize memory savings. After this is done, model will also be hierarchically wrapped</span>
 <span class="sd">    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that</span>
 <span class="sd">    (a) LoRA&#39;s A and B matrices are the only trainable weights in the entire model, and</span>
-<span class="sd">    (b) we have already set requires_grad = True on LoRA params.</span>
+<span class="sd">    (b) we have already set ``requires_grad = True`` on LoRA params.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        modules_to_wrap (Set[Type]): nn.Module types to recursively wrap</span>
@@ -661,7 +677,7 @@
 
         <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="p">))</span>
 
-    <span class="k">return</span> <span class="n">lora_wrap_fsdp</span>
+    <span class="k">return</span> <span class="n">lora_wrap_fsdp</span></div>
 
 
 <span class="k">def</span> <span class="nf">load_from_full_model_state_dict</span><span class="p">(</span>
@@ -839,12 +855,13 @@
 <span class="sd">        modules_to_wrap (Set[Type]): Set of module types to wrap.</span>
 
 <span class="sd">    Note:</span>
-<span class="sd">        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads,</span>
-<span class="sd">        to provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads</span>
+<span class="sd">        ``memory_efficient_fsdp_wrap`` memory improvements have currently only been verified on llama3 workloads</span>
+<span class="sd">        where they provide ~15% memory improvement (when used alongside AC memory efficient wrapping). Other workloads</span>
 <span class="sd">        have not been verified and may not see the same improvements.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">        FSDPPolicyType: Wrapping policy that can be passed into ``FullyShardedDataParallel`` as the ``auto_wrap_policy``</span>
-<span class="sd">            argument. Please see documentation for const:`~torchtune.utils.FSDPPolicyType` for additional details.</span>
+<span class="sd">        argument. Please see documentation for :const:`~torchtune.utils.FSDPPolicyType` for additional details.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">memory_efficient_fsdp_wrap</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">_memory_efficient_wrap_policy</span><span class="p">(</span><span class="n">modules_to_wrap</span><span class="o">=</span><span class="n">modules_to_wrap</span><span class="p">)</span>

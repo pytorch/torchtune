@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>get_logger &mdash; torchtune main documentation</title>
+  <title>lora_fsdp_wrap_policy &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_device" href="torchtune.utils.get_device.html" />
-    <link rel="prev" title="padded_collate_dpo" href="torchtune.utils.padded_collate_dpo.html" />
+    <link rel="next" title="get_dtype" href="torchtune.utils.get_dtype.html" />
+    <link rel="prev" title="get_full_finetune_fsdp_wrap_policy" href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -369,13 +369,13 @@
         
           <li><a href="../api_ref_utilities.html">torchtune.utils</a> &gt;</li>
         
-      <li>get_logger</li>
+      <li>lora_fsdp_wrap_policy</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.utils.get_logger.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.utils.lora_fsdp_wrap_policy.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -405,21 +405,31 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="get-logger">
-<h1>get_logger<a class="headerlink" href="#get-logger" title="Permalink to this heading">¶</a></h1>
+  <section id="lora-fsdp-wrap-policy">
+<h1>lora_fsdp_wrap_policy<a class="headerlink" href="#lora-fsdp-wrap-policy" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.utils.get_logger">
-<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_logger</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)"><span class="pre">Logger</span></a></span></span><a class="reference internal" href="../_modules/torchtune/utils/logging.html#get_logger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_logger" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get a logger with a stream handler.</p>
+<dt class="sig sig-object py" id="torchtune.utils.lora_fsdp_wrap_policy">
+<span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">lora_fsdp_wrap_policy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">modules_to_wrap</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Set" title="(in Python v3.12)"><span class="pre">Set</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Type" title="(in Python v3.12)"><span class="pre">Type</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">[</span></span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.3)"><span class="pre">Module</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/_distributed.html#lora_fsdp_wrap_policy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.lora_fsdp_wrap_policy" title="Permalink to this definition">¶</a></dt>
+<dd><p>A default policy for wrapping models trained with LoRA using FSDP.</p>
+<p>FSDP’s default behavior is to allocate gradients at the level of FSDP-wrapped modules.
+This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be
+allocated for gradients for the entire module.</p>
+<p>In the case of LoRA, where only LoRA A and B matrices are trainable, this means that
+we need to wrap LoRA A and B submodules in their own FSDP units to
+maximize memory savings. After this is done, model will also be hierarchically wrapped
+based on nn.Module types specified in <code class="docutils literal notranslate"><span class="pre">modules_to_wrap</span></code>. This function assumes that
+(a) LoRA’s A and B matrices are the only trainable weights in the entire model, and
+(b) we have already set <code class="docutils literal notranslate"><span class="pre">requires_grad</span> <span class="pre">=</span> <span class="pre">True</span></code> on LoRA params.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em>) – The logging level. See <a class="reference external" href="https://docs.python.org/3/library/logging.html#levels">https://docs.python.org/3/library/logging.html#levels</a> for list of levels.</p>
+<dd class="field-odd"><p><strong>modules_to_wrap</strong> (<em>Set</em><em>[</em><em>Type</em><em>]</em>) – nn.Module types to recursively wrap</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The logger.</p>
+<dd class="field-even"><p>Wrapping policy that can be passed into <code class="docutils literal notranslate"><span class="pre">FullyShardedDataParallel</span></code>. Please see
+documentation for <a class="reference internal" href="torchtune.utils.FSDPPolicyType.html#torchtune.utils.FSDPPolicyType" title="torchtune.utils.FSDPPolicyType"><code class="xref py py-const docutils literal notranslate"><span class="pre">FSDPPolicyType</span></code></a> for additional details.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/logging.html#logging.Logger" title="(in Python v3.12)">logging.Logger</a></p>
+<dd class="field-odd"><p>FSDPPolicyType</p>
 </dd>
 </dl>
 </dd></dl>
@@ -434,10 +444,10 @@
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.utils.get_device.html" class="btn btn-neutral float-right" title="get_device" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.utils.get_dtype.html" class="btn btn-neutral float-right" title="get_dtype" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.utils.padded_collate_dpo.html" class="btn btn-neutral" title="padded_collate_dpo" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.utils.get_full_finetune_fsdp_wrap_policy.html" class="btn btn-neutral" title="get_full_finetune_fsdp_wrap_policy" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -469,7 +479,7 @@
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">get_logger</a></li>
+<li><a class="reference internal" href="#">lora_fsdp_wrap_policy</a></li>
 </ul>
 
             </div>
