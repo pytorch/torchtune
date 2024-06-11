@@ -369,6 +369,12 @@ def get_full_model_state_dict(
                     else:
                         full_fqn = local_fqn
                     if full_fqn in cpu_state_dict:
+                        # Iterate over every param in every module bottoms-up
+                        # When lower TransformerBlock gets unsharded,
+                        # we insert  (full_fqn, full_tensor) into cpu_state_dict.
+                        # When higher Transformer gets unsharded, we avoid updating
+                        # params from lower TransformerBlockonly again. Instead, only updating
+                        # tok_embeddings etc that belongs to Transformer
                         continue
                     if isinstance(param, NF4Tensor):
                         # upcasting NF4 to original dtype
