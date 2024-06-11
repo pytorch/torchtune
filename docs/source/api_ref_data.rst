@@ -27,7 +27,7 @@ Chat formats
     :toctree: generated/
     :nosignatures:
 
-    ChatFormat
+    PromptTemplate
     ChatMLTemplate
     Llama2ChatTemplate
     MistralChatTemplate

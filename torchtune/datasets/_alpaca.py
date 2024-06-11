@@ -6,7 +6,8 @@
 
 from functools import partial
 
-from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.datasets._chat import ChatDataset
+from torchtune.data import get_alpaca_instruct_messages
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -17,7 +18,7 @@ def alpaca_dataset(
     train_on_input: bool = True,
     max_seq_len: int = 512,
     packed: bool = False,
-) -> InstructDataset:
+) -> ChatDataset:
     """
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
     the `data input format <https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances>`_
@@ -41,7 +42,7 @@ def alpaca_dataset(
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Returns:
-        InstructDataset: dataset configured with source data and template
+        ChatDataset: dataset configured with source data and template
 
 
     Example:
@@ -51,10 +52,10 @@ def alpaca_dataset(
         >>> Batch size: 8
     """
 
-    return instruct_dataset(
+    return ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        template="torchtune.data.AlpacaInstructTemplate",
+        convert_to_messages=get_alpaca_instruct_messages,
         train_on_input=train_on_input,
         max_seq_len=max_seq_len,
         packed=packed,

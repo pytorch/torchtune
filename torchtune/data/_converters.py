@@ -7,6 +7,7 @@
 from typing import Any, List, Mapping
 
 from torchtune.data._types import Message
+from torchtune.data._prompt_templates import AlpacaInstructTemplate
 
 
 def sharegpt_to_llama2_messages(
@@ -111,4 +112,21 @@ def openai_to_llama2_messages(
     for message in conversations:
         message["masked"] = (message["role"] != "assistant") and (not train_on_input)
         messages.append(Message.from_dict(message))
+    return messages
+
+def get_alpaca_instruct_messages(
+    sample: Mapping[str, Any],
+    train_on_input: bool = False,
+) -> List[Message]:
+    messages = AlpacaInstructTemplate.format(sample)
+    messages[0].masked = not train_on_input
+    return messages
+
+def get_grammar_messages(
+    sample: Mapping[str, Any],
+    train_on_input: bool = False,
+) -> List[Message]:
+
+    messages = GrammarErrorCorrectionTemplate.format()
+    messages[0].masked = not train_on_input
     return messages

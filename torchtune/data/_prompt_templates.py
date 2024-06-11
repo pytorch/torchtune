@@ -219,10 +219,12 @@ class ChatMLTemplate(PromptTemplate):
             )
         return formatted_dialogue
 
-class AlpacaInstructTemplate(PromptTemplate):
+class AlpacaInstructTemplate:
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
-    on if there's an instruction + input or just an instruction.
+    on if there's an instruction + input or just an instruction. This does not use the base
+    PromptTemplate interface because it requires formatting separate columns from the input
+    into the template and thus has a different format signature.
     """
 
     template = {
@@ -241,22 +243,23 @@ class AlpacaInstructTemplate(PromptTemplate):
     @classmethod
     def format(
         cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
-    ) -> str:
+    ) -> List[Message]:
         """
         Generate prompt from instruction and input.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with instruction
+            sample (Mapping[str, Any]): a single data sample with instruction and optional input
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
 
         Returns:
-            The formatted prompt
+            The formatted list of messages
         """
         column_map = column_map or {}
         key_input = column_map.get("input", "input")
         key_instruction = column_map.get("instruction", "instruction")
+        key_output = column_map.get("output", "output")
 
         if key_input in sample and sample[key_input]:
             prompt = cls.template["prompt_input"].format(
@@ -266,7 +269,12 @@ class AlpacaInstructTemplate(PromptTemplate):
             prompt = cls.template["prompt_no_input"].format(
                 instruction=sample[key_instruction]
             )
-        return prompt
+
+        messages = [
+            Message(role="user", content=prompt),
+            Message(role="assistant", content=sample[key_output]),
+        ]
+        return messages
 
 
 class GrammarErrorCorrectionTemplate(PromptTemplate):
@@ -274,29 +282,31 @@ class GrammarErrorCorrectionTemplate(PromptTemplate):
     Prompt template for grammar correction datasets.
     """
 
-    template = "Correct this to standard English: {sentence}\n---\nCorrected: "
+    system = ""
+    user = "Correct this to standard English: {content}\n---\nCorrected: "
+    assistant = ""
 
     @classmethod
     def format(
-        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
-    ) -> str:
+        cls, sample: List[Message],
+    ) -> List[Message]:
         """
-        Generate prompt from sentence.
+        Generate prompt from sentence that needs grammar correction.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with sentence
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            sample (List[Message]): a single conversation, structured as a list
+                of `Message` objects
 
         Returns:
-            The formatted prompt
+            The formatted list of messages
         """
-        column_map = column_map or {}
-        key_sentence = column_map.get("sentence", "sentence")
-
-        prompt = cls.template.format(sentence=sample[key_sentence])
-        return prompt
+        formatted_dialogue = []
+        for message in sample:
+            content = cls.user.format(content=message.content) if message.role == "user" else message.content
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue
 
 
 class SummarizeTemplate(PromptTemplate):
@@ -304,56 +314,60 @@ class SummarizeTemplate(PromptTemplate):
     Prompt template to format datasets for summarization tasks.
     """
 
-    template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
+    system = ""
+    user = "Summarize this dialogue:\n{content}\n---\nSummary:\n"
+    assistant = ""
 
     @classmethod
     def format(
-        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
-    ) -> str:
+        cls, sample: List[Message],
+    ) -> List[Message]:
         """
         Generate prompt from dialogue.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with dialog
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            sample (List[Message]): a single conversation, structured as a list
+                of `Message` objects
 
         Returns:
-            The formatted prompt
+            The formatted list of messages
         """
-        column_map = column_map or {}
-        key_dialogue = column_map.get("dialogue", "dialogue")
+        formatted_dialogue = []
+        for message in sample:
+            content = cls.user.format(content=message.content) if message.role == "user" else message.content
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue
 
-        prompt = cls.template.format(dialogue=sample[key_dialogue])
-        return prompt
 
-
-class StackExchangedPairedTemplate(PromptTemplate):
+class QuestionAnswerTemplate(PromptTemplate):
     """
-    Prompt template for preference datasets similar to StackExchangedPaired.
+    Prompt template for question & answer datasets.
     """
 
-    template = "Question: {question}\n\nAnswer: "
+    system = ""
+    user = "Question: {content}\n\nAnswer: "
+    assistant = ""
 
     @classmethod
     def format(
-        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
-    ) -> str:
+        cls, sample: List[Message],
+    ) -> List[Message]:
         """
-        Generate prompt from instruction and input.
+        Generate prompt from question.
 
         Args:
-            sample (Mapping[str, Any]): a single data sample with instruction
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            sample (List[Message]): a single conversation, structured as a list
+                of `Message` objects
 
         Returns:
-            The formatted prompt
+            The formatted list of messages
         """
-        column_map = column_map or {}
-        key_prompt = column_map.get("prompt", "prompt")
-        prompt = cls.template.format(question=sample[key_prompt])
-
-        return prompt
+        formatted_dialogue = []
+        for message in sample:
+            content = cls.user.format(content=message.content) if message.role == "user" else message.content
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue

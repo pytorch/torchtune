@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data._prompt_templates import (
-    ChatFormat,
+    PromptTemplate,
     ChatMLTemplate,
     Llama2ChatTemplate,
     MistralChatTemplate,
@@ -19,7 +19,7 @@ from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
     InstructTemplate,
-    StackExchangedPairedTemplate,
+    QuestionAnswerTemplate,
     SummarizeTemplate,
 )
 from torchtune.data._types import Message
@@ -27,7 +27,7 @@ from torchtune.data._utils import truncate, validate_messages
 
 __all__ = [
     "AlpacaInstructTemplate",
-    "ChatFormat",
+    "PromptTemplate",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
     "InstructTemplate",
@@ -40,5 +40,5 @@ __all__ = [
     "truncate",
     "Message",
     "validate_messages",
-    "StackExchangedPairedTemplate",
+    "QuestionAnswerTemplate",
 ]

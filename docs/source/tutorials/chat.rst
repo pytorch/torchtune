@@ -299,7 +299,7 @@ object.
             split="train",
             convert_to_messages=message_converter,
             # Llama3 does not need a chat format
-            chat_format=None,
+            prompt_template=None,
             max_seq_len=max_seq_len,
             # To load a local file we specify it as data_files just like in
             # load_dataset

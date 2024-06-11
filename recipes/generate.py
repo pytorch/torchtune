@@ -14,7 +14,7 @@ from torch import nn
 
 from torchtune import config, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import ChatFormat, InstructTemplate, Message
+from torchtune.data import PromptTemplate, InstructTemplate, Message
 
 logger = utils.get_logger("DEBUG")
 
@@ -85,7 +85,7 @@ class InferenceRecipe:
     def convert_prompt_to_tokens(
         self,
         prompt: Union[DictConfig, str],
-        chat_format: Optional[ChatFormat],
+        prompt_template: Optional[PromptTemplate],
         instruct_template: Optional[InstructTemplate],
     ) -> List[Message]:
         """
@@ -94,14 +94,14 @@ class InferenceRecipe:
         (2) a DictConfig is passed as the prompt. In this case there are three possibilities:
             (a) an InstructTemplate is provided. Since instruct templates output a string, we will
                 call tokenizer.encode on the output of the instruct template.
-            (b) a ChatFormat is provided. Since chat formats output a list of messages, we will
+            (b) a PromptTemplate is provided. Since chat formats output a list of messages, we will
                 call tokenizer.tokenize_messages on the output of the chat format.
-            (c) neither an InstructTemplate nor a ChatFormat is provided. In this case we will
+            (c) neither an InstructTemplate nor a PromptTemplate is provided. In this case we will
                 convert the DictConfig to a list of messages and call tokenizer.tokenize_messages directly.
         """
 
         # Should only be chat-style prompt or instruct-style prompt
-        if chat_format and instruct_template:
+        if prompt_template and instruct_template:
             raise ValueError(
                 "Cannot pass both chat format and instruct template for generation"
             )
@@ -123,15 +123,15 @@ class InferenceRecipe:
         else:
             messages = [Message(role=k, content=v) for k, v in prompt.items()]
             messages += [Message(role="assistant", content="")]
-            if chat_format:
-                chat_format = _get_component_from_path(chat_format)
-                messages = chat_format.format(messages)
+            if prompt_template:
+                prompt_template = _get_component_from_path(prompt_template)
+                messages = prompt_template.format(messages)
             return self._tokenizer.tokenize_messages(messages)[0]
 
     @torch.no_grad()
     def generate(self, cfg: DictConfig):
         tokens = self.convert_prompt_to_tokens(
-            cfg.prompt, cfg.get("chat_format", None), cfg.get("instruct_template", None)
+            cfg.prompt, cfg.get("prompt_template", None), cfg.get("instruct_template", None)
         )
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 

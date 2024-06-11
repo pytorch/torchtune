@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import StackExchangedPairedTemplate
+from torchtune.data import QuestionAnswerTemplate
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.modules.tokenizers import Tokenizer
 
@@ -31,7 +31,7 @@ def stack_exchanged_paired_dataset(
     return PreferenceDataset(
         tokenizer=tokenizer,
         source=source,
-        template=StackExchangedPairedTemplate(),
+        template=QuestionAnswerTemplate(),
         column_map={
             "prompt": "question",
             "chosen": "response_j",
