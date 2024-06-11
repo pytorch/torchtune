@@ -15,6 +15,7 @@ import torch
 from torchtune import utils
 
 from torchtune.models import convert_weights
+from torchtune.models.gemma import gemma_hf_to_tune, gemma_tune_to_hf
 from torchtune.models.mistral import (
     mistral_reward_hf_to_tune,
     mistral_reward_tune_to_hf,
@@ -422,6 +423,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
             )
+        elif self._model_type == ModelType.GEMMA:
+            converted_state_dict[utils.MODEL_KEY] = gemma_hf_to_tune(
+                merged_state_dict,
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+                head_dim=self._config["head_dim"],
+            )
         else:
             converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -471,6 +480,14 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_heads=self._config["num_attention_heads"],
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
+            )
+        elif self._model_type == ModelType.GEMMA:
+            state_dict[utils.MODEL_KEY] = gemma_tune_to_hf(
+                state_dict[utils.MODEL_KEY],
+                num_heads=self._config["num_attention_heads"],
+                num_kv_heads=self._config["num_key_value_heads"],
+                dim=self._config["hidden_size"],
+                head_dim=self._config["head_dim"],
             )
         else:
             state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(

@@ -13,12 +13,13 @@ import pytest
 import torch
 from torch import randn
 
-from torchtune.models import llama2, mistral
+from torchtune.models import gemma, llama2, mistral
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_lora_module_names,
     validate_missing_and_unexpected_for_lora,
 )
+
 from torchtune.utils._checkpointing import FullModelHFCheckpointer
 from torchtune.utils._checkpointing._checkpointer_utils import safe_torch_load
 from torchtune.utils.constants import ADAPTER_CONFIG, ADAPTER_KEY
@@ -29,6 +30,7 @@ _DIM = 64
 _HIDDEN_DIM = 256
 _NUM_HEADS = 4
 _NUM_KV_HEADS = 4
+_HEAD_DIM = 16
 
 
 @pytest.fixture(autouse=True)
@@ -568,6 +570,156 @@ class TestHFMistralRewardModelFullModelCheckpointer:
             num_layers=1,
             num_heads=_NUM_HEADS,
             num_kv_heads=_NUM_KV_HEADS,
+            embed_dim=_DIM,
+            intermediate_dim=_HIDDEN_DIM,
+            max_seq_len=128,
+        )
+        model.load_state_dict(state_dict["model"])
+
+        single_file_checkpointer.save_checkpoint(state_dict, epoch=1)
+
+        # Reload the output checkpoint file and compare to the original checkpoint. This
+        # assumes we know what the name of the file is. This is fine, breaking this logic
+        # should be something we capture through this test
+        output_file = Path.joinpath(checkpoint_file.parent, "hf_model_0001_1.pt")
+        output_state_dict = safe_torch_load(output_file)
+
+        assert len(output_state_dict.keys()) == len(orig_state_dict.keys())
+
+
+class TestHFGemmaFullModelCheckpointer:
+    @pytest.fixture
+    def weight_dtype(self):
+        return torch.float16
+
+    @pytest.fixture
+    def state_dict(self, weight_dtype):
+        """
+        State dict for a HF format Gemma checkpoint. This state dict is
+        "complete" and can be loaded into a TorchTune model once correctly converted.
+        """
+        state_dict = {
+            "model.embed_tokens.weight": randn(_VOCAB_SIZE, _DIM, dtype=weight_dtype),
+            "model.layers.0.input_layernorm.weight": randn(_DIM, dtype=weight_dtype),
+            "model.layers.0.self_attn.q_proj.weight": randn(
+                _DIM, _NUM_HEADS * _HEAD_DIM, dtype=weight_dtype
+            ),
+            # setting num_kv_heads to 1
+            "model.layers.0.self_attn.k_proj.weight": randn(
+                _HEAD_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.v_proj.weight": randn(
+                _HEAD_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.self_attn.o_proj.weight": randn(
+                _NUM_HEADS * _HEAD_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.post_attention_layernorm.weight": randn(
+                _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.gate_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.down_proj.weight": randn(
+                _DIM, _HIDDEN_DIM, dtype=weight_dtype
+            ),
+            "model.layers.0.mlp.up_proj.weight": randn(
+                _HIDDEN_DIM, _DIM, dtype=weight_dtype
+            ),
+            "model.norm.weight": randn(_DIM, dtype=weight_dtype),
+        }
+        state_dict["lm_head.weight"] = state_dict["model.embed_tokens.weight"]
+        return state_dict
+
+    @pytest.fixture
+    def gemma_hf_checkpoint(self, tmp_path, state_dict):
+        """
+        Fixture which creates a checkpoint file for Gemma. The
+        state dict follows the HF_FORMAT for the checkpoint format.
+
+        The state dicts supports testing for a single-file checkpoint.
+        Multiple file checkpoints are already tested for Llama2.
+
+        The model corresponds to the following config:
+            * num_layers: 1
+            * num_heads: 4
+            * num_kv_heads: 1
+            * embed_dim: 64
+            * max_seq_len: 128
+            * num_classes: 1
+            * intermediate_dim: 256
+            * head_dim : 16
+
+        """
+        checkpoint_file = tmp_path / "gemma_hf_checkpoint.pt"
+
+        torch.save(state_dict, checkpoint_file)
+
+        config = {
+            "hidden_size": _DIM,
+            "num_attention_heads": _NUM_HEADS,
+            "num_key_value_heads": 1,
+            "head_dim": _HEAD_DIM,
+            "intermediate_size": _HIDDEN_DIM,
+        }
+        config_file = Path.joinpath(tmp_path, "config.json")
+        with config_file.open("w") as f:
+            json.dump(config, f)
+
+        return checkpoint_file
+
+    @pytest.fixture
+    def single_file_checkpointer(
+        self, gemma_hf_checkpoint, tmp_path
+    ) -> FullModelHFCheckpointer:
+        checkpoint_file = gemma_hf_checkpoint
+        return FullModelHFCheckpointer(
+            checkpoint_dir=tmp_path,
+            checkpoint_files=[checkpoint_file],
+            model_type="GEMMA",
+            output_dir=tmp_path,
+        )
+
+    def test_load_save_checkpoint_single_file(
+        self,
+        single_file_checkpointer: FullModelHFCheckpointer,
+        gemma_hf_checkpoint: Path,
+    ):
+        """
+        Test ``load_checkpoint`` and ``save_checkpoint`` method within the
+        FullModelHFCheckpointer for a single checkpoint file for Gemma.
+
+        We test:
+        * ``load_checkpoint`` loads the right sets of keys
+        * Internal state of the checkpointer is correctly updated
+        * Converted checkpoint can be loaded into the `gemma` TorchTune implementation
+        * lm_head weights are tied to the embed_tokens weights during saving
+        * lmhead weights are popped during loading
+        """
+        # Read the state dict directly from file using torch.load. This will be the state
+        # dict we test against
+        checkpoint_file = gemma_hf_checkpoint
+        orig_state_dict = safe_torch_load(checkpoint_file)
+
+        # Converted state dict from the checkpointer
+
+        state_dict = single_file_checkpointer.load_checkpoint()
+        # Check that we've loaded all the keys - we're loading one less key in: lm_head.weight
+        assert len(state_dict["model"].keys()) == (len(orig_state_dict.keys()) - 1)
+
+        # the keys in original state dict should match up with the keys in the weight_map
+        for key in orig_state_dict.keys():
+            if "inv_freq" in key:
+                continue
+            assert key in single_file_checkpointer._weight_map
+
+        # loading the state dict into the model implementation should work correctly
+        model = gemma.gemma(
+            vocab_size=_VOCAB_SIZE,
+            num_layers=1,
+            num_heads=_NUM_HEADS,
+            head_dim=_HEAD_DIM,
+            num_kv_heads=1,
             embed_dim=_DIM,
             intermediate_dim=_HIDDEN_DIM,
             max_seq_len=128,
