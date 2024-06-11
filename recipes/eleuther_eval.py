@@ -27,7 +27,7 @@ try:
     import lm_eval
     from lm_eval.evaluator import evaluate
     from lm_eval.models.huggingface import HFLM
-    from lm_eval.tasks import get_task_dict
+    from lm_eval.tasks import get_task_dict, TaskManager
     from lm_eval.utils import make_table
 except ImportError:
     logger.error(
@@ -241,7 +241,9 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         except Exception:
             pass
 
-        task_dict = get_task_dict(self._tasks)
+        task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
+        task_dict = get_task_dict(self._tasks, task_manager)
+
         logger.info(f"Running evaluation on {self._tasks} tasks.")
         output = evaluate(
             model_eval_wrapper,
