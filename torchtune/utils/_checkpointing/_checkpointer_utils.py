@@ -44,6 +44,8 @@ class ModelType(Enum):
 
     MISTRAL_REWARD = "mistral_reward"
     """Mistral model with a classification head. See :func:`~torchtune.models.mistral.mistral_classifier`"""
+    QWEN2 = "qwen2"
+    """Qwen2 family of models. See :func:`~torchtune.models.qwen2.qwen2`"""
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
