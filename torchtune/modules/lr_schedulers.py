@@ -38,7 +38,7 @@ def get_cosine_schedule_with_warmup(
         torch.optim.lr_scheduler.LambdaLR with the appropriate schedule.
     """
 
-    def lr_lambda(current_step:int ) -> float:
+    def lr_lambda(current_step: int) -> float:
         # linear warmup phase
         if current_step < num_warmup_steps:
             return current_step / max(1, num_warmup_steps)

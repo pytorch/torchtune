@@ -245,7 +245,7 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     Temporarily disable the adapters in a neural network model. This can be used,
     for example, in DPO for treating the lora adapters as the policy model
     and disabling it to treat the base model as the reference model.
-    
+
     This context manager goes through all modules in the provided neural network model,
     and if a module has an 'adapter_params' attribute that is callable and a 'disabled' attribute,
     it sets 'disabled' to True. Then, the control is given back to caller. Once that finalizes,
