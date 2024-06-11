@@ -22,6 +22,5 @@ __all__ = [
     "RMSNorm",
     "TransformerDecoder",
     "TransformerDecoderLayer",
-    "TransformerClassifier",
     "reparametrize_as_dtype_state_dict_post_hook",
 ]

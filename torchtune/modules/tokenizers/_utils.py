@@ -42,6 +42,12 @@ def truncate(
     max_seq_len: int,
     eos_id: Union[int, bool],
 ):
+    """
+    Truncate a list of tokens to a maximum length.
+    If the list of tokens is already shorter than the maximum length,
+    then return the list of tokens unchanged, otherwise, add EOS to it
+    before returning.
+    """
     tokens_truncated = tokens[:max_seq_len]
     if tokens_truncated[-1] != eos_id:
         tokens_truncated[-1] = eos_id
