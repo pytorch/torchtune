@@ -97,7 +97,7 @@ def text_completion_dataset(
         ...   column="text",
         ...   max_seq_len=2096,
         ...   data_dir="realnewslike",
-        ...   packed=True,
+        ...   packed=False,
         ... )
 
     This can also be accomplished via the yaml config::
@@ -108,7 +108,7 @@ def text_completion_dataset(
             column: text
             max_seq_len: 2096
             data_dir: realnewslike
-            packed: True
+            packed: False
 
     Returns:
         TextCompletionDataset or PackedDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
