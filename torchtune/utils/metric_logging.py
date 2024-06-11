@@ -97,12 +97,14 @@ class DiskLogger(MetricLoggerInterface):
 
     def log(self, name: str, data: Scalar, step: int) -> None:
         self._file.write(f"Step {step} | {name}:{data}\n")
+        self._file.flush()
 
     def log_dict(self, payload: Mapping[str, Scalar], step: int) -> None:
         self._file.write(f"Step {step} | ")
         for name, data in payload.items():
             self._file.write(f"{name}:{data} ")
         self._file.write("\n")
+        self._file.flush()
 
     def __del__(self) -> None:
         self._file.close()
