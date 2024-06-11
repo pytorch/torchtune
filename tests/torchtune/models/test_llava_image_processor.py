@@ -75,12 +75,12 @@ class TestGetImagePatches:
             },
         ],
     )
-    def test_get_new_size_without_distortion(self, params):
+    def test_get_max_res_without_distortion(self, params):
         print(params)
         image_size = params["image_size"]
         target_resolution = params["target_resolution"]
         expected = params["expected"]
-        output_resolution = GetImagePatches._get_new_size_without_distortion(
+        output_resolution = GetImagePatches._get_max_res_without_distortion(
             image_size=image_size, target_resolution=target_resolution
         )
         assert (

@@ -65,7 +65,7 @@ class GetImagePatches(nn.Module):
         self.patch_size = patch_size
 
     @staticmethod
-    def _get_new_size_without_distortion(
+    def _get_max_res_without_distortion(
         image_size: Tuple[int, int],
         target_resolution: List[int],
     ) -> Tuple[int, int]:
@@ -80,9 +80,9 @@ class GetImagePatches(nn.Module):
         Returns:
             Tuple[int, int]: The optimal dimensions (height, width) to which the image should be resized.
         Example:
-            >>> _get_new_size_without_distortion([200, 300], target_resolution = [450, 200])
+            >>> _get_max_res_without_distortion([200, 300], target_resolution = [450, 200])
             (134, 200)
-            >>> _get_new_size_without_distortion([800, 600], target_resolution = [450, 1300])
+            >>> _get_max_res_without_distortion([800, 600], target_resolution = [450, 1300])
             (450, 338)
         """
 
@@ -164,14 +164,15 @@ class GetImagePatches(nn.Module):
         heights, widths = possible_resolutions[:, 0], possible_resolutions[:, 1]
 
         # Calculate the effective resolution and wasted resolution for each possible resolution
-        scales = torch.min(widths / original_width, heights / original_height)
-        downscaled_widths = (original_width * scales).int()
-        downscaled_heights = (original_height * scales).int()
+        # rescaling_factor is the minimum of the two scaling factors. Else one side would be outside of the canvas.
+        rescaling_factor = torch.min(widths / original_width, heights / original_height)
+        downscaled_widths = (original_width * rescaling_factor)
+        downscaled_heights = (original_height * rescaling_factor)
 
         effective_resolutions = torch.min(
             downscaled_widths * downscaled_heights,
             torch.tensor(original_width * original_height),
-        )
+        ).int()
         wasted_resolutions = (widths * heights) - effective_resolutions
 
         # Find the index of the best resolution
@@ -224,7 +225,7 @@ class GetImagePatches(nn.Module):
         )
 
         # resize to closest best_resolution while preserving aspect ratio
-        size_prepadding = self._get_new_size_without_distortion(
+        size_prepadding = self._get_max_res_without_distortion(
             image_size, best_resolution
         )
 
