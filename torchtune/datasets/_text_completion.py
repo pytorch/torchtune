@@ -112,7 +112,7 @@ def text_completion_dataset(
 
     Returns:
         TextCompletionDataset or PackedDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
-            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
     ds = TextCompletionDataset(
         tokenizer=tokenizer,
