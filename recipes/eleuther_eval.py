@@ -241,11 +241,8 @@ class EleutherEvalRecipe(EvalRecipeInterface):
         except Exception:
             pass
 
-        if self._cfg.get("include_path", False):
-            task_manager = TaskManager(include_path=self._cfg.include_path)
-            task_dict = get_task_dict(self._tasks, task_manager)
-        else:
-            task_dict = get_task_dict(self._tasks)
+        task_manager = TaskManager(include_path=self._cfg.get("include_path", None))
+        task_dict = get_task_dict(self._tasks, task_manager)
 
         logger.info(f"Running evaluation on {self._tasks} tasks.")
         output = evaluate(
