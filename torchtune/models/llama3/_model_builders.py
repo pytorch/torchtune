@@ -187,8 +187,8 @@ Please see `lora_llama3_8b` for full API arguments.
 dora_llama3_8b = partial(lora_llama3_8b, use_dora=True)
 
 dora_llama3_8b.__doc__ = """
-Builder for creating a Llama3 model with DORA enabled. Base model weights in linear layers
-that DORA is applied to are quantized per the Dora paper: https://arxiv.org/abs/2402.09353.
-In addition to the lora adaptor weights, DORA also adds a trainable magnitude parameters.
+Builder for creating a Llama3 model with DoRA enabled. Base model weights in linear layers
+that DoRA is applied to are quantized per the DoRA paper: https://arxiv.org/abs/2402.09353.
+In addition to the lora adaptor weights, DoRA also adds a trainable magnitude parameters.
 Please see `lora_llama3_8b` for full API arguments.
 """

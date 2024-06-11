@@ -1,4 +1,4 @@
-# Config for single device QLoRA with lora_finetune_single_device.py
+# Config for single device DoRA with lora_finetune_single_device.py
 # using a Llama3 8b Instruct model
 #
 # This config assumes that you've run the following command before launching
@@ -6,12 +6,12 @@
 #   tune download meta-llama/Meta-Llama-3-8b-Instruct --output-dir /tmp/Meta-Llama-3-8b-Instruct --hf-token <HF_TOKEN>
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config llama3/8b_qlora_single_device
+#   tune run lora_finetune_single_device --config llama3/8b_dora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config llama3/8b_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config llama3/8b_dora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
@@ -70,7 +70,7 @@ compile: False
 # Logging
 output_dir: /tmp/dora_finetune_output/
 metric_logger:
-  _component_: torchtune.utils.metric_logging.WandBLogger
+  _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
 log_every_n_steps: 1
 log_peak_memory_stats: False

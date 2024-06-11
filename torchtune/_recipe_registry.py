@@ -107,7 +107,7 @@ _ALL_RECIPES = [
                 file_path="gemma/2B_qlora_single_device.yaml",
             ),
             Config(
-                name="llama3/*B_dora_single_device",
+                name="llama3/8B_dora_single_device",
                 file_path="llama3/8B_dora_single_device.yaml",
             ),
         ],

@@ -126,10 +126,9 @@ class LoRALinear(nn.Module, AdapterModule):
         # this is a seperate function because,
         # this should be called after model state dict is called.
         # But We verify and initialize the model arch first before the loading weights.
-        weight_norm = self._dora_weight_norm
+        weight_norm = self._dora_weight_norm()
         self.lora_m.data = weight_norm.data  # Update the data of 'm' directly
 
-    @property
     def _dora_weight_norm(self) -> Tensor:
         """
         Compute the norm of the linear weight and lora adaptor weights.
@@ -145,7 +144,6 @@ class LoRALinear(nn.Module, AdapterModule):
         norm = torch.linalg.norm(result, dim=1)
 
         # Clamp the norm to avoid division by zero
-        # TODO(Prakyath): Check with torchtune team whether this should be a parameter ?
         norm = torch.clamp(norm, min=1e-6)
         # Return the norm in NF4 format.
         return to_nf4(norm) if self._quantize_base else norm
@@ -170,7 +168,7 @@ class LoRALinear(nn.Module, AdapterModule):
         # Author mentions this method is faster for the computation purpose:
         # https://github.com/huggingface/peft/pull/1474#issuecomment-1963402710
         if self.use_dora:
-            weight_norm = self._dora_weight_norm.detach()
+            weight_norm = self._dora_weight_norm().detach()
             mag_norm_scale = (self.lora_m / weight_norm).view(1, -1)
             # PEFT uses: out + (mag_norm_scale - 1) * out  + mag_norm_scale * lora_b(lora_a(x)) * scaling.
             return (out + lora_out) * mag_norm_scale
