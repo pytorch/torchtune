@@ -206,6 +206,7 @@ component dotpath.
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
 
+.. _cli_override:
 
 Command-line overrides
 ----------------------
