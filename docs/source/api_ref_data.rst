@@ -18,7 +18,7 @@ Instruct templates
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
 
-.. _chat_formats:
+.. _prompt_templates:
 
 Chat formats
 ------------
@@ -28,9 +28,9 @@ Chat formats
     :nosignatures:
 
     ChatFormat
-    ChatMLFormat
-    Llama2ChatFormat
-    MistralChatFormat
+    ChatMLTemplate
+    Llama2ChatTemplate
+    MistralChatTemplate
 
 Types
 -----

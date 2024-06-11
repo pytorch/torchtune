@@ -145,7 +145,7 @@ def chat_dataset(
         ...   tokenizer=tokenizer,
         ...   source="HuggingFaceH4/no_robots",
         ...   conversation_style="sharegpt",
-        ...   chat_format="torchtune.data.ChatMLFormat",
+        ...   chat_format="torchtune.data.ChatMLTemplate",
         ...   max_seq_len=2096,
         ...   train_on_input=True
         ... )
@@ -156,7 +156,7 @@ def chat_dataset(
             _component_: torchtune.datasets.chat_dataset
             source: HuggingFaceH4/no_robots
             conversation_style: sharegpt
-            chat_format: torchtune.data.ChatMLFormat
+            chat_format: torchtune.data.ChatMLTemplate
             max_seq_len: 2096
             train_on_input: True
 

@@ -308,11 +308,11 @@ user, and assistant messages into a list of messages (see :class:`~torchtune.dat
 for a conversational dataset. These can be configured quite similarly to instruct
 datasets.
 
-Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatFormat`:
+Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatTemplate`:
 
 .. code-block:: python
 
-    from torchtune.data import Llama2ChatFormat, Message
+    from torchtune.data import Llama2ChatTemplate, Message
 
     messages = [
         Message(
@@ -328,7 +328,7 @@ Here is how messages would be formatted using the :class:`~torchtune.data.Llama2
             content="Paris, the capital of France, is known for its stunning architecture..."
         ),
     ]
-    formatted_messages = Llama2ChatFormat.format(messages)
+    formatted_messages = Llama2ChatTemplate.format(messages)
     print(formatted_messages)
     # [
     #     Message(

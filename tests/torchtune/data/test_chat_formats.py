@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import ChatMLFormat, Llama2ChatFormat, Message, MistralChatFormat
+from torchtune.data import ChatMLTemplate, Llama2ChatTemplate, Message, MistralChatTemplate
 
 # Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
@@ -41,7 +41,7 @@ def _assert_dialogue_equal(actual, expected):
         assert actual[i].content == expected[i].content
 
 
-class TestLlama2ChatFormat:
+class TestLlama2ChatTemplate:
     expected_dialogue = [
         Message(
             role="user",
@@ -64,11 +64,11 @@ class TestLlama2ChatFormat:
     ]
 
     def test_format(self):
-        actual = Llama2ChatFormat.format(CHAT_SAMPLE)
+        actual = Llama2ChatTemplate.format(CHAT_SAMPLE)
         _assert_dialogue_equal(actual, self.expected_dialogue)
 
 
-class TestMistralChatFormat:
+class TestMistralChatTemplate:
     expected_dialogue = [
         Message(
             role="user",
@@ -89,17 +89,17 @@ class TestMistralChatFormat:
 
     def test_format(self):
         no_system_sample = CHAT_SAMPLE[1:]
-        actual = MistralChatFormat.format(no_system_sample)
+        actual = MistralChatTemplate.format(no_system_sample)
         _assert_dialogue_equal(actual, self.expected_dialogue)
 
     def test_format_with_system_prompt_raises(self):
         with pytest.raises(
-            ValueError, match="System prompts are not supported in MistralChatFormat"
+            ValueError, match="System prompts are not supported in MistralChatTemplate"
         ):
-            _ = MistralChatFormat.format(CHAT_SAMPLE)
+            _ = MistralChatTemplate.format(CHAT_SAMPLE)
 
 
-class TestChatMLFormat:
+class TestChatMLTemplate:
     expected_dialogue = [
         Message(
             role="system",
@@ -126,5 +126,5 @@ class TestChatMLFormat:
     ]
 
     def test_format(self):
-        actual = ChatMLFormat.format(CHAT_SAMPLE)
+        actual = ChatMLTemplate.format(CHAT_SAMPLE)
         _assert_dialogue_equal(actual, self.expected_dialogue)

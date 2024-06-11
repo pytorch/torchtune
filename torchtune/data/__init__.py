@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data._chat_formats import (
+from torchtune.data._prompt_templates import (
     ChatFormat,
-    ChatMLFormat,
-    Llama2ChatFormat,
-    MistralChatFormat,
+    ChatMLTemplate,
+    Llama2ChatTemplate,
+    MistralChatTemplate,
 )
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.data._converters import (
@@ -32,9 +32,9 @@ __all__ = [
     "GrammarErrorCorrectionTemplate",
     "InstructTemplate",
     "SummarizeTemplate",
-    "Llama2ChatFormat",
-    "MistralChatFormat",
-    "ChatMLFormat",
+    "Llama2ChatTemplate",
+    "MistralChatTemplate",
+    "ChatMLTemplate",
     "openai_to_llama2_messages",
     "sharegpt_to_llama2_messages",
     "truncate",

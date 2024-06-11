@@ -85,16 +85,16 @@ prompt:
         },
     ]
 
-Now, let's format this with the :class:`~torchtune.data.Llama2ChatFormat` class and
-see how it gets tokenized. The Llama2ChatFormat is an example of a **prompt template**,
+Now, let's format this with the :class:`~torchtune.data.Llama2ChatTemplate` class and
+see how it gets tokenized. The Llama2ChatTemplate is an example of a **prompt template**,
 which simply structures a prompt with flavor text to indicate a certain task.
 
 .. code-block:: python
 
-    from torchtune.data import Llama2ChatFormat, Message
+    from torchtune.data import Llama2ChatTemplate, Message
 
     messages = [Message.from_dict(msg) for msg in sample]
-    formatted_messages = Llama2ChatFormat.format(messages)
+    formatted_messages = Llama2ChatTemplate.format(messages)
     print(formatted_messages)
     # [
     #     Message(
@@ -110,7 +110,7 @@ which simply structures a prompt with flavor text to indicate a certain task.
     # ]
 
 There are also special tokens used by Llama2, which are not in the prompt template.
-If you look at our :class:`~torchtune.data.Llama2ChatFormat` class, you'll notice that
+If you look at our :class:`~torchtune.data.Llama2ChatTemplate` class, you'll notice that
 we don't include the :code:`<s>` and :code:`</s>` tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let's tokenize this example with the
@@ -218,7 +218,7 @@ This would wrap around the user message, with the assistant message untouched.
     f"Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
 
 You can fine-tune Llama2 with this template even though the model was originally pre-trained
-with the :class:`~torchtune.data.Llama2ChatFormat`, as long as this is what the model
+with the :class:`~torchtune.data.Llama2ChatTemplate`, as long as this is what the model
 sees during inference. The model should be robust enough to adapt to a new template.
 
 
@@ -275,7 +275,7 @@ the Message dataclass. The function also needs to have a train_on_input paramete
 Since we're fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
 Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceTokenizer`,
-we would need to use a chat format like :class:`~torchtune.data.MistralChatFormat` to format
+we would need to use a chat format like :class:`~torchtune.data.MistralChatTemplate` to format
 all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
 
 Now let's create a builder function for our dataset that loads in our local file,
