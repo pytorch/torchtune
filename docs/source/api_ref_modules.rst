@@ -27,8 +27,8 @@ Tokenizers
     :toctree: generated/
     :nosignatures:
 
-    tokenizers.SentencePieceTokenizer
-    tokenizers.TikTokenTokenizer
+    tokenizers.SentencePieceEncoding
+    tokenizers.TikTokenEncoding
 
 PEFT Components
 ---------------

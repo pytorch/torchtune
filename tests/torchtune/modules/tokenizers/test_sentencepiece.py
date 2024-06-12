@@ -8,17 +8,17 @@ from pathlib import Path
 
 import pytest
 from torchtune.data._types import Message
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestSentencePieceTokenizer:
+class TestSentencePieceEncoding:
     @pytest.fixture
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceTokenizer(str(ASSETS / "m.model"))
+        return SentencePieceEncoding(str(ASSETS / "m.model"))
 
     def test_encode(self, tokenizer):
         assert tokenizer.encode("Hello world!") == [

@@ -10,7 +10,7 @@ import pytest
 from tests.test_utils import get_assets_path
 
 from torchtune.datasets import wikitext_dataset
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 
 
 class TestWikiTextDataset:
@@ -18,7 +18,7 @@ class TestWikiTextDataset:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
+        return SentencePieceEncoding(str(get_assets_path() / "m.model"))
 
     @patch("torchtune.datasets._text_completion.load_dataset")
     @pytest.mark.parametrize("max_seq_len", [128, 512, 1024, 4096])

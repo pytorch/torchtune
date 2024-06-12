@@ -11,7 +11,7 @@ from datasets import Dataset
 from tests.test_utils import get_assets_path
 
 from torchtune.datasets import slimorca_dataset
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 
 
 class TestSlimOrcaDataset:
@@ -19,7 +19,7 @@ class TestSlimOrcaDataset:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceTokenizer(str(get_assets_path() / "m.model"))
+        return SentencePieceEncoding(str(get_assets_path() / "m.model"))
 
     @patch("torchtune.datasets._chat.load_dataset")
     def test_value_error(self, load_dataset, tokenizer):

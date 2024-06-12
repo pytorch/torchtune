@@ -12,7 +12,7 @@ from torchtune.models.llama3._component_builders import llama3, lora_llama3
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import TikTokenTokenizer
+from torchtune.modules.tokenizers import TikTokenEncoding
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 
@@ -65,10 +65,8 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str) -> TikTokenTokenizer:
-    tiktoken = TikTokenTokenizer(path)
-    tiktoken.pad_id = 0
-    return tiktoken
+def llama3_tokenizer(path: str) -> Llama3Tokenizer:
+    return Llama3Tokenizer(path)
 
 
 def lora_llama3_8b(

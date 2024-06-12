@@ -1,0 +1,13 @@
+{
+    "<|endoftext|>": 32000,
+    "<|assistant|>": 32001,
+    "<|placeholder1|>": 32002,
+    "<|placeholder2|>": 32003,
+    "<|placeholder3|>": 32004,
+    "<|placeholder4|>": 32005,
+    "<|system|>": 32006,
+    "<|end|>": 32007,
+    "<|placeholder5|>": 32008,
+    "<|placeholder6|>": 32009,
+    "<|user|>": 32010
+}

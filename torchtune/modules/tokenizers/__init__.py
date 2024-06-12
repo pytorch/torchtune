@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from ._sentencepiece import SentencePieceTokenizer
-from ._tiktoken import TikTokenTokenizer
-from ._utils import Tokenizer
+from ._base import TokenEncoding, Tokenizer
+from ._sentencepiece import SentencePieceEncoding
+from ._tiktoken import TikTokenEncoding
 
-__all__ = ["SentencePieceTokenizer", "TikTokenTokenizer", "Tokenizer"]
+__all__ = ["SentencePieceEncoding", "TikTokenEncoding", "Tokenizer", "TokenEncoding"]

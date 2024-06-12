@@ -8,17 +8,17 @@ from pathlib import Path
 
 import pytest
 from torchtune.data._types import Message
-from torchtune.modules.tokenizers import TikTokenTokenizer
+from torchtune.modules.tokenizers import TikTokenEncoding
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestTikTokenTokenizer:
+class TestTikTokenEncoding:
     @pytest.fixture
     def tokenizer(self):
         # Pretrained tiktoken model generated via the script in
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-        return TikTokenTokenizer(str(ASSETS / "tiktoken_small.model"))
+        return TikTokenEncoding(str(ASSETS / "tiktoken_small.model"))
 
     @pytest.fixture
     def texts(self):

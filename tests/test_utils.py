@@ -18,7 +18,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -38,8 +38,8 @@ TOKENIZER_PATHS = {
 }
 
 
-# Inherit from SentencePieceTokenizer class to reuse its tokenize_messages method
-class DummyTokenizer(SentencePieceTokenizer):
+# Inherit from SentencePieceEncoding class to reuse its tokenize_messages method
+class DummyTokenizer(SentencePieceEncoding):
     def __init__(self):
         self.encodes_whitespace = False
 

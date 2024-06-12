@@ -9,7 +9,7 @@ from functools import partial
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 
@@ -39,12 +39,8 @@ def llama2_7b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-
-def llama2_tokenizer(path: str) -> SentencePieceTokenizer:
-    tokenizer = SentencePieceTokenizer(path)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
-    return tokenizer
+def llama2_tokenizer(path: str) -> Llama2Tokenizer:
+    return Llama2Tokenizer(path)
 
 
 def lora_llama2_7b(

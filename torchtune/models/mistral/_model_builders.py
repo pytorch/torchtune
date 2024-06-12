@@ -13,7 +13,7 @@ from torchtune.models.mistral._component_builders import (
 )
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import SentencePieceTokenizer
+from torchtune.modules.tokenizers import SentencePieceEncoding
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 
@@ -45,13 +45,8 @@ def mistral_7b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-
-def mistral_tokenizer(path: str) -> SentencePieceTokenizer:
-    tokenizer = SentencePieceTokenizer(path)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
-    return tokenizer
-
+def mistral_tokenizer(path: str) -> MistralTokenizer:
+    return MistralTokenizer(path)
 
 def lora_mistral_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],

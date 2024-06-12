@@ -4,48 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Iterator, List, Protocol, Set, Union
-
-from torchtune.data._types import Message
-
-
-class Tokenizer(Protocol):
-    """Abstract tokenizer"""
-
-    bos_id: int
-    eos_id: int
-    pad_id: int
-    stop_tokens: Set[int]  # Tokens indicating that generation should stop
-
-    def encode(self, text: str, **kwargs) -> List[int]:
-        """
-        Given a string, return the a list of token ids.
-        """
-
-    def decode(
-        self, token_ids: List[int], add_bos: bool, add_eos: bool, **kwargs
-    ) -> str:
-        """
-        Given a list of token ids, return the decoded text.
-        """
-
-    def tokenize_messages(self, token_ids: List[Message], **kwargs):
-        """
-        Given a list of messages, return a list of tokens for the concatenated
-        and formatted messages.
-        """
-        pass
-
-
-def truncate(
-    tokens: List[int],
-    max_seq_len: int,
-    eos_id: Union[int, bool],
-):
-    tokens_truncated = tokens[:max_seq_len]
-    if tokens_truncated[-1] != eos_id:
-        tokens_truncated[-1] = eos_id
-    return tokens_truncated
+from typing import Iterator
 
 
 def _split_long_repetitions(s: str, max_consecutive_slice_len: int) -> Iterator[str]:
