@@ -21,8 +21,8 @@ class GemmaTokenizer(Tokenizer):
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = SentencePieceEncoding("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceEncoding.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = GemmaTokenizer("/path/to/spm_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
@@ -89,13 +89,9 @@ class GemmaTokenizer(Tokenizer):
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-        Note: llama2 sentencepiece has problems where in general
-        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
-        We can get around this by prepending s2 with a known token and slicing the
-        beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = SentencePieceEncoding(tokenizer_path)
+            >>> tokenizer = GemmaTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),

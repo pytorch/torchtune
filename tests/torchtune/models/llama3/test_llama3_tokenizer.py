@@ -5,20 +5,36 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from torchtune.data._types import Message
-from torchtune.data.tokenizers import TikTokenEncoding
+from torchtune.models.llama3 import llama3_tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestTikTokenEncoding:
+class TestLlama3Tokenizer:
     @pytest.fixture
     def tokenizer(self):
-        # Pretrained tiktoken model generated via the script in
-        # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-        return TikTokenEncoding(str(ASSETS / "tiktoken_small.model"))
+        test_special_tokens = {
+            "<|begin_of_text|>": 2000,
+            "<|end_of_text|>": 2001,
+            "<|step_id|>": 2005,
+            "<|start_header_id|>": 2006,
+            "<|end_header_id|>": 2007,
+            "<|eom_id|>": 2008,
+            "<|eot_id|>": 2009,
+            "<|python_tag|>": 2255,
+        }
+
+        with mock.patch(
+            "torchtune.models.llama3._tokenizer.Llama3Tokenizer._get_all_special_tokens_with_ids",
+            return_value=test_special_tokens,
+        ):
+            # Pretrained tiktoken model generated via the script in
+            # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
+            return llama3_tokenizer(str(ASSETS / "tiktoken_small.model"))
 
     @pytest.fixture
     def texts(self):
@@ -159,24 +175,10 @@ class TestTikTokenEncoding:
             ],
         )
 
-    def test_encode(self, tokenizer, texts, token_ids):
-        assert tokenizer.encode(texts[0], add_bos=True, add_eos=True) == [
-            tokenizer.bos_id
-        ] + token_ids + [tokenizer.eos_id]
-        assert tokenizer.encode(texts[0], add_bos=False, add_eos=False) == token_ids
-
-    def test_decode(self, tokenizer, texts, token_ids):
-        assert tokenizer.decode(token_ids) == texts[0]
-
-    def test_encode_and_decode(self, tokenizer, texts):
-        token_ids = tokenizer.encode(texts[0], add_bos=True, add_eos=True)
-        decoded_text = tokenizer.decode(token_ids)
-        assert texts[0] == decoded_text
-
     def test_token_ids(self, tokenizer):
         assert tokenizer.bos_id == 2000
         assert tokenizer.eos_id == 2001
-        assert tokenizer.pad_id == -1
+        assert tokenizer.pad_id == 0
         assert tokenizer.step_id == 2005
         assert tokenizer.start_header_id == 2006
         assert tokenizer.end_header_id == 2007

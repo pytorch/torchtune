@@ -14,15 +14,23 @@ WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 class Llama2Tokenizer(Tokenizer):
     """
-    Llama2's implementation of the SentencePiece tokenizer
+    Llama2's implementation of the SentencePiece tokenizer. Llama2Tokenizer does
+    not include any additional special tokens. The prompt template described in
+    https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-2/ describes
+    [INST][/INST] and <<SYS>><</SYS>> as special tokens but these are not registered
+    as unique ids and are tokenized as normal text. When using this tokenizer on the
+    pre-trained model for inference, it is strongly encouraged to apply the
+    :class:`~torchtune.data.Llama2ChatFormat` to your data beforehand to add the
+    [INST] and <<SYS>> for optimal performance. For fine-tuning, this is not required.
+    For more details, see https://pytorch.org/torchtune/main/tutorials/chat.html#tokenizing-prompt-templates-special-tokens.
 
     Args:
-        path (str): Path to pretrained tokenizer file.
+        path (str): Path to pretrained SentencePiece tokenizer file.
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = SentencePieceEncoding("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceEncoding.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = Llama2Tokenizer("/path/to/spm_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
@@ -95,7 +103,7 @@ class Llama2Tokenizer(Tokenizer):
         beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = SentencePieceEncoding(tokenizer_path)
+            >>> tokenizer = Llama2Tokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),

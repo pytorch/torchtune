@@ -4,22 +4,25 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple
+import json
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.data.tokenizers import SentencePieceEncoding, Tokenizer
 
 
 class Phi3MiniTokenizer(Tokenizer):
-    """A wrapper around SentencePieceProcessor.
+    """
+    SentencePiece tokenizer configured with Phi3 Mini's special tokens.
 
     Args:
         path (str): Path to pretrained tokenizer file.
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = SentencePieceEncoding("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceEncoding.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
@@ -30,21 +33,28 @@ class Phi3MiniTokenizer(Tokenizer):
     ):
         self._spm_model = SentencePieceEncoding(path)
 
-        self.special_tokens = self._get_special_tokens()
+        self.special_tokens = self._get_all_special_tokens_with_ids()
 
+        # Use custom EOS and pad ids instead of SentencePiece's
         self.eos_id = self.special_tokens["<|endoftext|>"]
         self.pad_id = self.special_tokens["<|endoftext|>"]
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
 
-    @property
-    def eos_id(self):
-        return self._spm_model.eos_id
+    def _get_all_special_tokens_with_ids(self) -> Dict[str, int]:
+        special_tokens_json_path = Path(__file__).parent / "_special_tokens.json"
+        with open(special_tokens_json_path, "r") as f:
+            all_special_tokens = json.load(f)
+        return all_special_tokens
 
     @property
     def vocab_size(self):
         return self._spm_model.vocab_size
+
+    @property
+    def bos_id(self):
+        return self._spm_model.bos_id
 
     def encode(
         self,
@@ -91,12 +101,12 @@ class Phi3MiniTokenizer(Tokenizer):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = SentencePieceEncoding(tokenizer_path)
+            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
                 Message(role="assistant", content="assistant response\n"),
-                ]
+            ]
             # tokenize_messages encodes messages separately and concats
             >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
@@ -123,7 +133,6 @@ class Phi3MiniTokenizer(Tokenizer):
         """
         start_of_turn = True
         end_of_turn = False
-        prev_ends_with_space = False
         tokenized_messages = []
         mask = []
 
@@ -169,7 +178,6 @@ class Phi3MiniTokenizer(Tokenizer):
                 trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
             )
             tokens = tokens + [self.special_tokens["<|end|>"]] + new_line_token_id
-            prev_ends_with_space = message.content.endswith(" ")
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 

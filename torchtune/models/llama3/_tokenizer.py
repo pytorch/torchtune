@@ -5,9 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-from torchtune.data import Message, TikTokenEncoding, Tokenizer, truncate
+from torchtune.data import Message, truncate
+from torchtune.data.tokenizers import TikTokenEncoding, Tokenizer
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -16,10 +18,12 @@ PAD_ID = 0
 
 
 class Llama3Tokenizer(Tokenizer):
-    """A wrapper around tiktoken Encoding.
+    """
+    tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in
+    https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3
 
     Args:
-        path (str): Path to pretrained tokenizer checkpoint file.
+        path (str): Path to pretrained tiktoken tokenizer file.
     """
 
     def __init__(
@@ -51,10 +55,18 @@ class Llama3Tokenizer(Tokenizer):
         self.stop_tokens = [self.eos_id, self.eot_id]
 
     def _get_all_special_tokens_with_ids(self) -> Dict[str, int]:
-        special_tokens_json_path = Path(__file__).parent / "special_tokens.json"
+        special_tokens_json_path = Path(__file__).parent / "_special_tokens.json"
         with open(special_tokens_json_path, "r") as f:
             all_special_tokens = json.load(f)
         return all_special_tokens
+
+    @property
+    def base_vocab_size(self) -> int:
+        return self.tt_model.base_vocab_size
+
+    @property
+    def vocab_size(self) -> int:
+        return self.tt_model.vocab_size
 
     def encode(
         self,
@@ -62,14 +74,39 @@ class Llama3Tokenizer(Tokenizer):
         add_bos: bool,
         add_eos: bool,
     ) -> List[int]:
-        return self.tt_model.encode(text, add_bos=add_bos, add_eos=add_eos)
+        tokens = []
+        if add_bos:
+            tokens = tokens + [self.bos_id]
+        tokens = tokens + self.tt_model.encode(text)
+        if add_eos:
+            tokens = tokens + [self.eos_id]
+        return tokens
 
     def decode(
         self,
         token_ids: List[int],
         truncate_at_eos: bool = True,
     ) -> str:
-        return self.tt_model.decode(token_ids, truncate_at_eos=truncate_at_eos)
+        """
+        Decode a list of token ids into a string.
+
+        Args:
+            token_ids (List[int]): The list of token ids.
+            truncate_at_eos (bool): Whether to truncate the string at the end of
+                sequence token. Default is True.
+
+        Returns:
+            str: The decoded string.
+        """
+        if truncate_at_eos:
+            try:
+                k = token_ids.index(self.eos_id)
+            except ValueError:
+                k = None
+            if k:
+                token_ids = token_ids[:k]
+        token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
+        return self.tt_model.decode(token_ids)
 
     def tokenize_message(
         self, message: Message, tokenize_header: bool = False

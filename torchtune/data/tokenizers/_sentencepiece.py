@@ -13,7 +13,9 @@ WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
 class SentencePieceEncoding(TokenEncoding):
-    """A wrapper around SentencePieceProcessor.
+    """
+    A light-weight wrapper around SentencePieceProcessor that additionally handles
+    trimming leading whitespaces.
 
     Args:
         path (str): Path to pretrained tokenizer file.

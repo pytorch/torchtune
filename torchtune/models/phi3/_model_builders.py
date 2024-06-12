@@ -1,13 +1,11 @@
 from typing import List
 
 from torchtune.models.phi3._component_builders import phi3, lora_phi3
-from torchtune.models.phi3._sentencepiece import Phi3MiniSentencePieceEncoding
+from torchtune.models.phi3._tokenizer import Phi3MiniTokenizer
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
-
-import torch
 
 
 """

@@ -8,7 +8,7 @@ from typing import List
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
-from torchtune.data.tokenizers import SentencePieceEncoding
+from torchtune.models.gemma._tokenizer import GemmaTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 from functools import partial

@@ -13,7 +13,7 @@ from torchtune.models.mistral._component_builders import (
 )
 
 from torchtune.modules import TransformerDecoder
-from torchtune.data.tokenizers import SentencePieceEncoding
+from torchtune.models.mistral._tokenizer import MistralTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 

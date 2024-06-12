@@ -21,8 +21,8 @@ class MistralTokenizer(Tokenizer):
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = SentencePieceEncoding("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceEncoding.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = MistralTokenizer("/path/to/spm_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """

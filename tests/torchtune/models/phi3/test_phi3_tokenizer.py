@@ -7,72 +7,18 @@
 from pathlib import Path
 
 import pytest
-from torchtune.data._types import Message
-from torchtune.data.tokenizers import SentencePieceEncoding
+from torchtune.data import Message
+from torchtune.models.phi3 import phi3_mini_tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestSentencePieceEncoding:
+class TestPhi3MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceEncoding(str(ASSETS / "m.model"))
-
-    def test_encode(self, tokenizer):
-        assert tokenizer.encode("Hello world!") == [
-            tokenizer.bos_id,
-            12,
-            1803,
-            1024,
-            103,
-            tokenizer.eos_id,
-        ]
-        assert tokenizer.encode("Hello world!", add_eos=False) == [
-            tokenizer.bos_id,
-            12,
-            1803,
-            1024,
-            103,
-        ]
-        assert tokenizer.encode("Hello world!", add_bos=False) == [
-            12,
-            1803,
-            1024,
-            103,
-            tokenizer.eos_id,
-        ]
-        assert tokenizer.encode("Hello world!", add_eos=False, add_bos=False) == [
-            12,
-            1803,
-            1024,
-            103,
-        ]
-
-    def test_decode(self, tokenizer):
-        assert tokenizer.decode([1, 12, 1803, 1024, 103, 2]) == "Hello world!"
-
-    def test_token_ids(self, tokenizer):
-        assert tokenizer.eos_id == 2
-        assert tokenizer.pad_id == -1
-        assert tokenizer.bos_id == 1
-
-    def test_tokenizer_vocab_size(self, tokenizer):
-        assert tokenizer.vocab_size == 2000
-
-    def test_encode_without_leading_whitespace(self, tokenizer):
-        s1 = "Hello"
-        s2 = "I'm an outgoing and friendly person."
-        s1_tokens = tokenizer.encode(s1, add_bos=False, add_eos=False)
-        s2_tokens = tokenizer.encode(s2, add_bos=False, add_eos=False)
-        # Set prefix="pre" since "\n" is not in the test tokenizer's vocab
-        s2_tokens_no_whitespace = tokenizer.encode(
-            s2, add_bos=False, add_eos=False, trim_leading_whitespace=True, prefix="pre"
-        )
-        s1s2_tokens = tokenizer.encode(s1 + s2, add_bos=False, add_eos=False)
-        assert (s1_tokens + s2_tokens) != s1s2_tokens
-        assert (s1_tokens + s2_tokens_no_whitespace) == s1s2_tokens
+        return phi3_mini_tokenizer(str(ASSETS / "m.model"))
 
     def test_tokenize_messages(self, tokenizer):
         messages = [
@@ -96,6 +42,7 @@ class TestSentencePieceEncoding:
         tokens, mask = tokenizer.tokenize_messages(messages)
         expected_tokens = [
             1,
+            32010,
             323,
             418,
             202,
@@ -170,6 +117,8 @@ class TestSentencePieceEncoding:
             135,
             213,
             166,
+            32007,
+            32001,
             6,
             21,
             45,
@@ -294,8 +243,8 @@ class TestSentencePieceEncoding:
             24,
             24,
             4,
-            2,
+            32007,
         ]
-        expected_mask = [True] * 75 + [False] * 125
+        expected_mask = [True] * 77 + [False] * 126
         assert expected_tokens == tokens
         assert expected_mask == mask

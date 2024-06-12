@@ -9,7 +9,7 @@ from functools import partial
 from torchtune.models.llama2._component_builders import llama2, lora_llama2
 
 from torchtune.modules import TransformerDecoder
-from torchtune.data.tokenizers import SentencePieceEncoding
+from torchtune.models.llama2._tokenizer import Llama2Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 

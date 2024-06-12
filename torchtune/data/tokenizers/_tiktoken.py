@@ -4,12 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List
+from typing import Dict, Iterator, List
 
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
 from torchtune.data.tokenizers._base import TokenEncoding
-from torchtune.data.tokenizers._utils import _split_long_repetitions
 
 # Constants controlling encode logic
 MAX_ENCODE_CHARS = 400_000
@@ -17,16 +16,20 @@ MAX_NO_WHITESPACE_CHARS = 25_000
 
 
 class TikTokenEncoding(TokenEncoding):
-    """A wrapper around tiktoken Encoding.
+    """
+    A lightweight wrapper around tiktoken Encoding. This class additionally handles
+    breaking up the input text into substrings of a max length and splitting up long
+    repetitions to improve encode speed.
+
+    The core tiktoken.Encoding does NOT natively handle BOS and EOS ids, so this class
+    does not either. They must be handled by the caller of ``encode``.
 
     Args:
         path (str): Path to pretrained tokenizer checkpoint file.
         name (str): Name of the tokenizer (used by tiktoken for identification).
-        pattern (str): Regex pattern used to for string parsing.
-        special_tokens (Optional[List[str]]): List of all special tokens. First element
-            must be bos token, second element must be eos token, final element must be
-            python tag. All elements must be unique. Length must be at most 256.
-            Default: None (will use ALL_SPECIAL_TOKENS)
+        pattern (str): Regex pattern used to split input text into chunks before passing
+            to byte-pair encoding.
+        special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
     """
 
     def __init__(
@@ -48,20 +51,42 @@ class TikTokenEncoding(TokenEncoding):
         # Vocab size with special tokens
         self.vocab_size = self.tt_model.n_vocab
 
+    def _split_long_repetitions(
+        self, s: str, max_consecutive_slice_len: int
+    ) -> Iterator[str]:
+        """
+        Split the string `s` so that each substring contains no more than `max_consecutive_slice_len`
+        consecutive whitespaces or consecutive non-whitespaces
+        """
+        current_slice_len = 0
+        current_slice_is_space = s[0].isspace() if len(s) > 0 else False
+        slice_start = 0
+
+        for i in range(len(s)):
+            is_now_space = s[i].isspace()
+
+            if current_slice_is_space ^ is_now_space:
+                current_slice_len = 1
+                current_slice_is_space = is_now_space
+            else:
+                current_slice_len += 1
+                if current_slice_len > max_consecutive_slice_len:
+                    yield s[slice_start:i]
+                    slice_start = i
+                    current_slice_len = 1
+        yield s[slice_start:]
+
     def encode(
         self,
         text: str,
-        add_bos: bool,
-        add_eos: bool,
     ) -> List[int]:
         """
         Encode a string into a list of token ids. Assumes that the string
-        contains no special tokens.
+        contains no special tokens. BOS and EOS are NOT handled here and must
+        be manually added by the caller.
 
         Args:
             text (str): The string to encode.
-            add_bos (bool): Whether to add the beginning of sequence token.
-            add_eos (bool): Whether to add the end of sequence token.
 
         Returns:
             List[int]: The list of token ids.
@@ -73,7 +98,9 @@ class TikTokenEncoding(TokenEncoding):
         for i in range(0, len(text), MAX_ENCODE_CHARS):
             substr = text[i : i + MAX_ENCODE_CHARS]
             # See https://github.com/openai/tiktoken/issues/195
-            sliced_substr = _split_long_repetitions(substr, MAX_NO_WHITESPACE_CHARS)
+            sliced_substr = self._split_long_repetitions(
+                substr, MAX_NO_WHITESPACE_CHARS
+            )
             substrs.extend(sliced_substr)
         for substr in substrs:
             # allowed_special and disallowed_special are used by tiktoken to define
@@ -87,34 +114,19 @@ class TikTokenEncoding(TokenEncoding):
                     disallowed_special=(),
                 )
             )
-        if add_bos:
-            tokens.insert(0, self.bos_id)
-        if add_eos:
-            tokens.append(self.eos_id)
         return tokens
 
     def decode(
         self,
         token_ids: List[int],
-        truncate_at_eos: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
 
         Args:
             token_ids (List[int]): The list of token ids.
-            truncate_at_eos (bool): Whether to truncate the string at the end of
-                sequence token.
 
         Returns:
             str: The decoded string.
         """
-        if truncate_at_eos:
-            try:
-                k = token_ids.index(self.eos_id)
-            except ValueError:
-                k = None
-            if k:
-                token_ids = token_ids[:k]
-        token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
         return self.tt_model.decode(token_ids)
