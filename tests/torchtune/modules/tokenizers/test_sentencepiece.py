@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from torchtune.data._types import Message
-from torchtune.modules.tokenizers import SentencePieceEncoding
+from torchtune.data.tokenizers import SentencePieceEncoding
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 

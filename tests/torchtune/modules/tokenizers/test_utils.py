@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.modules.tokenizers._utils import _split_long_repetitions
+from torchtune.data.tokenizers._utils import _split_long_repetitions
 
 
 class TestUtils:

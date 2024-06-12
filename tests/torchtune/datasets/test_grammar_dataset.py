@@ -11,9 +11,9 @@ from datasets import Dataset
 
 from tests.test_utils import get_assets_path
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.data.tokenizers import SentencePieceEncoding
 
 from torchtune.datasets import grammar_dataset
-from torchtune.modules.tokenizers import SentencePieceEncoding
 
 
 class TestGrammarDataset:

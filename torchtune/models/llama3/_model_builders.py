@@ -12,7 +12,7 @@ from torchtune.models.llama3._component_builders import llama3, lora_llama3
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import TikTokenEncoding
+from torchtune.data.tokenizers import TikTokenEncoding
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 

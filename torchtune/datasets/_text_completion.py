@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Mapping, Optional
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.data import truncate
+from torchtune.data.tokenizers import Tokenizer
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
 
 
 class TextCompletionDataset(Dataset):

@@ -28,7 +28,7 @@ class TokenEncoding(Protocol):
         """
         pass
 
-    
+
 class Tokenizer(Protocol):
     """
     Abstract tokenizer that implements model specific special token logic in

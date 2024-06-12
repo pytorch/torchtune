@@ -16,8 +16,8 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
+from torchtune.data.tokenizers import Tokenizer
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
 
 
 class InstructDataset(Dataset):

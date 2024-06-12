@@ -4,14 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 from typing import Dict, List, Optional, Tuple
 
-from tiktoken import Encoding
-from tiktoken.load import load_tiktoken_bpe
-from torchtune.data import Message, truncate
-from torchtune.modules.tokenizers._utils import _split_long_repetitions
-from torchtune.modules.tokenizers._base import TokenEncoding
-import json
+from torchtune.data import Message, TikTokenEncoding, Tokenizer, truncate
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa

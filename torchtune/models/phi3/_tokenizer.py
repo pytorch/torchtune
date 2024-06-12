@@ -6,9 +6,8 @@
 
 from typing import List, Optional, Tuple
 
-from sentencepiece import SentencePieceProcessor
 from torchtune.data import Message, truncate
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.data.tokenizers import SentencePieceEncoding, Tokenizer
 
 
 class Phi3MiniTokenizer(Tokenizer):
@@ -55,7 +54,10 @@ class Phi3MiniTokenizer(Tokenizer):
         trim_leading_whitespace: bool = False,
     ) -> List[int]:
         return self._spm_model.encode(
-            text, add_bos=add_bos, add_eos=add_eos, trim_leading_whitespace=trim_leading_whitespace
+            text,
+            add_bos=add_bos,
+            add_eos=add_eos,
+            trim_leading_whitespace=trim_leading_whitespace,
         )
 
     def decode(self, ids: List[int]) -> str:

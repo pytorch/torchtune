@@ -7,7 +7,7 @@
 from typing import List, Optional
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.modules.tokenizers._base import TokenEncoding
+from torchtune.data.tokenizers._base import TokenEncoding
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 

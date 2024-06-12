@@ -8,9 +8,9 @@ from unittest.mock import patch
 import pytest
 
 from tests.test_utils import get_assets_path
+from torchtune.data.tokenizers import SentencePieceEncoding
 
 from torchtune.datasets import cnn_dailymail_articles_dataset
-from torchtune.modules.tokenizers import SentencePieceEncoding
 
 
 class TestCNNDailyMailArticlesDataset:

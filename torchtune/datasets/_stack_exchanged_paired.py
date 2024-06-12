@@ -5,8 +5,8 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data import StackExchangedPairedTemplate
+from torchtune.data.tokenizers import Tokenizer
 from torchtune.datasets._preference import PreferenceDataset
-from torchtune.modules.tokenizers import Tokenizer
 
 
 def stack_exchanged_paired_dataset(
