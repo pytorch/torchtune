@@ -203,8 +203,6 @@ class WandBLogger(MetricLoggerInterface):
         
         self.config_allow_val_change = kwargs.get('allow_val_change', False)
 
-       
-
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
         stored in the same directory as the checkpoint. You can
