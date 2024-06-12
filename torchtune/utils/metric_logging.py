@@ -200,6 +200,10 @@ class WandBLogger(MetricLoggerInterface):
         if getattr(self._wandb, "define_metric", None):
             self._wandb.define_metric("global_step")
             self._wandb.define_metric("*", step_metric="global_step", step_sync=True)
+        
+        self.config_allow_val_change = kwargs.get('allow_val_change', False)
+
+       
 
     def log_config(self, config: DictConfig) -> None:
         """Saves the config locally and also logs the config to W&B. The config is
@@ -212,7 +216,7 @@ class WandBLogger(MetricLoggerInterface):
         """
         if self._wandb.run:
             resolved = OmegaConf.to_container(config, resolve=True)
-            self._wandb.config.update(resolved)
+            self._wandb.config.update(resolved, allow_val_change=self.config_allow_val_change)
             try:
                 output_config_fname = Path(
                     os.path.join(
