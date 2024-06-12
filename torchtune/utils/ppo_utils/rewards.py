@@ -6,7 +6,6 @@
 
 from typing import Tuple
 
-import numpy as np
 import torch
 
 
@@ -118,35 +117,3 @@ def estimate_advantages(
     advantages = whiten(advantages)
 
     return advantages, returns
-
-
-class AdaptiveKLController:
-    """
-    A class that implements an adaptive KL controller from https://arxiv.org/pdf/1909.08593.pdf.
-
-    Attributes:
-        value (float): The initial KL coefficient value.
-        target (float): The target KL value.
-        horizon (int): The horizon for the update calculation.
-
-    Methods:
-        update(current, n_steps): Updates the KL coefficient value based on the current KL value and the number of steps.
-    """
-
-    def __init__(self, init_kl_coef: float, target: float, horizon: float):
-        self.value = init_kl_coef
-        self.target = target
-        self.horizon = horizon
-
-    def update(self, current: float, n_steps: int) -> None:
-        """
-        Updates the KL coefficient value based on the current KL value and the number of steps.
-
-        Args:
-            current (float): The current KL value.
-            n_steps (int): The number of steps.
-        """
-        target = self.target
-        proportional_error = np.clip(current / target - 1, -0.2, 0.2)
-        mult = 1 + proportional_error * n_steps / self.horizon
-        self.value *= mult

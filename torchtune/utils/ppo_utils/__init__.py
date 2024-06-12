@@ -13,7 +13,8 @@ from ._generation import (
     update_stop_tokens_tracker,
 )
 from .collate import left_padded_collate
-from .rewards import AdaptiveKLController, estimate_advantages, get_rewards, whiten
+from .kl_controller import AdaptiveKLController, FixedKLController
+from .rewards import estimate_advantages, get_rewards, whiten
 
 __all__ = [
     "generate",
@@ -24,6 +25,7 @@ __all__ = [
     "update_stop_tokens_tracker",
     "left_padded_collate",
     "AdaptiveKLController",
+    "FixedKLController",
     "estimate_advantages",
     "get_rewards",
     "whiten",

@@ -30,9 +30,12 @@ tokenizer:
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_cleaned_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.text_completion_dataset
+  source: nvidia/HelpSteer
   max_seq_len: 32
+  split: train
+  column: prompt
+
 seed: null
 shuffle: True
 
@@ -81,15 +84,15 @@ resume_from_checkpoint: False
 output_dir: target/full_7b
 
 # Fine-tuning arguments
-batch_size: 32
+batch_size: 64
 num_steps: 10000
-ppo_epochs: 4
+ppo_epochs: 2
 ppo_batch_size: 2
 ppo_backward_batch_size: 2
 gradient_accumulation_steps: 1
 
 # ppo args
-gamma: 0.99
+gamma: 1
 lmbda: 0.95
 whiten_rewards: False
 # generation arguments
@@ -98,25 +101,34 @@ max_generated_tokens: 32
 temperature: 0.7
 top_k: null
 
-# reward args
-truncate_after_tokens: 24
+# reward masking args
+truncate_after_tokens: null
+penalise_no_eos: False
+reward_penalty: -1.0
 
 # kl controller arguments
-init_kl_coef: 0.2
-kl_target: 6
-kl_horizon: 10000
+# kl_controller:
+#   _component_: torchtune.utils.ppo_utils.AdaptiveKLController
+#   init_kl_coef: 0.15
+#   kl_target: 6
+#   kl_horizon: 10000
+
+# or
+kl_controller:
+  _component_: torchtune.utils.ppo_utils.FixedKLController
+  kl_coef: 0.05
 
 optimizer:
   _component_: torch.optim.AdamW
   weight_decay: 0.01
-  lr: 3e-4
+  lr: 1.41e-5
 
 loss:
   _component_: torchtune.modules.loss.PPOLoss
-  gamma: 0.99
+  gamma: 1
   lmbda: 0.95
   epsilon: 0.2
-  value_coeff: 0.5
+  value_coeff: 0.1
   value_clip_range: 0.1
 
 # Training env
