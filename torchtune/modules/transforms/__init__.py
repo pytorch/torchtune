@@ -23,11 +23,10 @@ from .utils import (  # noqa
 __all__ = [
     "VariableImageSizeTransforms",
     "divide_to_equal_patches",
-    "pad_image_top_left"
-    "rescale",
+    "pad_image_top_left" "rescale",
     "ResizeWithoutDistortion",
     "find_supported_resolutions",
     "get_factors",
     "GetBestResolution",
-    "get_max_res_without_distortion"
+    "get_max_res_without_distortion",
 ]

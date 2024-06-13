@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
 
 import math
@@ -7,6 +13,7 @@ from typing import List, Optional, Set, Tuple
 import torch
 
 logger = logging.getLogger(__name__)
+
 
 class GetBestResolution:
     """
@@ -69,7 +76,8 @@ class GetBestResolution:
 
         Args:
             image_size (Tuple[int, int]): A tuple containing the height and width of the image.
-            possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each row represents a possible resolution (height, width).
+            possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each row
+                represents a possible resolution (height, width).
         Returns:
             Tuple[int, int]: The resolution (height, width) from possible_resolutions that is closest in aspect ratio to the image.
         """
@@ -171,7 +179,7 @@ class GetBestResolution:
 
         # keep only scales that allow upscaling
         upscaling_possible = scales[scales > 1]
-        
+
         if len(upscaling_possible) == 0:
             return None
 
@@ -209,8 +217,10 @@ class GetBestResolution:
 
         return tuple(best_resolution)
 
+
 def find_supported_resolutions(
-    max_num_chunks: int, patch_size: int) -> List[Tuple[int, int]]:
+    max_num_chunks: int, patch_size: int
+) -> List[Tuple[int, int]]:
     """
     If we want to divide an image into chunks, this function computes all of the
     allowed aspect ratios for a fixed number of chunks.
@@ -275,42 +285,39 @@ def get_factors(n: int) -> Set[int]:
             factors_set.add(n // i)
     return factors_set
 
+
 def get_max_res_without_distortion(
-        image_size: Tuple[int, int],
-        target_size: Tuple[int, int],
-    ) -> Tuple[int, int]:
+    image_size: Tuple[int, int],
+    target_size: Tuple[int, int],
+) -> Tuple[int, int]:
 
-        """
-        Determines the maximum resolution to which an image can be resized to without distorting its
-        aspect ratio, based on the target resolution.
+    """
+    Determines the maximum resolution to which an image can be resized to without distorting its
+    aspect ratio, based on the target resolution.
 
-        Args:
-            image_size (Tuple[int, int]): The original resolution of the image (height, width).
-            target_resolution (Tuple[int, int]): The desired resolution to fit the image into (height, width).
-        Returns:
-            Tuple[int, int]: The optimal dimensions (height, width) to which the image should be resized.
-        Example:
-            >>> _get_max_res_without_distortion([200, 300], target_size = [450, 200])
-            (134, 200)
-            >>> _get_max_res_without_distortion([800, 600], target_size = [450, 1300])
-            (450, 338)
-        """
+    Args:
+        image_size (Tuple[int, int]): The original resolution of the image (height, width).
+        target_resolution (Tuple[int, int]): The desired resolution to fit the image into (height, width).
+    Returns:
+        Tuple[int, int]: The optimal dimensions (height, width) to which the image should be resized.
+    Example:
+        >>> _get_max_res_without_distortion([200, 300], target_size = [450, 200])
+        (134, 200)
+        >>> _get_max_res_without_distortion([800, 600], target_size = [450, 1300])
+        (450, 338)
+    """
 
-        original_height, original_width = image_size
-        target_height, target_width = target_size
+    original_height, original_width = image_size
+    target_height, target_width = target_size
 
-        scale_w = target_width / original_width
-        scale_h = target_height / original_height
+    scale_w = target_width / original_width
+    scale_h = target_height / original_height
 
-        if scale_w < scale_h:
-            new_width = target_width
-            new_height = min(math.floor(original_height * scale_w), target_height)
-        else:
-            new_height = target_height
-            new_width = min(math.floor(original_width * scale_h), target_width)
+    if scale_w < scale_h:
+        new_width = target_width
+        new_height = min(math.floor(original_height * scale_w), target_height)
+    else:
+        new_height = target_height
+        new_width = min(math.floor(original_width * scale_h), target_width)
 
-        return new_height, new_width
-
-   
-
-    
+    return new_height, new_width

@@ -1,4 +1,10 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
 
+import logging
 from typing import Optional, Tuple, Union
 
 import torch
@@ -8,9 +14,8 @@ import torchvision
 from torchtune.modules.transforms.utils import get_max_res_without_distortion
 from torchvision.transforms.v2 import functional as F
 
-import logging
-
 logger = logging.getLogger(__name__)
+
 
 def rescale(image: torch.tensor, scale: Union[float, int]) -> torch.tensor:
     """
@@ -73,7 +78,7 @@ class ResizeWithoutDistortion:
     Used to resize an image to target_resolution, without distortion.
 
     If target_size requires upscaling the image, the user can set max_upscaling_size to
-    limit the upscaling to a maximum size. In this case, since we rescale without distortion, 
+    limit the upscaling to a maximum size. In this case, since we rescale without distortion,
     modifying target_size works as a boundary for the image's largest side.
 
     Ex 1: target_size = (1000, 1200), max_upscaling_size = 600, image_size = (400,200) --> target_size = (600, 600)
@@ -90,14 +95,15 @@ class ResizeWithoutDistortion:
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, there is no limit.
     """
-    def __init__(self, resample:str, max_upscaling_size: Optional[int] = None):
+
+    def __init__(self, resample: str, max_upscaling_size: Optional[int] = None):
         self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
         self.max_upscaling_size = max_upscaling_size
 
     def __call__(
         self, image: torch.Tensor, target_size: Tuple[int, int]
     ) -> torch.Tensor:
-    
+
         image_size = image.shape[-2:]
 
         # If target_size requires upscaling, we might want to limit the upscaling to self.max_upscaling_size

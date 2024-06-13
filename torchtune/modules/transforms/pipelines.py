@@ -1,3 +1,9 @@
+# Copyright (c) Meta Platforms, Inc. and affiliates.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
 import logging
 from typing import Dict, Optional, Tuple, Union
 
@@ -37,7 +43,7 @@ class VariableImageSizeTransforms:
     224px), so in this case it will  be resized to 388:896 (without distortion) and padded to 448:896,
     where we maintain the original aspect ratio and pad with zeros value for the rest.
     This approach minimizes the amount of padding required for any arbitrary resolution.
-    
+
     However, if limit_upscaling_to_patch_size is set to True, the upscaling will be limited to the patch size.
     In the example above, the image would remain 300x800 (no upscaling), and then padded to 448:896.
 
@@ -51,7 +57,8 @@ class VariableImageSizeTransforms:
             Should be the same used for the pre-trained model.
         patch_size (int): Size of the patches to divide the image into.
         possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
-        max_num_chunks (Optional[int]): Only used if possible_resolutions is NOT given. Maximum number of chunks to break an image into.
+        max_num_chunks (Optional[int]): Only used if possible_resolutions is NOT given.
+            Maximum number of chunks to break an image into.
             This will be used to generate possible_resolutions, e.g. [[224, 224]] if max_num_chunks = 1 and patch_size = 224.
         resample (str): Resampling method used when resizing images. Supports "nearest", "nearest_exact", "bilinear", "bicubic"
         do_rescale (bool): Flag to determine whether to rescale the image by "rescale_factor".
@@ -101,7 +108,7 @@ class VariableImageSizeTransforms:
             patch_size=patch_size,
         )
 
-        #resizing
+        # resizing
         max_upscaling_size = self.patch_size if limit_upscaling_to_patch_size else None
         self.resize_without_distortion = ResizeWithoutDistortion(
             resample=resample, max_upscaling_size=max_upscaling_size
