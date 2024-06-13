@@ -57,7 +57,7 @@ class _CheckpointerInterface(Protocol):
         * End-of-training Checkpointing. The model weights at the end of a completed training
             run are written out to file. The checkpointer ensures that the output checkpoint
             files have the same keys as the input checkpoint file used to begin training. The
-            checkpointer also ensures that the keys are paritioned across the same number of
+            checkpointer also ensures that the keys are partitioned across the same number of
             files as the original checkpoint. This ensures that the original metadata files can
             be used as is, and the output checkpoint can be used with any tool that understands
             the original checkpoint format. This includes popular inference engines such as
@@ -460,7 +460,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state.
 
-        The state_dict is first converted back to the HF format and then paritioned based on the
+        The state_dict is first converted back to the HF format and then partitioned based on the
         ``_weight_map`` into separate checkpoint files.
 
         Args:
