@@ -150,7 +150,7 @@ def lora_llama3_70b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
+        TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied
     """
     return lora_llama3(
         lora_attn_modules=lora_attn_modules,

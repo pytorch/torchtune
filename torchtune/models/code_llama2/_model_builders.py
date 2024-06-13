@@ -142,7 +142,7 @@ def lora_code_llama2_13b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Code-Llama2 7B model with LoRA applied
+        TransformerDecoder: Instantiation of Code-Llama2 13B model with LoRA applied
     """
     return lora_llama2(
         lora_attn_modules=lora_attn_modules,
