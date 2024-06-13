@@ -114,7 +114,9 @@ class VariableImageSizeTransforms:
             resample=resample, max_upscaling_size=max_upscaling_size
         )
 
-    def __call__(self, image: ImageInput) -> Dict[str, torch.Tensor | Tuple[int, int]]:
+    def __call__(
+        self, image: ImageInput
+    ) -> Dict[str, Union[torch.Tensor, Tuple[int, int]]]:
 
         # Make image have dimension [3, H, W]. Input can be grayscale, RGB, channels-first or last.
         image = F.grayscale_to_rgb_image(F.to_image(image))
