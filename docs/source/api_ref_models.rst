@@ -54,8 +54,8 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.qlora_llama2_70b
 
 
-code_llama2
-------
+code llama
+----------
 
 Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
 
@@ -69,15 +69,15 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     :toctree: generated/
     :nosignatures:
 
-    code_llama2.code_llama2_7b,
-    code_llama2.lora_code_llama2_7b,
-    code_llama2.qlora_code_llama2_7b,
-    code_llama2.code_llama2_13b,
-    code_llama2.lora_code_llama2_13b,
-    code_llama2.qlora_code_llama2_13b,
-    code_llama2.code_llama2_70b,
-    code_llama2.lora_code_llama2_70b,
-    code_llama2.qlora_code_llama2_70b,
+    code_llama2.code_llama2_7b
+    code_llama2.lora_code_llama2_7b
+    code_llama2.qlora_code_llama2_7b
+    code_llama2.code_llama2_13b
+    code_llama2.lora_code_llama2_13b
+    code_llama2.qlora_code_llama2_13b
+    code_llama2.code_llama2_70b
+    code_llama2.lora_code_llama2_70b
+    code_llama2.qlora_code_llama2_70b
 
 
 phi-3
@@ -139,8 +139,8 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     :nosignatures:
 
     gemma.gemma_2b
-    gemma.lora_gemma_2b,
-    gemma.qlora_gemma_2b,
+    gemma.lora_gemma_2b
+    gemma.qlora_gemma_2b
     gemma.gemma_7b
-    gemma.lora_gemma_7b,
-    gemma.qlora_gemma_7b,
+    gemma.lora_gemma_7b
+    gemma.qlora_gemma_7b
