@@ -15,6 +15,7 @@ import torch.distributed as dist
 from torch import nn
 
 from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     _CHECKPOINT_WRAPPED_MODULE,
 )
@@ -319,13 +320,17 @@ def load_from_full_model_state_dict(
             sharded_param = full_tensor.new_zeros(chunk.size())
             sharded_param[: chunk.size(0)].copy_(chunk)
             sharded_tensor = DTensor(
-                sharded_param,
-                sharded_meta_param.device_mesh,
-                sharded_meta_param.placements,
-                shape=sharded_meta_param.size(),
-                dtype=sharded_meta_param.dtype,
+                local_tensor=sharded_param,
+                spec=DTensorSpec(
+                    mesh=sharded_meta_param.device_mesh,
+                    placements=sharded_meta_param.placements,
+                    tensor_meta=TensorMeta(
+                        shape=sharded_meta_param.size(),
+                        dtype=sharded_meta_param.dtype,
+                        stride=sharded_meta_param.stride(),
+                    ),
+                ),
                 requires_grad=sharded_meta_param.requires_grad,
-                stride=sharded_meta_param.stride(),
             )
         else:
             sharded_tensor = distribute_tensor(

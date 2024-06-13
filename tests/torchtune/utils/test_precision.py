@@ -68,7 +68,7 @@ class TestPrecisionUtils:
 
         _set_float32_precision("high")
         setattr(  # noqa: B010
-            torch.backends, "__allow_nonbracketed_mutation_flag", True
+            torch.backends, "__allow_nonbracketed_mutation_flag", False
         )
         assert torch.get_float32_matmul_precision() == "high"
         assert torch.backends.cudnn.allow_tf32
