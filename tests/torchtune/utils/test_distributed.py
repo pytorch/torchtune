@@ -397,6 +397,10 @@ class TestFullyShardState(FSDPTest):
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
 
+    # torchao does not have __version__ defined for < 0.3
+    @pytest.mark.skipif(
+        "__version__" not in dir(torchao), reason="torchao>=0.3 required"
+    )
     @gpu_test(gpu_count=2)
     def test_qlora_state_dict(self):
         self.run_subtests(
