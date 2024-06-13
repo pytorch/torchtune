@@ -224,22 +224,25 @@ def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler
         active = None
         repeat = None
 
-    profiler, profiler_cfg = setup_torch_profiler(enabled=enabled,
-                                                  cpu=cpu,
-                                                  cuda=cuda,
-                                                  profile_memory=profile_memory,
-                                                  with_stack=with_stack,
-                                                  record_shapes=record_shapes,
-                                                  with_flops=with_flops,
-                                                  wait=wait,
-                                                  warmup=warmup,
-                                                  active=active,
-                                                  repeat=repeat,
-                                                  output_dir=output_dir,
-                                                  return_cfg=return_cfg
-                                                  )
-
-    return profiler, profiler_cfg if return_cfg else profiler
+    profiler = setup_torch_profiler(enabled=enabled,
+                                    cpu=cpu,
+                                    cuda=cuda,
+                                    profile_memory=profile_memory,
+                                    with_stack=with_stack,
+                                    record_shapes=record_shapes,
+                                    with_flops=with_flops,
+                                    wait=wait,
+                                    warmup=warmup,
+                                    active=active,
+                                    repeat=repeat,
+                                    output_dir=output_dir,
+                                    return_cfg=return_cfg
+                                    )
+    if return_cfg:
+        profiler, profiler_cfg = profiler
+    log.info(f" Profiler config after instantiation: {profiler_cfg}")
+    
+    return profiler
 
 def setup_torch_profiler(enabled: bool = False,
                          cpu: bool = True,
