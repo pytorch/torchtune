@@ -199,7 +199,13 @@ def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler
     Args:
         cfg: DictConfig - top-level cfg passed to `recipe.main`
         return_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
-        overrides certain options; primarily for logging / debugging.
+        overrides certain profiling options; primarily for logging / debugging.
+    
+    Returns:
+        profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods 
+        for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+        that the instrumented training loop does not need to be changed profiling is disabled.
+        profiler_cfg: Optional[DictConfig]
     """
     if should_profile(cfg):
         enabled = True
@@ -224,6 +230,7 @@ def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler
         active = None
         repeat = None
 
+    # Delegate setup of actual profiler and optionally return updated profiler config
     profiler = setup_torch_profiler(enabled=enabled,
                                     cpu=cpu,
                                     cuda=cuda,
@@ -260,46 +267,60 @@ def setup_torch_profiler(enabled: bool = False,
                          ) -> torch.profiler.profile:
     """
     Sets up torch.profiler.profile
+    
+    Args:
+        enabled (bool): Enable pytorch profiler. Default is False.
+        cpu (bool): Enable cpu profiling. Default is True.
+        cuda (bool): Enable cuda profiling. Default is True.
+        profile_memory (bool): Profile memory usage. Default is False.
+        with_stack (bool): Profile stack. Default is False.
+        record_shapes (bool): Record shapes. Default is False.
+        with_flops (bool): Profile flops. Default is False.
+        wait (Optional[int]): Wait time in steps. Default is None.
+        warmup (Optional[int]): Warmup time in steps. Default is None.
+        active (Optional[int]): Active time in steps. Default is None.
+        repeat (Optional[int]): Repeat time in steps. Default is None.
+        output_dir (Optional[str]): Tracing file output path. Default is None.
+        return_cfg (bool): Return updated profiler config. Default is False.
+    
+    Returns:
+        tuple: [torch.profiler.profile, Optional[DictConfig]]
 
     NOTE: 
-    - Enabling the profiler may have training speed reduction.
-    - Setting `profile_memory: true` will result in large trace files.
+    - Enabling the profiler will result in training speed reduction.
+    - Setting `profile_memory: true` will generate large trace files.
     - The profiler schedule is context dependent:
         - Calling `profiler.step()` at each batch iteration but outside the gradient accumulation scope will `step` the profiler each forward / backward step
         - Calling `profiler.step()` each batch iteration but within the gradient accumulation scope will `step` the profiler each optimizer update step such that
         each `step` contains multiple forward / backward passes.
 
-    Args:
-        cfg (DictConfig): profiler config with following options:
+    The profiler config can be provided in the config files under the `profiler` key with the following layout:
+    ```
+    profiler:
+        enabled: bool
+
+        #Output directory of trace artifacts
+        output_dir: str
+
+        #`torch.profiler.ProfilerActivity` types to trace
+        CPU: bool
+        CUDA: bool
+        
+        #Trace options
+        profile_memory: bool
+        with_stack: bool
+        record_shapes: bool
+        with_flops: bool
+
+        #`torch.profiler.schedule` args
+        schedule:
+            wait: int
+            warmup: int
+            active: int
+            repeat: int
         ```
-        profiler:
-            enabled: bool
-
-            #Output directory of trace artifacts
-            output_dir: str
-
-            #`torch.profiler.ProfilerActivity` types to trace
-            CPU: bool
-            CUDA: bool
-            
-            #trace options
-            profile_memory: bool
-            with_stack: bool
-            record_shapes: bool
-            with_flops: bool
-
-            #`torch.profiler.schedule` args
-            schedule:
-                wait: int
-                warmup: int
-                active: int
-                repeat: int
-            ```
-    Returns:
-        tuple: [torch.profiler.profile | FakeProfiler, Optional[DictConfig]]
 
     Additional notes:
-        - `cfg` is modified in-place with the defaults per the comments below
         - the profiler schedule updates with respect to an optimizer step:
             - e.g., if `gradient_accumulation = 2`, then the profiler will step every 2 batches.
         - sensible defaults will be chosen if the config is missing options
@@ -308,8 +329,6 @@ def setup_torch_profiler(enabled: bool = False,
             - if a schedule is specified, profiler will validate that the schedule is valid and can be passed to `instantiate`
             - certain options will be overridden (`with_stack` and `record_shapes`) depending on requirements of other options
                 - e.g., `profile_memory` requires `with_stack` and `record_shapes`
-        - if no profiler config is found or the `cfg.enabled=False`, a fake profiler will be returned that
-        minimally mimicks the interface of torch.profiler.profile (context decorator with `step` method)
     """
 
     # Set up profiler activities
