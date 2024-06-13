@@ -10,7 +10,7 @@ import os
 import time
 from functools import partial
 from pathlib import Path
-from typing import ContextManager, Optional
+from typing import ContextManager, Optional, List
 
 import torch
 import torch.distributed
@@ -166,9 +166,24 @@ def trace_handler(
 
 class FakeProfiler:
     """
-    Mock object that minimally mimics behavior of torch.profiler.profile
-
-    Essentially a nullcontext with no-op methods for `start`, `stop`, and `step`
+    Drop-in replacement for torch.profiler.profile that functions as a nullcontext / object 
+    with no-op methods for `start`, `stop`, and `step`.
+    
+    This is helpful for instrumenting profiling in a recipe without requiring changes to the
+    code independent of whether profiling is on / off.
+    
+    E.g., 
+    ```
+        profiler = FakeProfiler()
+        #profiler = torch.profiler.profile()
+        
+        # Below is same regardless of profiler object type
+        with profiler as prof:
+            for epoch in epochs:
+                for batch in batches:
+                    train.step()
+                    prof.step()
+    ```                
     """
 
     def __enter__(self):
@@ -192,20 +207,53 @@ def should_profile(cfg: DictConfig) -> bool:
         "enabled", True
     )
 
-def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler.profile:
+# NOTE: This is a reference implementation of a profiler setup method to be defined within a `recipe`.
+# Its purpose is to parse high-level configurations and pass the parsed args to the actual profiler setup.  
+# It is not exported as the user-facing profiler setup functions (currently only `setup_torch_profiler`) 
+# should be used instead.
+def _setup_profiler(cfg: DictConfig, log_cfg: bool = False) -> torch.profiler.profile:
     """
-    Parses top-level `cfg` and sets up profiler
+    Parses the `profiler` section of top-level `cfg` and sets up profiler
     
     Args:
-        cfg: DictConfig - top-level cfg passed to `recipe.main`
-        return_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
-        overrides certain profiling options; primarily for logging / debugging.
+        cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+        log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
+        overrides certain profiling options.  
+        
+        NOTE: Since not all settings of the profiler can be parsed from the returned profiler object,
+        such as the `schedule`, `log_cfg` can be used for easy logging / debugging of all profiler options post setup.
     
     Returns:
         profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods 
         for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
         that the instrumented training loop does not need to be changed profiling is disabled.
         profiler_cfg: Optional[DictConfig]
+    
+    The profiler config can be provided in configs under the `profiler` key with the following layout:
+    ```
+    profiler:
+        enabled: bool
+
+        #Output directory of trace artifacts
+        output_dir: str
+
+        #`torch.profiler.ProfilerActivity` types to trace
+        CPU: bool
+        CUDA: bool
+        
+        #Trace options
+        profile_memory: bool
+        with_stack: bool
+        record_shapes: bool
+        with_flops: bool
+
+        #`torch.profiler.schedule` args
+        schedule:
+            wait: int
+            warmup: int
+            active: int
+            repeat: int
+    ```
     """
     if should_profile(cfg):
         enabled = True
@@ -213,16 +261,16 @@ def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler
         return FakeProfiler(), DictConfig({"enabled": False}) if return_cfg else FakeProfiler()
 
     # Set up profiler activities
-    cpu = cfg[PROFILER_KEY].get("CPU", False)
-    cuda = cfg[PROFILER_KEY].get("CUDA", False)
-    profile_memory = cfg[PROFILER_KEY].get("profile_memory", False)
-    with_stack = cfg[PROFILER_KEY].get("with_stack", False)
-    record_shapes = cfg[PROFILER_KEY].get("record_shapes", False)
-    with_flops = cfg[PROFILER_KEY].get("with_flops", False)
-    output_dir = cfg[PROFILER_KEY].get("output_dir", None)    
+    cpu = cfg.get("CPU", False)
+    cuda = cfg.get("CUDA", False)
+    profile_memory = cfg.get("profile_memory", False)
+    with_stack = cfg.get("with_stack", False)
+    record_shapes = cfg.get("record_shapes", False)
+    with_flops = cfg.get("with_flops", False)
+    output_dir = cfg.get("output_dir", None)    
     
     # Parse schedule specific args
-    schedule_cfg = cfg[PROFILER_KEY].get("schedule", None)
+    schedule_cfg = cfg.get("schedule", None)
 
     if schedule_cfg is None:
         wait = None
@@ -243,11 +291,11 @@ def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler
                                     active=active,
                                     repeat=repeat,
                                     output_dir=output_dir,
-                                    return_cfg=return_cfg
+                                    return_cfg=log_cfg
                                     )
-    if return_cfg:
+    if log_cfg:
         profiler, profiler_cfg = profiler
-    log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        log.info(f" Profiler config after instantiation: {profiler_cfg}")
     
     return profiler
 
@@ -264,9 +312,35 @@ def setup_torch_profiler(enabled: bool = False,
                          repeat: Optional[int] = None,
                          output_dir: Optional[str] = None,
                          return_cfg: bool = False
-                         ) -> torch.profiler.profile:
+                         ) -> List[torch.profiler.profile, Optional[DictConfig]]:
     """
-    Sets up torch.profiler.profile
+    Sets up torch.profiler.profile and optionally returns profiler config
+    
+    The profiler config can be provided in configs under the `profiler` key with the following layout:
+    ```
+    profiler:
+        enabled: bool
+
+        #Output directory of trace artifacts
+        output_dir: str
+
+        #`torch.profiler.ProfilerActivity` types to trace
+        CPU: bool
+        CUDA: bool
+        
+        #Trace options
+        profile_memory: bool
+        with_stack: bool
+        record_shapes: bool
+        with_flops: bool
+
+        #`torch.profiler.schedule` args
+        schedule:
+            wait: int
+            warmup: int
+            active: int
+            repeat: int
+    ```
     
     Args:
         enabled (bool): Enable pytorch profiler. Default is False.
@@ -293,32 +367,6 @@ def setup_torch_profiler(enabled: bool = False,
         - Calling `profiler.step()` at each batch iteration but outside the gradient accumulation scope will `step` the profiler each forward / backward step
         - Calling `profiler.step()` each batch iteration but within the gradient accumulation scope will `step` the profiler each optimizer update step such that
         each `step` contains multiple forward / backward passes.
-
-    The profiler config can be provided in the config files under the `profiler` key with the following layout:
-    ```
-    profiler:
-        enabled: bool
-
-        #Output directory of trace artifacts
-        output_dir: str
-
-        #`torch.profiler.ProfilerActivity` types to trace
-        CPU: bool
-        CUDA: bool
-        
-        #Trace options
-        profile_memory: bool
-        with_stack: bool
-        record_shapes: bool
-        with_flops: bool
-
-        #`torch.profiler.schedule` args
-        schedule:
-            wait: int
-            warmup: int
-            active: int
-            repeat: int
-        ```
 
     Additional notes:
         - the profiler schedule updates with respect to an optimizer step:
@@ -359,7 +407,7 @@ def setup_torch_profiler(enabled: bool = False,
         if repeat is None:
             _warn(
                 """ No repeat found in schedule config, setting to 1 (one cycle).
-                If you want to cycle continuously, specify repeat = 0"""
+                If you want to cycle continuously, specify `repeat = 0`"""
             )
             repeat = 1
     

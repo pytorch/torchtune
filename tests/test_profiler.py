@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 from torch._C._profiler import _ExperimentalConfig
 
 from torchtune import config
-from torchtune.utils._profiler import PROFILER_KEY, setup_torch_profiler
+from torchtune.utils import PROFILER_KEY, setup_torch_profiler, FakeProfiler
 
 PROFILER_ATTRS = [
     "activities",
@@ -32,13 +32,11 @@ profiler:
  CPU: True
  CUDA: True
  profile:
-   # _component_: torch.profiler.profile
    profile_memory: False
    with_stack: False
    record_shapes: True
    with_flops: True
  schedule:
-   # _component_: torch.profiler.schedule
    wait: 3
    warmup: 1
    active: 1
