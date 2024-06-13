@@ -374,7 +374,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info(" Profiler instantiated.")
 
         return profiler
-    
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -599,9 +599,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         ):
                             break
 
-                        if self._profiler_enabled:
-                            self._profiler.step()
-
                         # Both are shape [b, s]
                         tokens, labels = batch["tokens"], batch["labels"]
                         # Get the attention mask and position ids from the dataset if they
@@ -614,7 +611,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         labels = labels.to(self._device)
                         mask = mask.to(self._device) if mask is not None else None
                         input_pos = (
-                            input_pos.to(self._device) if input_pos is not None else None
+                            input_pos.to(self._device)
+                            if input_pos is not None
+                            else None
                         )
 
                         logits = self._model(tokens, mask=mask, input_pos=input_pos)
@@ -627,7 +626,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss = loss / self._gradient_accumulation_steps
                         running_loss += loss
                         loss.backward()
-                        
+
                         # Step with optimizer
                         if (idx + 1) % self._gradient_accumulation_steps == 0:
                             self._optimizer.step()
@@ -648,7 +647,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 log_dict = {
                                     "loss": loss_to_log,
                                     "lr": self._optimizer.param_groups[0]["lr"],
-                                    "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                                    "tokens_per_second_per_gpu": num_tokens
+                                    / time_per_step,
                                 }
                                 if (
                                     self._device.type == "cuda"
@@ -666,12 +666,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             running_loss = 0
                             num_tokens = 0
                             t0 = time.perf_counter()
-    
+
                         # Step the profiler
                         # Note we are stepping each batch, which might not include optimizer step in the trace
                         # if the schedule cycle doesn't align with gradient accumulation.
                         prof.step()
-    
+
                 self.epochs_run += 1
                 self.save_checkpoint(epoch=curr_epoch)
 

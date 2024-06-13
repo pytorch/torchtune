@@ -275,11 +275,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             num_training_steps=self.total_epochs * self._steps_per_epoch,
             last_epoch=self.global_step - 1,
         )
-        
+
         # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
-        
+
     def _setup_profiler(
         self, cfg: DictConfig, log_cfg: bool = False
     ) -> torch.profiler.profile:
@@ -383,7 +383,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 log.info(" Profiler instantiated.")
 
         return profiler
-    
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -765,12 +765,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # Note that this is called within gradient accumulation block, hence
                     # will include multiple forward / backward passes if gradient accumulation > 1
                     self._profiler.step()
-                    
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
-        
+
         self._profiler.stop()
-        
+
     def cleanup(self) -> None:
         if self._is_rank_zero:
             self._metric_logger.close()
