@@ -35,6 +35,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+<<<<<<< HEAD
 from torchtune.utils import (
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
@@ -42,6 +43,9 @@ from torchtune.utils import (
     setup_torch_profiler,
     should_profile,
 )
+=======
+from torchtune.utils import setup_torch_profiler, should_profile
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -277,6 +281,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
+<<<<<<< HEAD
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
@@ -384,6 +389,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         return profiler
 
+=======
+        self._profiler = setup_torch_profiler(cfg)
+        if self._is_rank_zero and should_profile(cfg):
+            log.info(" Profiler is instantiated.")
+            
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -764,8 +775,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         t0 = time.perf_counter()
 
                         # Step profiler
+<<<<<<< HEAD
                         # Note that this is called each optimizer step (after gradient accumulation)
                         # and thus will include multiple every forward / backwards steps if gradient_accumulation > 1
+=======
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
                         prof.step()
 
                 self.epochs_run += 1

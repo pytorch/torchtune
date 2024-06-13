@@ -27,6 +27,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+<<<<<<< HEAD
 from torchtune.utils import (
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
@@ -34,6 +35,9 @@ from torchtune.utils import (
     setup_torch_profiler,
     should_profile,
 )
+=======
+from torchtune.utils import setup_torch_profiler, should_profile
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -249,6 +253,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         )
 
         # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
+<<<<<<< HEAD
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
@@ -351,6 +356,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             log.info(" Profiler instantiated.")
 
         return profiler
+=======
+        self._profiler = setup_torch_profiler(cfg)
+        if should_profile(cfg):
+            log.info(" Profiler is initialized.")
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
 
     def _setup_model(
         self,
@@ -575,6 +585,11 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     ):
                         break
 
+<<<<<<< HEAD
+=======
+                    self._profiler.step()
+
+>>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
                     # Both are shape [b, s]
                     tokens, labels = batch["tokens"], batch["labels"]
                     # Get the attention mask and position ids from the dataset if they
