@@ -94,12 +94,14 @@ class VariableImageSizeTransforms:
         self.do_rescale = do_rescale
         self.rescale_factor = rescale_factor
 
+        # best resolution
         self.get_best_resolution = GetBestResolution(
             possible_resolutions=possible_resolutions,
             max_num_chunks=max_num_chunks,
             patch_size=patch_size,
         )
 
+        #resizing
         max_upscaling_size = self.patch_size if limit_upscaling_to_patch_size else None
         self.resize_without_distortion = ResizeWithoutDistortion(
             resample=resample, max_upscaling_size=max_upscaling_size
@@ -112,10 +114,10 @@ class VariableImageSizeTransforms:
         _, height, width = image.shape
         image_size = (height, width)
 
-        # Check if the image can be fit to the canvas without downsampling and distortion
+        # Find the best canvas from possible_resolutions to fit the image without distortion
         best_resolution = self.get_best_resolution(image_size)
 
-        # resize to closest best_resolution while preserving aspect ratio
+        # resize to best_resolution while preserving aspect ratio
         image = self.resize_without_distortion(image=image, target_size=best_resolution)
 
         # pad to fit the best resolution
@@ -129,7 +131,7 @@ class VariableImageSizeTransforms:
         if self.do_normalize:
             image = F.normalize(image, mean=self.image_mean, std=self.image_std)
 
-        # Divide the image into patches
+        # Divide the image into equally squared patches
         image = divide_to_equal_patches(image, patch_size=self.patch_size)
 
         return {"pixel_values": image, "image_size": (height, width)}

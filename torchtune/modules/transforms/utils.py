@@ -169,7 +169,7 @@ class GetBestResolution:
         # get the min scale between width and height (limiting side)
         scales = torch.where(scale_w > scale_h, scale_h, scale_w)
 
-        # filter only scales that allow upscaling
+        # keep only scales that allow upscaling
         upscaling_possible = scales[scales > 1]
         
         if len(upscaling_possible) == 0:
