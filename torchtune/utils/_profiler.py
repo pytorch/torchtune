@@ -192,10 +192,19 @@ def should_profile(cfg: DictConfig) -> bool:
         "enabled", True
     )
 
-def parse_profiler_cfg(cfg: DictConfig) -> torch.profiler.profile:
-    enabled = True
-    if not should_profile(cfg):
-        enabled = False
+def _setup_profiler(cfg: DictConfig, return_cfg: bool = False) -> torch.profiler.profile:
+    """
+    Parses top-level `cfg` and sets up profiler
+    
+    Args:
+        cfg: DictConfig - top-level cfg passed to `recipe.main`
+        return_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
+        overrides certain options; primarily for logging / debugging.
+    """
+    if should_profile(cfg):
+        enabled = True
+    else:
+        return FakeProfiler(), DictConfig({"enabled": False}) if return_cfg else FakeProfiler()
 
     # Set up profiler activities
     cpu = cfg[PROFILER_KEY].get("CPU", False)
@@ -214,32 +223,23 @@ def parse_profiler_cfg(cfg: DictConfig) -> torch.profiler.profile:
         warmup = None
         active = None
         repeat = None
-    else:
-        if not all(k in schedule_cfg for k in ["wait", "warmup", "active"]):
-            raise ValueError(
-                "Invalid schedule config: must specify wait, warmup, and active"
-            )
-        if "repeat" not in schedule_cfg:
-            _warn(
-                """ No repeat found in schedule config, setting to 1 (one cycle).
-                If you want to cycle continuously, specify repeat = 0"""
-            )
-            repeat = 1
 
-    profiler = setup_torch_profiler(enabled=enabled,
-                                    cpu=cpu,
-                                    cuda=cuda,
-                                    profile_memory=profile_memory,
-                                    with_stack=with_stack,
-                                    record_shapes=record_shapes,
-                                    with_flops=with_flops,
-                                    wait=wait,
-                                    warmup=warmup,
-                                    active=active,
-                                    repeat=repeat,
-                                    output_dir=output_dir
-                                    )
-    return profiler
+    profiler, profiler_cfg = setup_torch_profiler(enabled=enabled,
+                                                  cpu=cpu,
+                                                  cuda=cuda,
+                                                  profile_memory=profile_memory,
+                                                  with_stack=with_stack,
+                                                  record_shapes=record_shapes,
+                                                  with_flops=with_flops,
+                                                  wait=wait,
+                                                  warmup=warmup,
+                                                  active=active,
+                                                  repeat=repeat,
+                                                  output_dir=output_dir,
+                                                  return_cfg=return_cfg
+                                                  )
+
+    return profiler, profiler_cfg if return_cfg else profiler
 
 def setup_torch_profiler(enabled: bool = False,
                          cpu: bool = True,
@@ -253,6 +253,7 @@ def setup_torch_profiler(enabled: bool = False,
                          active: Optional[int] = None,
                          repeat: Optional[int] = None,
                          output_dir: Optional[str] = None,
+                         return_cfg: bool = False
                          ) -> torch.profiler.profile:
     """
     Sets up torch.profiler.profile
@@ -292,7 +293,7 @@ def setup_torch_profiler(enabled: bool = False,
                 repeat: int
             ```
     Returns:
-        torch.profiler.profile | FakeProfiler
+        tuple: [torch.profiler.profile | FakeProfiler, Optional[DictConfig]]
 
     Additional notes:
         - `cfg` is modified in-place with the defaults per the comments below
@@ -307,8 +308,6 @@ def setup_torch_profiler(enabled: bool = False,
         - if no profiler config is found or the `cfg.enabled=False`, a fake profiler will be returned that
         minimally mimicks the interface of torch.profiler.profile (context decorator with `step` method)
     """
-    if not enabled:
-        return FakeProfiler()
 
     # Set up profiler activities
     activities = []
@@ -364,9 +363,9 @@ def setup_torch_profiler(enabled: bool = False,
         _warn(
             f" No output directory found in profiler config, defaulting to {_DEFAULT_PROFILE_DIR}"
         )
-        profiler_output_dir = _DEFAULT_PROFILE_DIR
+        output_dir = _DEFAULT_PROFILE_DIR
 
-    output_dir = Path(profiler_output_dir)
+    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     callback = partial(trace_handler, output_dir=output_dir)
 
@@ -380,8 +379,24 @@ def setup_torch_profiler(enabled: bool = False,
         experimental_config=experimental_config,
         on_trace_ready=callback,
     )
-
-    return profiler
+    
+    profiler_cfg = DictConfig({
+        "enabled": enabled,
+        "output_dir": output_dir,
+        "CPU": cpu,
+        "CUDA": cuda,
+        "profile_memory": profile_memory,
+        "with_stack": with_stack,
+        "record_shapes": record_shapes,
+        "with_flops": with_flops,
+        "schedule": {
+            "wait": wait,
+            "warmup": warmup,
+            "active": active,
+            "repeat": repeat
+        }
+    }) if return_cfg else None
+    return (profiler, profiler_cfg) 
 
 def _setup_torch_profiler(cfg: DictConfig) -> torch.profiler.profile:
     """
