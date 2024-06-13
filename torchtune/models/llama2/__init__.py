@@ -22,11 +22,16 @@ from ._model_utils import scale_hidden_dim_for_mlp
 
 __all__ = [
     "llama2",
+    "lora_llama2",
+    "llama2_13b",
+    "llama2_70b",
     "llama2_7b",
     "llama2_tokenizer",
-    "lora_llama2",
+    "lora_llama2_13b",
+    "lora_llama2_70b",
     "lora_llama2_7b",
-    "qlora_llama2_7b",
     "qlora_llama2_13b",
+    "qlora_llama2_70b",
+    "qlora_llama2_7b",
     "scale_hidden_dim_for_mlp",
 ]
