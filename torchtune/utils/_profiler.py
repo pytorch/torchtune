@@ -241,10 +241,7 @@ def _setup_profiler(cfg: DictConfig, log_cfg: bool = False) -> torch.profiler.pr
     if should_profile(cfg):
         enabled = True
     else:
-        return (
-            FakeProfiler(),
-            DictConfig({"enabled": False}) if return_cfg else FakeProfiler(),
-        )
+        return FakeProfiler()
 
     # Set up profiler activities
     cpu = cfg.get("CPU", False)

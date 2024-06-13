@@ -35,7 +35,6 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-<<<<<<< HEAD
 from torchtune.utils import (
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
@@ -43,9 +42,6 @@ from torchtune.utils import (
     setup_torch_profiler,
     should_profile,
 )
-=======
-from torchtune.utils import setup_torch_profiler, should_profile
->>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -281,7 +277,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
-<<<<<<< HEAD
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
@@ -389,12 +384,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         return profiler
 
-=======
-        self._profiler = setup_torch_profiler(cfg)
-        if self._is_rank_zero and should_profile(cfg):
-            log.info(" Profiler is instantiated.")
-            
->>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -695,7 +684,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 # Update the sampler to ensure data is correctly shuffled across epochs
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
 
+                pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
+                for idx, batch in enumerate(self._dataloader):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
                 pbar = tqdm(total=self._steps_per_epoch, disable=not (rank == 0))
                 for idx, batch in enumerate(self._dataloader):
                     if (
@@ -711,7 +711,20 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     # exist. Currently, only sample packing in PackedDataset returns these
                     mask = batch.get("mask", None)  # shape [b, s, s]
                     input_pos = batch.get("input_pos", None)  # shape [b, s]
+                    # Both are shape [b, s]
+                    tokens, labels = batch["tokens"], batch["labels"]
+                    # Get the attention mask and position ids from the dataset if they
+                    # exist. Currently, only sample packing in PackedDataset returns these
+                    mask = batch.get("mask", None)  # shape [b, s, s]
+                    input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+                    tokens = tokens.to(self._device)
+                    num_tokens += tokens.numel()
+                    labels = labels.to(self._device)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = (
+                        input_pos.to(self._device) if input_pos is not None else None
+                    )
                     tokens = tokens.to(self._device)
                     num_tokens += tokens.numel()
                     labels = labels.to(self._device)
@@ -729,7 +742,19 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     loss = self._loss_fn(logits, labels)
                     # free logits otherwise it peaks backward memory
                     del logits
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+                    # free logits otherwise it peaks backward memory
+                    del logits
 
+                    loss = loss / self._gradient_accumulation_steps
+                    running_loss += loss
+                    loss.backward()
                     loss = loss / self._gradient_accumulation_steps
                     running_loss += loss
                     loss.backward()
@@ -742,7 +767,14 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
+                        # Update the number of steps when the weights are updated
+                        self.global_step += 1
 
+                        loss_to_log = running_loss.item()
+                        pbar.update(1)
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        )
                         loss_to_log = running_loss.item()
                         pbar.update(1)
                         pbar.set_description(
@@ -768,18 +800,38 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                                 log_dict,
                                 step=self.global_step,
                             )
+                        # Log per-step metrics
+                        if (
+                            self.global_step % self._log_every_n_steps == 0
+                            and self._is_rank_zero
+                        ):
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                            }
+                            if self._log_peak_memory_stats:
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.global_step,
+                            )
 
+                        # Reset running stats for the next step
+                        running_loss = 0
+                        num_tokens = 0
+                        t0 = time.perf_counter()
                         # Reset running stats for the next step
                         running_loss = 0
                         num_tokens = 0
                         t0 = time.perf_counter()
 
                         # Step profiler
-<<<<<<< HEAD
                         # Note that this is called each optimizer step (after gradient accumulation)
                         # and thus will include multiple every forward / backwards steps if gradient_accumulation > 1
-=======
->>>>>>> c7df8103c4cdb1da1bea857e4a6db4ea371229ee
                         prof.step()
 
                 self.epochs_run += 1
