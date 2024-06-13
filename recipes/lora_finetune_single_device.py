@@ -28,6 +28,14 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import (
+    DEFAULT_TRACE_OPTS,
+    FakeProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+    should_profile,
+)
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -263,9 +271,110 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        self._profiler_enabled = cfg.profiler.enabled
-        self._profiler = config.instantiate(cfg.profiler)
+        # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
+    def _setup_profiler(
+        self, cfg: DictConfig, log_cfg: bool = False
+    ) -> torch.profiler.profile:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
+            overrides certain profiling options.
+
+            NOTE: Since not all settings of the profiler can be parsed from the returned profiler object,
+            such as the `schedule`, `log_cfg` can be used for easy logging / debugging of all profiler options post setup.
+
+        Returns:
+            profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+            profiler_cfg: Optional[DictConfig]
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+        ```
+        profiler:
+            enabled: bool
+
+            #Output directory of trace artifacts
+            output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            CPU: bool
+            CUDA: bool
+
+            #Trace options
+            profile_memory: bool
+            with_stack: bool
+            record_shapes: bool
+            with_flops: bool
+
+            #`torch.profiler.schedule` args
+            schedule:
+                wait: int
+                warmup: int
+                active: int
+                repeat: int
+        ```
+        """
+        if should_profile(cfg):
+            enabled = True
+        else:
+            log.info(" Profiling disabled.")
+            return FakeProfiler()
+
+        # Set up profiler activities
+        cpu = cfg.get("CPU", False)
+        cuda = cfg.get("CUDA", False)
+        profile_memory = cfg.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        with_stack = cfg.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
+        record_shapes = cfg.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        with_flops = cfg.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
+        output_dir = cfg.get("output_dir", None)
+
+        # Parse schedule specific args
+        schedule_cfg = cfg.get("schedule", None)
+
+        if schedule_cfg is None:
+            wait = None
+            warmup = None
+            active = None
+            repeat = None
+        else:
+            wait = schedule_cfg.get("wait", None)
+            warmup = schedule_cfg.get("warmup", None)
+            active = schedule_cfg.get("active", None)
+            repeat = schedule_cfg.get("repeat", None)
+
+        # Delegate setup of actual profiler and optionally return updated profiler config
+        profiler = setup_torch_profiler(
+            enabled=enabled,
+            cpu=cpu,
+            cuda=cuda,
+            profile_memory=profile_memory,
+            with_stack=with_stack,
+            record_shapes=record_shapes,
+            with_flops=with_flops,
+            wait=wait,
+            warmup=warmup,
+            active=active,
+            repeat=repeat,
+            output_dir=output_dir,
+            return_cfg=log_cfg,
+        )
+
+        if log_cfg:
+            profiler, profiler_cfg = profiler
+            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+        else:
+            log.info(" Profiler instantiated.")
+
+        return profiler
+    
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -472,93 +581,99 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
-        # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+        with self._profiler as prof:
+            # self.epochs_run should be non-zero when we're resuming from a checkpoint
+            for curr_epoch in range(self.epochs_run, self.total_epochs):
+                # Update the sampler to ensure data is correctly shuffled across epochs
+                # in case shuffle is True
+                self._sampler.set_epoch(curr_epoch)
 
-            # Optionally profile the training loop
-            with self._profiler:
-                pbar = tqdm(total=self._steps_per_epoch)
-                for idx, batch in enumerate(self._dataloader):
-                    if (
-                        self.max_steps_per_epoch is not None
-                        and (idx // self._gradient_accumulation_steps)
-                        == self.max_steps_per_epoch
-                    ):
-                        break
+                # Optionally profile the training loop
+                with self._profiler:
+                    pbar = tqdm(total=self._steps_per_epoch)
+                    for idx, batch in enumerate(self._dataloader):
+                        if (
+                            self.max_steps_per_epoch is not None
+                            and (idx // self._gradient_accumulation_steps)
+                            == self.max_steps_per_epoch
+                        ):
+                            break
 
-                    if self._profiler_enabled:
-                        self._profiler.step()
+                        if self._profiler_enabled:
+                            self._profiler.step()
 
-                    # Both are shape [b, s]
-                    tokens, labels = batch["tokens"], batch["labels"]
-                    # Get the attention mask and position ids from the dataset if they
-                    # exist. Currently, only sample packing in PackedDataset returns these
-                    mask = batch.get("mask", None)  # shape [b, s, s]
-                    input_pos = batch.get("input_pos", None)  # shape [b, s]
+                        # Both are shape [b, s]
+                        tokens, labels = batch["tokens"], batch["labels"]
+                        # Get the attention mask and position ids from the dataset if they
+                        # exist. Currently, only sample packing in PackedDataset returns these
+                        mask = batch.get("mask", None)  # shape [b, s, s]
+                        input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                    tokens = tokens.to(self._device)
-                    num_tokens += tokens.numel()
-                    labels = labels.to(self._device)
-                    mask = mask.to(self._device) if mask is not None else None
-                    input_pos = (
-                        input_pos.to(self._device) if input_pos is not None else None
-                    )
-
-                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    loss = self._loss_fn(logits, labels)
-                    loss = loss / self._gradient_accumulation_steps
-                    running_loss += loss
-                    loss.backward()
-
-                    # Step with optimizer
-                    if (idx + 1) % self._gradient_accumulation_steps == 0:
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-                        self._lr_scheduler.step()
-                        # Update the number of steps when the weights are updated
-                        self.global_step += 1
-
-                        loss_to_log = running_loss.item()
-                        pbar.update(1)
-                        pbar.set_description(
-                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        tokens = tokens.to(self._device)
+                        num_tokens += tokens.numel()
+                        labels = labels.to(self._device)
+                        mask = mask.to(self._device) if mask is not None else None
+                        input_pos = (
+                            input_pos.to(self._device) if input_pos is not None else None
                         )
 
-                        # Log per-step metrics
-                        if self.global_step % self._log_every_n_steps == 0:
-                            time_per_step = time.perf_counter() - t0
-                            log_dict = {
-                                "loss": loss_to_log,
-                                "lr": self._optimizer.param_groups[0]["lr"],
-                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                            }
-                            if (
-                                self._device.type == "cuda"
-                                and self._log_peak_memory_stats
-                            ):
-                                log_dict.update(
-                                    utils.get_memory_stats(device=self._device)
-                                )
-                            self._metric_logger.log_dict(
-                                log_dict,
-                                step=self.global_step,
+                        logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                        # Shift so that tokens < n predict n
+                        logits = logits[..., :-1, :].contiguous()
+                        labels = labels[..., 1:].contiguous()
+                        logits = logits.transpose(1, 2)
+                        # Compute loss
+                        loss = self._loss_fn(logits, labels)
+                        loss = loss / self._gradient_accumulation_steps
+                        running_loss += loss
+                        loss.backward()
+                        
+                        # Step with optimizer
+                        if (idx + 1) % self._gradient_accumulation_steps == 0:
+                            self._optimizer.step()
+                            self._optimizer.zero_grad(set_to_none=True)
+                            self._lr_scheduler.step()
+                            # Update the number of steps when the weights are updated
+                            self.global_step += 1
+
+                            loss_to_log = running_loss.item()
+                            pbar.update(1)
+                            pbar.set_description(
+                                f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                             )
 
-                        # Reset running stats for the next step
-                        running_loss = 0
-                        num_tokens = 0
-                        t0 = time.perf_counter()
+                            # Log per-step metrics
+                            if self.global_step % self._log_every_n_steps == 0:
+                                time_per_step = time.perf_counter() - t0
+                                log_dict = {
+                                    "loss": loss_to_log,
+                                    "lr": self._optimizer.param_groups[0]["lr"],
+                                    "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                                }
+                                if (
+                                    self._device.type == "cuda"
+                                    and self._log_peak_memory_stats
+                                ):
+                                    log_dict.update(
+                                        utils.get_memory_stats(device=self._device)
+                                    )
+                                self._metric_logger.log_dict(
+                                    log_dict,
+                                    step=self.global_step,
+                                )
 
-            self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+                            # Reset running stats for the next step
+                            running_loss = 0
+                            num_tokens = 0
+                            t0 = time.perf_counter()
+    
+                        # Step the profiler
+                        # Note we are stepping each batch, which might not include optimizer step in the trace
+                        # if the schedule cycle doesn't align with gradient accumulation.
+                        prof.step()
+    
+                self.epochs_run += 1
+                self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()

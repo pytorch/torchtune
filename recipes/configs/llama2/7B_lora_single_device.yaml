@@ -82,7 +82,27 @@ enable_activation_checkpointing: True
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
 profiler:
-  _component_: torchtune.utils.profiler
   enabled: False
-  output_dir: ${output_dir}/torchtune_perf_tracing.json
+
+  #Output directory of trace artifacts
+  output_dir: /tmp/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  CPU: True
+  CUDA: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  #`torch.profiler.schedule` options
+  schedule:
+    wait: 1
+    warmup: 1
+    active: 1
+    repeat: 1
