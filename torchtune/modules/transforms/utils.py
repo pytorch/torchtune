@@ -43,7 +43,8 @@ class GetBestResolution:
 
     @staticmethod
     def _find_closest_resolution(
-        image_size: Tuple[int, int], possible_resolutions: torch.Tensor) -> Tuple[int, int]:
+        image_size: Tuple[int, int], possible_resolutions: torch.Tensor
+    ) -> Tuple[int, int]:
         """
         Finds the closest resolution from a list that best matches the resolution of a given image size.
 
@@ -51,10 +52,10 @@ class GetBestResolution:
             image_size (Tuple[int, int]): A tuple containing the height and width of the image.
             possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each row
                 represents a possible resolution (height, width).
-        
+
         Returns:
             Tuple[int, int]: The resolution (height, width) from possible_resolutions that is closest in aspect ratio to the image.
-        
+
         Example:
             >>> image_size = (800, 600)
             >>> possible_resolutions = torch.tensor([
@@ -121,8 +122,8 @@ class GetBestResolution:
         image_size: Tuple[int, int], possible_resolutions: torch.Tensor
     ) -> Optional[List[int]]:
         """
-        Determines the smallest upscaling possibility from a list of possible resolutions, 
-        without distortion, for a given image size 
+        Determines the smallest upscaling possibility from a list of possible resolutions,
+        without distortion, for a given image size
 
         For each possible resolution, calculates the scaling factors for
         width and height, and selects the smallest one, which is the limiting side.

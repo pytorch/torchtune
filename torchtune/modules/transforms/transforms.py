@@ -82,7 +82,7 @@ class ResizeWithoutDistortion:
     modifying target_size works as a boundary for the image's largest side.
 
     Args:
-        resample (str): Resampling method used when resizing images. 
+        resample (str): Resampling method used when resizing images.
             Supports "nearest", "nearest_exact", "bilinear", "bicubic".
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, there is no limit.
@@ -92,7 +92,7 @@ class ResizeWithoutDistortion:
     >>> image_size = (400, 200)
     >>> ResizeWithoutDistortion(max_upscaling_size=max_upscaling_size)(image_size, target_size)
     (600, 300)  # new_size_without_distortion
-    
+
     >>> target_size = (1000, 1200)
     >>> max_upscaling_size = 600
     >>> image_size = (2000, 200)
@@ -112,7 +112,9 @@ class ResizeWithoutDistortion:
     (1000, 500)  # new_size_without_distortion
     """
 
-    def __init__(self, resample: str = "bilinear", max_upscaling_size: Optional[int] = None):
+    def __init__(
+        self, resample: str = "bilinear", max_upscaling_size: Optional[int] = None
+    ):
         self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
         self.max_upscaling_size = max_upscaling_size
 
