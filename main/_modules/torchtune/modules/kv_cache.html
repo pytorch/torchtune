@@ -452,7 +452,7 @@
 <div class="viewcode-block" id="KVCache.update"><a class="viewcode-back" href="../../../generated/torchtune.modules.KVCache.html#torchtune.modules.KVCache.update">[docs]</a>    <span class="k">def</span> <span class="nf">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">input_pos</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">k_val</span><span class="p">:</span> <span class="n">Tensor</span><span class="p">,</span> <span class="n">v_val</span><span class="p">:</span> <span class="n">Tensor</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Tensor</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache and return the updated cache.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Update KV cache with the new k_val, v_val and return the updated cache.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            input_pos (Tensor): Current position tensor with shape [S]</span>

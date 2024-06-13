@@ -692,11 +692,11 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">truncate_at_eos</span><span class="p">:</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="n">token_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
+                <span class="n">idx_eos</span> <span class="o">=</span> <span class="n">token_ids</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">eos_id</span><span class="p">)</span>
             <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="k">if</span> <span class="n">k</span><span class="p">:</span>
-                <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">k</span><span class="p">]</span>
+                <span class="n">idx_eos</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">idx_eos</span><span class="p">:</span>
+                <span class="n">token_ids</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[:</span><span class="n">idx_eos</span><span class="p">]</span>
         <span class="n">token_ids</span> <span class="o">=</span> <span class="p">[</span><span class="n">token_id</span> <span class="k">for</span> <span class="n">token_id</span> <span class="ow">in</span> <span class="n">token_ids</span> <span class="k">if</span> <span class="n">token_id</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bos_id</span><span class="p">]</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tt_model</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">token_ids</span><span class="p">)</span></div>
 

@@ -603,7 +603,7 @@ model without any wrappers or custom checkpoint conversion logic.</p>
 <p class="admonition-title">Note</p>
 <p>Whenever loading weights with <code class="code docutils literal notranslate"><span class="pre">strict=False</span></code>, you should verify that any missing or extra keys in
 the loaded <code class="code docutils literal notranslate"><span class="pre">state_dict</span></code> are as expected. torchtune’s LoRA recipes do this by default via e.g.
-<code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.modules.peft.validate_state_dict_for_lora()</span></code>.</p>
+<a class="reference internal" href="../generated/torchtune.modules.peft.validate_state_dict_for_lora.html#torchtune.modules.peft.validate_state_dict_for_lora" title="torchtune.modules.peft.validate_state_dict_for_lora"><code class="xref py py-func docutils literal notranslate"><span class="pre">torchtune.modules.peft.validate_state_dict_for_lora()</span></code></a>.</p>
 </div>
 <p>Once we’ve loaded the base model weights, we also want to set only LoRA parameters to trainable.</p>
 <div class="highlight-python notranslate" id="setting-trainable-params"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.modules.peft.peft_utils</span> <span class="kn">import</span> <span class="n">get_adapter_params</span><span class="p">,</span> <span class="n">set_trainable_params</span>

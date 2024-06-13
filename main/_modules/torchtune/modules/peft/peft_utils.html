@@ -508,7 +508,7 @@
     <span class="k">return</span> <span class="n">lora_module_keys</span>
 
 
-<span class="k">def</span> <span class="nf">validate_state_dict_for_lora</span><span class="p">(</span>
+<div class="viewcode-block" id="validate_state_dict_for_lora"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.validate_state_dict_for_lora.html#torchtune.modules.peft.validate_state_dict_for_lora">[docs]</a><span class="k">def</span> <span class="nf">validate_state_dict_for_lora</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -585,7 +585,7 @@
         <span class="p">),</span> <span class="s2">&quot;Base model and LoRA state dict have overlapping keys&quot;</span>
         <span class="k">assert</span> <span class="n">combined_state_dict_keys</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span>
             <span class="n">full_model_state_dict_keys</span>
-        <span class="p">),</span> <span class="s2">&quot;Extra keys not present in full model&quot;</span>
+        <span class="p">),</span> <span class="s2">&quot;Extra keys not present in full model&quot;</span></div>
 
 
 <span class="k">def</span> <span class="nf">_get_lora_modules</span><span class="p">(</span><span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
@@ -641,28 +641,48 @@
     <span class="k">return</span> <span class="n">state_dict</span>
 
 
-<span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<div class="viewcode-block" id="disable_adapter"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.disable_adapter.html#torchtune.modules.peft.disable_adapter">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">disable_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Generator</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
-    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Temporarily disable the adapters in a neural network model. This can be used,</span>
+<span class="sd">    for example, in DPO for treating the lora adapters as the policy model</span>
+<span class="sd">    and disabling it to treat the base model as the reference model.</span>
+
+<span class="sd">    This context manager goes through all modules in the provided neural network model,</span>
+<span class="sd">    and if a module has an &#39;adapter_params&#39; attribute that is callable and a &#39;disabled&#39; attribute,</span>
+<span class="sd">    it sets &#39;disabled&#39; to True. Then, the control is given back to caller. Once that finalizes,</span>
+<span class="sd">    it sets &#39;disabled&#39; back to False for all modules that were temporarily disabled.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (nn.Module): The neural network model whose adapters are to be temporarily disabled.</span>
+<span class="sd">    Yields:</span>
+<span class="sd">        None: This function yields control back to the caller, with the adapters disabled.</span>
+<span class="sd">    Example:</span>
+<span class="sd">        &gt;&gt;&gt; with disable_adapter(model):</span>
+<span class="sd">        ...     # Perform operations with adapters disabled</span>
+<span class="sd">        ...     pass</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
         <span class="k">if</span> <span class="p">(</span>
-            <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;adapter_params&quot;</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">adapter_params</span><span class="p">)</span>
-            <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;disabled&quot;</span><span class="p">)</span>
+            <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;adapter_params&quot;</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">adapter_params</span><span class="p">)</span>
+            <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;disabled&quot;</span><span class="p">)</span>
         <span class="p">):</span>
-            <span class="n">v</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">try</span><span class="p">:</span>
         <span class="k">yield</span>
     <span class="k">finally</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">():</span>
             <span class="k">if</span> <span class="p">(</span>
-                <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;adapter_params&quot;</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">adapter_params</span><span class="p">)</span>
-                <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;disabled&quot;</span><span class="p">)</span>
+                <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;adapter_params&quot;</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">adapter_params</span><span class="p">)</span>
+                <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;disabled&quot;</span><span class="p">)</span>
             <span class="p">):</span>
-                <span class="n">v</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="n">module</span><span class="o">.</span><span class="n">disabled</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
-<span class="k">def</span> <span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
+<div class="viewcode-block" id="validate_missing_and_unexpected_for_lora"><a class="viewcode-back" href="../../../../generated/torchtune.modules.peft.validate_missing_and_unexpected_for_lora.html#torchtune.modules.peft.validate_missing_and_unexpected_for_lora">[docs]</a><span class="k">def</span> <span class="nf">validate_missing_and_unexpected_for_lora</span><span class="p">(</span>
     <span class="n">lora_attn_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LORA_ATTN_MODULES</span><span class="p">],</span>
     <span class="n">apply_lora_to_mlp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">apply_lora_to_output</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
@@ -674,7 +694,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    A more memory-efficient way to validate that LoRA state dict loading was done properly.</span>
 
-<span class="sd">    Similar to validate_state_dict_for_lora, this function uses a model&#39;s LoRA config to</span>
+<span class="sd">    Similar to :func:`validate_state_dict_for_lora`, this function uses a model&#39;s LoRA config to</span>
 <span class="sd">    check that LoRA and/or base model weights are loaded into the full model correctly.</span>
 <span class="sd">    Unlike that function, this method relies only on the values of missing and unexpected</span>
 <span class="sd">    as returned by the load_state_dict API with strict=False. This allows us to do the</span>
@@ -721,7 +741,7 @@
             <span class="k">if</span> <span class="n">is_lora_param</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Missing LoRA key </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> from adapter state dict&quot;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">lora_unexpected</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected key loading adapter&quot;</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="s2">&quot;Unexpected key loading adapter&quot;</span><span class="p">)</span></div>
 </pre></div>
 
              </article>
