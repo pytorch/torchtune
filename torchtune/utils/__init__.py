@@ -29,7 +29,7 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
 )
 from ._generation import generate
-from ._profiler import profiler
+from ._profiler import DEFAULT_TRACE_OPTS, FakeProfiler, profiler, PROFILER_KEY, setup_torch_profiler, should_profile 
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
@@ -81,7 +81,12 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
+    "DEFAULT_TRACE_OPTS",
+    "FakeProfiler",
     "profiler",
+    "PROFILER_KEY",
+    "setup_torch_profiler",
+    "should_profile",
     "get_quantizer_mode",
     "generate",
 ]
