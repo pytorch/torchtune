@@ -140,7 +140,15 @@ class VariableImageSizeTransforms:
         if self.do_normalize:
             image = F.normalize(image, mean=self.image_mean, std=self.image_std)
 
+        _, height, width = image.shape
+        assert (
+            height == best_resolution[0] and width == best_resolution[1]
+        ), f"Expected {best_resolution} but got {height}x{width}"
+
         # Divide the image into equally squared patches
         image = divide_to_equal_patches(image, patch_size=self.patch_size)
 
-        return {"pixel_values": image, "image_size": (height, width)}
+        return {
+            "pixel_values": image,
+            "image_size": (best_resolution[0], best_resolution[1]),
+        }
