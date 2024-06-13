@@ -43,43 +43,40 @@ class GetBestResolution:
 
     @staticmethod
     def _find_closest_resolution(
-        image_size: Tuple[int, int], possible_resolutions: torch.Tensor
-    ) -> Tuple[int, int]:
-
+        image_size: Tuple[int, int], possible_resolutions: torch.Tensor) -> Tuple[int, int]:
         """
         Finds the closest resolution from a list that best matches the resolution of a given image size.
-
-        Example:
-        For
-            ```
-            image_size = (800, 600)
-            possible_resolutions = torch.tensor([[224, 896],
-                [448, 448],
-                [224, 224],
-                [896, 224],
-                [224, 672],
-                [672, 224],
-                [224, 448],
-                [448, 224]])
-            _find_closest_resolution(image_size, possible_resolutions)
-            ```
-        We have:
-            target_aspect_ratio = width/height = 600/800 = 0.75
-            possible_aspect_ratios = tensor([4.0000, 1.0000, 1.0000, 0.2500, 3.0000, 0.3333, 2.0000, 0.5000])
-
-        Ratios are filtered and closest one is selected:
-            valid_ratios = tensor([4., 1., 1., 3., 2.])
-            closest_aspect_ratio = tensor(1.)
-
-        Notice how there are two viable resolutions. We pick the one with largest height, since its portrait mode (h > w):
-            selected_pair = tensor([448, 448])
 
         Args:
             image_size (Tuple[int, int]): A tuple containing the height and width of the image.
             possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each row
                 represents a possible resolution (height, width).
+        
         Returns:
             Tuple[int, int]: The resolution (height, width) from possible_resolutions that is closest in aspect ratio to the image.
+        
+        Example:
+            >>> image_size = (800, 600)
+            >>> possible_resolutions = torch.tensor([
+            ...     [224, 896],
+            ...     [448, 448],
+            ...     [224, 224],
+            ...     [896, 224],
+            ...     [224, 672],
+            ...     [672, 224],
+            ...     [224, 448],
+            ...     [448, 224]])
+            >>> _find_closest_resolution(image_size, possible_resolutions)
+            (448, 448)
+            We have:
+                target_aspect_ratio = width/height = 600/800 = 0.75
+                possible_aspect_ratios = tensor([4.0000, 1.0000, 1.0000, 0.2500, 3.0000, 0.3333, 2.0000, 0.5000])
+            Ratios are filtered and closest one is selected:
+                valid_ratios = tensor([4., 1., 1., 3., 2.])
+                closest_aspect_ratio = tensor(1.)
+            Notice how there are two valid_ratios == 1, mapping to [[448, 448], [224, 224]].
+            We pick the one with largest height, since its portrait mode (h > w):
+                selected_pair = tensor([448, 448])
         """
 
         image_height, image_width = image_size
@@ -121,48 +118,46 @@ class GetBestResolution:
 
     @staticmethod
     def _get_smallest_upscaling_possibility(
-        image_size: tuple[int, int], possible_resolutions: torch.Tensor
+        image_size: Tuple[int, int], possible_resolutions: torch.Tensor
     ) -> Optional[List[int]]:
         """
-        Determines the smallest upscaling possibility, without distortion,
-        for a given image size from a list of possible resolutions.
+        Determines the smallest upscaling possibility from a list of possible resolutions, 
+        without distortion, for a given image size 
 
         For each possible resolution, calculates the scaling factors for
         width and height, and selects the smallest one, which is the limiting side.
+
         Then, picks the resolution that allows the smallest upscaling.
-
-        If no upscaling is possible (i.e., all scaling factors are less than 1), the function returns None.
-
-        Example:
-            ```
-            image_size = (200, 300)
-            possible_resolutions = torch.tensor([[224, 672],
-                                                [672, 224],
-                                                [224, 448],
-                                                [448, 224],
-                                                [224, 224]])
-            _get_smallest_upscaling_possibility(image_size, possible_resolutions)
-            ```
-        We have:
-            scale_w = tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
-            scale_h = tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
-            scales = tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467]
-
-        Only one of the resolutions allows for upscaling:
-            upscaling_possible = tensor([1.1200, 1.1200])
-            smallest_rescale = tensor(1.1200)
-
-        So we pick the resolution with the smallest smallest area:
-            areas = tensor([150528, 100352]) # [672, 224], [224, 448]
-            optimal_canvas = tensor([224, 448])
+        If no upscaling is possible, i.e., all scaling factors are less than 1, the function returns None.
 
         Args:
             image_size (Tuple[int, int]): A tuple containing the height and width of the image.
             possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each
                 row represents a possible resolution (height, width).
+
         Returns:
             Optional[List[int]]: The best upscaling resolution [height, width] from possible_resolutions
                 that allows for the smallest upscaling. Returns None if no upscaling is possible.
+
+        Example:
+            >>> image_size = (200, 300)
+            >>> possible_resolutions = torch.tensor([[224, 672],
+            ...                                     [672, 224],
+            ...                                     [224, 448],
+            ...                                     [448, 224],
+            ...                                     [224, 224]])
+            >>> _get_smallest_upscaling_possibility(image_size, possible_resolutions)
+            [224, 448]
+            We have:
+                scale_w = tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
+                scale_h = tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
+                scales = tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])
+            Only one of the resolutions allows for upscaling:
+                upscaling_possible = tensor([1.1200, 1.1200])
+                smallest_rescale = tensor(1.1200)
+            So we pick the resolution with the smallest smallest area:
+                areas = tensor([150528, 100352]) # [672, 224], [224, 448]
+                optimal_canvas = tensor([224, 448])
         """
 
         original_height, original_width = image_size
@@ -222,25 +217,8 @@ def find_supported_resolutions(
     max_num_chunks: int, patch_size: int
 ) -> List[Tuple[int, int]]:
     """
-    If we want to divide an image into chunks, this function computes all of the
-    allowed aspect ratios for a fixed number of chunks.
-
-    Example:
-    Given max_num_chunks=5, patch_size=224, it will create a dictionary:
-    {
-    0.2: [(1, 5)],
-    5.0: [(5, 1)],
-    0.25: [(1, 4)],
-    1.0: [(2, 2), (1, 1)],
-    4.0: [(4, 1)],
-    0.3333333333333333: [(1, 3)],
-    3.0: [(3, 1)],
-    0.5: [(1, 2)],
-    2.0: [(2, 1)]
-    }
-
-    and return the resolutions multiplied by the patch_size:
-    [(1*224, 5*224), (5*224, 1*224), ..., (2*224, 1*224)]
+    Computes all of the allowed resoltuions for a fixed number of chunks
+    and patch_size. Useful for when dividing an image into chunks.
 
     Args:
         max_num_chunks (int): Maximum number of chunks for processing.
@@ -248,6 +226,26 @@ def find_supported_resolutions(
 
     Returns:
         List[Tuple[int, int]]: List of possible resolutions as tuples (height, width).
+
+    Example:
+        >>> max_num_chunks = 5
+        >>> patch_size = 224
+        >>> find_supported_resolutions(max_num_chunks, patch_size)
+        [(224, 896), (448, 448), (224, 224), (896, 224), (224, 672), (672, 224), (224, 448), (448, 224)]
+
+        Given max_num_chunks=4, patch_size=224, it will create a dictionary:
+        {
+        0.25: [(1, 4)],
+        1.0: [(2, 2), (1, 1)],
+        4.0: [(4, 1)],
+        0.33: [(1, 3)],
+        3.0: [(3, 1)],
+        0.5: [(1, 2)],
+        2.0: [(2, 1)]
+        }
+
+        and return the resolutions multiplied by the patch_size:
+        [(1*224, 4*224), (2*224, 2*224), ..., (2*224, 1*224)]
     """
     asp_dict = defaultdict(list)
     for chunk_size in range(max_num_chunks, 0, -1):
