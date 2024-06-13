@@ -459,7 +459,7 @@
 <span class="sd">        * End-of-training Checkpointing. The model weights at the end of a completed training</span>
 <span class="sd">            run are written out to file. The checkpointer ensures that the output checkpoint</span>
 <span class="sd">            files have the same keys as the input checkpoint file used to begin training. The</span>
-<span class="sd">            checkpointer also ensures that the keys are paritioned across the same number of</span>
+<span class="sd">            checkpointer also ensures that the keys are partitioned across the same number of</span>
 <span class="sd">            files as the original checkpoint. This ensures that the original metadata files can</span>
 <span class="sd">            be used as is, and the output checkpoint can be used with any tool that understands</span>
 <span class="sd">            the original checkpoint format. This includes popular inference engines such as</span>
@@ -862,7 +862,7 @@
 <span class="sd">        checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe</span>
 <span class="sd">        state.</span>
 
-<span class="sd">        The state_dict is first converted back to the HF format and then paritioned based on the</span>
+<span class="sd">        The state_dict is first converted back to the HF format and then partitioned based on the</span>
 <span class="sd">        ``_weight_map`` into separate checkpoint files.</span>
 
 <span class="sd">        Args:</span>
