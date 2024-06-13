@@ -10,6 +10,10 @@ import torch
 from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl, to_nf4
 
 
+def is_fbcode():
+    return not hasattr(torch.version, "git_version")
+
+
 @nf4_tensor_impl([torch.ops.aten.clone.default])
 def clone(func, *args, **kwargs):
     """
@@ -21,7 +25,7 @@ def clone(func, *args, **kwargs):
     return to_nf4(args[0][0].get_original_weight())
 
 
-if version("torchao") < "0.2.0":
+if is_fbcode() or version("torchao") < "0.2.0":
     # TorchAO have `NF4.copy_` starting from `0.2.0`
     # it's a superset of `inplace_copy` since it covers `NF4.copy_(NF4)`
     @nf4_tensor_impl([torch.ops.aten.copy_.default])
