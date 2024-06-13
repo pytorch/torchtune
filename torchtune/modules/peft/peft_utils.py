@@ -256,9 +256,10 @@ def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
     Yields:
         None: This function yields control back to the caller, with the adapters disabled.
     Example:
-        with disable_adapter(model):
-            # Perform operations with adapters disabled
-            pass
+        >>> with disable_adapter(model):
+        ...     # Perform operations with adapters disabled
+        ...     pass
+
     """
     for _, module in model.named_modules():
         if (
@@ -291,7 +292,7 @@ def validate_missing_and_unexpected_for_lora(
     """
     A more memory-efficient way to validate that LoRA state dict loading was done properly.
 
-    Similar to validate_state_dict_for_lora, this function uses a model's LoRA config to
+    Similar to :func:`validate_state_dict_for_lora`, this function uses a model's LoRA config to
     check that LoRA and/or base model weights are loaded into the full model correctly.
     Unlike that function, this method relies only on the values of missing and unexpected
     as returned by the load_state_dict API with strict=False. This allows us to do the
