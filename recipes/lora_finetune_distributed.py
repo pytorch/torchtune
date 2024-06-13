@@ -35,7 +35,13 @@ from torchtune.modules.peft.peft_utils import (
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import setup_torch_profiler, should_profile
+from torchtune.utils import (
+    DEFAULT_TRACE_OPTS,
+    FakeProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+    should_profile,
+)
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -271,10 +277,113 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         )
 
         # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
-        self._profiler = setup_torch_profiler(cfg)
-        if self._is_rank_zero and should_profile(cfg):
-            log.info(" Profiler is instantiated.")
-            
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
+
+    def _setup_profiler(
+        self, cfg: DictConfig, log_cfg: bool = False
+    ) -> torch.profiler.profile:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
+            overrides certain profiling options.
+
+            NOTE: Since not all settings of the profiler can be parsed from the returned profiler object,
+            such as the `schedule`, `log_cfg` can be used for easy logging / debugging of all profiler options post setup.
+
+        Returns:
+            profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+            profiler_cfg: Optional[DictConfig]
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+        ```
+        profiler:
+            enabled: bool
+
+            #Output directory of trace artifacts
+            output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            CPU: bool
+            CUDA: bool
+
+            #Trace options
+            profile_memory: bool
+            with_stack: bool
+            record_shapes: bool
+            with_flops: bool
+
+            #`torch.profiler.schedule` args
+            schedule:
+                wait: int
+                warmup: int
+                active: int
+                repeat: int
+        ```
+        """
+        if should_profile(cfg):
+            enabled = True
+        else:
+            if self._is_rank_zero:
+                log.info(" Profiling disabled.")
+            return FakeProfiler()
+
+        # Set up profiler activities
+        cpu = cfg.get("CPU", False)
+        cuda = cfg.get("CUDA", False)
+        profile_memory = cfg.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        with_stack = cfg.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
+        record_shapes = cfg.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        with_flops = cfg.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
+        output_dir = cfg.get("output_dir", None)
+
+        # Parse schedule specific args
+        schedule_cfg = cfg.get("schedule", None)
+
+        if schedule_cfg is None:
+            wait = None
+            warmup = None
+            active = None
+            repeat = None
+        else:
+            wait = schedule_cfg.get("wait", None)
+            warmup = schedule_cfg.get("warmup", None)
+            active = schedule_cfg.get("active", None)
+            repeat = schedule_cfg.get("repeat", None)
+
+        # Delegate setup of actual profiler and optionally return updated profiler config
+        profiler = setup_torch_profiler(
+            enabled=enabled,
+            cpu=cpu,
+            cuda=cuda,
+            profile_memory=profile_memory,
+            with_stack=with_stack,
+            record_shapes=record_shapes,
+            with_flops=with_flops,
+            wait=wait,
+            warmup=warmup,
+            active=active,
+            repeat=repeat,
+            output_dir=output_dir,
+            return_cfg=log_cfg,
+        )
+
+        if log_cfg:
+            profiler, profiler_cfg = profiler
+
+        if self._is_rank_zero:
+            if log_cfg:
+                log.info(f" Profiler config after instantiation: {profiler_cfg}")
+            else:
+                log.info(" Profiler instantiated.")
+
+        return profiler
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -655,6 +764,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         t0 = time.perf_counter()
 
                         # Step profiler
+                        # Note that this is called each optimizer step (after gradient accumulation)
+                        # and thus will include multiple every forward / backwards steps if gradient_accumulation > 1
                         prof.step()
 
                 self.epochs_run += 1

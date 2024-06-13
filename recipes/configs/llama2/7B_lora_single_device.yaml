@@ -92,19 +92,14 @@ profiler:
   CPU: True
   CUDA: True
 
-  #`torch.profiler.profile` options
-  profile:
-    # _component_ is optional as the setup method will handle
-    _component_: torch.profiler.profile
-    profile_memory: False
-    with_stack: False
-    record_shapes: True
-    with_flops: False
-  
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
   #`torch.profiler.schedule` options
   schedule:
-    # _component_ is optional as the setup method will handle
-    _component_: torch.profiler.schedule
     wait: 1
     warmup: 1
     active: 1

@@ -14,6 +14,8 @@ from typing import ContextManager, Optional, Tuple
 
 import torch
 import torch.distributed
+
+from omegaconf import DictConfig
 from torch._C._profiler import _ExperimentalConfig
 from torch.profiler import profile, tensorboard_trace_handler
 from torchtune.utils import get_world_size_and_rank
@@ -94,7 +96,7 @@ def trace_handler(
     prof: torch.profiler.profiler.profile,
     output_dir,
     metric="self_cuda_time_total",
-    row_limit=-1,
+    row_limit=25,
 ):
     world_size, rank = get_world_size_and_rank()
     curr_trace_dir_name = "iteration_" + str(prof.step_num)
