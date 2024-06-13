@@ -26,6 +26,7 @@ All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
     llama3.llama3_70b
     llama3.lora_llama3_70b
     llama3.qlora_llama3_70b
+    llama3.llama3_tokenizer
 
 
 llama2
@@ -52,6 +53,7 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.llama2_70b
     llama2.lora_llama2_70b
     llama2.qlora_llama2_70b
+    llama2.llama2_tokenizer
 
 
 code llama
@@ -98,6 +100,7 @@ Pre-trained models can be download from the Hugging Face Hub with the following 
     phi3.phi3_mini
     phi3.lora_phi3_mini
     phi3.qlora_phi3_mini
+    phi3.phi3_mini_tokenizer
 
 
 mistral
@@ -121,6 +124,7 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     mistral.mistral_classifier_7b
     mistral.lora_mistral_classifier_7b
     mistral.qlora_mistral_classifier_7b
+    mistral.mistral_tokenizer
 
 
 gemma
@@ -144,3 +148,4 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     gemma.gemma_7b
     gemma.lora_gemma_7b
     gemma.qlora_gemma_7b
+    gemma.gemma_tokenizer
