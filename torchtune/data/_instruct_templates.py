@@ -43,8 +43,7 @@ class AlpacaInstructTemplate(InstructTemplate):
     on if there's an instruction + input or just an instruction.
 
 
-    Prompt formatting with input::
-
+    Prompt formatting with input:: text
         Below is an instruction that describes a task, paired with an input that provides further context.
         Write a response that appropriately completes the request.
 
@@ -63,8 +62,7 @@ class AlpacaInstructTemplate(InstructTemplate):
 
 
 
-    Prompt formatting **without** input::
-
+    Prompt formatting **without** input:: text
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 
@@ -105,13 +103,13 @@ class AlpacaInstructTemplate(InstructTemplate):
                 If None, assume these are identical.
 
         Examples:
-            # Simple instruction
+            >>> # Simple instruction
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
 
-            # Instruction with input
+            >>> # Instruction with input
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
 
-            # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
+            >>> # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
             >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
 
         Returns:
