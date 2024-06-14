@@ -223,11 +223,12 @@ class TestGetCausalMask:
             [[0, 0, 0, 1, 2, 3], [0, 1, 2, 3, 4, 5], [0, 0, 0, 0, 0, 1]]
         )
 
-    def test_causal_mask(self, padded_prompt_tokens):
+    def test_get_causal_mask(self, padded_prompt_tokens):
         """
         Test to check if the `get_causal_mask` function produces the right output when a prompt is provided.
         """
         fill_value = torch.finfo(torch.float32).min
+        padding_mask = padded_prompt_tokens == 0
         attn_mask = torch.tensor(
             [
                 [False, False, False, False, False, False],
@@ -243,14 +244,15 @@ class TestGetCausalMask:
         expected_casual_mask = torch.zeros_like(
             attn_mask, dtype=torch.float32
         ).masked_fill(~attn_mask, fill_value)[None, :]
-        causal_mask = ppo_utils.get_causal_mask(padded_prompt_tokens)
+        causal_mask = ppo_utils.get_causal_mask(padded_prompt_tokens, padding_mask)
         torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
 
-    def test_causal_mask_batched(self, padded_prompt_tokens_batched):
+    def test_get_causal_mask_batched(self, padded_prompt_tokens_batched):
         """
         Test to check if the `get_causal_mask` function produces the right output when a batched prompt is provided.
         """
         fill_value = torch.finfo(torch.float32).min
+        padding_mask = padded_prompt_tokens_batched == 0
         attn_mask = torch.tensor(
             [
                 [
@@ -284,5 +286,7 @@ class TestGetCausalMask:
         expected_casual_mask = torch.zeros_like(
             attn_mask, dtype=torch.float32
         ).masked_fill(~attn_mask, fill_value)
-        causal_mask = ppo_utils.get_causal_mask(padded_prompt_tokens_batched)
+        causal_mask = ppo_utils.get_causal_mask(
+            padded_prompt_tokens_batched, padding_mask=padding_mask
+        )
         torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)

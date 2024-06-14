@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
+from torchtune.utils import ppo_utils
 
 
 class PPOLoss(nn.Module):
@@ -47,6 +48,8 @@ class PPOLoss(nn.Module):
         advantages: torch.Tensor,
         values: torch.Tensor,
         returns: torch.Tensor,
+        padding_masks: Optional[torch.Tensor] = None,
+        value_padding_masks: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Forward pass of the PPO loss module.
@@ -68,17 +71,25 @@ class PPOLoss(nn.Module):
         clipped_ratios = torch.clamp(ratio, 1.0 - self.epsilon, 1.0 + self.epsilon)
 
         policy_losses = -advantages * clipped_ratios
+
         # taking max instead of min to minimise loss
-        policy_loss = torch.max(policy_losses, -advantages * ratio).mean()
+        policy_loss = torch.max(policy_losses, -advantages * ratio)
+        policy_loss = (
+            policy_loss.mean()
+            if padding_masks is None
+            else ppo_utils.masked_mean(policy_loss, ~padding_masks)
+        )
 
         values_clipped = torch.clamp(
             values, values - self.value_clip_range, values + self.value_clip_range
         )
+        value_loss_max = torch.max(
+            (values - returns) ** 2, (values_clipped - returns) ** 2
+        )
         value_loss = (
-            0.5
-            * (
-                torch.max((values - returns) ** 2, (values_clipped - returns) ** 2)
-            ).mean()
+            0.5 * value_loss_max.mean()
+            if value_padding_masks is None
+            else 0.5 * ppo_utils.masked_mean(value_loss_max, ~value_padding_masks)
         )
 
         loss = policy_loss + value_loss * self.value_coeff

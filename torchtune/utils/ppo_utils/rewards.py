@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
@@ -61,15 +61,65 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
     Returns:
         torch.Tensor: The whitened tensor.
     """
-    mean, var = x.mean(), x.var(unbiased=False)
+    mean, var = x.mean(), x.var()
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
     if shift_mean:
         whitened += mean
     return whitened
 
 
+def masked_mean(
+    values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None
+) -> torch.Tensor:
+    """Compute mean of tensor with a masked values. Taken from
+    https://github.com/huggingface/trl/blob/main/trl/core.py"""
+    if axis is not None:
+        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)
+    else:
+        return (values * mask).sum() / mask.sum()
+
+
+def masked_var(
+    x: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
+) -> torch.Tensor:
+    """Compute variance of tensor with masked values. Taken from
+    https://github.com/huggingface/trl/blob/main/trl/core.py"""
+    mean = masked_mean(x, mask)
+    centered_values = x - mean
+    var = masked_mean(centered_values**2, mask)
+    if unbiased:
+        mask_sum = mask.sum()
+        if mask_sum == 0:
+            raise ValueError(
+                "The sum of the mask is zero, which can happen when `mini_batch_size=1`;"
+                "try increase the `mini_batch_size` or `gradient_accumulation_steps`"
+            )
+        # note that if mask_sum == 1, then there is a division by zero issue
+        # to avoid it you just need to use a larger minibatch_size
+        bessel_correction = mask_sum / (mask_sum - 1)
+        var = var * bessel_correction
+    return var
+
+
+def masked_whiten(
+    x: torch.Tensor, mask: torch.Tensor, shift_mean: bool = True
+) -> torch.Tensor:
+    """Whiten values with masked values. Taken from
+    https://github.com/huggingface/trl/blob/main/trl/core.py"""
+    mean = masked_mean(x, mask)
+    var = masked_var(x, mask) if mask.any else x.var()
+    whitened = (x - mean) * torch.rsqrt(var + 1e-8)
+    if not shift_mean:
+        whitened += mean
+    return whitened
+
+
 def estimate_advantages(
-    values: torch.Tensor, rewards: torch.Tensor, gamma: float, lmbda: float
+    values: torch.Tensor,
+    rewards: torch.Tensor,
+    gamma: float,
+    lmbda: float,
+    masks: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Estimates the advantages and returns for the PPO algorithm using Generalized Advantage Estimation
@@ -83,7 +133,7 @@ def estimate_advantages(
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
             - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)
             - returns (torch.Tensor): The estimated returns. Shape: (b, reponse_len)
-
+            - masks (torch.Tensor): A boolean tensor for excluding invalid rewards/values. Shape: (b, reponse_len)
     Notation:
         - b: batch size
         - reponse_len: model response length
@@ -114,6 +164,9 @@ def estimate_advantages(
     returns = advantages + values
 
     # normalize advantages across the batch of trajectories to reduce variance
-    advantages = whiten(advantages)
+    if masks is not None:
+        advantages = masked_whiten(advantages, masks)
+    else:
+        advantages = whiten(advantages)
 
     return advantages, returns

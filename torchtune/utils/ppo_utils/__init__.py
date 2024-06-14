@@ -14,7 +14,13 @@ from ._generation import (
 )
 from .collate import left_padded_collate
 from .kl_controller import AdaptiveKLController, FixedKLController
-from .rewards import estimate_advantages, get_rewards, whiten
+from .rewards import (
+    estimate_advantages,
+    get_rewards,
+    masked_mean,
+    masked_whiten,
+    whiten,
+)
 
 __all__ = [
     "generate",
@@ -29,4 +35,6 @@ __all__ = [
     "estimate_advantages",
     "get_rewards",
     "whiten",
+    "masked_whiten",
+    "masked_mean",
 ]

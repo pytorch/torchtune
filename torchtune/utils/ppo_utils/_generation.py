@@ -44,21 +44,21 @@ def generate_next_token_with_value_head_model(
 
 def get_causal_mask(
     tokens: torch.Tensor,
+    padding_mask: torch.Tensor,
     *,
-    padding_id: int = 0,
     dtype: torch.dtype = torch.float32,
 ) -> torch.Tensor:
     """
-    Generates a causal attention mask for the given tokens with padding values
-    correctly masked out, suitable for consumtion by :func:`~torch.nn.functional.scaled_dot_product_attention~`
-    where the mask is added to the attention score.
+    Generates a causal attention mask for the given tokens and padding mask suitable for
+    consumtion by :func:`~torch.nn.functional.scaled_dot_product_attention~` where the
+    mask is added to the attention score.
 
     HF uses a similar implementation internally, see
     https://github.com/huggingface/transformers/blob/a564d10afe1a78c31934f0492422700f61a0ffc0/src/transformers/models/mistral/modeling_mistral.py#L1096
 
     Args:
         tokens (torch.Tensor): tensor of token IDs with shape [bsz x seq_length]
-        padding_id (int): token ID to use for padding, default 0.
+        padding_mask (torch.Tensor): tensor of padding ID masks with shape [bsz x seq_length]
         dtype (torch.dtype): dtype to infer fill value for masking
     Returns:
         torch.Tensor: Casual mask with shape [bsz x seq_length x seq_length]
@@ -67,10 +67,10 @@ def get_causal_mask(
     mask = torch.triu(
         torch.full((tokens.shape[-1], tokens.shape[-1]), fill_value), diagonal=1
     ).to(tokens.device, dtype=dtype)
-    padding_mask = (
-        (tokens == padding_id).unsqueeze(1).expand(-1, tokens.shape[1], tokens.shape[1])
+    mask = mask.masked_fill(
+        padding_mask.unsqueeze(1).expand(-1, tokens.shape[1], tokens.shape[1]),
+        fill_value,
     )
-    mask = mask.masked_fill(padding_mask, fill_value)
     return mask
 
 
@@ -150,10 +150,10 @@ def generate(
                 [stop_token_mask, ~stop_token_reached.reshape(bsz, 1)], dim=-1
             )
 
-        padding_mask = generated_tokens == pad_id
-        mask = get_causal_mask(generated_tokens, padding_id=pad_id, dtype=dtype)
-        if padding_mask is not None:
-            input_pos = (~padding_mask).cumsum(-1) - (~padding_mask).long()
+        padding_masks = generated_tokens == pad_id
+        mask = get_causal_mask(generated_tokens, padding_masks, dtype=dtype)
+        if padding_masks.any():
+            input_pos = (~padding_masks).cumsum(-1) - (~padding_masks).long()
             input_pos = input_pos.to(device=generated_tokens.device, dtype=torch.int)
         else:
             input_pos = torch.arange(

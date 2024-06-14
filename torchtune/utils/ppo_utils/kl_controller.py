@@ -39,7 +39,7 @@ class AdaptiveKLController:
 
 class FixedKLController:
     """
-    A class that implements a fixed KL controller.
+    A class for using a fixed KL coefficient.
 
     Attributes:
         kl_coef (float): The fixed KL loss contribution coefficient value.
@@ -51,7 +51,6 @@ class FixedKLController:
 
     def update(self, current: float, n_steps: int) -> None:
         """
-        Does nothing. This is a no-op. The KL value is fixed.
-        Nothing to see here. Move along.
+        Does nothing.
         """
         pass

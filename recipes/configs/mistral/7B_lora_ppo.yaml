@@ -42,7 +42,6 @@ shuffle: True
 # Model Arguments
 model:
   _component_: torchtune.models.mistral.lora_mistral_lm_with_value_head_7b
-  # _component_: torchtune.models.mistral.lora_mistral_test_lm
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
@@ -55,9 +54,7 @@ reward_model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  # _component_: torchtune.utils.FullModelTorchTuneCheckpointer
   checkpoint_dir: ./target/weights/mistral_base/
-  # checkpoint_dir: ${output_dir}/base/
   checkpoint_files: [
     "pytorch_model-00001-of-00003.bin",
     "pytorch_model-00002-of-00003.bin",
@@ -83,6 +80,8 @@ reward_checkpointer:
 resume_from_checkpoint: False
 output_dir: target/full_7b
 
+initialise_value_head_from_reward_model: True
+
 # Fine-tuning arguments
 batch_size: 64
 num_steps: 10000
@@ -90,23 +89,20 @@ ppo_epochs: 2
 ppo_batch_size: 2
 ppo_backward_batch_size: 2
 gradient_accumulation_steps: 1
-
-# ppo args
-gamma: 1
-lmbda: 0.95
 whiten_rewards: False
-# generation arguments
+
+# Generation arguments
 forward_batch_size: 2
-max_generated_tokens: 32
+max_generated_tokens: 8
 temperature: 0.7
 top_k: null
 
-# reward masking args
+# Reward masking args
 truncate_after_tokens: null
 penalise_no_eos: False
 reward_penalty: -1.0
 
-# kl controller arguments
+# KL controller arguments
 # kl_controller:
 #   _component_: torchtune.utils.ppo_utils.AdaptiveKLController
 #   init_kl_coef: 0.15
@@ -142,7 +138,7 @@ dtype: bf16
 
 # Logging
 metric_logger:
-  _component_: torchtune.utils.metric_logging.DiskLogger
+  _component_: torchtune.utils.metric_logging.StdoutLogger
   log_dir: ${output_dir}
 
 log_every_n_steps: 1
