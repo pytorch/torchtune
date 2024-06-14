@@ -12,6 +12,7 @@ from itertools import chain
 import pytest
 import torch
 import torch.nn as nn
+import torchao
 from tests.test_utils import gpu_test, single_box_init
 from torch.distributed import launcher
 
