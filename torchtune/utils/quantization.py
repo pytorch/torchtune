@@ -13,7 +13,14 @@ from torchao.quantization.quant_api import (
     Int4WeightOnlyQuantizer,
     Quantizer,
 )
-from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
+
+# importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
+# is only available after 2.3 so we have to guard the pytorch versions to decide
+# the list of supported quantizers
+try:
+    from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
+except Exception:
+    from torchao.utils import TORCH_VERSION_AFTER_2_3
 
 __all__ = [
     "Int4WeightOnlyQuantizer",
