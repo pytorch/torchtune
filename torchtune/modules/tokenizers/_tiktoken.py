@@ -290,11 +290,11 @@ class TikTokenTokenizer(Tokenizer):
         """
         if truncate_at_eos:
             try:
-                k = token_ids.index(self.eos_id)
+                idx_eos = token_ids.index(self.eos_id)
             except ValueError:
-                k = None
-            if k:
-                token_ids = token_ids[:k]
+                idx_eos = None
+            if idx_eos:
+                token_ids = token_ids[:idx_eos]
         token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
         return self.tt_model.decode(token_ids)
 
