@@ -98,34 +98,19 @@ class AlpacaInstructTemplate(InstructTemplate):
         Examples:
             >>> # Simple instruction
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
-            Below is an instruction that describes a task, paired with an input that provides further context. \
+            Below is an instruction that describes a task, paired with an input that provides further context.
             Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Response:\\n
-
 
             >>> # Instruction with input
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
-            | Below is an instruction that describes a task, paired with an input that provides further context.
-            | Write a response that appropriately completes the request.
-            |
-            | ### Instruction:
-            | Write a poem
-            |
-            | ### Input:
-            | The poem should be 5 lines long
-            |
-            | ### Response:
-            |
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Input:\\n
+            The poem should be 5 lines long\\n\\n### Response:\\n
 
             >>> # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
             >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
-            | Below is an instruction that describes a task, paired with an input that provides further context.
-            | Write a response that appropriately completes the request.
-            |
-            | ### Instruction:
-            | Write a poem
-            |
-            | ### Response:
-            |
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Response:\\n
 
         Returns:
             The formatted prompt
