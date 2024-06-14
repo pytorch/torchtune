@@ -442,11 +442,20 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SentencePieceTokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="llama2_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.llama2_tokenizer.html#torchtune.models.llama2.llama2_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama2_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">SentencePieceTokenizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tokenizer for Llama2.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): path to the tokenizer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        SentencePieceTokenizer: Instantiation of the Llama2 tokenizer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">SentencePieceTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="c1"># Original tokenizer has no pad_id, which causes indexing errors when batch training</span>
     <span class="n">tokenizer</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">tokenizer</span>
+    <span class="k">return</span> <span class="n">tokenizer</span></div>
 
 
 <div class="viewcode-block" id="lora_llama2_7b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama2.lora_llama2_7b.html#torchtune.models.llama2.lora_llama2_7b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama2_7b</span><span class="p">(</span>

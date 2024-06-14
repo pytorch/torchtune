@@ -467,10 +467,19 @@
     <span class="p">)</span></div>
 
 
-<span class="k">def</span> <span class="nf">llama3_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TikTokenTokenizer</span><span class="p">:</span>
+<div class="viewcode-block" id="llama3_tokenizer"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.llama3_tokenizer.html#torchtune.models.llama3.llama3_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">llama3_tokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TikTokenTokenizer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Tokenizer for Llama3.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        path (str): path to the tokenizer</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        TikTokenTokenizer: Instantiation of the Llama3 tokenizer</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tiktoken</span> <span class="o">=</span> <span class="n">TikTokenTokenizer</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="n">tiktoken</span><span class="o">.</span><span class="n">pad_id</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="k">return</span> <span class="n">tiktoken</span>
+    <span class="k">return</span> <span class="n">tiktoken</span></div>
 
 
 <div class="viewcode-block" id="lora_llama3_8b"><a class="viewcode-back" href="../../../../generated/torchtune.models.llama3.lora_llama3_8b.html#torchtune.models.llama3.lora_llama3_8b">[docs]</a><span class="k">def</span> <span class="nf">lora_llama3_8b</span><span class="p">(</span>
@@ -552,7 +561,7 @@
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied</span>
+<span class="sd">        TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">lora_llama3</span><span class="p">(</span>
         <span class="n">lora_attn_modules</span><span class="o">=</span><span class="n">lora_attn_modules</span><span class="p">,</span>
@@ -578,9 +587,17 @@
 <span class="n">qlora_llama3_8b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama3_8b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
 <span class="n">qlora_llama3_8b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">Builder for creating a Llama3 model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="s2">Builder for creating a Llama3 8B model with QLoRA enabled. Base model weights in linear layers</span>
 <span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
 <span class="s2">Please see `lora_llama3_8b` for full API arguments.</span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+<span class="n">qlora_llama3_70b</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">lora_llama3_70b</span><span class="p">,</span> <span class="n">quantize_base</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">qlora_llama3_70b</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for creating a Llama3 70B model with QLoRA enabled. Base model weights in linear layers</span>
+<span class="s2">that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.</span>
+<span class="s2">Please see `lora_llama3_70b` for full API arguments.</span>
 <span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
