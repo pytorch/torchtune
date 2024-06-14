@@ -61,7 +61,8 @@ class AlpacaInstructTemplate(InstructTemplate):
         ### Response:
 
 
-    Without** 'input'
+    Or without 'input'
+
     .. code-block:: text
 
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
@@ -106,12 +107,48 @@ class AlpacaInstructTemplate(InstructTemplate):
         Examples:
             >>> # Simple instruction
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.
+
+
+            ### Instruction:
+
+            Write a poem
+
+
+            ### Response:
+
 
             >>> # Instruction with input
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.
+
+
+            ### Instruction:
+
+            Write a poem
+
+
+            ### Input:
+
+            The poem should be 5 lines long
+
+
+            ### Response:
 
             >>> # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
             >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.
+
+
+            ### Instruction:
+
+            Write a poem
+
+
+            ### Response:
 
         Returns:
             The formatted prompt
@@ -161,12 +198,18 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
         Examples:
             >>> # Simple sentence
             >>> GrammarErrorCorrectionTemplate.format(sample={"sentence": "The quik brown fox jumps the lazy dog"})
+            Correct this to standard English: The quik brown fox jumps the lazy dog
+            ---
+            Corrected:
 
             >>> # Sentence with column map where the 'sentence' key is actually named 'input' in the given sample
             >>> GrammarErrorCorrectionTemplate.format(
             ...     sample={"input": "The quik brown fox jumps the lazy dog"},
             ...     column_map={"sentence": "input"}
             ... )
+            Correct this to standard English: The quik brown fox jumps the lazy dog
+            ---
+            Corrected:
 
         Returns:
             The formatted prompt
