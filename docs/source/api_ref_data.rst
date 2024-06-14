@@ -6,8 +6,10 @@ torchtune.data
 
 .. currentmodule:: torchtune.data
 
-Instruct templates
-------------------
+.. _chat_formats:
+
+Text templates
+--------------
 
 .. autosummary::
     :toctree: generated/
@@ -18,15 +20,6 @@ Instruct templates
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     StackExchangedPairedTemplate
-
-.. _chat_formats:
-
-Chat formats
-------------
-
-.. autosummary::
-    :toctree: generated/
-    :nosignatures:
 
     ChatFormat
     ChatMLFormat

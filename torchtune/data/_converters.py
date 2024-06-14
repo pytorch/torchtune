@@ -67,7 +67,7 @@ def get_openai_messages(
     structure.
 
     OpenAI API `standard chat format <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>`_ follows::
-        
+
         {
             # key could be "messages" OR "conversations"
             "messages": [
