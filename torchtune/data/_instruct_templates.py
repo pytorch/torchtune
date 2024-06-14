@@ -41,6 +41,40 @@ class AlpacaInstructTemplate(InstructTemplate):
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
     on if there's an instruction + input or just an instruction.
+
+
+    Prompt formatting with input::
+
+        Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.
+
+
+        ### Instruction:
+
+        <YOUR INSTRUCTION HERE>
+
+
+        ### Input:
+
+        <YOUR INPUT HERE>
+
+
+        ### Response:
+
+
+
+    Prompt formatting **without** input::
+
+        Below is an instruction that describes a task. Write a response that appropriately completes the request.
+
+
+        ### Instruction:
+
+        <YOUR INSTRUCITON HERE>
+
+
+        ### Response:
+
+
     """
 
     template = {
@@ -68,6 +102,16 @@ class AlpacaInstructTemplate(InstructTemplate):
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
+
+        Examples:
+            # Simple instruction
+            >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
+
+            # Instruction with input
+            >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
+
+            # Instruction with column map
+            >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
 
         Returns:
             The formatted prompt
