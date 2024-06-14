@@ -276,13 +276,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
     def _setup_profiler(
-        self, cfg: DictConfig, log_cfg: bool = False
+        self, cfg_profiler: DictConfig, log_cfg: bool = False
     ) -> torch.profiler.profile:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
         Args:
-            cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
             log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
             overrides certain profiling options.
 
@@ -321,23 +321,23 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 repeat: int
         ```
         """
-        if should_profile(cfg):
+        if should_profile(cfg_profiler):
             enabled = True
         else:
             log.info(" Profiling disabled.")
             return FakeProfiler()
 
         # Set up profiler activities
-        cpu = cfg.get("CPU", False)
-        cuda = cfg.get("CUDA", False)
-        profile_memory = cfg.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
-        with_stack = cfg.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-        record_shapes = cfg.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
-        with_flops = cfg.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
-        output_dir = cfg.get("output_dir", None)
+        cpu = cfg_profiler.get("CPU", False)
+        cuda = cfg_profiler.get("CUDA", False)
+        profile_memory = cfg_profiler.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
+        record_shapes = cfg_profiler.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
+        output_dir = cfg_profiler.get("output_dir", None)
 
         # Parse schedule specific args
-        schedule_cfg = cfg.get("schedule", None)
+        schedule_cfg = cfg_profiler.get("schedule", None)
 
         if schedule_cfg is None:
             wait = None
@@ -588,89 +588,87 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # in case shuffle is True
                 self._sampler.set_epoch(curr_epoch)
 
-                # Optionally profile the training loop
-                with self._profiler:
-                    pbar = tqdm(total=self._steps_per_epoch)
-                    for idx, batch in enumerate(self._dataloader):
-                        if (
-                            self.max_steps_per_epoch is not None
-                            and (idx // self._gradient_accumulation_steps)
-                            == self.max_steps_per_epoch
-                        ):
-                            break
+                pbar = tqdm(total=self._steps_per_epoch)
+                for idx, batch in enumerate(self._dataloader):
+                    if (
+                        self.max_steps_per_epoch is not None
+                        and (idx // self._gradient_accumulation_steps)
+                        == self.max_steps_per_epoch
+                    ):
+                        break
 
-                        # Both are shape [b, s]
-                        tokens, labels = batch["tokens"], batch["labels"]
-                        # Get the attention mask and position ids from the dataset if they
-                        # exist. Currently, only sample packing in PackedDataset returns these
-                        mask = batch.get("mask", None)  # shape [b, s, s]
-                        input_pos = batch.get("input_pos", None)  # shape [b, s]
+                    # Both are shape [b, s]
+                    tokens, labels = batch["tokens"], batch["labels"]
+                    # Get the attention mask and position ids from the dataset if they
+                    # exist. Currently, only sample packing in PackedDataset returns these
+                    mask = batch.get("mask", None)  # shape [b, s, s]
+                    input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                        tokens = tokens.to(self._device)
-                        num_tokens += tokens.numel()
-                        labels = labels.to(self._device)
-                        mask = mask.to(self._device) if mask is not None else None
-                        input_pos = (
-                            input_pos.to(self._device)
-                            if input_pos is not None
-                            else None
+                    tokens = tokens.to(self._device)
+                    num_tokens += tokens.numel()
+                    labels = labels.to(self._device)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = (
+                        input_pos.to(self._device)
+                        if input_pos is not None
+                        else None
+                    )
+
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # Shift so that tokens < n predict n
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    # Compute loss
+                    loss = self._loss_fn(logits, labels)
+                    loss = loss / self._gradient_accumulation_steps
+                    running_loss += loss
+                    loss.backward()
+
+                    # Step with optimizer
+                    if (idx + 1) % self._gradient_accumulation_steps == 0:
+                        self._optimizer.step()
+                        self._optimizer.zero_grad(set_to_none=True)
+                        self._lr_scheduler.step()
+                        # Update the number of steps when the weights are updated
+                        self.global_step += 1
+
+                        loss_to_log = running_loss.item()
+                        pbar.update(1)
+                        pbar.set_description(
+                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
                         )
 
-                        logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                        # Shift so that tokens < n predict n
-                        logits = logits[..., :-1, :].contiguous()
-                        labels = labels[..., 1:].contiguous()
-                        logits = logits.transpose(1, 2)
-                        # Compute loss
-                        loss = self._loss_fn(logits, labels)
-                        loss = loss / self._gradient_accumulation_steps
-                        running_loss += loss
-                        loss.backward()
-
-                        # Step with optimizer
-                        if (idx + 1) % self._gradient_accumulation_steps == 0:
-                            self._optimizer.step()
-                            self._optimizer.zero_grad(set_to_none=True)
-                            self._lr_scheduler.step()
-                            # Update the number of steps when the weights are updated
-                            self.global_step += 1
-
-                            loss_to_log = running_loss.item()
-                            pbar.update(1)
-                            pbar.set_description(
-                                f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                        # Log per-step metrics
+                        if self.global_step % self._log_every_n_steps == 0:
+                            time_per_step = time.perf_counter() - t0
+                            log_dict = {
+                                "loss": loss_to_log,
+                                "lr": self._optimizer.param_groups[0]["lr"],
+                                "tokens_per_second_per_gpu": num_tokens
+                                / time_per_step,
+                            }
+                            if (
+                                self._device.type == "cuda"
+                                and self._log_peak_memory_stats
+                            ):
+                                log_dict.update(
+                                    utils.get_memory_stats(device=self._device)
+                                )
+                            self._metric_logger.log_dict(
+                                log_dict,
+                                step=self.global_step,
                             )
 
-                            # Log per-step metrics
-                            if self.global_step % self._log_every_n_steps == 0:
-                                time_per_step = time.perf_counter() - t0
-                                log_dict = {
-                                    "loss": loss_to_log,
-                                    "lr": self._optimizer.param_groups[0]["lr"],
-                                    "tokens_per_second_per_gpu": num_tokens
-                                    / time_per_step,
-                                }
-                                if (
-                                    self._device.type == "cuda"
-                                    and self._log_peak_memory_stats
-                                ):
-                                    log_dict.update(
-                                        utils.get_memory_stats(device=self._device)
-                                    )
-                                self._metric_logger.log_dict(
-                                    log_dict,
-                                    step=self.global_step,
-                                )
+                        # Reset running stats for the next step
+                        running_loss = 0
+                        num_tokens = 0
+                        t0 = time.perf_counter()
 
-                            # Reset running stats for the next step
-                            running_loss = 0
-                            num_tokens = 0
-                            t0 = time.perf_counter()
-
-                        # Step the profiler
-                        # Note we are stepping each batch, which might not include optimizer step in the trace
-                        # if the schedule cycle doesn't align with gradient accumulation.
-                        prof.step()
+                    # Step the profiler
+                    # Note we are stepping each batch, which might not include optimizer step in the trace
+                    # if the schedule cycle doesn't align with gradient accumulation.
+                    prof.step()
 
                 self.epochs_run += 1
                 self.save_checkpoint(epoch=curr_epoch)

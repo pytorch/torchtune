@@ -281,13 +281,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
 
     def _setup_profiler(
-        self, cfg: DictConfig, log_cfg: bool = False
+        self, cfg_profiler: DictConfig, log_cfg: bool = False
     ) -> torch.profiler.profile:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
         Args:
-            cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
             log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
             overrides certain profiling options.
 
@@ -326,7 +326,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 repeat: int
         ```
         """
-        if should_profile(cfg):
+        if should_profile(cfg_profiler):
             enabled = True
         else:
             if self._is_rank_zero:
@@ -334,16 +334,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             return FakeProfiler()
 
         # Set up profiler activities
-        cpu = cfg.get("CPU", False)
-        cuda = cfg.get("CUDA", False)
-        profile_memory = cfg.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
-        with_stack = cfg.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-        record_shapes = cfg.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
-        with_flops = cfg.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
-        output_dir = cfg.get("output_dir", None)
+        cpu = cfg_profiler.get("CPU", False)
+        cuda = cfg_profiler.get("CUDA", False)
+        profile_memory = cfg_profiler.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
+        record_shapes = cfg_profiler.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
+        output_dir = cfg_profiler.get("output_dir", None)
 
         # Parse schedule specific args
-        schedule_cfg = cfg.get("schedule", None)
+        schedule_cfg = cfg_profiler.get("schedule", None)
 
         if schedule_cfg is None:
             wait = None
