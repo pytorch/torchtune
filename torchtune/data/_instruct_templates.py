@@ -178,6 +178,13 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
 class SummarizeTemplate(InstructTemplate):
     """
     Prompt template to format datasets for summarization tasks.
+
+    Template:: text
+        Summarize this dialogue:
+        <YOUR DIALOGUE HERE>
+        ---
+        Summary:
+
     """
 
     template = "Summarize this dialogue:\n{dialogue}\n---\nSummary:\n"
@@ -194,6 +201,16 @@ class SummarizeTemplate(InstructTemplate):
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
+
+        Examples:
+            >>> # Simple dialogue
+            >>> SummarizeTemplate.format(sample={"dialogue": "Hello, how are you? Did you know the capital of France is Paris?"})
+
+            >>> # Dialogue with column map where the 'dialogue' key is actually named 'prompt' in the given sample
+            >>> SummarizeTemplate.format(
+            ...     sample={"prompt": "Hello, how are you? Did you know the capital of France is Paris?"},
+            ...     column_map={"dialogue": "prompt"}
+            ... )
 
         Returns:
             The formatted prompt
