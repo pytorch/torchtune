@@ -61,7 +61,8 @@ class AlpacaInstructTemplate(InstructTemplate):
         ### Response:
 
 
-    Without** 'input' .. code-block:: text
+    Without** 'input'
+    .. code-block:: text
 
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
 

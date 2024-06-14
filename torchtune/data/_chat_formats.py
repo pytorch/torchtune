@@ -108,7 +108,7 @@ class MistralChatFormat(ChatFormat):
     """
     Formats according to `Mistral's instruct model <https://docs.mistral.ai/models/>`_.
 
-    It is identical to class:`Llama2ChatFormat`, except it does not support system
+    It is identical to :class:`Llama2ChatFormat`, except it does not support system
     prompts.
 
     .. code-block:: text
