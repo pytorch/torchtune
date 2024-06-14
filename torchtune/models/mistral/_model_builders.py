@@ -47,6 +47,15 @@ def mistral_7b() -> TransformerDecoder:
 
 
 def mistral_tokenizer(path: str) -> SentencePieceTokenizer:
+    """
+    Tokenizer for Mistral models.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        SentencePieceTokenizer: Instantiation of the Mistral tokenizer
+    """
     tokenizer = SentencePieceTokenizer(path)
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
     tokenizer.pad_id = 0

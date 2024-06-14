@@ -50,8 +50,8 @@ def phi3_mini_tokenizer(path: str) -> Phi3MiniSentencePieceTokenizer:
     Note:
         This tokenizer includes typical LM EOS and BOS tokens like
         <s>, </s>, and <unk>. However, to support chat completion,
-        it is also augmented with special tokens like <|endoftext|>
-        and <|assistant|>.
+        it is also augmented with special tokens like <endoftext>
+        and <assistant>.
 
     Warning:
         Microsoft currently opts to ignore system messages citing better performance.
