@@ -11,6 +11,9 @@ torchtune.data
 Text templates
 --------------
 
+Templates for instruct prompts and chat prompts. Includes some specific formatting for difference datasets
+and models.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
@@ -38,6 +41,8 @@ Types
 Converters
 ----------
 
+Converts data from common JSON formats into a torchtune :class:`Message`.
+
 .. autosummary::
     :toctree: generated/
     :nosignatures:
@@ -47,6 +52,8 @@ Converters
 
 Helper funcs
 ------------
+
+Miscellaneous helper functions used in modifying data.
 
 .. autosummary::
     :toctree: generated/
