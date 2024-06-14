@@ -252,12 +252,20 @@ class SummarizeTemplate(InstructTemplate):
         Examples:
             >>> # Simple dialogue
             >>> SummarizeTemplate.format(sample={"dialogue": "Hello, how are you? Did you know the capital of France is Paris?"})
+            Summarize this dialogue:
+            Hello, how are you? Did you know the capital of France is Paris?
+            ---
+            Summary:
 
             >>> # Dialogue with column map where the 'dialogue' key is actually named 'prompt' in the given sample
             >>> SummarizeTemplate.format(
             ...     sample={"prompt": "Hello, how are you? Did you know the capital of France is Paris?"},
             ...     column_map={"dialogue": "prompt"}
             ... )
+            Summarize this dialogue:
+            Hello, how are you? Did you know the capital of France is Paris?
+            ---
+            Summary:
 
         Returns:
             The formatted prompt
@@ -298,12 +306,18 @@ class StackExchangedPairedTemplate(InstructTemplate):
         Examples:
             >>> # Simple question
             >>> StackExchangedPairedTemplate.format(sample={"question": "What is the capital of France?"})
+            Question: What is the capital of France?
+
+            Answer:
 
             >>> # Question with column map where the 'question' key is actually named 'prompt' in the given sample
             >>> StackExchangedPairedTemplate.format(
             ...     sample={"prompt": "What is the capital of France?"},
             ...     column_map={"question": "prompt"}
             ... )
+            Question: What is the capital of France?
+
+            Answer:
 
         Returns:
             The formatted prompt
