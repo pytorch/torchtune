@@ -92,9 +92,8 @@ class AlpacaInstructTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with instruction
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
 
         Examples:
             >>> # Simple instruction
@@ -112,7 +111,6 @@ class AlpacaInstructTemplate(InstructTemplate):
             >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
             Below is an instruction that describes a task, paired with an input that provides further context.
             Write a response that appropriately completes the request.\n\n### Instruction:\nWrite a poem\n\n### Response:\n
-
 
         Returns:
             The formatted prompt
@@ -155,9 +153,8 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with sentence
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
 
         Examples:
             >>> # Simple sentence
@@ -209,9 +206,8 @@ class SummarizeTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with dialog
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
 
         Examples:
             >>> # Simple dialogue
@@ -263,9 +259,8 @@ class StackExchangedPairedTemplate(InstructTemplate):
 
         Args:
             sample (Mapping[str, Any]): a single data sample with instruction
-            column_map (Optional[Dict[str, str]]): a mapping from the expected
-                placeholder names in the template to the column names in the sample.
-                If None, assume these are identical.
+            column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names
+                in the template to the column names in the sample. If None, assume these are identical.
 
         Examples:
             >>> # Simple question
