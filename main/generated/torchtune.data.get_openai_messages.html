@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>validate_messages &mdash; torchtune main documentation</title>
+  <title>get_openai_messages &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="truncate" href="torchtune.data.truncate.html" />
-    <link rel="prev" title="get_openai_messages" href="torchtune.data.get_openai_messages.html" />
+    <link rel="next" title="validate_messages" href="torchtune.data.validate_messages.html" />
+    <link rel="prev" title="get_sharegpt_messages" href="torchtune.data.get_sharegpt_messages.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -370,13 +370,13 @@
         
           <li><a href="../api_ref_data.html">torchtune.data</a> &gt;</li>
         
-      <li>validate_messages</li>
+      <li>get_openai_messages</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.data.validate_messages.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.data.get_openai_messages.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -406,26 +406,52 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="validate-messages">
-<h1>validate_messages<a class="headerlink" href="#validate-messages" title="Permalink to this heading">¶</a></h1>
+  <section id="get-openai-messages">
+<h1>get_openai_messages<a class="headerlink" href="#get-openai-messages" title="Permalink to this heading">¶</a></h1>
 <dl class="py function">
-<dt class="sig sig-object py" id="torchtune.data.validate_messages">
-<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">validate_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">messages</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._types.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.12)"><span class="pre">None</span></a></span></span><a class="reference internal" href="../_modules/torchtune/data/_utils.html#validate_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.validate_messages" title="Permalink to this definition">¶</a></dt>
-<dd><p>Given a list of messages, ensure that messages form a valid
-back-and-forth conversation. An error will be raised if:</p>
-<ul class="simple">
-<li><p>There is a system message that’s not the first message</p></li>
-<li><p>There are two consecutive user messages</p></li>
-<li><p>An assistant message comes before the first user message</p></li>
-<li><p>The message is empty</p></li>
-<li><p>Messages are shorter than length of 2 (min. one user-assistant turn)</p></li>
-</ul>
+<dt class="sig sig-object py" id="torchtune.data.get_openai_messages">
+<span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">get_openai_messages</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_on_input</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.12)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data._types.Message"><span class="pre">Message</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/data/_converters.html#get_openai_messages"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.get_openai_messages" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a chat sample adhering to the OpenAI API json structure to torchtune’s <a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a>
+structure.</p>
+<p>OpenAI API <a class="reference external" href="https://platform.openai.com/docs/guides/text-generation/chat-completions-api">standard chat format</a> follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="c1"># key could be &quot;messages&quot; OR &quot;conversations&quot;</span>
+    <span class="s2">&quot;messages&quot;</span><span class="p">:</span> <span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">system</span><span class="o">|</span><span class="n">user</span><span class="o">|</span><span class="n">assistant</span><span class="o">&gt;</span><span class="p">,</span>
+            <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">message</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="p">},</span>
+        <span class="o">...</span>
+    <span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><code class="xref py py-class docutils literal notranslate"><span class="pre">Message</span></code></a> follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
+    <span class="p">{</span>
+        <span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">system</span><span class="o">|</span><span class="n">user</span><span class="o">|</span><span class="n">assistant</span><span class="o">&gt;</span><span class="p">,</span>
+        <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="o">&lt;</span><span class="n">message</span><span class="o">&gt;</span><span class="p">,</span>
+    <span class="p">},</span>
+    <span class="o">...</span>
+<span class="p">]</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>messages</strong> (<em>List</em><em>[</em><a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message"><em>Message</em></a><em>]</em>) – the messages to validate.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – a single data sample with “conversations” field pointing
+to a list of dict messages.</p></li>
+<li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – whether the prompt should remain unmasked. Default: False</p></li>
+</ul>
 </dd>
 <dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If the messages are invalid.</p>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If the sample does not contain “messages” or “conversations” key.</p>
+</dd>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of messages with “role” and “content” fields.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[<a class="reference internal" href="torchtune.data.Message.html#torchtune.data.Message" title="torchtune.data.Message">Message</a>]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -440,10 +466,10 @@ back-and-forth conversation. An error will be raised if:</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.data.truncate.html" class="btn btn-neutral float-right" title="truncate" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.validate_messages.html" class="btn btn-neutral float-right" title="validate_messages" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.data.get_openai_messages.html" class="btn btn-neutral" title="get_openai_messages" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.data.get_sharegpt_messages.html" class="btn btn-neutral" title="get_sharegpt_messages" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -475,7 +501,7 @@ back-and-forth conversation. An error will be raised if:</p>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">validate_messages</a></li>
+<li><a class="reference internal" href="#">get_openai_messages</a></li>
 </ul>
 
             </div>

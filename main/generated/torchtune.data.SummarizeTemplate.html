@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="ChatFormat" href="torchtune.data.ChatFormat.html" />
+    <link rel="next" title="StackExchangedPairedTemplate" href="torchtune.data.StackExchangedPairedTemplate.html" />
     <link rel="prev" title="GrammarErrorCorrectionTemplate" href="torchtune.data.GrammarErrorCorrectionTemplate.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -412,6 +412,12 @@
 <dt class="sig sig-object py" id="torchtune.data.SummarizeTemplate">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.data.</span></span><span class="sig-name descname"><span class="pre">SummarizeTemplate</span></span><a class="reference internal" href="../_modules/torchtune/data/_instruct_templates.html#SummarizeTemplate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.SummarizeTemplate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prompt template to format datasets for summarization tasks.</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Summarize this dialogue:
+&lt;YOUR DIALOGUE HERE&gt;
+---
+Summary:
+</pre></div>
+</div>
 <dl class="py method">
 <dt class="sig sig-object py" id="torchtune.data.SummarizeTemplate.format">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">format</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Mapping" title="(in Python v3.12)"><span class="pre">Mapping</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Any" title="(in Python v3.12)"><span class="pre">Any</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">column_map</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Dict" title="(in Python v3.12)"><span class="pre">Dict</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="reference internal" href="../_modules/torchtune/data/_instruct_templates.html#SummarizeTemplate.format"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.data.SummarizeTemplate.format" title="Permalink to this definition">¶</a></dt>
@@ -420,13 +426,34 @@
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sample</strong> (<em>Mapping</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – a single data sample with dialog</p></li>
-<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected
-placeholder names in the template to the column names in the sample.
-If None, assume these are identical.</p></li>
+<li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names
+in the template to the column names in the sample. If None, assume these are identical.</p></li>
 </ul>
 </dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>The formatted prompt</p>
+</dl>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Simple dialogue</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SummarizeTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sample</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;dialogue&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello, how are you? Did you know the capital of France is Paris?&quot;</span><span class="p">})</span>
+<span class="go">Summarize this dialogue:</span>
+<span class="go">Hello, how are you? Did you know the capital of France is Paris?</span>
+<span class="go">---</span>
+<span class="go">Summary:</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Dialogue with column map where the &#39;dialogue&#39; key is actually named &#39;prompt&#39; in the given sample</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">SummarizeTemplate</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">sample</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello, how are you? Did you know the capital of France is Paris?&quot;</span><span class="p">},</span>
+<span class="gp">... </span>    <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;dialogue&quot;</span><span class="p">:</span> <span class="s2">&quot;prompt&quot;</span><span class="p">}</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">Summarize this dialogue:</span>
+<span class="go">Hello, how are you? Did you know the capital of France is Paris?</span>
+<span class="go">---</span>
+<span class="go">Summary:</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The formatted prompt</p>
 </dd>
 </dl>
 </dd></dl>
@@ -443,7 +470,7 @@ If None, assume these are identical.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.data.ChatFormat.html" class="btn btn-neutral float-right" title="ChatFormat" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.data.StackExchangedPairedTemplate.html" class="btn btn-neutral float-right" title="StackExchangedPairedTemplate" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.data.GrammarErrorCorrectionTemplate.html" class="btn btn-neutral" title="GrammarErrorCorrectionTemplate" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
