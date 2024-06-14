@@ -351,7 +351,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             repeat = schedule_cfg.get("repeat", None)
 
         # Delegate setup of actual profiler and optionally return updated profiler config
-        profiler = setup_torch_profiler(
+        profiler, profiler_cfg = setup_torch_profiler(
             enabled=enabled,
             cpu=cpu,
             cuda=cuda,
@@ -364,11 +364,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             active=active,
             repeat=repeat,
             output_dir=output_dir,
-            return_cfg=log_cfg,
         )
 
         if log_cfg:
-            profiler, profiler_cfg = profiler
             log.info(f" Profiler config after instantiation: {profiler_cfg}")
         else:
             log.info(" Profiler instantiated.")

@@ -189,10 +189,9 @@ def setup_torch_profiler(
     active: Optional[int] = None,
     repeat: Optional[int] = None,
     output_dir: Optional[str] = None,
-    return_cfg: bool = False,
 ) -> Tuple[torch.profiler.profile, Optional[DictConfig]]:
     """
-    Sets up torch.profiler.profile and optionally returns profiler config
+    Sets up torch.profiler.profile and returns the profiler config with post-setup updates. 
 
     The profiler config can be provided in configs under the `profiler` key with the following layout:
     ```
@@ -236,7 +235,7 @@ def setup_torch_profiler(
         return_cfg (bool): Return updated profiler config. Default is False.
 
     Returns:
-        tuple: [torch.profiler.profile, Optional[DictConfig]]
+        tuple: [torch.profiler.profile, DictConfig]
 
     NOTE:
     - Enabling the profiler will result in training speed reduction.
@@ -333,24 +332,24 @@ def setup_torch_profiler(
         experimental_config=experimental_config,
         on_trace_ready=callback,
     )
-    if return_cfg:
-        profiler_cfg = DictConfig(
-            {
-                "enabled": enabled,
-                "output_dir": output_dir,
-                "CPU": cpu,
-                "CUDA": cuda,
-                "profile_memory": profile_memory,
-                "with_stack": with_stack,
-                "record_shapes": record_shapes,
-                "with_flops": with_flops,
-                "schedule": {
-                    "wait": wait,
-                    "warmup": warmup,
-                    "active": active,
-                    "repeat": repeat,
-                },
-            }
-        )
-        return (profiler, profiler_cfg)
-    return profiler
+
+    profiler_cfg = DictConfig(
+        {
+            "enabled": enabled,
+            "output_dir": output_dir,
+            "CPU": cpu,
+            "CUDA": cuda,
+            "profile_memory": profile_memory,
+            "with_stack": with_stack,
+            "record_shapes": record_shapes,
+            "with_flops": with_flops,
+            "schedule": {
+                "wait": wait,
+                "warmup": warmup,
+                "active": active,
+                "repeat": repeat,
+            },
+        }
+    )
+
+    return (profiler, profiler_cfg)
