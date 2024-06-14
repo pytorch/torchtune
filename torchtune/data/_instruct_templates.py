@@ -43,7 +43,7 @@ class AlpacaInstructTemplate(InstructTemplate):
     on if there's an instruction + input or just an instruction.
 
 
-    Prompt formatting with input:: text
+    Template:: text
         Below is an instruction that describes a task, paired with an input that provides further context.
         Write a response that appropriately completes the request.
 
@@ -62,7 +62,7 @@ class AlpacaInstructTemplate(InstructTemplate):
 
 
 
-    Prompt formatting **without** input:: text
+    Template **without** 'input':: text
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 
@@ -133,6 +133,11 @@ class AlpacaInstructTemplate(InstructTemplate):
 class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
     Prompt template for grammar correction datasets.
+
+    Template:: text
+        Correct this to standard English: <YOUR SENTENCE HERE>
+        ---
+        Corrected:
     """
 
     template = "Correct this to standard English: {sentence}\n---\nCorrected: "
@@ -149,6 +154,16 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
+
+        Examples:
+            >>> # Simple sentence
+            >>> GrammarErrorCorrectionTemplate.format(sample={"sentence": "The quik brown fox jumps the lazy dog"})
+
+            >>> # Sentence with column map where the 'sentence' key is actually named 'input' in the given sample
+            >>> GrammarErrorCorrectionTemplate.format(
+            ...     sample={"input": "The quik brown fox jumps the lazy dog"},
+            ...     column_map={"sentence": "input"}
+            ... )
 
         Returns:
             The formatted prompt
@@ -193,6 +208,11 @@ class SummarizeTemplate(InstructTemplate):
 class StackExchangedPairedTemplate(InstructTemplate):
     """
     Prompt template for preference datasets similar to StackExchangedPaired.
+
+    Template:: text
+        Question: <YOUR QUESTION HERE>
+
+        Answer:
     """
 
     template = "Question: {question}\n\nAnswer: "
@@ -209,6 +229,16 @@ class StackExchangedPairedTemplate(InstructTemplate):
             column_map (Optional[Dict[str, str]]): a mapping from the expected
                 placeholder names in the template to the column names in the sample.
                 If None, assume these are identical.
+
+        Examples:
+            >>> # Simple question
+            >>> StackExchangedPairedTemplate.format(sample={"question": "What is the capital of France?"})
+
+            >>> # Question with column map where the 'question' key is actually named 'prompt' in the given sample
+            >>> StackExchangedPairedTemplate.format(
+            ...     sample={"prompt": "What is the capital of France?"},
+            ...     column_map={"question": "prompt"}
+            ... )
 
         Returns:
             The formatted prompt
