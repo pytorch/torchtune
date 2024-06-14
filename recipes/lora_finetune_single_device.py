@@ -323,7 +323,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         
         # Check whether `profiler` key is present in the config and that it is not empty; 
         # if it is present check that `enabled = True`
-        if (profiler_cfg is not None and len(profiler_cfg) > 0) and profiler_cfg.get("enabled", True):
+        if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get("enabled", True):
             enabled = True
         else:
             log.info(" Profiling disabled.")

@@ -185,7 +185,7 @@ def setup_torch_profiler(
     active: Optional[int] = None,
     repeat: Optional[int] = None,
     output_dir: Optional[str] = None,
-) -> Tuple[torch.profiler.profile, Optional[DictConfig]]:
+) -> Tuple[torch.profiler.profile, DictConfig]:
     """
     Sets up torch.profiler.profile and returns the profiler config with post-setup updates. 
 
@@ -263,6 +263,7 @@ def setup_torch_profiler(
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
         activities = _DEFAULT_PROFILER_ACTIVITIES
+        cpu = cuda = True
 
     # Set up profiler schedule
     use_default_schedule = not any([wait, warmup, active, repeat])
