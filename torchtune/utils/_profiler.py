@@ -53,11 +53,38 @@ def _warn(msg: str):
 
 
 def trace_handler(
-    prof: torch.profiler.profiler.profile,
+    prof: torch.profiler.profile,
     output_dir,
     metric="self_cuda_time_total",
     row_limit=25,
 ):
+    """
+    Handles export of artifacts from torch.profiler.profile
+    
+    Args:
+        prof: torch.profiler.profile
+        output_dir: str - directory to store artifacts
+        metric: str - metric to order trace event table by, see `torch.profiler.profile.key_averages().table` for
+        additional metrics
+        row_limit: int - number of rows to display in trace event table
+        
+    The following artifacts are exported:
+        - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing
+        - trace event table
+        - memory timeline if `profile_memory`
+        - stacks if `with_stack`(note that `profile_memory` requires `with_stack` to be `True`), 
+        viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).
+    
+    Notes:
+        - Each profiling cycle is exported as a sub-directory in output_dir
+            - E.g., profiling in 5-step cycle (wait=2, warmup=2, active=1, repeat=0) will result in
+            sub-directories iteration_5, iteration_10, etc.
+        - If profiling in a distributed setting, each artifact will be prefixed with rank.
+        - Memory timeline is only exported for rank 0 (error if exporting from multiple ranks on single node)
+    
+    See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details
+        
+    """
     world_size, rank = get_world_size_and_rank()
     curr_trace_dir_name = "iteration_" + str(prof.step_num)
     curr_trace_dir = os.path.join(output_dir, curr_trace_dir_name)
@@ -291,6 +318,9 @@ def setup_torch_profiler(
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     output_dir = str(output_dir)
+    
+    # trace_handler manages the export of profiler artifacts
+    # this callback will be triggered after **each** profiling cycle
     callback = partial(trace_handler, output_dir=output_dir)
 
     profiler = torch.profiler.profile(
