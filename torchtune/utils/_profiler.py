@@ -172,10 +172,6 @@ class FakeProfiler:
     def step(self):
         pass
 
-
-def should_profile(cfg: DictConfig) -> bool:
-    return (cfg is not None and len(cfg) > 0) and cfg.get("enabled", True)
-
 def setup_torch_profiler(
     enabled: bool = False,
     cpu: bool = True,

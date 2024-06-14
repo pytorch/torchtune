@@ -40,7 +40,6 @@ from torchtune.utils import (
     FakeProfiler,
     PROFILER_KEY,
     setup_torch_profiler,
-    should_profile,
 )
 from tqdm import tqdm
 
@@ -326,7 +325,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 repeat: int
         ```
         """
-        if should_profile(cfg_profiler):
+        # Check whether `profiler` key is present in the config and that it is not empty; 
+        # if it is present check that `enabled = True`
+        if (profiler_cfg is not None and len(profiler_cfg) > 0) and profiler_cfg.get("enabled", True):
             enabled = True
         else:
             if self._is_rank_zero:
