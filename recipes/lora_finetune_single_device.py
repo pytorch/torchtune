@@ -276,7 +276,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_profiler(
         self, cfg_profiler: DictConfig, log_cfg: bool = False
-    ) -> torch.profiler.profile:
+    ) -> torch.profiler.profile | FakeProfiler:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 

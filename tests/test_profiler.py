@@ -267,6 +267,7 @@ def test_default_output_dir(profiler_cfg):
 
 def test_default_trace_opts(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
+    from torchtune.utils._profiler import _DEFAULT_PROFILER_ACTIVITIES
 
     # Test missing profiler options are set to defaults
     cfg.pop("profile_memory")
@@ -274,7 +275,12 @@ def test_default_trace_opts(profiler_cfg):
     cfg.pop("record_shapes")
     cfg.pop("with_flops")
     profiler, updated_cfg = _setup_profiler(cfg)
-    check_profiler_attrs(profiler, torch.profiler.profile(**DEFAULT_TRACE_OPTS))
+    check_profiler_attrs(
+        profiler,
+        torch.profiler.profile(
+            activities=_DEFAULT_PROFILER_ACTIVITIES, **DEFAULT_TRACE_OPTS
+        ),
+    )
     for k in ["profile_memory", "with_stack", "record_shapes", "with_flops"]:
         assert updated_cfg[k] == DEFAULT_TRACE_OPTS[k]
 
