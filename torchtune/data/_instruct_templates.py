@@ -43,7 +43,8 @@ class AlpacaInstructTemplate(InstructTemplate):
     on if there's an instruction + input or just an instruction.
 
 
-    Template:: text
+    Template:
+    .. code-block:: text
         Below is an instruction that describes a task, paired with an input that provides further context.
         Write a response that appropriately completes the request.
 
@@ -62,7 +63,8 @@ class AlpacaInstructTemplate(InstructTemplate):
 
 
 
-    Template **without** 'input':: text
+    Template **without** 'input':
+    .. code-block:: text
         Below is an instruction that describes a task. Write a response that appropriately completes the request.
 
 
@@ -134,7 +136,8 @@ class GrammarErrorCorrectionTemplate(InstructTemplate):
     """
     Prompt template for grammar correction datasets.
 
-    Template:: text
+    Template:
+    .. code-block:: text
         Correct this to standard English: <YOUR SENTENCE HERE>
         ---
         Corrected:
@@ -179,7 +182,8 @@ class SummarizeTemplate(InstructTemplate):
     """
     Prompt template to format datasets for summarization tasks.
 
-    Template:: text
+    Template:
+    .. code-block:: text
         Summarize this dialogue:
         <YOUR DIALOGUE HERE>
         ---
@@ -226,7 +230,8 @@ class StackExchangedPairedTemplate(InstructTemplate):
     """
     Prompt template for preference datasets similar to StackExchangedPaired.
 
-    Template:: text
+    Template:
+    .. code-block:: text
         Question: <YOUR QUESTION HERE>
 
         Answer:
