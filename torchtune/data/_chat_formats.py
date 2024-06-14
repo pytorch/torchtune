@@ -47,6 +47,7 @@ class Llama2ChatFormat(ChatFormat):
     repository <https://github.com/meta-llama/llama/blob/main/llama/generation.py>`_.
 
     .. code-block:: text
+
         "[INST] <<SYS>>
         You are a helpful, respectful and honest assistant.
         <</SYS>>"
@@ -111,6 +112,7 @@ class MistralChatFormat(ChatFormat):
     prompts.
 
     .. code-block:: text
+
         "[INST] I am going to Paris, what should I see? [/INST] Paris, the capital
         of France, is known for its stunning architecture..."
 
@@ -168,12 +170,14 @@ class ChatMLFormat(ChatFormat):
     It is the default chat format used by Hugging Face models.
 
     .. code-block:: text
+
         <|im_start|>system
         Provide some context and/or instructions to the model.<|im_end|>
         <|im_start|>user
         The user’s message goes here<|im_end|>
         <|im_start|>assistant
         The assistant’s response goes here<|im_end|>
+
     """
 
     IM_START, IM_END = "<|im_start|>", "<|im_end|>"
