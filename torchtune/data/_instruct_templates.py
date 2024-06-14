@@ -98,14 +98,12 @@ class AlpacaInstructTemplate(InstructTemplate):
         Examples:
             >>> # Simple instruction
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
-            | Below is an instruction that describes a task, paired with an input that provides further context.
-            | Write a response that appropriately completes the request.
-            |
-            | ### Instruction:
-            | Write a poem
-            |
-            | ### Response:
-            |
+            Below is an instruction that describes a task, paired with an input that provides further context.
+            Write a response that appropriately completes the request.\n
+            ### Instruction:
+            Write a poem\n
+            ### Response:\n
+
 
             >>> # Instruction with input
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
