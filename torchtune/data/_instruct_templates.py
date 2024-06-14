@@ -98,11 +98,8 @@ class AlpacaInstructTemplate(InstructTemplate):
         Examples:
             >>> # Simple instruction
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem"})
-                Below is an instruction that describes a task, paired with an input that provides further context.
-                Write a response that appropriately completes the request.\n
-                ### Instruction:
-                Write a poem\n
-                ### Response:
+            Below is an instruction that describes a task, paired with an input that provides further context. \
+            Write a response that appropriately completes the request.\\n\\n### Instruction:\\nWrite a poem\\n\\n### Response:\\n
 
 
             >>> # Instruction with input
@@ -283,18 +280,14 @@ class StackExchangedPairedTemplate(InstructTemplate):
         Examples:
             >>> # Simple question
             >>> StackExchangedPairedTemplate.format(sample={"question": "What is the capital of France?"})
-            | Question: What is the capital of France?
-            |
-            | Answer:
+            Question: What is the capital of France?\\n\\nAnswer:
 
             >>> # Question with column map where the 'question' key is actually named 'prompt' in the given sample
             >>> StackExchangedPairedTemplate.format(
             ...     sample={"prompt": "What is the capital of France?"},
             ...     column_map={"question": "prompt"}
             ... )
-            | Question: What is the capital of France?
-            |
-            | Answer:
+            Question: What is the capital of France?\\n\\nAnswer:
 
         Returns:
             The formatted prompt
