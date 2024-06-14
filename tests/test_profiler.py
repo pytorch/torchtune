@@ -62,9 +62,11 @@ def _setup_profiler(
         for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
         that the instrumented training loop does not need to be changed profiling is disabled.
     """
-    # Check whether `profiler` key is present in the config and that it is not empty; 
+    # Check whether `profiler` key is present in the config and that it is not empty;
     # if it is present check that `enabled = True`
-    if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get("enabled", True):
+    if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get(
+        "enabled", True
+    ):
         enabled = True
     else:
         return FakeProfiler(), DictConfig({})
@@ -72,9 +74,13 @@ def _setup_profiler(
     # Parse profiler cfg
     cpu = cfg_profiler.get("CPU", False)
     cuda = cfg_profiler.get("CUDA", False)
-    profile_memory = cfg_profiler.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+    profile_memory = cfg_profiler.get(
+        "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
+    )
     with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-    record_shapes = cfg_profiler.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+    record_shapes = cfg_profiler.get(
+        "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
+    )
     with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
     output_dir = cfg_profiler.get("output_dir", None)
 
@@ -195,6 +201,7 @@ def test_instantiate_full(profiler_cfg, reference_profiler_full):
     assert updated_cfg.with_stack is True
     assert updated_cfg.record_shapes is True
 
+
 def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     from torchtune.utils._profiler import _DEFAULT_SCHEDULE
 
@@ -208,7 +215,7 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     check_schedule(ref_schedule, test_schedule)
     for k in ["wait", "warmup", "active", "repeat"]:
         assert updated_cfg.schedule[k] == _DEFAULT_SCHEDULE[k]
-        
+
     # Test invalid schedule (invalid defined as any of wait, warmup, active missing)
     for k in ["wait", "warmup", "active"]:
         cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
@@ -232,6 +239,7 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     check_schedule(ref_schedule, test_schedule, num_steps=2 * num_steps_per_cycle)
     assert updated_cfg.schedule.repeat == 1
 
+
 def test_default_activities(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
@@ -244,6 +252,7 @@ def test_default_activities(profiler_cfg):
     assert profiler.activities == _DEFAULT_PROFILER_ACTIVITIES
     assert updated_cfg.CPU is True
     assert updated_cfg.CUDA is True
+
 
 def test_default_output_dir(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
@@ -268,6 +277,7 @@ def test_default_trace_opts(profiler_cfg):
     check_profiler_attrs(profiler, torch.profiler.profile(**DEFAULT_TRACE_OPTS))
     for k in ["profile_memory", "with_stack", "record_shapes", "with_flops"]:
         assert updated_cfg[k] == DEFAULT_TRACE_OPTS[k]
+
 
 def test_fake_profiler(profiler_cfg):
 

@@ -325,9 +325,11 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 repeat: int
         ```
         """
-        # Check whether `profiler` key is present in the config and that it is not empty; 
+        # Check whether `profiler` key is present in the config and that it is not empty;
         # if it is present check that `enabled = True`
-        if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get("enabled", True):
+        if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get(
+            "enabled", True
+        ):
             enabled = True
         else:
             if self._is_rank_zero:
@@ -337,9 +339,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         # Set up profiler activities
         cpu = cfg_profiler.get("CPU", False)
         cuda = cfg_profiler.get("CUDA", False)
-        profile_memory = cfg_profiler.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        profile_memory = cfg_profiler.get(
+            "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
+        )
         with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-        record_shapes = cfg_profiler.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        record_shapes = cfg_profiler.get(
+            "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
+        )
         with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
         output_dir = cfg_profiler.get("output_dir", None)
 

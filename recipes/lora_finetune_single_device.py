@@ -320,10 +320,12 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                 repeat: int
         ```
         """
-        
-        # Check whether `profiler` key is present in the config and that it is not empty; 
+
+        # Check whether `profiler` key is present in the config and that it is not empty;
         # if it is present check that `enabled = True`
-        if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get("enabled", True):
+        if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get(
+            "enabled", True
+        ):
             enabled = True
         else:
             log.info(" Profiling disabled.")
@@ -332,9 +334,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Set up profiler activities
         cpu = cfg_profiler.get("CPU", False)
         cuda = cfg_profiler.get("CUDA", False)
-        profile_memory = cfg_profiler.get("profile_memory", DEFAULT_TRACE_OPTS["profile_memory"])
+        profile_memory = cfg_profiler.get(
+            "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
+        )
         with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-        record_shapes = cfg_profiler.get("record_shapes", DEFAULT_TRACE_OPTS["record_shapes"])
+        record_shapes = cfg_profiler.get(
+            "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
+        )
         with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
         output_dir = cfg_profiler.get("output_dir", None)
 
@@ -609,9 +615,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     labels = labels.to(self._device)
                     mask = mask.to(self._device) if mask is not None else None
                     input_pos = (
-                        input_pos.to(self._device)
-                        if input_pos is not None
-                        else None
+                        input_pos.to(self._device) if input_pos is not None else None
                     )
 
                     logits = self._model(tokens, mask=mask, input_pos=input_pos)
@@ -645,8 +649,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             log_dict = {
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
-                                "tokens_per_second_per_gpu": num_tokens
-                                / time_per_step,
+                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
                                 self._device.type == "cuda"
