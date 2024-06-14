@@ -41,6 +41,15 @@ def llama2_7b() -> TransformerDecoder:
 
 
 def llama2_tokenizer(path: str) -> SentencePieceTokenizer:
+    """
+    Tokenizer for Llama2.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        SentencePieceTokenizer: Instantiation of the Llama2 tokenizer
+    """
     tokenizer = SentencePieceTokenizer(path)
     # Original tokenizer has no pad_id, which causes indexing errors when batch training
     tokenizer.pad_id = 0
