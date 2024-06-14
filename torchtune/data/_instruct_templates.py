@@ -110,7 +110,7 @@ class AlpacaInstructTemplate(InstructTemplate):
             # Instruction with input
             >>> AlpacaInstructTemplate.format(sample={"instruction": "Write a poem", "input": "The poem should be 5 lines long"})
 
-            # Instruction with column map
+            # Instruction with column map where the 'instruction' key is actually named 'prompt' in the given sample
             >>> AlpacaInstructTemplate.format(sample={"prompt": "Write me a poem"}, column_map={"instruction": "prompt"})
 
         Returns:
