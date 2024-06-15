@@ -10,6 +10,9 @@ from omegaconf import DictConfig, OmegaConf
 from torch._C._profiler import _ExperimentalConfig
 
 from torchtune.utils import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
     PROFILER_KEY,
@@ -203,7 +206,6 @@ def test_instantiate_full(profiler_cfg, reference_profiler_full):
 
 
 def test_schedule_setup(profiler_cfg, reference_profiler_basic):
-    from torchtune.utils._profiler import _DEFAULT_SCHEDULE
 
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
@@ -211,10 +213,10 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     cfg.pop("schedule")
     profiler, updated_cfg = _setup_profiler(cfg)
     test_schedule = profiler.schedule
-    ref_schedule = torch.profiler.schedule(**_DEFAULT_SCHEDULE)
+    ref_schedule = torch.profiler.schedule(**DEFAULT_SCHEDULE)
     check_schedule(ref_schedule, test_schedule)
     for k in ["wait", "warmup", "active", "repeat"]:
-        assert updated_cfg.schedule[k] == _DEFAULT_SCHEDULE[k]
+        assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
 
     # Test invalid schedule (invalid defined as any of wait, warmup, active missing)
     for k in ["wait", "warmup", "active"]:
@@ -243,31 +245,27 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
 def test_default_activities(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
-    from torchtune.utils._profiler import _DEFAULT_PROFILER_ACTIVITIES
-
     # Test setup automatically adds CPU + CUDA tracing if neither CPU nor CUDA is specified
     cfg.pop("CPU")
     cfg.pop("CUDA")
     profiler, updated_cfg = _setup_profiler(cfg)
-    assert profiler.activities == _DEFAULT_PROFILER_ACTIVITIES
+    assert profiler.activities == DEFAULT_PROFILER_ACTIVITIES
     assert updated_cfg.CPU is True
     assert updated_cfg.CUDA is True
 
 
 def test_default_output_dir(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
-    from torchtune.utils._profiler import _DEFAULT_PROFILE_DIR
 
     # Test cfg output_dir is set correctly
     if cfg.get("output_dir", None) is not None:
         cfg.pop("output_dir")
     _, updated_cfg = _setup_profiler(cfg, return_cfg=True)
-    assert updated_cfg.output_dir == _DEFAULT_PROFILE_DIR
+    assert updated_cfg.output_dir == DEFAULT_PROFILE_DIR
 
 
 def test_default_trace_opts(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
-    from torchtune.utils._profiler import _DEFAULT_PROFILER_ACTIVITIES
 
     # Test missing profiler options are set to defaults
     cfg.pop("profile_memory")
@@ -278,7 +276,7 @@ def test_default_trace_opts(profiler_cfg):
     check_profiler_attrs(
         profiler,
         torch.profiler.profile(
-            activities=_DEFAULT_PROFILER_ACTIVITIES, **DEFAULT_TRACE_OPTS
+            activities=DEFAULT_PROFILER_ACTIVITIES, **DEFAULT_TRACE_OPTS
         ),
     )
     for k in ["profile_memory", "with_stack", "record_shapes", "with_flops"]:

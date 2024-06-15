@@ -36,11 +36,14 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_SCHEDULE,
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
     PROFILER_KEY,
     setup_torch_profiler,
 )
+
 from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
@@ -337,8 +340,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             return FakeProfiler()
 
         # Set up profiler activities
-        cpu = cfg_profiler.get("CPU", False)
-        cuda = cfg_profiler.get("CUDA", False)
+        cpu = cfg_profiler.get("CPU", True)
+        cuda = cfg_profiler.get("CUDA", True)
+
         profile_memory = cfg_profiler.get(
             "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
         )
@@ -347,16 +351,16 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
         )
         with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
-        output_dir = cfg_profiler.get("output_dir", None)
+        output_dir = cfg_profiler.get("output_dir", DEFAULT_PROFILE_DIR)
 
         # Parse schedule specific args
         schedule_cfg = cfg_profiler.get("schedule", None)
 
         if schedule_cfg is None:
-            wait = None
-            warmup = None
-            active = None
-            repeat = None
+            wait = DEFAULT_SCHEDULE["wait"]
+            warmup = DEFAULT_SCHEDULE["warmup"]
+            active = DEFAULT_SCHEDULE["active"]
+            repeat = DEFAULT_SCHEDULE["repeat"]
         else:
             wait = schedule_cfg.get("wait", None)
             warmup = schedule_cfg.get("warmup", None)

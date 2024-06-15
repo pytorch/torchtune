@@ -24,12 +24,12 @@ from torchtune.utils.logging import get_logger
 log = get_logger("INFO")
 
 PROFILER_KEY = "profiler"
-_DEFAULT_PROFILER_ACTIVITIES = {
+DEFAULT_PROFILER_ACTIVITIES = {
     torch.profiler.ProfilerActivity.CPU,
     torch.profiler.ProfilerActivity.CUDA,
 }
 
-_DEFAULT_SCHEDULE: dict = {
+DEFAULT_SCHEDULE: dict = {
     "wait": 5,
     "warmup": 5,
     "active": 2,
@@ -43,7 +43,7 @@ DEFAULT_TRACE_OPTS: dict = {
     "with_flops": False,
 }
 
-_DEFAULT_PROFILE_DIR: str = "profiler_output"
+DEFAULT_PROFILE_DIR: str = "profiler_output"
 
 
 def _warn(msg: str):
@@ -263,25 +263,27 @@ def setup_torch_profiler(
         activities.append(torch.profiler.ProfilerActivity.CUDA)
     if len(activities) == 0:
         _warn("No activities specified, defaulting to CPU + CUDA")
-        activities = _DEFAULT_PROFILER_ACTIVITIES
+        activities = DEFAULT_PROFILER_ACTIVITIES
         cpu = cuda = True
 
     # Set up profiler schedule
-    use_default_schedule = not any([wait, warmup, active, repeat])
+    use_default_schedule = not any(
+        [wait is not None, warmup is not None, active is not None, repeat is not None]
+    )
 
     # Use default schedule if None, else validate that schedule is valid and can be passed to `instantiate`
     if use_default_schedule:
-        wait = _DEFAULT_SCHEDULE["wait"]
-        warmup = _DEFAULT_SCHEDULE["warmup"]
-        active = _DEFAULT_SCHEDULE["active"]
-        repeat = _DEFAULT_SCHEDULE["repeat"]
+        wait = DEFAULT_SCHEDULE["wait"]
+        warmup = DEFAULT_SCHEDULE["warmup"]
+        active = DEFAULT_SCHEDULE["active"]
+        repeat = DEFAULT_SCHEDULE["repeat"]
         _warn(
             " No schedule found in config, defaulting to wait {wait}, warmup {warmup}, active {active}, repeat {repeat}"
         )
     else:
-        if not all([wait, warmup, active]):
+        if not all([wait is not None, warmup is not None, active is not None]):
             raise ValueError(
-                "Invalid schedule config: must specify wait, warmup, and active"
+                f"Invalid schedule config: must specify wait, warmup, and active, got {wait}, {warmup}, {active}"
             )
         if repeat is None:
             _warn(
@@ -308,9 +310,9 @@ def setup_torch_profiler(
     # Handle exporting of trace, memory timeline and other profiler artifacts
     if output_dir is None:
         _warn(
-            f" No output directory found in profiler config, defaulting to {_DEFAULT_PROFILE_DIR}"
+            f" No output directory found in profiler config, defaulting to {DEFAULT_PROFILE_DIR}"
         )
-        output_dir = _DEFAULT_PROFILE_DIR
+        output_dir = DEFAULT_PROFILE_DIR
 
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)

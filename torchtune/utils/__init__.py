@@ -30,6 +30,9 @@ from ._distributed import (  # noqa
 )
 from ._generation import generate
 from ._profiler import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
     DEFAULT_TRACE_OPTS,
     FakeProfiler,
     PROFILER_KEY,
@@ -86,9 +89,11 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
+    "DEFAULT_PROFILE_DIR",
+    "DEFAULT_PROFILER_ACTIVITIES",
+    "DEFAULT_SCHEDULE",
     "DEFAULT_TRACE_OPTS",
     "FakeProfiler",
-    "profiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
     "get_quantizer_mode",
