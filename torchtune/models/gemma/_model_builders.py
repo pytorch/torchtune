@@ -42,6 +42,15 @@ def gemma_2b() -> GemmaTransformerDecoder:
 
 
 def gemma_tokenizer(path: str) -> SentencePieceTokenizer:
+    """
+    Tokenizer for Gemma.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        SentencePieceTokenizer: Instantiation of the Gemma tokenizer
+    """
     tokenizer = SentencePieceTokenizer(path)
     tokenizer.pad_id = 0
     return tokenizer
@@ -54,6 +63,26 @@ def lora_gemma_2b(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
+    """
+    Builder for creating a Gemma 2B model with LoRA enabled.
+
+    The Gemma defaults are the same as in :func:`~torchtune.models.gemma.gemma_2b`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        GemmaTransformerDecoder: Instantiation of Gemma 2B model with LoRA applied
+    """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
@@ -112,6 +141,26 @@ def lora_gemma_7b(
     lora_alpha: float = 16,
     quantize_base: bool = False,
 ) -> GemmaTransformerDecoder:
+    """
+    Builder for creating a Gemma 7B model with LoRA enabled.
+
+    The Gemma defaults are the same as in :func:`~torchtune.models.gemma.gemma_7b`,
+    while LoRA default params are based on
+    https://github.com/tloen/alpaca-lora/blob/8bb8579e403dc78e37fe81ffbb253c413007323f/finetune.py#L41-L43.
+
+    Args:
+        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
+            LoRA should be applied to in each self-attention block. Options are
+            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
+        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
+            Default: False
+        lora_rank (int): rank of each low-rank approximation
+        lora_alpha (float): scaling factor for the low-rank approximation
+        quantize_base (bool): Whether to quantize base model weights
+
+    Returns:
+        GemmaTransformerDecoder: Instantiation of Gemma 7B model with LoRA applied
+    """
     return lora_gemma(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
