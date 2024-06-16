@@ -20,7 +20,7 @@ class TestGetLastNonMaskedToken:
             tokens[torch.arange(0, tokens.shape[1]), idxs], expected_output
         )
 
-    def test_pool_sequence_logits_single_batch(self):
+    def test_get_last_non_masked_token_single_batch(self):
         """
         Tests that the last non-padding tokens are correctly selected for a single-batch input.
         """

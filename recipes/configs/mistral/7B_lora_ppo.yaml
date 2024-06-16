@@ -99,7 +99,7 @@ top_k: null
 
 # Reward masking args
 truncate_after_tokens: null
-penalise_no_eos: True
+penalise_no_eos: False
 reward_penalty: -1.0
 
 # KL controller arguments

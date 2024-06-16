@@ -332,15 +332,17 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             ),
         )
 
-        for k, v in model_state_dict.items():
-            if k in state_dict:
-                state_dict[k] = v
-            elif k == "value_head.weight":
-                if value_head_state_dict is not None:
-                    state_dict[k] = value_head_state_dict[k]
-                elif initialise_value_head_from_reward_model:
-                    log.info("Value head is initialized using the reward head.")
-                    state_dict[k] = reward_model_state_dict["output.weight"].clone()
+        for k in state_dict:
+            if k in model_state_dict:
+                state_dict[k] = model_state_dict[k]
+
+        if value_head_state_dict is not None:
+            state_dict["value_head.weight"] = value_head_state_dict[k]
+        elif initialise_value_head_from_reward_model:
+            state_dict["value_head.weight"] = reward_model_state_dict[
+                "output.weight"
+            ].clone()
+            log.info("Value head is initialized using the reward head.")
 
         # load checkpoints
         model.load_state_dict(state_dict)
@@ -716,9 +718,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 value_padding_masks=backwards_value_padding_masks,
                             )
                             policy_kls.append(
-                                0.5 * (pi_logprobs - backward_logprobs).pow(2).mean()
+                                (0.5 * (pi_logprobs - backward_logprobs).pow(2)).mean()
                             )
-                            losses.append(loss.item())
+                            losses.append(loss.detach().item())
                             policy_losses.append(policy_loss.item())
                             value_losses.append(value_loss.item())
                             loss.backward()
@@ -740,7 +742,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 "kl": kl.sum(1).mean().item(),
                 "policy_loss": torch.tensor(policy_losses).mean().item(),
                 "value_loss": torch.tensor(value_losses).mean().item(),
-                "policy_kl": torch.tensor(policy_kls).mean().item(),
+                "approx_policy_kl": torch.tensor(policy_kls).mean().item(),
             }
             self._metric_logger.log_dict(
                 log_dict,
