@@ -127,7 +127,7 @@ class GemmaTransformerDecoder(nn.Module):
                 )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, None, input_pos]
+            mask = self.causal_mask[None, input_pos]
 
         if self.norm_embeddings:
             hidden_dim = h.size(-1)
