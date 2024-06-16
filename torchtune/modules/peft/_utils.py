@@ -7,6 +7,7 @@
 import contextlib
 from typing import Any, Dict, Generator, List, Literal, Optional, Protocol, Set
 
+import torch
 from torch import nn
 
 # Modules from MultiHeadAttention that LoRA can be applied to
@@ -200,17 +201,23 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     Returns:
         Set[str]: Set of keys in the state dict that correspond to LoRA modules.
     """
-    lora_keys = [k for k in state_dict.keys() if "lora" in k]
-    return set(
-        [
-            k.replace(".lora_a.weight", "").replace(".lora_b.weight", "")
-            for k in lora_keys
-        ]
-    )
+    lora_modules = set()
+    for k in state_dict.keys():
+        if "lora_" not in k:
+            continue
+        parts = k.split(".")
+        for i, part in enumerate(parts):
+            if "lora_" in part:
+                lora_modules.add(".".join(parts[:i]))
+                break
+    return lora_modules
 
 
+@torch.no_grad
 def get_merged_lora_ckpt(
-    state_dict: Dict[str, Any], rank: int, alpha: float
+    state_dict: Dict[str, Any],
+    rank: int,
+    alpha: float,
 ) -> Dict[str, Any]:
     """
     Merge LoRA weights into the base model format for efficient inference.
@@ -218,8 +225,7 @@ def get_merged_lora_ckpt(
     make a copy prior to calling this function.
 
     For every LoRA module in the state dict, this function will convert its
-    weight -> weight + (alpha / rank) * lora_b @ lora_a,
-    then delete the lora_a and lora_b weights.
+    base weight then delete the LoRA-specific parameters.
 
     Args:
         state_dict (Dict[str, Any]): State dict from a model.
@@ -231,11 +237,24 @@ def get_merged_lora_ckpt(
     """
     lora_modules = _get_lora_modules(state_dict)
     for module in lora_modules:
+        base_weight = state_dict[f"{module}.weight"].to(torch.float32)
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]
-        state_dict[f"{module}.weight"] += (alpha / rank) * lora_b_weight @ lora_a_weight
+        lora_magnitude = state_dict.get(f"{module}.lora_magnitude", None)
+
+        lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
+        merged_weight = base_weight + lora_weight
+        if lora_magnitude is not None:
+            weight_norm = torch.linalg.norm(base_weight + lora_weight, dim=1)
+            mag_norm_scale = (lora_magnitude / weight_norm).view(-1, 1)
+            merged_weight *= mag_norm_scale
+        state_dict[f"{module}.weight"] = merged_weight
+
         del state_dict[f"{module}.lora_a.weight"]
         del state_dict[f"{module}.lora_b.weight"]
+        if lora_magnitude is not None:
+            del state_dict[f"{module}.lora_magnitude"]
+
     return state_dict
 
 
@@ -340,3 +359,20 @@ def validate_missing_and_unexpected_for_lora(
                 raise AssertionError(f"Missing LoRA key {k} from adapter state dict")
     if lora_unexpected:
         raise AssertionError("Unexpected key loading adapter")
+
+
+def notify_base_params_loaded(model: nn.Module):
+    """
+    Notify all submodules in a LoRA model that the base model's parameters have been
+    loaded, in case they need to do additional initialization (e.g. initialization of
+    the DoRA magnitude vector).
+
+    Args:
+        model (nn.Module): the LoRA model.
+    """
+    model.apply(_notify_base_params_loaded)
+
+
+def _notify_base_params_loaded(module):
+    if hasattr(module, "on_base_params_loaded"):
+        module.on_base_params_loaded()
