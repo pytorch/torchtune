@@ -108,7 +108,8 @@ class LoRALinear(nn.Module, AdapterModule):
             # identical to standard LoRA's outputs
             base_weight = self.weight.to(torch.float32)
             lora_weight = self.lora_b.weight @ self.lora_a.weight
-            self.lora_magnitude.data = self._get_weight_norm(base_weight, lora_weight)
+            weight = base_weight + self.scaling * lora_weight
+            self.lora_magnitude.data = torch.linalg.norm(weight, dim=1)
 
     def _create_weight_and_bias(self):
         """
@@ -164,20 +165,14 @@ class LoRALinear(nn.Module, AdapterModule):
         return F.linear(x, self.weight, self.bias)
 
     def _dora_forward(self, x, lora_out):
-        lora_weight = self.lora_b.weight @ self.lora_a.weight
         base_weight = self.weight.to(x.dtype)
-        weight_norm = self._get_weight_norm(base_weight, lora_weight.detach()).detach()
-
+        lora_weight = self.lora_b.weight @ self.lora_a.weight
+        weight = base_weight + self.scaling * lora_weight
+        weight_norm = torch.linalg.norm(weight, dim=1).detach()
         mag_norm_scale = (self.lora_magnitude / weight_norm).view(1, -1)
         base_out = F.linear(x, base_weight)
         dora_out = (mag_norm_scale - 1) * base_out + mag_norm_scale * lora_out
         return dora_out
-
-    def _get_weight_norm(self, base_weight: Tensor, lora_weight: Tensor) -> Tensor:
-        # calculate L2 norm of weight matrix, column-wise
-        weight = base_weight + self.scaling * lora_weight
-        weight_norm = torch.linalg.norm(weight, dim=1)
-        return weight_norm
 
 
 def _lora_a_init_params(x: nn.Linear) -> None:
