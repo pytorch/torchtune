@@ -60,6 +60,8 @@ class PPOLoss(nn.Module):
             advantage (torch.Tensor): Advantage values.
             values (torch.Tensor): Value predictions.
             returns (torch.Tensor): Return values.
+            padding_masks (Optional[torch.Tensor]): Padding token masks.
+            value_padding_masks (Optional[torch.Tensor]): Padding value masks.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple containing:

@@ -18,6 +18,7 @@ from .rewards import (
     estimate_advantages,
     get_rewards,
     masked_mean,
+    masked_var,
     masked_whiten,
     whiten,
 )
@@ -37,4 +38,5 @@ __all__ = [
     "whiten",
     "masked_whiten",
     "masked_mean",
+    "masked_var",
 ]

@@ -4,52 +4,29 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import torch
-from torchtune.utils.pooling import pool_sequence_logits
+from torchtune.utils.pooling import get_last_non_masked_token
 
 
-class TestPooling:
-    def test_pool_sequence_logits_multi_batch(self):
+class TestGetLastNonMaskedToken:
+    def test_get_last_non_masked_token_multi_batch(self):
         """
-        Tests that the last non-padding token logits are pooled correctly for a multi-batch input.
+        Tests that the last non-padding tokens are correctly selected for a multi-batch input.
         """
         padding_token_idx = 0
         tokens = torch.tensor([[1, 3, 4, 9], [4, 5, 6, 0], [1, 0, 0, 0], [0, 0, 0, 0]])
-        logits = torch.tensor(
-            [
-                [[0.1, 1.3, 1.4], [0.5, 0.6, 0.7], [0.9, 1.1, 1.2], [1.3, 0.5, 1.6]],
-                [[0.2, 1.4, 1.5], [0.6, 0.7, 0.8], [1.0, 1.2, 1.3], [1.4, 1.6, 0.7]],
-                [[0.3, 1.5, 1.6], [0.1, 1.8, 0.2], [1.1, 1.3, 1.4], [0.5, 1.7, 0.1]],
-                [[0.4, 1.6, 1.7], [0.8, 0.9, 1.0], [1.2, 1.4, 1.5], [0.6, 1.8, 0.2]],
-            ]
+        expected_output = torch.tensor([9, 6, 1, 0])
+        idxs = get_last_non_masked_token(tokens == padding_token_idx)
+        torch.testing.assert_close(
+            tokens[torch.arange(0, tokens.shape[1]), idxs], expected_output
         )
-        expected_output = torch.tensor(
-            [
-                [1.3, 0.5, 1.6],
-                [1.0, 1.2, 1.3],
-                [0.3, 1.5, 1.6],
-                [0.4, 1.6, 1.7],
-            ]
-        )
-        output = pool_sequence_logits(tokens, logits, padding_token_idx)
-        torch.testing.assert_close(output, expected_output)
 
     def test_pool_sequence_logits_single_batch(self):
         """
-        Tests that the last non-padding token logits are pooled correctly for a single-batch input.
+        Tests that the last non-padding tokens are correctly selected for a single-batch input.
         """
         padding_token_idx = 0
-        tokens = torch.tensor([[1, 3, 4, 9]])
-        logits = torch.tensor(
-            [
-                [[0.1, 1.3, 1.4], [0.5, 0.6, 0.7], [0.9, 1.1, 1.2], [1.3, 0.5, 1.6]],
-            ]
-        )
-        expected_output = torch.tensor(
-            [
-                [1.3, 0.5, 1.6],
-            ]
-        )
-        output = pool_sequence_logits(
-            tokens, logits, padding_token_idx=padding_token_idx
-        )
-        torch.testing.assert_close(output, expected_output)
+        tokens = torch.tensor([[1, 3, 4, 9, 0]])
+        expected_output = torch.tensor([9])
+        idxs = get_last_non_masked_token(tokens == padding_token_idx)
+
+        torch.testing.assert_close(tokens[0, idxs], expected_output)

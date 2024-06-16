@@ -93,13 +93,13 @@ whiten_rewards: False
 
 # Generation arguments
 forward_batch_size: 2
-max_generated_tokens: 8
+max_generated_tokens: 32
 temperature: 0.7
 top_k: null
 
 # Reward masking args
 truncate_after_tokens: null
-penalise_no_eos: False
+penalise_no_eos: True
 reward_penalty: -1.0
 
 # KL controller arguments

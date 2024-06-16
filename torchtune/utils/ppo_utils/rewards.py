@@ -62,6 +62,7 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
         torch.Tensor: The whitened tensor.
     """
     mean, var = x.mean(), x.var()
+    print(f"func mean: {mean}, var: {var}")
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
     if shift_mean:
         whitened += mean
@@ -69,12 +70,21 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
 
 
 def masked_mean(
-    values: torch.Tensor, mask: torch.Tensor, axis: Optional[bool] = None
+    values: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
 ) -> torch.Tensor:
-    """Compute mean of tensor with a masked values. Taken from
-    https://github.com/huggingface/trl/blob/main/trl/core.py"""
-    if axis is not None:
-        return (values * mask).sum(axis=axis) / mask.sum(axis=axis)
+    """
+    Compute mean of tensor with a masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+
+    Args:
+        values (torch.Tensor): The input tensor.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the value should be masked.
+        dim (int): The axis to calculate the mean over.
+
+    Returns:
+        torch.Tensor: The mean tensor.
+    """
+    if dim is not None:
+        return (values * mask).sum(dim=dim) / mask.sum(dim=dim)
     else:
         return (values * mask).sum() / mask.sum()
 
@@ -82,17 +92,29 @@ def masked_mean(
 def masked_var(
     x: torch.Tensor, mask: torch.Tensor, unbiased: bool = True
 ) -> torch.Tensor:
-    """Compute variance of tensor with masked values. Taken from
-    https://github.com/huggingface/trl/blob/main/trl/core.py"""
+    """
+    Compute variance of tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+
+    Args:
+        x (torch.Tensor): The input tensor.
+        mask (torch.Tensor): The mask tensor.
+        unbiased (bool): Whether to use the unbiased variance.
+
+    Returns:
+        torch.Tensor: The variance tensor.
+
+    Raises:
+        ValueError: If the sum of the mask is zero.
+    """
     mean = masked_mean(x, mask)
     centered_values = x - mean
-    var = masked_mean(centered_values**2, mask)
+    var = masked_mean(centered_values.pow(2), mask)
     if unbiased:
         mask_sum = mask.sum()
         if mask_sum == 0:
             raise ValueError(
-                "The sum of the mask is zero, which can happen when `mini_batch_size=1`;"
-                "try increase the `mini_batch_size` or `gradient_accumulation_steps`"
+                "The sum of the mask is zero, which can happen when `ppo_batch_size=1`;"
+                "try increase the `ppo_batch_size` or `gradient_accumulation_steps`"
             )
         # note that if mask_sum == 1, then there is a division by zero issue
         # to avoid it you just need to use a larger minibatch_size
@@ -104,12 +126,20 @@ def masked_var(
 def masked_whiten(
     x: torch.Tensor, mask: torch.Tensor, shift_mean: bool = True
 ) -> torch.Tensor:
-    """Whiten values with masked values. Taken from
-    https://github.com/huggingface/trl/blob/main/trl/core.py"""
+    """
+    Whiten (normalises) values with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+    Args:
+        x (torch.Tensor): The input tensor.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the value should be masked.
+        shift_mean (bool): Whether to shift normalised values by the mean.
+
+    Returns:
+        torch.Tensor: The whitened tensor.
+    """
     mean = masked_mean(x, mask)
-    var = masked_var(x, mask) if mask.any else x.var()
+    var = masked_var(x, mask) if mask.any() else x.var()
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
-    if not shift_mean:
+    if shift_mean:
         whitened += mean
     return whitened
 
@@ -128,12 +158,15 @@ def estimate_advantages(
     Args:
         values (torch.Tensor): The predicted values for each state. Shape: (b, reponse_len)
         rewards (torch.Tensor): The rewards received at each time step. Shape: (b, reponse_len)
+        gamma (float): The discount factor.
+        lmbda (float): The GAE-Lambda parameter.
+        masks (torch.Tensor, optional): A boolean tensor used to correctly calculate means during whitening
+            for masked values/rewards. True indicates the value should be masked. Shape: (b, reponse_len)
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
             - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)
             - returns (torch.Tensor): The estimated returns. Shape: (b, reponse_len)
-            - masks (torch.Tensor): A boolean tensor for excluding invalid rewards/values. Shape: (b, reponse_len)
     Notation:
         - b: batch size
         - reponse_len: model response length
@@ -142,12 +175,12 @@ def estimate_advantages(
     last_gae_lam = 0
     advantages_reversed = []
 
-    reponse_length = values.shape[-1]
+    response_length = values.shape[-1]
 
     # estimate advantage for every predicted token position
-    for t in reversed(range(reponse_length)):
+    for t in reversed(range(response_length)):
         # value of the next state
-        next_values = values[:, t + 1] if t < reponse_length - 1 else 0.0
+        next_values = values[:, t + 1] if t < response_length - 1 else 0.0
         # exponentially discounted temporal difference error:
         # delta_t = r_t + gamma * V(s_{t+1}) - V(s_t)
         delta = rewards[:, t] + gamma * next_values - values[:, t]

@@ -4,38 +4,23 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import torch
-from torch import Tensor
 
 
-def pool_sequence_logits(
-    tokens: Tensor, logits: Tensor, padding_token_idx: int
-) -> Tensor:
-    """Pool sequence logits by selecting the predicted logits for the last non-padding token
-    for each sequence in the batch.
+def get_last_non_masked_token(mask: torch.Tensor, dtype=torch.long) -> torch.Tensor:
+    """Returns the index for the last unmasked entry for each row of a 2D boolean mask.
     Args:
-        tokens (Tensor): input tensor with shape [b x s]
-        logits (Tensor): predicted logits for input tokens with shape [b x s x n]
-        padding_token_idx (int): Padding token id used in the tokenizer.
+        mask (torch.Tensor): Boolean mask with shape [b x s]
+        dtype (torch.dtype): dtype to cast the returned idxs to
     Returns:
-        Tensor: Pooled logits with shape [b x n]
+        Tensor: Sequence indexes logits with shape [b]
     Notation used for tensor shapes:
         - b: batch size
         - s: sequence length
-        - n: number of classes
     """
-    batch_size = tokens.shape[0]
-
-    # inspired by the HF implementation:
-    # https://github.com/huggingface/transformers/blob/928331381ef6ce0622c0b1ac704299046b3afa21/src/transformers/models/mistral/modeling_mistral.py#L1339
-
-    # calculate per-batch-element sequence lengths by finding EOS padding tokens
-    padding_mask = tokens == padding_token_idx
-    if padding_mask.any():
-        sequence_lengths = (
-            padding_mask.logical_not().sum(-1).to(logits.device).sub(1).clip(0)
-        )
+    # calculate per-batch-element sequence lengths by finding last valid tokens
+    if mask.any():
+        sequence_lengths = (~mask).sum(-1).sub(1).clip(0).to(mask.device, dtype=dtype)
     else:
         sequence_lengths = -1
 
-    # grab logits for the last non-padding token for each sequence in the batch
-    return logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
+    return sequence_lengths

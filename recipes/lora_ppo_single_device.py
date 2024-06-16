@@ -339,6 +339,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 if value_head_state_dict is not None:
                     state_dict[k] = value_head_state_dict[k]
                 elif initialise_value_head_from_reward_model:
+                    log.info("Value head is initialized using the reward head.")
                     state_dict[k] = reward_model_state_dict["output.weight"].clone()
 
         # load checkpoints
@@ -490,7 +491,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                             padding_mask=padding_masks,
                             dtype=self._dtype,
                         )
-                        position_ids = ~padding_masks.cumsum(-1) - ~padding_masks.long()
+                        position_ids = (~padding_masks).cumsum(-1) - (
+                            ~padding_masks
+                        ).long()
                         position_ids = position_ids.to(
                             device=self._device, dtype=torch.int
                         )
@@ -564,10 +567,11 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                         query_responses, input_pos=position_ids, mask=masks
                     )
 
-                    # shape [b, 1]
-                    scores = utils.pool_sequence_logits(
-                        query_responses, scores, self._tokenizer.pad_id
-                    ).squeeze()
+                    idxs = utils.get_last_non_masked_token(padding_masks)
+                    # shape [b, ]
+                    scores = scores[
+                        torch.arange(0, scores.shape[0]), idxs + context_length
+                    ].squeeze(-1)
 
                     reward_penality_mask = torch.zeros_like(scores).to(bool)
 
@@ -634,6 +638,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
 
                 # trajectory generated! time to optimise
                 policy_kls = []
+                losses = []
+                policy_losses = []
+                value_losses = []
                 for _ in range(self.ppo_epochs):
                     # TODO (SalmanMohammadi): Add support for early stopping
                     # shuffle batch indices every epoch
@@ -711,6 +718,9 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                             policy_kls.append(
                                 0.5 * (pi_logprobs - backward_logprobs).pow(2).mean()
                             )
+                            losses.append(loss.item())
+                            policy_losses.append(policy_loss.item())
+                            value_losses.append(value_loss.item())
                             loss.backward()
                             # grab some some stats for logging
                             self._optimizer.step()
@@ -720,16 +730,16 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             # self.save_checkpoint(epoch=curr_epoch)
             pbar.update(1)
             pbar.set_description(
-                f"{curr_epoch+1}|{self.global_step}| reward: {rewards.sum(1).mean()}| loss: {loss} | kl: {kl.sum(1).mean()}"
+                f"Step: {curr_epoch+1}| reward: {rewards.sum(1).mean()}"
             )
 
             kl = logprobs - ref_logprobs
             log_dict = {
-                "loss": loss.item(),
+                "loss": torch.tensor(loss).mean().item(),
                 "reward": rewards.sum(1).mean().item(),
                 "kl": kl.sum(1).mean().item(),
-                "policy_loss": policy_loss.item(),
-                "value_loss": value_loss.item(),
+                "policy_loss": torch.tensor(policy_losses).mean().item(),
+                "value_loss": torch.tensor(value_losses).mean().item(),
                 "policy_kl": torch.tensor(policy_kls).mean().item(),
             }
             self._metric_logger.log_dict(
