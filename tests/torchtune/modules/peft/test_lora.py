@@ -214,8 +214,6 @@ class TestLoRALinear:
         rank = 2
         alpha = 1.0
 
-        utils.set_default_dtype(dtype)
-
         constructor_kwargs = {
             "in_dim": in_dim,
             "out_dim": out_dim,
@@ -234,8 +232,9 @@ class TestLoRALinear:
             return
 
         # build our LoRA module and a reference module for comparison
-        module = LoRALinear(**constructor_kwargs)
-        ref = _DoraReference(dtype=dtype, **constructor_kwargs)
+        with utils.set_default_dtype(dtype):
+            module = LoRALinear(**constructor_kwargs)
+            ref = _DoraReference(dtype=dtype, **constructor_kwargs)
 
         # make the initial parameters equal
         state_dict = ref.state_dict()
@@ -253,7 +252,7 @@ class TestLoRALinear:
         def _dora_is_the_same_as_lora():
             module.eval()
             with torch.no_grad():
-                x = torch.randn(batch_size, in_dim)
+                x = torch.randn(batch_size, in_dim, dtype=dtype)
                 module.use_dora = False
                 lora_out = module(x)
                 module.use_dora = True
@@ -288,14 +287,14 @@ class TestLoRALinear:
         opt_ref = torch.optim.Adam(ref.parameters())
         opt.zero_grad()
         opt_ref.zero_grad()
-        x = torch.randn(batch_size, in_dim)
+        x = torch.randn(batch_size, in_dim, dtype=dtype)
         y = torch.randn(batch_size, out_dim)
         torch.manual_seed(0)
         y1 = module(x.detach())
         torch.manual_seed(0)
         y2 = ref(x.detach())
-        F.mse_loss(y1, y.detach()).backward()
-        F.mse_loss(y2, y.detach()).backward()
+        F.mse_loss(y1.to(torch.float32), y.detach()).backward()
+        F.mse_loss(y2.to(torch.float32), y.detach()).backward()
         assert torch.equal(y1, y2)
         assert torch.equal(module.lora_magnitude.grad, ref.lora_magnitude.grad)
         assert torch.equal(module.lora_a.weight.grad, ref.lora_a.weight.grad)
@@ -306,16 +305,16 @@ class TestLoRALinear:
 
         # verify that the merged and unmerged DoRA modules have identical outputs
         state_dict = get_merged_lora_ckpt(_Wrapper(module).state_dict(), rank, alpha)
-        merged = _Wrapper(nn.Linear(in_dim, out_dim, bias=use_bias))
+        merged = _Wrapper(nn.Linear(in_dim, out_dim, bias=use_bias, dtype=dtype))
         merged.load_state_dict(state_dict)
         merged = merged.layer
         module.eval()
         merged.eval()
         with torch.no_grad():
-            x = torch.randn(batch_size, in_dim)
+            x = torch.randn(batch_size, in_dim, dtype=dtype)
             y1 = module(x)
             y2 = merged(x)
-            assert torch.allclose(y1, y2, rtol=1e-4, atol=1e-6)
+            assert torch.allclose(y1, y2, atol=1e-6 if dtype == torch.float32 else 1e-2)
 
 
 class _Wrapper(nn.Module):
@@ -362,7 +361,9 @@ class _DoraReference(nn.Module):
         self.quantize_base = quantize_base
         self.use_dora = use_dora
 
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias, dtype=dtype)
+        linear = nn.Linear(
+            in_features=in_dim, out_features=out_dim, bias=use_bias, dtype=dtype
+        )
         weight = linear.weight if not quantize_base else to_nf4(linear.weight)
         bias = None
         if use_bias:
@@ -382,7 +383,7 @@ class _DoraReference(nn.Module):
         self.dropout = nn.Dropout(p=dropout)
 
     def initialize_dora(self):
-        print('b', self.weight.dtype, self.lora_a.weight.dtype)
+        print("b", self.weight.dtype, self.lora_a.weight.dtype)
         weight = self.weight.to(self.lora_a.weight.dtype)
         lora_weight = self.lora_b.weight @ self.lora_a.weight
         weight_norm = self._get_weight_norm(weight, lora_weight)

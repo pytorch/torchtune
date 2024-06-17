@@ -76,8 +76,10 @@ class LoRALinear(nn.Module, AdapterModule):
         self.lora_a = nn.Linear(in_features=in_dim, out_features=rank, bias=False)
         self.lora_b = nn.Linear(in_features=rank, out_features=out_dim, bias=False)
         if self.use_dora:
-            print('check0')
-            self.lora_magnitude = nn.Parameter(torch.empty(1, out_dim, dtype=torch.get_default_dtype()))
+            print("check0")
+            self.lora_magnitude = nn.Parameter(
+                torch.empty(1, out_dim, dtype=torch.get_default_dtype())
+            )
 
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
@@ -96,7 +98,7 @@ class LoRALinear(nn.Module, AdapterModule):
         _lora_b_init_params(self.lora_b)
 
         if self.use_dora:
-            print('check1')
+            print("check1")
             # NOTE: This initialization is just a fallback. The magnitude is initialized
             # after loading the base model weights in `on_base_params_loaded`.
             nn.init.ones_(self.lora_magnitude)
@@ -106,13 +108,21 @@ class LoRALinear(nn.Module, AdapterModule):
         Initialization that occurs after the base model's parameters have been loaded.
         """
         if self.use_dora:
-            print('a', self.weight.dtype, self.lora_a.weight.dtype)
-            # DoRA initializes the magnitude vector such that its outputs are initially
-            # identical to standard LoRA's outputs
-            base_weight = self.weight.to(self.lora_a.weight.dtype)
-            lora_weight = self.lora_b.weight @ self.lora_a.weight
-            weight = base_weight + self.scaling * lora_weight
-            self.lora_magnitude.data = torch.linalg.norm(weight, dim=1)
+            self._initialize_dora()
+
+    def _initialize_dora(self):
+        """
+        DoRA initializes the magnitude vector such that its outputs are initially
+        identical to standard LoRA's outputs
+        """
+        base_weight = self.weight.to(self.lora_a.weight.dtype)
+        lora_weight = self.lora_b.weight @ self.lora_a.weight
+        weight = base_weight + self.scaling * lora_weight
+        weight_norm = torch.linalg.norm(weight, dim=1)
+        self.lora_magnitude.data = weight_norm
+        print(
+            "a", self.weight.dtype, self.lora_a.weight.dtype, self.lora_magnitude.dtype
+        )
 
     def _create_weight_and_bias(self):
         """
@@ -150,7 +160,6 @@ class LoRALinear(nn.Module, AdapterModule):
 
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
-
         """
         base_out = self._base_forward(x)
         if self.disabled:
