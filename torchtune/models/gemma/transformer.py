@@ -25,7 +25,7 @@ class GemmaTransformerDecoder(nn.Module):
 
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
-            tokens to an embedding space and as the output projectionnv.
+            tokens to an embedding space and as the output projection.
         layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
