@@ -218,13 +218,13 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     for k in ["wait", "warmup", "active", "repeat"]:
         assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
 
-    # Test invalid schedule (invalid defined as any of wait, warmup, active missing)
-    for k in ["wait", "warmup", "active"]:
+    # Test missing key is automatically set to default
+    for k in ["wait", "warmup", "active", "repeat"]:
         cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
         cfg.schedule.pop(k)
-        with pytest.raises(ValueError):
-            profiler, _ = _setup_profiler(cfg)
-
+        profiler, updated_cfg = _setup_profiler(cfg)
+        assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
+            
     # Test repeat is set to 1 if missing but all other schedule keys are present
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
     cfg.schedule.pop("repeat")

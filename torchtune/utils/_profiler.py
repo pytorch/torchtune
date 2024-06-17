@@ -342,12 +342,7 @@ def setup_torch_profiler(
             "with_stack": with_stack,
             "record_shapes": record_shapes,
             "with_flops": with_flops,
-            "schedule": {
-                "wait": wait,
-                "warmup": warmup,
-                "active": active,
-                "repeat": repeat,
-            },
+            "schedule": schedule_args,
         }
     )
 

@@ -102,6 +102,6 @@ profiler:
   #`torch.profiler.schedule` options
   schedule:
     wait: 1
-    warmup: 1
+    # warmup: 1
     active: 1
-    repeat: 1
+    # repeat: 1
