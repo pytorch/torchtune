@@ -356,13 +356,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         if schedule_cfg is None:
             schedule_cfg = DEFAULT_SCHEDULE
         else:
-            schedule_cfg = {k: schedule_cfg.get(k, None) for k in DEFAULT_SCHEDULE.keys()}
+            schedule_cfg = {
+                k: schedule_cfg.get(k, None) for k in DEFAULT_SCHEDULE.keys()
+            }
             missing_keys = [k for k in schedule_cfg.keys() if schedule_cfg[k] is None]
             if len(missing_keys) > 0:
                 for k in missing_keys:
                     schedule_cfg[k] = DEFAULT_SCHEDULE[k]
-                log.warn(" Missing keys in schedule config {}: defaulting to {}".format(
-                         ", ".join(missing_keys), ", ".join(f"{k} = {schedule_cfg[k]}" for k in missing_keys)))
+                log.warning(
+                    " Missing keys in schedule config {}: defaulting to {}".format(
+                        ", ".join(missing_keys),
+                        ", ".join(f"{k} = {schedule_cfg[k]}" for k in missing_keys),
+                    )
+                )
 
         # Delegate setup of actual profiler and optionally return updated profiler config
         profiler, profiler_cfg = setup_torch_profiler(
@@ -374,7 +380,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             record_shapes=record_shapes,
             with_flops=with_flops,
             output_dir=output_dir,
-            **schedule_cfg
+            **schedule_cfg,
         )
 
         if log_cfg:

@@ -224,7 +224,7 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
         cfg.schedule.pop(k)
         profiler, updated_cfg = _setup_profiler(cfg)
         assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
-            
+
     # Test repeat is set to 1 if missing but all other schedule keys are present
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
     cfg.schedule.pop("repeat")
