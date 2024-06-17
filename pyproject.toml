@@ -45,7 +45,7 @@ dev = [
     "pytest-cov",
     "pytest-mock",
     "pytest-integration",
-    "tensorboard==2.16.2", # pin to this version until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
+    "tensorboard<=2.16.2", # pin to this version until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
     "wandb",
     "expecttest",
 ]
