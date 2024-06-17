@@ -64,3 +64,21 @@ Loss
    :nosignatures:
 
    loss.DPOLoss
+
+
+Transforms
+------------------
+Functions used for preprocessing images.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+    transforms.VariableImageSizeTransforms
+    transforms.divide_to_equal_patches
+    transforms.pad_image_top_left
+    transforms.rescale
+    transforms.ResizeWithoutDistortion
+    transforms.find_supported_resolutions
+    transforms.GetBestResolution
+    transforms.get_max_res_without_distortion

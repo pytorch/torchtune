@@ -250,9 +250,9 @@ def find_supported_resolutions(
     """
     asp_dict = defaultdict(list)
     for chunk_size in range(max_num_chunks, 0, -1):
-        _factors = sorted(get_factors(chunk_size))
-        _asp_ratios = [(factor, chunk_size // factor) for factor in _factors]
-        for height, width in _asp_ratios:
+        factors = sorted(_get_factors(chunk_size))
+        asp_ratios = [(factor, chunk_size // factor) for factor in factors]
+        for height, width in asp_ratios:
             ratio_float = height / width
             asp_dict[ratio_float].append((height, width))
 
@@ -265,7 +265,7 @@ def find_supported_resolutions(
     return possible_resolutions
 
 
-def get_factors(n: int) -> Set[int]:
+def _get_factors(n: int) -> Set[int]:
     """
     Calculate all factors of a given number, i.e. a dividor that leaves no remainder.
     For example, if n=12, it will return {1, 2, 3, 4, 6, 12}.
