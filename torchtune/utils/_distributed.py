@@ -321,6 +321,7 @@ def load_from_full_model_state_dict(
             sharded_param = full_tensor.new_zeros(chunk.size())
             sharded_param[: chunk.size(0)].copy_(chunk)
             # BC-breaking change to DTensor API in https://github.com/pytorch/pytorch/pull/128112
+            # TODO: change to from_local API (need to add view support for NF4)
             if version.parse(torch.__version__) >= version.parse("2.4.0.dev20240606"):
                 sharded_tensor = DTensor(
                     local_tensor=sharded_param,
