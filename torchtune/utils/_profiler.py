@@ -59,30 +59,30 @@ def trace_handler(
     row_limit=25,
 ):
     """
-    Handles export of artifacts from torch.profiler.profile
+    Handles export of artifacts from ``torch.profiler.profile``.
+
+    The following artifacts are exported:
+    - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing
+    - trace event table
+    - memory timeline if ``profile_memory``
+    - stacks if ``with_stack`` (note that ``profile_memory`` requires ``with_stack`` to be ``True``),
+    viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).
+
+    Notes:
+    - Each profiling cycle is exported as a sub-directory in output_dir
+        - E.g., profiling in 5-step cycle (wait=2, warmup=2, active=1, repeat=0) will result in
+        sub-directories iteration_5, iteration_10, etc.
+    - If profiling in a distributed setting, each artifact will be prefixed with rank.
+    - Memory timeline is only exported for rank 0 (error if exporting from multiple ranks on single node)
+
+    See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details
 
     Args:
         prof: torch.profiler.profile
         output_dir: str - directory to store artifacts
-        metric: str - metric to order trace event table by, see `torch.profiler.profile.key_averages().table` for
+        metric: str - metric to order trace event table by, see ``torch.profiler.profile.key_averages().table`` for
         additional metrics
         row_limit: int - number of rows to display in trace event table
-
-    The following artifacts are exported:
-        - chrome / tensorboard trace - viewable through tensorboard or perfetto.dev / chrome::/tracing
-        - trace event table
-        - memory timeline if `profile_memory`
-        - stacks if `with_stack`(note that `profile_memory` requires `with_stack` to be `True`),
-        viewable as a flamegraph see (https://pytorch.org/docs/stable/profiler.html#torch.profiler._KinetoProfile.export_stacks).
-
-    Notes:
-        - Each profiling cycle is exported as a sub-directory in output_dir
-            - E.g., profiling in 5-step cycle (wait=2, warmup=2, active=1, repeat=0) will result in
-            sub-directories iteration_5, iteration_10, etc.
-        - If profiling in a distributed setting, each artifact will be prefixed with rank.
-        - Memory timeline is only exported for rank 0 (error if exporting from multiple ranks on single node)
-
-    See profiler documentation (https://pytorch.org/docs/stable/profiler.html#torch.profiler.profile) for more details
 
     """
     world_size, rank = get_world_size_and_rank()
@@ -138,13 +138,15 @@ def trace_handler(
 class FakeProfiler:
     """
     Drop-in replacement for torch.profiler.profile that functions as a nullcontext / object
-    with no-op methods for `start`, `stop`, and `step`.
+    with no-op methods for ``start``, ``stop``, and ``step``.
 
     This is helpful for instrumenting profiling in a recipe without requiring changes to the
     code independent of whether profiling is on / off.
 
     E.g.,
-    ```
+
+    .. code-block:: python
+
         profiler = FakeProfiler()
         #profiler = torch.profiler.profile()
 
@@ -154,7 +156,7 @@ class FakeProfiler:
                 for batch in batches:
                     train.step()
                     prof.step()
-    ```
+
     """
 
     def __enter__(self):
@@ -191,30 +193,31 @@ def setup_torch_profiler(
     Sets up torch.profiler.profile and returns the profiler config with post-setup updates.
 
     The profiler config can be provided in configs under the `profiler` key with the following layout:
-    ```
-    profiler:
-        enabled: bool
 
-        #Output directory of trace artifacts
-        output_dir: str
+    .. code-block:: yaml
 
-        #`torch.profiler.ProfilerActivity` types to trace
-        CPU: bool
-        CUDA: bool
+        profiler:
+            enabled: bool
 
-        #Trace options
-        profile_memory: bool
-        with_stack: bool
-        record_shapes: bool
-        with_flops: bool
+            #Output directory of trace artifacts
+            output_dir: str
 
-        #`torch.profiler.schedule` args
-        schedule:
-            wait: int
-            warmup: int
-            active: int
-            repeat: int
-    ```
+            #torch.profiler.ProfilerActivity types to trace
+            CPU: bool
+            CUDA: bool
+
+            #Trace options
+            profile_memory: bool
+            with_stack: bool
+            record_shapes: bool
+            with_flops: bool
+
+            #torch.profiler.schedule args
+            schedule:
+                wait: int
+                warmup: int
+                active: int
+                repeat: int
 
     Args:
         enabled (bool): Enable pytorch profiler. Default is False.
@@ -236,23 +239,23 @@ def setup_torch_profiler(
 
     NOTE:
     - Enabling the profiler will result in training speed reduction.
-    - Setting `profile_memory: true` will generate large trace files.
+    - Setting ``profile_memory: true`` will generate large trace files.
     - The profiler schedule is context dependent:
-        - Calling `profiler.step()` at each batch iteration but outside the gradient accumulation
-        scope will `step` the profiler each forward / backward step
-        - Calling `profiler.step()` each batch iteration but within the gradient accumulation scope
-        will `step` the profiler each optimizer update step such that each `step` contains multiple
-        forward / backward passes.
+    * Calling ``profiler.step()`` at each batch iteration but outside the gradient accumulation
+    scope will ``step`` the profiler each forward / backward step
+    * Calling ``profiler.step()`` each batch iteration but within the gradient accumulation scope
+    will ``step`` the profiler each optimizer update step such that each ``step`` contains multiple
+    forward / backward passes.
 
     Additional notes:
-        - the profiler schedule updates with respect to an optimizer step:
-            - e.g., if `gradient_accumulation = 2`, then the profiler will step every 2 batches.
-        - sensible defaults will be chosen if the config is missing options
-            - if no activities are specified, profiler will default to CPU + CUDA
-            - if no schedule is specified, profiler will default to wait 10, warmup 5, active 3, repeat 1
-            - if a schedule is specified, profiler will validate that the schedule is valid and can be passed to `instantiate`
-            - certain options will be overridden (`with_stack` and `record_shapes`) depending on requirements of other options
-                - e.g., `profile_memory` requires `with_stack` and `record_shapes`
+    - the profiler schedule updates with respect to an optimizer step, e.g., if ``gradient_accumulation = 2``,
+    then the profiler will step every 2 batches.
+    - sensible defaults will be chosen if the config is missing options
+    * if no activities are specified, profiler will default to CPU + CUDA
+    * if no schedule is specified, profiler will default to wait 10, warmup 5, active 3, repeat 1
+    * if a schedule is specified, profiler will validate that the schedule is valid and can be passed to ``instantiate``
+    * certain options will be overridden (``with_stack`` and ``record_shapes``) depending on requirements of other options,
+    e.g., ``profile_memory`` requires ``with_stack`` and ``record_shapes``
     """
 
     # Set up profiler activities
