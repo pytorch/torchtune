@@ -203,15 +203,19 @@ class TestLoRALinear:
             lora_linear.weight.quantized_data, lora_linear_reload.weight.quantized_data
         )
 
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16])
     @pytest.mark.parametrize("dropout", [0.0, 0.1])
     @pytest.mark.parametrize("use_bias", [False, True])
     @pytest.mark.parametrize("quantize_base", [False, True])
-    def test_dora(self, dropout, use_bias, quantize_base):
+    def test_dora(self, dtype, dropout, use_bias, quantize_base):
         batch_size = 2
         in_dim = 256
         out_dim = 256
         rank = 2
         alpha = 1.0
+
+        utils.set_default_dtype(dtype)
+
         constructor_kwargs = {
             "in_dim": in_dim,
             "out_dim": out_dim,
@@ -231,7 +235,7 @@ class TestLoRALinear:
 
         # build our LoRA module and a reference module for comparison
         module = LoRALinear(**constructor_kwargs)
-        ref = _DoraReference(**constructor_kwargs)
+        ref = _DoraReference(dtype=dtype, **constructor_kwargs)
 
         # make the initial parameters equal
         state_dict = ref.state_dict()
@@ -316,7 +320,7 @@ class TestLoRALinear:
 
 class _Wrapper(nn.Module):
     """
-    For testing the merged checkpoint which requires that the LoRA layer has a parent
+    For testing the merged checkpoint which requires that the LoRA layer has a parent.
     """
 
     def __init__(self, layer):
@@ -343,6 +347,7 @@ class _DoraReference(nn.Module):
 
     def __init__(
         self,
+        dtype: torch.dtype,
         in_dim: int,
         out_dim: int,
         rank: int,
@@ -357,7 +362,7 @@ class _DoraReference(nn.Module):
         self.quantize_base = quantize_base
         self.use_dora = use_dora
 
-        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias)
+        linear = nn.Linear(in_features=in_dim, out_features=out_dim, bias=use_bias, dtype=dtype)
         weight = linear.weight if not quantize_base else to_nf4(linear.weight)
         bias = None
         if use_bias:
@@ -369,35 +374,42 @@ class _DoraReference(nn.Module):
             "bias", nn.Parameter(bias) if bias is not None else None
         )
 
-        self.lora_a = nn.Linear(in_dim, rank, bias=False)
-        self.lora_b = nn.Linear(rank, out_dim, bias=False)
+        self.lora_a = nn.Linear(in_dim, rank, bias=False, dtype=dtype)
+        self.lora_b = nn.Linear(rank, out_dim, bias=False, dtype=dtype)
         self.scaling = alpha / rank
         if use_dora:
-            self.lora_magnitude = nn.Parameter(torch.empty(1, out_dim))
+            self.lora_magnitude = nn.Parameter(torch.empty(1, out_dim, dtype=dtype))
         self.dropout = nn.Dropout(p=dropout)
 
-    def initialize_dora(self) -> None:
-        lora_a = self.lora_a.weight
-        lora_b = self.lora_b.weight
-        dtype_is_fp16 = lora_a.dtype == torch.float16
-        if dtype_is_fp16:
-            lora_a = lora_a.float()
-            lora_b = lora_b.float()
+    def initialize_dora(self):
+        print('b', self.weight.dtype, self.lora_a.weight.dtype)
         weight = self.weight.to(self.lora_a.weight.dtype)
-        lora_weight = lora_b @ lora_a
+        lora_weight = self.lora_b.weight @ self.lora_a.weight
+        weight_norm = self._get_weight_norm(weight, lora_weight)
+        self.lora_magnitude = nn.Parameter(weight_norm, requires_grad=True)
+
+    def initialize_dora2(self):
+        lora_a_weight = self.lora_a.weight
+        lora_b_weight = self.lora_b.weight
+        dtype_is_fp16 = lora_a_weight.dtype == torch.float16
+        if dtype_is_fp16:
+            lora_a_weight = lora_a_weight.float()
+            lora_b_weight = lora_b_weight.float()
+        weight = self.weight.to(torch.float32)
+        lora_weight = lora_b_weight @ lora_a_weight
         if dtype_is_fp16:
             lora_weight = lora_weight.half()
         weight_norm = self._get_weight_norm(weight, lora_weight)
         self.lora_magnitude = nn.Parameter(weight_norm, requires_grad=True)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         result = self._base_forward(x)
         torch_result_dtype = result.dtype
         x = x.to(self.lora_a.weight.dtype)
-        x = self.dropout(x)
         if not self.use_dora:
-            result = result + self.lora_b(self.lora_a(x)) * self.scaling
+            result = result + self.lora_b(self.lora_a(self.dropout(x))) * self.scaling
         else:
+            x = self.dropout(x)
             result = result + self._dora_forward(x)
         result = result.to(torch_result_dtype)
         return result
@@ -423,7 +435,7 @@ class _DoraReference(nn.Module):
         ) + mag_norm_scale * lora_result * self.scaling
         return result_dora
 
-    def _get_weight_norm(self, weight, lora_weight) -> torch.Tensor:
+    def _get_weight_norm(self, weight, lora_weight):
         weight = weight + self.scaling * lora_weight
         weight_norm = torch.linalg.norm(weight, dim=1).to(weight.dtype)
         return weight_norm
