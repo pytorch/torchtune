@@ -82,8 +82,6 @@ enable_activation_checkpointing: True
 
 # Show case the usage of pytorch profiler
 # Set enabled to False as it's only needed for debugging training
-# Show case the usage of pytorch profiler
-# Set enabled to False as it's only needed for debugging training
 profiler:
   enabled: False
 
@@ -100,9 +98,9 @@ profiler:
   record_shapes: True
   with_flops: False
 
-  #`torch.profiler.schedule` options
+  `torch.profiler.schedule` options
   schedule:
-    # wait: 1
-    warmup: 1
-    active: 1
-    # repeat: 1
+    wait: 5
+    warmup: 5
+    active: 2
+    repeat: 1
