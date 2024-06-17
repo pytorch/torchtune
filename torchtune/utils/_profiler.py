@@ -49,7 +49,7 @@ DEFAULT_PROFILE_DIR: str = "profiler_output"
 def _warn(msg: str):
     _, rank = get_world_size_and_rank()
     if rank == 0:
-        log.warn(msg)
+        log.warning(msg)
 
 
 def trace_handler(
@@ -266,6 +266,13 @@ def setup_torch_profiler(
         activities = DEFAULT_PROFILER_ACTIVITIES
         cpu = cuda = True
 
+    
+    # Check for schedule
+        # 1) If no schedule is provided, set to DEFAULT_SCHEDULE
+        # 2) else check for missing keys and warn if any are missing, setting these to defaults
+    # Note that this might result in code duplication if these checks are already done in the `recipe`
+    # However, we retain this checks in the case that the _setup_profiler section of the `recipe` does not implement these checks
+        
     # Set up profiler schedule
     use_default_schedule = not any(
         [wait is not None, warmup is not None, active is not None, repeat is not None]
@@ -273,28 +280,20 @@ def setup_torch_profiler(
 
     # Use default schedule if None, else validate that schedule is valid and can be passed to `instantiate`
     if use_default_schedule:
-        wait = DEFAULT_SCHEDULE["wait"]
-        warmup = DEFAULT_SCHEDULE["warmup"]
-        active = DEFAULT_SCHEDULE["active"]
-        repeat = DEFAULT_SCHEDULE["repeat"]
+        schedule_args = DEFAULT_SCHEDULE
         _warn(
-            " No schedule found in config, defaulting to wait {wait}, warmup {warmup}, active {active}, repeat {repeat}"
+            " No schedule found in config, defaulting to {}".format
+            (", ".join(f"{k} = {schedule_args[k]}" for k in schedule_args.keys()))
         )
     else:
-        if not all([wait is not None, warmup is not None, active is not None]):
-            raise ValueError(
-                f"Invalid schedule config: must specify wait, warmup, and active, got {wait}, {warmup}, {active}"
-            )
-        if repeat is None:
-            _warn(
-                """ No repeat found in schedule config, setting to 1 (one cycle).
-                If you want to cycle continuously, specify `repeat = 0`"""
-            )
-            repeat = 1
-
-    schedule = torch.profiler.schedule(
-        wait=wait, warmup=warmup, active=active, repeat=repeat
-    )
+        schedule_args = {"wait": wait, "warmup": warmup, "active": active, "repeat": repeat}    
+        missing_keys = [k for k in schedule_args.keys() if schedule_args[k] is None]
+        if len(missing_keys) > 0:
+            for k in missing_keys:
+                schedule_args[k] = DEFAULT_SCHEDULE[k]
+            _warn(" Missing keys in torch profiler schedule {}: defaulting to {}".format(", ".join(missing_keys), 
+                  ", ".join(f"{k} = {schedule_args[k]}" for k in missing_keys)))
+    schedule = torch.profiler.schedule(**schedule_args)
 
     # profile_memory requires with_stack and record_shapes, hence we override these if profile_memory is True
     # See torch.profiler.profiler._memory_profile

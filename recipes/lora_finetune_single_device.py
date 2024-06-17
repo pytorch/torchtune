@@ -350,16 +350,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         # Parse schedule specific args
         schedule_cfg = cfg_profiler.get("schedule", None)
 
+        # Check for schedule
+        # 1) If no schedule is provided, set to DEFAULT_SCHEDULE
+        # 2) else check for missing keys and warn if any are missing, setting these to defaults
         if schedule_cfg is None:
-            wait = DEFAULT_SCHEDULE["wait"]
-            warmup = DEFAULT_SCHEDULE["warmup"]
-            active = DEFAULT_SCHEDULE["active"]
-            repeat = DEFAULT_SCHEDULE["repeat"]
+            schedule_cfg = DEFAULT_SCHEDULE
         else:
-            wait = schedule_cfg.get("wait", None)
-            warmup = schedule_cfg.get("warmup", None)
-            active = schedule_cfg.get("active", None)
-            repeat = schedule_cfg.get("repeat", None)
+            schedule_cfg = {k: schedule_cfg.get(k, None) for k in DEFAULT_SCHEDULE.keys()}
+            missing_keys = [k for k in schedule_cfg.keys() if schedule_cfg[k] is None]
+            if len(missing_keys) > 0:
+                for k in missing_keys:
+                    schedule_cfg[k] = DEFAULT_SCHEDULE[k]
+                log.warn(" Missing keys in schedule config {}: defaulting to {}".format(
+                         ", ".join(missing_keys), ", ".join(f"{k} = {schedule_cfg[k]}" for k in missing_keys)))
 
         # Delegate setup of actual profiler and optionally return updated profiler config
         profiler, profiler_cfg = setup_torch_profiler(
@@ -370,11 +373,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             with_stack=with_stack,
             record_shapes=record_shapes,
             with_flops=with_flops,
-            wait=wait,
-            warmup=warmup,
-            active=active,
-            repeat=repeat,
             output_dir=output_dir,
+            **schedule_cfg
         )
 
         if log_cfg:
