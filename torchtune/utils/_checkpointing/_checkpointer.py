@@ -519,7 +519,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 torch.save(model_state_dict, output_path)
             else:
                 output_path = Path.joinpath(
-                    self._output_dir, f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}"
+                    self._output_dir,
+                    f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}",
                 ).with_suffix(".safetensors")
                 save_file(model_state_dict, output_path)
             logger.info(
