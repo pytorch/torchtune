@@ -488,11 +488,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     padding_masks = query_responses == self._tokenizer.pad_id
                     # we only need custom causal masks for sequences with left-padding
                     if padding_masks.any():
-                        masks = ppo_utils.get_causal_mask(
-                            query_responses,
-                            padding_mask=padding_masks,
-                            dtype=self._dtype,
-                        )
+                        masks = ppo_utils.get_causal_mask(~padding_masks)
                         position_ids = (~padding_masks).cumsum(-1) - (
                             ~padding_masks
                         ).long()

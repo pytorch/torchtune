@@ -40,7 +40,7 @@ class TestGenerate:
         return torch.arange(2, 10)
 
     @pytest.fixture
-    def padded_prompt_tokens(self):
+    def prompt_tokens_padded(self):
         """
         Pytest fixture to create a list of left-padded prompt tokens for testing.
         """
@@ -88,10 +88,11 @@ class TestGenerate:
             top_k=top_k,
         )
 
-        assert [output[2:] for output in outputs] == expected_outputs
+        print(outputs[:, 2:], expected_outputs)
+        torch.testing.assert_close(outputs[:, 2:], expected_outputs, atol=0, rtol=0)
 
     def test_reproducability_with_and_without_padding(
-        self, generation_model, prompt_tokens, padded_prompt_tokens
+        self, generation_model, prompt_tokens, prompt_tokens_padded
     ):
         """
         Test to check if the `generate` function produces the same output for inputs that are left padded
@@ -101,7 +102,16 @@ class TestGenerate:
         top_k = 100
 
         torch.manual_seed(42)
-        outputs_unpadded = ppo_utils.generate(
+        outputs = ppo_utils.generate(
+            model=generation_model,
+            prompt=prompt_tokens_padded,
+            max_generated_tokens=10,
+            temperature=temperature,
+            top_k=top_k,
+        )
+
+        torch.manual_seed(42)
+        expected_outputs = ppo_utils.generate(
             model=generation_model,
             prompt=prompt_tokens,
             max_generated_tokens=10,
@@ -109,16 +119,7 @@ class TestGenerate:
             top_k=top_k,
         )
 
-        torch.manual_seed(42)
-        outputs_padded = ppo_utils.generate(
-            model=generation_model,
-            prompt=padded_prompt_tokens,
-            max_generated_tokens=10,
-            temperature=temperature,
-            top_k=top_k,
-        )
-
-        assert outputs_unpadded[0] == outputs_padded[0][2:]
+        torch.testing.assert_close(outputs[:, 2:], expected_outputs, atol=0, rtol=0)
 
     def test_stop_tokens(self, generation_model, prompt_tokens):
         """
@@ -208,14 +209,14 @@ class TestGenerate:
 
 class TestGetCausalMask:
     @pytest.fixture
-    def padded_prompt_tokens(self):
+    def left_padded_prompt_tokens(self):
         """
         Pytest fixture to create a list of left-padded prompt tokens for testing.
         """
         return torch.cat([torch.tensor([0, 0]), torch.arange(2, 6)]).unsqueeze(0)
 
     @pytest.fixture
-    def padded_prompt_tokens_batched(self):
+    def left_padded_prompt_tokens_batched(self):
         """
         Pytest fixture to create a list of left-padded batched prompt tokens for testing.
         """
@@ -223,48 +224,76 @@ class TestGetCausalMask:
             [[0, 0, 0, 1, 2, 3], [0, 1, 2, 3, 4, 5], [0, 0, 0, 0, 0, 1]]
         )
 
-    def test_get_causal_mask(self, padded_prompt_tokens):
+    @pytest.fixture
+    def right_padded_prompt_tokens(self):
         """
-        Test to check if the `get_causal_mask` function produces the right output when a prompt is provided.
+        Pytest fixture to create a list of right-padded prompt tokens for testing.
         """
-        fill_value = torch.finfo(torch.float32).min
-        padding_mask = padded_prompt_tokens == 0
-        attn_mask = torch.tensor(
+        return torch.cat([torch.arange(2, 6), torch.tensor([0, 0])]).unsqueeze(0)
+
+    @pytest.fixture
+    def right_padded_prompt_tokens_batched(self):
+        """
+        Pytest fixture to create a list of right-padded batched prompt tokens for testing.
+        """
+        return torch.tensor(
+            [[1, 2, 3, 4, 5, 0], [1, 2, 0, 0, 0, 0], [1, 2, 3, 4, 5, 6]]
+        )
+
+    @pytest.fixture
+    def mixed_padded_prompt_tokens(self):
+        """
+        Pytest fixture to create a list of mixed padded prompt tokens for testing.
+        """
+        return torch.cat(
+            [torch.tensor([0, 0]), torch.arange(2, 6), torch.tensor([0, 0])]
+        ).unsqueeze(0)
+
+    @pytest.fixture
+    def mixed_padded_prompt_tokens_batched(self):
+        """
+        Pytest fixture to create a list of mixed padded batched prompt tokens for testing.
+        """
+        return torch.tensor(
+            [[0, 0, 1, 2, 0, 0], [0, 1, 2, 3, 4, 0], [0, 0, 0, 1, 0, 0]]
+        )
+
+    def test_get_causal_mask_for_left_padded_inputs(self, left_padded_prompt_tokens):
+        """
+        Test to check if the `get_causal_mask` function produces the right output for left-padded prompts.
+        """
+        expected_casual_mask = torch.tensor(
             [
-                [False, False, False, False, False, False],
-                [False, False, False, False, False, False],
+                [True, False, False, False, False, False],
+                [False, True, False, False, False, False],
                 [False, False, True, False, False, False],
                 [False, False, True, True, False, False],
                 [False, False, True, True, True, False],
                 [False, False, True, True, True, True],
             ]
-        )
+        ).unsqueeze(0)
 
-        # We need to invert the mask to get the expected output
-        expected_casual_mask = torch.zeros_like(
-            attn_mask, dtype=torch.float32
-        ).masked_fill(~attn_mask, fill_value)[None, :]
-        causal_mask = ppo_utils.get_causal_mask(padded_prompt_tokens, padding_mask)
+        causal_mask = ppo_utils.get_causal_mask(left_padded_prompt_tokens != 0)
         torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
 
-    def test_get_causal_mask_batched(self, padded_prompt_tokens_batched):
+    def test_get_causal_mask_for_left_padded_inputs_batched(
+        self, left_padded_prompt_tokens_batched
+    ):
         """
-        Test to check if the `get_causal_mask` function produces the right output when a batched prompt is provided.
+        Test to check if the `get_causal_mask` function produces the right output for left-padded batched prompts.
         """
-        fill_value = torch.finfo(torch.float32).min
-        padding_mask = padded_prompt_tokens_batched == 0
-        attn_mask = torch.tensor(
+        expected_causal_mask = torch.tensor(
             [
                 [
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
+                    [True, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, False, True, False, False, False],
                     [False, False, False, True, False, False],
                     [False, False, False, True, True, False],
                     [False, False, False, True, True, True],
                 ],
                 [
-                    [False, False, False, False, False, False],
+                    [True, False, False, False, False, False],
                     [False, True, False, False, False, False],
                     [False, True, True, False, False, False],
                     [False, True, True, True, False, False],
@@ -272,21 +301,129 @@ class TestGetCausalMask:
                     [False, True, True, True, True, True],
                 ],
                 [
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
-                    [False, False, False, False, False, False],
+                    [True, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, False, True, False, False, False],
+                    [False, False, False, True, False, False],
+                    [False, False, False, False, True, False],
                     [False, False, False, False, False, True],
                 ],
             ]
         )
 
-        # We need to invert the mask to get the expected output
-        expected_casual_mask = torch.zeros_like(
-            attn_mask, dtype=torch.float32
-        ).masked_fill(~attn_mask, fill_value)
-        causal_mask = ppo_utils.get_causal_mask(
-            padded_prompt_tokens_batched, padding_mask=padding_mask
+        causal_mask = ppo_utils.get_causal_mask(left_padded_prompt_tokens_batched != 0)
+        torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
+
+    def test_get_causal_mask_for_right_padded_inputs(self, right_padded_prompt_tokens):
+        """
+        Test to check if the `get_causal_mask` function produces the right output for right-padded prompts.
+        """
+        expected_causal_mask = torch.tensor(
+            [
+                [True, False, False, False, False, False],
+                [True, True, False, False, False, False],
+                [True, True, True, False, False, False],
+                [True, True, True, True, False, False],
+                [False, False, False, False, True, False],
+                [False, False, False, False, False, True],
+            ]
+        ).unsqueeze(0)
+
+        causal_mask = ppo_utils.get_causal_mask(right_padded_prompt_tokens != 0)
+        torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
+
+    def test_get_causal_mask_for_right_padded_inputs_batched(
+        self, right_padded_prompt_tokens_batched
+    ):
+        """
+        Test to check if the `get_causal_mask` function produces the right output for right-padded batched prompts.
+        """
+        expected_causal_mask = torch.tensor(
+            [
+                [
+                    [True, False, False, False, False, False],
+                    [True, True, False, False, False, False],
+                    [True, True, True, False, False, False],
+                    [True, True, True, True, False, False],
+                    [True, True, True, True, True, False],
+                    [False, False, False, False, False, True],
+                ],
+                [
+                    [True, False, False, False, False, False],
+                    [True, True, False, False, False, False],
+                    [False, False, True, False, False, False],
+                    [False, False, False, True, False, False],
+                    [False, False, False, False, True, False],
+                    [False, False, False, False, False, True],
+                ],
+                [
+                    [True, False, False, False, False, False],
+                    [True, True, False, False, False, False],
+                    [True, True, True, False, False, False],
+                    [True, True, True, True, False, False],
+                    [True, True, True, True, True, False],
+                    [True, True, True, True, True, True],
+                ],
+            ]
         )
-        torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
+
+        causal_mask = ppo_utils.get_causal_mask(right_padded_prompt_tokens_batched != 0)
+        torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
+
+    def test_get_causal_mask_for_mixed_padding_inputs(self, mixed_padded_prompt_tokens):
+        """
+        Test to check if the `get_causal_mask` function produces the right output for mixed padded prompts.
+        """
+        expected_causal_mask = torch.tensor(
+            [
+                [True, False, False, False, False, False, False, False],
+                [False, True, False, False, False, False, False, False],
+                [False, False, True, False, False, False, False, False],
+                [False, False, True, True, False, False, False, False],
+                [False, False, True, True, True, False, False, False],
+                [False, False, True, True, True, True, False, False],
+                [False, False, False, False, False, False, True, False],
+                [False, False, False, False, False, False, False, True],
+            ]
+        ).unsqueeze(0)
+
+        causal_mask = ppo_utils.get_causal_mask(mixed_padded_prompt_tokens != 0)
+        torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
+
+    def test_get_causal_mask_for_mixed_padded_inputs_batched(
+        self, mixed_padded_prompt_tokens_batched
+    ):
+        """
+        Test to check if the `get_causal_mask` function produces the right output for mixed-padded batched prompts.
+        """
+        expected_causal_mask = torch.tensor(
+            [
+                [
+                    [True, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, False, True, False, False, False],
+                    [False, False, True, True, False, False],
+                    [False, False, False, False, True, False],
+                    [False, False, False, False, False, True],
+                ],
+                [
+                    [True, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, True, True, False, False, False],
+                    [False, True, True, True, False, False],
+                    [False, True, True, True, True, False],
+                    [False, False, False, False, False, True],
+                ],
+                [
+                    [True, False, False, False, False, False],
+                    [False, True, False, False, False, False],
+                    [False, False, True, False, False, False],
+                    [False, False, False, True, False, False],
+                    [False, False, False, False, True, False],
+                    [False, False, False, False, False, True],
+                ],
+            ]
+        )
+
+        causal_mask = ppo_utils.get_causal_mask(mixed_padded_prompt_tokens_batched != 0)
+        torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
