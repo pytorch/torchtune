@@ -279,23 +279,17 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         self, cfg_profiler: DictConfig
     ) -> torch.profiler.profile | DummyProfiler:
         """
-        Parses the ``profiler`` section of top-level ``cfg`` and sets up profiler
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
 
         Args:
-            cfg_profiler: DictConfig - ``profiler`` section of the top-level ``cfg`` (the main config passed to ``recipe.main``)
-            log_cfg: bool - whether to return the profiler config after profiler setup, which sets defaults and possibly
-            overrides certain profiling options.
-
-            NOTE: Since not all settings of the profiler can be parsed from the returned profiler object,
-            such as the ``schedule``, ``log_cfg`` can be used for easy logging / debugging of all profiler options post setup.
+            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
 
         Returns:
             profiler: torch.profiler.profile | DummyProfiler - DummyProfiler is a nullcontext with no-op methods
             for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
             that the instrumented training loop does not need to be changed profiling is disabled.
-            profiler_cfg: Optional[DictConfig]
 
-        The profiler config can be provided in configs under the ``profiler`` key with the following layout:
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
 
         .. code-block:: yaml
             profiler:
@@ -320,7 +314,6 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             warmup_steps: int
             active_steps: int
             num_cycles: int
-        ```
         """
         # Missing profiler section in config, assume disabled
         if cfg_profiler is None:
