@@ -4,20 +4,24 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
+
 import pytest
 import torch
 from omegaconf import DictConfig, OmegaConf
 from torch._C._profiler import _ExperimentalConfig
-
+from torchtune import config
 from torchtune.utils import (
     DEFAULT_PROFILE_DIR,
     DEFAULT_PROFILER_ACTIVITIES,
     DEFAULT_SCHEDULE,
     DEFAULT_TRACE_OPTS,
-    FakeProfiler,
+    DummyProfiler,
     PROFILER_KEY,
-    setup_torch_profiler,
 )
+
+# Disable logging otherwise output will be very verbose
+logging.basicConfig(level=logging.ERROR)
 
 PROFILER_ATTRS = [
     "activities",
@@ -33,17 +37,16 @@ def profiler_cfg():
     return """
 profiler:
  enabled: True
- CPU: True
- CUDA: True
+ cpu: True
+ cuda: True
  profile_memory: False
  with_stack: False
  record_shapes: True
  with_flops: True
- schedule:
-   wait: 3
-   warmup: 1
-   active: 1
-   repeat: 0
+ wait_steps: 3
+ warmup_steps: 1
+ active_steps: 1
+ num_cycles: 0
 """
 
 
@@ -61,60 +64,24 @@ def _setup_profiler(
         cfg: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
 
     Returns:
-        profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods
+        profiler: torch.profiler.profile | DummyProfiler - DummyProfiler is a nullcontext with no-op methods
         for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
         that the instrumented training loop does not need to be changed profiling is disabled.
     """
-    # Check whether `profiler` key is present in the config and that it is not empty;
-    # if it is present check that `enabled = True`
-    if (cfg_profiler is not None and len(cfg_profiler) > 0) and cfg_profiler.get(
-        "enabled", True
-    ):
-        enabled = True
+    # Missing profiler section in config, assume disabled
+    if cfg_profiler is None:
+        cfg_profiler = DictConfig({"enabled": False})
+
+    # Check that component is included and set correctly
+    if cfg_profiler.get("_component_", None) is None:
+        cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
     else:
-        return FakeProfiler(), DictConfig({})
+        assert (
+            cfg_profiler.get("_component_") == "torchtune.utils.setup_torch_profiler"
+        ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
 
-    # Parse profiler cfg
-    cpu = cfg_profiler.get("CPU", False)
-    cuda = cfg_profiler.get("CUDA", False)
-    profile_memory = cfg_profiler.get(
-        "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
-    )
-    with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-    record_shapes = cfg_profiler.get(
-        "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
-    )
-    with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
-    output_dir = cfg_profiler.get("output_dir", None)
+    profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-    # Parse schedule specific args
-    schedule_cfg = cfg_profiler.get("schedule", None)
-
-    if schedule_cfg is None:
-        wait = None
-        warmup = None
-        active = None
-        repeat = None
-    else:
-        wait = schedule_cfg.get("wait", None)
-        warmup = schedule_cfg.get("warmup", None)
-        active = schedule_cfg.get("active", None)
-        repeat = schedule_cfg.get("repeat", None)
-    # Delegate setup of actual profiler and optionally return updated profiler config
-    profiler, profiler_cfg = setup_torch_profiler(
-        enabled=enabled,
-        cpu=cpu,
-        cuda=cuda,
-        profile_memory=profile_memory,
-        with_stack=with_stack,
-        record_shapes=record_shapes,
-        with_flops=with_flops,
-        wait=wait,
-        warmup=warmup,
-        active=active,
-        repeat=repeat,
-        output_dir=output_dir,
-    )
     return profiler, profiler_cfg
 
 
@@ -160,33 +127,20 @@ def check_schedule(schedule, ref_schedule, num_steps=10):
     assert ref_steps == test_steps
 
 
-def parse_scheduler_cfg(schedule_cfg: DictConfig):
-    return {
-        k: schedule_cfg.get(k, None) for k in ["wait", "warmup", "active", "repeat"]
-    }
-
-
 def test_instantiate_basic(profiler_cfg, reference_profiler_basic):
-    cfg = OmegaConf.create(profiler_cfg)
+    cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
-    # Check that schedule can be instantiated correctly
-    schedule_cfg = cfg[PROFILER_KEY].schedule
-    test_schedule = torch.profiler.schedule(**parse_scheduler_cfg(schedule_cfg))
-    ref_schedule = reference_profiler_basic.schedule
-    check_schedule(ref_schedule, test_schedule)
+    profiler, updated_cfg = _setup_profiler(cfg)
 
-    test_activities = []
-    if cfg[PROFILER_KEY].CPU:
-        test_activities.append(torch.profiler.ProfilerActivity.CPU)
-    if cfg[PROFILER_KEY].CUDA:
-        test_activities.append(torch.profiler.ProfilerActivity.CUDA)
-    trace_cfg = {
-        k: cfg[PROFILER_KEY].get(k, None) for k in PROFILER_ATTRS if k != "activities"
-    }
-    test_profiler = torch.profiler.profile(
-        activities=test_activities, schedule=test_schedule, **trace_cfg
+    check_profiler_attrs(profiler, reference_profiler_basic)
+
+    ref_schedule = torch.profiler.schedule(
+        wait=updated_cfg["wait_steps"],
+        warmup=updated_cfg["warmup_steps"],
+        active=updated_cfg["active_steps"],
+        repeat=updated_cfg["num_cycles"],
     )
-    check_profiler_attrs(test_profiler, reference_profiler_basic)
+    check_schedule(profiler.schedule, ref_schedule)
 
 
 def test_instantiate_full(profiler_cfg, reference_profiler_full):
@@ -210,44 +164,35 @@ def test_schedule_setup(profiler_cfg, reference_profiler_basic):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
     # Test that after removing schedule, setup method will implement default schedule
-    cfg.pop("schedule")
-    profiler, updated_cfg = _setup_profiler(cfg)
-    test_schedule = profiler.schedule
-    ref_schedule = torch.profiler.schedule(**DEFAULT_SCHEDULE)
-    check_schedule(ref_schedule, test_schedule)
-    for k in ["wait", "warmup", "active", "repeat"]:
-        assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
-
-    # Test missing key is automatically set to default
-    for k in ["wait", "warmup", "active", "repeat"]:
-        cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
-        cfg.schedule.pop(k)
-        profiler, updated_cfg = _setup_profiler(cfg)
-        assert updated_cfg.schedule[k] == DEFAULT_SCHEDULE[k]
-
-    # Test repeat is set to 1 if missing but all other schedule keys are present
-    cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
-    cfg.schedule.pop("repeat")
+    _ = [cfg.pop(k) for k in DEFAULT_SCHEDULE.keys()]
     profiler, updated_cfg = _setup_profiler(cfg)
     test_schedule = profiler.schedule
     ref_schedule = torch.profiler.schedule(
-        wait=cfg.schedule.wait,
-        warmup=cfg.schedule.warmup,
-        active=cfg.schedule.active,
-        repeat=1,
+        wait=DEFAULT_SCHEDULE["wait_steps"],
+        warmup=DEFAULT_SCHEDULE["warmup_steps"],
+        active=DEFAULT_SCHEDULE["active_steps"],
+        repeat=DEFAULT_SCHEDULE["num_cycles"],
     )
-    num_steps_per_cycle = cfg.schedule.wait + cfg.schedule.warmup + cfg.schedule.active
-    # Repeat means only 1 cycle, hence we check 2 cycles
-    check_schedule(ref_schedule, test_schedule, num_steps=2 * num_steps_per_cycle)
-    assert updated_cfg.schedule.repeat == 1
+    check_schedule(ref_schedule, test_schedule)
+
+    # Check cfg is updated correctly
+    for k in DEFAULT_SCHEDULE.keys():
+        assert updated_cfg[k] == DEFAULT_SCHEDULE[k]
+
+    # Test missing key is automatically set to default
+    for k in DEFAULT_SCHEDULE.keys():
+        cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
+        cfg.pop(k)
+        profiler, updated_cfg = _setup_profiler(cfg)
+        assert updated_cfg[k] == DEFAULT_SCHEDULE[k]
 
 
 def test_default_activities(profiler_cfg):
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
 
     # Test setup automatically adds CPU + CUDA tracing if neither CPU nor CUDA is specified
-    cfg.pop("CPU")
-    cfg.pop("CUDA")
+    cfg.pop("cpu")
+    cfg.pop("cuda")
     profiler, updated_cfg = _setup_profiler(cfg)
     assert profiler.activities == DEFAULT_PROFILER_ACTIVITIES
     assert updated_cfg.CPU is True
@@ -283,25 +228,25 @@ def test_default_trace_opts(profiler_cfg):
         assert updated_cfg[k] == DEFAULT_TRACE_OPTS[k]
 
 
-def test_fake_profiler(profiler_cfg):
+def test_dummy_profiler(profiler_cfg):
 
     # Test missing `profile` key returns fake profiler
     cfg = OmegaConf.create(profiler_cfg)
     cfg.pop(PROFILER_KEY)
     profiler, _ = _setup_profiler(cfg)
-    assert isinstance(profiler, FakeProfiler)
+    assert isinstance(profiler, DummyProfiler)
 
     # Test that disabled profiler creates fake profiler
     cfg = OmegaConf.create(profiler_cfg)[PROFILER_KEY]
     cfg.enabled = False
     profiler, _ = _setup_profiler(cfg)
-    assert isinstance(profiler, FakeProfiler)
+    assert isinstance(profiler, DummyProfiler)
 
     # Test that fake_profiler.step() does nothing both when used as context manager and as standalone object
     with profiler as prof:
         prof.step()
 
-    # Additional FakeProfiler no-ops when used as object and not context
+    # Additional DummyProfiler no-ops when used as object and not context
     assert profiler.step() is None
     assert profiler.start() is None
     assert profiler.stop() is None

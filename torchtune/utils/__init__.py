@@ -34,7 +34,7 @@ from ._profiler import (
     DEFAULT_PROFILER_ACTIVITIES,
     DEFAULT_SCHEDULE,
     DEFAULT_TRACE_OPTS,
-    FakeProfiler,
+    DummyProfiler,
     PROFILER_KEY,
     setup_torch_profiler,
 )
@@ -93,7 +93,7 @@ __all__ = [
     "DEFAULT_PROFILER_ACTIVITIES",
     "DEFAULT_SCHEDULE",
     "DEFAULT_TRACE_OPTS",
-    "FakeProfiler",
+    "DummyProfiler",
     "PROFILER_KEY",
     "setup_torch_profiler",
     "get_quantizer_mode",

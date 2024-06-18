@@ -30,10 +30,10 @@ DEFAULT_PROFILER_ACTIVITIES = {
 }
 
 DEFAULT_SCHEDULE: dict = {
-    "wait": 5,
-    "warmup": 5,
-    "active": 2,
-    "repeat": 1,
+    "wait_steps": 5,
+    "warmup_steps": 5,
+    "active_steps": 2,
+    "num_cycles": 1,
 }
 
 DEFAULT_TRACE_OPTS: dict = {
@@ -135,7 +135,7 @@ def trace_handler(
         torch.distributed.barrier()
 
 
-class FakeProfiler:
+class DummyProfiler:
     """
     Drop-in replacement for torch.profiler.profile that functions as a nullcontext / object
     with no-op methods for `start`, `stop`, and `step`.
@@ -145,7 +145,7 @@ class FakeProfiler:
 
     E.g.,
     ```
-        profiler = FakeProfiler()
+        profiler = DummyProfiler()
         #profiler = torch.profiler.profile()
 
         # Below is same regardless of profiler object type
@@ -177,14 +177,16 @@ def setup_torch_profiler(
     enabled: bool = False,
     cpu: bool = True,
     cuda: bool = True,
-    profile_memory: bool = False,
-    with_stack: bool = False,
-    record_shapes: bool = False,
-    with_flops: bool = False,
-    wait: Optional[int] = None,
-    warmup: Optional[int] = None,
-    active: Optional[int] = None,
-    repeat: Optional[int] = None,
+    profile_memory: bool = DEFAULT_TRACE_OPTS["profile_memory"],
+    with_stack: bool = DEFAULT_TRACE_OPTS["with_stack"],
+    record_shapes: bool = DEFAULT_TRACE_OPTS["record_shapes"],
+    with_flops: bool = DEFAULT_TRACE_OPTS["with_flops"],
+    # `torch.profiler.schedule` args - note we defer setting these to enable more fine-grained
+    # warnings within this setup function
+    wait_steps: Optional[int] = None,
+    warmup_steps: Optional[int] = None,
+    active_steps: Optional[int] = None,
+    num_cycles: Optional[int] = None,
     output_dir: Optional[str] = None,
 ) -> Tuple[torch.profiler.profile, DictConfig]:
     """
@@ -199,8 +201,8 @@ def setup_torch_profiler(
         output_dir: str
 
         #`torch.profiler.ProfilerActivity` types to trace
-        CPU: bool
-        CUDA: bool
+        cpu: bool
+        cuda: bool
 
         #Trace options
         profile_memory: bool
@@ -209,11 +211,10 @@ def setup_torch_profiler(
         with_flops: bool
 
         #`torch.profiler.schedule` args
-        schedule:
-            wait: int
-            warmup: int
-            active: int
-            repeat: int
+        wait_steps: int
+        warmup_steps: int
+        active_steps: int
+        num_cycles: int
     ```
 
     Args:
@@ -222,14 +223,13 @@ def setup_torch_profiler(
         cuda (bool): Enable cuda profiling. Default is True.
         profile_memory (bool): Profile memory usage. Default is False.
         with_stack (bool): Profile stack. Default is False.
-        record_shapes (bool): Record shapes. Default is False.
+        record_shapes (bool): Record shapes. Default is True.
         with_flops (bool): Profile flops. Default is False.
-        wait (Optional[int]): Wait time in steps. Default is None.
-        warmup (Optional[int]): Warmup time in steps. Default is None.
-        active (Optional[int]): Active time in steps. Default is None.
-        repeat (Optional[int]): Repeat time in steps. Default is None.
-        output_dir (Optional[str]): Tracing file output path. Default is None.
-        return_cfg (bool): Return updated profiler config. Default is False.
+        wait_steps (Optional[int]): Wait time in steps. Maps to `wait` kwarg of `torch.profiler.schedule`.
+        warmup_steps (Optional[int]): Warmup time in steps. Maps to `warmup` kwarg of `torch.profiler.schedule`.
+        active_steps (Optional[int]): Active time in steps. Maps to `active` kwarg of `torch.profiler.schedule`.
+        num_cycles (Optional[int]): Number of profiling cycles. Maps to `repeat` kwarg of `torch.profiler.schedule`.
+        output_dir (Optional[str]): Tracing file output path.
 
     Returns:
         tuple: [torch.profiler.profile, DictConfig]
@@ -249,11 +249,14 @@ def setup_torch_profiler(
             - e.g., if `gradient_accumulation = 2`, then the profiler will step every 2 batches.
         - sensible defaults will be chosen if the config is missing options
             - if no activities are specified, profiler will default to CPU + CUDA
-            - if no schedule is specified, profiler will default to wait 10, warmup 5, active 3, repeat 1
-            - if a schedule is specified, profiler will validate that the schedule is valid and can be passed to `instantiate`
+            - similarly, if no schedule is specified, profiler will default to DEFAULT_SCHEDULE
             - certain options will be overridden (`with_stack` and `record_shapes`) depending on requirements of other options
                 - e.g., `profile_memory` requires `with_stack` and `record_shapes`
     """
+
+    if not enabled:
+        _warn(" Profiling disabled.")
+        return DummyProfiler(), DictConfig({"enabled": False})
 
     # Set up profiler activities
     activities = []
@@ -274,7 +277,12 @@ def setup_torch_profiler(
 
     # Set up profiler schedule
     use_default_schedule = not any(
-        [wait is not None, warmup is not None, active is not None, repeat is not None]
+        [
+            wait_steps is not None,
+            warmup_steps is not None,
+            active_steps is not None,
+            num_cycles is not None,
+        ]
     )
 
     # Use default schedule if None, else validate that schedule is valid and can be passed to `instantiate`
@@ -287,10 +295,10 @@ def setup_torch_profiler(
         )
     else:
         schedule_args = {
-            "wait": wait,
-            "warmup": warmup,
-            "active": active,
-            "repeat": repeat,
+            "wait_steps": wait_steps,
+            "warmup_steps": warmup_steps,
+            "active_steps": active_steps,
+            "num_cycles": num_cycles,
         }
         missing_keys = [k for k in schedule_args.keys() if schedule_args[k] is None]
         if len(missing_keys) > 0:
@@ -302,7 +310,12 @@ def setup_torch_profiler(
                     ", ".join(f"{k} = {schedule_args[k]}" for k in missing_keys),
                 )
             )
-    schedule = torch.profiler.schedule(**schedule_args)
+    schedule = torch.profiler.schedule(
+        wait=schedule_args["wait_steps"],
+        warmup=schedule_args["warmup_steps"],
+        active=schedule_args["active_steps"],
+        repeat=schedule_args["num_cycles"],
+    )
 
     # profile_memory requires with_stack and record_shapes, hence we override these if profile_memory is True
     # See torch.profiler.profiler._memory_profile
@@ -345,13 +358,13 @@ def setup_torch_profiler(
         {
             "enabled": enabled,
             "output_dir": output_dir,
-            "CPU": cpu,
-            "CUDA": cuda,
+            "cpu": cpu,
+            "cuda": cuda,
             "profile_memory": profile_memory,
             "with_stack": with_stack,
             "record_shapes": record_shapes,
             "with_flops": with_flops,
-            "schedule": schedule_args,
+            **schedule_args,
         }
     )
 

@@ -28,14 +28,7 @@ from torchtune.modules.peft.peft_utils import (
     validate_missing_and_unexpected_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
-from torchtune.utils import (
-    DEFAULT_PROFILE_DIR,
-    DEFAULT_SCHEDULE,
-    DEFAULT_TRACE_OPTS,
-    FakeProfiler,
-    PROFILER_KEY,
-    setup_torch_profiler,
-)
+from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -272,13 +265,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
-        # Set up profiler, returns FakeProfiler (nullcontext object with no-op `step` method)
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
         # if cfg is missing profiler key or if `cfg.profiler.enabled = False
-        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None), log_cfg=True)
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
 
     def _setup_profiler(
-        self, cfg_profiler: DictConfig, log_cfg: bool = False
-    ) -> torch.profiler.profile | FakeProfiler:
+        self, cfg_profiler: DictConfig
+    ) -> torch.profiler.profile | DummyProfiler:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
@@ -291,7 +284,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             such as the `schedule`, `log_cfg` can be used for easy logging / debugging of all profiler options post setup.
 
         Returns:
-            profiler: torch.profiler.profile | FakeProfiler - FakeProfiler is a nullcontext with no-op methods
+            profiler: torch.profiler.profile | DummyProfiler - DummyProfiler is a nullcontext with no-op methods
             for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
             that the instrumented training loop does not need to be changed profiling is disabled.
             profiler_cfg: Optional[DictConfig]
@@ -305,8 +298,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             output_dir: str
 
             #`torch.profiler.ProfilerActivity` types to trace
-            CPU: bool
-            CUDA: bool
+            cpu: bool
+            cuda: bool
 
             #Trace options
             profile_memory: bool
@@ -314,75 +307,31 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             record_shapes: bool
             with_flops: bool
 
-            #`torch.profiler.schedule` args
-            schedule:
-                wait: int
-                warmup: int
-                active: int
-                repeat: int
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
         ```
         """
 
-        enabled = cfg_profiler is not None and cfg_profiler.get("enabled", True)
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
 
-        if not enabled:
-            log.info(" Profiling disabled.")
-            return FakeProfiler()
-
-        # Set up profiler activities
-        cpu = cfg_profiler.get("CPU", True)
-        cuda = cfg_profiler.get("CUDA", True)
-
-        profile_memory = cfg_profiler.get(
-            "profile_memory", DEFAULT_TRACE_OPTS["profile_memory"]
-        )
-        with_stack = cfg_profiler.get("with_stack", DEFAULT_TRACE_OPTS["with_stack"])
-        record_shapes = cfg_profiler.get(
-            "record_shapes", DEFAULT_TRACE_OPTS["record_shapes"]
-        )
-        with_flops = cfg_profiler.get("with_flops", DEFAULT_TRACE_OPTS["with_flops"])
-        output_dir = cfg_profiler.get("output_dir", DEFAULT_PROFILE_DIR)
-
-        # Parse schedule specific args
-        schedule_cfg = cfg_profiler.get("schedule", None)
-
-        # Check for schedule
-        # 1) If no schedule is provided, set to DEFAULT_SCHEDULE
-        # 2) else check for missing keys and warn if any are missing, setting these to defaults
-        if schedule_cfg is None:
-            schedule_cfg = DEFAULT_SCHEDULE
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
         else:
-            schedule_cfg = {
-                k: schedule_cfg.get(k, None) for k in DEFAULT_SCHEDULE.keys()
-            }
-            missing_keys = [k for k in schedule_cfg.keys() if schedule_cfg[k] is None]
-            if len(missing_keys) > 0:
-                for k in missing_keys:
-                    schedule_cfg[k] = DEFAULT_SCHEDULE[k]
-                log.warning(
-                    " Missing keys in schedule config {}: defaulting to {}".format(
-                        ", ".join(missing_keys),
-                        ", ".join(f"{k} = {schedule_cfg[k]}" for k in missing_keys),
-                    )
-                )
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.utils.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
 
-        # Delegate setup of actual profiler and optionally return updated profiler config
-        profiler, profiler_cfg = setup_torch_profiler(
-            enabled=enabled,
-            cpu=cpu,
-            cuda=cuda,
-            profile_memory=profile_memory,
-            with_stack=with_stack,
-            record_shapes=record_shapes,
-            with_flops=with_flops,
-            output_dir=output_dir,
-            **schedule_cfg,
-        )
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
 
-        if log_cfg:
-            log.info(f" Profiler config after instantiation: {profiler_cfg}")
-        else:
-            log.info(" Profiler instantiated.")
+        log.info(f" Profiler config after instantiation: {profiler_cfg}")
 
         return profiler
 
