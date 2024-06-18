@@ -8,6 +8,7 @@ import os
 from typing import Optional
 
 import torch
+import intel_extension_for_pytorch
 
 
 def _get_local_rank() -> Optional[int]:
@@ -37,15 +38,27 @@ def _setup_cuda_device(device: torch.device) -> torch.device:
     """
     local_rank = _get_local_rank() or 0
     if device.index is None:
-        device = torch.device(type="cuda", index=local_rank)
-
+        if torch.xpu.is_available():
+            device = torch.device(type="xpu", index=local_rank)
+        else:
+            device = torch.device(type="cuda", index=local_rank)
+    
+    print("=====device: ", device)
     # Ensure index is available before setting device
-    if device.index >= torch.cuda.device_count():
-        raise RuntimeError(
-            "The local rank is larger than the number of available GPUs."
-        )
-
-    torch.cuda.set_device(device)
+    if torch.xpu.is_available():
+        if device.index >= torch.xpu.device_count():
+            raise RuntimeError(
+                "The local rank is larger than the number of available GPUs."
+            )
+        torch.xpu.set_device(device)
+    else:
+        if device.index >= torch.cuda.device_count():
+            raise RuntimeError(
+                "The local rank is larger than the number of available GPUs."
+            )
+        torch.cuda.set_device(device)
+    
+    
     return device
 
 
@@ -114,7 +127,7 @@ def get_device(device: Optional[str] = None) -> torch.device:
     if device is None:
         device = _get_device_type_from_env()
     device = torch.device(device)
-    if device.type == "cuda":
+    if device.type == "cuda" or "xpu":
         device = _setup_cuda_device(device)
     _validate_device_from_env(device)
     return device

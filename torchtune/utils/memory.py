@@ -48,8 +48,12 @@ def cleanup_before_training() -> None:
     Call gc collect, empty CUDA cache, and reset peak memory stats.
     """
     gc.collect()
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
+    if torch.xpu.is_available():
+        torch.xpu.empty_cache()
+        torch.xpu.reset_peak_memory_stats()
+    else:        
+        torch.cuda.empty_cache()
+        torch.cuda.reset_peak_memory_stats()
 
 
 class OptimizerInBackwardWrapper:
@@ -202,17 +206,26 @@ def get_memory_stats(device: torch.device, reset_stats: bool = True) -> dict:
     Raises:
         ValueError: If the passed-in device is not CUDA.
     """
-    if device.type != "cuda":
-        raise ValueError(
-            f"Logging memory stats is only supported on CUDA devices, got {device}"
-        )
-
-    peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
-    peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
-    peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
+    if torch.xpu.is_available():
+        peak_memory_active = torch.xpu.memory_stats().get("active_bytes.all.peak", 0) / 1e9
+        peak_mem_alloc = torch.xpu.max_memory_allocated(device) / 1e9
+        peak_mem_reserved = torch.xpu.max_memory_reserved(device) / 1e9
 
     if reset_stats:
-        torch.cuda.reset_peak_memory_stats(device)
+        torch.xpu.reset_peak_memory_stats(device)
+        
+    else:
+        if device.type != "cuda":
+            raise ValueError(
+                f"Logging memory stats is only supported on CUDA devices, got {device}"
+            )
+
+        peak_memory_active = torch.cuda.memory_stats().get("active_bytes.all.peak", 0) / 1e9
+        peak_mem_alloc = torch.cuda.max_memory_allocated(device) / 1e9
+        peak_mem_reserved = torch.cuda.max_memory_reserved(device) / 1e9
+
+        if reset_stats:
+            torch.cuda.reset_peak_memory_stats(device)
 
     memory_stats = {
         "peak_memory_active": peak_memory_active,

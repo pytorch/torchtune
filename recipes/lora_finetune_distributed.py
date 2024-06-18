@@ -37,6 +37,8 @@ from torchtune.modules.peft.peft_utils import (
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
+import intel_extension_for_pytorch
+import oneccl_bindings_for_pytorch
 
 log = utils.get_logger("DEBUG")
 
@@ -361,7 +363,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
                 lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                    device=torch.device("xpu") if torch.xpu.is_available() else torch.device("cuda"), recurse=False
                 )
                 if not self._is_rank_zero
                 else None
@@ -670,7 +672,10 @@ def recipe_main(cfg: DictConfig) -> None:
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
     os.environ["TORCH_NCCL_AVOID_RECORD_STREAMS"] = "1"
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    if torch.xpu.is_available():
+        init_process_group(backend="ccl")
+    else:
+        init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
 
     config.log_config(recipe_name="LoRAFinetuneRecipeDistributed", cfg=cfg)
 

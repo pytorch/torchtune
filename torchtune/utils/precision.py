@@ -20,6 +20,7 @@ PRECISION_STR_TO_DTYPE: Dict[str, torch.dtype] = {
     "fp32": torch.float32,
     "fp64": torch.float64,
 }
+import intel_extension_for_pytorch
 
 
 def _set_float32_precision(precision: str = "high") -> None:
@@ -55,12 +56,16 @@ def verify_bf16_support() -> bool:
         bool: True if bf16 is available, False otherwise.
 
     """
-    return (
-        torch.cuda.is_available()
-        and torch.cuda.is_bf16_supported()
-        and torch.distributed.is_nccl_available()
-        and torch.cuda.nccl.version() >= (2, 10)
-    )
+    if torch.cuda.is_available():
+        return (
+            torch.cuda.is_available()
+            and torch.cuda.is_bf16_supported()
+            and torch.distributed.is_nccl_available()
+            and torch.cuda.nccl.version() >= (2, 10)
+        )
+    elif torch.xpu.is_available():
+        return True
+    return False
 
 
 def get_dtype(

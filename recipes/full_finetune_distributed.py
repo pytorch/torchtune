@@ -32,6 +32,8 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
+import intel_extension_for_pytorch
+import oneccl_bindings_for_pytorch
 
 
 log = utils.get_logger("DEBUG")
@@ -316,6 +318,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
         # Wrap the model with FSDP. This will ensure that the model is sharded
         # across all available GPUs.
+        print("====self.device: ", self._device)
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.get_full_finetune_fsdp_wrap_policy(
@@ -332,7 +335,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             # Initialize empty modules on all non-zero ranks
             param_init_fn=(
                 lambda module: module.to_empty(
-                    device=torch.device("cuda"), recurse=False
+                    device=torch.device("xpu") if torch.xpu.is_available() else torch.device("cuda"), recurse=False
                 )
                 if not self._is_rank_zero
                 else None
@@ -588,8 +591,10 @@ def recipe_main(cfg: DictConfig) -> None:
             "Distributed finetune recipe should be run via a distributed launcher."
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
-
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    if torch.xpu.is_available():
+        init_process_group(backend="ccl")
+    else:
+        init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
     if cfg.get("fsdp_cpu_offload", False):
         # Utilize all available CPU cores for intra-op parallelism. This provides ~2x
         # speed up when benchmarking fused AdamW on CPU

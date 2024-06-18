@@ -29,6 +29,7 @@ from torchtune.modules.peft.peft_utils import (
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from tqdm import tqdm
+import intel_extension_for_pytorch
 
 log = utils.get_logger("DEBUG")
 
@@ -107,13 +108,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             raise ValueError(
                 "fp16 precision is not supported in this recipe. Please use fp32 or bf16."
             )
+            
+        if torch.cuda.is_available():
         # For CUDA devices, check if the HW supports bf16 if bf16 is specified.
-        if (
-            self._dtype == torch.bfloat16
-            and self._device != torch.device("cpu")
-            and not torch.cuda.is_bf16_supported()
-        ):
-            raise RuntimeError("Full bf16 training is not supported on this hardware.")
+            if (
+                self._dtype == torch.bfloat16
+                and self._device != torch.device("cpu")
+                and not torch.cuda.is_bf16_supported()
+            ):
+                raise RuntimeError("Full bf16 training is not supported on this hardware.")
+        
         # logging attributes
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)

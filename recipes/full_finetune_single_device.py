@@ -23,6 +23,7 @@ from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
+import intel_extension_for_pytorch
 
 
 log = utils.get_logger("DEBUG")
@@ -95,6 +96,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
 
     def __init__(self, cfg: DictConfig) -> None:
+        print("=====cfg: ", cfg)
+        print("=====cfg.device: ", cfg.device)
         self._device = utils.get_device(device=cfg.device)
         self._dtype = utils.get_dtype(cfg.dtype, device=self._device)
         # Disable for fp16, as we haven't validated "full" fp16 with this recipe, nor
