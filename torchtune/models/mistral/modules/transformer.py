@@ -221,8 +221,8 @@ class TransformerLM(nn.Module):
     def forward(
         self,
         tokens: Tensor,
-        input_pos: Optional[Tensor] = None,
         *,
+        input_pos: Optional[Tensor] = None,
         mask: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -250,7 +250,7 @@ class TransformerLM(nn.Module):
             - m_s: max seq len
         """
         # shape: [b, s, d]
-        h = self.decoder(tokens, input_pos, mask)
+        h = self.decoder(tokens, input_pos=input_pos, mask=mask)
 
         # shape: [b, s, v]
         lm_output = self.output(h).float()

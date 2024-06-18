@@ -600,7 +600,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     # values are masked up to and including the first padding token
                     # see https://github.com/huggingface/trl/blob/f5168fdbaf9cbf6a3f1bdc64dc44b9db3a9ae333/
                     #   trl/trainer/ppov2_trainer.py#L354
-                    # and the link to the excalidaw for a visual explanation
+                    # and the link to the excalidaw therein for a visual explanation
                     value_padding_masks = padding_masks.clone()
                     valid_response_lengths = (
                         self.max_generated_tokens
@@ -639,10 +639,11 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                     del eos_mask, scores, valid_response_lengths
 
                 # trajectory generated! time to optimise
-                policy_kls = []
+                approx_policy_kls = []
                 losses = []
                 policy_losses = []
                 value_losses = []
+                entropies = []
                 for _ in range(self.ppo_epochs):
                     # TODO (SalmanMohammadi): Add support for early stopping
                     # shuffle batch indices every epoch
@@ -717,14 +718,20 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 padding_masks=backwards_padding_masks,
                                 value_padding_masks=backwards_value_padding_masks,
                             )
-                            policy_kls.append(
+
+                            prob_dist = torch.nn.functional.softmax(pi_logits, dim=-1)
+                            entropy = torch.logsumexp(pi_logits, dim=-1) - torch.sum(
+                                prob_dist * pi_logits, dim=-1
+                            )
+                            entropies.append(entropy.mean())
+                            approx_policy_kls.append(
                                 (0.5 * (pi_logprobs - backward_logprobs).pow(2)).mean()
                             )
                             losses.append(loss.detach().item())
                             policy_losses.append(policy_loss.item())
                             value_losses.append(value_loss.item())
+
                             loss.backward()
-                            # grab some some stats for logging
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
@@ -742,7 +749,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                 "kl": kl.sum(1).mean().item(),
                 "policy_loss": torch.tensor(policy_losses).mean().item(),
                 "value_loss": torch.tensor(value_losses).mean().item(),
-                "approx_policy_kl": torch.tensor(policy_kls).mean().item(),
+                "approx_policy_kl": torch.tensor(approx_policy_kls).mean().item(),
+                "entropy": torch.tensor(entropies).mean().item(),
             }
             self._metric_logger.log_dict(
                 log_dict,

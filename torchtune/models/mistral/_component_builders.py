@@ -909,7 +909,7 @@ def mistral_lm_with_value_head(
         norm=RMSNorm(embed_dim, eps=norm_eps),
     )
     lm_output_proj = nn.Linear(embed_dim, vocab_size, bias=False)
-    return TransformerLMWithValueHead(decoder=decoder, lm_output=lm_output_proj, embed_dim=embed_dim)
+    return TransformerLMWithValueHead(decoder=decoder, output=lm_output_proj, embed_dim=embed_dim)
 
 
 def lora_mistral_lm_with_value_head(
