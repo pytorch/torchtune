@@ -29,7 +29,7 @@ class TestLeftPaddedCollate:
                 "tokens": [3],
             },
             {
-                "tokens": [4, 5, 6],
+                "tokens": [4, 5, 6, 7],
             },
         ]
         padded_tokens = left_padded_collate(
@@ -40,7 +40,7 @@ class TestLeftPaddedCollate:
             [
                 [padding_idx, padding_idx, 1, 2],
                 [padding_idx, padding_idx, padding_idx, 3],
-                [padding_idx, 4, 5, 6],
+                [4, 5, 6, 7],
             ]
         )
         torch.testing.assert_close(padded_tokens, expected_padded_tokens)

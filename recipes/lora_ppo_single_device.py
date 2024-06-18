@@ -669,8 +669,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 if position_ids is not None
                                 else None
                             )
-                            backwards_padding_masks = padding_masks[backward_batch_idxs]
-                            backwards_value_padding_masks = value_padding_masks[
+                            backward_padding_masks = padding_masks[backward_batch_idxs]
+                            backward_value_padding_masks = value_padding_masks[
                                 backward_batch_idxs
                             ]
                             backward_values = values[backward_batch_idxs]
@@ -688,7 +688,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 -1
                             )
                             phi_output = phi_output.masked_fill(
-                                backwards_value_padding_masks, 0.0
+                                backward_value_padding_masks, 0.0
                             )
 
                             pi_logits = pi_logits[:, context_length - 1 : -1]
@@ -702,7 +702,7 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                             ).squeeze(-1)
 
                             pi_logprobs = pi_logprobs.masked_fill(
-                                backwards_padding_masks, 1.0
+                                backward_padding_masks, 1.0
                             )
 
                             loss, policy_loss, value_loss = self._loss_fn(
@@ -711,8 +711,8 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                                 backward_advantages,
                                 backward_values,
                                 backward_returns,
-                                padding_masks=backwards_padding_masks,
-                                value_padding_masks=backwards_value_padding_masks,
+                                padding_masks=backward_padding_masks,
+                                value_padding_masks=backward_value_padding_masks,
                             )
 
                             prob_dist = torch.nn.functional.softmax(pi_logits, dim=-1)
@@ -731,6 +731,20 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
                             self._optimizer.step()
                             self._optimizer.zero_grad(set_to_none=True)
 
+                            del (
+                                pi_logits,
+                                phi_output,
+                                pi_logprobs,
+                                backward_logprobs,
+                                backward_query_responses,
+                                backward_masks,
+                                backward_position_ids,
+                                backward_padding_masks,
+                                backward_value_padding_masks,
+                                backward_values,
+                                backward_returns,
+                                backward_advantages,
+                            )
             self.epochs_run += 1
             # self.save_checkpoint(epoch=curr_epoch)
             pbar.update(1)
@@ -756,6 +770,24 @@ class LoRAPPORecipeSingleDevice(FTRecipeInterface):
             self.kl_controller.update(kl.sum(1).mean().item(), curr_epoch)
 
             # delete values and clear cache
+            del (
+                returns,
+                advantages,
+                logprobs,
+                ref_logprobs,
+                rewards,
+                kl,
+                kl_rewards,
+                query_responses,
+                masks,
+                padding_masks,
+                value_padding_masks,
+                values,
+            )
+            if self._device.type == "cuda":
+                torch.cuda.empty_cache()
+            elif self._device.type == "mps":
+                torch.mps.empty_cache()
 
     def cleanup(self, **kwargs) -> None:
         self._metric_logger.close()
