@@ -12,9 +12,11 @@ from typing import Any, Callable, cast, Dict, Set, Tuple, Type
 
 import torch
 import torch.distributed as dist
+from packaging import version
 from torch import nn
 
 from torch.distributed._tensor import distribute_tensor, DTensor
+from torch.distributed._tensor.placement_types import DTensorSpec, TensorMeta
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     _CHECKPOINT_WRAPPED_MODULE,
 )
@@ -318,15 +320,33 @@ def load_from_full_model_state_dict(
             chunk = list(torch.chunk(full_tensor, shard_world_size, dim=0))[shard_rank]
             sharded_param = full_tensor.new_zeros(chunk.size())
             sharded_param[: chunk.size(0)].copy_(chunk)
-            sharded_tensor = DTensor(
-                sharded_param,
-                sharded_meta_param.device_mesh,
-                sharded_meta_param.placements,
-                shape=sharded_meta_param.size(),
-                dtype=sharded_meta_param.dtype,
-                requires_grad=sharded_meta_param.requires_grad,
-                stride=sharded_meta_param.stride(),
-            )
+            # BC-breaking change to DTensor API in https://github.com/pytorch/pytorch/pull/128112
+            # TODO: change to from_local API (need to add view support for NF4)
+            if version.parse(torch.__version__) >= version.parse("2.4.0.dev20240606"):
+                sharded_tensor = DTensor(
+                    local_tensor=sharded_param,
+                    spec=DTensorSpec(
+                        mesh=sharded_meta_param.device_mesh,
+                        placements=sharded_meta_param.placements,
+                        tensor_meta=TensorMeta(
+                            shape=sharded_meta_param.size(),
+                            dtype=sharded_meta_param.dtype,
+                            stride=sharded_meta_param.stride(),
+                        ),
+                    ),
+                    requires_grad=sharded_meta_param.requires_grad,
+                )
+            else:
+                sharded_tensor = DTensor(
+                    sharded_param,
+                    sharded_meta_param.device_mesh,
+                    sharded_meta_param.placements,
+                    shape=sharded_meta_param.size(),
+                    dtype=sharded_meta_param.dtype,
+                    requires_grad=sharded_meta_param.requires_grad,
+                    stride=sharded_meta_param.stride(),
+                )
+
         else:
             sharded_tensor = distribute_tensor(
                 full_tensor,
