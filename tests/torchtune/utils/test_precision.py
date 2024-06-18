@@ -58,12 +58,18 @@ class TestPrecisionUtils:
 
     @pytest.mark.skipif(not cuda_available, reason="The test requires GPUs to run.")
     def test_set_float32_precision(self) -> None:
+        setattr(  # noqa: B010
+            torch.backends, "__allow_nonbracketed_mutation_flag", True
+        )
         _set_float32_precision("highest")
         assert torch.get_float32_matmul_precision() == "highest"
         assert not torch.backends.cudnn.allow_tf32
         assert not torch.backends.cuda.matmul.allow_tf32
 
         _set_float32_precision("high")
+        setattr(  # noqa: B010
+            torch.backends, "__allow_nonbracketed_mutation_flag", False
+        )
         assert torch.get_float32_matmul_precision() == "high"
         assert torch.backends.cudnn.allow_tf32
         assert torch.backends.cuda.matmul.allow_tf32
