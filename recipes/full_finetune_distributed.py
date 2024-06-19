@@ -490,7 +490,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
 
         # Early exit loss settings
-        output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+        if self.early_exit_layers:
+            output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+        else:
+            output_hidden_states = False
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -533,8 +536,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 loss = self._loss_fn(logits, labels)
 
                 # Compute early exit loss
-                # TODO: change condition to "if early_exit_loss"
-                if self._model.output_hidden_states:
+                if self.early_exit_layers:
                     loss += early_exit_loss(self._model, self._model.output_hidden_states, labels, self._loss_fn)
 
                 loss = loss / self._gradient_accumulation_steps

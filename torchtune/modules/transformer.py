@@ -142,7 +142,7 @@ class TransformerDecoder(nn.Module):
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
-        layer_dropout_prob: float = 0.5,
+        layer_dropout_prob: float = 0.0,
         layer_dropout_prob_layer_scale: str = "exp",
         layer_dropout_str: str = ":",
     ) -> None:
