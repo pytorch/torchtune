@@ -25,9 +25,9 @@ from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    notify_base_params_loaded,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
-    notify_base_params_loaded,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils import DummyProfiler, PROFILER_KEY

@@ -239,16 +239,8 @@ def get_merged_lora_ckpt(
     for module in lora_modules:
         lora_a_weight = state_dict[f"{module}.lora_a.weight"]
         lora_b_weight = state_dict[f"{module}.lora_b.weight"]
-        base_weight = state_dict[f"{module}.weight"]
+        base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
         lora_magnitude = state_dict.get(f"{module}.lora_magnitude", None)
-
-        print("c", lora_b_weight.dtype, base_weight.dtype, lora_magnitude.dtype)
-        original_dtype = lora_a_weight.dtype
-        # lora_a_weight = lora_a_weight.to(torch.float32)
-        # lora_b_weight = lora_b_weight.to(torch.float32)
-        base_weight = base_weight.to(original_dtype)
-        # if lora_magnitude is not None:
-        #     lora_magnitude = lora_magnitude.to(torch.float32)
 
         lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
         merged_weight = base_weight + lora_weight
