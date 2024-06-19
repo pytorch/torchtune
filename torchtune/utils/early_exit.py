@@ -78,5 +78,4 @@ def layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type: LossScaleType
     loss_scales = loss_scales / torch.sum(loss_scales)
     assert torch.isclose(torch.sum(loss_scales), torch.Tensor([1.0]).to(loss_scales))
 
-    print(loss_scales)
     return loss_scales

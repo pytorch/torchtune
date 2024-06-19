@@ -158,7 +158,6 @@ class TransformerDecoder(nn.Module):
         self.causal_mask = None
 
         self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, layer_dropout_prob_layer_scale, layer_dropout_str)
-        self.output_hidden_states = OrderedDict() # TODO: use tensordict?
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -254,15 +253,22 @@ class TransformerDecoder(nn.Module):
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
 
+        if any(output_hidden_states):
+            hidden_states = OrderedDict() # TODO: use tensordict?
+
         for i, layer in enumerate(self.layers):
             # shape: [b, s, d]
             h = self.layer_dropouts[i](layer, h, mask=mask, input_pos=input_pos)
             if output_hidden_states[i]:
-                self.output_hidden_states[i] = h
+                hidden_states[i] = h
 
         # shape: [b, s, d]
         h = self.norm(h)
 
         # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
-        return output
+
+        if any(output_hidden_states):
+            return output, hidden_states
+        else:
+            return output
