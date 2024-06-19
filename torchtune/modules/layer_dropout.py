@@ -9,7 +9,7 @@ from typing import Callable, Optional
 import math
 import torch
 
-from .common_utils import slice_str_to_array
+from torchtune.modules.common_utils import slice_str_to_array
 
 class LayerDropout(torch.nn.Module):
     def __init__(self, prob=0.0, dim=0, disable_on_eval=True, seed=None):
