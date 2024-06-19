@@ -32,7 +32,7 @@ class LayerDropout(torch.nn.Module):
 
         skip = torch.bernoulli(torch.Tensor((n) * [self.prob]), generator=self.generator).to(input.device).to(input.dtype)
         self.inferred = 1 - torch.mean(skip)
-        ind_selected = (skip == 0).nonzero().squeeze().to(input.device)
+        ind_selected = (skip == 0).nonzero().squeeze()
 
         if ind_selected.numel() > 0:
             x_selected = torch.index_select(input, self.dim, ind_selected)
