@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import copy
 import sys
 import time
 
@@ -503,6 +504,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
+                b, s = tokens.shape
                 # Get the attention mask and position ids from the dataset if they
                 # exist. Currently, only sample packing in PackedDataset returns these
                 mask = batch.get("mask", None)  # shape [b, s, s]
@@ -526,17 +528,35 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Compute early exit loss
                 if self._model.output_hidden_states:
-                    # TODO: calculate early_logits in one shot:
-                    # logits_early = self._model.output(self._model.norm(torch.stack(tuple(self._model.output_hidden_states.values()))))
-                    for layer_id, hidden_state in self._model.output_hidden_states.items():
-                        h_early = self._model.norm(hidden_state)
-                        logits_early = self._model.output(h_early)
-                        # Shift so that tokens < n predict n
-                        logits_early = logits_early[..., :-1, :].contiguous()
-                        logits_early = logits_early.transpose(1, 2)
-                        # Compute early loss
-                        loss_early = self._loss_fn(logits_early, labels)
-                        loss += 0.1 / len(self._model.layers) * loss_early
+                    self._batch_loss_fn = copy.deepcopy(self._loss_fn)
+                    self._batch_loss_fn.reduction = "none"
+
+                    e = len(self._model.output_hidden_states)
+                    # List of e tensors with shape [b, s, d]
+                    hidden_states = tuple(self._model.output_hidden_states.values())
+                    hidden_layer_ids = tuple(self._model.output_hidden_states.keys())
+                    # Shape: [e, b, s, d]
+                    hidden_states_stacked = torch.stack(hidden_states)
+                    # Shape: [e, b, s, out_dim]
+                    logits_early = self._model.output(self._model.norm(hidden_states_stacked))
+                    logits_early = logits_early[..., :-1, :].contiguous()
+                    # Shape: [e*b, s, out_dim]
+                    logits_early = logits_early.flatten(0, 1)
+                    logits_early = logits_early.transpose(1, 2)
+                    # Shape: [e, b*s]
+                    labels_repeated = labels.repeat(e, 1)
+                    # Compute early losses: Shape: [e*b, s]
+                    losses_early = self._batch_loss_fn(logits_early, labels_repeated)
+                    # Shape: [e, b*s]
+                    losses_early = losses_early.view(e, -1)
+                    # Shape: [e]
+                    s_unpadded = (labels != self._loss_fn.ignore_index).sum()
+                    losses_early = losses_early.float().sum(-1) / s_unpadded
+                    # Shape: [e]
+                    losses_scales = 0.1 * torch.Tensor(hidden_layer_ids).to(losses_early) / len(self._model.layers)
+
+                    val1 = torch.sum(losses_scales * losses_early)
+                    loss += val1
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
