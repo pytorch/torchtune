@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import copy
 import sys
 import time
 
@@ -31,6 +30,8 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
+from torchtune.utils.early_exit import early_exit_loss
+from torchtune.modules.common_utils import slice_str_to_array
 
 from tqdm import tqdm
 
@@ -135,6 +136,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        self.early_exit_layers = cfg.get("early_exit_layers", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -486,6 +489,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # Early exit loss settings
+        output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -518,7 +524,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     input_pos.to(self._device) if input_pos is not None else None
                 )
 
-                logits = self._model(tokens, mask=mask, input_pos=input_pos, output_hidden_states=True)
+                logits = self._model(tokens, mask=mask, input_pos=input_pos, output_hidden_states=output_hidden_states)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
@@ -527,36 +533,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 loss = self._loss_fn(logits, labels)
 
                 # Compute early exit loss
+                # TODO: change condition to "if early_exit_loss"
                 if self._model.output_hidden_states:
-                    self._batch_loss_fn = copy.deepcopy(self._loss_fn)
-                    self._batch_loss_fn.reduction = "none"
-
-                    e = len(self._model.output_hidden_states)
-                    # List of e tensors with shape [b, s, d]
-                    hidden_states = tuple(self._model.output_hidden_states.values())
-                    hidden_layer_ids = tuple(self._model.output_hidden_states.keys())
-                    # Shape: [e, b, s, d]
-                    hidden_states_stacked = torch.stack(hidden_states)
-                    # Shape: [e, b, s, out_dim]
-                    logits_early = self._model.output(self._model.norm(hidden_states_stacked))
-                    logits_early = logits_early[..., :-1, :].contiguous()
-                    # Shape: [e*b, s, out_dim]
-                    logits_early = logits_early.flatten(0, 1)
-                    logits_early = logits_early.transpose(1, 2)
-                    # Shape: [e, b*s]
-                    labels_repeated = labels.repeat(e, 1)
-                    # Compute early losses: Shape: [e*b, s]
-                    losses_early = self._batch_loss_fn(logits_early, labels_repeated)
-                    # Shape: [e, b*s]
-                    losses_early = losses_early.view(e, -1)
-                    # Shape: [e]
-                    s_unpadded = (labels != self._loss_fn.ignore_index).sum()
-                    losses_early = losses_early.float().sum(-1) / s_unpadded
-                    # Shape: [e]
-                    losses_scales = 0.1 * torch.Tensor(hidden_layer_ids).to(losses_early) / len(self._model.layers)
-
-                    val1 = torch.sum(losses_scales * losses_early)
-                    loss += val1
+                    loss += early_exit_loss(self._model, self._model.output_hidden_states, labels, self._loss_fn)
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
