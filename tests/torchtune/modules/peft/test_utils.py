@@ -127,10 +127,10 @@ def lora_llama2_expected_adapter_keys():
     for i in range(N_LAYERS):
         keys.extend(
             [
-                f"layers.{i}.attn.q_proj.lora_a.weight",
-                f"layers.{i}.attn.q_proj.lora_b.weight",
-                f"layers.{i}.attn.v_proj.lora_a.weight",
-                f"layers.{i}.attn.v_proj.lora_b.weight",
+                f"layers.{i}.attn.q_proj.lora.a.weight",
+                f"layers.{i}.attn.q_proj.lora.b.weight",
+                f"layers.{i}.attn.v_proj.lora.a.weight",
+                f"layers.{i}.attn.v_proj.lora.b.weight",
             ]
         )
     return keys
@@ -212,8 +212,8 @@ class TestPeftUtils:
                 ["q_proj", "k_proj"],
                 False,
                 False,
-                ["q_proj.lora_a.weight", "dummy_param.weight"],
-                ["q_proj.lora_a.weight"],
+                ["q_proj.lora.a.weight", "dummy_param.weight"],
+                ["q_proj.lora.a.weight"],
                 ["dummy_param.weight"],
                 "",
             ),
@@ -230,8 +230,8 @@ class TestPeftUtils:
                 ["output_proj"],
                 False,
                 True,
-                ["output_proj.weight", "output_proj.lora_a.weight"],
-                ["output_proj.lora_a.weight"],
+                ["output_proj.weight", "output_proj.lora.a.weight"],
+                ["output_proj.lora.a.weight"],
                 ["output_proj.weight"],
                 "",
             ),
@@ -240,8 +240,8 @@ class TestPeftUtils:
                 ["k_proj", "output_proj"],
                 False,
                 True,
-                ["k_proj.lora_a.weight", "param_a"],
-                ["k_proj.lora_a.weight", "param_a"],
+                ["k_proj.lora.a.weight", "param_a"],
+                ["k_proj.lora.a.weight", "param_a"],
                 ["param_a"],
                 "found in LoRA",
             ),
@@ -249,16 +249,16 @@ class TestPeftUtils:
                 ["k_proj"],
                 False,
                 False,
-                ["k_proj.lora_a.weight"],
+                ["k_proj.lora.a.weight"],
                 [],
-                ["k_proj.lora_a.weight"],
+                ["k_proj.lora.a.weight"],
                 "found in base model",
             ),
             (
                 ["k_proj"],
                 False,
                 False,
-                ["k_proj.lora_a.weight"],
+                ["k_proj.lora.a.weight"],
                 [],
                 None,
                 "Missing LoRA",
@@ -269,7 +269,7 @@ class TestPeftUtils:
                 False,
                 False,
                 ["dummy_param.weight"],
-                ["v_proj.lora_a.weight"],
+                ["v_proj.lora.a.weight"],
                 ["dummy_param.weight"],
                 "Extra",
             ),
@@ -277,8 +277,8 @@ class TestPeftUtils:
                 ["w1", "w2", "w3"],
                 True,
                 False,
-                ["w1.lora_a.weight", "w2.weight", "q_proj.weight"],
-                ["w1.lora_a.weight"],
+                ["w1.lora.a.weight", "w2.weight", "q_proj.weight"],
+                ["w1.lora.a.weight"],
                 ["q_proj.weight"],
                 "Missing non-LoRA key",
             ),
@@ -287,12 +287,12 @@ class TestPeftUtils:
                 False,
                 True,
                 [
-                    "q_proj.lora_a",
+                    "q_proj.lora.a",
                     "output.weight",
-                    "output.lora_a",
-                    "output_proj.lora_b",
+                    "output.lora.a",
+                    "output_proj.lora.b",
                 ],
-                ["q_proj.lora_a", "output.lora_a", "output_proj.lora_b"],
+                ["q_proj.lora.a", "output.lora.a", "output_proj.lora.b"],
                 ["output.weight"],
                 "Missing non-LoRA key",
             ),
@@ -413,10 +413,10 @@ class TestGetMergedLoRACkpt:
             LoRALinear(in_dim=4, out_dim=6, rank=RANK, alpha=ALPHA),
             nn.Linear(6, 3),
         )
-        model[0].lora_a.weight = nn.Parameter(
+        model[0].lora.a.weight = nn.Parameter(
             torch.Tensor([[1, 2, 3, 4], [5, 6, 7, 8]])
         )
-        model[0].lora_b.weight = nn.Parameter(
+        model[0].lora.b.weight = nn.Parameter(
             torch.Tensor([[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [11, 12]])
         )
         model[0].weight = nn.Parameter(3 * torch.ones((6, 4)))
