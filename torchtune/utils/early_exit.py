@@ -20,10 +20,6 @@ class LossScaleType(str, Enum):
     INV_SQRT_L = "inv_sqrt_l"
 
 def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=0.1, loss_scale_type=LossScaleType.SUM_L):
-    # Pop last layer as we already calculated its loss
-    if len(model.layers) - 1 in hidden_states_dict:
-        hidden_states_dict.pop(len(model.layers) - 1)
-
     batch_loss_fn = copy.deepcopy(loss_fn)
     batch_loss_fn.reduction = "none"
 
