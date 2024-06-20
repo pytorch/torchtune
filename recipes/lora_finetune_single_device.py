@@ -9,7 +9,7 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
@@ -271,7 +271,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
     def _setup_profiler(
         self, cfg_profiler: DictConfig
-    ) -> torch.profiler.profile | DummyProfiler:
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
         """
         Parses the `profiler` section of top-level `cfg` and sets up profiler
 
@@ -279,7 +279,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
 
         Returns:
-            profiler: torch.profiler.profile | DummyProfiler - DummyProfiler is a nullcontext with no-op methods
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
             for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
             that the instrumented training loop does not need to be changed profiling is disabled.
 
