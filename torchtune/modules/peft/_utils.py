@@ -203,11 +203,11 @@ def _get_lora_modules(state_dict: Dict[str, Any]) -> Set[str]:
     """
     lora_modules = set()
     for k in state_dict.keys():
-        if "lora_" not in k:
+        if "lora" not in k:
             continue
         parts = k.split(".")
         for i, part in enumerate(parts):
-            if "lora_" in part:
+            if part == "lora":
                 lora_modules.add(".".join(parts[:i]))
                 break
     return lora_modules
@@ -237,10 +237,10 @@ def get_merged_lora_ckpt(
     """
     lora_modules = _get_lora_modules(state_dict)
     for module in lora_modules:
-        lora_a_weight = state_dict[f"{module}.lora_a.weight"]
-        lora_b_weight = state_dict[f"{module}.lora_b.weight"]
+        lora_a_weight = state_dict[f"{module}.lora.a.weight"]
+        lora_b_weight = state_dict[f"{module}.lora.b.weight"]
         base_weight = state_dict[f"{module}.weight"].to(lora_a_weight.dtype)
-        lora_magnitude = state_dict.get(f"{module}.lora_magnitude", None)
+        lora_magnitude = state_dict.get(f"{module}.lora.magnitude", None)
 
         lora_weight = (alpha / rank) * lora_b_weight @ lora_a_weight
         merged_weight = base_weight + lora_weight
@@ -250,10 +250,10 @@ def get_merged_lora_ckpt(
             merged_weight *= mag_norm_scale
         state_dict[f"{module}.weight"] = merged_weight
 
-        del state_dict[f"{module}.lora_a.weight"]
-        del state_dict[f"{module}.lora_b.weight"]
+        del state_dict[f"{module}.lora.a.weight"]
+        del state_dict[f"{module}.lora.b.weight"]
         if lora_magnitude is not None:
-            del state_dict[f"{module}.lora_magnitude"]
+            del state_dict[f"{module}.lora.magnitude"]
 
     return state_dict
 

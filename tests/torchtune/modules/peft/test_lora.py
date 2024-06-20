@@ -272,9 +272,9 @@ class TestLoRALinear:
             )
             if use_bias:
                 assert torch.equal(module.bias, ref.bias)
-            assert torch.equal(module.lora_a.weight, ref.lora_a.weight)
-            assert torch.equal(module.lora_b.weight, ref.lora_b.weight)
-            assert torch.equal(module.lora_magnitude, ref.lora_magnitude)
+            assert torch.equal(module.lora.a.weight, ref.lora.a.weight)
+            assert torch.equal(module.lora.b.weight, ref.lora.b.weight)
+            assert torch.equal(module.lora.magnitude, ref.lora.magnitude)
 
         # verify that the param values match the reference
         ref.initialize_dora()
@@ -296,9 +296,9 @@ class TestLoRALinear:
         F.mse_loss(y1.to(torch.float32), y.detach()).backward()
         F.mse_loss(y2.to(torch.float32), y.detach()).backward()
         assert torch.equal(y1, y2)
-        assert torch.equal(module.lora_magnitude.grad, ref.lora_magnitude.grad)
-        assert torch.equal(module.lora_a.weight.grad, ref.lora_a.weight.grad)
-        assert torch.equal(module.lora_b.weight.grad, ref.lora_b.weight.grad)
+        assert torch.equal(module.lora.magnitude.grad, ref.lora.magnitude.grad)
+        assert torch.equal(module.lora.a.weight.grad, ref.lora.a.weight.grad)
+        assert torch.equal(module.lora.b.weight.grad, ref.lora.b.weight.grad)
         opt.step()
         opt_ref.step()
         _compare_params()

@@ -27,9 +27,10 @@ from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft.lora import (
-    _lora_a_init_params,
-    _lora_b_init_params,
+    # _lora_a_init_params,
+    # _lora_b_init_params,
     LoRALinear,
+    LoRA,
 )
 
 from torchtune.utils._device import get_device
@@ -108,7 +109,7 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
     """
     if dist.is_available() and dist.is_initialized():
         device = tensor.device
-        if dist.get_backend() == "nccl":
+        if dist.get_backend() == "LoRAnccl":
             tensor = tensor.to(get_device("cuda"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)
@@ -238,9 +239,9 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
 
         # This will define reset_parameters for LoRA weight initialization
         # directly on any LoRALinear submodules lora_a and lora_b.
-        if isinstance(v, LoRALinear):
-            v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
-            v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
+        # if isinstance(v, LoRALinear):
+        #     v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
+        #     v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
 
     return model
 
@@ -276,7 +277,8 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         # only trainable modules in the entire network. Wraps
         # these in separate FSDP unit to work around FSDP allocating
         # extra gradient memory when wrapped with other modules.
-        if hasattr(module, "weight") and module.weight.requires_grad:
+        # if hasattr(module, "weight") and module.weight.requires_grad:
+        if isinstance(module, LoRA):
             return True
 
         return isinstance(module, tuple(modules_to_wrap))
