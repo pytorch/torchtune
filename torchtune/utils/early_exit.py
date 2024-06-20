@@ -68,8 +68,7 @@ def layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type: LossScaleType
         case _:
             raise ValueError(f"Unsupported loss_scale type {loss_scale_type}")
 
-    loss_scales = loss_scales * torch.where(loss_scales < n_layers - 1, e_scale, 1.0)
-
+    loss_scales = loss_scales * torch.where(layer_ids < n_layers - 1, e_scale, 1.0)
     # normalize loss scales to ensure that their sum is 1.0
     loss_scales = loss_scales / torch.sum(loss_scales)
     assert torch.isclose(torch.sum(loss_scales), torch.Tensor([1.0]).to(loss_scales))
