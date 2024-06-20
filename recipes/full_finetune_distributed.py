@@ -492,6 +492,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         # Early exit loss settings
         if self.early_exit_layers:
             output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+            if True: # TODO: add cli option
+                if len(self._model.layers) - 1 not in output_hidden_states:
+                    # ensure we include last layer
+                    output_hidden_states[len(self._model.layers) - 1] = True
         else:
             output_hidden_states = False
 
