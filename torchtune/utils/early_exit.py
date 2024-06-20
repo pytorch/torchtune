@@ -9,7 +9,10 @@ import numpy as np
 import torch
 from enum import Enum
 from typing import List
-import math
+
+from torchtune import utils
+
+log = utils.get_logger("DEBUG")
 
 class LossScaleType(str, Enum):
     ONE = "one"
@@ -74,3 +77,42 @@ def layer_ids_to_loss_scales(layer_ids, n_layers, loss_scale_type: LossScaleType
     assert torch.isclose(torch.sum(loss_scales), torch.Tensor([1.0]).to(loss_scales))
 
     return loss_scales
+
+class EarlyExitCurriculumType(str, Enum):
+    NONE = "none"
+    ROTATIONAL = "rot"
+    GRADUAL = "gradual"
+
+def build_early_exit_curriculum(early_exit_curriculum: EarlyExitCurriculumType, *args, **kwargs):
+    match early_exit_curriculum:
+        case EarlyExitCurriculumType.NONE:
+            return None
+
+        case EarlyExitCurriculumType.ROTATIONAL:
+            return RotationalEarlyExitCurriculum(*args, **kwargs)
+
+        case _:
+            raise ValueError(f"Unsupported early loss curriculum {early_exit_curriculum}.")
+    
+
+# TODO: create a base curriculum class that can be used for other aspects, e.g., dropout, datasets, etc.
+class EarlyExitCurriculum():
+    def __init__(self, output_hidden_states, verbose=True):
+        self._init_output_hidden_states = output_hidden_states
+        self.output_hidden_states = output_hidden_states
+        self.verbose = verbose
+
+    def step(self):
+        pass
+
+    def get(self):
+        return self.output_hidden_states
+
+class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
+    def __init__(self, output_hidden_states, verbose=True):
+        super().__init__(output_hidden_states)
+
+    def step(self):
+        self.output_hidden_states = torch.roll(self.output_hidden_states, -1)
+        if self.verbose:
+            log.info(f"Updating self.output_hidden_states to {self.output_hidden_states}.")

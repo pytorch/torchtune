@@ -30,7 +30,7 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
-from torchtune.utils.early_exit import early_exit_loss
+from torchtune.utils.early_exit import early_exit_loss, build_early_exit_curriculum
 from torchtune.modules.common_utils import slice_str_to_array
 
 from tqdm import tqdm
@@ -137,7 +137,11 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-        self.early_exit_layers = cfg.get("early_exit_layers", None)
+        self.early_exit = cfg.get("early_exit", None)
+        # TODO: create a "setup" function similar to setup_model?
+        if self.early_exit:
+            self.early_exit_layers = cfg.get("early_exit.layers", ":")
+            self.early_exit_curriculum = cfg.get("early_exit.curriculum", "none")
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -490,6 +494,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         num_tokens = 0
 
         # Early exit loss settings
+        # TODO: move to _init_() or setup()
         if self.early_exit_layers:
             output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
             if True: # TODO: add cli option
@@ -498,6 +503,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     output_hidden_states[len(self._model.layers) - 1] = True
         else:
             output_hidden_states = False
+        if self.early_exit_curriculum:
+            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states)
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -587,6 +594,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     running_loss = 0
                     num_tokens = 0
                     t0 = time.perf_counter()
+
+                if self.early_exit_curriculum:
+                    self.early_exit_curriculum.step()
+                    output_hidden_states = self.early_exit_curriculum.get()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
