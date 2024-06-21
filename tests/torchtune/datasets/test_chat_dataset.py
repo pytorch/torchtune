@@ -9,7 +9,7 @@ from unittest import mock
 import pytest
 from datasets import Dataset
 from tests.test_utils import DummyTokenizer
-from torchtune.data import PromptTemplate, Message
+from torchtune.data import Message, PromptTemplate
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ChatDataset
 

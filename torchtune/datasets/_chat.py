@@ -12,11 +12,11 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
-    PromptTemplate,
     CROSS_ENTROPY_IGNORE_IDX,
     get_openai_messages,
     get_sharegpt_messages,
     Message,
+    PromptTemplate,
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
@@ -65,23 +65,14 @@ class ChatDataset(Dataset):
         *,
         tokenizer: Tokenizer,
         source: str,
-        convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
-        prompt_template: Optional[PromptTemplate] = None,
+        message_transforms: List[Callable[[Mapping[str, Any]], Mapping[str, Any]]],
         max_seq_len: int,
-        train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
-        if prompt_template is not None and not isinstance(prompt_template(), PromptTemplate):
-            raise ValueError(
-                f"prompt_template must be a PromptTemplate class, not {type(prompt_template())}"
-            )
-
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._convert_to_messages = convert_to_messages
-        self.prompt_template = prompt_template
+        self._message_transforms = message_transforms
         self.max_seq_len = max_seq_len
-        self.train_on_input = train_on_input
 
     def __len__(self):
         return len(self._data)
@@ -91,9 +82,11 @@ class ChatDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        messages = self._convert_to_messages(sample, self.train_on_input)
-        if self.prompt_template is not None:
-            messages = self.prompt_template.format(messages)
+        processed_sample = sample
+        for transform in self._message_transforms:
+            processed_sample = transform(processed_sample)
+
+        messages = processed_sample["text"]
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len

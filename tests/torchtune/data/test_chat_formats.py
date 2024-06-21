@@ -5,7 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import ChatMLTemplate, Llama2ChatTemplate, Message, MistralChatTemplate
+from torchtune.data import (
+    ChatMLTemplate,
+    Llama2ChatTemplate,
+    Message,
+    MistralChatTemplate,
+)
 
 # Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup

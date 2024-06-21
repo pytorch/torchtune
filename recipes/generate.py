@@ -14,7 +14,7 @@ from torch import nn
 
 from torchtune import config, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import PromptTemplate, InstructTemplate, Message
+from torchtune.data import InstructTemplate, Message, PromptTemplate
 
 logger = utils.get_logger("DEBUG")
 
@@ -131,7 +131,9 @@ class InferenceRecipe:
     @torch.no_grad()
     def generate(self, cfg: DictConfig):
         tokens = self.convert_prompt_to_tokens(
-            cfg.prompt, cfg.get("prompt_template", None), cfg.get("instruct_template", None)
+            cfg.prompt,
+            cfg.get("prompt_template", None),
+            cfg.get("instruct_template", None),
         )
         prompt = torch.tensor(tokens, dtype=torch.int, device=self._device)
 

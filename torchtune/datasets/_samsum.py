@@ -14,7 +14,7 @@ def samsum_dataset(
     source: str = "samsum",
     train_on_input: bool = False,
     packed: bool = False,
-) -> InstructDataset:
+) -> ChatDataset:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
     An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
@@ -47,12 +47,16 @@ def samsum_dataset(
         >>> Batch size: 8
     """
 
-    return instruct_dataset(
+    return ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        template="torchtune.data.SummarizeTemplate",
-        column_map={"output": "summary"},
-        train_on_input=train_on_input,
+        message_transforms=[
+            SummarizeTemplate(
+                key_input="dialogue",
+                key_output="summary",
+                train_on_input=train_on_input,
+            )
+        ],
         packed=packed,
         split="train",
     )

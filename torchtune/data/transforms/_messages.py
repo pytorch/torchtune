@@ -6,13 +6,12 @@
 
 from typing import Any, List, Mapping
 
-from torchtune.data._types import Message
 from torchtune.data._prompt_templates import AlpacaInstructTemplate
 
+from torchtune.data._types import Message
 
-def get_sharegpt_messages(
-    sample: Mapping[str, Any], train_on_input: bool = False
-) -> List[Message]:
+
+class ShareGptToMessages:
     """
     Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
     structure.
@@ -47,27 +46,41 @@ def get_sharegpt_messages(
     Returns:
         List[Message]: A list of messages with "role" and "content" fields.
     """
-    role_map = {"system": "system", "human": "user", "gpt": "assistant"}
-    conversations = sample["conversations"]
 
-    messages = []
-    for message in conversations:
-        role = role_map[message["from"]]
-        content = message["value"]
-        masked = (role != "assistant") and (not train_on_input)
-        messages.append(Message(role=role, content=content, masked=masked))
-    return messages
+    def __init__(
+        self,
+        key: str = "conversations",
+        train_on_input: bool = False,
+    ):
+        self.key = key
+        self.train_on_input = train_on_input
+
+    def __call__(
+        self,
+        sample: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+
+        role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+        conversations = sample[self.key]
+
+        messages = []
+        for message in conversations:
+            role = role_map[message["from"]]
+            content = message["value"]
+            masked = (role != "assistant") and (not train_on_input)
+            messages.append(Message(role=role, content=content, masked=masked))
+
+        processed_sample = {k: v for k, v in sample.items() if k != self.key}
+        processed_sample["text"] = messages
+        return processed_sample
 
 
-def get_openai_messages(
-    sample: Mapping[str, Any],
-    train_on_input: bool = False,
-) -> List[Message]:
+class JsonToMessages:
     """
-    Convert a chat sample adhering to the OpenAI API json structure to torchtune's :class:`~torchtune.data.Message`
-    structure.
+    Convert a chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
+    structure. This transform simply creates Message dataclasses from the provided jsons.
 
-    OpenAI API `standard chat format <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>`_ follows::
+    For example::
 
         {
             # key could be "messages" OR "conversations"
@@ -101,35 +114,28 @@ def get_openai_messages(
     Returns:
         List[Message]: A list of messages with "role" and "content" fields.
     """
-    if "messages" in sample:
-        messages_key = "messages"
-    elif "conversations" in sample:
-        messages_key = "conversations"
-    else:
-        raise ValueError(
-            f"Sample does not contain 'messages' or 'conversations' key. Existing keys: {sample.keys()}"
-        )
-    conversations = sample[messages_key]
 
-    messages = []
-    for message in conversations:
-        message["masked"] = (message["role"] != "assistant") and (not train_on_input)
-        messages.append(Message.from_dict(message))
-    return messages
+    def __init__(
+        self,
+        key: str = "messages",
+        train_on_input: bool = False,
+    ):
+        self.key = key
+        self.train_on_input = train_on_input
 
-def get_alpaca_instruct_messages(
-    sample: Mapping[str, Any],
-    train_on_input: bool = False,
-) -> List[Message]:
-    messages = AlpacaInstructTemplate.format(sample)
-    messages[0].masked = not train_on_input
-    return messages
+    def __call__(
+        self,
+        sample: Mapping[str, Any],
+    ) -> Mapping[str, Any]:
+        conversations = sample[self.key]
 
-def get_grammar_messages(
-    sample: Mapping[str, Any],
-    train_on_input: bool = False,
-) -> List[Message]:
+        messages = []
+        for message in conversations:
+            message["masked"] = (message["role"] != "assistant") and (
+                not train_on_input
+            )
+            messages.append(Message.from_dict(message))
 
-    messages = GrammarErrorCorrectionTemplate.format()
-    messages[0].masked = not train_on_input
-    return messages
+        processed_sample = {k: v for k, v in sample.items() if k != self.key}
+        processed_sample["text"] = messages
+        return processed_sample
