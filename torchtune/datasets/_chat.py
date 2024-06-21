@@ -43,9 +43,9 @@ class ChatDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
-        prompt_template (Optional[PromptTemplate]): template used to format the chat. This is used to add 
-            structured text around the actual messages, such as the [INST] tags in Llama2 and in Mistral. 
-            The extra text will still get tokenized as normal text, not as special tokens. In models like Llama3 
+        prompt_template (Optional[PromptTemplate]): template used to format the chat. This is used to add
+            structured text around the actual messages, such as the [INST] tags in Llama2 and in Mistral.
+            The extra text will still get tokenized as normal text, not as special tokens. In models like Llama3
             where the tokenizer adds tags as special tokens, ``prompt_template`` is not needed,
             unless you want to structure messages in a particular way for inference. For a list of all possible
             prompt templates, check out :ref:`prompt_templates`. Default: None.
@@ -117,15 +117,15 @@ def chat_dataset(
     using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an 
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an
             ``encode`` and ``decode`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
-            for automatic conversion to torchtune's :class:`~torchtune.data.Message` structure. 
+            for automatic conversion to torchtune's :class:`~torchtune.data.Message` structure.
             Supported styles are: "sharegpt", "openai"
-        prompt_template (Optional[str]): full import path of ``PromptTemplate`` class used to format the messages. 
-            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. 
+        prompt_template (Optional[str]): full import path of ``PromptTemplate`` class used to format the messages.
+            See the description in :class:`~torchtune.datasets.ChatDataset` for more details.
             For a list of all possible prompt templates, check out :ref:`prompt_templates`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
