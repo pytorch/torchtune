@@ -14,9 +14,9 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
     PromptTemplate,
     CROSS_ENTROPY_IGNORE_IDX,
+    get_openai_messages,
+    get_sharegpt_messages,
     Message,
-    openai_to_llama2_messages,
-    sharegpt_to_llama2_messages,
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
@@ -164,9 +164,9 @@ def chat_dataset(
         ValueError: if the conversation style is not supported
     """
     if conversation_style == "sharegpt":
-        convert_to_messages = sharegpt_to_llama2_messages
+        convert_to_messages = get_sharegpt_messages
     elif conversation_style == "openai":
-        convert_to_messages = openai_to_llama2_messages
+        convert_to_messages = get_openai_messages
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
 

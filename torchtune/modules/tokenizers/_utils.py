@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Iterator, List, Protocol, Set, Union
+from typing import Iterator, List, Protocol, Set
 
 from torchtune.data._types import Message
 
@@ -35,17 +35,6 @@ class Tokenizer(Protocol):
         and formatted messages.
         """
         pass
-
-
-def truncate(
-    tokens: List[int],
-    max_seq_len: int,
-    eos_id: Union[int, bool],
-):
-    tokens_truncated = tokens[:max_seq_len]
-    if tokens_truncated[-1] != eos_id:
-        tokens_truncated[-1] = eos_id
-    return tokens_truncated
 
 
 def _split_long_repetitions(s: str, max_consecutive_slice_len: int) -> Iterator[str]:

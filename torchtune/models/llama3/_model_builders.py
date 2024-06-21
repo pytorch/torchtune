@@ -66,6 +66,15 @@ def llama3_70b() -> TransformerDecoder:
 
 
 def llama3_tokenizer(path: str) -> TikTokenTokenizer:
+    """
+    Tokenizer for Llama3.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        TikTokenTokenizer: Instantiation of the Llama3 tokenizer
+    """
     tiktoken = TikTokenTokenizer(path)
     tiktoken.pad_id = 0
     return tiktoken
@@ -150,7 +159,7 @@ def lora_llama3_70b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
+        TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied
     """
     return lora_llama3(
         lora_attn_modules=lora_attn_modules,
@@ -176,7 +185,15 @@ def lora_llama3_70b(
 qlora_llama3_8b = partial(lora_llama3_8b, quantize_base=True)
 
 qlora_llama3_8b.__doc__ = """
-Builder for creating a Llama3 model with QLoRA enabled. Base model weights in linear layers
+Builder for creating a Llama3 8B model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_llama3_8b` for full API arguments.
+"""
+
+qlora_llama3_70b = partial(lora_llama3_70b, quantize_base=True)
+
+qlora_llama3_70b.__doc__ = """
+Builder for creating a Llama3 70B model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_llama3_70b` for full API arguments.
 """

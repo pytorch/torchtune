@@ -31,19 +31,19 @@ class Download(Subcommand):
                 """\
             examples:
                 # Download a model from the Hugging Face Hub with a Hugging Face API token
-                $ tune download meta-llama/Llama-2-7b-hf --hf-token <TOKEN> --output-dir /tmp/model
+                $ tune download meta-llama/Llama-2-7b-hf --hf-token <TOKEN>
                 Successfully downloaded model repo and wrote to the following locations:
-                ./model/config.json
-                ./model/README.md
-                ./model/consolidated.00.pth
+                /tmp/Llama-2-7b-hf/config.json
+                /tmp/Llama-2-7b-hf/README.md
+                /tmp/Llama-2-7b-hf/consolidated.00.pth
                 ...
 
                 # Download an ungated model from the Hugging Face Hub
-                $ tune download mistralai/Mistral-7B-Instruct-v0.2
+                $ tune download mistralai/Mistral-7B-Instruct-v0.2 --output-dir /tmp/model
                 Successfully downloaded model repo and wrote to the following locations:
-                ./model/config.json
-                ./model/README.md
-                ./model/model-00001-of-00002.bin
+                /tmp/model/config.json
+                /tmp/model/README.md
+                /tmp/model/model-00001-of-00002.bin
                 ...
 
             For a list of all models, visit the Hugging Face Hub https://huggingface.co/models.
@@ -65,8 +65,8 @@ class Download(Subcommand):
             "--output-dir",
             type=Path,
             required=False,
-            default="./model",
-            help="Directory in which to save the model.",
+            default=None,
+            help="Directory in which to save the model. Defaults to `/tmp/<model_name>`.",
         )
         self._parser.add_argument(
             "--output-dir-use-symlinks",
@@ -100,6 +100,12 @@ class Download(Subcommand):
         """Downloads a model from the Hugging Face Hub."""
         # Download the tokenizer and PyTorch model files
 
+        # Default output_dir is `/tmp/<model_name>`
+        output_dir = args.output_dir
+        if output_dir is None:
+            model_name = args.repo_id.split("/")[-1]
+            output_dir = Path("/tmp") / model_name
+
         # Raise if local_dir_use_symlinks is invalid
         output_dir_use_symlinks: Union[Literal["auto"], bool]
         use_symlinks_lowercase = args.output_dir_use_symlinks.lower()
@@ -119,7 +125,7 @@ class Download(Subcommand):
         try:
             true_output_dir = snapshot_download(
                 args.repo_id,
-                local_dir=args.output_dir,
+                local_dir=output_dir,
                 local_dir_use_symlinks=output_dir_use_symlinks,
                 ignore_patterns=args.ignore_patterns,
                 token=args.hf_token,

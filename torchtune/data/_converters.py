@@ -10,11 +10,12 @@ from torchtune.data._types import Message
 from torchtune.data._prompt_templates import AlpacaInstructTemplate
 
 
-def sharegpt_to_llama2_messages(
+def get_sharegpt_messages(
     sample: Mapping[str, Any], train_on_input: bool = False
 ) -> List[Message]:
     """
-    Convert a chat sample adhering to the ShareGPT format to the Llama2 chat format.
+    Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    structure.
 
     ShareGPT follows::
 
@@ -28,7 +29,7 @@ def sharegpt_to_llama2_messages(
             ]
         }
 
-    Llama2 follows::
+    :class:`~torchtune.data.Message` follows::
 
         [
             {
@@ -58,14 +59,16 @@ def sharegpt_to_llama2_messages(
     return messages
 
 
-def openai_to_llama2_messages(
+def get_openai_messages(
     sample: Mapping[str, Any],
     train_on_input: bool = False,
 ) -> List[Message]:
     """
-    Convert a chat sample adhering to the OpenAI API standard chat format to the Llama2 chat format.
+    Convert a chat sample adhering to the OpenAI API json structure to torchtune's :class:`~torchtune.data.Message`
+    structure.
 
     OpenAI API `standard chat format <https://platform.openai.com/docs/guides/text-generation/chat-completions-api>`_ follows::
+
         {
             # key could be "messages" OR "conversations"
             "messages": [
@@ -77,7 +80,7 @@ def openai_to_llama2_messages(
             ]
         }
 
-    Llama2 follows::
+    :class:`~torchtune.data.Message` follows::
 
         [
             {

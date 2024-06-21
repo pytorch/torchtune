@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Mapping, Optional
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.data import truncate
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -69,6 +70,7 @@ def text_completion_dataset(
     source: str,
     column: Optional[str] = None,
     max_seq_len: Optional[int] = None,
+    packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -85,6 +87,7 @@ def text_completion_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
@@ -95,6 +98,7 @@ def text_completion_dataset(
         ...   column="text",
         ...   max_seq_len=2096,
         ...   data_dir="realnewslike",
+        ...   packed=False,
         ... )
 
     This can also be accomplished via the yaml config::
@@ -105,14 +109,17 @@ def text_completion_dataset(
             column: text
             max_seq_len: 2096
             data_dir: realnewslike
+            packed: False
 
     Returns:
-        TextCompletionDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+        TextCompletionDataset or PackedDataset: the configured :class:`~torchtune.datasets.TextCompletionDataset`
+            or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
     """
-    return TextCompletionDataset(
+    ds = TextCompletionDataset(
         tokenizer=tokenizer,
         source=source,
         column=column,
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
