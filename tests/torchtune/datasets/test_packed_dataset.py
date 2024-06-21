@@ -211,7 +211,7 @@ class TestPackedDataset:
         pack = {
             "tokens": [2, 5],
             "labels": [3, 7],
-            "mask": torch.tensor([[True, False], [True, True]]),
+            "seq_lens": [1, 1],
             # Let the first token be the end of the previous sample (pos 8),
             # and the second token the start of the next sample (pos 0). Collate
             # should continue from 0 -> 1, 2, ...
@@ -224,11 +224,11 @@ class TestPackedDataset:
             max_seq_len=4,
         )
 
+        pack = packed._convert_to_tensors(pack)
         padded = packed._pad_pack(pack, padding_idx=padding_idx, ignore_idx=ignore_idx)
 
         padded_input = padded["tokens"]
         padded_label = padded["labels"]
-        padded_mask = padded["mask"]
         padded_input_pos = padded["input_pos"]
 
         torch.testing.assert_close(
@@ -236,16 +236,5 @@ class TestPackedDataset:
         )
         torch.testing.assert_close(
             padded_label, torch.tensor([3, 7, ignore_idx, ignore_idx])
-        )
-        assert torch.equal(
-            padded_mask,
-            torch.tensor(
-                [
-                    [True, False, False, False],
-                    [True, True, False, False],
-                    [False, False, True, False],
-                    [False, False, False, True],
-                ]
-            ),
         )
         torch.testing.assert_close(padded_input_pos, torch.tensor([8, 0, 1, 2]))
