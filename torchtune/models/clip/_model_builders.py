@@ -1,23 +1,15 @@
-from torchtune.modules.transforms.pipelines import VariableImageSizeTransforms
+from torchtune.models.clip._component_builders import CLIPImageTransform
 
-def build_image_processor():
+def clip_vit_336_transform():
 
-    # Default for the pretrained model
-    IMAGE_RES = 224
-    IMAGE_MEAN = (0.48145466, 0.4578275, 0.40821073)
-    IMAGE_STD = (0.26862954, 0.26130258, 0.27577711)
-
-    image_processor = VariableImageSizeTransforms(
-        image_mean=IMAGE_MEAN,
-        image_std=IMAGE_STD,
-        patch_size=IMAGE_RES,
+    image_transform = CLIPImageTransform(
+        image_mean=[0.48145466, 0.4578275, 0.40821073],
+        image_std=[0.26862954, 0.26130258, 0.27577711],
+        tile_size=336,
         possible_resolutions=None,
-        max_num_chunks=4,
+        max_num_tiles=4,
         resample="bilinear",
-        do_rescale=True,
-        rescale_factor=1 / 255,
-        do_normalize=True,
-        limit_upscaling_to_patch_size=True,
+        limit_upscaling_to_tile_size=True,
     )
 
-    return image_processor
+    return image_transform

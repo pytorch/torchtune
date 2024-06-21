@@ -5,10 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
+import torch
 
-from torchtune.modules.transforms.utils import (
-    find_supported_resolutions,
-    GetBestResolution,
+from torchtune.modules.transforms.vision.get_canvas_best_fit import (
+    _find_supported_resolutions,
+    get_canvas_best_fit,
 )
 
 
@@ -17,18 +18,18 @@ class TestUtils:
         "params",
         [
             {
-                "max_num_chunks": 1,
-                "patch_size": 224,
+                "max_num_tiles": 1,
+                "tile_size": 224,
                 "expected_resolutions": [(224, 224)],
             },
             {
-                "max_num_chunks": 2,
-                "patch_size": 100,
+                "max_num_tiles": 2,
+                "tile_size": 100,
                 "expected_resolutions": [(100, 200), (200, 100), (100, 100)],
             },
             {
-                "max_num_chunks": 3,
-                "patch_size": 50,
+                "max_num_tiles": 3,
+                "tile_size": 50,
                 "expected_resolutions": [
                     (50, 150),
                     (150, 50),
@@ -38,8 +39,8 @@ class TestUtils:
                 ],
             },
             {
-                "max_num_chunks": 4,
-                "patch_size": 300,
+                "max_num_tiles": 4,
+                "tile_size": 300,
                 "expected_resolutions": [
                     (300, 1200),
                     (600, 600),
@@ -54,10 +55,10 @@ class TestUtils:
         ],
     )
     def test_find_supported_resolutions(self, params):
-        max_num_chunks = params["max_num_chunks"]
-        patch_size = params["patch_size"]
+        max_num_tiles = params["max_num_tiles"]
+        tile_size = params["tile_size"]
         expected_resolutions = params["expected_resolutions"]
-        resolutions = find_supported_resolutions(max_num_chunks, patch_size)
+        resolutions = _find_supported_resolutions(max_num_tiles, tile_size)
 
         assert len(set(resolutions)) == len(resolutions), "Resolutions should be unique"
         assert set(resolutions) == set(
@@ -69,8 +70,6 @@ class TestUtils:
         [
             {
                 "image_size": (800, 600),
-                "patch_size": 224,
-                "max_num_chunks": 4,
                 "possible_resolutions": [
                     (224, 896),
                     (448, 448),
@@ -85,8 +84,6 @@ class TestUtils:
             },
             {
                 "image_size": (200, 300),
-                "patch_size": 224,
-                "max_num_chunks": 3,
                 "possible_resolutions": [
                     (224, 672),
                     (672, 224),
@@ -98,36 +95,28 @@ class TestUtils:
             },
             {
                 "image_size": (500, 500),
-                "patch_size": 100,
-                "max_num_chunks": 3,
                 "possible_resolutions": None,
                 "expected_best_resolution": (100, 100),
             },
             {
                 "image_size": (500, 500),
-                "patch_size": 1000,
-                "max_num_chunks": 4,
                 "possible_resolutions": None,
                 "expected_best_resolution": (1000, 1000),
             },
             {
                 "image_size": (600, 200),
-                "patch_size": 300,
-                "max_num_chunks": 4,
                 "possible_resolutions": None,
                 "expected_best_resolution": (900, 300),
             },
         ],
     )
-    def test_get_best_resolution(self, params):
+    def test_get_canvas_best_fit(self, params):
         image_size = params["image_size"]
-        patch_size = params["patch_size"]
-        max_num_chunks = params["max_num_chunks"]
         possible_resolutions = params["possible_resolutions"]
         expected_best_resolution = params["expected_best_resolution"]
 
-        resolver = GetBestResolution(possible_resolutions, max_num_chunks, patch_size)
-        best_resolution = resolver(image_size)
+        image = torch.rand(*image_size)  # Create a random image tensor
+        best_resolution = get_canvas_best_fit(image, possible_resolutions)
 
         assert (
             tuple(best_resolution) == expected_best_resolution

@@ -10,25 +10,22 @@ import pytest
 
 import torch
 
-from torchtune.modules.transforms.pipelines import VariableImageSizeTransforms
+from torchtune.models.clip._component_builders import CLIPImageTransform
 
 
 @pytest.fixture(autouse=True)
-def image_processor():
+def image_transform():
 
-    image_processor = VariableImageSizeTransforms(
-        image_mean=(0.48145466, 0.4578275, 0.40821073),
-        image_std=(0.26862954, 0.26130258, 0.27577711),
-        patch_size=224,
+    image_transform = CLIPImageTransform(
+        image_mean=[0.48145466, 0.4578275, 0.40821073],
+        image_std=[0.26862954, 0.26130258, 0.27577711],
+        tile_size=224,
         possible_resolutions=None,
-        max_num_chunks=4,
+        max_num_tiles=4,
         resample="bilinear",
-        do_rescale=True,
-        rescale_factor=1 / 255,
-        do_normalize=True,
-        limit_upscaling_to_patch_size=True,
+        limit_upscaling_to_tile_size=True,
     )
-    return image_processor
+    return image_transform
 
 
 class TestPipelines:
@@ -47,17 +44,21 @@ class TestPipelines:
             {"image_size": (800, 600), "expected_shape": torch.Size([4, 3, 224, 224])},
         ],
     )
-    def test_shapes_variable_image_size_transforms(self, params, image_processor):
+    def test_shapes_variable_image_size_transforms(self, params, image_transform):
 
         image_size = params["image_size"]
 
         # Create a random image
-        image = (np.random.rand(*image_size) * 255).astype(np.uint8)
-        image = PIL.Image.fromarray(image)
+        image = (np.random.rand(*image_size) * 255).astype(np.uint8)  # type: ignore
+        image = PIL.Image.fromarray(image)  # type: ignore
 
-        output = image_processor(image)
+        output = image_transform(image)
         pixel_values = output["pixel_values"]
 
         assert (
             pixel_values.shape == params["expected_shape"]
         ), f"Expected shape {params['expected_shape']} but got {pixel_values.shape}"
+
+        assert (
+            0 <= pixel_values.min() <= pixel_values.max() <= 1
+        ), f"Expected pixel values to be in range [0, 1] but got {pixel_values.min()} and {pixel_values.max()}"
