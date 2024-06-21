@@ -4,11 +4,53 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping
+from dataclasses import dataclass
+from typing import Any, List, Literal, Mapping
 
-from torchtune.data._prompt_templates import AlpacaInstructTemplate
+Role = Literal["system", "user", "assistant"]
 
-from torchtune.data._types import Message
+
+@dataclass
+class Message:
+    """
+    This dataclass represents individual messages in an instruction or chat dataset.
+
+    Note that the fields ipython and eot are only relevant when tokenizing with tiktoken,
+    as they inform handling of special tokens in that case.
+
+    Attributes:
+        role (Role): role of the message writer. Can be "system", "user", "assistant".
+        content (str): content of the message.
+        masked (bool): whether the message is masked in the sample. Default: False
+        ipython (bool): whether the message is an ipython call. Default: False
+        eot (bool): whether the message corresponds to the end of a turn. Should be true
+            except in the case of multiple consecutive assistant messages. Default: True
+    """
+
+    role: Role
+    content: str
+    masked: bool = False
+    ipython: bool = False
+    eot: bool = True
+
+    @classmethod
+    def from_dict(cls, d: dict) -> "Message":
+        """
+        Construct a Message from a dictionary.
+
+        Args:
+            d (dict): dictionary containing the fields of the Message.
+
+        Returns:
+            Message: constructed Message.
+        """
+        return cls(
+            role=d["role"],
+            content=d["content"],
+            masked=d.get("masked", False),
+            ipython=d.get("ipython", False),
+            eot=d.get("eot", True),
+        )
 
 
 class ShareGptToMessages:
@@ -49,30 +91,27 @@ class ShareGptToMessages:
 
     def __init__(
         self,
-        key: str = "conversations",
         train_on_input: bool = False,
     ):
-        self.key = key
         self.train_on_input = train_on_input
 
     def __call__(
         self,
-        sample: Mapping[str, Any],
+        *,
+        conversations: List[Mapping[str, str]],
+        **kwargs,
     ) -> Mapping[str, Any]:
 
         role_map = {"system": "system", "human": "user", "gpt": "assistant"}
-        conversations = sample[self.key]
 
         messages = []
         for message in conversations:
             role = role_map[message["from"]]
             content = message["value"]
-            masked = (role != "assistant") and (not train_on_input)
+            masked = (role != "assistant") and (not self.train_on_input)
             messages.append(Message(role=role, content=content, masked=masked))
 
-        processed_sample = {k: v for k, v in sample.items() if k != self.key}
-        processed_sample["text"] = messages
-        return processed_sample
+        return kwargs.update({"messages": messages})
 
 
 class JsonToMessages:
@@ -117,25 +156,21 @@ class JsonToMessages:
 
     def __init__(
         self,
-        key: str = "messages",
         train_on_input: bool = False,
     ):
-        self.key = key
         self.train_on_input = train_on_input
 
     def __call__(
         self,
-        sample: Mapping[str, Any],
+        *,
+        messages: List[Mapping[str, str]],
+        **kwargs,
     ) -> Mapping[str, Any]:
-        conversations = sample[self.key]
-
-        messages = []
-        for message in conversations:
+        updated_messages = []
+        for message in messages:
             message["masked"] = (message["role"] != "assistant") and (
-                not train_on_input
+                not self.train_on_input
             )
-            messages.append(Message.from_dict(message))
+            updated_messages.append(Message.from_dict(message))
 
-        processed_sample = {k: v for k, v in sample.items() if k != self.key}
-        processed_sample["text"] = messages
-        return processed_sample
+        return kwargs.update({"messages": updated_messages})

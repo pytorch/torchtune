@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from abc import ABC, abstractmethod
-from typing import List
+from functools import partial
+from typing import Any, List, Mapping, Optional
 
 from torchtune.data._types import Message
 
@@ -32,7 +32,6 @@ class Llama2ChatTemplate:
 
     def __init__(
         self,
-        key: str = "text",
         system: Optional[str] = None,
         user: Optional[str] = None,
         assistant: Optional[str] = None,
@@ -42,9 +41,8 @@ class Llama2ChatTemplate:
             user or f"{self.B_INST} {{system_message}}{{content}} {self.E_INST} "
         )
         self.assistant = assistant or ""
-        self.key = key
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, *, messages: List[Message], **kwargs) -> Mapping[str, Any]:
         """
         Format user and system messages with appropriate tags.
 
@@ -57,7 +55,7 @@ class Llama2ChatTemplate:
         """
         system_message = ""
         formatted_dialogue = []
-        for message in sample[self.key]:
+        for message in messages:
             content = ""
             if message.role == "system":
                 content = self.system.format(content=message.content)
@@ -77,8 +75,7 @@ class Llama2ChatTemplate:
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
-        sample[self.key] = formatted_dialogue
-        return sample
+        return kwargs.update({"messages": formatted_dialogue})
 
 
 class MistralChatTemplate:
@@ -99,15 +96,13 @@ class MistralChatTemplate:
 
     def __init__(
         self,
-        key: str = "text",
         user: Optional[str] = None,
         assistant: Optional[str] = None,
     ):
-        self.key = key
         self.user = user or f"{self.B_INST} {{content}} {self.E_INST} "
         self.assistant = assistant or ""
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, *, messages: List[Message], **kwargs) -> Mapping[str, Any]:
         """
         Format user messages with appropriate tags.
 
@@ -122,7 +117,7 @@ class MistralChatTemplate:
             ValueError: If system prompts are provided
         """
         formatted_dialogue = []
-        for message in sample[self.key]:
+        for message in messages:
             content = ""
             if message.role == "system":
                 raise ValueError(
@@ -138,8 +133,7 @@ class MistralChatTemplate:
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
-        sample[self.key] = formatted_dialogue
-        return sample
+        return kwargs.update({"messages": formatted_dialogue})
 
 
 class ChatMLTemplate:
@@ -165,19 +159,17 @@ class ChatMLTemplate:
 
     def __init__(
         self,
-        key: str = "text",
         system: Optional[str] = None,
         user: Optional[str] = None,
         assistant: Optional[str] = None,
     ):
-        self.key = key
         self.system = system or f"{self.IM_START}system\n{{content}}{self.IM_END}\n"
         self.user = user or f"{self.IM_START}user\n{{content}}{self.IM_END}\n"
         self.assistant = (
             assistant or f"{self.IM_START}assistant\n{{content}}{self.IM_END}"
         )
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, *, messages: List[Message], **kwargs) -> Mapping[str, Any]:
         """
         Format user and system messages with appropriate tags.
 
@@ -189,7 +181,7 @@ class ChatMLTemplate:
             The formatted list of messages
         """
         formatted_dialogue = []
-        for message in sample[self.key]:
+        for message in messages:
             content = ""
             if message.role == "system":
                 content = self.system.format(content=message.content)
@@ -204,8 +196,7 @@ class ChatMLTemplate:
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
-        sample[self.key] = formatted_dialogue
-        return sample
+        return kwargs.update({"messages": formatted_dialogue})
 
 
 class AlpacaInstructTemplate:
@@ -231,15 +222,13 @@ class AlpacaInstructTemplate:
 
     def __init__(
         self,
-        key_instruction: str = "instruction",
-        key_input: Optional[str] = "input",
         train_on_input: bool = False,
     ):
-        self.key_input = key_input
-        self.key_instruction = key_instruction
         self.train_on_input = train_on_input
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(
+        self, *, instruction: str, output: str, input: Optional[str] = None, **kwargs
+    ) -> Mapping[str, Any]:
         """
         Generate prompt from instruction and input.
 
@@ -253,41 +242,32 @@ class AlpacaInstructTemplate:
             The formatted list of messages
         """
 
-        if self.key_input in sample and sample[self.key_input]:
+        if input is not None:
             prompt = self.template["prompt_input"].format(
-                instruction=sample[self.key_instruction], input=sample[self.key_input]
+                instruction=instruction,
+                input=input,
             )
         else:
-            prompt = self.template["prompt_no_input"].format(
-                instruction=sample[self.key_instruction]
-            )
+            prompt = self.template["prompt_no_input"].format(instruction=instruction)
 
         messages = [
             Message(role="user", content=prompt, masked=not self.train_on_input),
-            Message(role="assistant", content=sample[key_output]),
+            Message(role="assistant", content=output),
         ]
 
-        processed_sample = {
-            k: v for k, v in sample.items() if k not in [key_input, key_instruction]
-        }
-        processed_sample["text"] = messages
-        return processed_sample
+        return kwargs.update({"messages": messages})
 
 
 class QuickTemplate:
     def __init__(
         self,
         template: str,
-        key_input: str = "input",
-        key_output: str = "output",
         train_on_input: bool = False,
     ):
-        self.key_input = key_input
-        self.key_output = key_output
         self.template = template
         self.train_on_input = train_on_input
 
-    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+    def __call__(self, *, input: str, output: str, **kwargs) -> Mapping[str, Any]:
         """
         Generate prompt from sentence that needs grammar correction.
 
@@ -299,20 +279,17 @@ class QuickTemplate:
             The formatted list of messages
         """
         messages = []
-        user_content = self.template.format(content=sample[self.key_input])
         messages.append(
-            Message(role="user", content=user_content, masked=not self.train_on_input),
+            Message(
+                role="user",
+                content=self.template.format(content=input),
+                masked=not self.train_on_input,
+            ),
         )
         messages.append(
-            Message(role="assistant", content=sample[self.key_output]),
+            Message(role="assistant", content=output),
         )
-        processed_sample = {
-            k: v
-            for k, v in sample.items()
-            if k not in [self.key_input, self.key_output]
-        }
-        processed_sample["text"] = messages
-        return processed_sample
+        return kwargs.update({"messages": messages})
 
 
 GrammarErrorCorrectionTemplate = partial(

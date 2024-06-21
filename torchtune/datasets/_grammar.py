@@ -4,8 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import get_grammar_messages
+from torchtune.data import GrammarErrorCorrectionTemplate
 from torchtune.datasets._chat import ChatDataset
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -14,6 +15,7 @@ def grammar_dataset(
     *,
     source: str = "liweili/c4_200m",
     train_on_input: bool = False,
+    max_seq_len: int = 512,
     packed: bool = False,
 ) -> ChatDataset:
     """
@@ -48,11 +50,13 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    return ChatDataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        convert_to_messages=get_grammar_messages,
-        train_on_input=train_on_input,
+        message_transforms=[
+            GrammarErrorCorrectionTemplate(train_on_input=train_on_input)
+        ],
         packed=packed,
         split="train",
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds

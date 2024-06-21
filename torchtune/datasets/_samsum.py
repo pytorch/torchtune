@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets import instruct_dataset, InstructDataset
+from torchtune.data import SummarizeTemplate
+from torchtune.datasets._chat import ChatDataset
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -13,6 +15,7 @@ def samsum_dataset(
     *,
     source: str = "samsum",
     train_on_input: bool = False,
+    max_seq_len: int = 512,
     packed: bool = False,
 ) -> ChatDataset:
     """
@@ -47,16 +50,16 @@ def samsum_dataset(
         >>> Batch size: 8
     """
 
-    return ChatDataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
         message_transforms=[
             SummarizeTemplate(
-                key_input="dialogue",
-                key_output="summary",
                 train_on_input=train_on_input,
             )
         ],
+        column_map={"dialogue": "input", "summary": "output"},
         packed=packed,
         split="train",
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds

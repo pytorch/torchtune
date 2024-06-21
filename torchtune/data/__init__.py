@@ -5,21 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
-from torchtune.data._converters import get_openai_messages, get_sharegpt_messages
-from torchtune.data._instruct_templates import (
+from torchtune.data._messages import JsonToMessages, Message, ShareGptToMessages
+from torchtune.data._templates import (
     AlpacaInstructTemplate,
+    ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
     InstructTemplate,
+    Llama2ChatTemplate,
+    MistralChatTemplate,
     QuestionAnswerTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._prompt_templates import (
-    ChatMLTemplate,
-    Llama2ChatTemplate,
-    MistralChatTemplate,
-    PromptTemplate,
-)
-from torchtune.data._types import Message
 from torchtune.data._utils import truncate, validate_messages
 
 __all__ = [
@@ -32,8 +28,8 @@ __all__ = [
     "Llama2ChatTemplate",
     "MistralChatTemplate",
     "ChatMLTemplate",
-    "get_openai_messages",
-    "get_sharegpt_messages",
+    "JsonToMessages",
+    "ShareGptToMessages",
     "truncate",
     "Message",
     "validate_messages",

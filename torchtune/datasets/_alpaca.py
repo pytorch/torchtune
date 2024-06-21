@@ -6,9 +6,10 @@
 
 from functools import partial
 
-from torchtune.data import get_alpaca_instruct_messages
+from torchtune.data import AlpacaInstructTemplate
 
 from torchtune.datasets._chat import ChatDataset
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -53,7 +54,7 @@ def alpaca_dataset(
         >>> Batch size: 8
     """
 
-    return ChatDataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
         message_transforms=[AlpacaInstructTemplate(train_on_input=train_on_input)],
@@ -61,6 +62,7 @@ def alpaca_dataset(
         packed=packed,
         split="train",
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
 
 
 alpaca_cleaned_dataset = partial(alpaca_dataset, source="yahma/alpaca-cleaned")
