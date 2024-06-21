@@ -14,7 +14,7 @@ from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.utils import get_world_size_and_rank
 from tqdm import tqdm
 
-PACK_TYPE: Dict[str, Union[torch.Tensor, List[int]]]
+PACK_TYPE = Dict[str, Union[torch.Tensor, List[int]]]
 
 
 class PackedDataset(Dataset):
