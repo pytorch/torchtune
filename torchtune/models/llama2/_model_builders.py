@@ -40,6 +40,15 @@ def llama2_7b() -> TransformerDecoder:
     )
 
 def llama2_tokenizer(path: str) -> Llama2Tokenizer:
+    """
+    Tokenizer for Llama2.
+
+    Args:
+        path (str): path to the tokenizer
+
+    Returns:
+        Llama2Tokenizer: Instantiation of the Llama2 tokenizer
+    """
     return Llama2Tokenizer(path)
 
 

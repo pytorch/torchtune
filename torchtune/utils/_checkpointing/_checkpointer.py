@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Protocol
 
 import torch
+from safetensors.torch import save_file
 from torchtune import utils
 
 from torchtune.models import convert_weights
@@ -57,7 +58,7 @@ class _CheckpointerInterface(Protocol):
         * End-of-training Checkpointing. The model weights at the end of a completed training
             run are written out to file. The checkpointer ensures that the output checkpoint
             files have the same keys as the input checkpoint file used to begin training. The
-            checkpointer also ensures that the keys are paritioned across the same number of
+            checkpointer also ensures that the keys are partitioned across the same number of
             files as the original checkpoint. This ensures that the original metadata files can
             be used as is, and the output checkpoint can be used with any tool that understands
             the original checkpoint format. This includes popular inference engines such as
@@ -305,6 +306,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         recipe_checkpoint (Optional[str]): Path to the recipe state checkpoint file. Default is None
         resume_from_checkpoint (bool): If True, the checkpointer will load the additional checkpoint files to
             resume training from a previous run. Default is False
+        safe_serialization (bool): If True, the checkpointer will save the checkpoint file using `safetensors`
 
     Raises:
         ValueError: If ``resume_from_checkpoint`` is True but ``recipe_checkpoint`` is None
@@ -319,6 +321,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         adapter_checkpoint: Optional[str] = None,
         recipe_checkpoint: Optional[str] = None,
         resume_from_checkpoint: bool = False,
+        safe_serialization: bool = False,
     ) -> None:
         self._checkpoint_dir = Path(checkpoint_dir)
         self._checkpoint_paths = self._validate_hf_checkpoint_files(checkpoint_files)
@@ -331,6 +334,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         self._model_type = ModelType[model_type]
         self._output_dir = Path(output_dir)
         self._resume_from_checkpoint = resume_from_checkpoint
+        self._safe_serialization = safe_serialization
 
         # weight_map contains the state_dict key -> checkpoint file mapping so we can correctly
         # parition the state dict into output checkpoint files. This is updated during checkpoint
@@ -460,7 +464,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         checkpoint file ``recipe_state.pt`` is created in ``_output_dir`` which contains the recipe
         state.
 
-        The state_dict is first converted back to the HF format and then paritioned based on the
+        The state_dict is first converted back to the HF format and then partitioned based on the
         ``_weight_map`` into separate checkpoint files.
 
         Args:
@@ -508,10 +512,17 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
 
         # write the partitioned state dicts to the right checkpoint file
         for cpt_idx, model_state_dict in split_state_dicts.items():
-            output_path = Path.joinpath(
-                self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
-            ).with_suffix(".pt")
-            torch.save(model_state_dict, output_path)
+            if not self._safe_serialization:
+                output_path = Path.joinpath(
+                    self._output_dir, f"hf_model_{cpt_idx}_{epoch}"
+                ).with_suffix(".pt")
+                torch.save(model_state_dict, output_path)
+            else:
+                output_path = Path.joinpath(
+                    self._output_dir,
+                    f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}",
+                ).with_suffix(".safetensors")
+                save_file(model_state_dict, output_path)
             logger.info(
                 "Model checkpoint of size "
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "

@@ -69,6 +69,21 @@ class MistralTokenizer(Tokenizer):
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
     ) -> List[int]:
+        """
+        Encode a string into a list of token IDs
+
+        Args:
+            text (str): The input text to be encoded, unbatched.
+            add_bos (bool): Whether to prepend BOS special token (Beginning of Sentence) to the input, defaults to True.
+            add_eos (bool): Whether to append EOS special token (End of Sentence) to the input, defaults to True.
+            trim_leading_whitespace (bool): Whether to trim leading whitespace from
+                underlying sentencepiece tokenization. Sentencepiece normally prepends
+                whitespace to any tokenized text, which can cause differences where
+                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+                added to s2. Default: False
+        Returns:
+            List[int]: The encoded token IDs.
+        """
         return self._spm_model.encode(
             text,
             add_bos=add_bos,
@@ -76,12 +91,69 @@ class MistralTokenizer(Tokenizer):
             trim_leading_whitespace=trim_leading_whitespace,
         )
 
+<<<<<<< HEAD:torchtune/models/mistral/_tokenizer.py
     def decode(
         self,
         token_ids: List[int],
         include_special: bool = False,
     ) -> str:
+        """Decode token IDs to strings.
+
+        Args:
+            ids (List[int]): The input token IDs to be decoded.
+
+        Returns:
+            str: The decoded text.
+        """
         return self._spm_model.decode(token_ids, include_special=include_special)
+=======
+        Args:
+            text (str): The input text to be encoded, unbatched.
+            add_bos (bool): Whether to prepend BOS special token (Beginning of Sentence) to the input, defaults to True.
+            add_eos (bool): Whether to append EOS special token (End of Sentence) to the input, defaults to True.
+            trim_leading_whitespace (bool): Whether to trim leading whitespace from
+                underlying sentencepiece tokenization. Sentencepiece normally prepends
+                whitespace to any tokenized text, which can cause differences where
+                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+                added to s2. Default: False
+            prefix (Optional[str]): Optional string to encode for trimming leading
+                whitespaces. Used only if trim_leading_whitespace=True. Default: None
+        Returns:
+            List[int]: The encoded token IDs.
+        """
+        if trim_leading_whitespace:
+            # Can define our own custom prefix depending on vocab if needed
+            if not hasattr(self, "prefix"):
+                self.prefix = prefix or "\n"
+                self.encoded_prefix = self.spm_model.encode(
+                    self.prefix, add_bos=False, add_eos=False
+                )
+            start_idx = len(self.encoded_prefix) + int(add_bos)
+            return self.spm_model.encode(
+                self.prefix + text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )[start_idx:]
+        else:
+            return self.spm_model.encode(
+                text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )
+
+    def decode(self, ids: List[int]) -> str:
+        """Decode token IDs to strings.
+
+        Args:
+            ids (List[int]): The input token IDs to be decoded.
+
+        Returns:
+            str: The decoded text.
+        """
+        return self.spm_model.decode(ids)
+>>>>>>> main:torchtune/modules/tokenizers/_sentencepiece.py
 
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
