@@ -9,10 +9,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import SentencePieceEncoding, Tokenizer
+from torchtune.data.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
 
 
-class Phi3MiniTokenizer(Tokenizer):
+class Phi3MiniTokenizer(ModelTokenizer):
     """
     SentencePiece tokenizer configured with Phi3 Mini's special tokens.
 
@@ -31,7 +31,7 @@ class Phi3MiniTokenizer(Tokenizer):
         self,
         path: str,
     ):
-        self._spm_model = SentencePieceEncoding(path)
+        self._spm_model = SentencePieceBaseTokenizer(path)
 
         self.special_tokens = self._get_all_special_tokens_with_ids()
 

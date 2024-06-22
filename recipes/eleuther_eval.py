@@ -16,7 +16,7 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
-from torchtune.data.tokenizers import Tokenizer
+from torchtune.data.tokenizers import ModelTokenizer
 from torchtune.modules import TransformerDecoder
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
@@ -42,7 +42,7 @@ class _EvalWrapper(HFLM):
 
     Args:
         model (TransformerDecoder): The model to evaluate.
-        tokenizer (Tokenizer): The tokenizer to use.
+        tokenizer (ModelTokenizer): The tokenizer to use.
         device (torch.device): The device to use.
         max_seq_length (int): The maximum sequence length to use.
         batch_size (int): The batch size per GPU to use.
@@ -51,7 +51,7 @@ class _EvalWrapper(HFLM):
     def __init__(
         self,
         model: TransformerDecoder,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         *,
         device: torch.device,
         max_seq_length: int = 4096,

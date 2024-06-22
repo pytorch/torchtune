@@ -19,7 +19,7 @@ import pytest
 import torch
 from torch import nn
 from torchtune.data import truncate
-from torchtune.data.tokenizers import Tokenizer
+from torchtune.data.tokenizers import ModelTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -39,7 +39,7 @@ TOKENIZER_PATHS = {
 }
 
 
-class DummyTokenizer(Tokenizer):
+class DummyTokenizer(ModelTokenizer):
     def encode(self, text, add_bos=True, add_eos=True, **kwargs) -> List[int]:
         words = text.split()
         tokens = [len(word) for word in words]

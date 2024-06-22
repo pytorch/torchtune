@@ -5,12 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data import StackExchangedPairedTemplate
-from torchtune.data.tokenizers import Tokenizer
+from torchtune.data.tokenizers import ModelTokenizer
 from torchtune.datasets._preference import PreferenceDataset
 
 
 def stack_exchanged_paired_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "lvwerra/stack-exchange-paired",
     max_seq_len: int = 1024,
@@ -20,7 +20,7 @@ def stack_exchanged_paired_dataset(
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data.
+        tokenizer (ModelTokenizer): Tokenizer used to encode data.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             Default is 1024.

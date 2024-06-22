@@ -114,14 +114,14 @@ If you look at our :class:`~torchtune.data.Llama2ChatFormat` class, you'll notic
 we don't include the :code:`<s>` and :code:`</s>` tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let's tokenize this example with the
-:class:`~torchtune.modules.tokenizers.SentencePieceEncoding` used by Llama2 to see
+:class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer` used by Llama2 to see
 why.
 
 .. code-block:: python
 
-    from torchtune.data.tokenizers import SentencePieceEncoding
+    from torchtune.data.tokenizers import SentencePieceBaseTokenizer
 
-    tokenizer = SentencePieceEncoding("/tmp/Llama-2-7b-hf/tokenizer.model")
+    tokenizer = SentencePieceBaseTokenizer("/tmp/Llama-2-7b-hf/tokenizer.model")
     user_message = formatted_messages[0].content
     tokens = tokenizer.encode(user_message, add_bos=True, add_eos=True)
     print(tokens)
@@ -167,9 +167,9 @@ than Llama2.
 
 .. code-block:: python
 
-    from torchtune.data.tokenizers import TikTokenEncoding
+    from torchtune.data.tokenizers import TikTokenBaseTokenizer
 
-    tokenizer = TikTokenEncoding("/tmp/Meta-Llama-3-8B/original/tokenizer.model")
+    tokenizer = TikTokenBaseTokenizer("/tmp/Meta-Llama-3-8B/original/tokenizer.model")
     messages = [Message.from_dict(msg) for msg in sample]
     tokens, mask = tokenizer.tokenize_messages(messages)
     print(tokenizer.decode(tokens))
@@ -246,7 +246,7 @@ Llama3 understands and tokenizes correctly?
     #     "The first thing to know is the communication is one-way...",
     # ]
 
-The Llama3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenEncoding`,
+The Llama3 tokenizer class, :class:`~torchtune.modules.tokenizers.TikTokenBaseTokenizer`,
 expects the input to be in the :class:`~torchtune.data.Message` format. Let's
 quickly write a function that can parse a single row from our csv file into
 the Message dataclass. The function also needs to have a train_on_input parameter.
@@ -274,7 +274,7 @@ the Message dataclass. The function also needs to have a train_on_input paramete
 
 Since we're fine-tuning Llama3, the tokenizer will handle formatting the prompt for
 us. But if we were fine-tuning a model that requires a template, for example the
-Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceEncoding`,
+Mistral-7B model which uses the :class:`~torchtune.modules.tokenizers.SentencePieceBaseTokenizer`,
 we would need to use a chat format like :class:`~torchtune.data.MistralChatFormat` to format
 all messages according to their `recommendations <https://docs.mistral.ai/getting-started/open_weight_models/#chat-template>`_.
 
@@ -286,7 +286,7 @@ object.
 
     def custom_dataset(
         *,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         max_seq_len: int = 2048,  # You can expose this if you want to experiment
     ) -> ChatDataset:
 

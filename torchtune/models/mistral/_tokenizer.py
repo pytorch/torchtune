@@ -6,13 +6,17 @@
 
 from typing import List, Optional, Tuple
 
-from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import SentencePieceEncoding, Tokenizer
+from torchtune.data import Message
+from torchtune.data.tokenizers import (
+    ModelTokenizer,
+    SentencePieceBaseTokenizer,
+    tokenize_messages_no_special_tokens,
+)
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
-class MistralTokenizer(Tokenizer):
+class MistralTokenizer(ModelTokenizer):
     """
     Mistral's implementation of the SentencePiece tokenizer
 
@@ -31,7 +35,7 @@ class MistralTokenizer(Tokenizer):
         self,
         path: str,
     ):
-        self._spm_model = SentencePieceEncoding(path)
+        self._spm_model = SentencePieceBaseTokenizer(path)
 
         # Original tokenizer has no pad_id, which causes indexing errors when batch training
         self._spm_model.pad_id = 0
@@ -91,11 +95,9 @@ class MistralTokenizer(Tokenizer):
             trim_leading_whitespace=trim_leading_whitespace,
         )
 
-<<<<<<< HEAD:torchtune/models/mistral/_tokenizer.py
     def decode(
         self,
         token_ids: List[int],
-        include_special: bool = False,
     ) -> str:
         """Decode token IDs to strings.
 
@@ -105,55 +107,7 @@ class MistralTokenizer(Tokenizer):
         Returns:
             str: The decoded text.
         """
-        return self._spm_model.decode(token_ids, include_special=include_special)
-=======
-        Args:
-            text (str): The input text to be encoded, unbatched.
-            add_bos (bool): Whether to prepend BOS special token (Beginning of Sentence) to the input, defaults to True.
-            add_eos (bool): Whether to append EOS special token (End of Sentence) to the input, defaults to True.
-            trim_leading_whitespace (bool): Whether to trim leading whitespace from
-                underlying sentencepiece tokenization. Sentencepiece normally prepends
-                whitespace to any tokenized text, which can cause differences where
-                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
-                added to s2. Default: False
-            prefix (Optional[str]): Optional string to encode for trimming leading
-                whitespaces. Used only if trim_leading_whitespace=True. Default: None
-        Returns:
-            List[int]: The encoded token IDs.
-        """
-        if trim_leading_whitespace:
-            # Can define our own custom prefix depending on vocab if needed
-            if not hasattr(self, "prefix"):
-                self.prefix = prefix or "\n"
-                self.encoded_prefix = self.spm_model.encode(
-                    self.prefix, add_bos=False, add_eos=False
-                )
-            start_idx = len(self.encoded_prefix) + int(add_bos)
-            return self.spm_model.encode(
-                self.prefix + text,
-                add_bos=add_bos,
-                add_eos=add_eos,
-                out_type=int,
-            )[start_idx:]
-        else:
-            return self.spm_model.encode(
-                text,
-                add_bos=add_bos,
-                add_eos=add_eos,
-                out_type=int,
-            )
-
-    def decode(self, ids: List[int]) -> str:
-        """Decode token IDs to strings.
-
-        Args:
-            ids (List[int]): The input token IDs to be decoded.
-
-        Returns:
-            str: The decoded text.
-        """
-        return self.spm_model.decode(ids)
->>>>>>> main:torchtune/modules/tokenizers/_sentencepiece.py
+        return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
@@ -161,13 +115,13 @@ class MistralTokenizer(Tokenizer):
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-        Note: llama2 sentencepiece has problems where in general
+        Note: sentencepiece has problems where in general
         encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
         We can get around this by prepending s2 with a known token and slicing the
         beginning off the tokenized s2.
 
         Example:
-            >>> tokenizer = SentencePieceEncoding(tokenizer_path)
+            >>> tokenizer = MistralTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
@@ -192,57 +146,10 @@ class MistralTokenizer(Tokenizer):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        start_of_turn = True
-        end_of_turn = False
-        prev_ends_with_space = False
-        tokenized_messages = []
-        mask = []
-        for message in messages:
-            # If assistant message, this is the end of a turn
-            end_of_turn = message.role == "assistant"
-
-            # Prepend BOS on start of new turns
-            if start_of_turn:
-                tokenized_messages.append(self.bos_id)
-                mask.append(message.masked)
-
-            # We want to trim leading whitespace on the next message when
-            # (a) it is a continuation of the turn (i.e. not the first message)
-            # (b) the vocabulary explicitly encodes whitespace characters, and
-            # (c) the previous message did not end with a space
-            trim_leading_whitespace = (
-                (not start_of_turn)
-                and self.encodes_whitespace
-                and not prev_ends_with_space
-            )
-
-            # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content.rstrip(" "),
-                add_bos=False,
-                add_eos=False,
-                trim_leading_whitespace=trim_leading_whitespace,
-            )
-            prev_ends_with_space = message.content.endswith(" ")
-            tokenized_messages.extend(tokens)
-            mask.extend([message.masked] * len(tokens))
-
-            # If assistant message, append EOS at end
-            if end_of_turn:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
-                end_of_turn = False
-                start_of_turn = True
-            else:
-                start_of_turn = False
-
-            # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
-                break
-
-        # Finally, truncate if necessary
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
-
-        return tokenized_messages, mask
+        return tokenize_messages_no_special_tokens(
+            tokenizer=self,
+            messages=messages,
+            bos_id=self.bos_id,
+            eos_id=self.eos_id,
+            max_seq_len=max_seq_len,
+        )

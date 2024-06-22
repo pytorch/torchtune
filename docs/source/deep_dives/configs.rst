@@ -116,7 +116,7 @@ keyword arguments not specified in the config if we'd like:
     # Note the API of the dataset we specified - we need to pass in a tokenizer
     # and any optional keyword arguments
     def alpaca_dataset(
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         train_on_input: bool = True,
         max_seq_len: int = 512,
     ) -> InstructDataset:

@@ -7,17 +7,17 @@
 from pathlib import Path
 
 import pytest
-from torchtune.data.tokenizers import SentencePieceEncoding
+from torchtune.data.tokenizers import SentencePieceBaseTokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestSentencePieceEncoding:
+class TestSentencePieceBaseTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceEncoding(str(ASSETS / "m.model"))
+        return SentencePieceBaseTokenizer(str(ASSETS / "m.model"))
 
     def test_encode(self, tokenizer):
         assert tokenizer.encode("Hello world!") == [

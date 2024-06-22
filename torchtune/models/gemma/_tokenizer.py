@@ -6,13 +6,17 @@
 
 from typing import List, Optional, Tuple
 
-from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import SentencePieceEncoding, Tokenizer
+from torchtune.data import Message
+from torchtune.data.tokenizers import (
+    ModelTokenizer,
+    SentencePieceBaseTokenizer,
+    tokenize_messages_no_special_tokens,
+)
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
-class GemmaTokenizer(Tokenizer):
+class GemmaTokenizer(ModelTokenizer):
     """
     Gemma's implementation of the SentencePiece tokenizer
 
@@ -31,7 +35,7 @@ class GemmaTokenizer(Tokenizer):
         self,
         path: str,
     ):
-        self._spm_model = SentencePieceEncoding(path)
+        self._spm_model = SentencePieceBaseTokenizer(path)
 
         # Original tokenizer has no pad_id, which causes indexing errors when batch training
         self._spm_model.pad_id = 0
@@ -79,9 +83,8 @@ class GemmaTokenizer(Tokenizer):
     def decode(
         self,
         token_ids: List[int],
-        include_special: bool = False,
     ) -> str:
-        return self._spm_model.decode(token_ids, include_special=include_special)
+        return self._spm_model.decode(token_ids)
 
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
@@ -116,57 +119,10 @@ class GemmaTokenizer(Tokenizer):
         Returns:
             Tuple[List[int], List[bool]]: The tokenized messages
         """
-        start_of_turn = True
-        end_of_turn = False
-        prev_ends_with_space = False
-        tokenized_messages = []
-        mask = []
-        for message in messages:
-            # If assistant message, this is the end of a turn
-            end_of_turn = message.role == "assistant"
-
-            # Prepend BOS on start of new turns
-            if start_of_turn:
-                tokenized_messages.append(self.bos_id)
-                mask.append(message.masked)
-
-            # We want to trim leading whitespace on the next message when
-            # (a) it is a continuation of the turn (i.e. not the first message)
-            # (b) the vocabulary explicitly encodes whitespace characters, and
-            # (c) the previous message did not end with a space
-            trim_leading_whitespace = (
-                (not start_of_turn)
-                and self.encodes_whitespace
-                and not prev_ends_with_space
-            )
-
-            # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content.rstrip(" "),
-                add_bos=False,
-                add_eos=False,
-                trim_leading_whitespace=trim_leading_whitespace,
-            )
-            prev_ends_with_space = message.content.endswith(" ")
-            tokenized_messages.extend(tokens)
-            mask.extend([message.masked] * len(tokens))
-
-            # If assistant message, append EOS at end
-            if end_of_turn:
-                tokenized_messages.append(self.eos_id)
-                mask.append(message.masked)
-                end_of_turn = False
-                start_of_turn = True
-            else:
-                start_of_turn = False
-
-            # Break out early if we reach max_seq_len
-            if max_seq_len and len(tokenized_messages) >= max_seq_len:
-                break
-
-        # Finally, truncate if necessary
-        if max_seq_len:
-            tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, message.masked)
-
-        return tokenized_messages, mask
+        return tokenize_messages_no_special_tokens(
+            tokenizer=self,
+            messages=messages,
+            bos_id=self.bos_id,
+            eos_id=self.eos_id,
+            max_seq_len=max_seq_len,
+        )

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import TikTokenEncoding, Tokenizer
+from torchtune.data.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -17,7 +17,7 @@ CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}
 PAD_ID = 0
 
 
-class Llama3Tokenizer(Tokenizer):
+class Llama3Tokenizer(ModelTokenizer):
     """
     tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in
     https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3
@@ -31,12 +31,6 @@ class Llama3Tokenizer(Tokenizer):
         path: str,
     ):
         all_special_tokens_with_ids = self._get_all_special_tokens_with_ids()
-        self.tt_model = TikTokenEncoding(
-            path=path,
-            name="llama3_tiktoken",
-            pattern=CL100K_PATTERN,
-            special_tokens=all_special_tokens_with_ids,
-        )
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = all_special_tokens_with_ids["<|begin_of_text|>"]
@@ -53,6 +47,15 @@ class Llama3Tokenizer(Tokenizer):
 
         # During generation, stop when either eos_id or eot_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id]
+
+        self.tt_model = TikTokenBaseTokenizer(
+            path=path,
+            name="llama3_tiktoken",
+            pattern=CL100K_PATTERN,
+            bos_id=self.bos_id,
+            eos_id=self.eos_id,
+            special_tokens=all_special_tokens_with_ids,
+        )
 
     def _get_all_special_tokens_with_ids(self) -> Dict[str, int]:
         special_tokens_json_path = Path(__file__).parent / "_special_tokens.json"
@@ -74,13 +77,7 @@ class Llama3Tokenizer(Tokenizer):
         add_bos: bool,
         add_eos: bool,
     ) -> List[int]:
-        tokens = []
-        if add_bos:
-            tokens = tokens + [self.bos_id]
-        tokens = tokens + self.tt_model.encode(text)
-        if add_eos:
-            tokens = tokens + [self.eos_id]
-        return tokens
+        return self.tt_model.encode(text=text, add_bos=add_bos, add_eos=add_eos)
 
     def decode(
         self,
@@ -98,15 +95,7 @@ class Llama3Tokenizer(Tokenizer):
         Returns:
             str: The decoded string.
         """
-        if truncate_at_eos:
-            try:
-                k = token_ids.index(self.eos_id)
-            except ValueError:
-                k = None
-            if k:
-                token_ids = token_ids[:k]
-        token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
-        return self.tt_model.decode(token_ids)
+        return self.tt_model.decode(token_ids, truncate_at_eos=truncate_at_eos)
 
     def tokenize_message(
         self, message: Message, tokenize_header: bool = False

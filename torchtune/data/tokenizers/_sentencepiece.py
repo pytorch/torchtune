@@ -7,12 +7,12 @@
 from typing import List, Optional
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.data.tokenizers._base import TokenEncoding
+from torchtune.data.tokenizers._base import BaseTokenizer
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
-class SentencePieceEncoding(TokenEncoding):
+class SentencePieceBaseTokenizer(BaseTokenizer):
     """
     A light-weight wrapper around SentencePieceProcessor that additionally handles
     trimming leading whitespaces.
@@ -22,8 +22,8 @@ class SentencePieceEncoding(TokenEncoding):
 
     Example:
         # Accepts only non-batched input for now
-        >>> tokenizer = SentencePieceEncoding("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceEncoding.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenizer = SentencePieceBaseTokenizer("/path/to/spm_model")
+        >>> tokenized_text = SentencePieceBaseTokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """

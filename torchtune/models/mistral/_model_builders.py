@@ -45,7 +45,6 @@ def mistral_7b() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-<<<<<<< HEAD
 def mistral_tokenizer(path: str) -> MistralTokenizer:
     """
     Tokenizer for Mistral models.
@@ -57,24 +56,6 @@ def mistral_tokenizer(path: str) -> MistralTokenizer:
         MistralTokenizer: Instantiation of the Mistral tokenizer
     """
     return MistralTokenizer(path)
-=======
-
-def mistral_tokenizer(path: str) -> SentencePieceTokenizer:
-    """
-    Tokenizer for Mistral models.
-
-    Args:
-        path (str): path to the tokenizer
-
-    Returns:
-        SentencePieceTokenizer: Instantiation of the Mistral tokenizer
-    """
-    tokenizer = SentencePieceTokenizer(path)
-    # Original tokenizer has no pad_id, which causes indexing errors when batch training
-    tokenizer.pad_id = 0
-    return tokenizer
-
->>>>>>> main
 
 def lora_mistral_7b(
     lora_attn_modules: List[LORA_ATTN_MODULES],

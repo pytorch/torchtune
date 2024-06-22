@@ -8,14 +8,14 @@ from typing import Dict, Iterator, List
 
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
-from torchtune.data.tokenizers._base import TokenEncoding
+from torchtune.data.tokenizers._base import BaseTokenizer
 
 # Constants controlling encode logic
 MAX_ENCODE_CHARS = 400_000
 MAX_NO_WHITESPACE_CHARS = 25_000
 
 
-class TikTokenEncoding(TokenEncoding):
+class TikTokenBaseTokenizer(BaseTokenizer):
     """
     A lightweight wrapper around tiktoken Encoding. This class additionally handles
     breaking up the input text into substrings of a max length and splitting up long
@@ -29,6 +29,8 @@ class TikTokenEncoding(TokenEncoding):
         name (str): Name of the tokenizer (used by tiktoken for identification).
         pattern (str): Regex pattern used to split input text into chunks before passing
             to byte-pair encoding.
+        bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.
+        eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
         special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
     """
 
@@ -37,6 +39,8 @@ class TikTokenEncoding(TokenEncoding):
         path: str,
         name: str,
         pattern: str,
+        bos_id: int,
+        eos_id: int,
         special_tokens: Dict[str, int],
     ):
         mergeable_ranks = load_tiktoken_bpe(path)
@@ -50,6 +54,8 @@ class TikTokenEncoding(TokenEncoding):
         self.base_vocab_size = len(mergeable_ranks)
         # Vocab size with special tokens
         self.vocab_size = self.tt_model.n_vocab
+        self.bos_id = bos_id
+        self.eos_id = eos_id
 
     def _split_long_repetitions(
         self, s: str, max_consecutive_slice_len: int
@@ -79,6 +85,8 @@ class TikTokenEncoding(TokenEncoding):
     def encode(
         self,
         text: str,
+        add_bos: bool,
+        add_eos: bool,
     ) -> List[int]:
         """
         Encode a string into a list of token ids. Assumes that the string
@@ -114,19 +122,34 @@ class TikTokenEncoding(TokenEncoding):
                     disallowed_special=(),
                 )
             )
+        if add_bos:
+            tokens = [self.bos_id] + tokens
+        if add_eos:
+            tokens = tokens + [self.eos_id]
         return tokens
 
     def decode(
         self,
         token_ids: List[int],
+        truncate_at_eos: bool = True,
     ) -> str:
         """
         Decode a list of token ids into a string.
 
         Args:
             token_ids (List[int]): The list of token ids.
+            truncate_at_eos (bool): Whether to truncate the string at the end of
+                sequence token. Default is True.
 
         Returns:
             str: The decoded string.
         """
+        if truncate_at_eos:
+            try:
+                k = token_ids.index(self.eos_id)
+            except ValueError:
+                k = None
+            if k:
+                token_ids = token_ids[:k]
+        token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
         return self.tt_model.decode(token_ids)

@@ -56,7 +56,7 @@ def phi3_mini_tokenizer(path: str) -> Phi3MiniTokenizer:
         See https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/discussions/51 for more details.
 
     Returns:
-        Phi3MiniSentencePieceEncoding: Instantiation of the SPM tokenizer.
+        Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.
     """
     return Phi3MiniTokenizer(path)
 

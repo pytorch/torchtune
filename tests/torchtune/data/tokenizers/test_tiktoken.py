@@ -7,18 +7,18 @@
 from pathlib import Path
 
 import pytest
-from torchtune.data.tokenizers import TikTokenEncoding
+from torchtune.data.tokenizers import TikTokenBaseTokenizer
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
 
-class TestTikTokenEncoding:
+class TestTikTokenBaseTokenizer:
     @pytest.fixture
     def tokenizer(self):
         # Pretrained tiktoken model generated via the script in
         # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-        return TikTokenEncoding(
+        return TikTokenBaseTokenizer(
             path=str(ASSETS / "tiktoken_small.model"),
             name="test_tiktoken",
             pattern=CL100K_PATTERN,
