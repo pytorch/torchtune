@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import SummarizeTemplate
+from torchtune.data import ColumnMap, SummarizeTemplate
 from torchtune.datasets._chat import ChatDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Compose
 
 
 def samsum_dataset(
@@ -53,12 +54,13 @@ def samsum_dataset(
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        message_transforms=[
-            SummarizeTemplate(
-                train_on_input=train_on_input,
-            )
-        ],
-        column_map={"dialogue": "input", "summary": "output"},
+        message_transform=Compose(
+            [
+                ColumnMap({"dialogue": "input", "summary": "output"}),
+                SummarizeTemplate(),
+            ],
+        ),
+        train_on_input=train_on_input,
         packed=packed,
         split="train",
     )

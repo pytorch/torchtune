@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 
@@ -14,6 +14,7 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, JsonToMessages, validate_messages
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Compose, Transform
 
 
 class ChatDataset(Dataset):
@@ -59,16 +60,16 @@ class ChatDataset(Dataset):
         *,
         tokenizer: Tokenizer,
         source: str,
-        message_transforms: List[Callable],
+        message_transform: Transform,
         max_seq_len: int,
-        column_map: Optional[Dict[str, str]] = None,
+        train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._message_transforms = message_transforms
+        self._message_transform = message_transform
         self.max_seq_len = max_seq_len
-        self.column_map = column_map
+        self.train_on_input = train_on_input
 
     def __len__(self):
         return len(self._data)
@@ -78,20 +79,14 @@ class ChatDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        processed_sample = {}
-        for key in sample:
-            if key in self.column_map:
-                processed_sample[self.column_map[key]] = sample[key]
-            else:
-                processed_sample[key] = sample[key]
-
-        for transform in self._message_transforms:
-            processed_sample = transform(processed_sample)
+        processed_sample = self._message_transform(**sample)
 
         messages = processed_sample["messages"]
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages,
+            max_seq_len=self.max_seq_len,
+            train_on_input=self.train_on_input,
         )
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
@@ -172,7 +167,7 @@ def chat_dataset(
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        message_transforms=transforms,
+        message_transform=Compose(transforms),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,

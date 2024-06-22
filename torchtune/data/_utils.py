@@ -4,9 +4,10 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from torchtune.data._types import Message
+from torchtune.modules.transforms import Transform
 
 
 def truncate(
@@ -73,3 +74,17 @@ def validate_messages(
                 f"System message at index {i} in messages, but system messages must come first"
             )
         last_turn = message.role
+
+
+class ColumnMap(Transform):
+    """
+    Transform that remaps the names of columns in a sample dictionary
+    """
+
+    def __init__(self, column_map: Dict[str, str]) -> None:
+        self.column_map = column_map
+
+    def __call__(self, **kwargs) -> Mapping[str, Any]:
+        for old_key, new_key in self.column_map.items():
+            kwargs[new_key] = kwargs.pop(old_key)
+        return kwargs

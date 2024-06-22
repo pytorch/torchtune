@@ -74,7 +74,7 @@ class TestShareGptToMessages:
 
 
 class TestJsonToMessages:
-    samples_2 = {
+    samples = {
         "id": "DUMMY",
         "messages": [
             {
@@ -94,13 +94,13 @@ class TestJsonToMessages:
 
     def test_conversion(self):
         transform = JsonToMessages()
-        converted_messages_2 = transform(**self.samples_2)
+        converted_messages_2 = transform(**self.samples)
         for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
             assert converted == expected
 
     def test_conversion_train_on_input(self):
         transform = JsonToMessages(train_on_input=True)
-        converted_messages_2 = transform(**self.samples_2)
+        converted_messages_2 = transform(**self.samples)
         for converted, expected in zip(
             converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT
         ):

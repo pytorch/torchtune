@@ -8,9 +8,10 @@ from functools import partial
 from typing import Any, List, Mapping, Optional
 
 from torchtune.data._types import Message
+from torchtune.modules.transforms import Transform
 
 
-class Llama2ChatTemplate:
+class Llama2ChatTemplate(Transform):
     """
     Chat format that formats human and system prompts with appropriate tags
     used in Llama2 pre-training. Taken from Meta's official `Llama inference
@@ -78,7 +79,7 @@ class Llama2ChatTemplate:
         return kwargs.update({"messages": formatted_dialogue})
 
 
-class MistralChatTemplate:
+class MistralChatTemplate(Transform):
     """
     Formats according to `Mistral's instruct model <https://docs.mistral.ai/models/>`_.
 
@@ -136,7 +137,7 @@ class MistralChatTemplate:
         return kwargs.update({"messages": formatted_dialogue})
 
 
-class ChatMLTemplate:
+class ChatMLTemplate(Transform):
     """
     OpenAI's `Chat Markup Language
     <https://github.com/MicrosoftDocs/azure-docs/blob/772c14eeabfa0c0c561d5c2d34ef19341f528b7b/articles/ai-services/openai/how-to/chat-markup-language.md>`_
@@ -199,7 +200,7 @@ class ChatMLTemplate:
         return kwargs.update({"messages": formatted_dialogue})
 
 
-class AlpacaInstructTemplate:
+class AlpacaInstructTemplate(Transform):
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
     on if there's an instruction + input or just an instruction. This does not use the base
@@ -219,12 +220,6 @@ class AlpacaInstructTemplate:
             "### Instruction:\n{instruction}\n\n### Response:\n"
         ),
     }
-
-    def __init__(
-        self,
-        train_on_input: bool = False,
-    ):
-        self.train_on_input = train_on_input
 
     def __call__(
         self, *, instruction: str, output: str, input: Optional[str] = None, **kwargs
@@ -251,21 +246,19 @@ class AlpacaInstructTemplate:
             prompt = self.template["prompt_no_input"].format(instruction=instruction)
 
         messages = [
-            Message(role="user", content=prompt, masked=not self.train_on_input),
+            Message(role="user", content=prompt),
             Message(role="assistant", content=output),
         ]
 
         return kwargs.update({"messages": messages})
 
 
-class QuickTemplate:
+class QuickTemplate(Transform):
     def __init__(
         self,
         template: str,
-        train_on_input: bool = False,
     ):
         self.template = template
-        self.train_on_input = train_on_input
 
     def __call__(self, *, input: str, output: str, **kwargs) -> Mapping[str, Any]:
         """
@@ -283,7 +276,6 @@ class QuickTemplate:
             Message(
                 role="user",
                 content=self.template.format(content=input),
-                masked=not self.train_on_input,
             ),
         )
         messages.append(

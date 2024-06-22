@@ -16,7 +16,7 @@ from torchtune.data._templates import (
     QuestionAnswerTemplate,
     SummarizeTemplate,
 )
-from torchtune.data._utils import truncate, validate_messages
+from torchtune.data._utils import ColumnMap, truncate, validate_messages
 
 __all__ = [
     "AlpacaInstructTemplate",
@@ -34,4 +34,5 @@ __all__ = [
     "Message",
     "validate_messages",
     "QuestionAnswerTemplate",
+    "ColumnMap",
 ]

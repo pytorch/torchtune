@@ -7,6 +7,8 @@
 from dataclasses import dataclass
 from typing import Any, List, Literal, Mapping
 
+from torchtune.modules.transforms import Transform
+
 Role = Literal["system", "user", "assistant"]
 
 
@@ -53,7 +55,7 @@ class Message:
         )
 
 
-class ShareGptToMessages:
+class ShareGptToMessages(Transform):
     """
     Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
     structure.
@@ -114,7 +116,7 @@ class ShareGptToMessages:
         return kwargs.update({"messages": messages})
 
 
-class JsonToMessages:
+class JsonToMessages(Transform):
     """
     Convert a chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
     structure. This transform simply creates Message dataclasses from the provided jsons.

@@ -6,9 +6,13 @@
 
 from typing import Optional
 
-from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.config._utils import _get_component_from_path
+from torchtune.data import ShareGptToMessages
+
+from torchtune.datasets._chat import ChatDataset
 
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Compose
 
 
 def slimorca_dataset(
@@ -64,11 +68,14 @@ def slimorca_dataset(
         # and 1 token from prompt, 1 from label
         raise ValueError("max_seq_len must be at least 4")
 
-    return chat_dataset(
+    transforms = [ShareGptToMessages()]
+    if prompt_template is not None:
+        transforms.append(_get_component_from_path(prompt_template)())
+
+    return ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        conversation_style="sharegpt",
-        prompt_template=prompt_template,
+        message_transform=Compose(transforms),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         packed=packed,

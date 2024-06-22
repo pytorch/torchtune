@@ -53,9 +53,8 @@ def grammar_dataset(
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        message_transforms=[
-            GrammarErrorCorrectionTemplate(train_on_input=train_on_input)
-        ],
+        message_transform=GrammarErrorCorrectionTemplate(),
+        train_on_input=train_on_input,
         packed=packed,
         split="train",
     )

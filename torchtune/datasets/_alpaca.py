@@ -57,8 +57,9 @@ def alpaca_dataset(
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        message_transforms=[AlpacaInstructTemplate(train_on_input=train_on_input)],
+        message_transform=AlpacaInstructTemplate(train_on_input=train_on_input),
         max_seq_len=max_seq_len,
+        train_on_input=train_on_input,
         packed=packed,
         split="train",
     )
