@@ -10,10 +10,10 @@ from torchtune.data._templates import (
     AlpacaInstructTemplate,
     ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
-    InstructTemplate,
     Llama2ChatTemplate,
     MistralChatTemplate,
     QuestionAnswerTemplate,
+    QuickTemplate,
     SummarizeTemplate,
 )
 from torchtune.data._utils import ColumnMap, truncate, validate_messages
@@ -23,7 +23,7 @@ __all__ = [
     "PromptTemplate",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
-    "InstructTemplate",
+    "QuickTemplate",
     "SummarizeTemplate",
     "Llama2ChatTemplate",
     "MistralChatTemplate",

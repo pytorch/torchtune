@@ -6,7 +6,7 @@
 
 from typing import Any, Dict, List, Mapping, Optional
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 from torchtune.modules.transforms import Transform
 
 

@@ -6,7 +6,7 @@
 
 from typing import Iterator, List, Protocol, Set
 
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 
 
 class Tokenizer(Protocol):
