@@ -9,7 +9,7 @@ def clip_vit_336_transform():
         possible_resolutions=None,
         max_num_tiles=4,
         resample="bilinear",
-        limit_upscaling_to_tile_size=True,
+        resize_to_max_canvas=True,
     )
 
     return image_transform

@@ -27,7 +27,23 @@ def resize_with_pad(
     Used to resize+pad an image to target_resolution, without distortion.
 
     If target_size requires upscaling the image, the user can set max_upscaling_size to
-    limit the upscaling to a maximum size, which overwrites target_size if it is smaller.
+    limit the upscaling to a maximum size.
+
+    Example 1:
+    max_upscaling_size = None
+    image = torch.rand([3, 300, 800])
+    target_size = (448, 1344)
+
+    The image will be upscaled (300,800) -> (448, 1194), since 448 is the limiting side,
+    and then padded (448, 1194) -> (448, 1344)
+
+    Example 2:
+    max_upscaling_size = 600
+    image = torch.rand([3, 300, 800])
+    target_size = (448, 1344)
+
+    The image will NOT be upscaled, since 800>600,
+    and then padded (300, 800) -> (448, 1344)
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
@@ -37,30 +53,6 @@ def resize_with_pad(
             NEAREST_EXACT, BILINEAR, BICUBIC
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
-    Examples:
-    >>> target_size = (1000, 1200)
-    >>> max_upscaling_size = 600
-    >>> image_size = (400, 200)
-    >>> ResizeWithoutDistortion(max_upscaling_size=max_upscaling_size)(image_size, target_size)
-    (600, 300)  # new_size_without_distortion
-
-    >>> target_size = (1000, 1200)
-    >>> max_upscaling_size = 600
-    >>> image_size = (2000, 200)
-    >>> ResizeWithoutDistortion(max_upscaling_size=max_upscaling_size)(image_size, target_size)
-    (1000, 100)  # new_size_without_distortion
-
-    >>> target_size = (1000, 1200)
-    >>> max_upscaling_size = 2000
-    >>> image_size = (400, 200)
-    >>> ResizeWithoutDistortion(max_upscaling_size=max_upscaling_size)(image_size, target_size)
-    (1000, 500)  # new_size_without_distortion
-
-    >>> target_size = (1000, 1200)
-    >>> max_upscaling_size = None
-    >>> image_size = (400, 200)
-    >>> ResizeWithoutDistortion(max_upscaling_size=max_upscaling_size)(image_size, target_size)
-    (1000, 500)  # new_size_without_distortion
     """
 
     image_height, image_width = image.shape[-2:]
@@ -70,25 +62,24 @@ def resize_with_pad(
     if max_upscaling_size is not None:
         new_target_height = min(max(image_height, max_upscaling_size), target_size[0])
         new_target_width = min(max(image_width, max_upscaling_size), target_size[1])
-        target_size = (new_target_height, new_target_width)
+        target_size_resize = (new_target_height, new_target_width)
+    else:
+        target_size_resize = target_size
 
     # resize to target_size while preserving aspect ratio
     new_size_without_distortion = _get_max_res_without_distortion(
         image_size=image_size,
-        target_size=target_size,
+        target_size=target_size_resize,
     )
 
     image = F.resize(
-        inpt=image, size=list(new_size_without_distortion), interpolation=resample
+        inpt=image,
+        size=list(new_size_without_distortion),
+        interpolation=resample,
+        antialias=True,
     )
 
     image = _pad_image_top_left(image=image, target_size=target_size)
-
-    # assert shapes
-    _, height, width = image.shape
-    assert (
-        height == target_size[0] and width == target_size[1]
-    ), f"Expected image shape {target_size} but got {height}x{width}"
 
     return image
 
@@ -98,8 +89,8 @@ def _pad_image_top_left(
     target_size: Tuple[int, int],
 ) -> torch.Tensor:
     """
-    Places the image at the top left of the canvas and pads the right and bottom
-    to fit to the target resolution. If padding is negative, the image will be cropped.
+    Places the image at the top left of the canvas and pads with 0 the right and bottom
+    to fit to the target resolution. If target_size < image_size, it will crop the image.
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
@@ -131,11 +122,18 @@ def _get_max_res_without_distortion(
     Determines the maximum resolution to which an image can be resized to without distorting its
     aspect ratio, based on the target resolution.
 
+    For example, if image_size = (200,400) and target_size = (600,800),
+    scale_h = 600/200 = 3
+    scale_w = 800/400 = 2
+    So the maximum that we can upscale without distortion is min(scale_h, scale_w) = 2
+
+    Since scale_w is the limiting side, then new_w = target_w, and new_h = old_h*scale_w
+
     Args:
-        image_size (Tuple[int, int]): The original resolution of the image (height, width).
-        target_resolution (Tuple[int, int]): The desired resolution to fit the image into (height, width).
+        image_size (Tuple[int, int]): The original resolution of the image.
+        target_resolution (Tuple[int, int]): The desired resolution to fit the image into.
     Returns:
-        Tuple[int, int]: The optimal dimensions (height, width) to which the image should be resized.
+        Tuple[int, int]: The optimal dimensions to which the image should be resized.
     Example:
         >>> _get_max_res_without_distortion([200, 300], target_size = [450, 200])
         (134, 200)

@@ -8,7 +8,7 @@ import pytest
 import torch
 
 from torchtune.modules.transforms.vision.get_canvas_best_fit import (
-    _find_supported_resolutions,
+    find_supported_resolutions,
     get_canvas_best_fit,
 )
 
@@ -58,7 +58,7 @@ class TestUtils:
         max_num_tiles = params["max_num_tiles"]
         tile_size = params["tile_size"]
         expected_resolutions = params["expected_resolutions"]
-        resolutions = _find_supported_resolutions(max_num_tiles, tile_size)
+        resolutions = find_supported_resolutions(max_num_tiles, tile_size)
 
         assert len(set(resolutions)) == len(resolutions), "Resolutions should be unique"
         assert set(resolutions) == set(
@@ -80,6 +80,7 @@ class TestUtils:
                     (224, 448),
                     (448, 224),
                 ],
+                "resize_to_max_canvax": False,
                 "expected_best_resolution": (448, 448),
             },
             {
@@ -91,21 +92,25 @@ class TestUtils:
                     (448, 224),
                     (224, 224),
                 ],
+                "resize_to_max_canvax": False,
                 "expected_best_resolution": (224, 448),
             },
             {
                 "image_size": (500, 500),
                 "possible_resolutions": None,
+                "resize_to_max_canvax": False,
                 "expected_best_resolution": (100, 100),
             },
             {
                 "image_size": (500, 500),
                 "possible_resolutions": None,
+                "resize_to_max_canvax": False,
                 "expected_best_resolution": (1000, 1000),
             },
             {
                 "image_size": (600, 200),
                 "possible_resolutions": None,
+                "resize_to_max_canvax": False,
                 "expected_best_resolution": (900, 300),
             },
         ],
@@ -114,9 +119,12 @@ class TestUtils:
         image_size = params["image_size"]
         possible_resolutions = params["possible_resolutions"]
         expected_best_resolution = params["expected_best_resolution"]
+        resize_to_max_canvax = params["resize_to_max_canvax"]
 
         image = torch.rand(*image_size)  # Create a random image tensor
-        best_resolution = get_canvas_best_fit(image, possible_resolutions)
+        best_resolution = get_canvas_best_fit(
+            image, possible_resolutions, resize_to_max_canvax
+        )
 
         assert (
             tuple(best_resolution) == expected_best_resolution

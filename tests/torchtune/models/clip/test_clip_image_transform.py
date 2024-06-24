@@ -13,21 +13,6 @@ import torch
 from torchtune.models.clip._component_builders import CLIPImageTransform
 
 
-@pytest.fixture(autouse=True)
-def image_transform():
-
-    image_transform = CLIPImageTransform(
-        image_mean=[0.48145466, 0.4578275, 0.40821073],
-        image_std=[0.26862954, 0.26130258, 0.27577711],
-        tile_size=224,
-        possible_resolutions=None,
-        max_num_tiles=4,
-        resample="bilinear",
-        limit_upscaling_to_tile_size=True,
-    )
-    return image_transform
-
-
 class TestPipelines:
     @pytest.mark.parametrize(
         "params",
@@ -35,16 +20,36 @@ class TestPipelines:
             {
                 "image_size": (100, 100, 3),
                 "expected_shape": torch.Size([1, 3, 224, 224]),
+                "resize_to_max_canvas": False,
             },
-            {"image_size": (200, 300), "expected_shape": torch.Size([2, 3, 224, 224])},
+            {
+                "image_size": (200, 300),
+                "expected_shape": torch.Size([2, 3, 224, 224]),
+                "resize_to_max_canvas": True,
+            },
             {
                 "image_size": (400, 400, 3),
                 "expected_shape": torch.Size([4, 3, 224, 224]),
+                "resize_to_max_canvas": True,
             },
-            {"image_size": (800, 600), "expected_shape": torch.Size([4, 3, 224, 224])},
+            {
+                "image_size": (800, 600),
+                "expected_shape": torch.Size([4, 3, 224, 224]),
+                "resize_to_max_canvas": False,
+            },
         ],
     )
     def test_shapes_variable_image_size_transforms(self, params, image_transform):
+
+        image_transform = CLIPImageTransform(
+            image_mean=[0.48145466, 0.4578275, 0.40821073],
+            image_std=[0.26862954, 0.26130258, 0.27577711],
+            tile_size=224,
+            possible_resolutions=None,
+            max_num_tiles=4,
+            resample="bilinear",
+            resize_to_max_canvas=params["resize_to_max_canvas"],
+        )
 
         image_size = params["image_size"]
 

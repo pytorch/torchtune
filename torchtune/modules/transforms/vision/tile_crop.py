@@ -28,7 +28,7 @@ def tile_crop(image: torch.Tensor, tile_size: int) -> torch.Tensor:
 
         >>> image = torch.rand(3, 400, 600)
         >>> tiles = tile_crop(image, tile_size=200)
-        >>> len(tiles) # 2x3
+        >>> tiles.shape # 2x3
         torch.Size([6, 3, 200, 200])
     """
 
