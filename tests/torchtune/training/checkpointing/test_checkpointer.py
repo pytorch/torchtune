@@ -388,7 +388,7 @@ class TestHFLlama2FullModelCheckpointer:
         lora_b_sd = {
             k: torch.randn_like(v)
             for k, v in model.state_dict().items()
-            if "lora_b" in k
+            if "lora.b" in k
         }
         model.load_state_dict(lora_b_sd, strict=False)
 
@@ -449,11 +449,11 @@ class TestHFLlama2FullModelCheckpointer:
             for kk, vv in peft_to_tt.items():
                 if kk in k:
                     new_k = new_k.replace(kk, vv)
-            new_k = new_k.replace("lora_A", "lora_a").replace("lora_B", "lora_b")
+            new_k = new_k.replace("lora_A", "lora.a").replace("lora_B", "lora.b")
 
             # LoRA B matrix for Q should not match due to Q and K permutation
             # However, since they're permuted along embed dim, their sum along that axis should match
-            if "lora_b" in new_k and "q_proj" in new_k:
+            if "lora.b" in new_k and "q_proj" in new_k:
                 assert not torch.allclose(
                     actual_adapter_state_dict[k], expected_adapter_state_dict[new_k]
                 )
@@ -463,7 +463,7 @@ class TestHFLlama2FullModelCheckpointer:
                 )
 
             # All other matrices should match exactly
-            if "lora_b" not in new_k:
+            if "lora.b" not in new_k:
                 torch.testing.assert_close(
                     actual_adapter_state_dict[k], expected_adapter_state_dict[new_k]
                 )
