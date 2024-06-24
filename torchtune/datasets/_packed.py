@@ -73,7 +73,7 @@ class PackedDataset(Dataset):
         ds (Dataset): dataset to sample pack. This should return a dictionary with field
             "tokens" and "labels" containing the tokenized and label samples.
         max_seq_len (int): Maximum number of tokens to pack
-        max_packs (int): maximum number of packs. Default is -1, which will create as many
+        max_packs (Optional[int]): Maximum number of packs. Default is None, which will create as many
             packs as possible.
         split_across_pack (bool): if the last sample in a pack does not fit in ``max_seq_len``,
             split the sample into the next pack, or move it entirely to the beginning of the next pack.
