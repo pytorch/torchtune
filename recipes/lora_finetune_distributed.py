@@ -32,6 +32,7 @@ from torchtune.modules.peft import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    notify_base_params_loaded,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
@@ -431,6 +432,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             # Load both the base model weights and (if available) the adapter weights. Both
             # of this should happen only on Rank 0
             model.load_state_dict(base_model_state_dict, strict=False)
+            notify_base_params_loaded(model)
             if lora_weights_state_dict:
                 model.load_state_dict(lora_weights_state_dict, strict=False)
 

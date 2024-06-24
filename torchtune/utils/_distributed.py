@@ -104,7 +104,7 @@ def _broadcast_tensor(tensor: torch.Tensor, src: int = 0) -> torch.Tensor:
     """
     if dist.is_available() and dist.is_initialized():
         device = tensor.device
-        if dist.get_backend() == "LoRAnccl":
+        if dist.get_backend() == "nccl":
             tensor = tensor.to(get_device("cuda"))
         dist.broadcast(tensor, src=src, group=None)
         return tensor.to(device)

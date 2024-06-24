@@ -397,6 +397,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
         )
+        # This is for any adapters that need to be initialized after base weights
+        # have been loaded (e.g. DoRA).
         notify_base_params_loaded(model)
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
