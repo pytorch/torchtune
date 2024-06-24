@@ -237,7 +237,7 @@ def lora_llama3(
 
     # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_dora=use_dora)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
