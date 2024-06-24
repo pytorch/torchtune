@@ -16,19 +16,19 @@ def tile_crop(image: torch.Tensor, tile_size: int) -> torch.Tensor:
     Divides a tensor into equally sized tiles. The tensor should be divisible by tile_size.
 
     Args:
-        image (torch.Tensor): Torch tensor.
+        image (torch.Tensor): Input image to crop into tiles.
         tile_size (int): Size of each tile.
     Returns:
         torch.Tensor: Tensor of shape [num_tiles, channel_size, tile_size, tile_size]
     Example:
         >>> image = torch.rand(3, 200, 300)
         >>> tiles = tile_crop(image, tile_size=50)
-        >>> tiles.shape # 4x6
+        >>> tiles.shape # 4x6 = 24 tiles
         torch.Size([24, 3, 50, 50])
 
         >>> image = torch.rand(3, 400, 600)
         >>> tiles = tile_crop(image, tile_size=200)
-        >>> tiles.shape # 2x3
+        >>> tiles.shape # 2x3 = 6 tiles
         torch.Size([6, 3, 200, 200])
     """
 

@@ -66,7 +66,7 @@ Loss
    loss.DPOLoss
 
 
-Transforms
+Vision Transforms
 ------------------
 Functions used for preprocessing images.
 
@@ -74,11 +74,7 @@ Functions used for preprocessing images.
    :toctree: generated/
    :nosignatures:
 
-    transforms.VariableImageSizeTransforms
-    transforms.divide_to_equal_patches
-    transforms.pad_image_top_left
-    transforms.rescale
-    transforms.ResizeWithoutDistortion
-    transforms.find_supported_resolutions
-    transforms.GetBestResolution
-    transforms.get_max_res_without_distortion
+    transforms.vision.get_canvas_best_fit
+    transforms.vision.resize_with_pad
+    transforms.vision.tile_crop
+    transforms.vision.find_supported_resolutions

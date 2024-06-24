@@ -48,10 +48,10 @@ class CLIPImageTransform:
     Image is tiled 2x5, for a final output shape of (10, 3, 224, 224)
 
     Args:
-        image_mean (Optional[List[float]]): Mean values for normalization.
-            Should be the same used for the pre-trained model. If None, nor normalization is performed.
-        image_std Union[float, List[float]]]): Standard deviation values for normalization.
-            Should be the same used for the pre-trained model. If None, nor normalization is performed.
+        image_mean (Optional[List[float]]): Mean values of each channel, used for normalization.
+            Should be the same used for the pre-trained model. If None, no normalization is performed.
+        image_std Union[float, List[float]]]): Standard deviation values of each channel, used for normalization.
+            Should be the same used for the pre-trained model. If None, no normalization is performed.
         possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
         If None, this will be calculed using max_num_tiles and tile_size.
         tile_size (int): Size of the tiles to divide the image into
@@ -59,11 +59,31 @@ class CLIPImageTransform:
             Maximum number of tiles to break an image into.
             This will be used to generate possible_resolutions, 
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
-        resample (str): Resampling method used when resizing images. Supports "nearest", "nearest_exact", "bilinear", "bicubic"
+        resample (str): Resampling method used when resizing images. Supports any enum of 
+            torchvision.transforms.InterpolationMode, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
         resize_to_max_canvas (bool):
-            If True, will upscale the image, without distortion, to fit the possible_resolutions that allows largest upscaling.
-            If False, it will pick the possible_resolutions that minimizes downscaling, including no downscaling at all.
+            If True, will upscale the image, without distortion, to fit the resolution from possible_resolutions
+            that allows largest upscaling.
+            If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
             In this case, the image will only be upscaled if it's size < tile_size.
+    Example:
+        >>> image_transform = CLIPImageTransform(
+        ...    image_mean=None,
+        ...    image_std=None,
+        ...    tile_size=224,
+        ...    possible_resolutions=None,
+        ...    max_num_tiles=4,
+        ...    resample="bilinear",
+        ...    resize_to_max_canvas=False,
+        ...)
+        >>> # create random image
+        >>> image = (np.random.rand(100,200,3) * 255).astype(np.uint8)
+        >>> image = PIL.Image.fromarray(image)
+        >>> image_transform(image)
+        >>> output['image'].shape # [num_tiles, num_channels, tile_size, tile_size]
+        torch.Size([2, 3, 224, 224]) 
+        >>> output['ar'] # image best fits the canvas 448x224
+        torch.tensor([2, 1])
     """
 
     def __init__(

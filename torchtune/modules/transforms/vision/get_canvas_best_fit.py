@@ -23,26 +23,21 @@ def get_canvas_best_fit(
 
     For each possible resolution, calculates the scaling factors for
     width and height, and selects the smallest one, which is the limiting side.
-    E.g. to match a canvas shape you can upscale an image's height by 2x, and width by 1.5x,
-    therefore, the maximum upscaling without distortion is min(2, 1.5) = 1.5.
+    E.g. if to match a canvas shape you have to upscale an image's height by 2x, and width by 1.5x,
+    then the maximum upscaling without distortion is min(2, 1.5) = 1.5.
 
-    If resize_to_max_canvas = True, pick the canvas that allows maximum scaling.
-
-    If resize_to_max_canvas = False, pick the canvas that minimizes downscaling,
-    including no downscaling at all.
-
-    If there are multiple canvases that satisfy the conditions, we pick the one with the lowest area,
-    to minimize padding. E.g., the same image can be upscaled to 224x224 and 224x448, but the latter
-    has more padding.
+    If there are multiple canvases that satisfy the conditions,
+    we pick the one with the lowest area to minimize padding.
 
     Args:
         image (torch.Tensor): The image we want to fit into a canvas;
         possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each
             row represents a possible canvas.
-        resize_to_max_canvas (bool): If True, will return the largest upscaling resolution.
+        resize_to_max_canvas (bool): If True, pick the canvas that allows maximum scaling.
+            If False, pick the canvas that minimizes downscaling, including no downscaling at all.
 
     Returns:
-        List[int]: The best resolution to fit the image into.
+        Tuple[int, int]: The best resolution to fit the image into.
 
     Example:
         >>> image = torch.rand(3, 200, 300)
@@ -52,18 +47,22 @@ def get_canvas_best_fit(
         ...                                     [448, 224],
         ...                                     [224, 224]])
         >>> get_canvas_best_fit(image, possible_resolutions, resize_to_max_canvas=False)
-        [224, 448]
+        (224, 448)
 
         We have:
-            scale_h = tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
-            scale_w = tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
-            scales = tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])
-        Only one of the scales > 1:
-            upscaling_options = tensor([1.1200, 1.1200])
-            selected_scale = tensor(1.1200)
-        So we pick the resolution with the smallest smallest area:
-            areas = tensor([150528, 100352]) # for [672, 224], [224, 448], respectively
-            optimal_canvas = tensor([224, 448])
+            >>> scale_h = torch.tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
+            >>> scale_w = torch.tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
+            >>> scales = torch.tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])
+
+        Two upscaling options are larger than 1:
+
+            >>> upscaling_options = torch.tensor([1.1200, 1.1200])
+            >>> selected_scale = torch.tensor(1.1200)
+
+        So we pick the resolution with the smallest area:
+
+            >>> areas = torch.tensor([150528, 100352]) # for [672, 224], [224, 448], respectively
+            >>> optimal_canvas = torch.tensor([224, 448])
     """
 
     original_height, original_width = image.shape[-2:]
@@ -114,11 +113,11 @@ def find_supported_resolutions(
     max_num_tiles: int, tile_size: int
 ) -> List[Tuple[int, int]]:
     """
-    Computes all of the allowed resoltuions for a fixed number of tiles
-    and tile_size. Useful for when dividing an image into tiles.
+    Computes all combinations of resolutions, multiple of tile_size,
+    that contain up to max_num_tiles. Useful for when dividing an image into tiles.
 
     Args:
-        max_num_tiles (int): Maximum number of tiles for processing.
+        max_num_tiles (int): Maximum number of tiles.
         tile_size (int): Size of the side of the tile.
 
     Returns:
@@ -129,21 +128,10 @@ def find_supported_resolutions(
         >>> tile_size = 224
         >>> find_supported_resolutions(max_num_tiles, tile_size)
         [(224, 896), (448, 448), (224, 224), (896, 224), (224, 672), (672, 224), (224, 448), (448, 224)]
-
-        Given max_num_tiles=4, tile_size=224, it will create a dictionary:
-        {
-        0.25: [(1, 4)],
-        1.0: [(2, 2), (1, 1)],
-        4.0: [(4, 1)],
-        0.33: [(1, 3)],
-        3.0: [(3, 1)],
-        0.5: [(1, 2)],
-        2.0: [(2, 1)]
-        }
-
-        and return the resolutions multiplied by the tile_size:
-        [(1*224, 4*224), (2*224, 2*224), ..., (2*224, 1*224)]
     """
+
+    # create dictionary {aspect_ratio: [resolution1, ..., resolution n]}
+    # example {0.25: [(1,4)], 1.0: [(2,2), (1,1)], 4.0: [(4,1)]}
     asp_dict = defaultdict(list)
     for _tile_size in range(max_num_tiles, 0, -1):
         factors = sorted(_get_factors(_tile_size))
@@ -154,9 +142,9 @@ def find_supported_resolutions(
 
     # get the resolutions multiplied by the tile_size
     possible_resolutions = []
-    for key, value in asp_dict.items():
-        for height, depth in value:
-            possible_resolutions.append((height * tile_size, depth * tile_size))
+    for ar, resolution in asp_dict.items():
+        for height, width in resolution:
+            possible_resolutions.append((height * tile_size, width * tile_size))
 
     return possible_resolutions
 
