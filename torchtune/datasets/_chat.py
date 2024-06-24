@@ -4,17 +4,23 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, JsonToMessages, validate_messages
+from torchtune.data import (
+    ChatFormat,
+    CROSS_ENTROPY_IGNORE_IDX,
+    get_openai_messages,
+    get_sharegpt_messages,
+    Message,
+    validate_messages,
+)
 from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
-from torchtune.modules.transforms import Compose, Transform
 
 
 class ChatDataset(Dataset):
@@ -24,8 +30,11 @@ class ChatDataset(Dataset):
     The general flow from loading a sample to tokenized prompt is:
     load sample -> apply transform -> foreach turn{format into template -> tokenize}
 
-    Use ``convert_to_messages`` to prepare your dataset into torchtune's :class:`~torchtune.data.Message`
-    structure::
+    If the column/key names differ from the expected names in the ``ChatFormat``,
+    then the ``column_map`` argument can be used to provide this mapping.
+
+    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format
+    and roles::
 
         [
             Message(
@@ -44,12 +53,12 @@ class ChatDataset(Dataset):
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
             and converts to a list of :class:`~torchtune.data.Message` that follows the Llama format with the expected keys
-        prompt_template (Optional[PromptTemplate]): template used to format the chat. This is used to add
-            structured text around the actual messages, such as the [INST] tags in Llama2 and in Mistral.
-            The extra text will still get tokenized as normal text, not as special tokens. In models like Llama3
-            where the tokenizer adds tags as special tokens, ``prompt_template`` is not needed,
-            unless you want to structure messages in a particular way for inference. For a list of all possible
-            prompt templates, check out :ref:`prompt_templates`. Default: None.
+        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual
+            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not
+            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,
+            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
+            template do not match the column/key names in the dataset, use ``column_map`` to map them. For a list of all possible
+            chat formats, check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
@@ -60,14 +69,21 @@ class ChatDataset(Dataset):
         *,
         tokenizer: Tokenizer,
         source: str,
-        data_transform: Transform,
+        convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
+        chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
+        if chat_format is not None and not isinstance(chat_format(), ChatFormat):
+            raise ValueError(
+                f"chat_format must be a ChatFormat class, not {type(chat_format())}"
+            )
+
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._data_transform = data_transform
+        self._convert_to_messages = convert_to_messages
+        self.chat_format = chat_format
         self.max_seq_len = max_seq_len
         self.train_on_input = train_on_input
 
@@ -79,14 +95,12 @@ class ChatDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        processed_sample = self._data_transform(**sample)
-
-        messages = processed_sample["messages"]
+        messages = self._convert_to_messages(sample, self.train_on_input)
+        if self.chat_format is not None:
+            messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages,
-            max_seq_len=self.max_seq_len,
-            train_on_input=self.train_on_input,
+            messages, max_seq_len=self.max_seq_len
         )
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
@@ -99,8 +113,8 @@ def chat_dataset(
     *,
     tokenizer: Tokenizer,
     source: str,
-    message_transform: Optional[str] = None,
-    prompt_template: Optional[str] = None,
+    conversation_style: str,
+    chat_format: Optional[str] = None,
     max_seq_len: int,
     train_on_input: bool = False,
     packed: bool = False,
@@ -112,16 +126,14 @@ def chat_dataset(
     using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an
-            ``encode`` and ``decode`` method.
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
-            for automatic conversion to torchtune's :class:`~torchtune.data.Message` structure.
-            Supported styles are: "sharegpt", "openai"
-        prompt_template (Optional[str]): full import path of ``PromptTemplate`` class used to format the messages.
-            See the description in :class:`~torchtune.datasets.ChatDataset` for more details.
-            For a list of all possible prompt templates, check out :ref:`prompt_templates`. Default: None.
+            for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: "sharegpt", "openai"
+        chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in
+            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,
+            check out :ref:`chat_formats`. Default: None.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
@@ -133,7 +145,7 @@ def chat_dataset(
         ...   tokenizer=tokenizer,
         ...   source="HuggingFaceH4/no_robots",
         ...   conversation_style="sharegpt",
-        ...   prompt_template="torchtune.data.ChatMLTemplate",
+        ...   chat_format="torchtune.data.ChatMLFormat",
         ...   max_seq_len=2096,
         ...   train_on_input=True
         ... )
@@ -144,7 +156,7 @@ def chat_dataset(
             _component_: torchtune.datasets.chat_dataset
             source: HuggingFaceH4/no_robots
             conversation_style: sharegpt
-            prompt_template: torchtune.data.ChatMLTemplate
+            chat_format: torchtune.data.ChatMLFormat
             max_seq_len: 2096
             train_on_input: True
 
@@ -153,21 +165,22 @@ def chat_dataset(
             or :class:`~torchtune.datasets.PackedDataset` if ``packed=True``
 
     Raises:
-        ValueError: if the conversation style is not supported
+        ValueError: if the conversation format is not supported
     """
-    message_transform = (
-        _get_component_from_path(message_transform)
-        if message_transform is not None
-        else JsonToMessages()
-    )
-    transforms = [message_transform]
-    if prompt_template is not None:
-        transforms.append(_get_component_from_path(prompt_template))
+    if conversation_style == "sharegpt":
+        convert_to_messages = get_sharegpt_messages
+    elif conversation_style == "openai":
+        convert_to_messages = get_openai_messages
+    else:
+        raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        data_transform=Compose(transforms),
+        convert_to_messages=convert_to_messages,
+        chat_format=_get_component_from_path(chat_format)
+        if chat_format is not None
+        else None,
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,

@@ -4,10 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import ColumnMap, QuestionAnswerPreferenceTemplate
+from torchtune.data import StackExchangedPairedTemplate
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.modules.tokenizers import Tokenizer
-from torchtune.modules.transforms import Compose
 
 
 def stack_exchanged_paired_dataset(
@@ -32,18 +31,12 @@ def stack_exchanged_paired_dataset(
     return PreferenceDataset(
         tokenizer=tokenizer,
         source=source,
-        data_transform=Compose(
-            [
-                ColumnMap(
-                    {
-                        "question": "prompt",
-                        "response_j": "chosen",
-                        "response_k": "rejected",
-                    }
-                ),
-                QuestionAnswerPreferenceTemplate(),
-            ]
-        ),
+        template=StackExchangedPairedTemplate(),
+        column_map={
+            "prompt": "question",
+            "chosen": "response_j",
+            "rejected": "response_k",
+        },
         max_seq_len=max_seq_len,
         split="train",
         data_dir="data/rl",

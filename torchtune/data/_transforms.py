@@ -5,9 +5,10 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
-from torchtune.data._messages import Message
+from torchtune.data._types import Message
+
 from torchtune.modules.transforms import Transform
 
 
@@ -314,3 +315,140 @@ GrammarErrorCorrectionTemplate = partial(
 SummarizeTemplate = partial(
     QuickTemplate, template="Summarize this dialogue:\n{content}\n---\nSummary:\n"
 )
+
+
+class ShareGptToMessages(Transform):
+    """
+    Convert a chat sample adhering to the ShareGPT json structure to torchtune's :class:`~torchtune.data.Message`
+    structure.
+
+    ShareGPT follows::
+
+        {
+            "conversations": [
+                {
+                    "from": <system|human|gpt>,
+                    "value": <message>,
+                },
+                ...
+            ]
+        }
+
+    :class:`~torchtune.data.Message` follows::
+
+        [
+            {
+                "role": <system|user|assistant>,
+                "content": <message>,
+            },
+            ...
+        ]
+
+    Args:
+        sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
+            to a list of dict messages.
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+
+    Returns:
+        List[Message]: A list of messages with "role" and "content" fields.
+    """
+
+    def __init__(
+        self,
+        train_on_input: bool = False,
+    ):
+        self.train_on_input = train_on_input
+
+    def __call__(
+        self,
+        *,
+        conversations: List[Mapping[str, str]],
+        **kwargs,
+    ) -> Mapping[str, Any]:
+
+        role_map = {"system": "system", "human": "user", "gpt": "assistant"}
+
+        messages = []
+        for message in conversations:
+            role = role_map[message["from"]]
+            content = message["value"]
+            masked = (role != "assistant") and (not self.train_on_input)
+            messages.append(Message(role=role, content=content, masked=masked))
+
+        return kwargs.update({"messages": messages})
+
+
+class JsonToMessages(Transform):
+    """
+    Convert a chat sample with identical json structure to torchtune's :class:`~torchtune.data.Message`
+    structure. This transform simply creates Message dataclasses from the provided jsons.
+
+    For example::
+
+        {
+            # key could be "messages" OR "conversations"
+            "messages": [
+                {
+                    "role": <system|user|assistant>,
+                    "content": <message>,
+                },
+                ...
+            ]
+        }
+
+    :class:`~torchtune.data.Message` follows::
+
+        [
+            {
+                "role": <system|user|assistant>,
+                "content": <message>,
+            },
+            ...
+        ]
+
+    Args:
+        sample (Mapping[str, Any]): a single data sample with "conversations" field pointing
+            to a list of dict messages.
+        train_on_input (bool): whether the prompt should remain unmasked. Default: False
+
+    Raises:
+        ValueError: If the sample does not contain "messages" or "conversations" key.
+
+    Returns:
+        List[Message]: A list of messages with "role" and "content" fields.
+    """
+
+    def __init__(
+        self,
+        train_on_input: bool = False,
+    ):
+        self.train_on_input = train_on_input
+
+    def __call__(
+        self,
+        *,
+        messages: List[Mapping[str, str]],
+        **kwargs,
+    ) -> Mapping[str, Any]:
+        updated_messages = []
+        for message in messages:
+            message["masked"] = (message["role"] != "assistant") and (
+                not self.train_on_input
+            )
+            updated_messages.append(Message.from_dict(message))
+
+        return kwargs.update({"messages": updated_messages})
+
+
+class ColumnMap(Transform):
+    """
+    Transform that remaps the names of columns in a sample dictionary
+    """
+
+    def __init__(self, column_map: Dict[str, str]) -> None:
+        self.column_map = column_map
+
+    def __call__(self, **kwargs) -> Mapping[str, Any]:
+        for old_key, new_key in self.column_map.items():
+            kwargs[new_key] = kwargs.pop(old_key)
+        return kwargs

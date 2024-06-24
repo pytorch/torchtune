@@ -9,12 +9,12 @@ from unittest import mock
 import pytest
 from datasets import Dataset
 from tests.test_utils import DummyTokenizer
-from torchtune.data import Message, PromptTemplate
+from torchtune.data import ChatFormat, Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ChatDataset
 
 
-class DummyPromptTemplate(PromptTemplate):
+class DummyChatFormat(ChatFormat):
 
     B_SYS, E_SYS = "System:\n", "\n"
     B_INST, E_INST = "User:\n", "\nAssistant:\n"
@@ -51,8 +51,8 @@ def _are_messages_equal(messages_a, messages_b):
 
 class TestChatDataset:
     @pytest.fixture
-    def prompt_template(self):
-        return DummyPromptTemplate
+    def chat_format(self):
+        return DummyChatFormat
 
     @pytest.fixture
     def dialogue(self):
@@ -81,7 +81,7 @@ class TestChatDataset:
         ]
 
     @mock.patch("torchtune.datasets._chat.load_dataset")
-    def test_get_item(self, mock_load_dataset, prompt_template, dialogue):
+    def test_get_item(self, mock_load_dataset, chat_format, dialogue):
         mock_load_dataset.return_value = Dataset.from_list(dialogue)
         expected_tokenized_prompts = [
             [
@@ -128,7 +128,7 @@ class TestChatDataset:
             tokenizer=DummyTokenizer(),
             source="iam/agoofy/goober",
             convert_to_messages=lambda x, y: x["dialogue"],
-            prompt_template=prompt_template,
+            chat_format=chat_format,
             max_seq_len=100,
             train_on_input=False,
         )

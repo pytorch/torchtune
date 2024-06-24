@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import ColumnMap, Message, truncate, validate_messages
+from torchtune.data import Message, truncate, validate_messages
 
 
 def test_truncate():
@@ -88,15 +88,3 @@ def test_validate_messages():
         match="Assistant message before expected user message at index 0 in messages",
     ):
         validate_messages(messages)
-
-
-class TestColumnMap:
-    def test_call(self):
-        sample = {
-            "A": "This little maneuver's gonna cost us 51 years.",
-            "B": "Love is the one thing we're capable of perceiving that transcends dimensions of time and space.",
-        }
-        transform = ColumnMap({"A": "C", "B": "D"})
-        processed_sample = transform(**sample)
-        assert processed_sample["C"] == sample["A"]
-        assert processed_sample["D"] == sample["B"]

@@ -4,8 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import JsonToMessages, ShareGptToMessages
-from torchtune.data._messages import Message
+from torchtune.data import get_openai_messages, get_sharegpt_messages
+from torchtune.data._types import Message
 
 # Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
@@ -40,7 +40,7 @@ EXPECTED_MESSAGE = [
 ]
 
 
-class TestShareGptToMessages:
+class TestShareGPTToLlama2Messages:
     samples = {
         "conversations": [
             {
@@ -59,22 +59,38 @@ class TestShareGptToMessages:
     }
 
     def test_conversion(self):
-        transform = ShareGptToMessages()
-        converted_messages = transform(**self.samples)
+        converted_messages = get_sharegpt_messages(self.samples)
         for converted, expected in zip(converted_messages, EXPECTED_MESSAGE):
             assert converted == expected
 
     def test_conversion_train_on_input(self):
-        transform = ShareGptToMessages(train_on_input=True)
-        converted_messages = transform(**self.samples)
+        converted_messages = get_sharegpt_messages(self.samples, train_on_input=True)
         for converted, expected in zip(
             converted_messages, EXPECTED_MESSAGE_TRAIN_ON_INPUT
         ):
             assert converted == expected
 
 
-class TestJsonToMessages:
-    samples = {
+class TestOpenAIToLlama2Messages:
+    samples_1 = {
+        "id": "DUMMY",
+        "conversations": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
+    samples_2 = {
         "id": "DUMMY",
         "messages": [
             {
@@ -92,15 +108,25 @@ class TestJsonToMessages:
         ],
     }
 
-    def test_conversion(self):
-        transform = JsonToMessages()
-        converted_messages_2 = transform(**self.samples)
+    def test_conversion_conversations_key(self):
+        converted_messages_1 = get_openai_messages(self.samples_1)
+        for converted, expected in zip(converted_messages_1, EXPECTED_MESSAGE):
+            assert converted == expected
+
+    def test_conversion_messages_key(self):
+        converted_messages_2 = get_openai_messages(self.samples_2)
         for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
             assert converted == expected
 
-    def test_conversion_train_on_input(self):
-        transform = JsonToMessages(train_on_input=True)
-        converted_messages_2 = transform(**self.samples)
+    def test_conversion_conversations_key_train_on_input(self):
+        converted_messages_1 = get_openai_messages(self.samples_1, train_on_input=True)
+        for converted, expected in zip(
+            converted_messages_1, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected
+
+    def test_conversion_messages_key_train_on_input(self):
+        converted_messages_2 = get_openai_messages(self.samples_2, train_on_input=True)
         for converted, expected in zip(
             converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT
         ):

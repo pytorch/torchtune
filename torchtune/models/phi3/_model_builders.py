@@ -7,6 +7,8 @@ from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from functools import partial
 
+import torch
+
 
 """
 Model builders build specific instantiations using component builders. For example

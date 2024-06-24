@@ -336,7 +336,6 @@ class TikTokenTokenizer(Tokenizer):
         self,
         messages: List[Message],
         max_seq_len: Optional[int] = None,
-        train_on_input: bool = False,
         tokenize_header: bool = True,
         add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
@@ -355,8 +354,6 @@ class TikTokenTokenizer(Tokenizer):
         # bos and eos are always masked
         mask = [True]
         for message in messages:
-            if message.role == "user":
-                message.masked = not train_on_input
             tokenized_message = self.tokenize_message(
                 message, tokenize_header=tokenize_header
             )

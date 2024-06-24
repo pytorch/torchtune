@@ -6,43 +6,53 @@
 
 import pytest
 from tests.test_utils import assert_dialogue_equal
-from torchtune.data import (
+from torchtune.data._transforms import (
     AlpacaInstructTemplate,
     ChatMLTemplate,
     GrammarErrorCorrectionTemplate,
+    JsonToMessages,
     Llama2ChatTemplate,
-    Message,
     MistralChatTemplate,
+    ShareGptToMessages,
     SummarizeTemplate,
 )
+from torchtune.data._types import Message
 
-# Taken from Open-Orca/SlimOrca-Dedup on HuggingFace:
+# Taken from Open-Orca/SlimOrca-Dedup on Hugging Face:
 # https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup
 CHAT_SAMPLE = {
+    "system": "You are an AI assistant. User will you give you a task. Your goal is to complete the task as faithfully as you can. While performing the task think step-by-step and justify your steps.",  # noqa: B950
+    "user": "Please briefly summarize this news article:\n\nAOL.com Video - Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your 8-year-old drive your car? How about on an icy road? Well one father in Russia did just that, and recorded the entire thing. To her credit, the child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , caught on camera , child driver , pix11\n\nSummary:",  # noqa: B950
+    "assistant": "A father in Russia allowed his 8-year-old child to drive his car on an icy road and recorded the event. The child appeared to be handling the situation well, showcasing their driving skills despite the challenging conditions.",  # noqa: B950
+}
+
+CHAT_MESSAGES = {
     "messages": [
-        Message(
-            role="system",
-            content="You are an AI assistant. User will you give you a task. "
-            "Your goal is to complete the task as faithfully as you can. "
-            "While performing the task think step-by-step and justify your steps.",
-        ),
-        Message(
-            role="user",
-            content="Please briefly summarize this news article:\n\nAOL.com Video - "
-            "Father Lets 8-Year-Old Drive On Icy Road\n\nDescription:Would you let your "
-            "8-year-old drive your car? How about on an icy road? Well one father in "
-            "Russia did just that, and recorded the entire thing. To her credit, the "
-            "child seemed to be doing a great job. (0:44)\n\nTags: 8-year-old driver , "
-            "caught on camera , child driver , pix11\n\nSummary:",
-        ),
+        Message(role="system", content=CHAT_SAMPLE["system"], masked=True),
+        Message(role="user", content=CHAT_SAMPLE["user"], masked=True),
         Message(
             role="assistant",
-            content="A father in Russia allowed his 8-year-old child to drive his car "
-            "on an icy road and recorded the event. The child appeared to be handling the "
-            "situation well, showcasing their driving skills despite the challenging conditions.",
+            content=CHAT_SAMPLE["assistant"],
         ),
-    ],
+    ]
 }
+
+EXPECTED_MESSAGE_TRAIN_ON_INPUT = [
+    Message(
+        role="system",
+        content=CHAT_SAMPLE["system"],
+    ),
+    Message(
+        role="user",
+        content=CHAT_SAMPLE["user"],
+    ),
+    Message(
+        role="assistant",
+        content=CHAT_SAMPLE["assistant"],
+    ),
+]
+
+EXPECTED_MESSAGE = CHAT_MESSAGES["messages"]
 
 
 class TestLlama2ChatTemplate:
@@ -68,7 +78,7 @@ class TestLlama2ChatTemplate:
     ]
 
     def test_format(self):
-        actual = Llama2ChatTemplate()(**CHAT_SAMPLE)
+        actual = Llama2ChatTemplate()(**CHAT_MESSAGES)
         assert_dialogue_equal(actual["messages"], self.expected_dialogue)
 
 
@@ -92,7 +102,7 @@ class TestMistralChatTemplate:
     ]
 
     def test_format(self):
-        no_system_sample = CHAT_SAMPLE[1:]
+        no_system_sample = CHAT_MESSAGES[1:]
         actual = MistralChatTemplate()(**no_system_sample)
         assert_dialogue_equal(actual["messages"], self.expected_dialogue)
 
@@ -100,7 +110,7 @@ class TestMistralChatTemplate:
         with pytest.raises(
             ValueError, match="System prompts are not supported in MistralChatTemplate"
         ):
-            _ = MistralChatTemplate()(**CHAT_SAMPLE)
+            _ = MistralChatTemplate()(**CHAT_MESSAGES)
 
 
 class TestChatMLTemplate:
@@ -130,7 +140,7 @@ class TestChatMLTemplate:
     ]
 
     def test_format(self):
-        actual = ChatMLTemplate()(**CHAT_SAMPLE)
+        actual = ChatMLTemplate()(**CHAT_MESSAGES)
         assert_dialogue_equal(actual["messages"], self.expected_dialogue)
 
 
@@ -166,7 +176,8 @@ class TestAlpacaInstructTemplate:
                 "2. Exercise regularly to keep your body active and strong."
                 "3. Get enough sleep and maintain a consistent sleep schedule.",
             ),
-        ][
+        ],
+        [
             Message(
                 role="user",
                 content="Below is an instruction that describes a task, paired with an input that provides further context. "
@@ -284,3 +295,70 @@ class TestSummarizeTemplate:
         for sample, expected_dialogue in zip(self.samples, self.expected_dialogues):
             actual = self.template(**sample)
             assert_dialogue_equal(actual["messages"], expected_dialogue)
+
+
+class TestShareGptToMessages:
+    samples = {
+        "conversations": [
+            {
+                "from": "system",
+                "value": CHAT_SAMPLE["system"],
+            },
+            {
+                "from": "human",
+                "value": CHAT_SAMPLE["user"],
+            },
+            {
+                "from": "gpt",
+                "value": CHAT_SAMPLE["assistant"],
+            },
+        ]
+    }
+
+    def test_conversion(self):
+        transform = ShareGptToMessages()
+        converted_messages = transform(**self.samples)
+        for converted, expected in zip(converted_messages, EXPECTED_MESSAGE):
+            assert converted == expected
+
+    def test_conversion_train_on_input(self):
+        transform = ShareGptToMessages(train_on_input=True)
+        converted_messages = transform(**self.samples)
+        for converted, expected in zip(
+            converted_messages, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected
+
+
+class TestJsonToMessages:
+    samples = {
+        "id": "DUMMY",
+        "messages": [
+            {
+                "role": "system",
+                "content": CHAT_SAMPLE["system"],
+            },
+            {
+                "role": "user",
+                "content": CHAT_SAMPLE["user"],
+            },
+            {
+                "role": "assistant",
+                "content": CHAT_SAMPLE["assistant"],
+            },
+        ],
+    }
+
+    def test_conversion(self):
+        transform = JsonToMessages()
+        converted_messages_2 = transform(**self.samples)
+        for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
+            assert converted == expected
+
+    def test_conversion_train_on_input(self):
+        transform = JsonToMessages(train_on_input=True)
+        converted_messages_2 = transform(**self.samples)
+        for converted, expected in zip(
+            converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected
