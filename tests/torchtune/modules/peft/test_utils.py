@@ -473,5 +473,5 @@ class TestDisableAdapter:
         with disable_adapter(model_lora):
             lora_outputs = model_lora(inputs)
 
-        assert model_lora[0].disabled is False
+        assert model_lora[0].lora.disabled is False
         torch.testing.assert_close(ori_outputs, lora_outputs)

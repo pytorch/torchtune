@@ -25,13 +25,8 @@ from torch.distributed.fsdp import ShardingStrategy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 from torch.optim import Optimizer
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
-from torchtune.modules import TransformerDecoder
-from torchtune.modules.peft.lora import (
-    # _lora_a_init_params,
-    # _lora_b_init_params,
-    LoRALinear,
-    LoRA,
-)
+from torchtune import modules
+from torchtune.modules.peft.lora import LowRankAdapter
 
 from torchtune.utils._device import get_device
 from torchtune.utils.logging import get_logger
@@ -237,12 +232,6 @@ def prepare_model_for_fsdp_with_meta_device(model: nn.Module) -> nn.Module:
         if reset_params is None:
             v.reset_parameters = _dummy_reset_params.__get__(v)
 
-        # This will define reset_parameters for LoRA weight initialization
-        # directly on any LoRALinear submodules lora_a and lora_b.
-        # if isinstance(v, LoRALinear):
-        #     v.lora_a.reset_parameters = _lora_a_init_params.__get__(v.lora_a)
-        #     v.lora_b.reset_parameters = _lora_b_init_params.__get__(v.lora_b)
-
     return model
 
 
@@ -254,12 +243,10 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
     This means that if any parameter in a given FSDP-wrapped module requires gradients, then memory will be
     allocated for gradients for the entire module.
 
-    In the case of LoRA, where only LoRA A and B matrices are trainable, this means that
-    we need to wrap LoRA A and B submodules in their own FSDP units to
+    In the case of LoRA, where only the adapters are trainable, this means that
+    we need to wrap the adapter submodules in their own FSDP units to
     maximize memory savings. After this is done, model will also be hierarchically wrapped
-    based on nn.Module types specified in ``modules_to_wrap``. This function assumes that
-    (a) LoRA's A and B matrices are the only trainable weights in the entire model, and
-    (b) we have already set ``requires_grad = True`` on LoRA params.
+    based on nn.Module types specified in ``modules_to_wrap``.
 
     Args:
         modules_to_wrap (Set[Type]): nn.Module types to recursively wrap
@@ -273,12 +260,7 @@ def lora_fsdp_wrap_policy(modules_to_wrap: Set[Type]) -> FSDPPolicyType:
         if recurse:
             return True
 
-        # Assumes lora_a and lora_b are nn.Linears that are the
-        # only trainable modules in the entire network. Wraps
-        # these in separate FSDP unit to work around FSDP allocating
-        # extra gradient memory when wrapped with other modules.
-        # if hasattr(module, "weight") and module.weight.requires_grad:
-        if isinstance(module, LoRA):
+        if isinstance(module, LowRankAdapter):
             return True
 
         return isinstance(module, tuple(modules_to_wrap))
