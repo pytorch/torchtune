@@ -137,4 +137,5 @@ class Llama2Tokenizer(ModelTokenizer):
             bos_id=self.bos_id,
             eos_id=self.eos_id,
             max_seq_len=max_seq_len,
+            encodes_whitespace=self.encodes_whitespace,
         )
