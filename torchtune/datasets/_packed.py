@@ -118,11 +118,21 @@ class PackedDataset(Dataset):
         for sample in self.ds:
             tokens, labels = sample["tokens"], sample["labels"]
 
+            # If the dataset outputs samples that are larger than the specified
+            # max_seq_len and we're unable to split it, user needs to modify
+            # one of the two parameters
+            seq_len = len(tokens)
+            if seq_len > self.max_seq_len and not self.split_across_pack:
+                raise ValueError(
+                    f"Dataset sample is too long ({seq_len} > {self.max_seq_len}). "
+                    "Please set `split_across_pack=True` or increase `max_seq_len`."
+                )
+
             # Update the current pack
             current_pack["tokens"] += tokens
             current_pack["labels"] += labels
-            current_pack["input_pos"] += list(range(len(tokens)))
-            current_pack["seq_lens"] += [len(tokens)]
+            current_pack["input_pos"] += list(range(seq_len))
+            current_pack["seq_lens"] += [seq_len]
 
             # If the current pack is long enough, add it to self.packs and retain
             # any truncated or bumped samples for next pack

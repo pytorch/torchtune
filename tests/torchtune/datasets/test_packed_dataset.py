@@ -263,3 +263,11 @@ class TestPackedDataset:
             padded_label, torch.tensor([3, 7, ignore_idx, ignore_idx])
         )
         torch.testing.assert_close(padded_input_pos, torch.tensor([8, 0, 1, 2]))
+
+    def test_pack_errors_if_sample_too_long(self):
+        dataset = DummyDataset(8)
+        with pytest.raises(ValueError, match="Dataset sample is too long"):
+            PackedDataset(
+                dataset,
+                max_seq_len=4,
+            )
