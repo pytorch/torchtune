@@ -60,14 +60,14 @@ class ChatDataset(Dataset):
         *,
         tokenizer: Tokenizer,
         source: str,
-        message_transform: Transform,
+        data_transform: Transform,
         max_seq_len: int,
         train_on_input: bool = False,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
-        self._message_transform = message_transform
+        self._data_transform = data_transform
         self.max_seq_len = max_seq_len
         self.train_on_input = train_on_input
 
@@ -79,7 +79,7 @@ class ChatDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        processed_sample = self._message_transform(**sample)
+        processed_sample = self._data_transform(**sample)
 
         messages = processed_sample["messages"]
         validate_messages(messages)
@@ -167,7 +167,7 @@ def chat_dataset(
     ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        message_transform=Compose(transforms),
+        data_transform=Compose(transforms),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         **load_dataset_kwargs,

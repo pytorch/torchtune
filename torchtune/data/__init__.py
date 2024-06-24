@@ -12,7 +12,7 @@ from torchtune.data._templates import (
     GrammarErrorCorrectionTemplate,
     Llama2ChatTemplate,
     MistralChatTemplate,
-    QuestionAnswerTemplate,
+    QuestionAnswerPreferenceTemplate,
     QuickTemplate,
     SummarizeTemplate,
 )
@@ -33,6 +33,6 @@ __all__ = [
     "truncate",
     "Message",
     "validate_messages",
-    "QuestionAnswerTemplate",
+    "QuestionAnswerPreferenceTemplate",
     "ColumnMap",
 ]

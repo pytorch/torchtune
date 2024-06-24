@@ -253,6 +253,29 @@ class AlpacaInstructTemplate(Transform):
         return kwargs.update({"messages": messages})
 
 
+class QuestionAnswerPreferenceTemplate(Transform):
+
+    template = "Question: {content}\n\nAnswer: "
+
+    def __call__(
+        self, *, prompt: str, chosen: str, rejected: str, **kwargs
+    ) -> Mapping[str, Any]:
+        chosen_messages = [
+            Message(
+                role="user", content=self.template.format(content=prompt), masked=True
+            ),
+            Message(role="assistant", content=chosen),
+        ]
+
+        rejected_messages = [
+            Message(
+                role="user", content=self.template.format(content=prompt), masked=True
+            ),
+            Message(role="assistant", content=rejected),
+        ]
+        return kwargs.update({"chosen": chosen_messages, "rejected": rejected_messages})
+
+
 class QuickTemplate(Transform):
     def __init__(
         self,
@@ -290,7 +313,4 @@ GrammarErrorCorrectionTemplate = partial(
 )
 SummarizeTemplate = partial(
     QuickTemplate, template="Summarize this dialogue:\n{content}\n---\nSummary:\n"
-)
-QuestionAnswerTemplate = partial(
-    QuickTemplate, template="Question: {content}\n\nAnswer: "
 )

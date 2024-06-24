@@ -18,12 +18,10 @@ and models.
     :toctree: generated/
     :nosignatures:
 
-    InstructTemplate
     AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
     QuestionAnswerTemplate
-    PromptTemplate
     ChatMLTemplate
     Llama2ChatTemplate
     MistralChatTemplate

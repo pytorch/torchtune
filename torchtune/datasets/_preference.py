@@ -4,15 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Callable, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 from datasets import load_dataset
 from torch.utils.data import Dataset
 
-from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
+from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Transform
 
 
 class PreferenceDataset(Dataset):
@@ -46,9 +47,7 @@ class PreferenceDataset(Dataset):
         self,
         tokenizer: Tokenizer,
         source: str,
-        template: InstructTemplate,
-        transform: Optional[Callable] = None,
-        column_map: Optional[Dict[str, str]] = None,
+        data_transform: Transform,
         max_seq_len: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
@@ -58,12 +57,6 @@ class PreferenceDataset(Dataset):
         self._transform = transform
         self._column_map = column_map
         self.max_seq_len = max_seq_len
-        self._data = self._data.filter(
-            lambda x: len(x[column_map["prompt"]]) + len(x[column_map["chosen"]])
-            <= max_seq_len
-            and len(x[column_map["prompt"]]) + len(x[column_map["rejected"]])
-            <= max_seq_len
-        )
 
     def __len__(self):
         return len(self._data)
@@ -73,34 +66,19 @@ class PreferenceDataset(Dataset):
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
-        transformed_sample = self._transform(sample) if self._transform else sample
-        prompt = self.template.format(transformed_sample, self._column_map)
-
-        column_map = self._column_map or {}
-        key_chosen = column_map.get("chosen", "chosen")
-        key_rejected = column_map.get("rejected", "rejected")
-
-        chosen_message = [
-            Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_chosen]),
-        ]
-
-        rejected_message = [
-            Message(role="user", content=prompt, masked=True),
-            Message(role="assistant", content=transformed_sample[key_rejected]),
-        ]
+        processed_sample = self._data_transform(**sample)
 
         # TODO: Trunction differs from original DPO repo
         # in DPO: first truncate prompts, then responses
         chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
-            chosen_message, self.max_seq_len
+            processed_sample["chosen"], self.max_seq_len
         )
         chosen_labels = list(
             np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
         rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
-            rejected_message, self.max_seq_len
+            processed_sample["rejected"], self.max_seq_len
         )
         rejected_labels = list(
             np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
