@@ -47,7 +47,7 @@ def mistral(
     rope_base: int = 10_000,
 ) -> TransformerDecoder:
     """
-    Build the decoder assoicated with the mistral model. This includes:
+    Build the decoder associated with the mistral model. This includes:
     - Token embeddings
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
