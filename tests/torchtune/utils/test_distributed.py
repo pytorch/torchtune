@@ -162,18 +162,15 @@ MAX_SEQ_LEN = 64
 
 
 def _get_n_lora_and_tformer_layers(model):
-    num_lora_ab = 0
+    num_lora = 0
     num_transformer_layers = 0
     for module in model.modules():
-        if isinstance(module, LoRALinear):
-            num_nested_linears = len(
-                [m for m in module.modules() if isinstance(m, nn.Linear)]
-            )
-            num_lora_ab += num_nested_linears
-        if isinstance(module, TransformerSelfAttentionLayer):
+        if isinstance(module, LowRankAdapter):
+            num_lora += 1
+        if isinstance(module, TransformerDecoderLayer):
             num_transformer_layers += 1
 
-    return num_lora_ab, num_transformer_layers
+    return num_lora, num_transformer_layers
 
 
 # TODO: figure out a permanent home for FSDP + LoRA code
@@ -194,7 +191,7 @@ class TestLoRAFSDP:
 
         adapter_params = get_adapter_params(model)
         set_trainable_params(model, adapter_params)
-        num_lora_ab, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
+        num_lora, num_transformer_layers = _get_n_lora_and_tformer_layers(model)
         with single_box_init():
             lora_wrap_policy = utils.lora_fsdp_wrap_policy(
                 modules_to_wrap={TransformerSelfAttentionLayer}
@@ -214,20 +211,20 @@ class TestLoRAFSDP:
             for m in wrapped_lora.modules():
                 if isinstance(m, LoRALinear):
                     torch.testing.assert_close(
-                        m.lora_b.weight, torch.zeros_like(m.lora_b.weight)
+                        m.lora.b.weight, torch.zeros_like(m.lora.b.weight)
                     )
 
-            # Total # FSDP modules should be num_transformer + num_lora_ab + 1
+            # Total # FSDP modules should be num_transformer + num_lora + 1
             total_fsdp_submodules = len([m for m in FSDP.fsdp_modules(wrapped_lora)])
-            assert total_fsdp_submodules == (num_lora_ab + num_transformer_layers + 1)
+            assert total_fsdp_submodules == (num_lora + num_transformer_layers + 1)
             # LoRA a & b linears should be individually wrapped.
             # And TransformerSelfAttentionLayers should be individually wrapped.
             for fsdp_submodule in FSDP.fsdp_modules(wrapped_lora):
-                if isinstance(fsdp_submodule.module, nn.Linear):
-                    num_lora_ab -= 1
-                elif isinstance(fsdp_submodule.module, TransformerSelfAttentionLayer):
+                if isinstance(fsdp_submodule.module, LowRankAdapter):
+                    num_lora -= 1
+                elif isinstance(fsdp_submodule.module, TransformerDecoderLayer):
                     num_transformer_layers -= 1
-            assert num_lora_ab == 0
+            assert num_lora == 0
             assert num_transformer_layers == 0
 
     def test_lora_meta_device_init_fsdp(self):
