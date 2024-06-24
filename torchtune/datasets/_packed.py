@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from torch.nn import functional as F
@@ -86,7 +86,7 @@ class PackedDataset(Dataset):
         self,
         ds: Dataset,
         max_seq_len: int,
-        max_packs: int = -1,
+        max_packs: Optional[int] = None,
         split_across_pack: bool = False,
     ) -> None:
         self.ds = ds
@@ -136,11 +136,15 @@ class PackedDataset(Dataset):
             self.previous_sample_boundary = len(current_pack["tokens"])
 
             # If max packs is set, stop packing when we reach that number
-            if len(self.packs) == self.max_packs:
+            if self.max_packs is not None and len(self.packs) == self.max_packs:
                 break
 
         # Handle the last pack if there's leftover and we haven't filled up the max packs
-        if len(current_pack["tokens"]) > 0 and len(self.packs) < self.max_packs:
+        if (
+            len(current_pack["tokens"]) > 0
+            and self.max_packs is not None
+            and len(self.packs) < self.max_packs
+        ):
             current_pack = self._add_pack(current_pack)
 
     def _convert_to_tensors(self, pack: PACK_TYPE) -> PACK_TYPE:
