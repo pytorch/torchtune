@@ -16,8 +16,8 @@ from torch import nn
 from torch.nn.utils.rnn import pad_sequence
 
 from torchtune import config, utils
-from torchtune.data.tokenizers import ModelTokenizer
 from torchtune.modules import TransformerDecoder
+from torchtune.modules.tokenizers import ModelTokenizer
 from torchtune.recipe_interfaces import EvalRecipeInterface
 
 

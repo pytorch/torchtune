@@ -6,9 +6,9 @@
 
 from typing import Optional
 
-from torchtune.data.tokenizers import ModelTokenizer
-
 from torchtune.datasets._chat import chat_dataset, ChatDataset
+
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def slimorca_dataset(

@@ -19,7 +19,7 @@ import pytest
 import torch
 from torch import nn
 from torchtune.data import truncate
-from torchtune.data.tokenizers import ModelTokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"

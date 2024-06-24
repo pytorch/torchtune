@@ -119,7 +119,7 @@ why.
 
 .. code-block:: python
 
-    from torchtune.data.tokenizers import SentencePieceBaseTokenizer
+    from torchtune.modules.tokenizers import SentencePieceBaseTokenizer
 
     tokenizer = SentencePieceBaseTokenizer("/tmp/Llama-2-7b-hf/tokenizer.model")
     user_message = formatted_messages[0].content
@@ -167,7 +167,7 @@ than Llama2.
 
 .. code-block:: python
 
-    from torchtune.data.tokenizers import TikTokenBaseTokenizer
+    from torchtune.modules.tokenizers import TikTokenBaseTokenizer
 
     tokenizer = TikTokenBaseTokenizer("/tmp/Meta-Llama-3-8B/original/tokenizer.model")
     messages = [Message.from_dict(msg) for msg in sample]

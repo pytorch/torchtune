@@ -6,9 +6,9 @@
 
 from typing import Any, Dict, Optional
 
-from torchtune.data.tokenizers import ModelTokenizer
-
 from torchtune.datasets._text_completion import TextCompletionDataset
+
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def wikitext_dataset(

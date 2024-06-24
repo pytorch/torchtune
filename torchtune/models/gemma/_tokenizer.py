@@ -7,7 +7,7 @@
 from typing import List, Optional, Tuple
 
 from torchtune.data import Message
-from torchtune.data.tokenizers import (
+from torchtune.modules.tokenizers import (
     ModelTokenizer,
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,

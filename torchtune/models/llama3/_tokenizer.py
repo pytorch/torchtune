@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import json
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.tokenizers import (
+    ModelTokenizer,
+    parse_hf_tokenizer_json,
+    TikTokenBaseTokenizer,
+)
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -29,21 +31,24 @@ class Llama3Tokenizer(ModelTokenizer):
     def __init__(
         self,
         path: str,
+        special_tokens_path: str,
     ):
-        all_special_tokens_with_ids = self._get_all_special_tokens_with_ids()
+        self.special_tokens: Dict[str, int] = parse_hf_tokenizer_json(
+            tokenizer_json_path=special_tokens_path
+        )
 
         # Encode BOS and EOS, define pad ID
-        self.bos_id = all_special_tokens_with_ids["<|begin_of_text|>"]
-        self.eos_id = all_special_tokens_with_ids["<|end_of_text|>"]
+        self.bos_id = self.special_tokens["<|begin_of_text|>"]
+        self.eos_id = self.special_tokens["<|end_of_text|>"]
         self.pad_id = PAD_ID
 
         # Encode extra special tokens
-        self.step_id = all_special_tokens_with_ids["<|step_id|>"]
-        self.start_header_id = all_special_tokens_with_ids["<|start_header_id|>"]
-        self.end_header_id = all_special_tokens_with_ids["<|end_header_id|>"]
-        self.eom_id = all_special_tokens_with_ids["<|eom_id|>"]
-        self.eot_id = all_special_tokens_with_ids["<|eot_id|>"]
-        self.python_tag = all_special_tokens_with_ids["<|python_tag|>"]
+        self.step_id = self.special_tokens["<|step_id|>"]
+        self.start_header_id = self.special_tokens["<|start_header_id|>"]
+        self.end_header_id = self.special_tokens["<|end_header_id|>"]
+        self.eom_id = self.special_tokens["<|eom_id|>"]
+        self.eot_id = self.special_tokens["<|eot_id|>"]
+        self.python_tag = self.special_tokens["<|python_tag|>"]
 
         # During generation, stop when either eos_id or eot_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id]
@@ -54,14 +59,8 @@ class Llama3Tokenizer(ModelTokenizer):
             pattern=CL100K_PATTERN,
             bos_id=self.bos_id,
             eos_id=self.eos_id,
-            special_tokens=all_special_tokens_with_ids,
+            special_tokens=self.special_tokens,
         )
-
-    def _get_all_special_tokens_with_ids(self) -> Dict[str, int]:
-        special_tokens_json_path = Path(__file__).parent / "_special_tokens.json"
-        with open(special_tokens_json_path, "r") as f:
-            all_special_tokens = json.load(f)
-        return all_special_tokens
 
     @property
     def base_vocab_size(self) -> int:

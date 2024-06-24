@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import json
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.data.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
+from torchtune.modules.tokenizers import (
+    ModelTokenizer,
+    parse_hf_tokenizer_json,
+    SentencePieceBaseTokenizer,
+)
 
 
 class Phi3MiniTokenizer(ModelTokenizer):
@@ -30,10 +32,13 @@ class Phi3MiniTokenizer(ModelTokenizer):
     def __init__(
         self,
         path: str,
+        special_tokens_path: str,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
-        self.special_tokens = self._get_all_special_tokens_with_ids()
+        self.special_tokens: Dict[str, int] = parse_hf_tokenizer_json(
+            tokenizer_json_path=special_tokens_path
+        )
 
         # Use custom EOS and pad ids instead of SentencePiece's
         self.eos_id = self.special_tokens["<|endoftext|>"]
@@ -41,12 +46,6 @@ class Phi3MiniTokenizer(ModelTokenizer):
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
-
-    def _get_all_special_tokens_with_ids(self) -> Dict[str, int]:
-        special_tokens_json_path = Path(__file__).parent / "_special_tokens.json"
-        with open(special_tokens_json_path, "r") as f:
-            all_special_tokens = json.load(f)
-        return all_special_tokens
 
     @property
     def vocab_size(self):

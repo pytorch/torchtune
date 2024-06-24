@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
 
-from torchtune.data.tokenizers import ModelTokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class PreferenceDataset(Dataset):

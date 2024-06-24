@@ -8,7 +8,7 @@ from typing import Dict, Iterator, List
 
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
-from torchtune.data.tokenizers._base import BaseTokenizer
+from torchtune.modules.tokenizers._base import BaseTokenizer
 
 # Constants controlling encode logic
 MAX_ENCODE_CHARS = 400_000

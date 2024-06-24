@@ -6,7 +6,12 @@
 
 from ._sentencepiece import SentencePieceBaseTokenizer
 from ._tiktoken import TikTokenBaseTokenizer
-from ._utils import BaseTokenizer, ModelTokenizer, tokenize_messages_no_special_tokens
+from ._utils import (
+    BaseTokenizer,
+    ModelTokenizer,
+    parse_hf_tokenizer_json,
+    tokenize_messages_no_special_tokens,
+)
 
 __all__ = [
     "SentencePieceBaseTokenizer",
@@ -14,4 +19,5 @@ __all__ = [
     "ModelTokenizer",
     "BaseTokenizer",
     "tokenize_messages_no_special_tokens",
+    "parse_hf_tokenizer_json",
 ]

@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+import json
 from typing import Dict, List, Optional, Protocol, Tuple
 
 from torchtune.data._types import Message
@@ -165,3 +166,20 @@ def tokenize_messages_no_special_tokens(
         mask = truncate(mask, max_seq_len, message.masked)
 
     return tokenized_messages, mask
+
+
+def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:
+    """
+    Parse the ``tokenizer.json`` file from a Hugging Face model to extract the
+    special token str to id mapping.
+
+    Args:
+        tokenizer_json_path (str): Path to the ``tokenizer.json`` file.
+
+    Returns:
+        Dict[str, int]: The special token str to id mapping.
+    """
+    with open(tokenizer_json_path, "r") as f:
+        tokenizer_json = json.load(f)
+
+    return {token["content"]: token["id"] for token in tokenizer_json["added_tokens"]}

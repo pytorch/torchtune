@@ -7,8 +7,8 @@
 from pathlib import Path
 
 import pytest
-from torchtune.data.tokenizers import TikTokenBaseTokenizer
 from torchtune.models.llama3._tokenizer import CL100K_PATTERN
+from torchtune.modules.tokenizers import TikTokenBaseTokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 

@@ -19,8 +19,8 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
-from torchtune.data.tokenizers import ModelTokenizer
 from torchtune.datasets._packed import PackedDataset
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class ChatDataset(Dataset):
