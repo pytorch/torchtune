@@ -86,32 +86,62 @@ class TestUtils:
             {
                 "image_size": (200, 300),
                 "possible_resolutions": [
+                    (224, 896),
+                    (448, 448),
+                    (224, 224),
+                    (896, 224),
                     (224, 672),
                     (672, 224),
                     (224, 448),
                     (448, 224),
-                    (224, 224),
                 ],
                 "resize_to_max_canvax": False,
                 "expected_best_resolution": (224, 448),
             },
             {
-                "image_size": (500, 500),
-                "possible_resolutions": None,
-                "resize_to_max_canvax": False,
-                "expected_best_resolution": (100, 100),
+                "image_size": (200, 500),
+                "possible_resolutions": [
+                    (224, 896),
+                    (448, 448),
+                    (224, 224),
+                    (896, 224),
+                    (224, 672),
+                    (672, 224),
+                    (224, 448),
+                    (448, 224),
+                ],
+                "resize_to_max_canvax": True,
+                "expected_best_resolution": (224, 672),
             },
             {
-                "image_size": (500, 500),
-                "possible_resolutions": None,
+                "image_size": (200, 200),
+                "possible_resolutions": [
+                    (224, 896),
+                    (448, 448),
+                    (224, 224),
+                    (896, 224),
+                    (224, 672),
+                    (672, 224),
+                    (224, 448),
+                    (448, 224),
+                ],
                 "resize_to_max_canvax": False,
-                "expected_best_resolution": (1000, 1000),
+                "expected_best_resolution": (224, 224),
             },
             {
-                "image_size": (600, 200),
-                "possible_resolutions": None,
-                "resize_to_max_canvax": False,
-                "expected_best_resolution": (900, 300),
+                "image_size": (200, 100),
+                "possible_resolutions": [
+                    (224, 896),
+                    (448, 448),
+                    (224, 224),
+                    (896, 224),
+                    (224, 672),
+                    (672, 224),
+                    (224, 448),
+                    (448, 224),
+                ],
+                "resize_to_max_canvax": True,
+                "expected_best_resolution": (448, 224),
             },
         ],
     )
@@ -121,7 +151,9 @@ class TestUtils:
         expected_best_resolution = params["expected_best_resolution"]
         resize_to_max_canvax = params["resize_to_max_canvax"]
 
-        image = torch.rand(*image_size)  # Create a random image tensor
+        possible_resolutions = torch.tensor(possible_resolutions)
+
+        image = torch.rand(*image_size)
         best_resolution = get_canvas_best_fit(
             image, possible_resolutions, resize_to_max_canvax
         )

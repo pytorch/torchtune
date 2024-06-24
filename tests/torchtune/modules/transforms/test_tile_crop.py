@@ -16,37 +16,34 @@ class TestTransforms:
         "params",
         [
             {
+                "expected_output_shape": torch.Size([24, 3, 50, 50]),
                 "image_size": (3, 200, 300),
+                "status": "Passed",
                 "tile_size": 50,
-                "num_tiles": 24,
-                "tile_shape": (50, 50),
-                "status": "Passed",
             },
             {
+                "expected_output_shape": torch.Size([6, 3, 200, 200]),
                 "image_size": (3, 400, 600),
+                "status": "Passed",
                 "tile_size": 200,
-                "num_tiles": 6,
-                "tile_shape": (200, 200),
-                "status": "Passed",
             },
             {
+                "expected_output_shape": torch.Size([1, 3, 250, 250]),
                 "image_size": (3, 250, 250),
+                "status": "Passed",
                 "tile_size": 250,
-                "num_tiles": 1,
-                "tile_shape": (250, 250),
-                "status": "Passed",
             },
             {
+                "error": "Image size 250x250 is not divisible by tile size 500",
                 "image_size": (3, 250, 250),
+                "status": "Failed",
                 "tile_size": 500,
-                "status": "Failed",
-                "error": "shape '[3, 0, 500, 0, 500]' is invalid for input of size 187500",
             },
             {
+                "error": "Image size 250x250 is not divisible by tile size 80",
                 "image_size": (3, 250, 250),
-                "tile_size": 80,
                 "status": "Failed",
-                "error": "shape '[3, 3, 80, 3, 80]' is invalid for input of size 187500",
+                "tile_size": 80,
             },
         ],
     )
@@ -59,12 +56,10 @@ class TestTransforms:
 
         if status == "Passed":
             tiles = tile_crop(image, tile_size)
+            expected_output_shape = params["expected_output_shape"]
             assert (
-                tiles.shape[0] == params["num_tiles"]
-            ), f"Expected number of tiles {params['num_tiles']} but got {tiles.shape[0]}"
-            assert (
-                tiles.shape[-2:] == params["tile_shape"]
-            ), f"Expected tile shape {params['tile_shape']} but got {tiles.shape[-2:]}"
+                tiles.shape == expected_output_shape
+            ), f"Expected shape {expected_output_shape} but got {tiles.shape}"
 
             # check if first and last tile matches the image
             first_tile = image[..., :tile_size, :tile_size]
@@ -79,6 +74,8 @@ class TestTransforms:
         elif status == "Failed":
             with pytest.raises(Exception) as exc_info:
                 tile_crop(image, tile_size)
+            expected_error = params["error"]
+            actual_error = str(exc_info.value)
             assert (
                 str(exc_info.value) == params["error"]
-            ), f"Expected error message '{params['error']}' but got '{str(exc_info.value)}'"
+            ), f"Expected error message '{expected_error}' but got '{actual_error}'"

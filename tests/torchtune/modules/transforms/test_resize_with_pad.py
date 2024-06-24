@@ -44,7 +44,7 @@ class TestTransforms:
                 "image_size": (1000, 500),
                 "target_size": (400, 300),
                 "max_upscaling_size": None,
-                "expected_resized_size": torch.Size([400, 200]),
+                "expected_resized_size": [400, 200],
             },
         ],
     )
@@ -66,12 +66,17 @@ class TestTransforms:
 
         # assert everything beyond resize has value == 0
         assert torch.all(
-            resized_image[:, expected_resized_size[0] :, :] == 0
+            resized_image[:, (expected_resized_size[0] + 1) :, :] == 0
         ), "Expected everything beyond resize to be pad with fill=0"
 
         assert torch.all(
-            resized_image[:, :, : expected_resized_size[1]] == 0
+            resized_image[:, :, (expected_resized_size[1] + 1) :] == 0
         ), "Expected everything beyond resize to be pad with fill=0"
+
+        assert torch.all(
+            resized_image[:, : expected_resized_size[0], : expected_resized_size[1]]
+            != 0
+        ), "Expected no padding where the image is supposed to be"
 
         # output should have shape target_size
         assert (

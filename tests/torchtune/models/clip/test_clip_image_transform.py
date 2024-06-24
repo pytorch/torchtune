@@ -24,26 +24,26 @@ class TestPipelines:
             },
             {
                 "image_size": (200, 300),
+                "expected_shape": torch.Size([4, 3, 224, 224]),
+                "resize_to_max_canvas": True,
+            },
+            {
+                "image_size": (100, 200, 3),
                 "expected_shape": torch.Size([2, 3, 224, 224]),
                 "resize_to_max_canvas": True,
             },
             {
-                "image_size": (400, 400, 3),
-                "expected_shape": torch.Size([4, 3, 224, 224]),
-                "resize_to_max_canvas": True,
-            },
-            {
-                "image_size": (800, 600),
-                "expected_shape": torch.Size([4, 3, 224, 224]),
+                "image_size": (100, 200),
+                "expected_shape": torch.Size([1, 3, 224, 224]),
                 "resize_to_max_canvas": False,
             },
         ],
     )
-    def test_shapes_variable_image_size_transforms(self, params, image_transform):
+    def test_shapes_variable_image_size_transforms(self, params):
 
         image_transform = CLIPImageTransform(
-            image_mean=[0.48145466, 0.4578275, 0.40821073],
-            image_std=[0.26862954, 0.26130258, 0.27577711],
+            image_mean=None,
+            image_std=None,
             tile_size=224,
             possible_resolutions=None,
             max_num_tiles=4,
@@ -58,12 +58,12 @@ class TestPipelines:
         image = PIL.Image.fromarray(image)  # type: ignore
 
         output = image_transform(image)
-        pixel_values = output["pixel_values"]
+        output_image = output["image"]
 
         assert (
-            pixel_values.shape == params["expected_shape"]
-        ), f"Expected shape {params['expected_shape']} but got {pixel_values.shape}"
+            output_image.shape == params["expected_shape"]
+        ), f"Expected shape {params['expected_shape']} but got {output_image.shape}"
 
         assert (
-            0 <= pixel_values.min() <= pixel_values.max() <= 1
-        ), f"Expected pixel values to be in range [0, 1] but got {pixel_values.min()} and {pixel_values.max()}"
+            0 <= output_image.min() <= output_image.max() <= 1
+        ), f"Expected pixel values to be in range [0, 1] but got {output_image.min()} and {output_image.max()}"
