@@ -30,39 +30,41 @@ def get_canvas_best_fit(
     we pick the one with the lowest area to minimize padding.
 
     Args:
-        image (torch.Tensor): The image we want to fit into a canvas;
+        image (torch.Tensor): The image we want to fit into a canvas.
         possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each
             row represents a possible canvas.
         resize_to_max_canvas (bool): If True, pick the canvas that allows maximum scaling.
             If False, pick the canvas that minimizes downscaling, including no downscaling at all.
-
     Returns:
         Tuple[int, int]: The best resolution to fit the image into.
+    Examples:
 
-    Example:
         >>> image = torch.rand(3, 200, 300)
-        >>> possible_resolutions = torch.tensor([[224, 672],
-        ...                                     [672, 224],
-        ...                                     [224, 448],
-        ...                                     [448, 224],
-        ...                                     [224, 224]])
+        >>> possible_resolutions = torch.tensor([
+        ...     [224, 672],
+        ...     [672, 224],
+        ...     [224, 448],
+        ...     [448, 224],
+        ...     [224, 224]
+        ... ])
         >>> get_canvas_best_fit(image, possible_resolutions, resize_to_max_canvas=False)
         (224, 448)
 
-        We have:
-            >>> scale_h = torch.tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
-            >>> scale_w = torch.tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
-            >>> scales = torch.tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])
+        In the example above, we calculate the scaling factors for each possible resolution
 
-        Two upscaling options are larger than 1:
+        >>> scale_height = torch.tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])
+        >>> scale_width = torch.tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])
+        >>> scales = torch.tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])
 
-            >>> upscaling_options = torch.tensor([1.1200, 1.1200])
-            >>> selected_scale = torch.tensor(1.1200)
+        Two options have scaling_factor > 1, since resize_to_max_canvas is False, we pick the smallest
 
-        So we pick the resolution with the smallest area:
+        >>> upscaling_options = torch.tensor([1.1200, 1.1200])
+        >>> selected_scale = torch.tensor(1.1200)
 
-            >>> areas = torch.tensor([150528, 100352]) # for [672, 224], [224, 448], respectively
-            >>> optimal_canvas = torch.tensor([224, 448])
+        There are two possible options, so we pick the one with the smallest area
+
+        >>> areas = torch.tensor([150528, 100352])  # for resolutions [672, 224] and [224, 448], respectively
+        >>> optimal_canvas = torch.tensor([224, 448])  # resolution with the smallest area
     """
 
     original_height, original_width = image.shape[-2:]
@@ -116,6 +118,9 @@ def find_supported_resolutions(
     Computes all combinations of resolutions, multiple of tile_size,
     that contain up to max_num_tiles. Useful for when dividing an image into tiles.
 
+    For example, if we want at most 2 tiles per image, then we can support the
+    following resolutions: (1x1, 1x2, 2x1) * tile_size
+
     Args:
         max_num_tiles (int): Maximum number of tiles.
         tile_size (int): Size of the side of the tile.
@@ -123,8 +128,9 @@ def find_supported_resolutions(
     Returns:
         List[Tuple[int, int]]: List of possible resolutions as tuples (height, width).
 
-    Example:
-        >>> max_num_tiles = 5
+    Examples:
+
+        >>> max_num_tiles = 4
         >>> tile_size = 224
         >>> find_supported_resolutions(max_num_tiles, tile_size)
         [(224, 896), (448, 448), (224, 224), (896, 224), (224, 672), (672, 224), (224, 448), (448, 224)]
@@ -152,13 +158,16 @@ def find_supported_resolutions(
 def _get_factors(n: int) -> Set[int]:
     """
     Calculate all factors of a given number, i.e. a dividor that leaves no remainder.
-    For example, if n=12, it will return {1, 2, 3, 4, 6, 12}.
 
     Args:
         n (int): The number to find factors for.
 
     Returns:
         set: A set containing all factors of the number.
+
+    Examples:
+        >>> _get_factors(n=12)
+        {1, 2, 3, 4, 6, 12}
     """
     factors_set = set()
 

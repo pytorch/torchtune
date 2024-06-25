@@ -36,7 +36,7 @@ class CLIPImageTransform:
     a maximum of 16 image tiles, with side 224px, then:
 
     If resize_to_max_canvas=False, then:
-    best_resolution = (448, 896) # smallest canvas, up to 16 tiles, that doesnt require downscaling
+    best_resolution = (448, 896) # smallest canvas, up to 16 tiles, that doesn't require downscaling
     image is NOT resized
     image is padded (300, 800) -> 448,896
     Image is tiled 2x4, for a final output shape of (8, 3, 224, 224)
@@ -53,7 +53,7 @@ class CLIPImageTransform:
         image_std Union[float, List[float]]]): Standard deviation values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed.
         possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
-        If None, this will be calculed using max_num_tiles and tile_size.
+            If None, this will be calculated using max_num_tiles and tile_size.
         tile_size (int): Size of the tiles to divide the image into
         max_num_tiles (Optional[int]): Only used if possible_resolutions is NOT given.
             Maximum number of tiles to break an image into.
@@ -62,11 +62,12 @@ class CLIPImageTransform:
         resample (str): Resampling method used when resizing images. Supports any enum of 
             torchvision.transforms.InterpolationMode, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
         resize_to_max_canvas (bool):
-            If True, will upscale the image, without distortion, to fit the resolution from possible_resolutions
-            that allows largest upscaling.
+            "If True, the image will be upscaled without distortion to fit the largest possible 
+            resolution from possible_resolutions.
             If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
             In this case, the image will only be upscaled if it's size < tile_size.
-    Example:
+    Examples:
+    
         >>> image_transform = CLIPImageTransform(
         ...    image_mean=None,
         ...    image_std=None,
@@ -74,16 +75,16 @@ class CLIPImageTransform:
         ...    possible_resolutions=None,
         ...    max_num_tiles=4,
         ...    resample="bilinear",
-        ...    resize_to_max_canvas=False,
+        ...    resize_to_max_canvas=True,
         ...)
         >>> # create random image
         >>> image = (np.random.rand(100,200,3) * 255).astype(np.uint8)
         >>> image = PIL.Image.fromarray(image)
-        >>> image_transform(image)
+        >>> output = image_transform(image)
         >>> output['image'].shape # [num_tiles, num_channels, tile_size, tile_size]
         torch.Size([2, 3, 224, 224]) 
-        >>> output['ar'] # image best fits the canvas 448x224
-        torch.tensor([2, 1])
+        >>> output['ar'] # image best fits the canvas 224x448
+        torch.tensor([1,2])
     """
 
     def __init__(

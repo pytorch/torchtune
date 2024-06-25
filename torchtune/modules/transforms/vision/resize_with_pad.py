@@ -24,45 +24,50 @@ def resize_with_pad(
     max_upscaling_size: Optional[int] = None,
 ) -> torch.Tensor:
     """
-    Used to resize + pad an image to target_resolution, without distortion.
-    The user can set max_upscaling_size to to limit the upscaling in case
-    target_size > image_size.
+    Resizes and pads an image to target_size without causing distortion.
+    The user can set max_upscaling_size to limit upscaling when target_size exceeds image_size.
 
     Args:
         image (torch.Tensor): The input image tensor in the format [..., H, W].
         target_size (Tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
         resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.
-            Supports torchvision.transforms.InterpolationMode.NEAREST,
-            NEAREST_EXACT, BILINEAR, BICUBIC
+            Supports ant torchvision.transforms.InterpolationMode, such as InterpolationMode.NEAREST,
+            InterpolationMode.NEAREST_EXACT, InterpolationMode.BILINEAR, InterpolationMode.BICUBIC.
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
-
     Returns:
         torch.Tensor: The resized and padded image tensor in the format [..., H, W].
+    Examples:
 
-    Example:
-        >>> max_upscaling_size = None
-        >>> image = torch.rand([3, 300, 800])
-        >>> target_size = (448, 1344)
+        Example 1:
+            >>> max_upscaling_size = None
+            >>> image = torch.rand([3, 300, 800])
+            >>> target_size = (448, 1344)
+            >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
+            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will be upscaled (300,800) -> (448, 1194), since 448 is the limiting side,
-        and padded from (448, 1194) -> (448, 1344)
+        The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
+        and then padded from (448, 1194) to (448, 1344).
 
         Example 2:
-        >>> max_upscaling_size = 600
-        >>> image = torch.rand([3, 300, 800])
-        >>> target_size = (448, 1344)
+            >>> max_upscaling_size = 600
+            >>> image = torch.rand([3, 300, 800])
+            >>> target_size = (448, 1344)
+            >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
+            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will NOT be upscaled, since 800>600,
-        and then padded from (300, 800) -> (448, 1344)
+        The image will stay as is, since 800 > 600,
+        and then padded from (300, 800) to (448, 1344).
 
         Example 3:
-        >>> max_upscaling_size = 600
-        >>> image = torch.rand([3, 500, 1000])
-        >>> target_size = (448,488)
+            >>> max_upscaling_size = 600
+            >>> image = torch.rand([3, 500, 1000])
+            >>> target_size = (448, 488)
+            >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
+            >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will be downscaled from (500,1000) -> (224.448),
-        and padded from (224.448) -> (448, 448).
+        The image will be downscaled from (500, 1000) to (224, 448),
+        and padded from (224, 448) to (448, 448).
     """
 
     image_height, image_width = image.shape[-2:]
@@ -77,14 +82,14 @@ def resize_with_pad(
         target_size_resize = target_size
 
     # resize to target_size while preserving aspect ratio
-    new_size_without_distortion = _get_max_res_without_distortion(
+    new_size_preserving_aspect_ratio = _get_max_res_without_distortion(
         image_size=image_size,
         target_size=target_size_resize,
     )
 
     image = F.resize(
         inpt=image,
-        size=list(new_size_without_distortion),
+        size=list(new_size_preserving_aspect_ratio),
         interpolation=resample,
         antialias=True,
     )
@@ -143,11 +148,11 @@ def _get_max_res_without_distortion(
         target_size (Tuple[int, int]): The desired resolution to fit the image into.
     Returns:
         Tuple[int, int]: The optimal dimensions to which the image should be resized.
-    Example:
+    Examples:
         >>> _get_max_res_without_distortion([200, 300], target_size = (450, 200))
-        (134, 200)
+        (133, 200)
         >>> _get_max_res_without_distortion([800, 600], target_size = (450, 1300))
-        (450, 338)
+        (450, 337)
     """
 
     original_height, original_width = image_size
