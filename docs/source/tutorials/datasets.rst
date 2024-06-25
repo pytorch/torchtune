@@ -304,15 +304,15 @@ the source path. Chat datasets typically have a single column with multiple back
 and forth messages between the user and assistant.
 
 Chat formats are similar to instruct templates, except that they format system,
-user, and assistant messages into a list of messages (see :class:`~torchtune.data.PromptTemplate`)
+user, and assistant messages into a list of messages (see :class:`~torchtune.data.ChatFormat`)
 for a conversational dataset. These can be configured quite similarly to instruct
 datasets.
 
-Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatTemplate`:
+Here is how messages would be formatted using the :class:`~torchtune.data.Llama2ChatFormat`:
 
 .. code-block:: python
 
-    from torchtune.data import Llama2ChatTemplate, Message
+    from torchtune.data import Llama2ChatFormat, Message
 
     messages = [
         Message(
@@ -328,7 +328,7 @@ Here is how messages would be formatted using the :class:`~torchtune.data.Llama2
             content="Paris, the capital of France, is known for its stunning architecture..."
         ),
     ]
-    formatted_messages = Llama2ChatTemplate.format(messages)
+    formatted_messages = Llama2ChatFormat.format(messages)
     print(formatted_messages)
     # [
     #     Message(
@@ -342,15 +342,15 @@ Here is how messages would be formatted using the :class:`~torchtune.data.Llama2
     #     ),
     # ]
 
-Note that the system message is now incorporated in the user message. If you create custom PromptTemplates
+Note that the system message is now incorporated in the user message. If you create custom ChatFormats
 you can also add more advanced behavior.
 
 .. code-block:: python
 
     from torchtune.datasets import chat_dataset
-    from torchtune.data import PromptTemplate
+    from torchtune.data import ChatFormat
 
-    class CustomPromptTemplate(PromptTemplate):
+    class CustomChatFormat(ChatFormat):
         # Define templates for system, user, assistant messages
         # as strings with {} as placeholders for message content
         system = ...
@@ -372,7 +372,7 @@ you can also add more advanced behavior.
         source="my/dataset/path",
         split="train",
         conversation_style="openai",
-        prompt_template="import.path.to.CustomPromptTemplate",
+        chat_format="import.path.to.CustomChatFormat",
     )
 
 .. code-block:: yaml
@@ -382,14 +382,14 @@ you can also add more advanced behavior.
       _component_: torchtune.datasets.chat_dataset
       source: my/dataset/path
       conversation_style: openai
-      prompt_template: import.path.to.CustomPromptTemplate
+      chat_format: import.path.to.CustomChatFormat
 
 .. code-block:: bash
 
     # Command line
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset=torchtune.datasets.chat_dataset dataset.source=my/dataset/path \
-    dataset.conversation_style=openai dataset.prompt_template=import.path.to.CustomPromptTemplate
+    dataset.conversation_style=openai dataset.chat_format=import.path.to.CustomChatFormat
 
 
 Multiple in-memory datasets
@@ -528,7 +528,7 @@ to add a custom instruct template as well.
         return PreferenceDataset(
             tokenizer=tokenizer,
             source="lvwerra/stack-exchange-paired",
-            template=QuestionAnswerTemplate(),
+            template=StackExchangedPairedTemplate(),
             column_map={
                 "prompt": "question",
                 "chosen": "response_j",

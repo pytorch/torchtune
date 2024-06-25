@@ -18,13 +18,16 @@ and models.
     :toctree: generated/
     :nosignatures:
 
+    InstructTemplate
     AlpacaInstructTemplate
     GrammarErrorCorrectionTemplate
     SummarizeTemplate
-    QuestionAnswerTemplate
-    ChatMLTemplate
-    Llama2ChatTemplate
-    MistralChatTemplate
+    StackExchangedPairedTemplate
+
+    ChatFormat
+    ChatMLFormat
+    Llama2ChatFormat
+    MistralChatFormat
 
 Types
 -----
@@ -44,8 +47,8 @@ Converts data from common JSON formats into a torchtune :class:`Message`.
     :toctree: generated/
     :nosignatures:
 
-    ShareGptMessages
-    JsonMessages
+    get_sharegpt_messages
+    get_openai_messages
 
 Helper funcs
 ------------
