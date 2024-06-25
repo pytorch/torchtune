@@ -195,8 +195,8 @@ def test_default_activities(profiler_cfg):
     cfg.pop("cuda")
     profiler, updated_cfg = _setup_profiler(cfg)
     assert profiler.activities == DEFAULT_PROFILER_ACTIVITIES
-    assert updated_cfg.CPU is True
-    assert updated_cfg.CUDA is True
+    assert updated_cfg.cpu is True
+    assert updated_cfg.cuda is True
 
 
 def test_default_output_dir(profiler_cfg):
