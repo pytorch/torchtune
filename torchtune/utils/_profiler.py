@@ -217,7 +217,6 @@ def setup_torch_profiler(
         warmup_steps: int
         active_steps: int
         num_cycles: int
-    ```
 
     Args:
         enabled (bool): Enable pytorch profiler. Default is False.
