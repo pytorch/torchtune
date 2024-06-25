@@ -5,22 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Dict, Optional, Tuple, List
-from PIL import Image
+from typing import Dict, List, Optional, Tuple
 
 import torch
+import torchvision
+from PIL import Image
 
 from torchtune.modules.transforms.vision import (
-    tile_crop,
+    get_canvas_best_fit,
     resize_with_pad,
-    get_canvas_best_fit
+    tile_crop,
 )
-from torchtune.modules.transforms.vision.get_canvas_best_fit import find_supported_resolutions
+from torchtune.modules.transforms.vision.get_canvas_best_fit import (
+    find_supported_resolutions,
+)
 
 from torchvision.transforms.v2 import functional as F
-import torchvision
 
 logger = logging.getLogger(__name__)
+
 
 class CLIPImageTransform:
     """
@@ -57,17 +60,17 @@ class CLIPImageTransform:
         tile_size (int): Size of the tiles to divide the image into
         max_num_tiles (Optional[int]): Only used if possible_resolutions is NOT given.
             Maximum number of tiles to break an image into.
-            This will be used to generate possible_resolutions, 
+            This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
-        resample (str): Resampling method used when resizing images. Supports any enum of 
+        resample (str): Resampling method used when resizing images. Supports any enum of
             torchvision.transforms.InterpolationMode, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
         resize_to_max_canvas (bool):
-            "If True, the image will be upscaled without distortion to fit the largest possible 
+            "If True, the image will be upscaled without distortion to fit the largest possible
             resolution from possible_resolutions.
             If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
             In this case, the image will only be upscaled if it's size < tile_size.
     Examples:
-    
+
         >>> image_transform = CLIPImageTransform(
         ...    image_mean=None,
         ...    image_std=None,
@@ -82,7 +85,7 @@ class CLIPImageTransform:
         >>> image = PIL.Image.fromarray(image)
         >>> output = image_transform(image)
         >>> output['image'].shape # [num_tiles, num_channels, tile_size, tile_size]
-        torch.Size([2, 3, 224, 224]) 
+        torch.Size([2, 3, 224, 224])
         >>> output['ar'] # image best fits the canvas 224x448
         torch.tensor([1,2])
     """
@@ -125,9 +128,7 @@ class CLIPImageTransform:
 
         # resize_with_pad
         self.max_upscaling_size = None if resize_to_max_canvas else tile_size
-        self.resample = torchvision.transforms.InterpolationMode[
-            resample.upper()
-        ]
+        self.resample = torchvision.transforms.InterpolationMode[resample.upper()]
 
         # tile_crop
         self.tile_size = tile_size

@@ -1,4 +1,4 @@
-from torchtune.models.clip._component_builders import CLIPImageTransform
+from torchtune.models.clip._transforms import CLIPImageTransform
 
 def clip_vit_336_transform():
 
