@@ -62,17 +62,19 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str) -> Llama3Tokenizer:
+def llama3_tokenizer(path: str, special_tokens_path: str) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
     Args:
         path (str): path to the tokenizer
+        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens.
 
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
-    return Llama3Tokenizer(path)
+    return Llama3Tokenizer(path=path, special_tokens_path=special_tokens_path)
 
 
 def lora_llama3_8b(

@@ -38,12 +38,14 @@ def phi3_mini() -> TransformerDecoder:
         norm_eps=1e-5,
     )
 
-def phi3_mini_tokenizer(path: str) -> Phi3MiniTokenizer:
+def phi3_mini_tokenizer(path: str, special_tokens_path: str) -> Phi3MiniTokenizer:
     """Phi-3 Mini tokenizer.
     Ref: https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/blob/main/tokenizer_config.json
 
     Args:
         path (str): Path to the SPM tokenizer model.
+        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens.
 
     Note:
         This tokenizer includes typical LM EOS and BOS tokens like
@@ -58,7 +60,7 @@ def phi3_mini_tokenizer(path: str) -> Phi3MiniTokenizer:
     Returns:
         Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.
     """
-    return Phi3MiniTokenizer(path)
+    return Phi3MiniTokenizer(path=path, special_tokens_path=special_tokens_path)
 
 
 def lora_phi3_mini(

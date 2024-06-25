@@ -85,8 +85,8 @@ class TikTokenBaseTokenizer(BaseTokenizer):
     def encode(
         self,
         text: str,
-        add_bos: bool,
-        add_eos: bool,
+        add_bos: bool = True,
+        add_eos: bool = True,
     ) -> List[int]:
         """
         Encode a string into a list of token ids. Assumes that the string

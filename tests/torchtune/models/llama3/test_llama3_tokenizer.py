@@ -13,28 +13,30 @@ from torchtune.models.llama3 import llama3_tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
+SPECIAL_TOKENS = {
+    "<|begin_of_text|>": 128000,
+    "<|end_of_text|>": 128001,
+    "<|start_header_id|>": 128006,
+    "<|end_header_id|>": 128007,
+    "<|eot_id|>": 128009,
+    "<|reserved_special_token_4|>": 128008,  # eom_id
+    "<|reserved_special_token_250|>": 128255,  # python_tag
+}
+
 
 class TestLlama3Tokenizer:
     @pytest.fixture
     def tokenizer(self):
-        test_special_tokens = {
-            "<|begin_of_text|>": 2000,
-            "<|end_of_text|>": 2001,
-            "<|step_id|>": 2005,
-            "<|start_header_id|>": 2006,
-            "<|end_header_id|>": 2007,
-            "<|eom_id|>": 2008,
-            "<|eot_id|>": 2009,
-            "<|python_tag|>": 2255,
-        }
-
         with mock.patch(
-            "torchtune.models.llama3._tokenizer.Llama3Tokenizer._get_all_special_tokens_with_ids",
-            return_value=test_special_tokens,
+            "torchtune.models.llama3._tokenizer.parse_hf_tokenizer_json",
+            return_value=SPECIAL_TOKENS,
         ):
             # Pretrained tiktoken model generated via the script in
             # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-            return llama3_tokenizer(str(ASSETS / "tiktoken_small.model"))
+            return llama3_tokenizer(
+                path=str(ASSETS / "tiktoken_small.model"),
+                special_tokens_path="dummy_tokenizer.json",
+            )
 
     @pytest.fixture
     def texts(self):
@@ -83,15 +85,15 @@ class TestLlama3Tokenizer:
     @pytest.fixture
     def tokenized_messages(self, token_ids):
         return (
-            [2000, 2006, 477, 273, 2007, 10, 10]
+            [128000, 128006, 477, 273, 128007, 10, 10]
             + token_ids
             + [
-                2009,
-                2006,
+                128009,
+                128006,
                 520,
                 511,
                 446,
-                2007,
+                128007,
                 10,
                 10,
                 65,
@@ -110,8 +112,8 @@ class TestLlama3Tokenizer:
                 351,
                 1955,
                 46,
-                2009,
-                2001,
+                128009,
+                128001,
             ],
             [
                 True,
@@ -176,19 +178,18 @@ class TestLlama3Tokenizer:
         )
 
     def test_token_ids(self, tokenizer):
-        assert tokenizer.bos_id == 2000
-        assert tokenizer.eos_id == 2001
+        assert tokenizer.bos_id == 128000
+        assert tokenizer.eos_id == 128001
         assert tokenizer.pad_id == 0
-        assert tokenizer.step_id == 2005
-        assert tokenizer.start_header_id == 2006
-        assert tokenizer.end_header_id == 2007
-        assert tokenizer.eom_id == 2008
-        assert tokenizer.eot_id == 2009
-        assert tokenizer.python_tag == 2255
+        assert tokenizer.start_header_id == 128006
+        assert tokenizer.end_header_id == 128007
+        assert tokenizer.eom_id == 128008
+        assert tokenizer.eot_id == 128009
+        assert tokenizer.python_tag == 128255
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
-        assert tokenizer.vocab_size == 2256
+        assert tokenizer.vocab_size == 128256
 
     def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
         assert tokenizer.tokenize_messages(messages) == tokenized_messages

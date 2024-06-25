@@ -22,6 +22,8 @@ class TestTikTokenBaseTokenizer:
             path=str(ASSETS / "tiktoken_small.model"),
             name="test_tiktoken",
             pattern=CL100K_PATTERN,
+            bos_id=0,
+            eos_id=-1,
             special_tokens={
                 "<|test_token_0|>": 2000,
                 "<|test_token_1|>": 2001,
@@ -38,6 +40,7 @@ class TestTikTokenBaseTokenizer:
     @pytest.fixture
     def token_ids(self):
         return [
+            0,
             73,
             503,
             654,
@@ -63,6 +66,7 @@ class TestTikTokenBaseTokenizer:
             511,
             115,
             46,
+            -1,
         ]
 
     def test_encode(self, tokenizer, texts, token_ids):

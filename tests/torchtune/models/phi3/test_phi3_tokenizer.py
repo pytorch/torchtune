@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from torchtune.data import Message
@@ -12,13 +13,33 @@ from torchtune.models.phi3 import phi3_mini_tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
+SPECIAL_TOKENS = {
+    "<|endoftext|>": 32000,
+    "<|assistant|>": 32001,
+    "<|placeholder1|>": 32002,
+    "<|placeholder2|>": 32003,
+    "<|placeholder3|>": 32004,
+    "<|placeholder4|>": 32005,
+    "<|system|>": 32006,
+    "<|end|>": 32007,
+    "<|placeholder5|>": 32008,
+    "<|placeholder6|>": 32009,
+    "<|user|>": 32010,
+}
+
 
 class TestPhi3MiniTokenizer:
     @pytest.fixture
     def tokenizer(self):
-        # m.model is a pretrained Sentencepiece model using the following command:
-        # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return phi3_mini_tokenizer(str(ASSETS / "m.model"))
+        with mock.patch(
+            "torchtune.models.phi3._tokenizer.parse_hf_tokenizer_json",
+            return_value=SPECIAL_TOKENS,
+        ):
+            # m.model is a pretrained Sentencepiece model using the following command:
+            # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
+            return phi3_mini_tokenizer(
+                path=str(ASSETS / "m.model"), special_tokens_path="dummy_tokenizer.json"
+            )
 
     def test_tokenize_messages(self, tokenizer):
         messages = [

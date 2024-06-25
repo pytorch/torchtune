@@ -26,6 +26,8 @@ class Llama3Tokenizer(ModelTokenizer):
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
+        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens.
     """
 
     def __init__(
@@ -43,11 +45,22 @@ class Llama3Tokenizer(ModelTokenizer):
         self.pad_id = PAD_ID
 
         # Encode extra special tokens
-        self.step_id = self.special_tokens["<|step_id|>"]
         self.start_header_id = self.special_tokens["<|start_header_id|>"]
         self.end_header_id = self.special_tokens["<|end_header_id|>"]
-        self.eom_id = self.special_tokens["<|eom_id|>"]
         self.eot_id = self.special_tokens["<|eot_id|>"]
+
+        # EOM ID and python tag are not currently present in the Hugging Face tokenizer json,
+        # so we have to add them manually. These are needed for future tool calling
+        # support.
+        if "<|eom_id|>" not in self.special_tokens:
+            self.special_tokens["<|eom_id|>"] = self.special_tokens.pop(
+                "<|reserved_special_token_4|>"
+            )
+        self.eom_id = self.special_tokens["<|eom_id|>"]
+        if "<|python_tag|>" not in self.special_tokens:
+            self.special_tokens["<|python_tag|>"] = self.special_tokens.pop(
+                "<|reserved_special_token_250|>"
+            )
         self.python_tag = self.special_tokens["<|python_tag|>"]
 
         # During generation, stop when either eos_id or eot_id is encountered
@@ -73,8 +86,8 @@ class Llama3Tokenizer(ModelTokenizer):
     def encode(
         self,
         text: str,
-        add_bos: bool,
-        add_eos: bool,
+        add_bos: bool = True,
+        add_eos: bool = True,
     ) -> List[int]:
         return self.tt_model.encode(text=text, add_bos=add_bos, add_eos=add_eos)
 

@@ -20,6 +20,8 @@ class Phi3MiniTokenizer(ModelTokenizer):
 
     Args:
         path (str): Path to pretrained tokenizer file.
+        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens.
 
     Example:
         # Accepts only non-batched input for now
