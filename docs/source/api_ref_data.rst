@@ -44,8 +44,8 @@ Converts data from common JSON formats into a torchtune :class:`Message`.
     :toctree: generated/
     :nosignatures:
 
-    ShareGptToMessages
-    JsonToMessages
+    ShareGptMessages
+    JsonMessages
 
 Helper funcs
 ------------

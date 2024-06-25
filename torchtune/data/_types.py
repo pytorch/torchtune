@@ -28,10 +28,11 @@ class Message:
     """
 
     role: Role
-    content: str
+    content: str = ""
     masked: bool = False
     ipython: bool = False
     eot: bool = True
+    image: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> "Message":
@@ -50,4 +51,5 @@ class Message:
             masked=d.get("masked", False),
             ipython=d.get("ipython", False),
             eot=d.get("eot", True),
+            image=d.get("image", False),
         )
