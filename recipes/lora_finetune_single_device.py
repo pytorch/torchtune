@@ -384,14 +384,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         dataloader = DataLoader(
             dataset=ds,
             sampler=sampler,
-            batch_size=batch_size,
+            batch_size=None,
+            batch_sampler=None,
+            # batch_size=batch_size,
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
-            if not packed
-            else None,
+            # if not packed
+            # else None,
         )
 
         log.info("Dataset and Sampler are initialized.")
