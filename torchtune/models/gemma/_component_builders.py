@@ -12,6 +12,7 @@ from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_pos
 from torchtune.modules import (
     CausalSelfAttention,
     FeedForward,
+    FrozenNF4Linear,
     RotaryPositionalEmbeddings,
     TransformerDecoderLayer,
 )
@@ -113,7 +114,7 @@ def gemma(
     return model
 
 
-def gemma_mlp(dim: int, hidden_dim: int) -> FeedForward:
+def gemma_mlp(dim: int, hidden_dim: int, quantize_base: bool = False) -> FeedForward:
     """
     Build the MLP layer associated with the Gemma model.
 
@@ -121,9 +122,9 @@ def gemma_mlp(dim: int, hidden_dim: int) -> FeedForward:
         dim (int): input dimension to the MLP
         hidden_dim (int): hidden dimension of the MLP
     """
-    gate_proj = nn.Linear(dim, hidden_dim, bias=False)
-    down_proj = nn.Linear(hidden_dim, dim, bias=False)
-    up_proj = nn.Linear(dim, hidden_dim, bias=False)
+    gate_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
+    down_proj = nn.Linear(hidden_dim, dim, bias=False) if not quantize_base else FrozenNF4Linear(hidden_dim, dim, bias=False)
+    up_proj = nn.Linear(dim, hidden_dim, bias=False) if not quantize_base else FrozenNF4Linear(dim, hidden_dim, bias=False)
     activation = nn.GELU(approximate="tanh")
     return FeedForward(gate_proj=gate_proj, down_proj=down_proj, up_proj=up_proj, activation=activation)
 
@@ -212,7 +213,7 @@ def lora_gemma(
             lora_dropout=lora_dropout,
         )
     else:
-        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
+        mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim, quantize_base=quantize_base)
 
     layer = TransformerDecoderLayer(
         attn=self_attn,
@@ -283,7 +284,11 @@ def lora_gemma_self_attention(
             quantize_base=quantize_base,
         )
         if "q_proj" in lora_modules
-        else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_heads * head_dim, bias=False)
+        )
     )
     k_proj = (
         LoRALinear(
@@ -295,7 +300,11 @@ def lora_gemma_self_attention(
             quantize_base=quantize_base,
         )
         if "k_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     v_proj = (
         LoRALinear(
@@ -307,7 +316,11 @@ def lora_gemma_self_attention(
             quantize_base=quantize_base,
         )
         if "v_proj" in lora_modules
-        else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        else (
+            nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(embed_dim, num_kv_heads * head_dim, bias=False)
+        )
     )
     output_proj = (
         LoRALinear(
@@ -319,7 +332,11 @@ def lora_gemma_self_attention(
             quantize_base=quantize_base,
         )
         if "output_proj" in lora_modules
-        else nn.Linear(num_heads * head_dim, embed_dim, bias=False)
+        else (
+            nn.Linear(num_heads * head_dim, embed_dim, bias=False)
+            if not quantize_base
+            else FrozenNF4Linear(num_heads * head_dim, embed_dim, bias=False)
+        )
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
