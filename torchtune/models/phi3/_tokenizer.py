@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
@@ -107,7 +107,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
         *,
         add_eos: bool = False,
         ignore_system_prompts: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> Dict[str, Any]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
@@ -140,7 +140,8 @@ class Phi3MiniTokenizer(ModelTokenizer):
             ValueError: If the role is not "user", "assistant", or "system".
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
+                to indicate which tokens should be excluded from loss calculation
         """
         start_of_turn = True
         end_of_turn = False
@@ -210,4 +211,4 @@ class Phi3MiniTokenizer(ModelTokenizer):
             tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, message.masked)
 
-        return tokenized_messages, mask
+        return {"tokens": tokenized_messages, "mask": mask}

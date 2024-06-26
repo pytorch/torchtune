@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional
 
 from torchtune.data import Message
 from torchtune.modules.tokenizers import (
@@ -103,7 +103,7 @@ class MistralTokenizer(ModelTokenizer):
 
     def tokenize_messages(
         self, messages: List[Message], max_seq_len: Optional[int] = None
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> Dict[str, Any]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
@@ -136,7 +136,8 @@ class MistralTokenizer(ModelTokenizer):
                 Default: None
 
         Returns:
-            Tuple[List[int], List[bool]]: The tokenized messages
+            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
+                to indicate which tokens should be excluded from loss calculation
         """
         return tokenize_messages_no_special_tokens(
             tokenizer=self,
