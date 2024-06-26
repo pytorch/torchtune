@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from copy import deepcopy
 import sys
 import time
 from functools import partial
@@ -128,6 +129,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+        self.save_checkpoints = bool(cfg.get("save_checkpoints", True))
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -212,6 +214,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # setup after both of these are initialized
         self._sampler, self._dataloader = self._setup_data(
             cfg_dataset=cfg.dataset,
+            shuffle=cfg.shuffle,
+            batch_size=cfg.batch_size,
+        )
+
+        # validation dataloader
+        cfg["validation_dataset"] = deepcopy(cfg.dataset)
+        cfg["validation_dataset"]["split"] = "validation"
+        self._sampler_validation, self._dataloader_validation = self._setup_data(
+            cfg_dataset=cfg["validation_dataset"],
             shuffle=cfg.shuffle,
             batch_size=cfg.batch_size,
         )
@@ -396,7 +407,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             # in case shuffle is True
             self._sampler.set_epoch(curr_epoch)
 
-            pbar = tqdm(total=self._steps_per_epoch)
+            self._model.train()
+
+            pbar = tqdm(total=self._steps_per_epoch, desc="Training")
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -461,7 +474,33 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     t0 = time.perf_counter()
 
             self.epochs_run += 1
-            self.save_checkpoint(epoch=curr_epoch)
+            if self.save_checkpoints:
+                self.save_checkpoint(epoch=curr_epoch)
+
+            # Run validation
+            self._model.eval()
+            with torch.no_grad():
+                val_loss = 0
+                pbar_val = tqdm(
+                    total=len(self._dataloader_validation), desc="Validation"
+                )
+                for batch in self._dataloader_validation:
+                    input_ids, labels = batch
+                    input_ids = input_ids.to(self._device)
+                    labels = labels.to(self._device)
+                    logits = self._model(input_ids)
+                    logits = logits[..., :-1, :].contiguous()
+                    labels = labels[..., 1:].contiguous()
+                    logits = logits.transpose(1, 2)
+                    val_loss += self._loss_fn(logits, labels).item()
+                    pbar_val.update(1)
+                    pbar_val.set_postfix({"val_loss": val_loss / (pbar_val.n + 1)})
+                val_loss /= len(self._dataloader_validation)
+                self._metric_logger.log_dict(
+                    {"val_loss": val_loss},
+                    step=self.global_step,
+                )
+                pbar_val.close()
 
     def cleanup(self) -> None:
         self._metric_logger.close()

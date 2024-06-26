@@ -37,6 +37,34 @@ class InstructTemplate(ABC):
         pass
 
 
+class BasicInstructTemplate(InstructTemplate):
+    """
+    Prompt template for basic instruction datasets.
+    """
+
+    @classmethod
+    def format(
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from instruction.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with instruction
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                placeholder names in the template to the column names in the sample.
+                If None, assume these are identical.
+
+        Returns:
+            The formatted prompt
+        """
+        column_map = column_map or {}
+        key_instruction = column_map.get("instruction", "prompt")
+
+        prompt = cls.template.format(instruction=sample[key_instruction])
+        return prompt
+
+
 class AlpacaInstructTemplate(InstructTemplate):
     """
     Prompt template for Alpaca-style datasets. Template prompt changes slightly depending
