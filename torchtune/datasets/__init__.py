@@ -9,7 +9,11 @@ from torchtune.datasets._chat import chat_dataset, ChatDataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
-from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.datasets._instruct import (
+    instruct_dataset,
+    InstructDataset,
+    basic_instruct_dataset,
+)
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
@@ -31,6 +35,7 @@ __all__ = [
     "slimorca_dataset",
     "ChatDataset",
     "instruct_dataset",
+    "basic_instruct_dataset",  # NOTE: added by us
     "chat_dataset",
     "text_completion_dataset",
     "TextCompletionDataset",

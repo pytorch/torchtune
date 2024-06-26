@@ -16,6 +16,7 @@ from torchtune.data._instruct_templates import (
     AlpacaInstructTemplate,
     GrammarErrorCorrectionTemplate,
     InstructTemplate,
+    BasicInstructTemplate,
     StackExchangedPairedTemplate,
     SummarizeTemplate,
 )
@@ -27,6 +28,7 @@ __all__ = [
     "ChatFormat",
     "CROSS_ENTROPY_IGNORE_IDX",
     "GrammarErrorCorrectionTemplate",
+    "BasicInstructTemplate",  # NOTE: added by us
     "InstructTemplate",
     "SummarizeTemplate",
     "Llama2ChatFormat",

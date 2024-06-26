@@ -37,6 +37,7 @@ class InstructTemplate(ABC):
         pass
 
 
+# NOTE: added by us
 class BasicInstructTemplate(InstructTemplate):
     """
     Prompt template for basic instruction datasets.
