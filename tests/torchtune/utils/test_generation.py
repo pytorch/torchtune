@@ -35,6 +35,20 @@ class TestTextGenerate:
         return model
 
     @pytest.fixture
+    def generation_model_no_kv_cache(self, dtype=torch.float32):
+        model = llama2(
+            vocab_size=4_000,
+            embed_dim=128,
+            num_layers=2,
+            num_heads=4,
+            num_kv_heads=4,
+            max_seq_len=2048,
+        )
+        fixed_init_model(model)
+        model.eval()
+        return model
+
+    @pytest.fixture
     def generation_model_batched(self, dtype=torch.float32):
         model = llama2(
             vocab_size=4_000,
@@ -74,18 +88,40 @@ class TestTextGenerate:
         token = sample(logits, temperature=1, top_k=1)
         assert token.item() == 100
 
-    def test_reproducibility(self, generation_model, prompt_tokens):
+    @pytest.mark.parametrize(
+        "model1,model2,prompt",
+        [
+            ("generation_model", "generation_model", "prompt_tokens"),
+            ("generation_model", "generation_model_no_kv_cache", "prompt_tokens"),
+            (
+                "generation_model_batched",
+                "generation_model_batched",
+                "prompt_tokens_batched",
+            ),
+            (
+                "generation_model_batched",
+                "generation_model_no_kv_cache",
+                "prompt_tokens_batched",
+            ),
+        ],
+    )
+    def test_reproducibility(self, request, model1, model2, prompt):
         """
         Test to check if the `generate` function produces the same output when run with the same
-        inputs and a fixed seed.
+        inputs and a fixed seed. This should work regardless of batched input or kv cache.
         """
+
+        model1 = request.getfixturevalue(model1)
+        model2 = request.getfixturevalue(model2)
+        prompt = request.getfixturevalue(prompt)
+
         temperature = 0.6
         top_k = 100
 
         torch.manual_seed(42)
         outputs_first = utils.generate(
-            model=generation_model,
-            prompt=prompt_tokens,
+            model=model1,
+            prompt=prompt,
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
@@ -93,8 +129,8 @@ class TestTextGenerate:
 
         torch.manual_seed(42)
         outputs_second = utils.generate(
-            model=generation_model,
-            prompt=prompt_tokens,
+            model=model2,
+            prompt=prompt,
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
