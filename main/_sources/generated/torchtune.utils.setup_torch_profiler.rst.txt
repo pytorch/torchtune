@@ -3,7 +3,7 @@
 .. currentmodule:: torchtune.utils
 
 
-profiler
-========
+setup_torch_profiler
+====================
 
-.. autofunction:: profiler
+.. autofunction:: setup_torch_profiler
