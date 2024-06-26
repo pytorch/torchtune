@@ -232,7 +232,7 @@ class TestPackedDataset:
 
     def test_pad_pack(self):
         padding_idx = -8
-        ignore_idx = -9
+        ignore_idx = -100  # Same as CROSS_ENTROPY_IGNORE_IDX
         pack = {
             "tokens": [2, 5],
             "labels": [3, 7],
@@ -250,7 +250,7 @@ class TestPackedDataset:
         )
 
         pack = packed._convert_to_tensors(pack)
-        padded = packed._pad_pack(pack, padding_idx=padding_idx, ignore_idx=ignore_idx)
+        padded = packed._pad_pack(pack, padding_idx=padding_idx)
 
         padded_input = padded["tokens"]
         padded_label = padded["labels"]
