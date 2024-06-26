@@ -9,7 +9,12 @@ from typing import Literal
 
 from PIL.Image import Image
 
-Role = Literal["system", "user", "assistant"]
+Role = Literal[
+    "system",  # Origin is system prompt
+    "user",  # Origin is user
+    "assistant",  # Origin is the model output
+    "ipython",  # Origin is return from a tool call
+]
 
 
 @dataclass
@@ -21,12 +26,13 @@ class Message:
     as they inform handling of special tokens in that case.
 
     Attributes:
-        role (Role): role of the message writer. Can be "system", "user", "assistant".
-        content (str): content of the message.
+        role (Role): role of the message writer. Can be "system", "user", "assistant", or "ipython".
+        content (Union[str, Image]): content of the message. Can be a string or a PIL Image.
         masked (bool): whether the message is masked in the sample. Default: False
         ipython (bool): whether the message is an ipython call. Default: False
         eot (bool): whether the message corresponds to the end of a turn. Should be true
-            except in the case of multiple consecutive assistant messages. Default: True
+            except in the case of multiple consecutive assistant messages (i.e., tool calls
+            by assistant). Default: True
     """
 
     role: Role
