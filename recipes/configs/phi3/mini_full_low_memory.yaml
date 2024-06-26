@@ -23,7 +23,6 @@
 tokenizer:
   _component_: torchtune.models.phi3.phi3_mini_tokenizer
   path: /tmp/Phi-3-mini-4k-instruct/tokenizer.model
-  special_tokens_path: /tmp/Phi-3-mini-4k-instruct/tokenizer.json
 
 # Dataset
 dataset:

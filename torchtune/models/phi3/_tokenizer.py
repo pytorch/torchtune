@@ -7,11 +7,21 @@
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.modules.tokenizers import (
-    ModelTokenizer,
-    parse_hf_tokenizer_json,
-    SentencePieceBaseTokenizer,
-)
+from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
+
+PHI3_SPECIAL_TOKENS = {
+    "<|endoftext|>": 32000,
+    "<|assistant|>": 32001,
+    "<|placeholder1|>": 32002,
+    "<|placeholder2|>": 32003,
+    "<|placeholder3|>": 32004,
+    "<|placeholder4|>": 32005,
+    "<|system|>": 32006,
+    "<|end|>": 32007,
+    "<|placeholder5|>": 32008,
+    "<|placeholder6|>": 32009,
+    "<|user|>": 32010,
+}
 
 
 class Phi3MiniTokenizer(ModelTokenizer):
@@ -20,8 +30,9 @@ class Phi3MiniTokenizer(ModelTokenizer):
 
     Args:
         path (str): Path to pretrained tokenizer file.
-        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens.
+        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
+            their registered token IDs. If left as None, this will be set to the canonical
+            Phi3 special tokens.
 
     Example:
         # Accepts only non-batched input for now
@@ -34,13 +45,11 @@ class Phi3MiniTokenizer(ModelTokenizer):
     def __init__(
         self,
         path: str,
-        special_tokens_path: str,
+        special_tokens: Optional[Dict[str, int]] = None,
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
-        self.special_tokens: Dict[str, int] = parse_hf_tokenizer_json(
-            tokenizer_json_path=special_tokens_path
-        )
+        self.special_tokens = special_tokens or PHI3_SPECIAL_TOKENS
 
         # Use custom EOS and pad ids instead of SentencePiece's
         self.eos_id = self.special_tokens["<|endoftext|>"]

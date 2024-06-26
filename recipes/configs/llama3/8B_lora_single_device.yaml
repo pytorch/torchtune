@@ -29,7 +29,6 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
-  special_tokens_path: /tmp/Meta-Llama-3-8B-Instruct/tokenizer.json
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer

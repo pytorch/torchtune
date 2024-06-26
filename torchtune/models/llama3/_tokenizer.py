@@ -7,16 +7,22 @@
 from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
-from torchtune.modules.tokenizers import (
-    ModelTokenizer,
-    parse_hf_tokenizer_json,
-    TikTokenBaseTokenizer,
-)
+from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
 PAD_ID = 0
+
+LLAMA3_SPECIAL_TOKENS = {
+    "<|begin_of_text|>": 128000,
+    "<|end_of_text|>": 128001,
+    "<|start_header_id|>": 128006,
+    "<|end_header_id|>": 128007,
+    "<|eot_id|>": 128009,
+    "<|eom_id|>": 128008,
+    "<|python_tag|>": 128255,
+}
 
 
 class Llama3Tokenizer(ModelTokenizer):
@@ -26,18 +32,17 @@ class Llama3Tokenizer(ModelTokenizer):
 
     Args:
         path (str): Path to pretrained tiktoken tokenizer file.
-        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens.
+        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
+            their registered token IDs. If left as None, this will be set to the canonical
+            Llama3 special tokens.
     """
 
     def __init__(
         self,
         path: str,
-        special_tokens_path: str,
+        special_tokens: Optional[Dict[str, int]] = None,
     ):
-        self.special_tokens: Dict[str, int] = parse_hf_tokenizer_json(
-            tokenizer_json_path=special_tokens_path
-        )
+        self.special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
@@ -49,18 +54,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self.end_header_id = self.special_tokens["<|end_header_id|>"]
         self.eot_id = self.special_tokens["<|eot_id|>"]
 
-        # EOM ID and python tag are not currently present in the Hugging Face tokenizer json,
-        # so we have to add them manually. These are needed for future tool calling
-        # support.
-        if "<|eom_id|>" not in self.special_tokens:
-            self.special_tokens["<|eom_id|>"] = self.special_tokens.pop(
-                "<|reserved_special_token_4|>"
-            )
         self.eom_id = self.special_tokens["<|eom_id|>"]
-        if "<|python_tag|>" not in self.special_tokens:
-            self.special_tokens["<|python_tag|>"] = self.special_tokens.pop(
-                "<|reserved_special_token_250|>"
-            )
         self.python_tag = self.special_tokens["<|python_tag|>"]
 
         # During generation, stop when either eos_id or eot_id is encountered

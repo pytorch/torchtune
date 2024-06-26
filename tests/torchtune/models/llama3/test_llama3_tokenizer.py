@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from pathlib import Path
-from unittest import mock
 
 import pytest
 from torchtune.data._types import Message
@@ -13,30 +12,15 @@ from torchtune.models.llama3 import llama3_tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
-SPECIAL_TOKENS = {
-    "<|begin_of_text|>": 128000,
-    "<|end_of_text|>": 128001,
-    "<|start_header_id|>": 128006,
-    "<|end_header_id|>": 128007,
-    "<|eot_id|>": 128009,
-    "<|reserved_special_token_4|>": 128008,  # eom_id
-    "<|reserved_special_token_250|>": 128255,  # python_tag
-}
-
 
 class TestLlama3Tokenizer:
     @pytest.fixture
     def tokenizer(self):
-        with mock.patch(
-            "torchtune.models.llama3._tokenizer.parse_hf_tokenizer_json",
-            return_value=SPECIAL_TOKENS,
-        ):
-            # Pretrained tiktoken model generated via the script in
-            # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
-            return llama3_tokenizer(
-                path=str(ASSETS / "tiktoken_small.model"),
-                special_tokens_path="dummy_tokenizer.json",
-            )
+        # Pretrained tiktoken model generated via the script in
+        # https://gist.github.com/ebsmothers/54b133dd87db6679b14318545aaa2de4
+        return llama3_tokenizer(
+            path=str(ASSETS / "tiktoken_small.model"),
+        )
 
     @pytest.fixture
     def texts(self):

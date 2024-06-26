@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List
+from typing import List, Optional
 from functools import partial
 
 from torchtune.models.llama3._component_builders import llama3, lora_llama3
@@ -11,6 +11,7 @@ from torchtune.models.llama3._component_builders import llama3, lora_llama3
 from torchtune.modules import TransformerDecoder
 from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
 
 """
@@ -62,19 +63,21 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str, special_tokens_path: str) -> Llama3Tokenizer:
+def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
     """
     Tokenizer for Llama3.
 
     Args:
         path (str): path to the tokenizer
-        special_tokens_path (str): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens.
-
+        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens, or a local json file 
+            structured similarly. Default is None to use the canonical Llama3 special tokens.
+    
     Returns:
         Llama3Tokenizer: Instantiation of the Llama3 tokenizer
     """
-    return Llama3Tokenizer(path=path, special_tokens_path=special_tokens_path)
+    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
+    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
 
 
 def lora_llama3_8b(
