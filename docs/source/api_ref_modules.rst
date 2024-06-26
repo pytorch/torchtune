@@ -20,8 +20,8 @@ Modeling Components and Building Blocks
     TransformerDecoderLayer
     TransformerDecoder
 
-Tokenizers
-------------------------
+Base Tokenizers
+---------------
 
 .. autosummary::
     :toctree: generated/

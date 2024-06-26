@@ -111,9 +111,9 @@ keyword arguments not specified in the config if we'd like:
 .. code-block:: python
 
     # Note the API of the tokenizer we specified - we need to pass in a path
-    def llama2_tokenizer(path: str) -> Tokenizer:
+    def llama2_tokenizer(path: str) -> Llama2Tokenizer:
 
-    # Note the API of the dataset we specified - we need to pass in a tokenizer
+    # Note the API of the dataset we specified - we need to pass in a model tokenizer
     # and any optional keyword arguments
     def alpaca_dataset(
         tokenizer: ModelTokenizer,
