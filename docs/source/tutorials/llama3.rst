@@ -103,7 +103,7 @@ For example, on two devices:
 
     tune run --nproc_per_node 2 lora_finetune_distributed --config llama3/8B_lora
 
-Finally, if we want to use even less memory, we can leverage TorchTune's QLoRA recipe via:
+Finally, if we want to use even less memory, we can leverage torchtune's QLoRA recipe via:
 
 .. code-block:: bash
 
@@ -157,7 +157,7 @@ Next, we modify ``custom_eval_config.yaml`` to include the fine-tuned checkpoint
       # checkpoint files for the fine-tuned model. These will be logged
       # at the end of your fine-tune
       checkpoint_files: [
-        consolidated.00.pth
+        meta_model_0.pt
       ]
 
       output_dir: <checkpoint_dir>
@@ -209,7 +209,7 @@ Now we modify ``custom_generation_config.yaml`` to point to our checkpoint and t
       # checkpoint files for the fine-tuned model. These will be logged
       # at the end of your fine-tune
       checkpoint_files: [
-        consolidated.00.pth
+        meta_model_0.pt
       ]
 
       output_dir: <checkpoint_dir>
@@ -267,7 +267,7 @@ And update ``custom_quantization_config.yaml`` with the following:
       # checkpoint files for the fine-tuned model. These will be logged
       # at the end of your fine-tune
       checkpoint_files: [
-        consolidated.00.pth
+        meta_model_0.pt
       ]
 
       output_dir: <checkpoint_dir>
@@ -299,7 +299,7 @@ First, we'll make one more change to our ``custom_generation_config.yaml``.
 .. code-block:: yaml
 
     checkpointer:
-      # we need to use the custom TorchTune checkpointer
+      # we need to use the custom torchtune checkpointer
       # instead of the HF checkpointer for loading
       # quantized models
       _component_: torchtune.utils.FullModelTorchTuneCheckpointer

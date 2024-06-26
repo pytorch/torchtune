@@ -9,11 +9,11 @@ import sys
 import time
 
 from functools import partial
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.distributed import destroy_process_group, init_process_group
@@ -26,13 +26,16 @@ from torch.distributed.fsdp import (
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
+from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
+    get_lora_module_names,
     get_merged_lora_ckpt,
     set_trainable_params,
     validate_state_dict_for_lora,
 )
 from torchtune.recipe_interfaces import FTRecipeInterface
+from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
@@ -165,30 +168,41 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        if not (
-            utils.SEED_KEY in ckpt_dict
-            and utils.TOTAL_EPOCHS_KEY in ckpt_dict
-            and utils.MAX_STEPS_KEY in ckpt_dict
-        ):
+        try:
+            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[utils.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[utils.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                warn(
+                    message=(
+                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                    )
+                )
+                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
+        except KeyError as e:
             raise KeyError(
-                "Checkpoint does not contain the required keys needed for updating recipe state."
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
                 "Are you sure you passed in the right recipe checkpoint?"
-            )
-        # If seed, total_epoch or max_steps_per_epoch don't match,
-        # warn the user and overwrite
-        if (
-            self.seed != ckpt_dict[utils.SEED_KEY]
-            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
-        ):
-            warn(
-                message="""Configured value for seed, epochs or max_steps_per_epoch
-                does not match the value stored in checkpoint."""
-            )
-        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
-        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+            ) from e
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -257,6 +271,70 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
             last_epoch=self.global_step - 1,
         )
 
+        # Set up profiler, returns DummyProfiler (nullcontext object with no-op `step` method)
+        # if cfg is missing profiler key or if `cfg.profiler.enabled = False`
+        self._profiler = self._setup_profiler(cfg.get(PROFILER_KEY, None))
+
+    def _setup_profiler(
+        self, cfg_profiler: DictConfig
+    ) -> Union[torch.profiler.profile, DummyProfiler]:
+        """
+        Parses the `profiler` section of top-level `cfg` and sets up profiler
+
+        Args:
+            cfg_profiler: DictConfig - `profiler` section of the top-level `cfg` (the main config passed to `recipe.main`)
+
+        Returns:
+            profiler: Union[torch.profiler.profile, DummyProfiler] - DummyProfiler is a nullcontext with no-op methods
+            for `start`, `stop`, and `step` that can be used in place of `torch.profiler.profile` if profiler is not enabled such
+            that the instrumented training loop does not need to be changed profiling is disabled.
+
+        The profiler config can be provided in configs under the `profiler` key with the following layout:
+
+        .. code-block:: yaml
+            profiler:
+                enabled: bool
+
+                #Output directory of trace artifacts
+                output_dir: str
+
+            #`torch.profiler.ProfilerActivity` types to trace
+            cpu: bool
+            cuda: bool
+
+                #Trace options
+                profile_memory: bool
+                with_stack: bool
+                record_shapes: bool
+                with_flops: bool
+
+            # `torch.profiler.schedule` options:
+            # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+            wait_steps: int
+            warmup_steps: int
+            active_steps: int
+            num_cycles: int
+        """
+        # Missing profiler section in config, assume disabled
+        if cfg_profiler is None:
+            cfg_profiler = DictConfig({"enabled": False})
+
+        # Check that component is included and set correctly
+        if cfg_profiler.get("_component_", None) is None:
+            cfg_profiler["_component_"] = "torchtune.utils.setup_torch_profiler"
+        else:
+            assert (
+                cfg_profiler.get("_component_")
+                == "torchtune.utils.setup_torch_profiler"
+            ), "Only torch profiler supported currently: component must be `torchtune.utils.setup_torch_profiler`"
+
+        profiler, profiler_cfg = config.instantiate(cfg_profiler)
+
+        if self._is_rank_zero:
+            log.info(f" Profiler config after instantiation: {profiler_cfg}")
+
+        return profiler
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -276,6 +354,12 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
            d. The ``device_id`` param ensures that the FSDP initialization happens on
               the correct device.
         """
+
+        self._lora_rank = cfg_model.lora_rank
+        self._lora_alpha = cfg_model.lora_alpha
+        self._lora_attn_modules = list(cfg_model.lora_attn_modules)
+        self._apply_lora_to_mlp = cfg_model.apply_lora_to_mlp
+        self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
 
         if self._is_rank_zero:
             log.info("FSDP is enabled. Instantiating Model on CPU for Rank 0 ...")
@@ -372,8 +456,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         if opt_state_dict:
             # Note: technically we should check _contains_fsdp for
             # just the state dict of the adapter cfg, but should be equivalent
-            opt_state_dict = utils.transform_opt_state_dict(
-                opt_state_dict, self._model, optimizer
+            opt_state_dict = FSDP.optim_state_dict_to_load(
+                self._model, optimizer, opt_state_dict
             )
             optimizer.load_state_dict(opt_state_dict)
 
@@ -409,7 +493,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         iterable datasets and streaming datasets are not supported.
         """
         world_size, rank = utils.get_world_size_and_rank()
-        ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+            packed = False
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            packed = cfg_dataset.get("packed", False)
+
         sampler = DistributedSampler(
             ds, num_replicas=world_size, rank=rank, shuffle=shuffle, seed=0
         )
@@ -422,7 +517,9 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
-            ),
+            )
+            if not packed
+            else None,
         )
 
         if self._is_rank_zero:
@@ -496,6 +593,18 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     }
                 )
 
+            adapter_config = {
+                "r": self._lora_rank,
+                "lora_alpha": self._lora_alpha,
+                "target_modules": get_lora_module_names(
+                    self._lora_attn_modules,
+                    self._apply_lora_to_mlp,
+                    self._apply_lora_to_output,
+                ),
+                "peft_type": "LORA",
+            }
+            checkpoint_dict.update({utils.ADAPTER_CONFIG: adapter_config})
+
             self._checkpointer.save_checkpoint(
                 checkpoint_dict,
                 epoch=epoch,
@@ -519,6 +628,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -535,18 +645,30 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
-                input_ids, labels = batch
-                input_ids = input_ids.to(self._device)
-                num_tokens += input_ids.numel()
-                labels = labels.to(self._device)
+                # Both are shape [b, s]
+                tokens, labels = batch["tokens"], batch["labels"]
+                # Get the attention mask and position ids from the dataset if they
+                # exist. Currently, only sample packing in PackedDataset returns these
+                mask = batch.get("mask", None)  # shape [b, s, s]
+                input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                logits = self._model(input_ids)
+                tokens = tokens.to(self._device)
+                num_tokens += tokens.numel()
+                labels = labels.to(self._device)
+                mask = mask.to(self._device) if mask is not None else None
+                input_pos = (
+                    input_pos.to(self._device) if input_pos is not None else None
+                )
+
+                logits = self._model(tokens, mask=mask, input_pos=input_pos)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+                # free logits otherwise it peaks backward memory
+                del logits
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
@@ -576,7 +698,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                         }
                         if self._log_peak_memory_stats:
                             log_dict.update(utils.get_memory_stats(device=self._device))
@@ -590,8 +712,15 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
+                    # Step profiler
+                    # Note that this is called within gradient accumulation block, hence
+                    # will include multiple forward / backward passes if gradient accumulation > 1
+                    self._profiler.step()
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
+
+        self._profiler.stop()
 
     def cleanup(self) -> None:
         if self._is_rank_zero:

@@ -29,7 +29,6 @@ tokenizer:
 # Dataset
 dataset:
   _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
 seed: null
 shuffle: True
 
@@ -65,6 +64,7 @@ device: cuda
 
 # Memory management
 enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: False
 
 # Reduced precision
 dtype: bf16

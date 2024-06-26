@@ -7,8 +7,7 @@
 from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.data._types import Message
-from torchtune.data._utils import truncate
+from torchtune.data import Message, truncate
 
 
 class Phi3MiniSentencePieceTokenizer:
@@ -53,7 +52,7 @@ class Phi3MiniSentencePieceTokenizer:
         self.pad_id = self.special_tokens["<|endoftext|>"]
 
         # During generation, stop when eos_id is encountered
-        self.stop_tokens = {self.eos_id}
+        self.stop_tokens = [self.eos_id]
 
     def encode(
         self,
@@ -110,7 +109,15 @@ class Phi3MiniSentencePieceTokenizer:
         Returns:
             str: The decoded text.
         """
-        return self.spm_model.decode(ids)
+        ids_for_decode = []
+        for token_id in ids:
+            # Filter out special tokens and the placeholder tokens added
+            # by the Phi3 team
+            if token_id >= 32_000 and token_id <= 32_064:
+                continue
+            else:
+                ids_for_decode.append(token_id)
+        return self.spm_model.decode(ids_for_decode)
 
     def tokenize_messages(
         self,
@@ -164,6 +171,10 @@ class Phi3MiniSentencePieceTokenizer:
         new_line_token_id = self.encode("\n", add_bos=False, add_eos=False)
 
         for message in messages:
+            # Skip system prompt
+            if ignore_system_prompts and message.role == "system":
+                continue
+
             # Prepend BOS on start of new turns
             if start_of_turn:
                 tokenized_messages.append(self.bos_id)
@@ -179,11 +190,8 @@ class Phi3MiniSentencePieceTokenizer:
                 end_of_turn = True
                 mask.append(message.masked)
             elif message.role == "system":
-                if ignore_system_prompts:
-                    continue
-                else:
-                    tokenized_messages.append(self.special_tokens["<|system|>"])
-                    mask.append(message.masked)
+                tokenized_messages.append(self.special_tokens["<|system|>"])
+                mask.append(message.masked)
             else:
                 raise ValueError(
                     f"Unknown role '{message.role}' for message: '{message.content}'"

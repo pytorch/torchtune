@@ -11,13 +11,14 @@ from typing import Any, Dict, Optional, Tuple
 from warnings import warn
 
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, ListConfig
 
 from torch import nn
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader, DistributedSampler
 from torchtune import config, modules, utils
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.datasets import ConcatDataset
 from torchtune.modules.peft.peft_utils import (
     disable_adapter,
     get_adapter_params,
@@ -126,21 +127,41 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         """
         Updates the recipe state from checkpoint.
         """
-        # If seed, total_epoch or max_steps_per_epoch don't match,
-        # warn the user and overwrite
-        if (
-            self.seed != ckpt_dict[utils.SEED_KEY]
-            or self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-            or self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]
-        ):
-            warn(
-                message="""Configured value for seed, epochs or max_steps_per_epoch
-                does not match the value stored in checkpoint."""
-            )
-        self.seed = utils.set_seed(seed=ckpt_dict[utils.SEED_KEY])
-        self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
-        self.total_epochs = ckpt_dict[utils.TOTAL_EPOCHS_KEY]
-        self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+        try:
+            self.epochs_run = ckpt_dict[utils.EPOCHS_KEY]
+
+            # on mismatch, warn the user and prevent the override
+            if self.seed != ckpt_dict[utils.SEED_KEY]:
+                warn(
+                    message=(
+                        "Config value for seed does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.SEED_KEY]}"
+                    )
+                )
+                self.seed = ckpt_dict[utils.SEED_KEY]
+            if self.max_steps_per_epoch != ckpt_dict[utils.MAX_STEPS_KEY]:
+                warn(
+                    message=(
+                        "Config value for max_steps_per_epoch does not match the checkpoint value, "
+                        f"using the checkpoint value: {ckpt_dict[utils.MAX_STEPS_KEY]}"
+                    )
+                )
+                self.max_steps_per_epoch = ckpt_dict[utils.MAX_STEPS_KEY]
+
+            # on mismatch, warn the user but allow the override
+            if self.total_epochs != ckpt_dict[utils.TOTAL_EPOCHS_KEY]:
+                warn(
+                    message=(
+                        "Config value for total_epochs does not match the checkpoint value, "
+                        f"using the config value: {self.total_epochs}"
+                    )
+                )
+
+        except KeyError as e:
+            raise KeyError(
+                "Checkpoint does not contain the required keys needed for updating recipe state. "
+                "Are you sure you passed in the right recipe checkpoint?"
+            ) from e
 
     def setup(self, cfg: DictConfig) -> None:
         """
@@ -297,10 +318,15 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
         Map-style Datasets which fit into memory and an option for random shuffling.
         Samplers, iterable datasets, and streaming datasets are not supported.
         """
-        ds = config.instantiate(
-            cfg_dataset,
-            tokenizer=self._tokenizer,
-        )
+        if isinstance(cfg_dataset, ListConfig):
+            datasets = [
+                config.instantiate(single_cfg_dataset, tokenizer=self._tokenizer)
+                for single_cfg_dataset in cfg_dataset
+            ]
+            ds = ConcatDataset(datasets=datasets)
+        else:
+            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+
         sampler = DistributedSampler(
             ds,
             num_replicas=1,
@@ -515,7 +541,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
                         log_dict = {
                             "loss": loss_to_log,
                             "lr": self._optimizer.param_groups[0]["lr"],
-                            "tokens_per_second": num_tokens / time_per_step,
+                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             "rewards/chosen": chosen_rewards.mean().cpu(),
                             "rewards/rejected": rejected_rewards.mean().cpu(),
                             "rewards/accuracies": reward_accuracies.mean().cpu(),

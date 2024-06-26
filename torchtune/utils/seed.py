@@ -40,7 +40,7 @@ def set_seed(
               https://pytorch.org/docs/stable/notes/randomness.html#avoiding-nondeterministic-algorithms.
 
     Returns:
-        The current seed int
+        int: the current seed
 
     Raises:
         ValueError: If the input seed value is outside the required range.
@@ -56,9 +56,10 @@ def set_seed(
             f"Invalid seed value provided: {seed}. Value must be in the range [{min_val}, {max_val}]"
         )
     local_seed = seed + rank
-    _log.debug(
-        f"Setting manual seed to local seed {local_seed}. Local seed is seed + rank = {seed} + {rank}"
-    )
+    if rank == 0:
+        _log.debug(
+            f"Setting manual seed to local seed {local_seed}. Local seed is seed + rank = {seed} + {rank}"
+        )
 
     torch.manual_seed(local_seed)
     np.random.seed(local_seed)

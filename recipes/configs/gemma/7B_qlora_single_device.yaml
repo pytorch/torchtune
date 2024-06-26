@@ -1,0 +1,110 @@
+# Config for multi-device QLoRA finetuning in lora_finetune_single_device.py
+# using a gemma 7B model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
+#
+# To launch on a single device, run the following command from root:
+#   tune run lora_finetune_single_device --config gemma/7B_qlora_single_device
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run lora_finetune_single_device --config gemma/7B_qlora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /tmp/gemma-7b/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.gemma.qlora_gemma_7b
+  lora_attn_modules: ['q_proj', 'k_proj', 'v_proj']
+  apply_lora_to_mlp: True
+  lora_rank: 64
+  lora_alpha: 16
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/gemma-7b/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/gemma-7b/
+  model_type: GEMMA
+resume_from_checkpoint: False
+
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+# Fine-tuning arguments
+batch_size: 4
+epochs: 3
+max_steps_per_epoch: null
+gradient_accumulation_steps: 4
+compile: False
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-gemma-lora
+log_every_n_steps: 1
+log_peak_memory_stats: False
+
+# Show case the usage of pytorch profiler
+# Set enabled to False as it's only needed for debugging training
+profiler:
+  _component_: torchtune.utils.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 5
+  active_steps: 2
+  num_cycles: 1

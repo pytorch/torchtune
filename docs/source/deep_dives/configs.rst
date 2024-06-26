@@ -107,7 +107,6 @@ keyword arguments not specified in the config if we'd like:
 
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 .. code-block:: python
 
@@ -181,7 +180,6 @@ make it significantly easier to debug.
     # dont do this
     alpaca_dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
     slimorca_dataset:
       ...
 
@@ -189,7 +187,6 @@ make it significantly easier to debug.
     dataset:
       # change this in config or override when needed
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 Use public APIs only
 """"""""""""""""""""
@@ -204,13 +201,12 @@ component dotpath.
     # don't do this
     dataset:
       _component_: torchtune.datasets._alpaca.alpaca_dataset
-      train_on_input: True
 
     # do this
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
+.. _cli_override:
 
 Command-line overrides
 ----------------------
@@ -240,10 +236,33 @@ name directly. Any nested fields in the components can be overridden with dot no
 
     dataset:
       _component_: torchtune.datasets.alpaca_dataset
-      train_on_input: True
 
 .. code-block:: bash
 
-    # Change to slimorca_dataset and set train_on_input to False
+    # Change to slimorca_dataset and set train_on_input to True
     tune run lora_finetune_single_device --config my_config.yaml \
-    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=False
+    dataset=torchtune.datasets.slimorca_dataset dataset.train_on_input=True
+
+Removing config fields
+^^^^^^^^^^^^^^^^^^^^^^
+You may need to remove certain parameters from the config when changing components
+through overrides that require different keyword arguments. You can do so by using
+the `~` flag and specify the dotpath of the config field you would like to remove.
+For example, if you want to override a built-in config and use the ``bitsandbytes.optim.PagedAdamW8bit``
+optimizer, you may need to delete parameters like ``foreach`` which are
+specific to PyTorch optimizers. Note that this example requires that you have ``bitsandbytes``
+installed.
+
+.. code-block:: yaml
+
+    # In configs/llama3/8B_full.yaml
+    optimizer:
+      _component_: torch.optim.AdamW
+      lr: 2e-5
+      foreach: False
+
+.. code-block:: bash
+
+    # Change to PagedAdamW8bit and remove fused, foreach
+    tune run --nproc_per_node 4 full_finetune_distributed --config llama3/8B_full \
+    optimizer=bitsandbytes.optim.PagedAdamW8bit ~optimizer.foreach

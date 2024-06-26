@@ -20,7 +20,7 @@ class TuneCLIParser:
         # Initialize the top-level parser
         self._parser = argparse.ArgumentParser(
             prog="tune",
-            description="Welcome to the TorchTune CLI!",
+            description="Welcome to the torchtune CLI!",
             add_help=True,
         )
         # Default command is to print help

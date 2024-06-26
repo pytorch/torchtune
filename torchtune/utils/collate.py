@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import Any, Dict, List, Tuple
+from typing import Dict, List, Tuple
 
 import torch
 
@@ -12,20 +12,16 @@ from torch.nn.utils.rnn import pad_sequence
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
 
 
-# TokenPair is a pair (tuple) of two lists: tokenized text inputs and labels.
-TokenPair = Tuple[List[int], List[int]]
-
-
 def padded_collate(
-    batch: List[TokenPair],
+    batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
-) -> Tuple[torch.Tensor, torch.Tensor]:
+) -> Dict[str, torch.Tensor]:
     """Pad a batch of sequences to the longest sequence length in the batch, and
     convert integer lists to tensors.
 
     Args:
-        batch (List[TokenPair]): A list of tuples containing input, label pairs.
+        batch (List[Dict[str, List[int]]]): A list of tuples containing input, label pairs.
         padding_idx (int): Padding index for input ids. Defaults to 0.
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
@@ -34,8 +30,8 @@ def padded_collate(
 
     Example:
         >>> token_pairs = [
-        >>>    ([1, 2, 3], [4, 5, 6]),
-        >>>    ([7,], [10,],),
+        >>>    {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
+        >>>    {"tokens": [7,], "labels": [10,]},
         >>> ]
         >>> inputs, labels = padded_collate(
         >>>    batch=token_pairs,
@@ -48,12 +44,12 @@ def padded_collate(
         >>> tensor([[4,5,6], [10,-100,-100]])
     """
     input_ids = pad_sequence(
-        [torch.tensor(x[0]) for x in batch],
+        [torch.tensor(x["tokens"]) for x in batch],
         batch_first=True,
         padding_value=padding_idx,
     )
     labels = pad_sequence(
-        [torch.tensor(x[1]) for x in batch],
+        [torch.tensor(x["labels"]) for x in batch],
         batch_first=True,
         padding_value=ignore_idx,
     )
@@ -72,11 +68,11 @@ def padded_collate(
             (0, labels_seq_len - input_ids_seq_len),
             value=padding_idx,
         )
-    return input_ids, labels
+    return {"tokens": input_ids, "labels": labels}
 
 
 def padded_collate_dpo(
-    batch: List[Dict[str, Any]],
+    batch: List[Dict[str, List[int]]],
     padding_idx: int = 0,
     ignore_idx: int = CROSS_ENTROPY_IGNORE_IDX,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -87,7 +83,7 @@ def padded_collate_dpo(
     sequence component, such as input_ids or labels.
 
     Args:
-        batch (List[Dict[str, Any]]): A list of dictionaries, where each dictionary
+        batch (List[Dict[str, List[int]]]): A list of dictionaries, where each dictionary
             represents a sequence with multiple components, 'chosen_input_ids',
             'chosen_labels', 'rejected_input_ids', and 'rejected_labels' are required.
         padding_idx (int): Padding index for input ids. Defaults to 0.
@@ -96,6 +92,10 @@ def padded_collate_dpo(
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
         input ids and labels.
+
+    Raises:
+        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.
+        AssertionError: if the length of chosen_labels and rejected_labels differ.
 
     Example:
         >>> batch = [

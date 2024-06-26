@@ -8,12 +8,8 @@ from typing import Dict, List, Optional, Tuple
 
 from tiktoken import Encoding
 from tiktoken.load import load_tiktoken_bpe
-from torchtune.data._types import Message
-from torchtune.modules.tokenizers._utils import (
-    _split_long_repetitions,
-    Tokenizer,
-    truncate,
-)
+from torchtune.data import Message, truncate
+from torchtune.modules.tokenizers._utils import _split_long_repetitions, Tokenizer
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -135,7 +131,7 @@ class TikTokenTokenizer(Tokenizer):
         self.python_tag = self._encode_special_token(python_tag)
 
         # During generation, stop when either eos_id or eot_id is encountered
-        self.stop_tokens = {self.eos_id, self.eot_id}
+        self.stop_tokens = [self.eos_id, self.eot_id]
 
     def _validate_special_tokens(
         self,
@@ -251,6 +247,8 @@ class TikTokenTokenizer(Tokenizer):
         """
         substrs: List[str] = []
         tokens = []
+        if not text:
+            return []
         for i in range(0, len(text), MAX_ENCODE_CHARS):
             substr = text[i : i + MAX_ENCODE_CHARS]
             # See https://github.com/openai/tiktoken/issues/195
@@ -292,11 +290,11 @@ class TikTokenTokenizer(Tokenizer):
         """
         if truncate_at_eos:
             try:
-                k = token_ids.index(self.eos_id)
+                idx_eos = token_ids.index(self.eos_id)
             except ValueError:
-                k = None
-            if k:
-                token_ids = token_ids[:k]
+                idx_eos = None
+            if idx_eos:
+                token_ids = token_ids[:idx_eos]
         token_ids = [token_id for token_id in token_ids if token_id != self.bos_id]
         return self.tt_model.decode(token_ids)
 
@@ -339,6 +337,7 @@ class TikTokenTokenizer(Tokenizer):
         messages: List[Message],
         max_seq_len: Optional[int] = None,
         tokenize_header: bool = True,
+        add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -362,8 +361,9 @@ class TikTokenTokenizer(Tokenizer):
             mask = mask + ([message.masked] * len(tokenized_message))
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
-        tokens = tokens + [self.eos_id]
-        mask = mask + [True]
+        if add_eos:
+            tokens = tokens + [self.eos_id]
+            mask = mask + [True]
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)

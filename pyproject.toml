@@ -21,6 +21,7 @@ dependencies = [
     "blobfile>=2",
 
     # Miscellaneous
+    "numpy<=1.26.4", # Pin here until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
     "tqdm",
     "omegaconf",
 
@@ -41,12 +42,13 @@ tune = "torchtune._cli.tune:main"
 dev = [
     "bitsandbytes>=0.43.0",
     "pre-commit",
-    "pytest",
+    "pytest==7.4.0",
     "pytest-cov",
     "pytest-mock",
     "pytest-integration",
     "tensorboard",
     "wandb",
+    "expecttest",
 ]
 
 [tool.setuptools.dynamic]

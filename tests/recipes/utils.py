@@ -12,6 +12,12 @@ from typing import List
 import torch
 from torch.utils.data import Dataset
 
+CKPT_COMPONENT_MAP = {
+    "tune": "torchtune.utils.FullModelTorchTuneCheckpointer",
+    "meta": "torchtune.utils.FullModelMetaCheckpointer",
+    "hf": "torchtune.utils.FullModelHFCheckpointer",
+}
+
 
 class DummyDataset(Dataset):
     def __init__(self, **kwargs):
@@ -33,7 +39,7 @@ class DummyDataset(Dataset):
         )
 
     def __getitem__(self, index):
-        return (self._data[index], self._labels[index])
+        return {"tokens": self._data[index], "labels": self._labels[index]}
 
     def __len__(self):
         return len(self._data)
@@ -49,7 +55,7 @@ def dummy_alpaca_dataset_config():
         "dataset._component_=torchtune.datasets.instruct_dataset",
         "dataset.source='json'",
         f"dataset.data_files={data_files}",
-        "dataset.template=AlpacaInstructTemplate",
+        "dataset.template=torchtune.data.AlpacaInstructTemplate",
         "dataset.split='train'",
     ]
     return out
@@ -65,6 +71,19 @@ def llama2_test_config() -> List[str]:
         "model.max_seq_len=2048",
         "model.norm_eps=1e-5",
         "model.num_kv_heads=8",
+    ]
+
+
+def llama3_test_config() -> List[str]:
+    return [
+        "model._component_=torchtune.models.llama3.llama3",
+        "model.vocab_size=128_256",
+        "model.num_layers=2",
+        "model.num_heads=8",
+        "model.embed_dim=64",
+        "model.max_seq_len=1024",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=4",
     ]
 
 
@@ -98,6 +117,36 @@ def lora_llama2_test_config(
     ]
 
 
+def lora_llama3_test_config(
+    lora_attn_modules,
+    apply_lora_to_mlp: bool = False,
+    apply_lora_to_output: bool = False,
+    lora_rank: int = 8,
+    lora_alpha: float = 16,
+    quantize_base: bool = False,
+) -> List[str]:
+    lora_attn_modules_str = "['" + "','".join([x for x in lora_attn_modules]) + "']"
+    return [
+        # Note: we explicitly use _component_ so that we can also call
+        # config.instantiate directly for easier comparison
+        "model._component_=torchtune.models.llama3.lora_llama3",
+        f"model.lora_attn_modules={lora_attn_modules}",
+        f"model.apply_lora_to_mlp={apply_lora_to_mlp}",
+        f"model.apply_lora_to_output={apply_lora_to_output}",
+        "model.vocab_size=128_256",
+        "model.num_layers=2",
+        "model.num_heads=8",
+        "model.embed_dim=64",
+        "model.max_seq_len=1024",
+        "model.norm_eps=1e-5",
+        "model.num_kv_heads=4",
+        f"model.lora_rank={lora_rank}",
+        f"model.lora_alpha={lora_alpha}",
+        "model.lora_dropout=0.0",
+        f"model.quantize_base={quantize_base}",
+    ]
+
+
 def write_hf_ckpt_config(ckpt_dir: str):
     config = {
         "hidden_size": 256,
@@ -107,3 +156,31 @@ def write_hf_ckpt_config(ckpt_dir: str):
     config_file = Path.joinpath(Path(ckpt_dir), "config.json")
     with config_file.open("w") as f:
         json.dump(config, f)
+
+
+MODEL_TEST_CONFIGS = {
+    "llama2": llama2_test_config(),
+    "llama3": llama3_test_config(),
+    "llama2_lora": lora_llama2_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+    ),
+    "llama2_qlora": lora_llama2_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=True,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+        quantize_base=True,
+    ),
+    "llama3_lora": lora_llama3_test_config(
+        lora_attn_modules=["q_proj", "k_proj", "v_proj", "output_proj"],
+        apply_lora_to_mlp=False,
+        apply_lora_to_output=False,
+        lora_rank=8,
+        lora_alpha=16,
+    ),
+}

@@ -13,7 +13,14 @@ from torchao.quantization.quant_api import (
     Int4WeightOnlyQuantizer,
     Quantizer,
 )
-from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
+
+# importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
+# is only available after 2.3 so we have to guard the pytorch versions to decide
+# the list of supported quantizers
+try:
+    from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
+except Exception:
+    from torchao.utils import TORCH_VERSION_AFTER_2_3
 
 __all__ = [
     "Int4WeightOnlyQuantizer",
@@ -46,8 +53,15 @@ if TORCH_VERSION_AFTER_2_3:
 
 
 def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
-    """Given a quantizer object, returns a string that specifies the type of quantization e.g.
-    4w, which means int4 weight only quantization.
+    """Given a quantizer object, returns a string that specifies the type of quantization.
+
+    For example, in the case of int4 weight only quantization, we'll return "4w".
     If the quantizer is not recognized as a known quantizer, we'll return None
+
+    Args:
+        quantizer (Optional[Callable]): A callable object that implements the `quantize` method.
+
+    Returns:
+        Optional[str]: The quantization mode.
     """
     return _quantizer_to_mode.get(type(quantizer), None)

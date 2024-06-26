@@ -17,7 +17,7 @@ from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
 class GemmaTransformerDecoder(nn.Module):
     """
-    Transformer Decoder derived from the Gemma architecture. A key difference between
+    GemmaTransformer Decoder derived from Gemma architecture. A key difference between
     the Gemma transformer decoder and :class:`~torchtune.modules.TransformerDecoder`
     is that the output projection is replaced instead with a reverse projection
     using the transposed token embedding weights from output dim to input dim
@@ -67,10 +67,16 @@ class GemmaTransformerDecoder(nn.Module):
         self.causal_mask = None
         self.norm_embeddings = norm_embeddings
 
-    def setup_caches(self, max_batch_size: int, dtype: torch.dtype) -> None:
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
         for layer in self.layers:
             layer.attn.kv_cache = KVCache(
-                max_batch_size=max_batch_size,
+                batch_size=batch_size,
                 max_seq_len=self.max_seq_len,
                 num_heads=self.num_heads,
                 head_dim=self.head_dim,
@@ -83,12 +89,31 @@ class GemmaTransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
-    def forward(self, tokens: Tensor, input_pos: Optional[Tensor] = None) -> Tensor:
+    def forward(
+        self,
+        tokens: Tensor,
+        *,
+        mask: Optional[Tensor] = None,
+        input_pos: Optional[Tensor] = None,
+    ) -> Tensor:
         """
         Args:
             tokens (Tensor): input tensor with shape [b x s]
-            input_pos (Optional[Tensor]): Optional tensor which contains the position
-                of the current token. This is only used during inference. Default is None
+            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+                with shape [b x s x s]. This is applied after the query-key multiplication and
+                before the softmax. A value of True in row i and column j means token i attends
+                to token j. A value of False means token i does not attend to token j. If no
+                mask is specified, a causal mask is used by default. Default is None.
+            input_pos (Optional[Tensor]): Optional tensor which contains the position ids
+                of each token. During training, this is used to indicate the positions
+                of each token relative to its sample when packed, shape [b x s].
+                During inference, this indicates the position of the current token.
+                If none, assume the index of the token is its position id. Default is None.
+
+        Note: At the very first step of inference, when the model is provided with a prompt,
+        ``input_pos`` would contain the positions of all of the tokens in the prompt
+        (eg: ``torch.arange(prompt_length)``). This is because we will need to compute the
+        KV values for each position.
 
         Returns:
             Tensor: output tensor with shape [b x s x v]
@@ -101,6 +126,7 @@ class GemmaTransformerDecoder(nn.Module):
             - s: sequence length
             - v: vocab size
             - d: embed dim
+            - m_s: max seq len
         """
         # input tensor of shape [b, s]
         bsz, seq_len = tokens.shape
@@ -108,15 +134,18 @@ class GemmaTransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
-        mask = None
         if self.causal_mask is not None:
             if input_pos is None:
                 raise ValueError(
                     "Caches are setup, but the position of input token is missing"
                 )
+            if mask is not None:
+                raise ValueError(
+                    "An attention mask was set. Cannot use a non-causal mask for inference"
+                )
             # shape: [1, input_pos_len, m_s]
             # in most cases input_pos_len should be 1
-            mask = self.causal_mask[None, None, input_pos]
+            mask = self.causal_mask[None, input_pos]
 
         if self.norm_embeddings:
             hidden_dim = h.size(-1)
@@ -124,7 +153,7 @@ class GemmaTransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask, input_pos)
+            h = layer(h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)

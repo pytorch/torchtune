@@ -1,0 +1,109 @@
+# Config for multi-device full finetuning in full_finetune_distributed.py
+# using a Llama3 70B Instruct model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Meta-Llama-3-70B-Instruct --output-dir /tmp/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
+#
+# To launch on 8 devices, run the following command from root:
+#   tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run --nproc_per_node 8 full_finetune_distributed --config llama3/70B_full checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config is only tested on an 8xA100 machine.
+
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3-70B-Instruct/original/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3.llama3_70b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3-70B-Instruct
+  checkpoint_files: [
+    model-00001-of-00030.safetensors,
+    model-00002-of-00030.safetensors,
+    model-00003-of-00030.safetensors,
+    model-00004-of-00030.safetensors,
+    model-00005-of-00030.safetensors,
+    model-00006-of-00030.safetensors,
+    model-00007-of-00030.safetensors,
+    model-00008-of-00030.safetensors,
+    model-00009-of-00030.safetensors,
+    model-00010-of-00030.safetensors,
+    model-00011-of-00030.safetensors,
+    model-00012-of-00030.safetensors,
+    model-00013-of-00030.safetensors,
+    model-00014-of-00030.safetensors,
+    model-00015-of-00030.safetensors,
+    model-00016-of-00030.safetensors,
+    model-00017-of-00030.safetensors,
+    model-00018-of-00030.safetensors,
+    model-00019-of-00030.safetensors,
+    model-00020-of-00030.safetensors,
+    model-00021-of-00030.safetensors,
+    model-00022-of-00030.safetensors,
+    model-00023-of-00030.safetensors,
+    model-00024-of-00030.safetensors,
+    model-00025-of-00030.safetensors,
+    model-00026-of-00030.safetensors,
+    model-00027-of-00030.safetensors,
+    model-00028-of-00030.safetensors,
+    model-00029-of-00030.safetensors,
+    model-00030-of-00030.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Meta-Llama-3-70b
+  model_type: LLAMA3
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 2
+epochs: 3
+
+optimizer:
+  _component_: torch.optim.AdamW
+  lr: 2e-5
+  foreach: False
+  # Note: highly recommended to use fused=True optimizer flag
+  # with CPU offload for faster optimizer step.
+  fused: True
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+
+
+# Training env
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+memory_efficient_fsdp_wrap: True
+fsdp_cpu_offload: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-llama3-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False

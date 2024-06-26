@@ -4,15 +4,16 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.data import GrammarErrorCorrectionTemplate
-from torchtune.datasets._instruct import InstructDataset
+from torchtune.datasets._instruct import instruct_dataset, InstructDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
 def grammar_dataset(
     tokenizer: Tokenizer,
+    *,
     source: str = "liweili/c4_200m",
     train_on_input: bool = False,
+    packed: bool = False,
 ) -> InstructDataset:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
@@ -33,6 +34,7 @@ def grammar_dataset(
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
+        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Returns:
         InstructDataset: dataset configured with source data and template
@@ -45,11 +47,12 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    return InstructDataset(
+    return instruct_dataset(
         tokenizer=tokenizer,
         source=source,
-        template=GrammarErrorCorrectionTemplate,
+        template="torchtune.data.GrammarErrorCorrectionTemplate",
         column_map={"sentence": "input"},
         train_on_input=train_on_input,
+        packed=packed,
         split="train",
     )

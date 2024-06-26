@@ -6,12 +6,12 @@
 
 import re
 
-from typing import Dict
+from typing import Any, Dict
 
 import torch
 
 
-# state dict key mappings from Meta's format to TorchTune's format
+# state dict key mappings from Meta's format to torchtune's format
 _FROM_META = {
     "tok_embeddings.weight": "tok_embeddings.weight",
     "norm.weight": "norm.scale",
@@ -27,7 +27,7 @@ _FROM_META = {
     "layers.{}.feed_forward.w3.weight": "layers.{}.mlp.w3.weight",
 }
 
-# state dict key mappings from HF's format to TorchTune's format
+# state dict key mappings from HF's format to torchtune's format
 _FROM_HF = {
     "model.embed_tokens.weight": "tok_embeddings.weight",
     "model.layers.{}.self_attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
@@ -66,7 +66,7 @@ def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
 
 def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from Meta's format to TorchTune's format. State dicts
+    Convert a state dict from Meta's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
 
@@ -77,7 +77,7 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
         state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     for key, value in state_dict.items():
@@ -90,12 +90,12 @@ def meta_to_tune(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]
 
 def tune_to_meta(state_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from TorchTune's format to Meta's format. This function
+    Convert a state dict from torchtune's format to Meta's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
 
     Returns:
         Dict[str, torch.Tensor]: State dict in Meta's format.
@@ -118,7 +118,7 @@ def hf_to_tune(
     head_dim: int = None,
 ) -> Dict[str, torch.Tensor]:
     """
-    Convert a state dict from HF's format to TorchTune's format. State dicts
+    Convert a state dict from HF's format to torchtune's format. State dicts
     from multiple checkpoint files should be consolidated into a single state dict
     before calling this function.
 
@@ -126,7 +126,7 @@ def hf_to_tune(
     repo in HF (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in HF's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
@@ -134,7 +134,7 @@ def hf_to_tune(
             as dim // num_heads.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in TorchTune's format.
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
     """
     converted_state_dict = {}
     if head_dim is None:
@@ -154,6 +154,7 @@ def hf_to_tune(
                 value = _permute(value, num_heads)
             elif "k_proj" in key:
                 value = _permute(value, num_kv_heads)
+
             converted_state_dict[new_key] = value
     return converted_state_dict
 
@@ -163,24 +164,27 @@ def tune_to_hf(
     num_heads: int = 32,
     num_kv_heads: int = 32,
     dim: int = 4096,
+    head_dim: int = None,
 ):
     """
-    Convert a state dict from TorchTune's format to HF's format. This function
+    Convert a state dict from torchtune's format to HF's format. This function
     doesn't handle any sharding or splitting of state dicts. It follows the
     state_dict IN -> state_dict OUT pattern.
 
     Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in TorchTune's format.
+        state_dict (Dict[str, torch.Tensor]): State dict in torchtune's format.
         num_heads (int): Number of heads in the model.
         num_kv_heads (int): Number of heads in the key/value projection layers.
         dim (int): Dimension of the model.
 
     Returns:
-        Dict[str, torch.Tensor]: State dict in Meta's format.
+        Dict[str, torch.Tensor]: State dict in HF's format.
     """
     converted_state_dict = {}
     inverted_mapping_dict = {v: k for k, v in _FROM_HF.items()}
-    head_dim = dim // num_heads
+
+    if head_dim is None:
+        head_dim = dim // num_heads
 
     def _permute(t, n_heads):
         return (
@@ -197,4 +201,86 @@ def tune_to_hf(
             value = _permute(value, num_kv_heads)
         converted_state_dict[new_key] = value
 
+    return converted_state_dict
+
+
+# Mapping from torchtune LoRA module names to PEFT LoRA module names
+_TO_PEFT_KEYS = {
+    "lora_a": "lora_A",
+    "lora_b": "lora_B",
+}
+
+# Mapping from torchtune module names to target modules for PEFT adapter config
+_TO_PEFT_TARGET_MODULES = {
+    "q_proj": "q_proj",
+    "k_proj": "k_proj",
+    "v_proj": "v_proj",
+    "output_proj": "o_proj",
+    "w1": "gate_proj",
+    "w2": "down_proj",
+    "w3": "up_proj",
+    "output": "lm_head",
+}
+
+# Keys expected in PEFT's adapter_config.json
+_PEFT_CONFIG_EXPECTED_KEYS = ["target_modules", "r", "lora_alpha"]
+
+
+def tune_to_peft_adapter_config(
+    adapter_config: Dict[str, Any],
+):
+    if not all([x in adapter_config.keys() for x in _PEFT_CONFIG_EXPECTED_KEYS]):
+        raise ValueError(
+            f"PEFT adapter config requires {_PEFT_CONFIG_EXPECTED_KEYS}, found {adapter_config.keys()}"
+        )
+
+    for k in adapter_config["target_modules"]:
+        if k not in _TO_PEFT_TARGET_MODULES:
+            raise ValueError(f"Unknown target module {k}")
+    adapter_config["target_modules"] = list(
+        map(_TO_PEFT_TARGET_MODULES.get, adapter_config["target_modules"])
+    )
+
+    return adapter_config
+
+
+def tune_to_peft_adapter_weights(
+    state_dict: Dict[str, torch.Tensor],
+    num_heads: int = 32,
+    num_kv_heads: int = 32,
+    dim: int = 4096,
+):
+    converted_state_dict = {}
+    full_mapping = {}
+    # Rather than recreate a separate mapping for LoRA adapter weights, we just
+    # re-use the _FROM_HF mapping for base model weights. We iterate over it twice:
+    # once to add mappings for LoRA A matrices and once to add mappings for LoRA B matrices.
+    for k, v in _TO_PEFT_KEYS.items():
+        full_mapping.update(
+            {
+                vv.replace(".weight", f".{k}.weight"): kk.replace(
+                    ".weight", f".{v}.weight"
+                )
+                for kk, vv in _FROM_HF.items()
+                if vv is not None
+            }
+        )
+
+    head_dim = dim // num_heads
+
+    def _permute_lora_matrix(t, n_heads):
+        rank = t.shape[-1]
+        return (
+            t.view(n_heads, head_dim // 2, 2, rank)
+            .transpose(1, 2)
+            .reshape((head_dim * n_heads), rank)
+        )
+
+    for key, value in state_dict.items():
+        new_key = get_mapped_key(key, full_mapping)
+        if "q_proj" in new_key and "lora_B" in new_key:
+            value = _permute_lora_matrix(value, num_heads)
+        elif "k_proj" in new_key and "lora_B" in new_key:
+            value = _permute_lora_matrix(value, num_kv_heads)
+        converted_state_dict["base_model.model." + new_key] = value
     return converted_state_dict

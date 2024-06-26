@@ -7,8 +7,7 @@
 from typing import List, Optional, Tuple
 
 from sentencepiece import SentencePieceProcessor
-from torchtune.data._types import Message
-from torchtune.data._utils import truncate
+from torchtune.data import Message, truncate
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
@@ -47,7 +46,7 @@ class SentencePieceTokenizer:
         )
 
         # During generation, stop when eos_id is encountered
-        self.stop_tokens = {self.eos_id}
+        self.stop_tokens = [self.eos_id]
 
     def encode(
         self,
@@ -61,8 +60,8 @@ class SentencePieceTokenizer:
 
         Args:
             text (str): The input text to be encoded, unbatched.
-            add_bos (bool): Whether to prepend BOS to the input, defaults to True.
-            add_eos (bool): Whether to append EOS to the input, defaults to True.
+            add_bos (bool): Whether to prepend BOS special token (Beginning of Sentence) to the input, defaults to True.
+            add_eos (bool): Whether to append EOS special token (End of Sentence) to the input, defaults to True.
             trim_leading_whitespace (bool): Whether to trim leading whitespace from
                 underlying sentencepiece tokenization. Sentencepiece normally prepends
                 whitespace to any tokenized text, which can cause differences where

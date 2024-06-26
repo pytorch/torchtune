@@ -10,8 +10,8 @@ from ._utils import log_config
 from ._validate import validate
 
 __all__ = [
-    "parse",
     "instantiate",
-    "validate",
+    "parse",
     "log_config",
+    "validate",
 ]

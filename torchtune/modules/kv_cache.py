@@ -12,10 +12,10 @@ from torch import nn, Tensor
 
 class KVCache(nn.Module):
     """
-    Standalone nn.Module containing a kv-cache to cache past key and values during inference.
+    Standalone ``nn.Module`` containing a kv-cache to cache past key and values during inference.
 
     Args:
-        max_batch_size (int): maximum batch size model will be run with
+        batch_size (int): batch size model will be run with
         max_seq_len (int): maximum sequence length model will be run with
         num_heads (int): number of heads. We take num_heads instead of num_kv_heads because
             the cache is created after we've expanded the key and value tensors to have the
@@ -26,24 +26,43 @@ class KVCache(nn.Module):
 
     def __init__(
         self,
-        max_batch_size: int,
+        batch_size: int,
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
         dtype: torch.dtype,
     ) -> None:
         super().__init__()
-        cache_shape = (max_batch_size, num_heads, max_seq_len, head_dim)
+        cache_shape = (batch_size, num_heads, max_seq_len, head_dim)
         self.register_buffer(
             "k_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
         self.register_buffer(
             "v_cache", torch.zeros(cache_shape, dtype=dtype), persistent=False
         )
-        self.max_batch_size = max_batch_size
+        self.batch_size = batch_size
 
-    def update(self, input_pos, k_val, v_val) -> Tuple[Tensor, Tensor]:
-        # input_pos: [S], k_val: [B, H, S, D]
+    def reset(self) -> None:
+        """Reset the cache to zero."""
+        self.k_cache.zero_()
+        self.v_cache.zero_()
+
+    def update(
+        self, input_pos: Tensor, k_val: Tensor, v_val: Tensor
+    ) -> Tuple[Tensor, Tensor]:
+        """Update KV cache with the new k_val, v_val and return the updated cache.
+
+        Args:
+            input_pos (Tensor): Current position tensor with shape [S]
+            k_val (Tensor): Current key tensor with shape [B, H, S, D]
+            v_val (Tensor): Current value tensor with shape [B, H, S, D]
+
+        Raises:
+            ValueError: if ``input_pos`` is longer than the maximum sequence length
+
+        Returns:
+            Tuple[Tensor, Tensor]: Updated KV cache with key first
+        """
         assert input_pos.shape[0] == k_val.shape[2]
 
         k_out = self.k_cache
