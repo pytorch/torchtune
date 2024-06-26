@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
+
+from PIL.Image import Image
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
@@ -12,16 +14,18 @@ from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
-PAD_ID = 0
-
 LLAMA3_SPECIAL_TOKENS = {
     "<|begin_of_text|>": 128000,
     "<|end_of_text|>": 128001,
+    "<|finetune_right_pad_id|>": 128004,
+    "<|step_id|>": 128005,
     "<|start_header_id|>": 128006,
     "<|end_header_id|>": 128007,
-    "<|eot_id|>": 128009,
     "<|eom_id|>": 128008,
-    "<|python_tag|>": 128255,
+    "<|eot_id|>": 128009,
+    "<|python_tag|>": 128010,
+    "<|image|>": 128011,
+    "<|video|>": 128012,
 }
 
 
@@ -47,7 +51,7 @@ class Llama3Tokenizer(ModelTokenizer):
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
         self.eos_id = self.special_tokens["<|end_of_text|>"]
-        self.pad_id = PAD_ID
+        self.pad_id = self.special_tokens["<|finetune_right_pad_id|>"]
 
         # Encode extra special tokens
         self.start_header_id = self.special_tokens["<|start_header_id|>"]
@@ -56,6 +60,10 @@ class Llama3Tokenizer(ModelTokenizer):
 
         self.eom_id = self.special_tokens["<|eom_id|>"]
         self.python_tag = self.special_tokens["<|python_tag|>"]
+
+        # Media tokens
+        self.image_id = self.special_tokens["<|image|>"]
+        self.video_id = self.special_tokens["<|video|>"]
 
         # During generation, stop when either eos_id or eot_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id]
@@ -105,7 +113,7 @@ class Llama3Tokenizer(ModelTokenizer):
 
     def tokenize_message(
         self, message: Message, tokenize_header: bool = False
-    ) -> List[int]:
+    ) -> Dict[str, Any]:
         """
         Tokenize a message into a list of token ids.
 
@@ -114,8 +122,10 @@ class Llama3Tokenizer(ModelTokenizer):
             tokenize_header (bool): Whether to prepend a tokenized header to each message.
 
         Returns:
-            List[int]: The list of token ids.
+            Dict[str, Any]: "tokens" - The list of token ids. "images" - PIL Image
+                if message contains an image
         """
+        image = None
         if tokenize_header:
             tokenized_header = (
                 [self.start_header_id]
@@ -125,9 +135,13 @@ class Llama3Tokenizer(ModelTokenizer):
             )
         else:
             tokenized_header = []
-        tokenized_body = self.encode(
-            message.content.strip(), add_bos=False, add_eos=False
-        )
+        if isinstance(message.content, Image):
+            tokenized_body = [self.image_id]
+            image = message.content
+        else:
+            tokenized_body = self.encode(
+                message.content.strip(), add_bos=False, add_eos=False
+            )
         if message.ipython:
             tokenized_body = [self.python_tag] + tokenized_body
         tokenized_message = tokenized_header + tokenized_body
@@ -135,7 +149,7 @@ class Llama3Tokenizer(ModelTokenizer):
             tokenized_message = tokenized_message + [self.eot_id]
         else:
             tokenized_message = tokenized_message + [self.eom_id]
-        return tokenized_message
+        return {"tokens": tokenized_message, "images": image}
 
     def tokenize_messages(
         self,
@@ -143,7 +157,7 @@ class Llama3Tokenizer(ModelTokenizer):
         max_seq_len: Optional[int] = None,
         tokenize_header: bool = True,
         add_eos: bool = True,
-    ) -> Tuple[List[int], List[bool]]:
+    ) -> Dict[str, Any]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
@@ -153,17 +167,25 @@ class Llama3Tokenizer(ModelTokenizer):
             tokenize_header (bool): Whether to prepend a tokenized header to each message.
 
         Returns:
-            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
+            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
+                to indicate which tokens should be excluded from loss calculation,
+                "images" - list of PIL Images from the messages, if any
         """
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
+        images = []
         for message in messages:
-            tokenized_message = self.tokenize_message(
+            tokenized_message_dict = self.tokenize_message(
                 message, tokenize_header=tokenize_header
             )
-            tokens = tokens + tokenized_message
-            mask = mask + ([message.masked] * len(tokenized_message))
+            tokens = tokens + tokenized_message_dict["tokens"]
+            mask = mask + ([message.masked] * len(tokenized_message_dict["tokens"]))
+            images = (
+                images + [tokenized_message_dict["images"]]
+                if tokenized_message_dict["images"] is not None
+                else images
+            )
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
         if add_eos:
@@ -172,4 +194,5 @@ class Llama3Tokenizer(ModelTokenizer):
         if max_seq_len:
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)
-        return tokens, mask
+
+        return {"tokens": tokens, "mask": mask, "images": images}

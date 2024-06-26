@@ -7,6 +7,8 @@
 from dataclasses import dataclass
 from typing import Literal
 
+from PIL.Image import Image
+
 Role = Literal["system", "user", "assistant"]
 
 
@@ -28,7 +30,7 @@ class Message:
     """
 
     role: Role
-    content: str
+    content: Union[str, Image]
     masked: bool = False
     ipython: bool = False
     eot: bool = True
