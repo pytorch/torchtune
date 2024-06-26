@@ -176,4 +176,6 @@ class TestLlama3Tokenizer:
         assert tokenizer.vocab_size == 128256
 
     def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
-        assert tokenizer.tokenize_messages(messages) == tokenized_messages
+        tokenized_dict = tokenizer.tokenize_messages(messages)
+        tokens, mask = tokenized_dict["tokens"], tokenized_dict["mask"]
+        assert (tokens, mask) == tokenized_messages

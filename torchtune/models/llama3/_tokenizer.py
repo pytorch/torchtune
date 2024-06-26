@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from PIL.Image import Image
 
@@ -14,9 +14,11 @@ from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
 
-LLAMA3_SPECIAL_TOKENS = {
+SPECIAL_TOKENS = {
     "<|begin_of_text|>": 128000,
     "<|end_of_text|>": 128001,
+    "<|reserved_special_token_0|>": 128002,
+    "<|reserved_special_token_1|>": 128003,
     "<|finetune_right_pad_id|>": 128004,
     "<|step_id|>": 128005,
     "<|start_header_id|>": 128006,
@@ -27,6 +29,15 @@ LLAMA3_SPECIAL_TOKENS = {
     "<|image|>": 128011,
     "<|video|>": 128012,
 }
+
+NUM_RESERVED_SPECIAL_TOKENS = 256
+
+RESERVED_TOKENS = {
+    f"<|reserved_special_token_{2 + i}|>": 128013 + i
+    for i in range(NUM_RESERVED_SPECIAL_TOKENS - len(SPECIAL_TOKENS))
+}
+
+LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
 
 class Llama3Tokenizer(ModelTokenizer):
@@ -46,7 +57,7 @@ class Llama3Tokenizer(ModelTokenizer):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
     ):
-        self.special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
+        special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
