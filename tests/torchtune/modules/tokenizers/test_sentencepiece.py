@@ -17,7 +17,9 @@ class TestSentencePieceBaseTokenizer:
     def tokenizer(self):
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
-        return SentencePieceBaseTokenizer(str(ASSETS / "m.model"))
+        sp_tokenizer = SentencePieceBaseTokenizer(str(ASSETS / "m.model"))
+        sp_tokenizer.encodes_whitespace = True
+        return sp_tokenizer
 
     def test_encode(self, tokenizer):
         assert tokenizer.encode("Hello world!") == [
