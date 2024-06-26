@@ -17,10 +17,10 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
 import pytest
 
 import torch
+from PIL.Image import Image
 from torch import nn
 from torchtune.data import truncate
 from torchtune.modules.tokenizers import ModelTokenizer
-from PIL.Image import Image
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -111,7 +111,7 @@ class DummyTokenizer(ModelTokenizer):
     @property
     def bos_id(self):
         return 0
-    
+
     @property
     def image_id(self):
         return -2

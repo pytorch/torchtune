@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Dict, List, Optional, Protocol, Any
+from typing import Any, Dict, List, Optional, Protocol
 
 from torchtune.data._types import Message
 from torchtune.data._utils import truncate
