@@ -233,6 +233,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             batch_size=cfg.batch_size,
         )
 
+        # NOTE: added by us
         # validation dataloader
         cfg["validation_dataset"] = deepcopy(cfg.dataset)
         cfg["validation_dataset"]["split"] = "validation"
