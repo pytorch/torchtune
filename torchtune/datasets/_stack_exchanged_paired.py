@@ -20,7 +20,7 @@ def stack_exchanged_paired_dataset(
     <https://huggingface.co/datasets/lvwerra/stack-exchange-paired>`_.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             Default is 1024.

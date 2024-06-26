@@ -19,7 +19,7 @@ class TextCompletionDataset(Dataset):
     from Hugging Face or local disk and tokenize it for your model.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (str): name of column in the sample that contains the text data. This is typically required
@@ -79,7 +79,7 @@ def text_completion_dataset(
     using `TextDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (Optional[str]): name of column in the sample that contains the text data. This is typically required

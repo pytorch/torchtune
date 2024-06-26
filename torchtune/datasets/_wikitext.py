@@ -23,7 +23,7 @@ def wikitext_dataset(
     an unstructured text corpus consisting of articles from Wikipedia.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         subset (str): name of subset of data to use, see the `wikitext page <https://huggingface.co/datasets/wikitext#data-fields>`_

@@ -38,7 +38,7 @@ class InstructDataset(Dataset):
     - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
@@ -129,7 +129,7 @@ def instruct_dataset(
     using `InstructDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (str): full import path of class used to format the prompt. If the placeholder variable

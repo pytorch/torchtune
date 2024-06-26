@@ -40,6 +40,13 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         self.eos_id = spm_model.eos_id()
         self.pad_id = spm_model.pad_id()
 
+        # If the tokenizer does not encode whitespace,
+        # then we can more easily split strings
+        # on whitespace characters and encode them separately.
+        self.encodes_whitespace = any(
+            [self.spm_model.encode(c) for c in WHITESPACE_CHARS]
+        )
+
     def encode(
         self,
         text: str,
@@ -65,7 +72,7 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         Returns:
             List[int]: The encoded token IDs.
         """
-        if trim_leading_whitespace:
+        if trim_leading_whitespace and self.encodes_whitespace:
             # Can define our own custom prefix depending on vocab if needed
             if not hasattr(self, "prefix"):
                 self.prefix = prefix or "\n"

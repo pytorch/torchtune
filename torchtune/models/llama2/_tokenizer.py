@@ -48,13 +48,6 @@ class Llama2Tokenizer(ModelTokenizer):
         # Original tokenizer has no pad_id, which causes indexing errors when batch training
         self._spm_model.pad_id = 0
 
-        # This is used in tokenize_messages: if the tokenizer does not
-        # encode whitespace, then we can more easily split strings
-        # on whitespace characters and encode them separately.
-        self.encodes_whitespace = any(
-            [self._spm_model.encode(c) for c in WHITESPACE_CHARS]
-        )
-
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
 

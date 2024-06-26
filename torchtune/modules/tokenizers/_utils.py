@@ -74,7 +74,6 @@ def tokenize_messages_no_special_tokens(
     messages: List[Message],
     bos_id: int,
     eos_id: int,
-    encodes_whitespace: bool,
     max_seq_len: Optional[int] = None,
 ) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
@@ -94,7 +93,6 @@ def tokenize_messages_no_special_tokens(
             messages,
             tokenizer.bos_id,
             tokenizer.eos_id,
-            tokenizer.encodes_whitespace,
             max_seq_len
         )[0]
         [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
@@ -132,9 +130,7 @@ def tokenize_messages_no_special_tokens(
         # (a) it is a continuation of the turn (i.e. not the first message)
         # (b) the vocabulary explicitly encodes whitespace characters, and
         # (c) the previous message did not end with a space
-        trim_leading_whitespace = (
-            (not start_of_turn) and encodes_whitespace and not prev_ends_with_space
-        )
+        trim_leading_whitespace = (not start_of_turn) and not prev_ends_with_space
 
         # Tokenize current message, append with masks
         tokens = tokenizer.encode(
