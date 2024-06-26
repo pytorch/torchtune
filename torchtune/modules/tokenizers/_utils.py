@@ -48,7 +48,7 @@ class BaseTokenizer(Protocol):
 class ModelTokenizer(Protocol):
     """
     Abstract tokenizer that implements model specific special token logic in
-    ``tokenize_message`` and ``tokenize_messages`` methods.
+    the ``tokenize_messages`` method.
     """
 
     special_tokens: Dict[str, int]
