@@ -87,7 +87,7 @@ of your finetuning job.
 
     get_memory_stats
     log_memory_stats
-    profiler
+    setup_torch_profiler
 
 .. _metric_logging_label:
 

@@ -52,7 +52,7 @@ def llama2(
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
-    Build the decoder assoicated with the Llama2 model. This includes:
+    Build the decoder associated with the Llama2 model. This includes:
     - Token embeddings
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
