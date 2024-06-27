@@ -3,7 +3,7 @@ from typing import List, Optional, Callable
 import torch
 from torch import nn
 from torchtune.modules import VisionTransformer, CLSProjection
-from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, GatedTokenPositionalEmbedding, TilePositionalEmbedding
+from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
 
 def clip(
     embed_dim: int,
@@ -35,14 +35,16 @@ def clip(
         bias=True)
 
     # position embeddings
-    pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
-    post_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
     if max_num_tiles == 1:
+        pre_tile_pos_embed = None
+        post_tile_pos_embed = None
         token_pos_embedding = TokenPositionalEmbedding(
             embed_dim=embed_dim, 
             patch_grid_size=patch_grid_size)
     else:
-        token_pos_embedding = GatedTokenPositionalEmbedding(
+        pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
+        post_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
+        token_pos_embedding = TiledTokenPositionalEmbedding(
             max_num_tiles=max_num_tiles, 
             embed_dim=embed_dim, 
             patch_grid_size=patch_grid_size)
