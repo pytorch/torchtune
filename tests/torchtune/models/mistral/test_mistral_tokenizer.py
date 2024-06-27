@@ -39,8 +39,7 @@ class TestMistralTokenizer:
                 "good conversation over coffee.",
             ),
         ]
-        tokenized_dict = tokenizer.tokenize_messages(messages)
-        tokens, mask = tokenized_dict["tokens"], tokenized_dict["mask"]
+        tokens, mask = tokenizer.tokenize_messages(messages)
         expected_tokens = [
             1,
             323,

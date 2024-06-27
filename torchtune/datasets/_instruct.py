@@ -101,21 +101,15 @@ class InstructDataset(Dataset):
 
         validate_messages(messages)
 
-        tokenized_dict = self._tokenizer.tokenize_messages(
+        tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
-        tokenized_dict["labels"] = list(
-            np.where(
-                tokenized_dict["mask"],
-                CROSS_ENTROPY_IGNORE_IDX,
-                tokenized_dict["tokens"],
-            )
-        )
-        assert len(tokenized_dict["tokens"]) == len(tokenized_dict["labels"])
+        labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))
+        assert len(tokens) == len(labels)
 
-        return tokenized_dict
+        return {"tokens": tokens, "labels": labels}
 
 
 def instruct_dataset(

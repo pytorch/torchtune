@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import json
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Dict, List, Optional, Protocol, Tuple
 
 from torchtune.data._types import Message
 from torchtune.data._utils import truncate
@@ -53,7 +53,9 @@ class ModelTokenizer(Protocol):
 
     special_tokens: Dict[str, int]
 
-    def tokenize_messages(self, messages: List[Message], **kwargs) -> Dict[str, Any]:
+    def tokenize_messages(
+        self, messages: List[Message], **kwargs
+    ) -> Tuple[List[int], List[bool]]:
         """
         Given a list of messages, return a list of tokens and list of masks for
         the concatenated and formatted messages.
@@ -62,9 +64,7 @@ class ModelTokenizer(Protocol):
             messages (List[Message]): The list of messages to tokenize.
 
         Returns:
-            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
-                to indicate which tokens should be excluded from loss calculation,
-                "images" - list of PIL Images from the messages, if any
+            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         pass
 
@@ -75,7 +75,7 @@ def tokenize_messages_no_special_tokens(
     bos_id: int,
     eos_id: int,
     max_seq_len: Optional[int] = None,
-) -> Dict[str, Any]:
+) -> Tuple[List[int], List[bool]]:
     r"""Tokenize a list of messages one at a time then concatenate them,
     returning a list of tokens and a list of masks. Does not add any special
     tokens except for BOS and EOS. This serves as a common starting point for
@@ -110,8 +110,7 @@ def tokenize_messages_no_special_tokens(
             Default: None
 
     Returns:
-        Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
-            to indicate which tokens should be excluded from loss calculation
+        Tuple[List[int], List[bool]]: The tokenized messages
     """
     start_of_turn = True
     end_of_turn = False
@@ -162,7 +161,7 @@ def tokenize_messages_no_special_tokens(
         tokenized_messages = truncate(tokenized_messages, max_seq_len, eos_id)
         mask = truncate(mask, max_seq_len, message.masked)
 
-    return {"tokens": tokenized_messages, "mask": mask}
+    return tokenized_messages, mask
 
 
 def parse_hf_tokenizer_json(tokenizer_json_path: str) -> Dict[str, int]:

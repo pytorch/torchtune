@@ -90,20 +90,18 @@ class PreferenceDataset(Dataset):
             Message(role="assistant", content=transformed_sample[key_rejected]),
         ]
 
-        # TODO: Truncation differs from original DPO repo
+        # TODO: Trunction differs from original DPO repo
         # in DPO: first truncate prompts, then responses
-        tokenized_dict = self._tokenizer.tokenize_messages(
+        chosen_input_ids, c_masks = self._tokenizer.tokenize_messages(
             chosen_message, self.max_seq_len
         )
-        chosen_input_ids, c_masks = tokenized_dict["tokens"], tokenized_dict["mask"]
         chosen_labels = list(
             np.where(c_masks, CROSS_ENTROPY_IGNORE_IDX, chosen_input_ids)
         )
 
-        tokenized_dict = self._tokenizer.tokenize_messages(
+        rejected_input_ids, r_masks = self._tokenizer.tokenize_messages(
             rejected_message, self.max_seq_len
         )
-        rejected_input_ids, r_masks = tokenized_dict["tokens"], tokenized_dict["mask"]
         rejected_labels = list(
             np.where(r_masks, CROSS_ENTROPY_IGNORE_IDX, rejected_input_ids)
         )
