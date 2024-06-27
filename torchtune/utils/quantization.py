@@ -8,19 +8,16 @@ from typing import Any, Callable, Optional
 
 import torch
 from torchao.quantization.quant_api import (
-    apply_weight_only_int8_quant,
     Int4WeightOnlyGPTQQuantizer,
     Int4WeightOnlyQuantizer,
+    quantize,
     Quantizer,
 )
 
 # importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
 # is only available after 2.3 so we have to guard the pytorch versions to decide
 # the list of supported quantizers
-try:
-    from torchao.quantization.utils import TORCH_VERSION_AFTER_2_3
-except Exception:
-    from torchao.utils import TORCH_VERSION_AFTER_2_3
+from torchao.utils import TORCH_VERSION_AFTER_2_3
 
 __all__ = [
     "Int4WeightOnlyQuantizer",
@@ -34,7 +31,7 @@ class Int8WeightOnlyQuantizer(Quantizer):
     def quantize(
         self, model: torch.nn.Module, *args: Any, **kwargs: Any
     ) -> torch.nn.Module:
-        apply_weight_only_int8_quant(model)
+        return quantize(model, "int8_weight_only")
         return model
 
 
