@@ -447,14 +447,16 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         dataloader = DataLoader(
             dataset=ds,
             sampler=sampler,
-            batch_size=batch_size,
+            batch_size=None,
+            batch_sampler=None,
+            # batch_size=batch_size,
             collate_fn=partial(
                 utils.padded_collate,
                 padding_idx=self._tokenizer.pad_id,
                 ignore_idx=self._loss_fn.ignore_index,
             )
-            if not packed
-            else None,
+            # if not packed
+            # else None,
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -588,7 +590,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         loss_to_log = running_loss.item()
                         pbar.update(1)
                         pbar.set_description(
-                            f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
+                            f"{curr_epoch+1}|{self.global_step}|Toks: {tokens.shape[0]*tokens.shape[1]}"  # Loss: {loss_to_log}
                         )
 
                         # Log per-step metrics
@@ -597,7 +599,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                             log_dict = {
                                 "loss": loss_to_log,
                                 "lr": self._optimizer.param_groups[0]["lr"],
-                                "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                                "bs": tokens.shape[0],
+                                "seq_len": tokens.shape[1],
+                                # "tokens_per_second_per_gpu": num_tokens / time_per_step,
                             }
                             if (
                                 self._device.type == "cuda"
@@ -610,6 +614,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                                 log_dict,
                                 step=self.global_step,
                             )
+                            # if float(utils.get_memory_stats(device=self._device)["peak_memory_alloc"]) > 8.6:
+                            #    print(f"Peak memory allocated: {utils.get_memory_stats(device=self._device)['peak_memory_alloc']} for bs {tokens.shape[0]} and seq {tokens.shape[1]}")
 
                         # Reset running stats for the next step
                         running_loss = 0
