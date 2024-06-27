@@ -182,12 +182,19 @@ class Phi3MiniTokenizer(ModelTokenizer):
             mask.extend([message.masked] * len(new_line_token_id))
 
             # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content.rstrip(" "),
-                add_bos=False,
-                add_eos=False,
-                trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
-            )
+            for item in message.content:
+                if item["type"] == "text":
+                    tokens = self.encode(
+                        item["content"].strip(),
+                        add_bos=False,
+                        add_eos=False,
+                        trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
+                    )
+                else:
+                    raise RuntimeError(
+                        f"Unsupported message content type: {item['type']}"
+                    )
+
             tokens = tokens + [self.special_tokens["<|end|>"]] + new_line_token_id
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))

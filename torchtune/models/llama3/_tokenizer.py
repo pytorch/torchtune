@@ -6,7 +6,7 @@
 
 from typing import Dict, List, Optional, Tuple
 
-from torchtune.data import Media, Message, truncate
+from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 
@@ -82,10 +82,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self.python_tag = self.special_tokens["<|python_tag|>"]
 
         # Media tokens
-        self.media_ids: Dict[Media, int] = {
-            "image": self.special_tokens["<|image|>"],
-            "video": self.special_tokens["<|video|>"],
-        }
+        self.image_id = self.special_tokens["<|image|>"]
 
         # During generation, stop when either eos_id or eot_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id]
@@ -162,6 +159,36 @@ class Llama3Tokenizer(ModelTokenizer):
         """
         return [self.eot_id] if message.eot else [self.eom_id]
 
+    def _tokenize_body(self, message: Message) -> List[int]:
+        """
+        Tokenize message content as list of ids
+        """
+        tokenized_body = []
+        contains_media = False
+        for item in message.content:
+            if item["type"] == "text":
+                tokenized_body += self.encode(
+                    item["content"].strip(), add_bos=False, add_eos=False
+                )
+            elif item["type"] == "image":
+                tokenized_body += [self.image_id]
+                contains_media = True
+            else:
+                raise RuntimeError(f"Unsupported message content type: {item['type']}")
+
+        if message.ipython:
+            if contains_media:
+                raise RuntimeError(
+                    f"Media tokens in tool calls are not supported. Both are set in message: {message.content}"
+                )
+            if message.role != "assistant":
+                raise RuntimeError(
+                    f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}"
+                )
+            tokenized_body = [self.python_tag] + tokenized_body
+
+        return tokenized_body
+
     def tokenize_message(
         self,
         message: Message,
@@ -183,25 +210,7 @@ class Llama3Tokenizer(ModelTokenizer):
 
         tokenized_header = self._tokenize_header(message) if tokenize_header else []
 
-        media_tokens = []
-        if message.media is not None:
-            media_tokens = [self.media_ids[attachment] for attachment in message.media]
-
-        tokenized_body = self.encode(
-            message.content.strip(), add_bos=False, add_eos=False
-        )
-        tokenized_body = media_tokens + tokenized_body
-
-        if message.ipython:
-            if len(media_tokens) > 0:
-                raise RuntimeError(
-                    f"Media tokens in tool calls are not supported. Both are set in message: {message.content}"
-                )
-            if message.role != "assistant":
-                raise RuntimeError(
-                    f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}"
-                )
-            tokenized_body = [self.python_tag] + tokenized_body
+        tokenized_body = self._tokenize_body(message)
 
         tokenized_end = self._tokenize_end(message) if tokenize_end else []
 

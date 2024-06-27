@@ -4,8 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from dataclasses import dataclass
-from typing import List, Literal, Optional
+from typing import Dict, List, Literal, Union
 
 Role = Literal[
     "system",  # Origin is system prompt
@@ -14,36 +13,52 @@ Role = Literal[
     "ipython",  # Origin is return from a tool call
 ]
 
-Media = Literal[
-    "image",
-]
 
-
-@dataclass
 class Message:
     """
-    This dataclass represents individual messages in an instruction or chat dataset.
-
-    Note that the fields ipython and eot are only relevant when tokenizing with tiktoken,
-    as they inform handling of special tokens in that case.
+    This class represents individual messages in a fine-tuning dataset. It supports
+    text-only content, text with interleaved images, and tool calls. The :class:`~torchtune.modules.tokenizers.ModelTokenizer`
+    will tokenize the content of the message using ``tokenize_messages`` and attach
+    the appropriate special tokens based on the flags set in this class.
 
     Attributes:
         role (Role): role of the message writer. Can be "system", "user", "assistant", or "ipython".
-        content (str): content of the message.
-        masked (bool): whether the message is masked in the sample. Default: False
+        content (Union[str, List[Dict[str, str]]]): content of the message. If it is text only content,
+            you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
+            as follows::
+
+            [
+                {"type": "image"}
+                {"type": "text", "content": "hello"},
+                {"type": "image"}
+                {"type": "text", "content": "world"},
+            ]
+
+        masked (bool): whether the message is masked in the sample. If True, do not use
+            in loss calculation. Default: False
         ipython (bool): whether the message is a tool call. Default: False
         eot (bool): whether the message corresponds to the end of a turn. Should be true
             except in the case of multiple consecutive assistant messages (i.e., tool calls
             by assistant). Default: True
-        media (Optional[List[Media]]): list of media attachments by type in the message. Default: None
     """
 
-    role: Role
-    content: str
-    masked: bool = False
-    ipython: bool = False
-    eot: bool = True
-    media: Optional[List[Media]] = None
+    def __init__(
+        self,
+        role: Role,
+        content: Union[str, List[Dict[str, str]]],
+        masked: bool = False,
+        ipython: bool = False,
+        eot: bool = True,
+    ):
+        self.role = role
+        self.content = (
+            [{"type": "text", "content": content}]
+            if isinstance(content, str)
+            else content
+        )
+        self.masked = masked
+        self.ipython = ipython
+        self.eot = eot
 
     @classmethod
     def from_dict(cls, d: dict) -> "Message":
