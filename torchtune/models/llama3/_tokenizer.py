@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from PIL.Image import Image
 
-from torchtune.data import Message, truncate
+from torchtune.data import Message, truncate, Media
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 
@@ -57,12 +57,13 @@ class Llama3Tokenizer(ModelTokenizer):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
     ):
-        special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
+        self.special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
         self.eos_id = self.special_tokens["<|end_of_text|>"]
         self.pad_id = self.special_tokens["<|finetune_right_pad_id|>"]
+        self.step_id = self.special_tokens["<|step_id|>"]
 
         # Encode extra special tokens
         self.start_header_id = self.special_tokens["<|start_header_id|>"]
@@ -73,8 +74,9 @@ class Llama3Tokenizer(ModelTokenizer):
         self.python_tag = self.special_tokens["<|python_tag|>"]
 
         # Media tokens
-        self.image_id = self.special_tokens["<|image|>"]
-        self.video_id = self.special_tokens["<|video|>"]
+        self.media_ids: Dict[Media, int] = {
+            "image": self.special_tokens["<|image|>"],
+        }
 
         # During generation, stop when either eos_id or eot_id is encountered
         self.stop_tokens = [self.eos_id, self.eot_id]
@@ -122,51 +124,67 @@ class Llama3Tokenizer(ModelTokenizer):
         """
         return self.tt_model.decode(token_ids, truncate_at_eos=truncate_at_eos)
 
+    def _tokenize_header(self, message: Message) -> List[int]:
+        """
+        Tokenize header start, message role, and header end as list of ids
+        """
+        return (
+            [self.start_header_id]
+            + self.encode(message.role.strip(), add_bos=False, add_eos=False)
+            + [self.end_header_id]
+            + self.encode("\n\n", add_bos=False, add_eos=False)
+        )
+
+    def _tokenize_end(self, message: Message) -> List[int]:
+        """
+        Add eot or eom id at the end of the message.
+        """
+        return [self.eot_id] if message.eot else [self.eom_id]
+
     def tokenize_message(
-        self, message: Message, tokenize_header: bool = False
-    ) -> Dict[str, Any]:
+        self, message: Message, tokenize_header: bool = True, tokenize_end: bool = True,
+    ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
 
         Args:
             message (Message): The message to tokenize.
-            tokenize_header (bool): Whether to prepend a tokenized header to each message.
+            tokenize_header (bool): Whether to prepend a tokenized header to the message.
+            tokenize_end (bool): Whether to append eot or eom id at the end of the message.
 
         Returns:
             Dict[str, Any]: "tokens" - The list of token ids. "images" - PIL Image
                 if message contains an image
         """
-        image = None
-        if tokenize_header:
-            tokenized_header = (
-                [self.start_header_id]
-                + self.encode(message.role.strip(), add_bos=False, add_eos=False)
-                + [self.end_header_id]
-                + self.encode("\n\n", add_bos=False, add_eos=False)
-            )
-        else:
-            tokenized_header = []
-        if isinstance(message.content, Image):
-            tokenized_body = [self.image_id]
-            image = message.content
-        else:
-            tokenized_body = self.encode(
-                message.content.strip(), add_bos=False, add_eos=False
-            )
+
+        tokenized_header = self._tokenize_header(message) if tokenize_header else []
+
+        media_tokens = []
+        if message.media is not None:
+            media_tokens = [self.media_ids[attachment] for attachment in message.media]
+        
+        tokenized_body = self.encode(
+            message.content.strip(), add_bos=False, add_eos=False
+        )
+        tokenized_body = media_tokens + tokenized_body
+
         if message.ipython:
+            if len(media_tokens) > 0:
+                raise RuntimeError(f"Media tokens in tool calls are not supported. Both are set in message: {message.content}")
+            if message.role != "assistant":
+                raise RuntimeError(f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}")
             tokenized_body = [self.python_tag] + tokenized_body
-        tokenized_message = tokenized_header + tokenized_body
-        if message.eot:
-            tokenized_message = tokenized_message + [self.eot_id]
-        else:
-            tokenized_message = tokenized_message + [self.eom_id]
-        return {"tokens": tokenized_message, "images": image}
+        
+        tokenized_end = self._tokenize_end(message) if tokenize_end else []
+        
+        tokenized_message = tokenized_header + tokenized_body + tokenized_end
+
+        return tokenize_message
 
     def tokenize_messages(
         self,
         messages: List[Message],
         max_seq_len: Optional[int] = None,
-        tokenize_header: bool = True,
         add_eos: bool = True,
     ) -> Dict[str, Any]:
         """
@@ -175,7 +193,6 @@ class Llama3Tokenizer(ModelTokenizer):
         Args:
             messages (List[Message]): The list of messages to tokenize.
             max_seq_len (Optional[int]): The maximum sequence length.
-            tokenize_header (bool): Whether to prepend a tokenized header to each message.
 
         Returns:
             Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
@@ -185,20 +202,24 @@ class Llama3Tokenizer(ModelTokenizer):
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        images = []
-        for message in messages:
-            tokenized_message_dict = self.tokenize_message(
-                message, tokenize_header=tokenize_header
+        previous_role = ""
+        for i, message in enumerate(messages):
+            # If previous message was also from user, don't re-tokenize header
+            tokenize_header = False if message.role == "user" and previous_role == "user" else True
+            # If next message is also from user, don't tokenize the end yet
+            tokenize_end = False if i < len(messages) - 1 and messages[i + 1].role == message.role == "user" else True
+            # Checking for consecutive user messages prevents having to add unnecessary
+            # headers or eot/eom ids
+            tokenized_message = self.tokenize_message(
+                message, tokenize_header=tokenize_header, tokenize_end=tokenize_end
             )
-            tokens = tokens + tokenized_message_dict["tokens"]
-            mask = mask + ([message.masked] * len(tokenized_message_dict["tokens"]))
-            images = (
-                images + [tokenized_message_dict["images"]]
-                if tokenized_message_dict["images"] is not None
-                else images
-            )
+
+            tokens = tokens + tokenized_message
+            mask = mask + ([message.masked] * len(tokenized_message))
+            previous_role = message.role
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
+
         if add_eos:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
@@ -206,4 +227,4 @@ class Llama3Tokenizer(ModelTokenizer):
             tokens = truncate(tokens, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, True)
 
-        return {"tokens": tokens, "mask": mask, "images": images}
+        return tokens, mask

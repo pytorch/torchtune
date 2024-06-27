@@ -164,12 +164,16 @@ class TestLlama3Tokenizer:
     def test_token_ids(self, tokenizer):
         assert tokenizer.bos_id == 128000
         assert tokenizer.eos_id == 128001
-        assert tokenizer.pad_id == 0
+        assert tokenizer.pad_id == 128004
+        assert tokenizer.step_id == 128005
         assert tokenizer.start_header_id == 128006
         assert tokenizer.end_header_id == 128007
         assert tokenizer.eom_id == 128008
         assert tokenizer.eot_id == 128009
-        assert tokenizer.python_tag == 128255
+        assert tokenizer.python_tag == 128010
+        assert tokenizer.image_id == 128011
+        assert tokenizer.video_id == 128012
+
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
