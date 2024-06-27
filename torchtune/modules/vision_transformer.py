@@ -199,9 +199,8 @@ class VisionTransformer(nn.Module):
         n_tokens += 1
 
         # token_pos_embedding
-        if self.token_pos_embedding:
-            x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
-            x = self.token_pos_embedding(x)
+        x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
+        x = self.token_pos_embedding(x)
 
         # norm
         x = self.ln_pre(x)
@@ -258,7 +257,7 @@ class CLSEmbedding(nn.Module):
         super().__init__()
 
         scale = embed_dim**-0.5
-        self.cls_embedding = nn.Parameter(scale * torch.randn(embed_dim))
+        self.cls_embedding = nn.Parameter(scale * torch.randn(embed_dim, embed_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 

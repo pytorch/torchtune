@@ -27,7 +27,7 @@ class TokenPositionalEmbedding(nn.Module):
             scale * torch.randn((patch_grid_size**2 + 1, embed_dim))
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, *args) -> torch.Tensor:
         """
         args:
             x (torch.Tensor): Tensor with shape (*, n_tokens, embed_dim)
@@ -58,7 +58,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
     def __init__(
         self, max_num_tiles: int, embed_dim: int, patch_grid_size: int
     ) -> None:
-
+        super().__init__()
         self.n_tokens_per_tile = patch_grid_size**2 + 1  # +1 for cls token
         scale = embed_dim**-0.5
 
