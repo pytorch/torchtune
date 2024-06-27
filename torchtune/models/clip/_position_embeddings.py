@@ -87,7 +87,7 @@ class GatedTokenPositionalEmbedding(nn.Module):
         return x
 
 
-class TilePositionEmbedding(nn.Module):
+class TilePositionalEmbedding(nn.Module):
     def __init__(
         self,
         max_num_tiles: int,
