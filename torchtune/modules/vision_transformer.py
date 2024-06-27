@@ -56,6 +56,8 @@ class VisionTransformer(nn.Module):
         self.ln_post = LayerNorm(embed_dim)
         self.ln_pre = LayerNorm(embed_dim)
 
+        self.cls_token_embedding = CLSEmbedding(embed_dim)
+
     def get_image_tokens_per_tile(self):
         return self.patches_per_tile
 
@@ -143,7 +145,7 @@ class VisionTransformer(nn.Module):
             return x
 
 
-class CLSEmb(nn.Module):
+class CLSEmbedding(nn.Module):
     def __init__(self, embed_dim):
         super().__init__()
 
