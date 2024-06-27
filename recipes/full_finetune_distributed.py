@@ -32,6 +32,7 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
 
 from tqdm import tqdm
+from datetime import timedelta
 
 
 log = utils.get_logger("DEBUG")
@@ -229,6 +230,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             self._steps_per_epoch = self.max_steps_per_epoch
         self.total_training_steps = self.epochs_run * self._steps_per_epoch
 
+        # self._lr_scheduler = self._setup_lr_scheduler(
+        #     cfg_lr_scheduler=cfg.lr_scheduler,
+        #     num_training_steps=self.total_epochs * self._steps_per_epoch,
+        #     last_epoch=self.total_training_steps - 1,
+        # )
+
     def _setup_model(
         self,
         cfg_model: DictConfig,
@@ -345,6 +352,22 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             log.info("Optimizer is initialized.")
         return optimizer
 
+    def _setup_lr_scheduler(
+        self,
+        cfg_lr_scheduler: DictConfig,
+        num_training_steps: int,
+        last_epoch: int,
+    ) -> Optimizer:
+        lr_scheduler = config.instantiate(
+            cfg_lr_scheduler,
+            self._optimizer,
+            num_training_steps=num_training_steps,
+            last_epoch=last_epoch,
+        )
+        if self._is_rank_zero:
+            log.info("Learning rate scheduler is initialized.")
+        return lr_scheduler
+
     def _setup_data(
         self,
         cfg_dataset: DictConfig,
@@ -460,6 +483,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ):
                     break
 
+                if idx // self._gradient_accumulation_steps < 3379:
+                    continue
+
                 input_ids, labels = batch
                 input_ids = input_ids.to(self._device)
                 num_tokens += input_ids.numel()
@@ -481,6 +507,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
                     self._optimizer.step()
                     self._optimizer.zero_grad(set_to_none=True)
+                    # self._lr_scheduler.step()
 
                     # Update the number of steps when the weights are updated
                     self.total_training_steps += 1
@@ -514,6 +541,9 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
+                    if self.total_training_steps % 1000 == 0:
+                        self.save_checkpoint(epoch=curr_epoch)
+
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
 
@@ -538,7 +568,7 @@ def recipe_main(cfg: DictConfig) -> None:
             "If using tune CLI, please specify --nnodes 1 and --nproc_per_node [num_gpus]"
         )
 
-    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl")
+    init_process_group(backend="gloo" if cfg.device == "cpu" else "nccl", timeout=timedelta(minutes=30))
 
     config.log_config(recipe_name="FullFinetuneRecipeDistributed", cfg=cfg)
 

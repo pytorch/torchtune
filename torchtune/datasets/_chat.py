@@ -71,6 +71,8 @@ class ChatDataset(Dataset):
         chat_format: Optional[ChatFormat] = None,
         max_seq_len: int,
         train_on_input: bool = False,
+        unmask_outputs: bool = False,
+        is_chat_format_enabled: bool = True,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
@@ -79,6 +81,8 @@ class ChatDataset(Dataset):
         self.chat_format = chat_format
         self.max_seq_len = max_seq_len
         self.train_on_input = train_on_input
+        self.unmask_outputs = unmask_outputs
+        self.is_chat_format_enabled = is_chat_format_enabled
 
     def __len__(self):
         return len(self._data)
@@ -93,7 +97,7 @@ class ChatDataset(Dataset):
             messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
+            messages, max_seq_len=self.max_seq_len, unmask_outputs=self.unmask_outputs, chat_format=self.is_chat_format_enabled
         )
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         labels = list(np.where(mask, CROSS_ENTROPY_IGNORE_IDX, tokens))

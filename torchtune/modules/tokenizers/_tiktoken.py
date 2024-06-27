@@ -271,6 +271,49 @@ class TikTokenTokenizer(Tokenizer):
             tokens.append(self.eos_id)
         return tokens
 
+    def encode_with_special_tokens(
+        self,
+        text: str,
+        add_bos: bool,
+        add_eos: bool,
+    ) -> List[int]:
+        """
+        Encode a string into a list of token ids. Assumes that the string
+        contains no special tokens.
+
+        Args:
+            text (str): The string to encode.
+            add_bos (bool): Whether to add the beginning of sequence token.
+            add_eos (bool): Whether to add the end of sequence token.
+
+        Returns:
+            List[int]: The list of token ids.
+        """
+        substrs: List[str] = []
+        tokens = []
+        for i in range(0, len(text), MAX_ENCODE_CHARS):
+            substr = text[i : i + MAX_ENCODE_CHARS]
+            # See https://github.com/openai/tiktoken/issues/195
+            sliced_substr = _split_long_repetitions(substr, MAX_NO_WHITESPACE_CHARS)
+            substrs.extend(sliced_substr)
+        for substr in substrs:
+            # allowed_special and disallowed_special are used by tiktoken to define
+            # how special tokens are encoded. Our setting here is to encode any
+            # special token as regular text and prevent tiktoken from raising errors.
+            # This means we should only call encode on strings not containing special tokens.
+            tokens.extend(
+                self.tt_model.encode(
+                    substr,
+                    allowed_special=set(ALL_SPECIAL_TOKENS),
+                    disallowed_special=(),
+                )
+            )
+        if add_bos:
+            tokens.insert(0, self.bos_id)
+        if add_eos:
+            tokens.append(self.eos_id)
+        return tokens
+
     def decode(
         self,
         token_ids: List[int],
@@ -298,7 +341,7 @@ class TikTokenTokenizer(Tokenizer):
         return self.tt_model.decode(token_ids)
 
     def tokenize_message(
-        self, message: Message, tokenize_header: bool = False
+        self, message: Message, tokenize_header: bool = False, chat_format: bool = True,
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
@@ -310,7 +353,7 @@ class TikTokenTokenizer(Tokenizer):
         Returns:
             List[int]: The list of token ids.
         """
-        if tokenize_header:
+        if chat_format and tokenize_header:
             tokenized_header = (
                 [self.start_header_id]
                 + self.encode(message.role.strip(), add_bos=False, add_eos=False)
@@ -322,13 +365,16 @@ class TikTokenTokenizer(Tokenizer):
         tokenized_body = self.encode(
             message.content.strip(), add_bos=False, add_eos=False
         )
-        if message.ipython:
-            tokenized_body = [self.python_tag] + tokenized_body
-        tokenized_message = tokenized_header + tokenized_body
-        if message.eot:
-            tokenized_message = tokenized_message + [self.eot_id]
+        if chat_format:
+            if message.ipython:
+                tokenized_body = [self.python_tag] + tokenized_body
+            tokenized_message = tokenized_header + tokenized_body
+            if message.eot:
+                tokenized_message = tokenized_message + [self.eot_id]
+            else:
+                tokenized_message = tokenized_message + [self.eom_id]
         else:
-            tokenized_message = tokenized_message + [self.eom_id]
+            tokenized_message = tokenized_body
         return tokenized_message
 
     def tokenize_messages(
@@ -336,6 +382,8 @@ class TikTokenTokenizer(Tokenizer):
         messages: List[Message],
         max_seq_len: Optional[int] = None,
         tokenize_header: bool = True,
+        unmask_outputs: bool = False,
+        chat_format: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
@@ -351,12 +399,33 @@ class TikTokenTokenizer(Tokenizer):
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
+        if not chat_format:
+            messages[0].content = "".join([message.content for message in messages])
+            messages = messages[:1]
+
         for message in messages:
             tokenized_message = self.tokenize_message(
-                message, tokenize_header=tokenize_header
+                message, tokenize_header=tokenize_header, chat_format=chat_format
             )
             tokens = tokens + tokenized_message
-            mask = mask + ([message.masked] * len(tokenized_message))
+            if unmask_outputs and message.role == "system" and "code" not in message.content:
+                # we want to mask outputs after first example in the sequence
+                # find second all positions of -> token 1492
+                # fast find all 1492 in tokenized_message
+                all_sep_positions = [i for i, x in enumerate(tokenized_message) if x == 1492]
+                # find all ]]
+                all_close_positions = [i for i, x in enumerate(tokenized_message) if x == 5163 or x == 14623]
+                mask_for_system = [True] * len(tokenized_message)
+                count_step = 1 if (len(all_close_positions) / len(all_sep_positions)) >= 4 else 0
+                if len(all_sep_positions) > 1:
+                    for sep_position in all_sep_positions[1:]:
+                        # find the next close bracket
+                        close_position = [x for x in all_close_positions if x > sep_position][count_step]
+                        mask_for_system[sep_position+1:close_position+1] = [False] * (close_position - sep_position)
+                # mask positions 2 - 3
+                mask = mask + mask_for_system
+            else:
+                mask = mask + ([message.masked] * len(tokenized_message))
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
         tokens = tokens + [self.eos_id]

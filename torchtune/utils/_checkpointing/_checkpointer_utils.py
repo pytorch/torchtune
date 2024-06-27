@@ -75,6 +75,7 @@ def safe_torch_load(checkpoint_path: Path, weights_only: bool = True) -> Dict[st
                 weights_only=weights_only,
             )
     except Exception as e:
+        breakpoint()
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
 

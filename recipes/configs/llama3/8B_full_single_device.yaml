@@ -23,12 +23,13 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /data/cl/scratch/model_weights/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
+  _component_: torchtune.datasets.arc_dataset
+  source: str = "/raid/lingo/akyurek/git/arc/data/tasks/N10_black/4llama/",
+  train_on_input: False
 seed: null
 shuffle: True
 
@@ -38,18 +39,18 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  checkpoint_dir: /data/cl/scratch/model_weights/Meta-Llama-3-8B-Instruct/original/
   checkpoint_files: [
     consolidated.00.pth
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/llama8b-new-data-ff/model_weights/
   model_type: LLAMA3
 resume_from_checkpoint: False
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 1
 optimizer:
   _component_: bitsandbytes.optim.AdamW8bit
   lr: 2e-5
@@ -73,6 +74,6 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama3-finetune
+output_dir: /raid/lingo/akyurek/git/arc/experiments/llama8b-new-data-ff/logs/
 log_every_n_steps: 1
 log_peak_memory_stats: False

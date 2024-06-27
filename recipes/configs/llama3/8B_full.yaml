@@ -21,13 +21,15 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  path: /raid/lingo/models/Meta-Llama-3-8B-Instruct/original/tokenizer.model
 
 # Dataset
 dataset:
-  _component_: torchtune.datasets.alpaca_dataset
-  train_on_input: True
-seed: null
+  _component_: torchtune.datasets.arc_dataset
+  source: /raid/lingo/akyurek/git/arc/data/tasks/all_in_N40_rand_transformation_black_all
+  train_on_input: False
+  unmask_outputs: True # we'll get loss from all outputs after the first demonstration, very hacky, tokenizer & formatting specific implementation be careful
+seed: 57
 shuffle: True
 
 # Model Arguments
@@ -35,29 +37,36 @@ model:
   _component_: torchtune.models.llama3.llama3_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
-  checkpoint_dir: /tmp/Meta-Llama-3-8B-Instruct/original/
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /raid/lingo/models/Meta-Llama-3-8B-Instruct
   checkpoint_files: [
-    consolidated.00.pth
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
   ]
-  recipe_checkpoint: null
-  output_dir: /tmp/Meta-Llama-3-8B-Instruct/
+  recipe_checkpoint: # recipe_state.pt
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/model_weights/
   model_type: LLAMA3
-resume_from_checkpoint: False
+resume_from_checkpoint: False #True
 
 # Fine-tuning arguments
 batch_size: 2
-epochs: 3
+epochs: 4
 
 optimizer:
   _component_: torch.optim.AdamW
   lr: 2e-5
   foreach: False
 
+# lr_scheduler:
+#   _component_: torchtune.modules.get_cosine_schedule_with_warmup
+#   num_warmup_steps: 100
+
 loss:
   _component_: torch.nn.CrossEntropyLoss
 max_steps_per_epoch: null
-gradient_accumulation_steps: 1
+gradient_accumulation_steps: 4
 
 
 # Training env
@@ -73,6 +82,6 @@ dtype: bf16
 metric_logger:
   _component_: torchtune.utils.metric_logging.DiskLogger
   log_dir: ${output_dir}
-output_dir: /tmp/alpaca-llama3-finetune
+output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_repr_v2/logs/
 log_every_n_steps: 1
 log_peak_memory_stats: False

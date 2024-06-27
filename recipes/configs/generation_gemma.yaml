@@ -14,19 +14,17 @@
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3.llama3_8b
+  _component_: torchtune.models.gemma.gemma_2b
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/withcode/model_weights/
+  checkpoint_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_gemma/model_weights/
   checkpoint_files: [
     hf_model_0001_0.pt,
     hf_model_0002_0.pt,
-    hf_model_0003_0.pt,
-    hf_model_0004_0.pt,
   ]
   # adapter_checkpoint: adapter_0.pt
-  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode/inference/
+  output_dir: /raid/lingo/akyurek/git/arc/experiments/withcode_gemma/inference/
   model_type: LLAMA3
 
 
@@ -51,19 +49,19 @@ dtype: bf16
 
 seed: 1234
 
-output_path: /raid/lingo/akyurek/git/arc/experiments/withcode/results_epoch_0/
+output_path: /raid/lingo/akyurek/git/arc/experiments/withcode_gemma/results_epoch_0/
 
 # Tokenizer arguments
+# Tokenizer
 tokenizer:
-  _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /data/cl/scratch/model_weights/Meta-Llama-3-8B-Instruct/original/tokenizer.model
+  _component_: torchtune.models.gemma.gemma_tokenizer
+  path: /raid/lingo/models/gemma-2b-it/tokenizer.model
 
 dataset:
   _component_: torchtune.datasets.arc_dataset
-  source: /raid/lingo/akyurek/git/arc/data/tasks/verifiers_N40_rand_transformation_black_all/
+  source: /raid/lingo/akyurek/git/arc/data/tasks/w_color_N40_rand_transformation_black_all/
   train_on_input: False
   split: test
-  unmask_outputs: True
 
 
 # Generation arguments; defaults taken from gpt-fast

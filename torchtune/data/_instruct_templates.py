@@ -175,3 +175,39 @@ class StackExchangedPairedTemplate(InstructTemplate):
         prompt = cls.template.format(question=sample[key_prompt])
 
         return prompt
+
+
+class ARCInstructTemplate(InstructTemplate):
+    """
+    Prompt template for ARC
+    """
+
+    template = """Here is a IQ test with grids of numbers.
+
+    You need to understand what tranformation has been applied to the input grid to get the output grid in the below example.
+
+    Later you will be given a test grid and you need to apply the same transformation to get the answer.
+
+    {input}"""
+
+    @classmethod
+    def format(
+        cls, sample: Mapping[str, Any], column_map: Optional[Dict[str, str]] = None
+    ) -> str:
+        """
+        Generate prompt from instruction and input.
+
+        Args:
+            sample (Mapping[str, Any]): a single data sample with instruction
+            column_map (Optional[Dict[str, str]]): a mapping from the expected
+                placeholder names in the template to the column names in the sample.
+                If None, assume these are identical.
+
+        Returns:
+            The formatted prompt
+        """
+        column_map = column_map or {}
+        key_prompt = column_map.get("input", "input")
+        prompt = cls.template.format(input=sample[key_prompt])
+
+        return prompt
