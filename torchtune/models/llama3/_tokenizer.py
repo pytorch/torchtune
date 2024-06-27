@@ -4,11 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
-from PIL.Image import Image
-
-from torchtune.data import Message, truncate, Media
+from torchtune.data import Media, Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
 
 
@@ -86,6 +84,7 @@ class Llama3Tokenizer(ModelTokenizer):
         # Media tokens
         self.media_ids: Dict[Media, int] = {
             "image": self.special_tokens["<|image|>"],
+            "video": self.special_tokens["<|video|>"],
         }
 
         # During generation, stop when either eos_id or eot_id is encountered
@@ -164,7 +163,10 @@ class Llama3Tokenizer(ModelTokenizer):
         return [self.eot_id] if message.eot else [self.eom_id]
 
     def tokenize_message(
-        self, message: Message, tokenize_header: bool = True, tokenize_end: bool = True,
+        self,
+        message: Message,
+        tokenize_header: bool = True,
+        tokenize_end: bool = True,
     ) -> List[int]:
         """
         Tokenize a message into a list of token ids.
@@ -184,7 +186,7 @@ class Llama3Tokenizer(ModelTokenizer):
         media_tokens = []
         if message.media is not None:
             media_tokens = [self.media_ids[attachment] for attachment in message.media]
-        
+
         tokenized_body = self.encode(
             message.content.strip(), add_bos=False, add_eos=False
         )
@@ -192,23 +194,27 @@ class Llama3Tokenizer(ModelTokenizer):
 
         if message.ipython:
             if len(media_tokens) > 0:
-                raise RuntimeError(f"Media tokens in tool calls are not supported. Both are set in message: {message.content}")
+                raise RuntimeError(
+                    f"Media tokens in tool calls are not supported. Both are set in message: {message.content}"
+                )
             if message.role != "assistant":
-                raise RuntimeError(f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}")
+                raise RuntimeError(
+                    f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}"
+                )
             tokenized_body = [self.python_tag] + tokenized_body
-        
+
         tokenized_end = self._tokenize_end(message) if tokenize_end else []
-        
+
         tokenized_message = tokenized_header + tokenized_body + tokenized_end
 
-        return tokenize_message
+        return tokenized_message
 
     def tokenize_messages(
         self,
         messages: List[Message],
         max_seq_len: Optional[int] = None,
         add_eos: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> Tuple[List[int], List[bool]]:
         """
         Tokenize a list of messages into a list of token ids and masks.
 
@@ -224,21 +230,11 @@ class Llama3Tokenizer(ModelTokenizer):
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        previous_role = ""
         for i, message in enumerate(messages):
-            # If previous message was also from user, don't re-tokenize header
-            tokenize_header = False if message.role == "user" and previous_role == "user" else True
-            # If next message is also from user, don't tokenize the end yet
-            tokenize_end = False if i < len(messages) - 1 and messages[i + 1].role == message.role == "user" else True
-            # Checking for consecutive user messages prevents having to add unnecessary
-            # headers or eot/eom ids
-            tokenized_message = self.tokenize_message(
-                message, tokenize_header=tokenize_header, tokenize_end=tokenize_end
-            )
+            tokenized_message = self.tokenize_message(message)
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
-            previous_role = message.role
             if max_seq_len and len(tokens) >= max_seq_len:
                 break
 

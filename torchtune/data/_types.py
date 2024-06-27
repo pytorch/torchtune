@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import List, Literal, Optional
 
 Role = Literal[
     "system",  # Origin is system prompt

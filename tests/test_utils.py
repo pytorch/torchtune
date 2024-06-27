@@ -17,7 +17,6 @@ from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
 import pytest
 
 import torch
-from PIL.Image import Image
 from torch import nn
 from torchtune.data import truncate
 from torchtune.modules.tokenizers import ModelTokenizer
@@ -52,7 +51,7 @@ class DummyTokenizer(ModelTokenizer):
 
     def tokenize_messages(
         self, messages: List[str], max_seq_len: Optional[int] = None
-    ) -> Dict[str, Any]:
+    ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
         """
@@ -60,7 +59,6 @@ class DummyTokenizer(ModelTokenizer):
         end_of_turn = False
         tokenized_messages = []
         mask = []
-        images = []
         for message in messages:
             # If assistant message, this is the end of a turn
             end_of_turn = message.role == "assistant"
@@ -71,15 +69,11 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
-            if isinstance(message.content, Image):
-                images.append(message.content)
-                tokens = [self.image_id]
-            else:
-                tokens = self.encode(
-                    message.content,
-                    add_bos=False,
-                    add_eos=False,
-                )
+            tokens = self.encode(
+                message.content,
+                add_bos=False,
+                add_eos=False,
+            )
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -102,7 +96,7 @@ class DummyTokenizer(ModelTokenizer):
             tokenized_messages = truncate(tokenized_messages, max_seq_len, self.eos_id)
             mask = truncate(mask, max_seq_len, message.masked)
 
-        return {"tokens": tokenized_messages, "mask": mask, "images": images}
+        return tokenized_messages, mask
 
     @property
     def eos_id(self):
@@ -111,10 +105,6 @@ class DummyTokenizer(ModelTokenizer):
     @property
     def bos_id(self):
         return 0
-
-    @property
-    def image_id(self):
-        return -2
 
 
 def get_assets_path():
