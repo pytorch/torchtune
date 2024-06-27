@@ -133,13 +133,17 @@ def tokenize_messages_no_special_tokens(
         trim_leading_whitespace = (not start_of_turn) and not prev_ends_with_space
 
         # Tokenize current message, append with masks
-        tokens = tokenizer.encode(
-            message.content.rstrip(" "),
-            add_bos=False,
-            add_eos=False,
-            trim_leading_whitespace=trim_leading_whitespace,
-        )
-        prev_ends_with_space = message.content.endswith(" ")
+        for item in message.content:
+            if item["type"] == "text":
+                tokens = tokenizer.encode(
+                    item["content"].strip(),
+                    add_bos=False,
+                    add_eos=False,
+                    trim_leading_whitespace=trim_leading_whitespace,
+                )
+            else:
+                raise RuntimeError(f"Unsupported message content type: {item['type']}")
+        prev_ends_with_space = item["content"].endswith(" ")
         tokenized_messages.extend(tokens)
         mask.extend([message.masked] * len(tokens))
 

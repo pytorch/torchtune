@@ -44,14 +44,24 @@ class TestLlama3Tokenizer:
         return [
             Message(
                 role="user",
-                content="I can see the sun. But even if I cannot see the sun, I know that it exists.",
+                content=[
+                    {"type": "image"},
+                    {
+                        "type": "text",
+                        "content": "I can see the sun. But even if I cannot see the sun, I know that it exists.",
+                    },
+                ],
                 masked=True,
                 eot=True,
-                media=["image"],
             ),
             Message(
                 role="assistant",
-                content="And to know that the sun is there - that is living.",
+                content=[
+                    {
+                        "type": "text",
+                        "content": "And to know that the sun is there - that is living.",
+                    }
+                ],
                 masked=False,
                 eot=True,
             ),
@@ -62,21 +72,33 @@ class TestLlama3Tokenizer:
         return [
             Message(
                 role="user",
-                content="I can see the sun. ",
+                content=[
+                    {"type": "image"},
+                    {"type": "text", "content": "I can see the sun. "},
+                ],
                 masked=True,
                 eot=False,
-                media=["image"],
             ),
             Message(
                 role="user",
-                content="But even if I cannot see the sun, I know that it exists.",
+                content=[
+                    {"type": "image"},
+                    {
+                        "type": "text",
+                        "content": "But even if I cannot see the sun, I know that it exists.",
+                    },
+                ],
                 masked=True,
                 eot=True,
-                media=["image"],
             ),
             Message(
                 role="assistant",
-                content="And to know that the sun is there - that is living.",
+                content=[
+                    {
+                        "type": "text",
+                        "content": "And to know that the sun is there - that is living.",
+                    },
+                ],
                 masked=False,
                 eot=True,
             ),
@@ -87,23 +109,40 @@ class TestLlama3Tokenizer:
         return [
             Message(
                 role="user",
-                content="I can see the sun. But even if I cannot see the sun, I know that it exists.",
+                content=[
+                    {
+                        "type": "text",
+                        "content": "I can see the sun. But even if I cannot see the sun, I know that it exists.",
+                    },
+                ],
                 masked=True,
                 eot=True,
             ),
             Message(
                 role="assistant",
-                content="locate_sun(radius=100_000_000)",
+                content=[
+                    {"type": "text", "content": "locate_sun(radius=100_000_000)"},
+                ],
                 masked=False,
                 ipython=True,
                 eot=False,
             ),
             Message(
-                role="ipython", content='{"content": True}', masked=True, eot=False
+                role="ipython",
+                content=[
+                    {"type": "text", "content": '{"content": True}'},
+                ],
+                masked=True,
+                eot=False,
             ),
             Message(
                 role="assistant",
-                content="And to know that the sun is there - that is living.",
+                content=[
+                    {
+                        "type": "text",
+                        "content": "And to know that the sun is there - that is living.",
+                    },
+                ],
                 masked=False,
                 eot=True,
             ),
@@ -119,8 +158,7 @@ class TestLlama3Tokenizer:
         assert tokenizer.eom_id == 128008
         assert tokenizer.eot_id == 128009
         assert tokenizer.python_tag == 128010
-        assert tokenizer.media_ids["image"] == 128011
-        assert tokenizer.media_ids["video"] == 128012
+        assert tokenizer.image_id == 128011
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000

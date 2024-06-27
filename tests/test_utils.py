@@ -18,7 +18,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.data import truncate
+from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
@@ -50,7 +50,7 @@ class DummyTokenizer(ModelTokenizer):
         return tokens
 
     def tokenize_messages(
-        self, messages: List[str], max_seq_len: Optional[int] = None
+        self, messages: List[Message], max_seq_len: Optional[int] = None
     ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
@@ -69,11 +69,15 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content,
-                add_bos=False,
-                add_eos=False,
-            )
+            for item in message.content:
+                if item["type"] == "text":
+                    tokens = self.encode(
+                        item["content"],
+                        add_bos=False,
+                        add_eos=False,
+                    )
+                elif item["type"] == "image":
+                    tokens = [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -105,6 +109,10 @@ class DummyTokenizer(ModelTokenizer):
     @property
     def bos_id(self):
         return 0
+
+    @property
+    def image_id(self):
+        return -2
 
 
 def get_assets_path():
@@ -258,3 +266,10 @@ def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
         filename += suffix
     filename += ".txt"
     return filename
+
+
+def assert_dialogue_equal(actual, expected):
+    assert len(actual) == len(expected)
+    for i in range(len(actual)):
+        assert actual[i].role == expected[i].role
+        assert actual[i].content[0]["content"] == expected[i].content[0]["content"]
