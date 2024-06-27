@@ -67,14 +67,13 @@ class PackedDataset(Dataset):
         ds: Dataset,
         max_seq_len: int,
         max_toks_per_batch: int = 1024,  # TODO: remove default
-        num_bins: int = 4,  # TODO: set to 1
-        scale_factor: float = 1.0,
+        num_bins: int = 8,  # TODO: set to 1
+        scale_factor: float = 1.1,  # TODO: set to 1.0
         **kwargs,  # TODO: remove kwargs
     ) -> None:
         assert (
             max_seq_len % num_bins == 0
         ), "max_seq_len must be divisible by the number of bins"
-        assert scale_factor >= 1.0, "scale_factor must be > 1.0"
         self.ds = ds
         self.max_seq_len = max_seq_len
         self.max_toks_per_batch = max_toks_per_batch
@@ -86,14 +85,24 @@ class PackedDataset(Dataset):
         self.batches: List[List[Dict[str, List[int]]]] = []
         self._batch()
 
+    def _get_bin(self, seq_len) -> int:
+        return max(seq_len - 1, 0) // self.bin_size
+
+    def _max_batch_tokens(self, bin_idx) -> int:
+        # Smaller seq_len batches get scaled more from 100% at smallest to 0% at largest
+        scale_weight = 1.0 - (bin_idx / (self.num_bins - 1))
+        # Interpolate between scale of 1 and scale_factor
+        scale = (1 - scale_weight) + scale_weight * self.scale_factor
+        # Batch specific scale for num tokens
+        return self.max_toks_per_batch * scale
+
     def _batch(self) -> None:
         """
         Iterate through the dataset. Use a buffer to hold samples until max_seq_len,
         then append the buffer to self.packs as a single "packed" sample. Continue
         until max_packs or end of dataset.
         """
-        current_batches = [[]] * self.num_bins
-        batch_meta_data = [{"samples": 0, "max_seq": 0}] * self.num_bins
+        current_batches = {}
 
         # Only show progress bar on rank 0
         _, rank = get_world_size_and_rank()
@@ -113,28 +122,24 @@ class PackedDataset(Dataset):
                     "Please increase `max_seq_len`."
                 )
 
-            batch = max(seq_len - 1, 0) // self.bin_size
-            current_batches[batch].append(sample)
+            # Get current batch
+            bin_idx = self._get_bin(seq_len)
+            if bin_idx not in current_batches:
+                current_batches[bin_idx] = {"samples": [], "batch_len": 0}
+            batch = current_batches[bin_idx]
 
-            # Compute new batch size
-            batch_meta_data[batch]["samples"] += 1
-            if batch_meta_data[batch]["max_seq"] < seq_len:
-                batch_meta_data[batch]["max_seq"] = seq_len
-
-            # Check if new batch is complete
-            batch_toks = (
-                batch_meta_data[batch]["samples"] * batch_meta_data[batch]["max_seq"]
+            # Check if current batch has room for new sample, if not then mark current batch as full
+            batch_tokens = max(batch["batch_len"], seq_len) * (
+                len(batch["samples"]) + 1
             )
-            # Shorter sequences use less memory per token depending on model architecture
-            max_batch_len = self.bin_size * (batch + 1)
-            batch_scale = (1 - max_batch_len // self.max_seq_len) * (
-                self.scale_factor - 1.0
-            ) + 1.0
-            max_toks = batch_scale * self.max_toks_per_batch
-            if batch_toks > max_toks - self.bin_size:
-                self.batches.append(current_batches[batch])
-                current_batches[batch] = []
-                batch_meta_data[batch] = {"samples": 0, "max_seq": 0}
+            if batch_tokens > self._max_batch_tokens(bin_idx):
+                self.batches.append(batch["samples"])
+                batch = {"samples": [], "batch_len": 0}
+                current_batches[bin_idx] = batch
+
+            # Add sample to current batch
+            batch["samples"].append(sample)
+            batch["batch_len"] = max(batch["batch_len"], seq_len)
 
             if rank == 0:
                 pbar.update()
