@@ -109,6 +109,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._output_dir = cfg.output_dir
         self._log_every_n_steps = cfg.get("log_every_n_steps", 1)
         self._log_peak_memory_stats = cfg.get("log_peak_memory_stats", False)
+        self._max_validation_steps = cfg.get("max_validation_steps", None)
 
         # Training cfg
         self._resume_from_checkpoint = cfg.resume_from_checkpoint
@@ -513,34 +514,62 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     num_tokens = 0
                     t0 = time.perf_counter()
 
-            self.epochs_run += 1
-            if self.save_checkpoints:
-                self.save_checkpoint(epoch=curr_epoch)
-
             # Run validation
             self._model.eval()
             with torch.no_grad():
-                val_loss = 0
-                pbar_val = tqdm(
-                    total=len(self._dataloader_validation), desc="Validation"
+                cum_val_loss = 0
+                num_eval_steps = (
+                    min(self._max_validation_steps, len(self._dataloader_validation))
+                    if self._max_validation_steps is not None
+                    else len(self._dataloader_validation)
                 )
-                for batch in self._dataloader_validation:
-                    input_ids, labels = batch
-                    input_ids = input_ids.to(self._device)
+                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+                for idx, batch in enumerate(self._dataloader_validation):
+                    # Both are shape [b, s]
+                    tokens, labels = batch["tokens"], batch["labels"]
+                    # Get the attention mask and position ids from the dataset if they
+                    # exist. Currently, only sample packing in PackedDataset returns these
+                    mask = batch.get("mask", None)  # shape [b, s, s]
+                    input_pos = batch.get("input_pos", None)  # shape [b, s]
+
+                    tokens = tokens.to(self._device)
+                    num_tokens += tokens.numel()
                     labels = labels.to(self._device)
-                    logits = self._model(input_ids)
+                    mask = mask.to(self._device) if mask is not None else None
+                    input_pos = (
+                        input_pos.to(self._device) if input_pos is not None else None
+                    )
+
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                    # Shift so that tokens < n predict n
                     logits = logits[..., :-1, :].contiguous()
                     labels = labels[..., 1:].contiguous()
                     logits = logits.transpose(1, 2)
-                    val_loss += self._loss_fn(logits, labels).item()
+                    # Compute loss
+                    val_loss = self._loss_fn(logits, labels)
+                    cum_val_loss += val_loss
+
                     pbar_val.update(1)
-                    pbar_val.set_postfix({"val_loss": val_loss / (pbar_val.n + 1)})
-                val_loss /= len(self._dataloader_validation)
+                    pbar_val.set_description(
+                        f"{curr_epoch+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
+                    )
+
+                    if (
+                        self._max_validation_steps is not None
+                        and idx == self._max_validation_steps
+                    ):
+                        break
+
+                mean_val_loss = cum_val_loss / (idx + 1)
                 self._metric_logger.log_dict(
-                    {"val_loss": val_loss},
+                    {"val_loss": mean_val_loss},
                     step=self.global_step,
                 )
                 pbar_val.close()
+
+            self.epochs_run += 1
+            if self.save_checkpoints:
+                self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
