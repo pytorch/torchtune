@@ -103,14 +103,15 @@ class DummyTokenizer(ModelTokenizer):
         return tokenized_messages, mask
 
     @property
-    def eos_id(self):
+    def eos_id(self) -> int:
         return -1
 
     @property
-    def bos_id(self):
+    def bos_id(self) -> int:
         return 0
 
     @property
+<<<<<<< HEAD
     def image_id(self):
         return -2
 
@@ -140,6 +141,11 @@ class DummyChatFormat(ChatFormat):
             )
         return formatted_dialogue
 
+=======
+    def image_id(self) -> int:
+        return -2
+
+>>>>>>> 0796ff3 (multimodal dataset test)
 
 class DummyChatFormat(ChatFormat):
 
@@ -161,7 +167,10 @@ class DummyChatFormat(ChatFormat):
             content = formats.get(message["role"]).format(content=message["content"])
             formatted_dialogue.append(
                 Message(
-                    role=message["role"], content=content, masked=message["masked"]
+                    role=message["role"],
+                    content=content,
+                    masked=message["masked"],
+                    media=message["media"],
                 ),
             )
         return formatted_dialogue

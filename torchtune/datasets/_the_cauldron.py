@@ -28,10 +28,6 @@ def get_cauldron_messages(
         List[Message]: A list of messages representing the single sample
     """
     messages = []
-    messages.append(
-        # Don't need to load from a path as it is already provided as a PIL Image
-        Message.from_image(sample["images"]),
-    )
     for message in sample["texts"]:
         messages.append(
             Message(
@@ -39,6 +35,8 @@ def get_cauldron_messages(
             )
         )
         messages.append(Message(role="assistant", content=message["assistant"]))
+    # First message is a user message that should have the image attachment
+    messages[0].media = ["image"]
     return messages
 
 

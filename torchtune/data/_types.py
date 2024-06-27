@@ -78,22 +78,3 @@ class Message:
             ipython=d.get("ipython", False),
             eot=d.get("eot", True),
         )
-
-    @classmethod
-    def from_image(cls, image: Image) -> "Message":
-        """
-        Quickly construct a Message given a PIL Image
-
-        Args:
-            image (Image): PIL Image to construct a Message from.
-
-        Returns:
-            Message: constructed Message.
-        """
-        return cls(
-            role="user",
-            content=image,
-            masked=True,  # We don't want the model to learn to predict image tokens
-            ipython=False,
-            eot=False,  # Typically, images don't end the user's turn
-        )

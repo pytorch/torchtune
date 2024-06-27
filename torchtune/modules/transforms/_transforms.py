@@ -6,6 +6,9 @@
 
 from typing import Any, List, Mapping, Protocol
 
+from torchtune.data import Message
+from torchtune.modules.tokenizers import ModelTokenizer
+
 
 class Transform(Protocol):
     """
@@ -51,8 +54,8 @@ class TokenizeMessages(Transform):
         self.max_seq_len = max_seq_len
 
     def __call__(self, *, messages: List[Message], **kwargs) -> Mapping[str, Any]:
-        tokenized_dict = self.tokenizer.tokenize_messages(
+        tokens, mask = self.tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
         )
-        kwargs.update(tokenized_dict)
+        kwargs.update({"tokens": tokens, "mask": mask})
         return kwargs

@@ -19,6 +19,7 @@ from torchtune.data import (
     Message,
     validate_messages,
 )
+from torchtune.modules.transforms import Transform
 
 
 class MultimodalDataset(Dataset):
@@ -82,7 +83,7 @@ class MultimodalDataset(Dataset):
                 f"chat_format must be a ChatFormat class, not {type(chat_format())}"
             )
 
-        self._tokenizer = tokenizer
+        self._model_transform = model_transform
         self._data = load_dataset(source, **load_dataset_kwargs)
         self._convert_to_messages = convert_to_messages
         self.chat_format = chat_format
@@ -101,7 +102,7 @@ class MultimodalDataset(Dataset):
             messages = self.chat_format.format(messages)
         validate_messages(messages)
         sample.update({"messages": messages})
-        tokenized_dict = self.model_transform(**sample)
+        tokenized_dict = self._model_transform(**sample)
 
         # Wherever mask == True, set to CROSS_ENTROPY_IGNORE_IDX. Otherwise keep as tokens
         tokenized_dict["labels"] = list(
