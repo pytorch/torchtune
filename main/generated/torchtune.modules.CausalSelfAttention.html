@@ -443,9 +443,9 @@ n_kv_heads =4          n_kv_heads=2           n_kv_heads=1
 <li><p><strong>embed_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – embedding dimension for the model</p></li>
 <li><p><strong>num_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of query heads. For MHA this is also the
 number of heads for key and value</p></li>
-<li><p><strong>num_kv_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of key and value heads. If specified,
-user should ensure <cite>num_heads</cite> % <cite>num_kv_heads</cite> == 0. Default value is
-<cite>None</cite>, in which case this is the same as MHA</p></li>
+<li><p><strong>num_kv_heads</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – number of key and value heads. User should ensure
+<cite>num_heads</cite> % <cite>num_kv_heads</cite> == 0. For standard MHA set <cite>num_kv_heads</cite> == <cite>num_heads</cite>,
+for GQA <cite>num_kv_heads</cite> &lt; <cite>num_heads</cite>, and for MQA set <cite>num_kv_heads</cite> == 1.</p></li>
 <li><p><strong>head_dim</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – dimension of each head, calculated by <code class="docutils literal notranslate"><span class="pre">embed_dim</span></code> // <code class="docutils literal notranslate"><span class="pre">num_heads</span></code>.</p></li>
 <li><p><strong>q_proj</strong> (<em>nn.Module</em>) – projection layer for query.</p></li>
 <li><p><strong>k_proj</strong> (<em>nn.Module</em>) – projection layer for key.</p></li>

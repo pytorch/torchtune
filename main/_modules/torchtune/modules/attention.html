@@ -449,9 +449,9 @@
 <span class="sd">        embed_dim (int): embedding dimension for the model</span>
 <span class="sd">        num_heads (int): number of query heads. For MHA this is also the</span>
 <span class="sd">            number of heads for key and value</span>
-<span class="sd">        num_kv_heads (int): number of key and value heads. If specified,</span>
-<span class="sd">            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is</span>
-<span class="sd">            `None`, in which case this is the same as MHA</span>
+<span class="sd">        num_kv_heads (int): number of key and value heads. User should ensure</span>
+<span class="sd">            `num_heads` % `num_kv_heads` == 0. For standard MHA set `num_kv_heads` == `num_heads`,</span>
+<span class="sd">            for GQA `num_kv_heads` &lt; `num_heads`, and for MQA set `num_kv_heads` == 1.</span>
 <span class="sd">        head_dim (int): dimension of each head, calculated by ``embed_dim`` // ``num_heads``.</span>
 <span class="sd">        q_proj (nn.Module): projection layer for query.</span>
 <span class="sd">        k_proj (nn.Module): projection layer for key.</span>
