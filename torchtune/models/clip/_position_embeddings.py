@@ -12,11 +12,11 @@ from torch import nn
 
 class TokenPositionalEmbedding(nn.Module):
     """
-    Token positional embedding for images. Different for every patch (token) in an image.
+    Token positional embedding for images. Different for every token (patch) in an image.
 
     Args:
-        embed_dim (int): The dimensionality of each patch embedding.
-        patch_grid_size (int): The size of a squared grid that represents how many
+        embed_dim (int): The dimensionality of each token embedding.
+        patch_grid_size (int): The side of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
     """
 
@@ -24,14 +24,14 @@ class TokenPositionalEmbedding(nn.Module):
         super().__init__()
         scale = embed_dim**-0.5
         self.positional_embedding = nn.Parameter(
-            scale * torch.randn((patch_grid_size**2 + 1, embed_dim))
+            scale
+            * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
     def forward(self, x: torch.Tensor, *args) -> torch.Tensor:
         """
         args:
             x (torch.Tensor): Tensor with shape (*, n_tokens, embed_dim)
-            aspect_ratio (torch.Tensor): Tensor with shape (bsz, 2)
         returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
@@ -50,8 +50,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
     Args:
         max_num_tiles (int): The maximum number of tiles an image can be divided into.
-        embed_dim (int): The dimensionality of each patch embedding.
-        patch_grid_size (int): The size of a squared grid that represents how many
+        embed_dim (int): The dimensionality of each token embedding.
+        patch_grid_size (int): The side of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
     """
 
@@ -114,8 +114,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
 class TilePositionalEmbedding(nn.Module):
     """
-    Positional embedding for tiles. Every token in a tile is assigned the same positional embedding,
-    but the positional embedding is different for every tile.
+    Positional embedding for tiles. Different for every tile, same for every token within a tile.
 
     Notice that tile is different from patch (token). An image is divided into tiles during pre-processing,
     and patches are the outcome of the convolution in the ViT applied to each tile.

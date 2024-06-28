@@ -9,6 +9,11 @@ from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import nn
+from torchtune.models.clip._position_embeddings import (
+    TiledTokenPositionalEmbedding,
+    TilePositionalEmbedding,
+    TokenPositionalEmbedding,
+)
 from torchtune.modules import LayerNorm
 from torchtune.modules.transformer import _get_clones
 
@@ -20,47 +25,51 @@ class VisionTransformer(nn.Module):
     Implementation of the ViT architecture (https://arxiv.org/abs/2010.11929),
     with support for tile-cropped images, optional hidden layer outputs and optional CLS projection.
 
-    If your images input are not tile-cropped, they are considered them as single-time images.
-
     ViT is a transformer architecture that takes in images and outputs N embedded tokens that
-    represent this image. Each image is divided into patches by a convolution.
-    These patches are flattened and then treated as tokens by a transformer.
+    represent this image. Each image is divided into *patches* by a convolution.
+    These patches are flattened and subsequently treated as *tokens* by the transformer.
 
     To further enhance the performance of ViT, we support tile-cropped images, which are images divided into
-    tiles during the preprocessing stage. For example, an 800x400 image is divided
-    into 4x2 tiles of 200x200, if your tile_size = 200 (for preprocessing details,
-    ``check torchtune.models.clip._transforms.CLIPImageTransform``).
+    *tiles* during the preprocessing stage. For example, An 800x400 image may be cropped into two 400x400 tiles
+    if the tile_size = 400. For details on preprocessing, please refer to
+     ```torchtune.models.clip._transforms.CLIPImageTransform``).
 
-    Each of these tiles are treated as a single image, and further broken down into patches. For example, if
-    your patch_size = 20, then each tile will have 10x10 patches, and your whole image will have
-    4x2x20 patches (tokens).
+    Each of these tiles are further broken down into patches. For example, if
+    your patch_size = 40, then each tile will be a grid of 10x10 patches, and your whole image will have
+    num_tiles * n_tokens -> num_tiles * (10x10 patches + 1 CLS token) -> num_tiles * 101.
 
-    To make help the model "see" the whole image, we have 3 types of positional embeddings:
-        - pre_tile_pos_embed (``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``)
-        - post_tile_pos_embed (``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``)
-        - token_pos_embedding (``torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding``)
+    To help the model "see" the whole image, we use positional embeddings. If your image
+    was tile-cropped, then you need to use tile positional embeddings.
+        - token_pos_embedding: ``torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding``
+        - pre_tile_pos_embed: ``torchtune.models.clip._position_embeddings.TilePositionalEmbedding``
+        - post_tile_pos_embed: ``torchtune.models.clip._position_embeddings.TilePositionalEmbedding``
 
-    If your images are not tile-cropped, then you do NOT need tile positional embeddings.
-    tile_pos_embed should be None and token_pos_embedding should
-    be ``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``.
+    Otherwise, tile_pos_embed should be None, and all you need is a simple token embedding:
+        - token_pos_embedding: ``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``
+
+    All images will be considered as tile-cropped, even if your image was not tile-cropped. In this case,
+    your image would be composed of a single tile.
 
     Args:
-        patch_grid_size (int): The size of a squared grid that represents how many
+        patch_grid_size (int): The side of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
         num_layers (int): The number of transformer layers.
         layer (nn.Module): The transformer layer module.
-        token_pos_embedding (nn.Module): The token positional embedding module.
-        pre_tile_pos_embed (Optional[nn.Module]): The pre-tile positional embedding module. It should be
-            None if your image was not tile-cropped.
-        post_tile_pos_embed (Optional[nn.Module]): The post-tile positional embedding module. It should be
-            None if your image was not tile-cropped.
+        token_pos_embedding (Union[TokenPositionalEmbedding, TiledTokenPositionalEmbedding]): The token
+            positional embedding module.
+        pre_tile_pos_embed (Optional[TilePositionalEmbedding]): The pre-tile positional embedding module. It should be
+            None if your image was not tile-cropped in advance.
+        post_tile_pos_embed (Optional[TilePositionalEmbedding]): The post-tile positional embedding module. It should be
+            None if your image was not tile-cropped in advance.
         cls_projection (Optional[nn.Module]): The CLS projection module. It should take an input tensor
-            of shape (bsz, n_tokens, embed_dim) and output a tensor of shape (bsz, embed_dim).
+            of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape (bsz * n_tiles, embed_dim).
+            If None, then all output tokens from the transformer are returned.
         indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return. These
-            hidden layers are not part of the cls_projection. Notice that it returns the indice
+            hidden layers are not part of the cls_projection. Notice that it returns the hidden layer
             BEFORE it goes through the transformer layer.
-        patch_size (int): The size of each square patch. E.g. for patch_size = 20, a tile of size 100x100
-            will have 5x5 patches.
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            with shape (40, 40) each.
         embed_dim (int): The dimensionality of each patch embedding (token).
         in_channels (int): The number of input channels.
     """
@@ -70,9 +79,11 @@ class VisionTransformer(nn.Module):
         patch_grid_size: int,
         num_layers: int,
         layer: nn.Module,
-        token_pos_embedding: nn.Module,
-        pre_tile_pos_embed: Optional[nn.Module] = None,
-        post_tile_pos_embed: Optional[nn.Module] = None,
+        token_pos_embedding: Union[
+            TokenPositionalEmbedding, TiledTokenPositionalEmbedding
+        ],
+        pre_tile_pos_embed: Optional[TilePositionalEmbedding] = None,
+        post_tile_pos_embed: Optional[TilePositionalEmbedding] = None,
         cls_projection: Optional[nn.Module] = None,
         indices_return_hidden: Optional[List[int]] = None,
         patch_size: int = 14,
@@ -80,6 +91,16 @@ class VisionTransformer(nn.Module):
         in_channels: int = 3,
     ) -> None:
         super().__init__()
+
+        assert patch_grid_size > 0, "patch_grid_size must be > 0"
+        assert num_layers > 0, "num_layers must be > 0"
+        assert embed_dim > 0, "embed_dim must be > 0"
+        assert in_channels > 0, "in_channels must be > 0"
+        assert patch_size > 0, "patch_size must be > 0"
+        if indices_return_hidden:
+            assert (
+                len(indices_return_hidden) <= num_layers
+            ), f"indices_return_hidden must be <= num_layers. Got {indices_return_hidden=} and {num_layers=}"
 
         # constants
         self.patches_per_tile = patch_grid_size**2
@@ -93,7 +114,7 @@ class VisionTransformer(nn.Module):
         self.cls_projection = cls_projection
         self.transformer_layers = _get_clones(layer, num_layers)
 
-        # built-in modules
+        # internal modules
         self.conv = nn.Conv2d(
             in_channels=in_channels,
             out_channels=embed_dim,
@@ -114,42 +135,48 @@ class VisionTransformer(nn.Module):
         self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
     ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         """
-
         Args:
-            images (torch.Tensor): Tensor with shape (bsz, n_tiles, n_channels, w, h), if the image was
+            images (torch.Tensor): Tensor with shape (bsz, n_tiles, n_channels, w, h) if the image was
                 tile-cropped, or (bsz, n_channels, w, h) otherwise.
             aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, 2). It should be None or 1x1
                 if the image was NOT tile-cropped.
         Returns:
             Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The output tensor(s).
-                If indices_return_hidden is None, then it returns a single tensor
+                If indices_return_hidden is None, it returns a single tensor
                 of shape (bsz, n_tiles, n_tokens, embed_dim). Otherwise, it returns a
                 tuple of tensors: (x, hidden_out), where hidden_out is a stack of hidden layers,
-                also of shape (bsz, n_tiles, n_tokens, embed_dim). If your image is not tiled_cropped,
-                n_tiles will be 1.
+                also of shape (bsz, n_tiles, n_tokens, embed_dim).
         Examples:
             >>> from torchtune.modules.transforms.vision_utils.tile_crop import tile_crop
+            >>> from torchtune.modules import VisionTransformer
             >>> num_channels = 3
             >>> image_size = (800,400)
-            >>> tile_size = 200
+            >>> tile_size = 400
+            >>> patch_size = 40
+            >>> patch_grid_size = tile_size // patch_size
             >>>
             >>> # for details on preprocessing, check torchtune.models.clip._transforms.CLIPImageTransform
             >>> image = torch.rand(num_channels, image_size[0], image_size[1])
-            >>> tile-cropped_image = tile_crop(image, tile_size) # 4x2 tiles -> (8, 2, 200, 200)
-            >>> aspect_ratio = torch.tensor([4,2])
+            >>> tile-cropped_image = tile_crop(image, tile_size) # (num_tiles, nch, h, w) -> (2, 3, 400, 400)
+            >>> aspect_ratio = torch.tensor([2,1])
             >>>
-            >>> batch_image = tile-cropped_image.unsqueeze(0) # (1, 8, 2, 200, 200)
-            >>> batch_aspect_ratio = aspect_ratio.unsqueeze(0) # (1, 2)
+            >>> # make it a batch of 1 image
+            >>> batch_image = tile-cropped_image.unsqueeze(0) # (bsz, num_tiles, nch, h, w)
+            >>> batch_aspect_ratio = aspect_ratio.unsqueeze(0) # (bsz, aspect_ratio)
             >>>
             >>> # model = VisionTransformer(
-            ...            indices_return_hidden = [3,6,9],
-            ...            patch_size = 10,
-            ...            patch_grid_size = 10,
-            ...            embed_dim = 1280,
-            ...            ...)
+            ... #           indices_return_hidden = [1,3],
+            ... #           patch_size = 40,
+            ... #           patch_grid_size = patch_grid_size,
+            ... #           embed_dim = 32,
+            ... #           num_layers = 6,
+            ... #           in_channels = num_channels,
+            ... #           ...)
             >>> x, hidden_out = model(images = batch_image, aspect_ratio = batch_aspect_ratio)
-            >>> x.shape, hidden_out.shape
-            ((1, 8, 100, 1280), (1, 4, 8, 100, 1280))
+            >>> print(x.shape)  # (bsz, num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>> print(hidden_out.shape)  # (bsz, len(indices_return_hidden), num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            (torch.Size([1, 2, 101, 32]), torch.Size([1, 2, 2, 101, 32]))
+
 
         """
         hidden_out = []
@@ -170,7 +197,6 @@ class VisionTransformer(nn.Module):
                 f"Unsupported number of dimensions: {images.ndim}. Expected 4 or 5."
             )
 
-        # TODO: do i need to verify that w == h?
         # if aspect_ratio is not provided, it defaults to one tile [1,1]
         if aspect_ratio is None:
             aspect_ratio = torch.tensor([[1, 1]] * bsz, device=images.device)
@@ -179,11 +205,9 @@ class VisionTransformer(nn.Module):
         aspect_ratio = aspect_ratio.reshape(bsz, 2)
 
         # patch embeddings (tokens)
-
-        # out shape: (bsz, embed_dim, patch_grid_size, patch_grid_size)
+        # out: (bsz, embed_dim, patch_grid_size, patch_grid_size)
         x = self.conv(images)
-
-        # out shape: (bsz, patch_grid_size**2, embed_dim)
+        # out: (bsz, patch_grid_size**2, embed_dim)
         x = x.flatten(x, start_dim=2).permute(0, 2, 1)
 
         _, n_tokens, embed_dim = x.shape
@@ -264,8 +288,8 @@ class CLSEmbedding(nn.Module):
         cls_emb = self.cls_embedding.to(x.dtype)
 
         # add 1 CLS token to every tile
-        effective_bsz, _, embed_dim = x.shape  # (bsz * n_tiles, n_tokens, embed_dim)
-        cls_emb = cls_emb.broadcast_to(effective_bsz, 1, embed_dim)
+        pseudo_bsz, _, embed_dim = x.shape  # (bsz * n_tiles, n_tokens, embed_dim)
+        cls_emb = cls_emb.broadcast_to(pseudo_bsz, 1, embed_dim)
         return torch.cat([cls_emb, x], dim=1)
 
 
