@@ -195,8 +195,6 @@ class VisionTransformer(nn.Module):
         """
         hidden_out = []
 
-        hidden_out = []
-
         # parse inputs
         if images.ndim == 4:
             n_tiles = 1
@@ -221,7 +219,6 @@ class VisionTransformer(nn.Module):
         aspect_ratio = aspect_ratio.reshape(bsz, 2)
 
         # patch embeddings (tokens)
-
         # out: (bsz, embed_dim, patch_grid_size, patch_grid_size)
         x = self.conv(images)
 
