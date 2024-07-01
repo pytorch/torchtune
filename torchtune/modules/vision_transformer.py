@@ -145,7 +145,7 @@ class VisionTransformer(nn.Module):
                 If indices_return_hidden is None, it returns the token embeddings as a tensor
                 of shape (bsz, n_tiles, n_tokens, embed_dim). Otherwise, it returns a
                 tuple of tensors: (x, hidden_states), where hidden_states is a stack of hidden layers
-                of shape (bsz, len(indices_return_hidden), n_tiles, n_tokens, embed_dim).
+                of shape (bsz, n_tiles, n_tokens, embed_dim, len(indices_return_hidden)).
 
         Examples:
 
@@ -258,9 +258,9 @@ class VisionTransformer(nn.Module):
         x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
 
         if self.indices_return_hidden:
-            hidden_states = torch.stack(hidden_states, dim=1)
+            hidden_states = torch.stack(hidden_states, dim=-1)
             hidden_states = hidden_states.reshape(
-                bsz, len(self.indices_return_hidden), n_tiles, n_tokens, embed_dim
+                bsz, n_tiles, n_tokens, embed_dim, len(self.indices_return_hidden)
             )
         else:
             hidden_states = torch.empty(0)  # dummy tensor
