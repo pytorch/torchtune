@@ -69,15 +69,16 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
+            tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = self.encode(
+                    tokens = tokens + self.encode(
                         item["content"],
                         add_bos=False,
                         add_eos=False,
                     )
                 elif item["type"] == "image":
-                    tokens = [self.image_id]
+                    tokens = tokens + [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -111,7 +112,6 @@ class DummyTokenizer(ModelTokenizer):
         return 0
 
     @property
-<<<<<<< HEAD
     def image_id(self):
         return -2
 
@@ -138,40 +138,6 @@ class DummyChatFormat(ChatFormat):
             )
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
-            )
-        return formatted_dialogue
-
-=======
-    def image_id(self) -> int:
-        return -2
-
->>>>>>> 0796ff3 (multimodal dataset test)
-
-class DummyChatFormat(ChatFormat):
-
-    B_SYS, E_SYS = "System:\n", "\n"
-    B_INST, E_INST = "User:\n", "\nAssistant:\n"
-    B_ASST, E_ASST = "", ""
-    system = f"{B_SYS}{{content}}{E_SYS}"
-    user = f"{B_INST}{{content}}{E_INST}"
-    assistant = f"{B_ASST}{{content}}{E_ASST}"
-
-    @classmethod
-    def format(
-        cls,
-        messages,
-    ):
-        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
-        formatted_dialogue = []
-        for message in messages:
-            content = formats.get(message["role"]).format(content=message["content"])
-            formatted_dialogue.append(
-                Message(
-                    role=message["role"],
-                    content=content,
-                    masked=message["masked"],
-                    media=message["media"],
-                ),
             )
         return formatted_dialogue
 
