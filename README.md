@@ -32,7 +32,8 @@ torchtune focuses on integrating with popular tools and libraries from the ecosy
 - [Hugging Face Datasets](https://huggingface.co/docs/datasets/en/index) for [access](torchtune/datasets/_instruct.py) to training and evaluation datasets
 - [PyTorch FSDP](https://pytorch.org/docs/stable/fsdp.html) for distributed training
 - [torchao](https://github.com/pytorch-labs/ao) for lower precision dtypes and [post-training quantization](recipes/quantize.py) techniques
-- [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/main/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
+- [Weights & Biases](https://wandb.ai/site) for [logging](https://pytorch.org/torchtune/stable/deep_dives/wandb_logging.html) metrics and checkpoints, and tracking training progress
+- [Comet](https://www.comet.com/site/?utm_source=torchtune&utm_medium=github&utm_content=readme) for [logging](https://pytorch.org/torchtune/stable/deep_dives/comet_logging.html) metrics and checkpoints, and tracking training progress
 - [ExecuTorch](https://pytorch.org/executorch-overview) for [on-device inference](https://github.com/pytorch/executorch/tree/main/examples/models/llama2#optional-finetuning) using fine-tuned models
 - [bitsandbytes](https://huggingface.co/docs/bitsandbytes/main/en/index) for low memory optimizers for our [single-device recipes](recipes/configs/llama2/7B_full_low_memory.yaml)
 
