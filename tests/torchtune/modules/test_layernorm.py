@@ -8,6 +8,8 @@ import pytest
 
 import torch
 
+from tests.test_utils import assert_expected
+
 from torchtune.modules.layer_norm import LayerNorm
 from torchtune.utils.seed import set_seed
 
@@ -44,6 +46,8 @@ class TestLayerNorm:
         assert (
             output_fp16.dtype == torch.float32
         ), "Expected output to be fp32, but got {output_fp16.dtype=}"
-        assert output_fp16.mean() == torch.nn.LayerNorm(
-            8, eps=eps
-        ), f"Expected {torch.nn.LayerNorm(dim, eps=eps)=}, but got {output_fp16.mean()=}"
+
+        expected_output = torch.nn.LayerNorm(dim, eps=eps)(input_random_fp16.float())
+        assert_expected(
+            output_fp16.mean(), expected_output.mean(), atol=1e-3, rtol=1e-3
+        )
