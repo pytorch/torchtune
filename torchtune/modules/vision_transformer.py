@@ -62,9 +62,10 @@ class VisionTransformer(nn.Module):
             of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape
             (bsz * n_tiles, cls_output_dim). If provided, only the CLS token projection will be
             outputted, instead of all tokens.
-        indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return. These
-            hidden layers are not part of the cls_projection. Notice that it returns the hidden layer
-            BEFORE it goes through the transformer layer.
+        indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return.
+            If provided, it will return the intermediate results of the transformer layers
+            before they go through a next layer. For example, indices_return_hidden = [0, 3] will
+            return the tokens before they go through the first and fourth layers.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
