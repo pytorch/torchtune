@@ -44,7 +44,7 @@ class CLIPImageTransform:
     image is padded (300, 800) -> 448,896
     Image is tiled 2x4, for a final output shape of (8, 3, 224, 224)
 
-    If resize_to_max_canvas=True, then:
+    If ``resize_to_max_canvas=True``, then:
     best_resolution = (448, 1344) # canvas that allows maximum upscaling, with minimum padding, up to 16 tiles
     image is resized without distortion (300,800) -> (448, 1194) #448 is the limiting side for the resize
     image is padded (448, 1194) -> (448, 1344)
