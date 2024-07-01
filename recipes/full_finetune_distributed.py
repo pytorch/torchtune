@@ -30,6 +30,8 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
+from torchtune.utils.early_exit import early_exit_loss
+from torchtune.modules.common_utils import slice_str_to_array
 
 from tqdm import tqdm
 
@@ -134,6 +136,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
+
+        self.early_exit_layers = cfg.get("early_exit_layers", None)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
@@ -485,6 +489,12 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # Early exit loss settings
+        if self.early_exit_layers:
+            output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
+        else:
+            output_hidden_states = False
+
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
 
@@ -503,6 +513,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
 
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
+                b, s = tokens.shape
                 # Get the attention mask and position ids from the dataset if they
                 # exist. Currently, only sample packing in PackedDataset returns these
                 mask = batch.get("mask", None)  # shape [b, s, s]
@@ -516,13 +527,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                     input_pos.to(self._device) if input_pos is not None else None
                 )
 
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                if self.early_exit_layers:
+                    logits, hidden_states = self._model(tokens, mask=mask, input_pos=input_pos, output_hidden_states=output_hidden_states)
+                else:
+                    logits = self._model(tokens, mask=mask, input_pos=input_pos, output_hidden_states=output_hidden_states)
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
                 loss = self._loss_fn(logits, labels)
+
+                # Compute early exit loss
+                if self.early_exit_layers:
+                    loss += early_exit_loss(self._model, hidden_states, labels, self._loss_fn)
 
                 loss = loss / self._gradient_accumulation_steps
                 running_loss += loss
