@@ -31,8 +31,8 @@ def resize_with_pad(
         image (torch.Tensor): The input image tensor in the format [..., H, W].
         target_size (Tuple[int, int]): The desired resolution to fit the image into in the format [height, width].
         resample (torchvision.transforms.InterpolationMode): Resampling method used when resizing images.
-            Supports ant torchvision.transforms.InterpolationMode, such as InterpolationMode.NEAREST,
-            InterpolationMode.NEAREST_EXACT, InterpolationMode.BILINEAR, InterpolationMode.BICUBIC.
+            Supports torchvision.transforms.InterpolationMode.NEAREST, InterpolationMode.NEAREST_EXACT,
+            InterpolationMode.BILINEAR and InterpolationMode.BICUBIC.
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
 
