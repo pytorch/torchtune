@@ -117,6 +117,8 @@ class TestVisionTransformer:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
+        assert_expected(output.mean(), torch.tensor(-0.0411), atol=1e-3, rtol=1e-3)
+
     def test_vision_transformer_return_hidden_layers(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["indices_return_hidden"] = [
