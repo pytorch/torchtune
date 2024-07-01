@@ -26,6 +26,7 @@ def random(auto_use=True):
 class TestVisionTransformer:
     @pytest.fixture(autouse=True)
     def setup_class(self):
+
         self.embed_dim = 16
         self.patch_grid_size = 7
         self.max_num_tiles = 3
@@ -43,7 +44,7 @@ class TestVisionTransformer:
         )
 
     def test_token_positional_embedding(self):
-
+        # call model
         set_seed(42)
         embedding = TokenPositionalEmbedding(self.embed_dim, self.patch_grid_size)
 
@@ -52,10 +53,12 @@ class TestVisionTransformer:
         )
         output = embedding(inpt)
 
+        # assertion
         assert_expected(output.shape, inpt.shape)
         assert_expected(output.mean(), torch.tensor(0.0085), atol=1e-3, rtol=1e-3)
 
     def test_tiled_token_positional_embedding(self):
+        # call model
         set_seed(42)
         embedding = TiledTokenPositionalEmbedding(
             self.max_num_tiles, self.embed_dim, self.patch_grid_size
@@ -67,15 +70,18 @@ class TestVisionTransformer:
         inpt = self.input_tensor.clone()
         output = embedding(inpt, self.aspect_ratio)
 
+        # assertion
         assert_expected(output.shape, self.input_tensor.shape)
         assert_expected(output.mean(), torch.tensor(0.0063), atol=1e-3, rtol=1e-3)
 
     def test_tile_positional_embedding(self):
+        # call model
         set_seed(42)
         embedding = TilePositionalEmbedding(self.max_num_tiles, self.embed_dim)
 
         inpt = self.input_tensor.clone()
         output = embedding(inpt, self.aspect_ratio)
 
+        # assertion
         assert_expected(output.shape, self.input_tensor.shape)
         assert_expected(output.mean(), torch.tensor(0.0018), atol=1e-3, rtol=1e-3)

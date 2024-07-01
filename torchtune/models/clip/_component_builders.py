@@ -1,7 +1,6 @@
 from typing import List, Optional, Callable
 
 import torch
-from torch import nn
 from torchtune.modules import VisionTransformer, CLSProjection
 from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
 
@@ -23,13 +22,14 @@ def clip(
     in_channels: int = 3,
     attn_dropout: float = 0.0,
     norm_eps: float = 1e-5,
+    cls_output_dim: int = 512,
 ) -> VisionTransformer:
 
     logger.info("Instantiating clip model...")
 
     patch_grid_size = tile_size // patch_size
 
-    cls_projection = CLSProjection(embed_dim=embed_dim) if output_cls_projection else None
+    cls_projection = CLSProjection(inpt_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
     
     transformer_layer = torch.nn.TransformerEncoderLayer(
         d_model=embed_dim, 

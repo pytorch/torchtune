@@ -23,6 +23,7 @@ def random(auto_use=True):
 def transformer_config():
     return {
         "embed_dim": 32,
+        "cls_output_dim": 64,
         "num_layers": 2,
         "num_heads": 4,
         "tile_size": 49,
@@ -84,6 +85,7 @@ class TestVisionTransformer:
         # call model
         output = vision_transformer(self.image, self.aspect_ratio)
 
+        # assertion
         expected_shape = (
             self.batch_size,
             self.num_tiles,
@@ -103,11 +105,12 @@ class TestVisionTransformer:
         model_with_cls = clip(**transformer_config).eval()
         output = model_with_cls(self.image, None)
 
+        # assertion
         expected_shape = (
             self.batch_size,
             self.num_tiles,
             1,
-            transformer_config["embed_dim"],
+            transformer_config["cls_output_dim"],
         )
 
         assert (
@@ -126,7 +129,7 @@ class TestVisionTransformer:
         model_with_hidden = clip(**transformer_config)
         x, hidden_layers = model_with_hidden(self.image)
 
-        # x expected
+        # assertion x
         expected_shape_x = (
             self.batch_size,
             self.num_tiles,
@@ -140,7 +143,7 @@ class TestVisionTransformer:
 
         assert_expected(x.mean(), torch.tensor(2.2925e-08), atol=1e-3, rtol=1e-3)
 
-        # hidden expected
+        # assertion hidden
         num_hidden_layers_expected = len(transformer_config["indices_return_hidden"])
 
         expected_shape_hidden_layers = (
@@ -166,6 +169,7 @@ class TestVisionTransformer:
         model_with_multiple_tiles = clip(**transformer_config)
         output = model_with_multiple_tiles(images, aspect_ratio=None)
 
+        # assertion
         expected_shape = (
             self.batch_size,
             1,

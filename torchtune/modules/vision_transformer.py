@@ -9,11 +9,6 @@ from typing import List, Optional, Tuple, Union
 import torch
 from torch import nn
 
-from torchtune.models.clip._position_embeddings import (
-    TiledTokenPositionalEmbedding,
-    TilePositionalEmbedding,
-    TokenPositionalEmbedding,
-)
 from torchtune.modules import LayerNorm
 from torchtune.modules.transformer import _get_clones
 
@@ -60,7 +55,7 @@ class VisionTransformer(nn.Module):
         post_tile_pos_embed (Optional[TilePositionalEmbedding]): The post-tile positional embedding module. It should be
             None if your image was not tile-cropped in advance.
         cls_projection (Optional[nn.Module]): The CLS projection module. It should take an input tensor
-            of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape (bsz * n_tiles, embed_dim).
+            of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape (bsz * n_tiles, cls_output_dim).
             If None, then all output tokens from the transformer are returned.
         indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return. These
             hidden layers are not part of the cls_projection. Notice that it returns the hidden layer
@@ -77,11 +72,9 @@ class VisionTransformer(nn.Module):
         patch_grid_size: int,
         num_layers: int,
         layer: nn.Module,
-        token_pos_embedding: Union[
-            TokenPositionalEmbedding, TiledTokenPositionalEmbedding
-        ],
-        pre_tile_pos_embed: Optional[TilePositionalEmbedding] = None,
-        post_tile_pos_embed: Optional[TilePositionalEmbedding] = None,
+        token_pos_embedding: nn.Module,
+        pre_tile_pos_embed: Optional[nn.Module] = None,
+        post_tile_pos_embed: Optional[nn.Module] = None,
         cls_projection: Optional[nn.Module] = None,
         indices_return_hidden: Optional[List[int]] = None,
         patch_size: int = 14,
@@ -260,7 +253,9 @@ class VisionTransformer(nn.Module):
         if self.cls_projection:
             x = x.reshape(bsz * n_tiles, n_tokens, embed_dim)
             x = self.cls_projection(x)
-            x = x.reshape(bsz, n_tiles, 1, embed_dim)
+            x = x.reshape(
+                bsz, n_tiles, 1, -1
+            )  # (bsz, n_tiles, num_tokens, cls_output_dim)
 
         if self.indices_return_hidden:
             return x, hidden_out
@@ -307,12 +302,12 @@ class CLSProjection(nn.Module):
         torch.Tensor: The projected CLS token.
     """
 
-    def __init__(self, embed_dim: int) -> None:
+    def __init__(self, inpt_dim: int, cls_output_dim: int) -> None:
         super().__init__()
 
-        scale = embed_dim**-0.5
-        self.projection = nn.Parameter(scale * torch.randn(embed_dim, embed_dim))
+        scale = inpt_dim**-0.5
+        self.projection = nn.Parameter(scale * torch.randn(inpt_dim, cls_output_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # (bsz * n_tiles, n_tokens, embed_dim) -> (bsz * n_tiles, embed_dim)
+        # (bsz * n_tiles, n_tokens, embed_dim) -> (bsz * n_tiles, cls_output_dim)
         return x[:, 0, :] @ self.projection
