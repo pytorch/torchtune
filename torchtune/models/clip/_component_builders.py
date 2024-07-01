@@ -8,7 +8,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def clip(
+def clip_vision_encoder(
     embed_dim: int,
     num_layers: int,
     num_heads: int,
@@ -44,14 +44,14 @@ def clip(
 
     # position embeddings
     if max_num_tiles == 1:
-        logger.info("Found max_num_tiles=1. Setting tile_pos_embed to None.")
+        logger.info("Found max_num_tiles=1. Setting tile_pos_embed to None and using only token_pos_embedding.")
         pre_tile_pos_embed = None
         post_tile_pos_embed = None
         token_pos_embedding = TokenPositionalEmbedding(
             embed_dim=embed_dim, 
             patch_grid_size=patch_grid_size)
     else:
-        logger.info(f"Found {max_num_tiles=}. Instantiating tile_pos_embedding.")
+        logger.info(f"Found {max_num_tiles=}. Instantiating tile_pos_embedding and token_pos_embedding.")
         pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
         post_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
         token_pos_embedding = TiledTokenPositionalEmbedding(

@@ -19,6 +19,7 @@ Modeling Components and Building Blocks
     RMSNorm
     TransformerDecoderLayer
     TransformerDecoder
+    VisionTransformer
 
 Tokenizers
 ------------------------

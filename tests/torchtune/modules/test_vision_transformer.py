@@ -9,7 +9,7 @@ import pytest
 import torch
 
 from tests.test_utils import assert_expected
-from torchtune.models.clip._component_builders import clip
+from torchtune.models.clip._component_builders import clip_vision_encoder
 
 from torchtune.utils.seed import set_seed
 
@@ -42,7 +42,7 @@ def transformer_config():
 @pytest.fixture
 def vision_transformer(transformer_config):
     set_seed(42)
-    return clip(**transformer_config).eval()
+    return clip_vision_encoder(**transformer_config).eval()
 
 
 class TestVisionTransformer:
@@ -102,7 +102,7 @@ class TestVisionTransformer:
 
         # call model
         set_seed(42)
-        model_with_cls = clip(**transformer_config).eval()
+        model_with_cls = clip_vision_encoder(**transformer_config).eval()
         output = model_with_cls(self.image, None)
 
         # assertion
@@ -126,7 +126,7 @@ class TestVisionTransformer:
 
         # call model
         set_seed(42)
-        model_with_hidden = clip(**transformer_config)
+        model_with_hidden = clip_vision_encoder(**transformer_config)
         x, hidden_layers = model_with_hidden(self.image)
 
         # assertion x
@@ -166,7 +166,7 @@ class TestVisionTransformer:
         images = self.image[:, 0, :, :]
 
         # call model
-        model_with_multiple_tiles = clip(**transformer_config)
+        model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
         output = model_with_multiple_tiles(images, aspect_ratio=None)
 
         # assertion
