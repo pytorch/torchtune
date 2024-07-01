@@ -74,7 +74,7 @@ Functions used for preprocessing images.
    :toctree: generated/
    :nosignatures:
 
-    transforms.vision.get_canvas_best_fit
-    transforms.vision.resize_with_pad
-    transforms.vision.tile_crop
-    transforms.vision.find_supported_resolutions
+    transforms.get_canvas_best_fit
+    transforms.resize_with_pad
+    transforms.tile_crop
+    transforms.find_supported_resolutions

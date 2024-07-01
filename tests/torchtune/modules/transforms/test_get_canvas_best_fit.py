@@ -7,10 +7,7 @@
 import pytest
 import torch
 
-from torchtune.modules.transforms.vision.get_canvas_best_fit import (
-    find_supported_resolutions,
-    get_canvas_best_fit,
-)
+from torchtune.modules.transforms import find_supported_resolutions, get_canvas_best_fit
 
 
 class TestUtils:

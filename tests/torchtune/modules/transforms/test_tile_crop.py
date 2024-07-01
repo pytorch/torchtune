@@ -8,7 +8,7 @@ import pytest
 
 import torch
 
-from torchtune.modules.transforms.vision import tile_crop
+from torchtune.modules.transforms import tile_crop
 
 
 class TestTransforms:

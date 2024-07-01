@@ -18,10 +18,11 @@ def tile_crop(image: torch.Tensor, tile_size: int) -> torch.Tensor:
     Args:
         image (torch.Tensor): Input image to crop into tiles.
         tile_size (int): Size of each tile.
+
     Returns:
         torch.Tensor: Tensor of shape [num_tiles, channel_size, tile_size, tile_size]
-    Examples:
 
+    Examples:
         >>> image = torch.rand(3, 200, 300)
         >>> tiles = tile_crop(image, tile_size=50)
         >>> tiles.shape # 4x6 = 24 tiles

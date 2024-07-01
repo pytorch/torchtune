@@ -7,7 +7,7 @@ def clip_vit_336_transform():
         image_std=[0.26862954, 0.26130258, 0.27577711],
         tile_size=336,
         possible_resolutions=None,
-        max_num_tiles=4,
+        max_num_tiles=1,
         resample="bilinear",
         resize_to_max_canvas=True,
     )

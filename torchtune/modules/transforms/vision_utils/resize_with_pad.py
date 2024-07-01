@@ -35,39 +35,38 @@ def resize_with_pad(
             InterpolationMode.NEAREST_EXACT, InterpolationMode.BILINEAR, InterpolationMode.BICUBIC.
         max_upscaling_size (int): The maximum size to upscale the image to.
             If None, will upscale up to target_size.
+
     Returns:
         torch.Tensor: The resized and padded image tensor in the format [..., H, W].
+
     Examples:
 
-        Example 1:
+        Example 1: The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
+        and then padded from (448, 1194) to (448, 1344).
+
             >>> max_upscaling_size = None
             >>> image = torch.rand([3, 300, 800])
             >>> target_size = (448, 1344)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
             >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will be upscaled from (300, 800) to (448, 1194), since 448 is the limiting side,
-        and then padded from (448, 1194) to (448, 1344).
+        Example 2: The image will stay as is, since 800 > 600, and then padded from (300, 800) to (448, 1344).
 
-        Example 2:
             >>> max_upscaling_size = 600
             >>> image = torch.rand([3, 300, 800])
             >>> target_size = (448, 1344)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
             >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will stay as is, since 800 > 600,
-        and then padded from (300, 800) to (448, 1344).
+        Example 3: The image will be downscaled from (500, 1000) to (224, 448),
+        and padded from (224, 448) to (448, 448).
 
-        Example 3:
             >>> max_upscaling_size = 600
             >>> image = torch.rand([3, 500, 1000])
             >>> target_size = (448, 488)
             >>> resample = torchvision.transforms.InterpolationMode.BILINEAR
             >>> output = resize_with_pad(image, target_size, resample, max_upscaling_size)
 
-        The image will be downscaled from (500, 1000) to (224, 448),
-        and padded from (224, 448) to (448, 448).
     """
 
     image_height, image_width = image.shape[-2:]

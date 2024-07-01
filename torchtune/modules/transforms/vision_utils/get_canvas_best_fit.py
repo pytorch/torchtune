@@ -35,10 +35,11 @@ def get_canvas_best_fit(
             row represents a possible canvas.
         resize_to_max_canvas (bool): If True, pick the canvas that allows maximum scaling.
             If False, pick the canvas that minimizes downscaling, including no downscaling at all.
+
     Returns:
         Tuple[int, int]: The best resolution to fit the image into.
-    Examples:
 
+    Examples:
         >>> image = torch.rand(3, 200, 300)
         >>> possible_resolutions = torch.tensor([
         ...     [224, 672],

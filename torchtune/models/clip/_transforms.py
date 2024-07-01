@@ -5,19 +5,17 @@
 # LICENSE file in the root directory of this source tree.
 
 import logging
-from typing import Dict, List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 import torch
 import torchvision
 from PIL import Image
 
-from torchtune.modules.transforms.vision import (
+from torchtune.modules.transforms import (
+    find_supported_resolutions,
     get_canvas_best_fit,
     resize_with_pad,
     tile_crop,
-)
-from torchtune.modules.transforms.vision.get_canvas_best_fit import (
-    find_supported_resolutions,
 )
 
 from torchvision.transforms.v2 import functional as F
@@ -56,6 +54,7 @@ class CLIPImageTransform:
         image_std Union[float, List[float]]]): Standard deviation values of each channel, used for normalization.
             Should be the same used for the pre-trained model. If None, no normalization is performed.
         possible_resolutions (Optional[List[Tuple[int, int]]]): List of possible resolutions as tuples (height, width).
+            where each tuple represents a possible canvas to fit the image into when calling ``get_canvas_best_fit``.
             If None, this will be calculated using max_num_tiles and tile_size.
         tile_size (int): Size of the tiles to divide the image into
         max_num_tiles (Optional[int]): Only used if possible_resolutions is NOT given.
@@ -69,8 +68,8 @@ class CLIPImageTransform:
             resolution from possible_resolutions.
             If False, it will pick the resolution that minimizes downscaling, including no downscaling at all.
             In this case, the image will only be upscaled if it's size < tile_size.
-    Examples:
 
+    Examples:
         >>> image_transform = CLIPImageTransform(
         ...    image_mean=None,
         ...    image_std=None,
@@ -115,7 +114,9 @@ class CLIPImageTransform:
             possible_resolutions = possible_resolutions
 
         self.possible_resolutions = torch.tensor(possible_resolutions).reshape(-1, 2)
-        logger.info(f"possible_resolutions: {self.possible_resolutions}")
+        logger.info(
+            f"Found possible_resolutions: {self.possible_resolutions}. Will fit the images into the canvas with best fit."
+        )
 
         self.resize_to_max_canvas = resize_to_max_canvas
 
@@ -133,10 +134,7 @@ class CLIPImageTransform:
         # tile_crop
         self.tile_size = tile_size
 
-    def __call__(
-        self,
-        image: Image.Image,
-    ) -> Dict[str, torch.Tensor]:
+    def __call__(self, *, image: Image.Image, **kwargs) -> Mapping[str, Any]:
 
         assert isinstance(image, Image.Image), "Input image must be a PIL image."
 
@@ -172,5 +170,5 @@ class CLIPImageTransform:
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
         return {
             "image": image_tensor,
-            "ar": aspect_ratio,
+            "aspect_ratio": aspect_ratio,
         }

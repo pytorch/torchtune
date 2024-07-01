@@ -57,8 +57,9 @@ class TestPipelines:
         image = (np.random.rand(*image_size) * 255).astype(np.uint8)  # type: ignore
         image = PIL.Image.fromarray(image)  # type: ignore
 
-        output = image_transform(image)
+        output = image_transform(image=image)
         output_image = output["image"]
+        output_ar = output["aspect_ratio"]
 
         assert (
             output_image.shape == params["expected_shape"]
@@ -67,3 +68,8 @@ class TestPipelines:
         assert (
             0 <= output_image.min() <= output_image.max() <= 1
         ), f"Expected pixel values to be in range [0, 1] but got {output_image.min()} and {output_image.max()}"
+
+        expected_num_tiles = output_ar[0] * output_ar[1]
+        assert (
+            expected_num_tiles == output_image.shape[0]
+        ), f"Expected {expected_num_tiles} tiles but got {output_image.shape[0]}"

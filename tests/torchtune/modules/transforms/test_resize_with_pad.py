@@ -9,7 +9,7 @@ import pytest
 import torch
 import torchvision
 
-from torchtune.modules.transforms.vision import resize_with_pad
+from torchtune.modules.transforms import resize_with_pad
 
 
 class TestTransforms:
