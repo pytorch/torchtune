@@ -52,7 +52,7 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset=torchtune.datasets.alpaca_dataset
 
-Hugging Face datasets
+Hugging Face and Local datasets
 ---------------------
 
 We provide first class support for datasets on the Hugging Face hub. Under the hood,
@@ -60,7 +60,7 @@ all of our built-in datasets and dataset builders are using Hugging Face's ``loa
 to load in your data, whether local or on the hub.
 
 You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
-to specify which dataset on the hub to download. Additionally, all builders accept
+to specify which dataset on the hub to download or use from a local directory path. Additionally, all builders accept
 any keyword-arguments that ``load_dataset()`` supports. You can see a full list
 on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loading>`_
 
@@ -253,7 +253,7 @@ Here is an example of a sample that is formatted with :class:`~torchtune.data.Al
 We provide `other instruct templates <data>`
 for common tasks such summarization and grammar correction. If you need to create your own
 instruct template for a custom task, you can inherit from :class:`~torchtune.data.InstructTemplate`
-and create your own class.
+and create your own class. 
 
 .. code-block:: python
 
@@ -293,6 +293,20 @@ and create your own class.
     tune run full_finetune_single_device --config llama3/8B_full_single_device \
     dataset=torchtune.datasets.instruct_dataset dataset.source=my/dataset/path \
     dataset.template=import.path.to.CustomTemplate
+
+
+Under the hood, torchtune is using `importlib.import_module`. 
+You can place your custom template class in any Python module as long as the module is 
+accessible by Python's import mechanism. This means the module should be in a directory 
+that is included in Python's search paths (`sys.path`). 
+This often includes:
+- The current directory from which your Python interpreter or script is run.
+- Directories where Python packages are installed (like `site-packages``).
+- Any directories added to `sys.path` at runtime or through the `PYTHONPATH`` environment variable.
+
+If you are working within a cloned repository of torchtune you can just define your custom template 
+class in the same file as other similar components, in this situation you can change the class name 
+in the config without changing the path at all.
 
 
 Custom chat dataset and chat formats
