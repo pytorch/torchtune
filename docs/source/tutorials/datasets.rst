@@ -138,7 +138,8 @@ Sample packing
 You can use sample packing with any of the single dataset builders by passing in
 :code:`packed=True`. This requires some pre-processing of the dataset which may
 slow down time-to-first-batch, but can introduce significant training speedups
-depending on the dataset.
+depending on the dataset. For a more detailed exploration of sample packing, please
+see the :ref:`deep dive<sample_packing_deepdive>`.
 
 .. code-block:: python
 
