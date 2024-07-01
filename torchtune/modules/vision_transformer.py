@@ -133,7 +133,8 @@ class VisionTransformer(nn.Module):
         """
         Args:
             images (torch.Tensor): If the image was tile-cropped in advance, tensor with shape
-                (bsz, n_tiles, n_channels, w, h). Otherwise, tensor with shape (bsz, n_channels, w, h).
+                (bsz, n_tiles, n_channels, tile_size, tile_size). Otherwise, tensor with shape
+                (bsz, n_channels, tile_size, tile_size).
             aspect_ratio (Optional[torch.Tensor]): If the image was tile-cropped in advance,
                 Tensor with shape (bsz, 2), representing the aspect ratio of the image
                 before tile-cropping, e.g. (2,1). Otherwise, it should be None.
@@ -158,13 +159,17 @@ class VisionTransformer(nn.Module):
             >>>
             >>> # for details about preprocessing, please check
             >>> # torchtune.models.clip._transforms.CLIPImageTransform
+            >>>
+            >>> # create a random image
             >>> image = torch.rand(num_channels, image_size[0], image_size[1])
-            >>> tile_cropped_image = tile_crop(image, tile_size) # (num_tiles, nch, h, w) -> (2, 3, 400, 400)
+            >>>
+            >>> # (num_tiles, nch, h, w) -> (2, 3, 400, 400)
+            >>> tile_cropped_image = tile_crop(image, tile_size)
             >>> aspect_ratio = torch.tensor([2,1])
             >>>
             >>> # make it a batch of 1 image
-            >>> batch_image = tile_cropped_image.unsqueeze(0) # (bsz, num_tiles, nch, h, w)
-            >>> batch_aspect_ratio = aspect_ratio.unsqueeze(0) # (bsz, aspect_ratio)
+            >>> batch_image = tile_cropped_image.unsqueeze(0)
+            >>> batch_aspect_ratio = aspect_ratio.unsqueeze(0)
             >>>
             >>> # For a detailed example, please check
             >>> # torchtune.models.clip._position_embeddings.clip_vision_encoder
@@ -176,10 +181,15 @@ class VisionTransformer(nn.Module):
             ... #           num_layers = 6,
             ... #           in_channels = num_channels,
             ... #           ...)
+            >>>
             >>> x, hidden_out = model(images = batch_image, aspect_ratio = batch_aspect_ratio)
-            >>> print(x.shape)  # (bsz, num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>>
+            >>> # (bsz, num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>> print(x.shape)
             torch.Size([1, 2, 101, 32]
-            >>> print(hidden_out.shape)  # (bsz, len(indices_return_hidden), num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>>
+            >>> # (bsz, len(indices_return_hidden), num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>> print(hidden_out.shape)
             torch.Size([1, 5, 2, 101, 32]
         """
         hidden_out = []
