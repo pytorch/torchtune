@@ -144,7 +144,7 @@ class VisionTransformer(nn.Module):
             Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]: The output tensor(s).
                 If indices_return_hidden is None, it returns the token embeddings as a tensor
                 of shape (bsz, n_tiles, n_tokens, embed_dim). Otherwise, it returns a
-                tuple of tensors: (x, hidden_out), where hidden_out is a stack of hidden layers
+                tuple of tensors: (x, hidden_states), where hidden_states is a stack of hidden layers
                 of shape (bsz, len(indices_return_hidden), n_tiles, n_tokens, embed_dim).
 
         Examples:
@@ -183,17 +183,17 @@ class VisionTransformer(nn.Module):
             ... #           in_channels = num_channels,
             ... #           ...)
             >>>
-            >>> x, hidden_out = model(images = batch_image, aspect_ratio = batch_aspect_ratio)
+            >>> x, hidden_states = model(images = batch_image, aspect_ratio = batch_aspect_ratio)
             >>>
             >>> # (bsz, num_tiles, num_patches_per_tile + CLS token, embed_dim)
             >>> print(x.shape)
             torch.Size([1, 2, 101, 32]
             >>>
             >>> # (bsz, len(indices_return_hidden), num_tiles, num_patches_per_tile + CLS token, embed_dim)
-            >>> print(hidden_out.shape)
+            >>> print(hidden_states.shape)
             torch.Size([1, 5, 2, 101, 32]
         """
-        hidden_out = []
+        hidden_states = []
 
         # parse inputs
         if images.ndim == 4:
@@ -248,7 +248,7 @@ class VisionTransformer(nn.Module):
         x = x.view(bsz, n_tiles * n_tokens, embed_dim)
         for layer_idx, transformer_layer in enumerate(self.transformer_layers):
             if self.indices_return_hidden and layer_idx in self.indices_return_hidden:
-                hidden_out.append(x)
+                hidden_states.append(x)
             x = transformer_layer(x)
 
         # norm
@@ -258,12 +258,12 @@ class VisionTransformer(nn.Module):
         x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
 
         if self.indices_return_hidden:
-            hidden_out = torch.stack(hidden_out, dim=1)
-            hidden_out = hidden_out.reshape(
+            hidden_states = torch.stack(hidden_states, dim=1)
+            hidden_states = hidden_states.reshape(
                 bsz, len(self.indices_return_hidden), n_tiles, n_tokens, embed_dim
             )
         else:
-            hidden_out = torch.empty(0)  # dummy tensor
+            hidden_states = torch.empty(0)  # dummy tensor
 
         # post_tile_pos_embed
         if self.post_tile_pos_embed:
@@ -278,7 +278,7 @@ class VisionTransformer(nn.Module):
             )  # (bsz, n_tiles, num_tokens, cls_output_dim)
 
         if self.indices_return_hidden:
-            return x, hidden_out
+            return x, hidden_states
         else:
             return x
 
