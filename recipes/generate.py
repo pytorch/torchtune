@@ -14,7 +14,7 @@ from torch import nn
 
 from torchtune import config, utils
 from torchtune.config._utils import _get_component_from_path
-from torchtune.data import ChatFormat, InstructTemplate, Message
+from torchtune.data import apply_chat_format, ChatFormat, InstructTemplate, Message
 
 logger = utils.get_logger("DEBUG")
 
@@ -125,7 +125,7 @@ class InferenceRecipe:
             messages += [Message(role="assistant", content="")]
             if chat_format:
                 chat_format = _get_component_from_path(chat_format)
-                messages = chat_format.format(messages)
+                messages = apply_chat_format(chat_format, messages)
             return self._tokenizer.tokenize_messages(messages)[0]
 
     @torch.no_grad()
