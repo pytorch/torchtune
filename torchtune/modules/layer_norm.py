@@ -13,8 +13,8 @@ class LayerNorm(nn.Module):
     Wrapper around torch.nn.LayerNorm to support fp16 training.
 
     Args:
-        dim (int): embedding size
-        eps (float): small value to avoid division by zero. Default: 1e-5
+        dim (int): embedding size.
+        eps (float): small value to avoid division by zero. Default: 1e-5.hex
     """
 
     def __init__(self, dim: int, eps: float = 1e-5) -> None:
@@ -24,7 +24,7 @@ class LayerNorm(nn.Module):
     def forward(self, x: Tensor) -> Tensor:
         """
         Args:
-            x (Tensor): input tensor to normalize
+            x (Tensor): input tensor to normalize.
 
         Returns:
             Tensor: The output tensor after applying LayerNorm.
