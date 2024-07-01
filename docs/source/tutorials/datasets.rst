@@ -53,7 +53,7 @@ function. You can see a list of all supported datasets :ref:`here<datasets>`.
     dataset=torchtune.datasets.alpaca_dataset
 
 Hugging Face and Local datasets
----------------------
+-------------------------------
 
 We provide first class support for datasets on the Hugging Face hub. Under the hood,
 all of our built-in datasets and dataset builders are using Hugging Face's ``load_dataset()``
@@ -295,14 +295,15 @@ and create your own class.
     dataset.template=import.path.to.CustomTemplate
 
 
-Under the hood, torchtune is using `importlib.import_module`. 
+Under the hood, torchtune is using :code:`importlib.import_module`. 
 You can place your custom template class in any Python module as long as the module is 
 accessible by Python's import mechanism. This means the module should be in a directory 
-that is included in Python's search paths (`sys.path`). 
+that is included in Python's search paths (:code:`sys.path`). 
 This often includes:
+
 - The current directory from which your Python interpreter or script is run.
-- Directories where Python packages are installed (like `site-packages``).
-- Any directories added to `sys.path` at runtime or through the `PYTHONPATH`` environment variable.
+- Directories where Python packages are installed (like :code:`site-packages`).
+- Any directories added to :code:`sys.path` at runtime or through the :code:`PYTHONPATH` environment variable.
 
 If you are working within a cloned repository of torchtune you can just define your custom template 
 class in the same file as other similar components, in this situation you can change the class name 
