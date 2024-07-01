@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .lora import LoRALinear
+from .lora import LoRALinear, LowRankAdapter
 from .peft_utils import (  # noqa
     AdapterModule,
     disable_adapter,
@@ -17,6 +17,7 @@ from .peft_utils import (  # noqa
 
 __all__ = [
     "LoRALinear",
+    "LowRankAdapter",
     "AdapterModule",
     "get_adapter_params",
     "set_trainable_params",

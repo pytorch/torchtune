@@ -24,6 +24,7 @@ from torchtune.modules.peft.peft_utils import (
     get_adapter_params,
     get_lora_module_names,
     get_merged_lora_ckpt,
+    notify_base_params_loaded,
     set_trainable_params,
     validate_missing_and_unexpected_for_lora,
 )
@@ -356,6 +357,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         base_missing, base_unexpected = model.load_state_dict(
             base_model_state_dict, strict=False
         )
+        # This is for any adapters that need to be initialized after base weights
+        # have been loaded (e.g. DoRA).
+        notify_base_params_loaded(model)
         if lora_weights_state_dict:
             lora_missing, lora_unexpected = model.load_state_dict(
                 lora_weights_state_dict, strict=False

@@ -94,6 +94,14 @@ _ALL_RECIPES = [
                 file_path="llama3/8B_qlora_single_device.yaml",
             ),
             Config(
+                name="llama3/8B_dora_single_device",
+                file_path="llama3/8B_dora_single_device.yaml",
+            ),
+            Config(
+                name="llama3/8B_qdora_single_device",
+                file_path="llama3/8B_qdora_single_device.yaml",
+            ),
+            Config(
                 name="llama2/13B_qlora_single_device",
                 file_path="llama2/13B_qlora_single_device.yaml",
             ),

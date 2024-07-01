@@ -152,6 +152,7 @@ def lora_llama2(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     # Quantization args
     quantize_base: bool = False,
 ) -> TransformerDecoder:
@@ -185,6 +186,8 @@ def lora_llama2(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base: (bool): Whether to quantize base model weights or not. Only applied to base
             weights within linear layers LoRA is applied to. The final output linear projection is not
             supported for quantization currently.
@@ -205,6 +208,7 @@ def lora_llama2(
         lora_rank=lora_rank,
         lora_alpha=lora_alpha,
         lora_dropout=lora_dropout,
+        use_dora=use_dora,
         quantize_base=quantize_base,
     )
 
@@ -218,6 +222,7 @@ def lora_llama2(
             lora_rank=lora_rank,
             lora_alpha=lora_alpha,
             quantize_base=quantize_base,
+            use_dora=use_dora,
             lora_dropout=lora_dropout,
         )
     else:
@@ -234,7 +239,7 @@ def lora_llama2(
 
     # TODO: quantize_base is not applied to final output_proj currently.
     output_proj = (
-        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout)
+        LoRALinear(embed_dim, vocab_size, rank=lora_rank, alpha=lora_alpha, dropout=lora_dropout, use_dora=use_dora)
         if apply_lora_to_output
         else nn.Linear(embed_dim, vocab_size, bias=False)
     )
@@ -278,6 +283,7 @@ def lora_llama2_self_attention(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> CausalSelfAttention:
     """
@@ -301,6 +307,8 @@ def lora_llama2_self_attention(
         lora_rank (int): rank of each low-rank approximation
         lora_alpha (float): scaling factor for the low-rank approximation
         lora_dropout (float): LoRA dropout probability. Default: 0.0
+        use_dora (bool): Decompose the LoRA weight into magnitude and direction, as
+            introduced in "DoRA: Weight-Decomposed Low-Rank Adaptation" (https://arxiv.org/abs/2402.09353).
         quantize_base (bool): Whether to quantize base model parameters for linear layers
             LoRA is being applied to. Default is ``False``.
 
@@ -326,6 +334,7 @@ def lora_llama2_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "q_proj" in lora_modules
         else nn.Linear(embed_dim, num_heads * head_dim, bias=False)
@@ -338,6 +347,7 @@ def lora_llama2_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "k_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
@@ -350,6 +360,7 @@ def lora_llama2_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "v_proj" in lora_modules
         else nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False)
@@ -362,6 +373,7 @@ def lora_llama2_self_attention(
             alpha=lora_alpha,
             dropout=lora_dropout,
             quantize_base=quantize_base,
+            use_dora=use_dora,
         )
         if "output_proj" in lora_modules
         else nn.Linear(embed_dim, embed_dim, bias=False)
@@ -391,6 +403,7 @@ def lora_llama2_mlp(
     lora_rank: int,
     lora_alpha: float,
     lora_dropout: float = 0.0,
+    use_dora: bool = False,
     quantize_base: bool = False,
 ) -> FeedForward:
     gate_proj = LoRALinear(
@@ -400,6 +413,7 @@ def lora_llama2_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
     down_proj = LoRALinear(
         in_dim=hidden_dim,
@@ -408,6 +422,7 @@ def lora_llama2_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
     up_proj = LoRALinear(
         in_dim=dim,
@@ -416,6 +431,7 @@ def lora_llama2_mlp(
         alpha=lora_alpha,
         dropout=lora_dropout,
         quantize_base=quantize_base,
+        use_dora=use_dora,
     )
     return FeedForward(
         gate_proj=gate_proj,
