@@ -63,7 +63,7 @@ class CLIPImageTransform:
             This will be used to generate possible_resolutions,
             e.g. [(224, 224), (224, 448), (448, 224)] if max_num_tiles = 2 and tile_size = 224.
         resample (str): Resampling method used when resizing images. Supports any enum of
-            torchvision.transforms.InterpolationMode, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
+            ``torchvision.transforms.InterpolationMode``, e.g. "nearest", "nearest_exact", "bilinear", "bicubic".
         resize_to_max_canvas (bool):
             "If True, the image will be upscaled without distortion to fit the largest possible
             resolution from possible_resolutions.
