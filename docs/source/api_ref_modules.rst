@@ -20,16 +20,15 @@ Modeling Components and Building Blocks
     TransformerDecoderLayer
     TransformerDecoder
 
-Tokenizers
-------------------------
+Base Tokenizers
+---------------
 
 .. autosummary::
     :toctree: generated/
     :nosignatures:
 
-    tokenizers.SentencePieceTokenizer
-    tokenizers.TikTokenTokenizer
-    tokenizers.Tokenizer
+    tokenizers.SentencePieceBaseTokenizer
+    tokenizers.TikTokenBaseTokenizer
 
 PEFT Components
 ---------------
