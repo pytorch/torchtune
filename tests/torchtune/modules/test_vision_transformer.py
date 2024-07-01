@@ -15,11 +15,6 @@ from torchtune.utils.seed import set_seed
 
 
 @pytest.fixture
-def random(auto_use=True):
-    set_seed(42)
-
-
-@pytest.fixture
 def transformer_config():
     return {
         "embed_dim": 32,

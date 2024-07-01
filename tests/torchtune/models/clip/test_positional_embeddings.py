@@ -18,11 +18,6 @@ from torchtune.models.clip._position_embeddings import (
 from torchtune.utils.seed import set_seed
 
 
-@pytest.fixture
-def random(auto_use=True):
-    set_seed(42)
-
-
 class TestVisionTransformer:
     @pytest.fixture(autouse=True)
     def setup_class(self):
