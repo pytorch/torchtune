@@ -157,7 +157,7 @@ def find_supported_resolutions(
 
 def _get_factors(n: int) -> Set[int]:
     """
-    Calculate all factors of a given number, i.e. a dividor that leaves no remainder.
+    Calculate all factors of a given number, i.e. a divisor that leaves no remainder.
 
     Args:
         n (int): The number to find factors for.
