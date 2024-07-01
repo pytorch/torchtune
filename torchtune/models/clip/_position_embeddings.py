@@ -9,6 +9,10 @@ import math
 import torch
 from torch import nn
 
+# TODO (Felipe): add load hooks + interpolation on positional encodings,
+# so max_num_tiles can be variable and a trained model can be adapted to a
+# new value.
+
 
 class TokenPositionalEmbedding(nn.Module):
     """
