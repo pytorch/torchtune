@@ -298,6 +298,7 @@ class CLSProjection(nn.Module):
 
     Args:
         embed_dim (int): The dimensionality of each patch embedding.
+        cls_output_dim (int): The dimensionality of the output projection.
     Returns:
         torch.Tensor: The projected CLS token.
     """
