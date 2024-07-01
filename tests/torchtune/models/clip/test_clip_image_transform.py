@@ -39,7 +39,7 @@ class TestPipelines:
             },
         ],
     )
-    def test_shapes_variable_image_size_transforms(self, params):
+    def test_clip_image_transform(self, params):
 
         image_transform = CLIPImageTransform(
             image_mean=None,

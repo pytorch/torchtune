@@ -48,7 +48,7 @@ class TestTransforms:
             },
         ],
     )
-    def test_resize_without_distortion(self, params):
+    def test_resize_with_pad(self, params):
 
         image_size = params["image_size"]
         target_size = params["target_size"]
