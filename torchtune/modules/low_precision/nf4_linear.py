@@ -33,7 +33,7 @@ class FrozenNF4Linear(nn.Linear):
     """
 
     def __init__(
-            self, in_dim: int, out_dim: int, device: Optional[torch.device] = None, **kwargs
+        self, in_dim: int, out_dim: int, device: Optional[torch.device] = None, **kwargs
     ):
         if "bias" in kwargs and kwargs.pop("bias"):
             raise RuntimeError("FrozenNF4Linear does not currently support biases!")
