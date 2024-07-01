@@ -33,7 +33,7 @@ class CLIPImageTransform:
     The algorithm will NOT distort the image to fit a certain aspect ratio, because
     that leads to a significant degradation in image quality.
 
-    The user can choose if they want to allow upscaling by using the flag resize_to_max_canvas.
+    The user can choose if they want to allow upscaling by using the flag ``resize_to_max_canvas``.
 
     For example, if an input image is of size 300x800, and we want to allow
     a maximum of 16 image tiles, with side 224px, then:
