@@ -82,9 +82,9 @@ class Llama2ChatFormat(ChatFormat):
         system_message = ""
         formatted_dialogue = []
         for message in sample:
-            content = ""
+            content = message.content[0]["content"]
             if message.role == "system":
-                content = cls.system.format(content=message.content)
+                content = cls.system.format(content=content)
                 system_message = content
                 # Incorporate the system message in the user message - Llama2 only
                 # looks for the <<SYS>> tags and not the explicit role so this will
@@ -93,11 +93,11 @@ class Llama2ChatFormat(ChatFormat):
                 continue
             elif message.role == "user":
                 content = cls.user.format(
-                    system_message=system_message, content=message.content
+                    system_message=system_message, content=content
                 )
             elif message.role == "assistant":
                 # No special formatting needed for assistant message
-                content = message.content
+                content = content
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
@@ -143,18 +143,18 @@ class MistralChatFormat(ChatFormat):
         """
         formatted_dialogue = []
         for message in sample:
-            content = ""
+            content = message.content[0]["content"]
             if message.role == "system":
                 raise ValueError(
                     "System prompts are not supported in MistralChatFormat"
                 )
             elif message.role == "user":
                 content = cls.user.format(
-                    content=message.content,
+                    content=content,
                 )
             elif message.role == "assistant":
                 # No special formatting needed for assistant message
-                content = message.content
+                content = content
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
@@ -202,18 +202,38 @@ class ChatMLFormat(ChatFormat):
         """
         formatted_dialogue = []
         for message in sample:
-            content = ""
+            content = message.content[0]["content"]
             if message.role == "system":
-                content = cls.system.format(content=message.content)
+                content = cls.system.format(content=content)
             elif message.role == "user":
                 content = cls.user.format(
-                    content=message.content,
+                    content=content,
                 )
             elif message.role == "assistant":
                 content = cls.assistant.format(
-                    content=message.content,
+                    content=content,
                 )
             formatted_dialogue.append(
                 Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
+
+
+def apply_chat_format(
+    chat_format: ChatFormat,
+    sample: List[Message],
+) -> List[Message]:
+    """
+    Apply a chat format to a sample with error checking.
+
+    Args:
+        chat_format (ChatFormat): The chat format class to apply
+        sample (List[Message]): A list of Messages to apply the chat format to
+
+    Returns:
+        List[Message]: The formatted sample
+    """
+    if any([item["type"] != "text" for message in sample for item in message.content]):
+        raise ValueError("Chat format only supports text-only messages.")
+
+    return chat_format.format(sample)
