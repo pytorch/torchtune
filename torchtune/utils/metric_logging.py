@@ -256,6 +256,129 @@ class WandBLogger(MetricLoggerInterface):
             self._wandb.finish()
 
 
+class ClearMLLogger(MetricLoggerInterface):
+    """Logger for ClearML (https://clear.ml/).
+    For more information about the clearml experiment setup, parameter logging,
+    check https://clear.ml/docs/latest/docs .
+
+    Args:
+        project (str): ClearMl project name. Default is `torchtune`.
+        task_name (Optional[str]): ClearMl remote task name. If you don't specify a task name,
+            the run will be sent to your default entity.
+        task_type (Optional[str]): The task type to be created. Supported values: `training`, `testing`,
+          `finetunig` etc. If nothing is provided, the task will be created as `finetuning`.
+        working_directory (Optional[str]): CLearML log directory. If not specified, use the `dir`
+            argument provided in kwargs. Else, use root directory.
+        **kwargs: additional arguments to pass to clearml.Task.create
+
+    Example:
+        >>> from torchtune.utils.metric_logging import ClearmlLogger
+        >>> logger = ClearmlLogger(project="my_project", task_name="my_task", task_type="training")
+        >>> logger.log("my_metric", 1.0, 1)
+        >>> logger.log_dict({"my_metric": 1.0}, 1)
+        >>> logger.close()
+
+    Raises:
+        ImportError: If ``clearml`` package is not installed.
+
+    Note:
+        This logger requires the clearml package to be installed.
+        You can install it with `pip install clearml-agent clearml`.
+        In order to use the logger, you need to login to your WandB account.
+        You can do this by running `clearml-init` in your terminal.
+    """
+
+    def __init__(
+        self,
+        project: str = "torchtune",
+        task_name: Optional[str] = None,
+        task_type: Optional[str] = None,
+        working_directory: Optional[str] = None,
+        **kwargs,
+    ):
+        try:
+            from clearml import Task
+        except ImportError as e:
+            raise ImportError(
+                "``clearml`` package not found. Please install clearml using "
+                "``pip install clearml-agent clearml`` to use the clearml"
+                "Alternatively, use the ``StdoutLogger``, "
+                "which can be specified by setting metric_logger_type='stdout'."
+            ) from e
+
+        # Get the most current task if the current task is none, then create a new task.
+        self._task = Task.current_task()
+
+        # Use dir if specified, otherwise use log_dir.
+        self.log_dir = kwargs.pop("dir", working_directory)
+
+        _, self.rank = get_world_size_and_rank()
+
+        task_type = task_type or "finetuning"
+
+        if self._task is None and self.rank == 0:
+            self._task = Task.create(
+                project_name=project,
+                task_name=task_name,
+                task_type=task_type,
+                working_directory=working_directory,
+            )
+
+        self.log = self._task.get_logger()
+
+    def log_metric(self, config: DictConfig) -> None:
+        """Saves the config locally and also logs the config to clearml experiement config.
+        The configs will be available in the clearml
+        experiment under the config section."""
+        print(config, "4" * 100)
+        if self._task:
+            resolved_config = OmegaConf.to_container(config, resolve=True)
+            self._task.connect_configuration(resolved_config)
+
+            try:
+                output_config_fname = Path(
+                    os.path.join(
+                        config.checkpointer.checkpoint_dir,
+                        "torchtune_config.yaml",
+                    )
+                )
+
+                OmegaConf.save(config, output_config_fname)
+
+                log.info(f"Logging {output_config_fname} to clearml experiment.")
+                self._task.upload_artifact(
+                    output_config_fname, name="torchtune_config.yaml"
+                )
+            except Exception as e:
+                log.warning(
+                    f"Error saving {output_config_fname} to clearml.\nError: \n{e}."
+                    "Don't worry the config will be logged the clearml experiment"
+                )
+
+    def log(
+        self, name: str, data: Scalar, step: int, series: Optional[str] = None
+    ) -> None:
+        if self._task and self.log:
+            self.log.report_scalar(name, series, data, step)
+
+    def log_dict(
+        self, payload: Mapping[str, Scalar], step: int, series: Optional[str] = None
+    ) -> None:
+        if self._task and self.log:
+            for name, data in payload.items():
+                self.log.report_scalar(
+                    title=name, series=series, value=data, iteration=step
+                )
+
+    def __del__(self) -> None:
+        if hasattr(self, "_task") and self._task is not None:
+            self._task.close()
+
+    def close(self) -> None:
+        if self._task:
+            self._task.close()
+
+
 class TensorBoardLogger(MetricLoggerInterface):
     """Logger for use w/ PyTorch's implementation of TensorBoard (https://pytorch.org/docs/stable/tensorboard.html).
 
