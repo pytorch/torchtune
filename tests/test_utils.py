@@ -128,6 +128,13 @@ def assert_expected(
     )
 
 
+def assert_dialogue_equal(actual, expected):
+    assert len(actual) == len(expected)
+    for i in range(len(actual)):
+        assert actual[i].role == expected[i].role
+        assert actual[i].content == expected[i].content
+
+
 @contextmanager
 def single_box_init(init_pg: bool = True):
     env_vars = ["MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK", "RANK", "WORLD_SIZE"]

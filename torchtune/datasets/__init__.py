@@ -9,7 +9,7 @@ from torchtune.datasets._chat import chat_dataset, ChatDataset
 from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
-from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.datasets._instruct import instruct_dataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
@@ -27,7 +27,6 @@ __all__ = [
     "grammar_dataset",
     "samsum_dataset",
     "stack_exchanged_paired_dataset",
-    "InstructDataset",
     "slimorca_dataset",
     "ChatDataset",
     "instruct_dataset",

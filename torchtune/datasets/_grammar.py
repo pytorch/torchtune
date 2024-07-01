@@ -4,7 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets._instruct import instruct_dataset, InstructDataset
+from torchtune.data import GrammarErrorCorrectionTemplate
+from torchtune.datasets._chat import ChatDataset
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
 
 
@@ -13,8 +15,9 @@ def grammar_dataset(
     *,
     source: str = "liweili/c4_200m",
     train_on_input: bool = False,
+    max_seq_len: int = 512,
     packed: bool = False,
-) -> InstructDataset:
+) -> ChatDataset:
     """
     Support for grammar correction datasets and their variants from Hugging Face Datasets.
     Here is an `example <https://huggingface.co/datasets/liweili/c4_200m>`_ of a grammar correction dataset.
@@ -37,7 +40,7 @@ def grammar_dataset(
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
 
     Returns:
-        InstructDataset: dataset configured with source data and template
+        ChatDataset: dataset configured with source data and template
 
 
     Example:
@@ -47,12 +50,12 @@ def grammar_dataset(
         >>> Batch size: 8
     """
 
-    return instruct_dataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        template="torchtune.data.GrammarErrorCorrectionTemplate",
-        column_map={"sentence": "input"},
+        message_transform=GrammarErrorCorrectionTemplate(),
         train_on_input=train_on_input,
         packed=packed,
         split="train",
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds

@@ -7,7 +7,7 @@
 from pathlib import Path
 
 import pytest
-from torchtune.data._types import Message
+from torchtune.data._messages import Message
 from torchtune.modules.tokenizers import SentencePieceTokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"

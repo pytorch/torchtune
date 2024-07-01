@@ -6,16 +6,20 @@
 
 from typing import Optional
 
-from torchtune.datasets._chat import chat_dataset, ChatDataset
+from torchtune.config._utils import _get_component_from_path
+from torchtune.data import ShareGptToMessages
+
+from torchtune.datasets._chat import ChatDataset
 
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Compose
 
 
 def slimorca_dataset(
     tokenizer: Tokenizer,
     *,
     source: str = "Open-Orca/SlimOrca-Dedup",
-    chat_format: Optional[str] = None,
+    prompt_template: Optional[str] = None,
     max_seq_len: int = 1024,
     train_on_input: bool = False,
     packed: bool = False,
@@ -35,7 +39,7 @@ def slimorca_dataset(
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
-        chat_format (Optional[str]): name of template used to format the chat. See the description
+        prompt_template (Optional[str]): name of template used to format the chat. See the description
             in :class:`~torchtune.datasets.ChatDataset` for more details. Default: None
         max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.
             This value needs to be at least 4 though it is generally set to max sequence length accepted by the model.
@@ -64,11 +68,14 @@ def slimorca_dataset(
         # and 1 token from prompt, 1 from label
         raise ValueError("max_seq_len must be at least 4")
 
-    return chat_dataset(
+    transforms = [ShareGptToMessages()]
+    if prompt_template is not None:
+        transforms.append(_get_component_from_path(prompt_template)())
+
+    return ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        conversation_style="sharegpt",
-        chat_format=chat_format,
+        message_transform=Compose(transforms),
         max_seq_len=max_seq_len,
         train_on_input=train_on_input,
         packed=packed,

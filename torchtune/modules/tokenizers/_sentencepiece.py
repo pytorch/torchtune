@@ -106,7 +106,10 @@ class SentencePieceTokenizer:
         return self.spm_model.decode(ids)
 
     def tokenize_messages(
-        self, messages: List[Message], max_seq_len: Optional[int] = None
+        self,
+        messages: List[Message],
+        max_seq_len: Optional[int] = None,
+        train_on_input: bool = False,
     ) -> Tuple[List[int], List[bool]]:
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
@@ -150,6 +153,9 @@ class SentencePieceTokenizer:
         for message in messages:
             # If assistant message, this is the end of a turn
             end_of_turn = message.role == "assistant"
+
+            if message.role == "user":
+                message.masked = not train_on_input
 
             # Prepend BOS on start of new turns
             if start_of_turn:

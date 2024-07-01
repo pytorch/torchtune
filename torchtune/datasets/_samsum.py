@@ -4,8 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from torchtune.datasets import instruct_dataset, InstructDataset
+from torchtune.data import ColumnMap, SummarizeTemplate
+from torchtune.datasets._chat import ChatDataset
+from torchtune.datasets._packed import PackedDataset
 from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.transforms import Compose
 
 
 def samsum_dataset(
@@ -13,8 +16,9 @@ def samsum_dataset(
     *,
     source: str = "samsum",
     train_on_input: bool = False,
+    max_seq_len: int = 512,
     packed: bool = False,
-) -> InstructDataset:
+) -> ChatDataset:
     """
     Support for summarization datasets and their variants from Hugging Face Datasets.
     An example is the `SAMsum dataset <https://huggingface.co/datasets/samsum>`_.
@@ -47,12 +51,17 @@ def samsum_dataset(
         >>> Batch size: 8
     """
 
-    return instruct_dataset(
+    ds = ChatDataset(
         tokenizer=tokenizer,
         source=source,
-        template="torchtune.data.SummarizeTemplate",
-        column_map={"output": "summary"},
+        message_transform=Compose(
+            [
+                ColumnMap({"dialogue": "input", "summary": "output"}),
+                SummarizeTemplate(),
+            ],
+        ),
         train_on_input=train_on_input,
         packed=packed,
         split="train",
     )
+    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
