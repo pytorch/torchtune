@@ -4,11 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import logging
 from typing import List, Optional, Tuple, Union
 
 import torch
 from torch import nn
+
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
     TilePositionalEmbedding,
@@ -16,8 +16,6 @@ from torchtune.models.clip._position_embeddings import (
 )
 from torchtune.modules import LayerNorm
 from torchtune.modules.transformer import _get_clones
-
-logger = logging.getLogger(__name__)
 
 
 class VisionTransformer(nn.Module):
@@ -129,7 +127,7 @@ class VisionTransformer(nn.Module):
         self.cls_token_embedding = CLSEmbedding(embed_dim)
 
     def get_image_tokens_per_tile(self):
-        return self.patches_per_tile
+        return self.patches_per_tile + 1  # +1 for CLS token
 
     def forward(
         self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
@@ -181,6 +179,8 @@ class VisionTransformer(nn.Module):
         """
         hidden_out = []
 
+        hidden_out = []
+
         # parse inputs
         if images.ndim == 4:
             n_tiles = 1
@@ -205,10 +205,12 @@ class VisionTransformer(nn.Module):
         aspect_ratio = aspect_ratio.reshape(bsz, 2)
 
         # patch embeddings (tokens)
+
         # out: (bsz, embed_dim, patch_grid_size, patch_grid_size)
         x = self.conv(images)
+
         # out: (bsz, patch_grid_size**2, embed_dim)
-        x = x.flatten(x, start_dim=2).permute(0, 2, 1)
+        x = x.flatten(start_dim=2).permute(0, 2, 1)
 
         _, n_tokens, embed_dim = x.shape
 
@@ -224,7 +226,7 @@ class VisionTransformer(nn.Module):
 
         # token_pos_embedding
         x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
-        x = self.token_pos_embedding(x)
+        x = self.token_pos_embedding(x, aspect_ratio)
 
         # norm
         x = self.ln_pre(x)
@@ -243,8 +245,10 @@ class VisionTransformer(nn.Module):
         x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
 
         if self.indices_return_hidden:
-            hidden_out = torch.stack(hidden_out, dim=-1)
-            hidden_out = hidden_out.reshape(bsz, n_tiles, n_tokens, embed_dim)
+            hidden_out = torch.stack(hidden_out, dim=1)
+            hidden_out = hidden_out.reshape(
+                bsz, len(self.indices_return_hidden), n_tiles, n_tokens, embed_dim
+            )
         else:
             hidden_out = torch.empty(0)  # dummy tensor
 
@@ -281,15 +285,15 @@ class CLSEmbedding(nn.Module):
         super().__init__()
 
         scale = embed_dim**-0.5
-        self.cls_embedding = nn.Parameter(scale * torch.randn(embed_dim, embed_dim))
+        self.cls_embedding = nn.Parameter(scale * torch.randn(embed_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         cls_emb = self.cls_embedding.to(x.dtype)
 
         # add 1 CLS token to every tile
-        pseudo_bsz, _, embed_dim = x.shape  # (bsz * n_tiles, n_tokens, embed_dim)
-        cls_emb = cls_emb.broadcast_to(pseudo_bsz, 1, embed_dim)
+        effective_bsz, _, embed_dim = x.shape  # (bsz * n_tiles, n_tokens, embed_dim)
+        cls_emb = cls_emb.broadcast_to(effective_bsz, 1, embed_dim)
         return torch.cat([cls_emb, x], dim=1)
 
 
