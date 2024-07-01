@@ -39,7 +39,7 @@ class CLIPImageTransform:
     a maximum of 16 image tiles, with side 224px, then:
 
     If resize_to_max_canvas=False, then:
-    best_resolution = (448, 896) # smallest canvas, up to 16 tiles, that doesn't require downscaling
+    best_resolution = (448, 896) -> smallest canvas, up to 16 tiles, that doesn't require downscaling
     image is NOT resized
     image is padded (300, 800) -> 448,896
     Image is tiled 2x4, for a final output shape of (8, 3, 224, 224)
