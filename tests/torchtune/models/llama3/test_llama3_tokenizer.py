@@ -571,7 +571,7 @@ class TestLlama3Tokenizer:
                     "<|python_tag|>": 128255,
                 },
             )
-        
+
     def test_tokenize_tool_call_messages(self, tokenizer, tool_call_messages):
         tokens, mask = tokenizer.tokenize_messages(tool_call_messages)
         assert tokens == [
