@@ -154,7 +154,7 @@ class TilePositionalEmbedding(nn.Module):
             torch.Tensor: The input tensor with added positional embeddings.
         """
 
-        for idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
+        for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # get pos emb
