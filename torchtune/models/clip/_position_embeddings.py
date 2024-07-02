@@ -101,7 +101,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # apply global positional embedding (different for every tile)
         x = x.view(bsz, n_tiles, n_tokens, embed_dim)
-        for idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
+        for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # Get positional encoding for tiles that are not padded
