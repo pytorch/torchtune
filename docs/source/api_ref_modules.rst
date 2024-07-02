@@ -17,7 +17,7 @@ Modeling Components and Building Blocks
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
-    LayerNorm
+    Fp32LayerNorm
     TransformerDecoderLayer
     TransformerDecoder
     VisionTransformer
