@@ -882,7 +882,7 @@ which creates a <a class="reference internal" href="../generated/torchtune.datas
 a paired dataset from Hugging Face. Notice that we’ve also had
 to add a custom instruct template as well.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">stack_exchanged_paired_dataset</span><span class="p">(</span>
-    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">Tokenizer</span><span class="p">,</span>
+    <span class="n">tokenizer</span><span class="p">:</span> <span class="n">ModelTokenizer</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">PreferenceDataset</span><span class="p">(</span>

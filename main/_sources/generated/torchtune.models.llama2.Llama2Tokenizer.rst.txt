@@ -1,0 +1,10 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.models.llama2
+
+
+Llama2Tokenizer
+===============
+
+.. autoclass:: Llama2Tokenizer
+    :members:

@@ -3,8 +3,8 @@
 .. currentmodule:: torchtune.modules.tokenizers
 
 
-Tokenizer
-=========
+SentencePieceBaseTokenizer
+==========================
 
-.. autoclass:: Tokenizer
+.. autoclass:: SentencePieceBaseTokenizer
     :members:
