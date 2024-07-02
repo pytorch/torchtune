@@ -25,11 +25,9 @@ def clip_vision_encoder(
     cls_output_dim: int = 512,
 ) -> VisionTransformer:
 
-    logger.info("Instantiating clip model...")
-
     patch_grid_size = tile_size // patch_size
 
-    cls_projection = CLSProjection(inpt_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
+    cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
     
     transformer_layer = torch.nn.TransformerEncoderLayer(
         d_model=embed_dim, 

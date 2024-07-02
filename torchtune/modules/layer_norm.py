@@ -5,31 +5,25 @@
 # LICENSE file in the root directory of this source tree.
 
 
+from typing import Any
+
 from torch import nn, Tensor
 
 
-class LayerNorm(nn.Module):
+class Fp32LayerNorm(nn.LayerNorm):
     """
-    Wrapper around torch.nn.LayerNorm to support fp16 training.
-
-    Args:
-        dim (int): embedding size.
-        eps (float): small value to avoid division by zero. Default: 1e-5.
+    Wrapper around nn.functional.layer_norm to support mixed-precision training.
     """
 
-    def __init__(self, dim: int, eps: float = 1e-5) -> None:
-        super().__init__()
-        self.layernorm = nn.LayerNorm(dim, eps=eps)
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
 
     def forward(self, x: Tensor) -> Tensor:
-        """
-        Args:
-            x (Tensor): input tensor to normalize.
-
-        Returns:
-            Tensor: The output tensor after applying LayerNorm.
-        """
-        # computation is in fp32
-        x_fp32 = x.float()
-        x = self.layernorm(x_fp32)
-        return x.type_as(x)
+        output = nn.functional.layer_norm(
+            x.float(),
+            self.normalized_shape,
+            self.weight.float() if self.weight is not None else None,
+            self.bias.float() if self.bias is not None else None,
+            self.eps,
+        )
+        return output.type_as(x)

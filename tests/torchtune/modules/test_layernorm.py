@@ -10,7 +10,7 @@ import torch
 
 from tests.test_utils import assert_expected
 
-from torchtune.modules.layer_norm import LayerNorm
+from torchtune.modules.layer_norm import Fp32LayerNorm
 from torchtune.utils.seed import set_seed
 
 
@@ -38,16 +38,20 @@ class TestLayerNorm:
         return torch.randn(dim, dtype=torch.float16)
 
     @pytest.fixture
-    def layer_norm(self, dim, eps) -> LayerNorm:
-        return LayerNorm(dim, eps=eps)
+    def layer_norm(self, dim, eps) -> Fp32LayerNorm:
+        return Fp32LayerNorm(dim, eps=eps)
 
     def test_forward_fp16(self, layer_norm, input_random_fp16, eps, dim) -> None:
         output_fp16 = layer_norm(input_random_fp16)
-        assert (
-            output_fp16.dtype == torch.float32
-        ), "Expected output to be fp32, but got {output_fp16.dtype=}"
 
+        # assert dtype as fp16
+        assert (
+            output_fp16.dtype == torch.float16
+        ), "Expected output to be fp16, but got {output_fp16.dtype=}"
+
+        # assert value as fp32
         expected_output = torch.nn.LayerNorm(dim, eps=eps)(input_random_fp16.float())
+        output_fp32 = layer_norm(input_random_fp16.float())
         assert_expected(
-            output_fp16.mean(), expected_output.mean(), atol=1e-3, rtol=1e-3
+            output_fp32.mean(), expected_output.mean(), atol=1e-8, rtol=1e-8
         )

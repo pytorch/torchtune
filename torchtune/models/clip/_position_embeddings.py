@@ -4,8 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-import math
-
 import torch
 from torch import nn
 
@@ -49,13 +47,13 @@ class TiledTokenPositionalEmbedding(nn.Module):
             ``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``, but gated.
         - global_token_positional_embedding: different for every tile, different for every token.
 
-    Notice that tile is different from patch (token). An image is divided into tiles during pre-processing,
+    Notice that tile is different from patch. An image is divided into tiles during pre-processing,
     and patches are the outcome of the convolution in the ViT applied to each tile.
 
     Args:
         max_num_tiles (int): The maximum number of tiles an image can be divided into.
         embed_dim (int): The dimensionality of each token embedding.
-        patch_grid_size (int): The side of a squared grid that represents how many
+        patch_grid_size (int): The size of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
     """
 
@@ -68,7 +66,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
 
         # different for every token, same for every tile
         self.local_token_positional_embedding = nn.Parameter(
-            scale * torch.randn(patch_grid_size**2 + 1, embed_dim)
+            scale
+            * torch.randn((patch_grid_size**2 + 1, embed_dim))  # +1 for CLS token
         )
 
         # different for every token, different for every tile
@@ -93,10 +92,9 @@ class TiledTokenPositionalEmbedding(nn.Module):
         Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
-        # apply local position embedding (same for every tile)
         bsz, n_tiles, n_tokens, embed_dim = x.shape
 
-        x = x.view(bsz * n_tiles, n_tokens, embed_dim)
+        # apply local position embedding (same for every tile)
         x = x + (self.local_token_positional_embedding * (1 - self.gate.tanh()))
 
         # apply global positional embedding (different for every tile)
@@ -105,14 +103,14 @@ class TiledTokenPositionalEmbedding(nn.Module):
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # Get positional encoding for tiles that are not padded
-            _pos_embed = self.global_token_positional_embedding[
+            pos_embed = self.global_token_positional_embedding[
                 :n_tiles_h, :n_tiles_w, :, :
             ]
-            _pos_embed = _pos_embed.reshape(
+            pos_embed = pos_embed.reshape(
                 n_non_padded_tiles, self.n_tokens_per_tile, embed_dim
             )
-            _pos_embed = _pos_embed * self.gate.tanh()
-            x[idx, :n_non_padded_tiles] += _pos_embed
+            pos_embed = pos_embed * self.gate.tanh()
+            x[batch_idx, :n_non_padded_tiles] += pos_embed
 
         return x
 
@@ -138,9 +136,9 @@ class TilePositionalEmbedding(nn.Module):
         self.max_num_tiles = max_num_tiles
         self.embed_dim = embed_dim
 
+        scale = embed_dim**-0.5
         self.embedding = nn.Parameter(
-            torch.randn(max_num_tiles, max_num_tiles, 1, embed_dim)
-            / math.sqrt(embed_dim)
+            scale * torch.randn(max_num_tiles, max_num_tiles, 1, embed_dim)
         )
         self.gate = nn.Parameter(torch.zeros(1))
 
@@ -158,10 +156,10 @@ class TilePositionalEmbedding(nn.Module):
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
             # get pos emb
-            _pos_embed = self.embedding[:n_tiles_h, :n_tiles_w, :, :]
-            _pos_embed = _pos_embed.reshape(n_non_padded_tiles, 1, self.embed_dim)
+            pos_embed = self.embedding[:n_tiles_h, :n_tiles_w, :, :]
+            pos_embed = pos_embed.reshape(n_non_padded_tiles, 1, self.embed_dim)
 
             # update zero tensor
-            x[idx, :n_non_padded_tiles, :, :] += _pos_embed * self.gate.tanh()
+            x[batch_idx, :n_non_padded_tiles, :, :] += pos_embed * self.gate.tanh()
 
         return x

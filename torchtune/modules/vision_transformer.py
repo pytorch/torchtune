@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple, Union
 import torch
 from torch import nn
 
-from torchtune.modules import LayerNorm
+from torchtune.modules import Fp32LayerNorm
 from torchtune.modules.transformer import _get_clones
 
 
@@ -49,7 +49,7 @@ class VisionTransformer(nn.Module):
     your image would be composed of a single tile.
 
     Args:
-        patch_grid_size (int): The side of a squared grid that represents how many
+        patch_grid_size (int): The size of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
         num_layers (int): The number of transformer layers.
         layer (nn.Module): The transformer layer module.
@@ -120,8 +120,8 @@ class VisionTransformer(nn.Module):
             bias=False,
         )
 
-        self.ln_post = LayerNorm(embed_dim)
-        self.ln_pre = LayerNorm(embed_dim)
+        self.ln_post = Fp32LayerNorm(embed_dim)
+        self.ln_pre = Fp32LayerNorm(embed_dim)
 
         self.cls_token_embedding = CLSEmbedding(embed_dim)
 
@@ -232,7 +232,7 @@ class VisionTransformer(nn.Module):
             x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
             x = self.pre_tile_pos_embed(x, aspect_ratio)
 
-        # apply cls token
+        # insert cls token
         x = x.reshape(bsz * n_tiles, n_tokens, embed_dim)
         x = self.cls_token_embedding(x)
         n_tokens += 1
@@ -273,14 +273,12 @@ class VisionTransformer(nn.Module):
         if self.cls_projection:
             x = x.reshape(bsz * n_tiles, n_tokens, embed_dim)
             x = self.cls_projection(x)
-            x = x.reshape(
-                bsz, n_tiles, 1, -1
-            )  # (bsz, n_tiles, num_tokens, cls_output_dim)
 
-        if self.indices_return_hidden:
-            return x, hidden_states
-        else:
-            return x
+            # (bsz, n_tiles, num_tokens, cls_output_dim)
+            # num_tokens become 1 because we only return the CLS token projection
+            x = x.reshape(bsz, n_tiles, 1, -1)
+
+        return x, hidden_states
 
 
 class CLSEmbedding(nn.Module):
@@ -304,11 +302,9 @@ class CLSEmbedding(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
-        cls_emb = self.cls_embedding.to(x.dtype)
-
         # add 1 CLS token to every tile
         pseudo_bsz, _, embed_dim = x.shape  # (bsz * n_tiles, n_tokens, embed_dim)
-        cls_emb = cls_emb.broadcast_to(pseudo_bsz, 1, embed_dim)
+        cls_emb = self.cls_embedding.broadcast_to(pseudo_bsz, 1, embed_dim)
         return torch.cat([cls_emb, x], dim=1)
 
 
@@ -323,11 +319,11 @@ class CLSProjection(nn.Module):
         torch.Tensor: The projected CLS token.
     """
 
-    def __init__(self, inpt_dim: int, cls_output_dim: int) -> None:
+    def __init__(self, embed_dim: int, cls_output_dim: int) -> None:
         super().__init__()
 
-        scale = inpt_dim**-0.5
-        self.projection = nn.Parameter(scale * torch.randn(inpt_dim, cls_output_dim))
+        scale = embed_dim**-0.5
+        self.projection = nn.Parameter(scale * torch.randn(embed_dim, cls_output_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         # (bsz * n_tiles, n_tokens, embed_dim) -> (bsz * n_tiles, cls_output_dim)

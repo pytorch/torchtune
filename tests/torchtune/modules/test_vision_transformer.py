@@ -78,7 +78,7 @@ class TestVisionTransformer:
         self, vision_transformer, transformer_config
     ):
         # call model
-        output = vision_transformer(self.image, self.aspect_ratio)
+        output, _ = vision_transformer(self.image, self.aspect_ratio)
 
         # assertion
         expected_shape = (
@@ -98,7 +98,7 @@ class TestVisionTransformer:
         # call model
         set_seed(42)
         model_with_cls = clip_vision_encoder(**transformer_config).eval()
-        output = model_with_cls(self.image, None)
+        output, _ = model_with_cls(self.image, None)
 
         # assertion
         expected_shape = (
@@ -145,10 +145,10 @@ class TestVisionTransformer:
 
         expected_shape_hidden_layers = (
             self.batch_size,
-            num_hidden_layers_expected,
             self.num_tiles,
             model_with_hidden.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
+            num_hidden_layers_expected,
         )
         assert (
             hidden_layers.shape == expected_shape_hidden_layers
@@ -164,7 +164,7 @@ class TestVisionTransformer:
 
         # call model
         model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
-        output = model_with_multiple_tiles(images, aspect_ratio=None)
+        output, _ = model_with_multiple_tiles(images, aspect_ratio=None)
 
         # assertion
         expected_shape = (
