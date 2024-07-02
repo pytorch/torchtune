@@ -25,7 +25,6 @@ SPECIAL_TOKENS = {
     "<|eot_id|>": 128009,
     "<|python_tag|>": 128010,
     "<|image|>": 128011,
-    "<|video|>": 128012,
 }
 
 NUM_RESERVED_SPECIAL_TOKENS = 256
@@ -100,11 +99,18 @@ class Llama3Tokenizer(ModelTokenizer):
         self,
     ):
         """
-        Validate that required special tokens are passed into the tokenizer. The
-        following special tokens are required: <|begin_of_text|>, <|end_of_text|>,
-        <|start_header_id|>, <|end_header_id|>, <|eot_id|>, <|eom_id|>, <|python_tag|>
+        Validate that required special tokens are passed into the tokenizer.
         """
-        for token in LLAMA3_SPECIAL_TOKENS.keys():
+        for token in [
+            "<|begin_of_text|>",
+            "<|end_of_text|>",
+            "<|start_header_id|>",
+            "<|end_header_id|>",
+            "<|eom_id|>",
+            "<|eot_id|>",
+            "<|python_tag|>",
+            "<|image|>",
+        ]:
             if token not in self.special_tokens:
                 raise ValueError(f"{token} missing from special_tokens")
 
