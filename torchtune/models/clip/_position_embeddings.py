@@ -11,6 +11,15 @@ from torch import nn
 # so max_num_tiles can be variable and a trained model can be adapted to a
 # new value.
 
+"""
+tiles, patches and tokens.
+
+For our VisionTransformer, we support tile-cropping. This creates a bit of confusion
+between what are tiles, patches and tokens.
+
+Tiles are a result of the pre-processing. If you have
+"""
+
 
 class TokenPositionalEmbedding(nn.Module):
     """
@@ -18,12 +27,16 @@ class TokenPositionalEmbedding(nn.Module):
 
     Args:
         embed_dim (int): The dimensionality of each token embedding.
-        patch_grid_size (int): The size of a squared grid that represents how many
-             patches are in one tile, i.e. tile_size // patch_size.
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+            the size of the input image. In this case, the function will consider your image a single tile.
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            with shape (40, 40) each.
     """
 
-    def __init__(self, embed_dim: int, patch_grid_size: int) -> None:
+    def __init__(self, embed_dim: int, tile_size: int, patch_size: int) -> None:
         super().__init__()
+        patch_grid_size = tile_size // patch_size
         scale = embed_dim**-0.5
         self.positional_embedding = nn.Parameter(
             scale
@@ -53,14 +66,18 @@ class TiledTokenPositionalEmbedding(nn.Module):
     Args:
         max_num_tiles (int): The maximum number of tiles an image can be divided into.
         embed_dim (int): The dimensionality of each token embedding.
-        patch_grid_size (int): The size of a squared grid that represents how many
-             patches are in one tile, i.e. tile_size // patch_size.
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance.
+            If your image was not tile-cropped, this embedding is not necessary.
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            with shape (40, 40) each.
     """
 
     def __init__(
-        self, max_num_tiles: int, embed_dim: int, patch_grid_size: int
+        self, max_num_tiles: int, embed_dim: int, tile_size: int, patch_size: int
     ) -> None:
         super().__init__()
+        patch_grid_size = tile_size // patch_size
         self.n_tokens_per_tile = patch_grid_size**2 + 1  # +1 for cls token
         scale = embed_dim**-0.5
 
@@ -100,17 +117,27 @@ class TiledTokenPositionalEmbedding(nn.Module):
         # apply global positional embedding (different for every tile)
         x = x.view(bsz, n_tiles, n_tokens, embed_dim)
         for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
+            # For batching, all images are padded to the same amount of tiles.
+            # The aspect_ratio lets us know the non padded tiles for each image.
+            # We only add positional encoding to those.
             n_non_padded_tiles = int(n_tiles_h * n_tiles_w)
 
-            # Get positional encoding for tiles that are not padded
+            # global_token_positional_embedding is a grid of shape
+            # (max_num_tiles, max_num_tiles, n_tokens, embed_dim)
+            # We retrieve the positional encoding for the
+            # n_tiles_h and n_tiles_w.
+            # Those are the tiles that are not padded.
             pos_embed = self.global_token_positional_embedding[
                 :n_tiles_h, :n_tiles_w, :, :
             ]
+
+            # reshape pos_emebd to (n_tiles_h * n_tiles_w, n_tokens, embed_dim)
+            # so we can add to the image (bsz, :n_non_padded_tiles, n_tokens, embed_dim)
             pos_embed = pos_embed.reshape(
                 n_non_padded_tiles, self.n_tokens_per_tile, embed_dim
             )
             pos_embed = pos_embed * self.gate.tanh()
-            x[batch_idx, :n_non_padded_tiles] += pos_embed
+            x[batch_idx, :n_non_padded_tiles, :, :] += pos_embed
 
         return x
 

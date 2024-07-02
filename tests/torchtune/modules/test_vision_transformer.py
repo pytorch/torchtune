@@ -160,6 +160,7 @@ class TestVisionTransformer:
 
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
+        transformer_config["max_num_tiles"] = 1
         images = self.image[:, 0, :, :]
 
         # call model

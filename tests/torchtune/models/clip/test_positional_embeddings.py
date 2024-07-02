@@ -23,10 +23,12 @@ class TestVisionTransformer:
     def setup_class(self):
 
         self.embed_dim = 16
-        self.patch_grid_size = 7
+        self.tile_size = 14
         self.max_num_tiles = 3
         self.batch_size = 2
+        self.patch_size = 2
         self.aspect_ratio = torch.tensor([[3, 1], [1, 2]])
+        self.patch_grid_size = self.tile_size // self.patch_size
 
         set_seed(42)
         self.input_tensor = torch.randn(
@@ -41,7 +43,9 @@ class TestVisionTransformer:
     def test_token_positional_embedding(self):
         # call model
         set_seed(42)
-        embedding = TokenPositionalEmbedding(self.embed_dim, self.patch_grid_size)
+        embedding = TokenPositionalEmbedding(
+            self.embed_dim, patch_size=self.patch_size, tile_size=self.tile_size
+        )
 
         inpt = self.input_tensor.clone().reshape(
             self.batch_size * self.max_num_tiles, -1, self.embed_dim
@@ -56,7 +60,10 @@ class TestVisionTransformer:
         # call model
         set_seed(42)
         embedding = TiledTokenPositionalEmbedding(
-            self.max_num_tiles, self.embed_dim, self.patch_grid_size
+            self.max_num_tiles,
+            self.embed_dim,
+            patch_size=self.patch_size,
+            tile_size=self.tile_size,
         )
 
         # replace gate 0 -> 0.5

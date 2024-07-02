@@ -47,7 +47,8 @@ def clip_vision_encoder(
         post_tile_pos_embed = None
         token_pos_embedding = TokenPositionalEmbedding(
             embed_dim=embed_dim, 
-            patch_grid_size=patch_grid_size)
+            patch_size=patch_size, 
+            tile_size=tile_size)
     else:
         logger.info(f"Found {max_num_tiles=}. Instantiating tile_pos_embedding and token_pos_embedding.")
         pre_tile_pos_embed = TilePositionalEmbedding(max_num_tiles=max_num_tiles, embed_dim=embed_dim)
@@ -55,10 +56,10 @@ def clip_vision_encoder(
         token_pos_embedding = TiledTokenPositionalEmbedding(
             max_num_tiles=max_num_tiles, 
             embed_dim=embed_dim, 
-            patch_grid_size=patch_grid_size)
+            patch_size=patch_size, 
+            tile_size=tile_size)
 
     return VisionTransformer(
-        patch_grid_size=patch_grid_size,
         num_layers=num_layers,
         layer=transformer_layer,
         token_pos_embedding=token_pos_embedding,
@@ -66,6 +67,7 @@ def clip_vision_encoder(
         post_tile_pos_embed=post_tile_pos_embed,
         cls_projection=cls_projection,
         indices_return_hidden=indices_return_hidden,
+        tile_size=tile_size,
         patch_size=patch_size,
         embed_dim=embed_dim,
         in_channels=in_channels,

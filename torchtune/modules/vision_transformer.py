@@ -49,8 +49,6 @@ class VisionTransformer(nn.Module):
     your image would be composed of a single tile.
 
     Args:
-        patch_grid_size (int): The size of a squared grid that represents how many
-             patches are in one tile, i.e. tile_size // patch_size.
         num_layers (int): The number of transformer layers.
         layer (nn.Module): The transformer layer module.
         token_pos_embedding (nn.Module): The token positional embedding module.
@@ -66,6 +64,8 @@ class VisionTransformer(nn.Module):
             If provided, it will return the intermediate results of the transformer layers
             before they go through a next layer. For example, indices_return_hidden = [0, 3] will
             return the tokens before they go through the first and fourth layers.
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+            the size of the input image. In this case, the function will consider your image a single tile.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
             E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
@@ -75,7 +75,7 @@ class VisionTransformer(nn.Module):
 
     def __init__(
         self,
-        patch_grid_size: int,
+        tile_size: int,
         num_layers: int,
         layer: nn.Module,
         token_pos_embedding: nn.Module,
@@ -89,10 +89,10 @@ class VisionTransformer(nn.Module):
     ) -> None:
         super().__init__()
 
-        assert patch_grid_size > 0, "patch_grid_size must be > 0"
         assert num_layers > 0, "num_layers must be > 0"
         assert embed_dim > 0, "embed_dim must be > 0"
         assert in_channels > 0, "in_channels must be > 0"
+        assert tile_size > 0, "tile_size must be > 0"
         assert patch_size > 0, "patch_size must be > 0"
         if indices_return_hidden:
             assert (
@@ -100,6 +100,7 @@ class VisionTransformer(nn.Module):
             ), f"indices_return_hidden must be <= num_layers. Got {indices_return_hidden=} and {num_layers=}"
 
         # constants
+        patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.indices_return_hidden = indices_return_hidden
 
@@ -245,7 +246,7 @@ class VisionTransformer(nn.Module):
         x = self.ln_pre(x)
 
         # transformer with optional hidden layer outputs
-        x = x.view(bsz, n_tiles * n_tokens, embed_dim)
+        x = x.reshape(bsz, n_tiles * n_tokens, embed_dim)
         for layer_idx, transformer_layer in enumerate(self.transformer_layers):
             if self.indices_return_hidden and layer_idx in self.indices_return_hidden:
                 hidden_states.append(x)
@@ -256,7 +257,6 @@ class VisionTransformer(nn.Module):
 
         # reshape outputs
         x = x.reshape(bsz, n_tiles, n_tokens, embed_dim)
-
         if self.indices_return_hidden:
             hidden_states = torch.stack(hidden_states, dim=-1)
             hidden_states = hidden_states.reshape(
@@ -274,7 +274,7 @@ class VisionTransformer(nn.Module):
             x = x.reshape(bsz * n_tiles, n_tokens, embed_dim)
             x = self.cls_projection(x)
 
-            # (bsz, n_tiles, num_tokens, cls_output_dim)
+            # reshape to (bsz, n_tiles, num_tokens, cls_output_dim)
             # num_tokens become 1 because we only return the CLS token projection
             x = x.reshape(bsz, n_tiles, 1, -1)
 
