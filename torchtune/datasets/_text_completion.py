@@ -122,4 +122,8 @@ def text_completion_dataset(
         max_seq_len=max_seq_len,
         **load_dataset_kwargs,
     )
-    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
+    return (
+        PackedDataset(ds, max_seq_len=max_seq_len, padding_idx=tokenizer.pad_id)
+        if packed
+        else ds
+    )
