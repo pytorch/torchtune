@@ -177,3 +177,10 @@ class TestLlama3Tokenizer:
 
     def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
         assert tokenizer.tokenize_messages(messages) == tokenized_messages
+
+    def test_validate_special_tokens(self, tokenizer):
+        tokenizer.special_tokens.pop("<|begin_of_text|>")
+        with pytest.raises(
+            ValueError, match="<|begin_of_text|> missing from special_tokens"
+        ):
+            tokenizer._validate_special_tokens()

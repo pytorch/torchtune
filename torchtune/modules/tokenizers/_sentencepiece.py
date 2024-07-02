@@ -20,10 +20,9 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
     Args:
         path (str): Path to pretrained tokenizer file.
 
-    Example:
-        # Accepts only non-batched input for now
+    Examples:
         >>> tokenizer = SentencePieceBaseTokenizer("/path/to/spm_model")
-        >>> tokenized_text = SentencePieceBaseTokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
@@ -73,6 +72,11 @@ class SentencePieceBaseTokenizer(BaseTokenizer):
         Returns:
             List[int]: The encoded token IDs.
         """
+        # We typically trim leading whitespace on the next message when
+        # it is a continuation of the turn (i.e. not the first message)
+        # or the previous message did not end with a space. This is handled
+        # by the caller of this method. We only need to trim leading whitespace
+        # if the underlying SentencePieceProcessor encodes whitespace.
         if trim_leading_whitespace and self.encodes_whitespace:
             # Can define our own custom prefix depending on vocab if needed
             if not hasattr(self, "prefix"):

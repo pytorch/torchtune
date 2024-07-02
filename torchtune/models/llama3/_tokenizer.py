@@ -35,6 +35,12 @@ class Llama3Tokenizer(ModelTokenizer):
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Llama3 special tokens.
+
+    Examples:
+        >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> print(tokenized_text)
+        [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
@@ -42,7 +48,11 @@ class Llama3Tokenizer(ModelTokenizer):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
     ):
-        self.special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
+        self.special_tokens = (
+            special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
+        )
+
+        self._validate_special_tokens()
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
@@ -68,6 +78,18 @@ class Llama3Tokenizer(ModelTokenizer):
             eos_id=self.eos_id,
             special_tokens=self.special_tokens,
         )
+
+    def _validate_special_tokens(
+        self,
+    ):
+        """
+        Validate that required special tokens are passed into the tokenizer. The
+        following special tokens are required: <|begin_of_text|>, <|end_of_text|>,
+        <|start_header_id|>, <|end_header_id|>, <|eot_id|>, <|eom_id|>, <|python_tag|>
+        """
+        for token in LLAMA3_SPECIAL_TOKENS.keys():
+            if token not in self.special_tokens:
+                raise ValueError(f"{token} missing from special_tokens")
 
     @property
     def base_vocab_size(self) -> int:

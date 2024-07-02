@@ -34,8 +34,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
             their registered token IDs. If left as None, this will be set to the canonical
             Phi3 special tokens.
 
-    Example:
-        # Accepts only non-batched input for now
+    Examples:
         >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
         >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
@@ -49,7 +48,9 @@ class Phi3MiniTokenizer(ModelTokenizer):
     ):
         self._spm_model = SentencePieceBaseTokenizer(path)
 
-        self.special_tokens = special_tokens or PHI3_SPECIAL_TOKENS
+        self.special_tokens = (
+            special_tokens if special_tokens is not None else PHI3_SPECIAL_TOKENS
+        )
 
         # Use custom EOS and pad ids instead of SentencePiece's
         self.eos_id = self.special_tokens["<|endoftext|>"]
