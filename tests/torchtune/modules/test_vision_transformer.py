@@ -91,6 +91,16 @@ class TestVisionTransformer:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
+    def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
+        assert self.image.shape[1] > 1, "This test is not valid for num_tiles=1"
+        try:
+            vision_transformer(self.image, aspect_ratio=None)
+            pytest.fail(
+                "Expected ValueError: If num_tiles>1, aspect_ratio should not be None"
+            )
+        except ValueError:
+            pass  # If ValueError is raised, the test passes
+
     def test_vision_transformer_with_cls_projection(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["output_cls_projection"] = True
@@ -98,7 +108,7 @@ class TestVisionTransformer:
         # call model
         set_seed(42)
         model_with_cls = clip_vision_encoder(**transformer_config).eval()
-        output, _ = model_with_cls(self.image, None)
+        output, _ = model_with_cls(self.image, self.aspect_ratio)
 
         # assertion
         expected_shape = (
@@ -124,7 +134,7 @@ class TestVisionTransformer:
         # call model
         set_seed(42)
         model_with_hidden = clip_vision_encoder(**transformer_config)
-        x, hidden_layers = model_with_hidden(self.image)
+        x, hidden_layers = model_with_hidden(self.image, self.aspect_ratio)
 
         # assertion x
         expected_shape_x = (
@@ -161,7 +171,7 @@ class TestVisionTransformer:
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1
-        images = self.image[:, 0, :, :]
+        images = self.image[:, [0], :, :]
 
         # call model
         model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
