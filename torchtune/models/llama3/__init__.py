@@ -16,7 +16,11 @@ from ._model_builders import (  # noqa
     qlora_llama3_8b,
 )
 
+from ._model_utils import scale_hidden_dim_for_mlp
+from ._tokenizer import Llama3Tokenizer
+
 __all__ = [
+    "Llama3Tokenizer",
     "llama3",
     "llama3_8b",
     "llama3_70b",

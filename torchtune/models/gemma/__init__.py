@@ -14,13 +14,14 @@ from ._model_builders import (  # noqa
     qlora_gemma_2b,
     qlora_gemma_7b,
 )
+from ._tokenizer import GemmaTokenizer  # noqa
 
 __all__ = [
+    "GemmaTokenizer",
     "gemma",
     "gemma_2b",
     "gemma_7b",
     "gemma_tokenizer",
-    "lora_gemma",
     "lora_gemma_2b",
     "lora_gemma_7b",
     "qlora_gemma_2b",

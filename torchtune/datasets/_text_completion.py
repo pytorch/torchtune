@@ -10,7 +10,7 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.data import truncate
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class TextCompletionDataset(Dataset):
@@ -19,7 +19,7 @@ class TextCompletionDataset(Dataset):
     from Hugging Face or local disk and tokenize it for your model.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (str): name of column in the sample that contains the text data. This is typically required
@@ -33,7 +33,7 @@ class TextCompletionDataset(Dataset):
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         column: str = "text",
         max_seq_len: Optional[int] = None,
@@ -66,7 +66,7 @@ class TextCompletionDataset(Dataset):
 
 
 def text_completion_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str,
     column: Optional[str] = None,
     max_seq_len: Optional[int] = None,
@@ -80,7 +80,7 @@ def text_completion_dataset(
     using :class:`~torchtune.datasets.TextCompletionDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         column (Optional[str]): name of column in the sample that contains the text data. This is typically required

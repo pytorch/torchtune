@@ -38,6 +38,7 @@ To download the Llama3-70B-Instruct model:
     llama3.lora_llama3_70b
     llama3.qlora_llama3_70b
     llama3.llama3_tokenizer
+    llama3.Llama3Tokenizer
 
 
 llama2
@@ -79,6 +80,7 @@ To download the Llama2-70B model:
     llama2.lora_llama2_70b
     llama2.qlora_llama2_70b
     llama2.llama2_tokenizer
+    llama2.Llama2Tokenizer
 
 
 code llama
@@ -128,6 +130,7 @@ To download the Phi-3 Mini 4k instruct model:
     phi3.lora_phi3_mini
     phi3.qlora_phi3_mini
     phi3.phi3_mini_tokenizer
+    phi3.Phi3MiniTokenizer
 
 
 mistral
@@ -156,6 +159,7 @@ To download the Mistral 7B v0.1 model:
     mistral.lora_mistral_classifier_7b
     mistral.qlora_mistral_classifier_7b
     mistral.mistral_tokenizer
+    mistral.MistralTokenizer
 
 
 gemma
@@ -188,3 +192,4 @@ To download the Gemma 7B model:
     gemma.lora_gemma_7b
     gemma.qlora_gemma_7b
     gemma.gemma_tokenizer
+    gemma.GemmaTokenizer

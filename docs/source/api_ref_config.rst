@@ -1,8 +1,8 @@
 .. _config:
 
-==================
+================
 torchtune.config
-==================
+================
 
 .. currentmodule:: torchtune.config
 

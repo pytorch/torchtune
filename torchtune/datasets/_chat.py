@@ -20,7 +20,7 @@ from torchtune.data import (
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class ChatDataset(Dataset):
@@ -48,7 +48,7 @@ class ChatDataset(Dataset):
     turns does not fit within ``max_seq_len`` then it is truncated.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
@@ -67,7 +67,7 @@ class ChatDataset(Dataset):
     def __init__(
         self,
         *,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
         chat_format: Optional[ChatFormat] = None,
@@ -111,7 +111,7 @@ class ChatDataset(Dataset):
 
 def chat_dataset(
     *,
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str,
     conversation_style: str,
     chat_format: Optional[str] = None,
@@ -126,7 +126,7 @@ def chat_dataset(
     using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
