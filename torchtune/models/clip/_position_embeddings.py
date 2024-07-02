@@ -20,7 +20,7 @@ class TokenPositionalEmbedding(nn.Module):
 
     Args:
         embed_dim (int): The dimensionality of each token embedding.
-        patch_grid_size (int): The side of a squared grid that represents how many
+        patch_grid_size (int): The size of a squared grid that represents how many
              patches are in one tile, i.e. tile_size // patch_size.
     """
 
