@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from torchtune.data._types import Message
-from torchtune.models.llama3 import llama3_tokenizer
+from torchtune.models.llama3 import llama3_tokenizer, Llama3Tokenizer
 
 ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 
@@ -178,9 +178,19 @@ class TestLlama3Tokenizer:
     def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
         assert tokenizer.tokenize_messages(messages) == tokenized_messages
 
-    def test_validate_special_tokens(self, tokenizer):
-        tokenizer.special_tokens.pop("<|begin_of_text|>")
+    def test_validate_special_tokens(self):
         with pytest.raises(
             ValueError, match="<|begin_of_text|> missing from special_tokens"
         ):
-            tokenizer._validate_special_tokens()
+            tokenizer = Llama3Tokenizer(
+                path=str(ASSETS / "tiktoken_small.model"),
+                # Same as LLAMA3_SPECIAL_TOKENS but one missing
+                special_tokens={
+                    "<|end_of_text|>": 128001,
+                    "<|start_header_id|>": 128006,
+                    "<|end_header_id|>": 128007,
+                    "<|eot_id|>": 128009,
+                    "<|eom_id|>": 128008,
+                    "<|python_tag|>": 128255,
+                },
+            )
