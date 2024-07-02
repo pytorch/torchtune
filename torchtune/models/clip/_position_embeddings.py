@@ -97,7 +97,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
         bsz, n_tiles, n_tokens, embed_dim = x.shape
 
         x = x.view(bsz * n_tiles, n_tokens, embed_dim)
-        x = x + self.local_token_positional_embedding * (1 - self.gate.tanh())
+        x = x + (self.local_token_positional_embedding * (1 - self.gate.tanh()))
 
         # apply global positional embedding (different for every tile)
         x = x.view(bsz, n_tiles, n_tokens, embed_dim)
