@@ -59,3 +59,84 @@ class TokenizeMessages(Transform):
         )
         kwargs.update({"tokens": tokens, "mask": mask})
         return kwargs
+
+
+class CrossAttentionMask(Transform):
+    """
+    Computes the cross-attention mask for text + image inputs. Text tokens that
+    participate in cross-attention with an image token will show True in the mask
+    and follow these rules:
+    1) Text tokens immediately following the image token up until the next image token
+    2) Consecutive image tokens attend to all subsequent text tokens
+
+    Resultant mask is of shape (text_seq_len, image_seq_len), where True indicates
+    that the token outputted from the image encoder attends to the token in the
+    text sequence.
+
+    Args:
+        num_patches (int): Number of patches per image, excluding class token.
+        image_token_id (int): Token ID of the image special token.
+    """
+
+    def __init__(self, num_patches: int, image_token_id: int):
+        self.num_patches = num_patches
+        self.image_token_id = image_token_id
+
+    def _get_image_attention_intervals(
+        self, tokens: List[int]
+    ) -> List[Tuple[int, int]]:
+        """
+        Returns a list of tuples of the form (start, end) where start is the index
+        of the current image token and end is the index of the next image token, exclusive.
+        If the image token attends until the end of the sequence, end will be -1.
+        """
+        vision_token_locations = [
+            i for i, token in enumerate(tokens) if token == self.image_token_id
+        ]
+        # Return empty list if there are no images
+        if len(vision_token_locations) == 0:
+            return []
+        # If there is only one image, it will attend to subsequent text until end
+        if len(vision_token_locations) == 1:
+            return [[vision_token_locations[0], -1]]
+
+        vision_masks = [
+            [tok1, tok2]
+            for tok1, tok2 in zip(
+                vision_token_locations[:-1], vision_token_locations[1:]
+            )
+        ]
+        # Last image will attend to subsequent text until end
+        vision_masks.append([vision_token_locations[-1], -1])
+
+        # If there are consecutive vision tokens, they should all attend to the
+        # same subsequent text
+        last_mask_end = vision_masks[-1][1]
+        for vision_mask in vision_masks[::-1]:
+            if vision_mask[0] == vision_mask[1] - 1:
+                vision_mask[1] = last_mask_end
+            last_mask_end = vision_mask[1]
+        return vision_masks
+
+    def __call__(self, *, tokens, images, **kwargs):
+        # We are still at sample level pre-collating
+        n_img, n_tiles, _, _, _ = images.shape
+        text_seq_len = len(tokens)
+        single_image_seq_len = n_tiles * self.num_patches + 1
+        image_seq_len = single_image_seq_len * n_img
+        intervals = self._get_image_attention_intervals(tokens)
+        assert len(intervals) == n_img
+
+        mask = torch.zeros(text_seq_len, image_seq_len, dtype=torch.bool)
+        for image_num, interval in enumerate(intervals):
+            start, end = interval
+            end = text_seq_len if end == -1 else end
+            mask[
+                start:end,
+                image_num
+                * single_image_seq_len : (image_num + 1)
+                * single_image_seq_len,
+            ] = True
+
+        kwargs.update({"encoder_mask": mask, "tokens": tokens, "images": images})
+        return kwargs
