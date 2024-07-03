@@ -8,10 +8,8 @@ import pytest
 
 import torch
 
-from tests.test_utils import assert_expected
+from tests.test_utils import assert_expected, fixed_init_model, fixed_init_tensor
 from torchtune.models.clip._component_builders import clip_vision_encoder
-
-from torchtune.utils.seed import set_seed
 
 
 @pytest.fixture
@@ -36,8 +34,9 @@ def transformer_config():
 
 @pytest.fixture
 def vision_transformer(transformer_config):
-    set_seed(42)
-    return clip_vision_encoder(**transformer_config).eval()
+    vision_transformer = clip_vision_encoder(**transformer_config).eval()
+    fixed_init_model(vision_transformer, min_val=-1, max_val=1)
+    return vision_transformer
 
 
 class TestVisionTransformer:
@@ -46,25 +45,18 @@ class TestVisionTransformer:
         self.batch_size = 2
         num_channels = transformer_config["in_channels"]
 
-        # generate random aspect ratios up to max_num_tiles
-        set_seed(42)
-        aspect_ratio = []
-        curr_max_num_tiles = 0
-        while len(aspect_ratio) < self.batch_size:
-            aspect_ratio_candidate = torch.randint(
-                1, transformer_config["max_num_tiles"], (2,)
-            )
-            num_tiles = int(torch.prod(aspect_ratio_candidate))
-            if num_tiles <= transformer_config["max_num_tiles"]:
-                aspect_ratio.append(aspect_ratio_candidate)
-                curr_max_num_tiles = max(num_tiles, curr_max_num_tiles)
+        # generate aspect ratios up to max_num_tiles
+        self.aspect_ratio = torch.tensor([[1, 3], [2, 2]])
+        self.num_tiles = 4
+        assert (
+            self.num_tiles <= transformer_config["max_num_tiles"]
+        ), "For this test to be valid, num_tiles should be <= max_num_tiles"
+        assert (
+            torch.prod(self.aspect_ratio, dim=-1).max() <= self.num_tiles
+        ), "For this test to be vlaid, prod(aspect_ratio).max() should match num_tiles"
 
-        self.aspect_ratio = torch.stack(aspect_ratio, dim=0)
-        self.num_tiles = curr_max_num_tiles
-
-        # generate random image
-        set_seed(42)
-        self.image = torch.rand(
+        # generate image
+        image = torch.rand(
             (
                 self.batch_size,
                 self.num_tiles,
@@ -73,8 +65,9 @@ class TestVisionTransformer:
                 transformer_config["tile_size"],
             )
         )
+        self.image = fixed_init_tensor(image.shape, min_val=-1, max_val=1)
 
-    def test_vision_transformer_output_shape(
+    def test_vision_transformer_without_hidden_layers(
         self, vision_transformer, transformer_config
     ):
         # call model
@@ -91,6 +84,8 @@ class TestVisionTransformer:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
+        assert_expected(output.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)
+
     def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
         assert self.image.shape[1] > 1, "This test is not valid for num_tiles=1"
         try:
@@ -106,8 +101,8 @@ class TestVisionTransformer:
         transformer_config["output_cls_projection"] = True
 
         # call model
-        set_seed(42)
         model_with_cls = clip_vision_encoder(**transformer_config).eval()
+        fixed_init_model(model_with_cls, min_val=-1, max_val=1)
         output, _ = model_with_cls(self.image, self.aspect_ratio)
 
         # assertion
@@ -122,7 +117,7 @@ class TestVisionTransformer:
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
 
-        assert_expected(output.mean(), torch.tensor(-0.0411), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(9.6240), atol=1e-3, rtol=1e-3)
 
     def test_vision_transformer_return_hidden_layers(self, transformer_config):
         transformer_config = transformer_config.copy()
@@ -132,8 +127,8 @@ class TestVisionTransformer:
         ]
 
         # call model
-        set_seed(42)
         model_with_hidden = clip_vision_encoder(**transformer_config)
+        fixed_init_model(model_with_hidden, min_val=-1, max_val=1)
         x, hidden_layers = model_with_hidden(self.image, self.aspect_ratio)
 
         # assertion x
@@ -148,7 +143,7 @@ class TestVisionTransformer:
             x.shape == expected_shape_x
         ), f"Expected shape {expected_shape_x}, but got {x.shape=}"
 
-        assert_expected(x.mean(), torch.tensor(2.2925e-08), atol=1e-3, rtol=1e-3)
+        assert_expected(x.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)
 
         # assertion hidden
         num_hidden_layers_expected = len(transformer_config["indices_return_hidden"])
@@ -165,16 +160,17 @@ class TestVisionTransformer:
         ), f"Expected shape {expected_shape_hidden_layers}, but got {hidden_layers.shape=}"
 
         assert_expected(
-            hidden_layers.mean(), torch.tensor(-0.0309), atol=1e-3, rtol=1e-3
+            hidden_layers.mean(), torch.tensor(6.6938), atol=1e-3, rtol=1e-3
         )
 
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1
-        images = self.image[:, [0], :, :]
+        images = self.image[:, [0], :, :, :]
 
         # call model
         model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
+        fixed_init_model(model_with_multiple_tiles, min_val=-1, max_val=1)
         output, _ = model_with_multiple_tiles(images, aspect_ratio=None)
 
         # assertion
@@ -187,3 +183,5 @@ class TestVisionTransformer:
         assert (
             output.shape == expected_shape
         ), f"Expected shape {expected_shape}, but got {output.shape}"
+
+        assert_expected(output.mean(), torch.tensor(0.5458), atol=1e-3, rtol=1e-3)

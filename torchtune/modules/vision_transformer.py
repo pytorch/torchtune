@@ -12,115 +12,7 @@ from torch import nn
 from torchtune.modules import Fp32LayerNorm
 from torchtune.modules.transformer import _get_clones
 
-"""
-[tiles, patches and tokens]
 
-We support tile-cropping in our VisionTransformer. This can be a bit hard to understand
-at first glance.
-
-Tiles: Result of a pre-processing transform that breaks the image into tiles,
-so the input to a VisionTransformer can be a stack of tiles, instead of a downsized image.
-E.g. if you have a 1600x1600 image, and your VisionTransformer only accepts images with shape 400x400,
-instead of downsizing it to 400x400, you can tile it into 4 tiles of size 400x400. The transformer
-will still be able to see the whole image if you reshape
-it to (batch_size, num_tiles * num_tokens_per_tile, emb_dim).
-Any image can be generalized to a one-tile image.
-
-Patches: In the VisionTransformer, each tile is divided into patches by a convolution.
-If your tile_size is 400x400, and your patch_size = 40, then each tile will become a grid of 10x10 patches.
-Your total number of patches in one image will be num_tiles * num_patches_per_tile. In the case above,
-4 * 100 = 400 patches.
-
-Tokens: Each patch is flattened by the VisionTransformer. This is now called a token embedding.
-A CLS token is added to each tile, and the tokens are fed to the transformers.
-So each tile will have now (CLS token + num_patches_per_tile) tokens.
-
-In summary:
-1) an image is broken down into tiles during preprocessing.
-2) In the ViT, the tiles will be broken down into patches.
-3) The patches will be transformed. We call them tokens now, because that's how the transformer sees them.
-
-Image: shape (8x8)
-|  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |
-|  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
-| 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 |
-| 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 |
-| 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 |
-| 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 |
-| 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |
-| 57 | 58 | 59 | 60 | 61 | 62 | 63 | 64 |
-
-Tiles: shape (2,4,4) # (num_tiles, tile_size, tile_size)
-|  1 |  2 |  3 |  4 |    |  5 |  6 |  7 |  8 |
-|  9 | 10 | 11 | 12 |    | 13 | 14 | 15 | 16 |
-| 17 | 18 | 19 | 20 |    | 21 | 22 | 23 | 24 |
-| 25 | 26 | 27 | 28 |    | 29 | 30 | 31 | 32 |
-
-| 33 | 34 | 35 | 36 |    | 37 | 38 | 39 | 40 |
-| 41 | 42 | 43 | 44 |    | 45 | 46 | 47 | 48 |
-| 49 | 50 | 51 | 52 |    | 53 | 54 | 55 | 56 |
-| 57 | 58 | 59 | 60 |    | 61 | 62 | 63 | 64 |
-
-Patches: shape (2,4,2,2) # (num_tiles, num_patches_per_tile, patch_size, patch_size)
-|  1 |  2 |    |  3 |  4 |    |  5 |  6 |    |  7 |  8 |
-|  9 | 10 |    | 11 | 12 |    | 13 | 14 |    | 15 | 16 |
-
-| 17 | 18 |    | 19 | 20 |    | 21 | 22 |    | 23 | 24 |
-| 25 | 26 |    | 27 | 28 |    | 29 | 30 |    | 31 | 32 |
-
-| 33 | 34 |    | 35 | 36 |    | 37 | 38 |    | 39 | 40 |
-| 41 | 42 |    | 43 | 44 |    | 45 | 46 |    | 47 | 48 |
-
-| 49 | 50 |    | 51 | 52 |    | 53 | 54 |    | 55 | 56 |
-| 57 | 58 |    | 59 | 60 |    | 61 | 62 |    | 63 | 64 |
-
-token: shape (2, 4, 4) # (num_tiles, num_patches_per_tile, emb_dim)
-|  1 |  2 |  9 |  10 |    |  3 |  4 |  11 |  12 |    |  5 |  6 |  13 |  14 |    |  7 |  8 |  15 |  16 |
-...
-...
-| 49 | 50 | 57 |  58 |    | 51 |  52 | 59 |  60 |    | 53 | 54 |  61 |  62 |    | 55 | 56 |  63 |  64 |
-
-For the positional embeddings:
-
-TokenPositionalEmbedding and TiledTokenPositionalEmbedding.local_token_positional_embedding
-Same for every tile, different for every token.
-|  1 |  2 |  3 |  4 |    |  1 |  2 |  3 |  4 |
-|  9 | 10 | 11 | 12 |    |  9 | 10 | 11 | 12 |
-| 17 | 18 | 19 | 20 |    | 17 | 18 | 19 | 20 |
-| 25 | 26 | 27 | 28 |    | 25 | 26 | 27 | 28 |
-
-|  1 |  2 |  3 |  4 |    |  1 |  2 |  3 |  4 |
-|  9 | 10 | 11 | 12 |    |  9 | 10 | 11 | 12 |
-| 17 | 18 | 19 | 20 |    | 17 | 18 | 19 | 20 |
-| 25 | 26 | 27 | 28 |    | 25 | 26 | 27 | 28 |
-
-TiledTokenPositionalEmbedding.global_token_positional_embedding
-Different for every tile, different for every token.
-|  1 |  2 |    |  3 |  4 |    |  5 |  6 |    |  7 |  8 |
-|  9 | 10 |    | 11 | 12 |    | 13 | 14 |    | 15 | 16 |
-
-| 17 | 18 |    | 19 | 20 |    | 21 | 22 |    | 23 | 24 |
-| 25 | 26 |    | 27 | 28 |    | 29 | 30 |    | 31 | 32 |
-
-| 33 | 34 |    | 35 | 36 |    | 37 | 38 |    | 39 | 40 |
-| 41 | 42 |    | 43 | 44 |    | 45 | 46 |    | 47 | 48 |
-
-| 49 | 50 |    | 51 | 52 |    | 53 | 54 |    | 55 | 56 |
-| 57 | 58 |    | 59 | 60 |    | 61 | 62 |    | 63 | 64 |
-
-TilePositionalEmbedding
-|  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
-|  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
-|  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
-|  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
-
-|  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
-|  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
-|  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
-|  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
-"""
-
-# TODO (@kartikayk): Should default values be identity instead of None?
 class VisionTransformer(nn.Module):
     """
     Implementation of the ViT architecture (https://arxiv.org/abs/2010.11929),
@@ -130,10 +22,11 @@ class VisionTransformer(nn.Module):
     represent this image. Each image is divided into **patches** by a convolution.
     These patches are flattened and subsequently treated as **tokens** by the transformer.
 
-    To further enhance the performance of ViT, we support tile-cropped images, which are images divided into
-    **tiles** during the preprocessing stage. For example, an 800x400 image may be cropped into two 400x400 tiles
-    if the tile_size = 400. For details on preprocessing, please refer to
-    ``torchtune.models.clip._transforms.CLIPImageTransform``.
+    To further enhance the performance of ViT and avoid downscaling images, we support tile-cropped images,
+    which are images divided into **tiles** during the preprocessing stage. For example, instead of
+    downscaling an 800x400 image to fit 400x400, we may crop it into two 400x400 tiles,
+    if the ``tile_size = 400``. For details on preprocessing, please refer to
+    :func:`torchtune.models.clip._transforms.CLIPImageTransform`.
 
     Each of these tiles is further broken down into patches by a convolution operation. For example, if
     your patch_size = 40, then each (400, 400) tile will become a grid of 10x10 patches, and your whole image will have
@@ -148,13 +41,99 @@ class VisionTransformer(nn.Module):
     - pre_tile_pos_embed: ``torchtune.models.clip._position_embeddings.TilePositionalEmbedding``
     - post_tile_pos_embed: ``torchtune.models.clip._position_embeddings.TilePositionalEmbedding``
 
-    Otherwise, pre and post tile_pos_embed should be None. For the tokens, all you need is a simple
+    Otherwise, pre and post tile_pos_embed should be None and all you need is a simple
     token positional embedding:
 
     - token_pos_embedding: ``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``
 
     All images will be considered as a stack of tiles, even if your image was not tile-cropped. In such cases,
     your image would be composed of a single tile.
+
+    In summary:
+    1) An image is broken down into tiles during preprocessing.
+    2) In the ViT, the tiles will be broken down into patches.
+    3) The patches will be flattened and transformed. We call them tokens,
+        because that's how the transformer sees them.
+
+    Image: shape (8x8)
+    |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |
+    |  9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+    | 17 | 18 | 19 | 20 | 21 | 22 | 23 | 24 |
+    | 25 | 26 | 27 | 28 | 29 | 30 | 31 | 32 |
+    | 33 | 34 | 35 | 36 | 37 | 38 | 39 | 40 |
+    | 41 | 42 | 43 | 44 | 45 | 46 | 47 | 48 |
+    | 49 | 50 | 51 | 52 | 53 | 54 | 55 | 56 |
+    | 57 | 58 | 59 | 60 | 61 | 62 | 63 | 64 |
+
+    Tiles: shape (4,4,4) # (num_tiles, tile_size, tile_size)
+    |  1 |  2 |  3 |  4 |    |  5 |  6 |  7 |  8 |
+    |  9 | 10 | 11 | 12 |    | 13 | 14 | 15 | 16 |
+    | 17 | 18 | 19 | 20 |    | 21 | 22 | 23 | 24 |
+    | 25 | 26 | 27 | 28 |    | 29 | 30 | 31 | 32 |
+
+    | 33 | 34 | 35 | 36 |    | 37 | 38 | 39 | 40 |
+    | 41 | 42 | 43 | 44 |    | 45 | 46 | 47 | 48 |
+    | 49 | 50 | 51 | 52 |    | 53 | 54 | 55 | 56 |
+    | 57 | 58 | 59 | 60 |    | 61 | 62 | 63 | 64 |
+
+    Patches: shape (4,4,2,2) # (num_tiles, num_patches_per_tile, patch_size, patch_size)
+    |  1 |  2 |    |  3 |  4 |    |  5 |  6 |    |  7 |  8 |
+    |  9 | 10 |    | 11 | 12 |    | 13 | 14 |    | 15 | 16 |
+
+    | 17 | 18 |    | 19 | 20 |    | 21 | 22 |    | 23 | 24 |
+    | 25 | 26 |    | 27 | 28 |    | 29 | 30 |    | 31 | 32 |
+
+    | 33 | 34 |    | 35 | 36 |    | 37 | 38 |    | 39 | 40 |
+    | 41 | 42 |    | 43 | 44 |    | 45 | 46 |    | 47 | 48 |
+
+    | 49 | 50 |    | 51 | 52 |    | 53 | 54 |    | 55 | 56 |
+    | 57 | 58 |    | 59 | 60 |    | 61 | 62 |    | 63 | 64 |
+
+    token: shape (4, 4, 4) # (num_tiles, num_patches_per_tile, emb_dim)
+    |  1 |  2 |  9 |  10 |    |  3 |  4 |  11 |  12 |    |  17 |  18 |  25 |  26 |    | 19 | 20 |  27 |  28 |
+    ...
+    ...
+    | 37 | 38 | 45 |  46 |    | 39 |  40 | 47 |  48 |    | 53 | 54 |  61 |  62 |    | 55 | 56 |  63 |  64 |
+
+    For the positional embeddings:
+
+    :func:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`
+    :func:`torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding`
+    Same for every tile, different for every token.
+    |  1 |  2 |  3 |  4 |    |  1 |  2 |  3 |  4 |
+    |  9 | 10 | 11 | 12 |    |  9 | 10 | 11 | 12 |
+    | 17 | 18 | 19 | 20 |    | 17 | 18 | 19 | 20 |
+    | 25 | 26 | 27 | 28 |    | 25 | 26 | 27 | 28 |
+
+    |  1 |  2 |  3 |  4 |    |  1 |  2 |  3 |  4 |
+    |  9 | 10 | 11 | 12 |    |  9 | 10 | 11 | 12 |
+    | 17 | 18 | 19 | 20 |    | 17 | 18 | 19 | 20 |
+    | 25 | 26 | 27 | 28 |    | 25 | 26 | 27 | 28 |
+
+    :func:`torchtune.models.clip._position_embeddings.TiledTokenPositionalEmbedding`
+    Different for every tile, different for every token.
+    |  1 |  2 |    |  3 |  4 |    |  5 |  6 |    |  7 |  8 |
+    |  9 | 10 |    | 11 | 12 |    | 13 | 14 |    | 15 | 16 |
+
+    | 17 | 18 |    | 19 | 20 |    | 21 | 22 |    | 23 | 24 |
+    | 25 | 26 |    | 27 | 28 |    | 29 | 30 |    | 31 | 32 |
+
+    | 33 | 34 |    | 35 | 36 |    | 37 | 38 |    | 39 | 40 |
+    | 41 | 42 |    | 43 | 44 |    | 45 | 46 |    | 47 | 48 |
+
+    | 49 | 50 |    | 51 | 52 |    | 53 | 54 |    | 55 | 56 |
+    | 57 | 58 |    | 59 | 60 |    | 61 | 62 |    | 63 | 64 |
+
+    :func:`torchtune.models.clip._position_embeddings.TilePositionalEmbedding`
+    |  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
+    |  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
+    |  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
+    |  1 |  1 |  1 |  1 |    |  2 |  2 |  2 |  3 |
+
+    |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
+    |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
+    |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
+    |  3 |  3 |  3 |  3 |    |  4 |  4 |  4 |  4 |
 
     Args:
         num_layers (int): The number of transformer layers.

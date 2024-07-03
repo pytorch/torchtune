@@ -18,7 +18,7 @@ from torchtune.models.clip._position_embeddings import (
 from torchtune.utils.seed import set_seed
 
 
-class TestVisionTransformer:
+class TestPositionalEmbeddings:
     @pytest.fixture(autouse=True)
     def setup_class(self):
 
