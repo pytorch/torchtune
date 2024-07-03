@@ -10,12 +10,11 @@ from torch import nn
 # TODO (@Felipe): add load hooks + interpolation on positional encodings,
 # so max_num_tiles can be variable and a trained model can be adapted to a
 # new value.
-
 """
 [tiles, patches and tokens]
 
-For our VisionTransformer, we support tile-cropping. This can be a bit hard to understand
-at a first glance.
+We support tile-cropping in our VisionTransformer. This can be a bit hard to understand
+at first glance.
 
 Tiles: Result of a pre-processing transform that breaks the image into tiles,
 so the input to a VisionTransformer can be a stack of tiles, instead of a downsized image.
@@ -31,14 +30,13 @@ Your total number of patches in one image will be num_tiles * num_patches_per_ti
 4 * 100 = 400 patches.
 
 Tokens: Each patch is flattened by the VisionTransformer. This is now called a token embedding.
-A CLS token is be added to each tile, and the tokens are fed to the transformers.
+A CLS token is added to each tile, and the tokens are fed to the transformers.
 So each tile will have now (CLS token + num_patches_per_tile) tokens.
 
 In summary:
 1) an image is broken down into tiles during preprocessing.
 2) In the ViT, the tiles will be broken down into patches.
-3) The patches will be transformed. We call them tokens now, because thats how
-    the transformers sees them.
+3) The patches will be transformed. We call them tokens now, because that's how the transformer sees them.
 
 Image: shape (8x8)
 |  1 |  2 |  3 |  4 |  5 |  6 |  7 |  8 |
