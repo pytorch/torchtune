@@ -129,10 +129,11 @@ def tokenize_messages_no_special_tokens(
         trim_leading_whitespace = (not start_of_turn) and not prev_ends_with_space
 
         # Tokenize current message, append with masks
+        tokens = []
         for item in message.content:
             if item["type"] == "text":
-                tokens = tokenizer.encode(
-                    item["content"].strip(),
+                tokens = tokens + tokenizer.encode(
+                    item["content"].rstrip(" "),
                     add_bos=False,
                     add_eos=False,
                     trim_leading_whitespace=trim_leading_whitespace,

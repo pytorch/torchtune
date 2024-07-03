@@ -54,10 +54,6 @@ def phi3_mini_tokenizer(path: str, special_tokens_path: Optional[str] = None) ->
         it is also augmented with special tokens like <endoftext>
         and <assistant>.
 
-    Warning:
-        Microsoft currently opts to ignore system messages citing better performance.
-        See https://huggingface.co/microsoft/Phi-3-mini-4k-instruct/discussions/51 for more details.
-
     Returns:
         Phi3MiniSentencePieceBaseTokenizer: Instantiation of the SPM tokenizer.
     """

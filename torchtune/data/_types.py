@@ -60,6 +60,8 @@ class Message:
         self.ipython = ipython
         self.eot = eot
 
+        self._validate_message()
+
     @classmethod
     def from_dict(cls, d: dict) -> "Message":
         """
@@ -78,3 +80,29 @@ class Message:
             ipython=d.get("ipython", False),
             eot=d.get("eot", True),
         )
+
+    @property
+    def contains_media(self) -> bool:
+        """
+        Returns True if message contains non-text content.
+        """
+        return any(content["type"] != "text" for content in self.content)
+
+    @property
+    def text_content(self) -> str:
+        """
+        Returns text-only content of the message.
+        """
+        return "".join(
+            content["content"] for content in self.content if content["type"] == "text"
+        )
+
+    def _validate_message(self) -> None:
+        if self.ipython and self.contains_media:
+            raise RuntimeError(
+                f"Media tokens in tool calls are not supported. Both are set in message: {self.text_content}"
+            )
+        if self.ipython and self.role != "assistant":
+            raise RuntimeError(
+                f"Only assistant messages can be tool calls. Found role {self.role} in message: {self.text_content}"
+            )

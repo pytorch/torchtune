@@ -5,7 +5,6 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.data._chat_formats import (
-    apply_chat_format,
     ChatFormat,
     ChatMLFormat,
     Llama2ChatFormat,
@@ -40,5 +39,4 @@ __all__ = [
     "validate_messages",
     "StackExchangedPairedTemplate",
     "Role",
-    "apply_chat_format",
 ]

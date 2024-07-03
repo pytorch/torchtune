@@ -298,4 +298,4 @@ def assert_dialogue_equal(actual, expected):
     assert len(actual) == len(expected)
     for i in range(len(actual)):
         assert actual[i].role == expected[i].role
-        assert actual[i].content[0]["content"] == expected[i].content[0]["content"]
+        assert actual[i].text_content == expected[i].text_content

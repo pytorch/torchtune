@@ -25,6 +25,7 @@ SPECIAL_TOKENS = {
     "<|eot_id|>": 128009,
     "<|python_tag|>": 128010,
     "<|image|>": 128011,
+    "<|video|>": 128012,
 }
 
 NUM_RESERVED_SPECIAL_TOKENS = 256
@@ -170,7 +171,6 @@ class Llama3Tokenizer(ModelTokenizer):
         Tokenize message content as list of ids
         """
         tokenized_body = []
-        contains_media = False
         for item in message.content:
             if item["type"] == "text":
                 tokenized_body += self.encode(
@@ -178,19 +178,10 @@ class Llama3Tokenizer(ModelTokenizer):
                 )
             elif item["type"] == "image":
                 tokenized_body += [self.image_id]
-                contains_media = True
             else:
                 raise RuntimeError(f"Unsupported message content type: {item['type']}")
 
         if message.ipython:
-            if contains_media:
-                raise RuntimeError(
-                    f"Media tokens in tool calls are not supported. Both are set in message: {message.content}"
-                )
-            if message.role != "assistant":
-                raise RuntimeError(
-                    f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}"
-                )
             tokenized_body = [self.python_tag] + tokenized_body
 
         return tokenized_body
@@ -210,8 +201,7 @@ class Llama3Tokenizer(ModelTokenizer):
             tokenize_end (bool): Whether to append eot or eom id at the end of the message.
 
         Returns:
-            Dict[str, Any]: "tokens" - The list of token ids. "images" - PIL Image
-                if message contains an image
+            List[int]: The list of token ids.
         """
 
         tokenized_header = self._tokenize_header(message) if tokenize_header else []
@@ -238,14 +228,12 @@ class Llama3Tokenizer(ModelTokenizer):
             max_seq_len (Optional[int]): The maximum sequence length.
 
         Returns:
-            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
-                to indicate which tokens should be excluded from loss calculation,
-                "images" - list of PIL Images from the messages, if any
+            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        for i, message in enumerate(messages):
+        for message in messages:
             tokenized_message = self.tokenize_message(message)
 
             tokens = tokens + tokenized_message
