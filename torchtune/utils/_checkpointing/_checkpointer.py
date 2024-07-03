@@ -522,7 +522,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     self._output_dir,
                     f"model-0{cpt_idx}-of-0{list(split_state_dicts.keys())[-1]}_{epoch}",
                 ).with_suffix(".safetensors")
-                save_file(model_state_dict, output_path)
+                save_file(model_state_dict, output_path, metadata={"format": "pt"})
             logger.info(
                 "Model checkpoint of size "
                 f"{os.path.getsize(output_path) / 1000**3:.2f} GB "

@@ -1,19 +1,25 @@
 # Config for single device QLoRA with lora_finetune_fsdp2.py
 # using a Llama2 7B model
 #
+# This config requires PyTorch nightlies to run.
+# See https://github.com/pytorch/torchtune/blob/main/recipes/dev/fsdp2_recipes.md
+# for setup instructions.
+#
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
 #
-# To launch on a single device, run the following command from root:
-#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora
+# To launch on 2 devices, run the following command from root:
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama2/7B_qlora
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_fsdp2 --config llama2/7B_qlora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run --nnodes 1 --nproc_per_node 2 lora_finetune_fsdp2 --config llama2/7B_qlora checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
-# This config works only for training on single device.
+# This config works best when the model is being fine-tuned on 2+ GPUs.
+# For single device LoRA finetuning please use 7B_lora_single_device.yaml
+# or 7B_qlora_single_device.yaml
 
 # Model Arguments
 model:
@@ -67,7 +73,7 @@ fsdp:
 # Training
 epochs: 1
 max_steps_per_epoch: null
-gradient_accumulation_steps: 16
+gradient_accumulation_steps: 2
 compile: False
 
 # Logging

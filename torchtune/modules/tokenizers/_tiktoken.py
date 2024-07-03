@@ -21,9 +21,6 @@ class TikTokenBaseTokenizer(BaseTokenizer):
     breaking up the input text into substrings of a max length and splitting up long
     repetitions to improve encode speed.
 
-    The core tiktoken.Encoding does NOT natively handle BOS and EOS ids, so this class
-    does not either. They must be handled by the caller of ``encode``.
-
     Args:
         path (str): Path to pretrained tokenizer checkpoint file.
         name (str): Name of the tokenizer (used by tiktoken for identification).
@@ -32,6 +29,12 @@ class TikTokenBaseTokenizer(BaseTokenizer):
         bos_id (int): beginning-of-sequence token id. This can be present or absent in ``special_tokens``.
         eos_id (int): end-of-sequence token id. This can be present or absent in ``special_tokens``.
         special_tokens (Dict[str, int]): Mapping of special tokens to their ids.
+
+    Examples:
+        >>> tokenizer = TikTokenBaseTokenizer("/path/to/tt_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> print(tokenized_text)
+        [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
@@ -90,8 +93,7 @@ class TikTokenBaseTokenizer(BaseTokenizer):
     ) -> List[int]:
         """
         Encode a string into a list of token ids. Assumes that the string
-        contains no special tokens. BOS and EOS are NOT handled here and must
-        be manually added by the caller.
+        contains no special tokens.
 
         Args:
             text (str): The string to encode.

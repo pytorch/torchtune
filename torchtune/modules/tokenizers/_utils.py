@@ -28,16 +28,12 @@ class BaseTokenizer(Protocol):
         """
         pass
 
-    def decode(
-        self, token_ids: List[int], include_special: bool = False, **kwargs
-    ) -> str:
+    def decode(self, token_ids: List[int], **kwargs) -> str:
         """
         Given a list of token ids, return the decoded text, optionally including special tokens.
 
         Args:
             token_ids (List[int]): The list of token ids to decode.
-            include_special (bool): Whether to include special tokens in the decoded text.
-                Default is False.
 
         Returns:
             str: The decoded text.
@@ -81,25 +77,24 @@ def tokenize_messages_no_special_tokens(
     tokens except for BOS and EOS. This serves as a common starting point for
     model tokenizers that do not rely heavily on special tokens.
 
-    Example:
+    Examples:
         >>> messages = [
-            Message(role="system", content="system message\n", masked=True),
-            Message(role="user", content="user prompt\n", masked=True),
-            Message(role="assistant", content="assistant response\n"),
-        ]
+        ...     Message(role="system", content="system message\n", masked=True),
+        ...     Message(role="user", content="user prompt\n", masked=True),
+        ...     Message(role="assistant", content="assistant response\n"),
+        ... ]
         # tokenize_messages encodes messages separately and concats
-        >>> tokenize_messages_no_special_tokens(
-            tokenizer,
-            messages,
-            tokenizer.bos_id,
-            tokenizer.eos_id,
-            max_seq_len
-        )[0]
+        >>> tokens = tokenize_messages_no_special_tokens(
+        ...     tokenizer,
+        ...     messages,
+        ...     tokenizer.bos_id,
+        ...     tokenizer.eos_id,
+        ...     max_seq_len
+        ... )[0]
+        >>> print(tokens)
         [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
-
-
         # Same result as encoding the full string in one go
-        >>> tokenizer.encode(''.join([message.content for message in messages]))
+        >>> print(tokenizer.encode(''.join([message.content for message in messages])))
         [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 
 
@@ -128,15 +123,17 @@ def tokenize_messages_no_special_tokens(
 
         # We want to trim leading whitespace on the next message when
         # (a) it is a continuation of the turn (i.e. not the first message)
-        # (b) the vocabulary explicitly encodes whitespace characters, and
+        # (b) the vocabulary explicitly encodes whitespace characters (checked inside
+        #     the base tokenizer's encode method), and
         # (c) the previous message did not end with a space
         trim_leading_whitespace = (not start_of_turn) and not prev_ends_with_space
 
         # Tokenize current message, append with masks
+        tokens = []
         for item in message.content:
             if item["type"] == "text":
-                tokens = tokenizer.encode(
-                    item["content"].strip(),
+                tokens = tokens + tokenizer.encode(
+                    item["content"].rstrip(" "),
                     add_bos=False,
                     add_eos=False,
                     trim_leading_whitespace=trim_leading_whitespace,

@@ -69,16 +69,15 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
-            tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = tokens + self.encode(
+                    tokens = self.encode(
                         item["content"],
                         add_bos=False,
                         add_eos=False,
                     )
                 elif item["type"] == "image":
-                    tokens = tokens + [self.image_id]
+                    tokens = [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -104,11 +103,11 @@ class DummyTokenizer(ModelTokenizer):
         return tokenized_messages, mask
 
     @property
-    def eos_id(self) -> int:
+    def eos_id(self):
         return -1
 
     @property
-    def bos_id(self) -> int:
+    def bos_id(self):
         return 0
 
     @property
@@ -299,4 +298,4 @@ def assert_dialogue_equal(actual, expected):
     assert len(actual) == len(expected)
     for i in range(len(actual)):
         assert actual[i].role == expected[i].role
-        assert actual[i].content[0]["content"] == expected[i].content[0]["content"]
+        assert actual[i].text_content == expected[i].text_content

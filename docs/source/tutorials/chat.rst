@@ -114,7 +114,7 @@ If you look at our :class:`~torchtune.data.Llama2ChatFormat` class, you'll notic
 we don't include the :code:`<s>` and :code:`</s>` tokens. These are the beginning-of-sequence
 (BOS) and end-of-sequence (EOS) tokens that are represented differently in the tokenizer
 than the rest of the prompt template. Let's tokenize this example with the
-:class:`~torchtune.models.llama2.llama2_tokenizer` used by Llama2 to see
+:func:`~torchtune.models.llama2.llama2_tokenizer` used by Llama2 to see
 why.
 
 .. code-block:: python

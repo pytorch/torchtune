@@ -23,8 +23,7 @@ class MistralTokenizer(ModelTokenizer):
     Args:
         path (str): Path to pretrained tokenizer file.
 
-    Example:
-        # Accepts only non-batched input for now
+    Examples:
         >>> tokenizer = MistralTokenizer("/path/to/spm_model")
         >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)

@@ -48,6 +48,12 @@ class Llama3Tokenizer(ModelTokenizer):
         special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
             their registered token IDs. If left as None, this will be set to the canonical
             Llama3 special tokens.
+
+    Examples:
+        >>> tokenizer = Llama3Tokenizer("/path/to/tt_model")
+        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+        >>> print(tokenized_text)
+        [1, 31587, 29644, 102, 2]
     """
 
     def __init__(
@@ -55,7 +61,11 @@ class Llama3Tokenizer(ModelTokenizer):
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
     ):
-        self.special_tokens = special_tokens or LLAMA3_SPECIAL_TOKENS
+        self.special_tokens = (
+            special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
+        )
+
+        self._validate_special_tokens()
 
         # Encode BOS and EOS, define pad ID
         self.bos_id = self.special_tokens["<|begin_of_text|>"]
@@ -85,6 +95,25 @@ class Llama3Tokenizer(ModelTokenizer):
             eos_id=self.eos_id,
             special_tokens=self.special_tokens,
         )
+
+    def _validate_special_tokens(
+        self,
+    ):
+        """
+        Validate that required special tokens are passed into the tokenizer.
+        """
+        for token in [
+            "<|begin_of_text|>",
+            "<|end_of_text|>",
+            "<|start_header_id|>",
+            "<|end_header_id|>",
+            "<|eom_id|>",
+            "<|eot_id|>",
+            "<|python_tag|>",
+            "<|image|>",
+        ]:
+            if token not in self.special_tokens:
+                raise ValueError(f"{token} missing from special_tokens")
 
     @property
     def base_vocab_size(self) -> int:
@@ -142,7 +171,6 @@ class Llama3Tokenizer(ModelTokenizer):
         Tokenize message content as list of ids
         """
         tokenized_body = []
-        contains_media = False
         for item in message.content:
             if item["type"] == "text":
                 tokenized_body += self.encode(
@@ -150,19 +178,10 @@ class Llama3Tokenizer(ModelTokenizer):
                 )
             elif item["type"] == "image":
                 tokenized_body += [self.image_id]
-                contains_media = True
             else:
                 raise RuntimeError(f"Unsupported message content type: {item['type']}")
 
         if message.ipython:
-            if contains_media:
-                raise RuntimeError(
-                    f"Media tokens in tool calls are not supported. Both are set in message: {message.content}"
-                )
-            if message.role != "assistant":
-                raise RuntimeError(
-                    f"Only assistant messages can be tool calls. Found role {message.role} in message: {message.content}"
-                )
             tokenized_body = [self.python_tag] + tokenized_body
 
         return tokenized_body
@@ -182,8 +201,7 @@ class Llama3Tokenizer(ModelTokenizer):
             tokenize_end (bool): Whether to append eot or eom id at the end of the message.
 
         Returns:
-            Dict[str, Any]: "tokens" - The list of token ids. "images" - PIL Image
-                if message contains an image
+            List[int]: The list of token ids.
         """
 
         tokenized_header = self._tokenize_header(message) if tokenize_header else []
@@ -210,14 +228,12 @@ class Llama3Tokenizer(ModelTokenizer):
             max_seq_len (Optional[int]): The maximum sequence length.
 
         Returns:
-            Dict[str, Any]: "tokens" - list of token int ids, "mask" - list of booleans
-                to indicate which tokens should be excluded from loss calculation,
-                "images" - list of PIL Images from the messages, if any
+            Tuple[List[int], List[bool]]: The list of token ids and the list of masks.
         """
         tokens = [self.bos_id]
         # bos and eos are always masked
         mask = [True]
-        for i, message in enumerate(messages):
+        for message in messages:
             tokenized_message = self.tokenize_message(message)
 
             tokens = tokens + tokenized_message

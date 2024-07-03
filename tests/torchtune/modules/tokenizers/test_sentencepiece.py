@@ -18,7 +18,6 @@ class TestSentencePieceBaseTokenizer:
         # m.model is a pretrained Sentencepiece model using the following command:
         # spm.SentencePieceTrainer.train('--input=<TRAIN_FILE> --model_prefix=m --vocab_size=2000')
         sp_tokenizer = SentencePieceBaseTokenizer(str(ASSETS / "m.model"))
-        sp_tokenizer.encodes_whitespace = True
         return sp_tokenizer
 
     def test_encode(self, tokenizer):
@@ -65,6 +64,8 @@ class TestSentencePieceBaseTokenizer:
     def test_encode_without_leading_whitespace(self, tokenizer):
         s1 = "Hello"
         s2 = "I'm an outgoing and friendly person."
+        # TODO: investigate why test tokenizer model does not encode whitespace
+        tokenizer.encodes_whitespace = True
         s1_tokens = tokenizer.encode(s1, add_bos=False, add_eos=False)
         s2_tokens = tokenizer.encode(s2, add_bos=False, add_eos=False)
         # Set prefix="pre" since "\n" is not in the test tokenizer's vocab
