@@ -12,7 +12,6 @@ from datasets import load_dataset
 from torch.utils.data import Dataset
 from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
-    apply_chat_format,
     ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
     get_openai_messages,
@@ -98,7 +97,7 @@ class ChatDataset(Dataset):
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         messages = self._convert_to_messages(sample, self.train_on_input)
         if self.chat_format is not None:
-            messages = apply_chat_format(self.chat_format, messages)
+            messages = self.chat_format.format(messages)
         validate_messages(messages)
         tokens, mask = self._tokenizer.tokenize_messages(
             messages, max_seq_len=self.max_seq_len
