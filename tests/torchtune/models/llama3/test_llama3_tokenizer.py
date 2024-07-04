@@ -23,22 +23,33 @@ class TestLlama3Tokenizer:
         )
 
     @pytest.fixture
-    def texts(self):
-        return [
-            "I can see the sun. But even if I cannot see the sun, I know that it exists.",
-            "And to know that the sun is there - that is living.",
-        ]
+    def user_text_a(self):
+        return "I can see the sun. "
 
     @pytest.fixture
-    def messages(self, texts):
-        return [
-            Message(role="user", content=texts[0], masked=True),
-            Message(role="assistant", content=texts[1], masked=False),
-        ]
+    def user_text_b(self):
+        return "But even if I cannot see the sun, I know that it exists."
 
     @pytest.fixture
-    def token_ids(self):
-        return [
+    def assistant_text(self):
+        return "And to know that the sun is there - that is living."
+
+    @pytest.fixture
+    def user_text_message(self, user_text_a, user_text_b):
+        message = Message(
+            role="user",
+            content=user_text_a + user_text_b,
+            masked=True,
+            eot=True,
+        )
+        expected_tokens = [
+            128000,
+            128006,
+            477,
+            273,
+            128007,
+            10,
+            10,
             73,
             503,
             654,
@@ -64,119 +75,326 @@ class TestLlama3Tokenizer:
             511,
             115,
             46,
+            128009,
         ]
+        return message, expected_tokens
 
     @pytest.fixture
-    def tokenized_messages(self, token_ids):
-        return (
-            [128000, 128006, 477, 273, 128007, 10, 10]
-            + token_ids
-            + [
-                128009,
-                128006,
-                520,
-                511,
-                446,
-                128007,
-                10,
-                10,
-                65,
-                269,
-                277,
-                686,
-                334,
-                262,
-                376,
-                110,
-                351,
-                443,
-                32,
-                45,
-                334,
-                351,
-                1955,
-                46,
-                128009,
-                128001,
-            ],
-            [
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                True,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                False,
-                True,
-            ],
+    def assistant_text_message(self, assistant_text):
+        message = Message(
+            role="assistant",
+            content=assistant_text,
+            masked=False,
+            eot=True,
         )
+        expected_tokens = [
+            128006,
+            520,
+            511,
+            446,
+            128007,
+            10,
+            10,
+            65,
+            269,
+            277,
+            686,
+            334,
+            262,
+            376,
+            110,
+            351,
+            443,
+            32,
+            45,
+            334,
+            351,
+            1955,
+            46,
+            128009,
+            128001,
+        ]
+        return message, expected_tokens
+
+    @pytest.fixture
+    def user_image_text_message(self, user_text_a, user_text_b):
+        message = Message(
+            role="user",
+            content=[
+                {"type": "image"},
+                {"type": "text", "content": user_text_a + user_text_b},
+            ],
+            masked=True,
+            eot=True,
+        )
+        expected_tokens = [
+            128000,
+            128006,
+            477,
+            273,
+            128007,
+            10,
+            10,
+            128011,
+            73,
+            503,
+            654,
+            262,
+            376,
+            110,
+            46,
+            690,
+            720,
+            428,
+            270,
+            1119,
+            654,
+            262,
+            376,
+            110,
+            44,
+            270,
+            686,
+            334,
+            312,
+            522,
+            511,
+            115,
+            46,
+            128009,
+        ]
+        return message, expected_tokens
+
+    @pytest.fixture
+    def user_interleaved_image_text_message(self, user_text_a, user_text_b):
+        message = Message(
+            role="user",
+            content=[
+                {"type": "image"},
+                {"type": "text", "content": user_text_a},
+                {"type": "image"},
+                {"type": "text", "content": user_text_b},
+            ],
+            masked=True,
+            eot=True,
+        )
+        expected_tokens = [
+            128000,
+            128006,
+            477,
+            273,
+            128007,
+            10,
+            10,
+            128011,
+            73,
+            503,
+            654,
+            262,
+            376,
+            110,
+            46,
+            128011,
+            1542,
+            720,
+            428,
+            270,
+            1119,
+            654,
+            262,
+            376,
+            110,
+            44,
+            270,
+            686,
+            334,
+            312,
+            522,
+            511,
+            115,
+            46,
+            128009,
+        ]
+        return message, expected_tokens
+
+    @pytest.fixture
+    def assistant_tool_message(self):
+        message = Message(
+            role="assistant",
+            content=[
+                {"type": "text", "content": "locate_sun(radius=100_000_000)"},
+            ],
+            masked=False,
+            ipython=True,
+            eot=False,
+        )
+        expected_tokens = [
+            128006,
+            520,
+            511,
+            446,
+            128007,
+            10,
+            10,
+            128010,
+            525,
+            99,
+            534,
+            95,
+            115,
+            433,
+            40,
+            114,
+            338,
+            105,
+            477,
+            61,
+            49,
+            1635,
+            95,
+            1635,
+            48,
+            95,
+            1635,
+            48,
+            41,
+            128008,
+        ]
+        return message, expected_tokens
+
+    @pytest.fixture
+    def ipython_message(self):
+        message = Message(
+            role="ipython",
+            content=[
+                {"type": "text", "content": '{"content": True}'},
+            ],
+            masked=True,
+            eot=False,
+        )
+        expected_tokens = [
+            128006,
+            1558,
+            121,
+            483,
+            279,
+            128007,
+            10,
+            10,
+            123,
+            34,
+            99,
+            957,
+            317,
+            34,
+            58,
+            323,
+            114,
+            979,
+            125,
+            128008,
+        ]
+        return message, expected_tokens
 
     def test_token_ids(self, tokenizer):
         assert tokenizer.bos_id == 128000
         assert tokenizer.eos_id == 128001
-        assert tokenizer.pad_id == 0
+        assert tokenizer.pad_id == 128004
+        assert tokenizer.step_id == 128005
         assert tokenizer.start_header_id == 128006
         assert tokenizer.end_header_id == 128007
         assert tokenizer.eom_id == 128008
         assert tokenizer.eot_id == 128009
-        assert tokenizer.python_tag == 128255
+        assert tokenizer.python_tag == 128010
+        assert tokenizer.image_id == 128011
 
     def test_tokenizer_vocab_size(self, tokenizer):
         assert tokenizer.base_vocab_size == 2000
         assert tokenizer.vocab_size == 128256
 
-    def test_tokenize_messages(self, tokenizer, messages, tokenized_messages):
-        assert tokenizer.tokenize_messages(messages) == tokenized_messages
+    def test_tokenize_text_messages(
+        self, tokenizer, user_text_message, assistant_text_message
+    ):
+        text_messages = [user_text_message[0], assistant_text_message[0]]
+        expected_tokens = user_text_message[1] + assistant_text_message[1]
+        expected_mask = (
+            [True] * len(user_text_message[1])
+            + [False] * (len(assistant_text_message[1]) - 1)
+            + [True]
+        )
+        tokens, mask = tokenizer.tokenize_messages(text_messages)
+        assert tokens == expected_tokens
+        assert mask == expected_mask
+
+    def test_tokenize_image_and_text_messages(
+        self, tokenizer, user_image_text_message, assistant_text_message
+    ):
+        image_and_text_messages = [
+            user_image_text_message[0],
+            assistant_text_message[0],
+        ]
+        expected_tokens = user_image_text_message[1] + assistant_text_message[1]
+        expected_mask = (
+            [True] * len(user_image_text_message[1])
+            + [False] * (len(assistant_text_message[1]) - 1)
+            + [True]
+        )
+        tokens, mask = tokenizer.tokenize_messages(image_and_text_messages)
+        assert tokens == expected_tokens
+        assert mask == expected_mask
+
+    def test_tokenize_interleaved_image_and_text_messages(
+        self,
+        tokenizer,
+        user_interleaved_image_text_message,
+        assistant_text_message,
+    ):
+        interleaved_image_and_text_messages = [
+            user_interleaved_image_text_message[0],
+            assistant_text_message[0],
+        ]
+        expected_tokens = (
+            user_interleaved_image_text_message[1] + assistant_text_message[1]
+        )
+        expected_mask = (
+            [True] * len(user_interleaved_image_text_message[1])
+            + [False] * (len(assistant_text_message[1]) - 1)
+            + [True]
+        )
+        tokens, mask = tokenizer.tokenize_messages(interleaved_image_and_text_messages)
+        assert tokens == expected_tokens
+        assert mask == expected_mask
+
+    def test_tokenize_tool_call_messages(
+        self,
+        tokenizer,
+        user_text_message,
+        assistant_tool_message,
+        ipython_message,
+        assistant_text_message,
+    ):
+        tool_call_messages = [
+            user_text_message[0],
+            assistant_tool_message[0],
+            ipython_message[0],
+            assistant_text_message[0],
+        ]
+        expected_tokens = (
+            user_text_message[1]
+            + assistant_tool_message[1]
+            + ipython_message[1]
+            + assistant_text_message[1]
+        )
+        expected_mask = (
+            [True] * len(user_text_message[1])
+            + [False] * len(assistant_tool_message[1])
+            + [True] * len(ipython_message[1])
+            + [False] * (len(assistant_text_message[1]) - 1)
+            + [True]
+        )
+        tokens, mask = tokenizer.tokenize_messages(tool_call_messages)
+        assert tokens == expected_tokens
+        assert mask == expected_mask
 
     def test_validate_special_tokens(self):
         with pytest.raises(

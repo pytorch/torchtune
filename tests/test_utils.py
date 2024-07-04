@@ -18,7 +18,7 @@ import pytest
 
 import torch
 from torch import nn
-from torchtune.data import truncate
+from torchtune.data import ChatFormat, Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
 
 skip_if_cuda_not_available = unittest.skipIf(
@@ -50,7 +50,7 @@ class DummyTokenizer(ModelTokenizer):
         return tokens
 
     def tokenize_messages(
-        self, messages: List[str], max_seq_len: Optional[int] = None
+        self, messages: List[Message], max_seq_len: Optional[int] = None
     ) -> Tuple[List[int], List[bool]]:
         """
         A simplified version of Llama2Tokenizer's ``tokenize_messages`` for testing purposes.
@@ -69,11 +69,15 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
-            tokens = self.encode(
-                message.content,
-                add_bos=False,
-                add_eos=False,
-            )
+            for item in message.content:
+                if item["type"] == "text":
+                    tokens = self.encode(
+                        item["content"],
+                        add_bos=False,
+                        add_eos=False,
+                    )
+                elif item["type"] == "image":
+                    tokens = [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -105,6 +109,36 @@ class DummyTokenizer(ModelTokenizer):
     @property
     def bos_id(self):
         return 0
+
+    @property
+    def image_id(self):
+        return -2
+
+
+class DummyChatFormat(ChatFormat):
+
+    B_SYS, E_SYS = "System:\n", "\n"
+    B_INST, E_INST = "User:\n", "\nAssistant:\n"
+    B_ASST, E_ASST = "", ""
+    system = f"{B_SYS}{{content}}{E_SYS}"
+    user = f"{B_INST}{{content}}{E_INST}"
+    assistant = f"{B_ASST}{{content}}{E_ASST}"
+
+    @classmethod
+    def format(
+        cls,
+        messages,
+    ):
+        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
+        formatted_dialogue = []
+        for message in messages:
+            content = formats.get(message.role).format(
+                content=message.content[0]["content"]
+            )
+            formatted_dialogue.append(
+                Message(role=message.role, content=content, masked=message.masked),
+            )
+        return formatted_dialogue
 
 
 def get_assets_path():
@@ -258,3 +292,10 @@ def gen_log_file_name(tmpdir, suffix: Optional[str] = None) -> str:
         filename += suffix
     filename += ".txt"
     return filename
+
+
+def assert_dialogue_equal(actual, expected):
+    assert len(actual) == len(expected)
+    for i in range(len(actual)):
+        assert actual[i].role == expected[i].role
+        assert actual[i].text_content == expected[i].text_content

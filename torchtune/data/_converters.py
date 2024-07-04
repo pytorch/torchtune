@@ -54,7 +54,11 @@ def get_sharegpt_messages(
         role = role_map[message["from"]]
         content = message["value"]
         masked = (role != "assistant") and (not train_on_input)
-        messages.append(Message(role=role, content=content, masked=masked))
+        messages.append(
+            Message(
+                role=role, content=[{"type": "text", "content": content}], masked=masked
+            )
+        )
     return messages
 
 
