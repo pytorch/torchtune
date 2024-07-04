@@ -8,14 +8,12 @@ import pytest
 
 import torch
 
-from tests.test_utils import assert_expected
+from tests.test_utils import assert_expected, fixed_init_model, fixed_init_tensor
 from torchtune.models.clip._position_embeddings import (
     TiledTokenPositionalEmbedding,
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
-
-from torchtune.utils.seed import set_seed
 
 
 class TestPositionalEmbeddings:
@@ -30,8 +28,7 @@ class TestPositionalEmbeddings:
         self.aspect_ratio = torch.tensor([[3, 1], [1, 2]])
         self.patch_grid_size = self.tile_size // self.patch_size
 
-        set_seed(42)
-        self.input_tensor = torch.randn(
+        input_tensor = torch.randn(
             (
                 self.batch_size,
                 self.max_num_tiles,
@@ -39,13 +36,14 @@ class TestPositionalEmbeddings:
                 self.embed_dim,
             )
         )
+        self.input_tensor = fixed_init_tensor(input_tensor.shape, min_val=-1, max_val=1)
 
     def test_token_positional_embedding(self):
         # call model
-        set_seed(42)
         embedding = TokenPositionalEmbedding(
             self.embed_dim, patch_size=self.patch_size, tile_size=self.tile_size
         )
+        fixed_init_model(embedding, min_val=-1, max_val=1)
 
         inpt = self.input_tensor.clone().reshape(
             self.batch_size * self.max_num_tiles, -1, self.embed_dim
@@ -54,17 +52,17 @@ class TestPositionalEmbeddings:
 
         # assertion
         assert_expected(output.shape, inpt.shape)
-        assert_expected(output.mean(), torch.tensor(0.0085), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(-0.001458), atol=1e-3, rtol=1e-3)
 
     def test_tiled_token_positional_embedding(self):
         # call model
-        set_seed(42)
         embedding = TiledTokenPositionalEmbedding(
             self.max_num_tiles,
             self.embed_dim,
             patch_size=self.patch_size,
             tile_size=self.tile_size,
         )
+        fixed_init_model(embedding, min_val=-1, max_val=1)
 
         # replace gate 0 -> 0.5
         embedding.gate = torch.nn.Parameter(torch.full(embedding.gate.shape, 0.5))
@@ -74,16 +72,16 @@ class TestPositionalEmbeddings:
 
         # assertion
         assert_expected(output.shape, self.input_tensor.shape)
-        assert_expected(output.mean(), torch.tensor(0.0063), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(-0.17208), atol=1e-3, rtol=1e-3)
 
     def test_tile_positional_embedding(self):
         # call model
-        set_seed(42)
         embedding = TilePositionalEmbedding(self.max_num_tiles, self.embed_dim)
+        fixed_init_model(embedding, min_val=-1, max_val=1)
 
         inpt = self.input_tensor.clone()
         output = embedding(inpt, self.aspect_ratio)
 
         # assertion
         assert_expected(output.shape, self.input_tensor.shape)
-        assert_expected(output.mean(), torch.tensor(0.0018), atol=1e-3, rtol=1e-3)
+        assert_expected(output.mean(), torch.tensor(0.28627), atol=1e-3, rtol=1e-3)

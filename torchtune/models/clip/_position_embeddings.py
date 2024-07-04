@@ -17,14 +17,14 @@ class TokenPositionalEmbedding(nn.Module):
     Token positional embedding for images, different for every token in an image.
 
     Notice that tile is different from patch (token). For details, please check the documentation of
-    :func:`torchtune.modules.vision_transformer.VisionTransformer`.
+    :class:`torchtune.modules.vision_transformer.VisionTransformer`.
 
     Args:
         embed_dim (int): The dimensionality of each token embedding.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
     """
 
@@ -39,9 +39,9 @@ class TokenPositionalEmbedding(nn.Module):
 
     def forward(self, x: torch.Tensor, *args) -> torch.Tensor:
         """
-        args:
-            x (torch.Tensor): Tensor with shape (*, n_tokens, embed_dim)
-        returns:
+        Args:
+            x (torch.Tensor): Tensor with shape (..., n_tokens, embed_dim)
+        Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
         return x + self.positional_embedding
@@ -49,21 +49,22 @@ class TokenPositionalEmbedding(nn.Module):
 
 class TiledTokenPositionalEmbedding(nn.Module):
     """
-    Token positional embedding for tiled images. There are two positional embeddings in this module:
-        - local_token_positional_embedding: same for every tile, different for every token. Equivalent to
-            ``torchtune.models.clip._position_embeddings.TokenPositionalEmbedding``, but gated.
-        - global_token_positional_embedding: different for every tile, different for every token.
+    Token positional embedding for tiled images. There are two positional embeddings in this module.
+
+    - local_token_positional_embedding: same for every tile, different for every token.
+        Equivalent to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.
+    - global_token_positional_embedding: different for every tile, different for every token.
 
     Notice that tile is different from patch (token). For details, please check the documentation of
-    :func:`torchtune.modules.vision_transformer.VisionTransformer`.
+    :class:`torchtune.modules.vision_transformer.VisionTransformer`.
 
     Args:
         max_num_tiles (int): The maximum number of tiles an image can be divided into.
         embed_dim (int): The dimensionality of each token embedding.
-        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance.
-            If your image was not tile-cropped, this embedding is not necessary.
+        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
+            the size of the input image. In this case, the function will consider your image as a single tile.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
     """
 
@@ -97,7 +98,7 @@ class TiledTokenPositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim)
+            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim).
             aspect_ratio (torch.Tensor): Tensor with shape (bsz, 2), representing the aspect ratio of the image
                 before tile-cropping, e.g. (2,1).
         Returns:
@@ -137,7 +138,7 @@ class TilePositionalEmbedding(nn.Module):
     Positional embedding for tiles, different for every tile, same for every token within a tile.
 
     Notice that tile is different from patch (token). For details, please check the documentation of
-    :func:`torchtune.modules.vision_transformer.VisionTransformer`.
+    :class:`torchtune.modules.vision_transformer.VisionTransformer`.
 
     Args:
         max_num_tiles (int): The maximum number of tiles an image can be divided into.
@@ -162,7 +163,7 @@ class TilePositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         args:
-            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim)
+            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim).
             aspect_ratio (torch.Tensor): Tensor with shape (bsz, 2), representing the aspect ratio of the image
                 before tile-cropping, e.g. (2,1).
         returns:

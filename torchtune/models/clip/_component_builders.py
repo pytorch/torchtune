@@ -1,7 +1,7 @@
 from typing import List, Optional, Callable
 
 import torch
-from torchtune.modules import VisionTransformer, CLSProjection
+from torchtune.modules.vision_transformer import VisionTransformer, CLSProjection
 from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
 
 import logging
@@ -26,9 +26,13 @@ def clip_vision_encoder(
 ) -> VisionTransformer:
     """
     Build the vision encoder associated with the clip model. This includes:
+    
     - TransformerEncoderLayer
     - positional embeddings
     - cls projection (optional)
+
+    For details, please check the documentation of
+    :class:`torchtune.modules.vision_transformer.VisionTransformer`.
 
     Args:
         embed_dim (int): The dimensionality of each patch embedding (token).
@@ -44,7 +48,7 @@ def clip_vision_encoder(
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
         patch_size (int): The size of each patch. Used to divide the tiles into patches.
-            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches
             with shape (40, 40) each.
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
@@ -53,7 +57,7 @@ def clip_vision_encoder(
         attn_dropout (float): The dropout rate applied to the attention weights.
         norm_eps (float): The epsilon used for layer normalization to prevent division by zero.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
-        
+
     Returns:
         A `VisionTransformer` object.
     """

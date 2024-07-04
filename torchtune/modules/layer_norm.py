@@ -19,6 +19,12 @@ class Fp32LayerNorm(nn.LayerNorm):
         super().__init__(*args, **kwargs)
 
     def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x (torch.Tensor): Input tensor.
+        Returns:
+            torch.Tensor: The normalized output tensor.
+        """
         output = nn.functional.layer_norm(
             x.float(),
             self.normalized_shape,

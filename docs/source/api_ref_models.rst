@@ -150,10 +150,11 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     gemma.qlora_gemma_7b
     gemma.gemma_tokenizer
 
+
 clip
 -----
 
-Vision functions to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
+Vision components to support multimodality using `CLIP encoder <https://arxiv.org/abs/2103.00020>`_.
 
 .. autosummary::
     :toctree: generated/
