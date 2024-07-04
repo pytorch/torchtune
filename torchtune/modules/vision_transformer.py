@@ -177,7 +177,7 @@ class VisionTransformer(nn.Module):
             outputted, instead of all tokens.
         indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
-            before they go through a next layer. For example, ``indices_return_hidden = [0, 3]`` will
+            before they go through a next layer. For example, ``indices_return_hidden=[0, 3]`` will
             return the tokens before they go through the first and fourth layers.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
@@ -268,10 +268,10 @@ class VisionTransformer(nn.Module):
         - sample 1: "<image> what animal is this?"
         - sample 2: "I like <image> more than <image>"
 
-        In this case, sample 1 has 1 image1, and sample 2 has 2 images. max_num_concurrent_media = max(2,1) = 2.
+        In this case, sample 1 has one image, and sample 2 has two images. max_num_concurrent_media = max(2,1) = 2.
         So your input should have shape (bsz=2, num_concurrent_media=2, num_tiles, n_channels, tile_size, tile_size).
 
-        Notice that to batch it, you will have to pad num_concurrent_media for sample 2.
+        Notice that to batch it, you will have to pad num_concurrent_media to max_num_concurrent_media and max_num_tiles.
 
         Args:
             images (torch.Tensor): Tensor with shape (bsz, num_concurrent_media, n_tiles, n_channels, tile_size, tile_size).
@@ -280,7 +280,7 @@ class VisionTransformer(nn.Module):
                 Used to calculate the positional embeddings for the tiles.
 
         Returns:
-            Union[Tuple[torch.Tensor, torch.Tensor]: A tuple of tensors: (x, hidden_states),
+            Tuple[torch.Tensor, torch.Tensor]: A tuple of tensors: (x, hidden_states),
                 where x has shape (bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim) and hidden_states has shape
                 (bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim, len(indices_return_hidden))
                 if indices_return_hidden is provided, or is an empty tensor otherwise.

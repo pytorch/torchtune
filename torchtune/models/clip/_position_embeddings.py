@@ -51,8 +51,8 @@ class TiledTokenPositionalEmbedding(nn.Module):
     """
     Token positional embedding for tiled images. There are two positional embeddings in this module.
 
-    - local_token_positional_embedding: same for every tile, different for every token.
-        Equivalent to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.
+    - local_token_positional_embedding: same for every tile, different for every token. Equivalent
+    to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.
     - global_token_positional_embedding: different for every tile, different for every token.
 
     Notice that tile is different from patch (token). For details, please check the documentation of
