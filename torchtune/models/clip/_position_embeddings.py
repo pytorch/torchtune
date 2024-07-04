@@ -98,19 +98,19 @@ class TiledTokenPositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         Args:
-            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim).
-            aspect_ratio (torch.Tensor): Tensor with shape (bsz, 2), representing the aspect ratio of the image
-                before tile-cropping, e.g. (2,1).
+            x (torch.Tensor): Tensor with shape (bsz * num_concurrent_media, n_tiles, n_tokens, embed_dim).
+            aspect_ratio (torch.Tensor): Tensor with shape (bsz * num_concurrent_media, 2),
+                representing the aspect ratio of the image before tile-cropping, e.g. (2,1).
         Returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
-        bsz, n_tiles, n_tokens, embed_dim = x.shape
+        bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim = x.shape
 
         # apply local position embedding (same for every tile)
         x = x + (self.local_token_positional_embedding * (1 - self.gate.tanh()))
 
         # apply global positional embedding (different for every tile)
-        x = x.view(bsz, n_tiles, n_tokens, embed_dim)
+        x = x.view(bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim)
         for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
             # When we batch images, all are padded to the same amount of tiles.
             # The aspect_ratio lets us know the non padded tiles for each image.
@@ -163,12 +163,13 @@ class TilePositionalEmbedding(nn.Module):
     def forward(self, x: torch.Tensor, aspect_ratio: torch.Tensor) -> torch.Tensor:
         """
         args:
-            x (torch.Tensor): Tensor with shape (bsz, n_tiles, n_tokens, embed_dim).
-            aspect_ratio (torch.Tensor): Tensor with shape (bsz, 2), representing the aspect ratio of the image
-                before tile-cropping, e.g. (2,1).
+            x (torch.Tensor): Tensor with shape (bsz * num_concurrent_media, n_tiles, n_tokens, embed_dim).
+            aspect_ratio (torch.Tensor): Tensor with shape (bsz * num_concurrent_media, 2),
+                representing the aspect ratio of the image before tile-cropping, e.g. (2,1).
         returns:
             torch.Tensor: The input tensor with added positional embeddings.
         """
+        bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim = x.shape
 
         for batch_idx, (n_tiles_h, n_tiles_w) in enumerate(aspect_ratio):
             # When we batch images, all are padded to the same amount of tiles.

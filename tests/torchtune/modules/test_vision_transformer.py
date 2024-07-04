@@ -42,11 +42,15 @@ def vision_transformer(transformer_config):
 class TestVisionTransformer:
     @pytest.fixture(autouse=True)
     def setup_class(self, transformer_config):
-        self.batch_size = 2
+        self.batch_size = 1
+        self.num_concurrent_media = 2
         num_channels = transformer_config["in_channels"]
 
-        # generate aspect ratios up to max_num_tiles
-        self.aspect_ratio = torch.tensor([[1, 3], [2, 2]])
+        # generate aspect ratios up to max_num_tiles, shape (bsz, num_conccurent_media, 2)
+        self.aspect_ratio = torch.tensor([[1, 3], [2, 2]]).reshape(
+            self.batch_size, self.num_concurrent_media, 2
+        )
+
         self.num_tiles = 4
         assert (
             self.num_tiles <= transformer_config["max_num_tiles"]
@@ -59,6 +63,7 @@ class TestVisionTransformer:
         image = torch.rand(
             (
                 self.batch_size,
+                self.num_concurrent_media,
                 self.num_tiles,
                 num_channels,
                 transformer_config["tile_size"],
@@ -76,6 +81,7 @@ class TestVisionTransformer:
         # assertion
         expected_shape = (
             self.batch_size,
+            self.num_concurrent_media,
             self.num_tiles,
             vision_transformer.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
@@ -87,7 +93,11 @@ class TestVisionTransformer:
         assert_expected(output.mean(), torch.tensor(1.0172), atol=1e-3, rtol=1e-3)
 
     def test_fails_if_ar_none_and_multiple_tiles(self, vision_transformer):
-        assert self.image.shape[1] > 1, "This test is not valid for num_tiles=1"
+        """
+        If aspect_ratio is none, then num_tiles shouldnt be greater than 1.
+        Here the test passes if something actually fails under these conditions.
+        """
+        assert self.image.shape[2] > 1, "This test is not valid for num_tiles=1"
         try:
             vision_transformer(self.image, aspect_ratio=None)
             pytest.fail(
@@ -108,6 +118,7 @@ class TestVisionTransformer:
         # assertion
         expected_shape = (
             self.batch_size,
+            self.num_concurrent_media,
             self.num_tiles,
             1,
             transformer_config["cls_output_dim"],
@@ -134,6 +145,7 @@ class TestVisionTransformer:
         # assertion x
         expected_shape_x = (
             self.batch_size,
+            self.num_concurrent_media,
             self.num_tiles,
             model_with_hidden.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
@@ -150,6 +162,7 @@ class TestVisionTransformer:
 
         expected_shape_hidden_layers = (
             self.batch_size,
+            self.num_concurrent_media,
             self.num_tiles,
             model_with_hidden.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
@@ -166,7 +179,7 @@ class TestVisionTransformer:
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1
-        images = self.image[:, [0], :, :, :]
+        images = self.image[:, :, [0], :, :, :]  # single tile
 
         # call model
         model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
@@ -176,6 +189,7 @@ class TestVisionTransformer:
         # assertion
         expected_shape = (
             self.batch_size,
+            self.num_concurrent_media,
             1,
             model_with_multiple_tiles.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
