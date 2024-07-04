@@ -584,12 +584,20 @@
             <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_line_token_id</span><span class="p">))</span>
 
             <span class="c1"># Tokenize current message, append with masks</span>
-            <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
-                <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">),</span>
-                <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                <span class="n">trim_leading_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Always trim whitespace (just to match HF tokenizer implementation)</span>
-            <span class="p">)</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">message</span><span class="o">.</span><span class="n">content</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">item</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span>
+                    <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span>
+                        <span class="n">item</span><span class="p">[</span><span class="s2">&quot;content&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">rstrip</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">),</span>
+                        <span class="n">add_bos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">add_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                        <span class="n">trim_leading_whitespace</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># Always trim whitespace (just to match HF tokenizer implementation)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Unsupported message content type: </span><span class="si">{</span><span class="n">item</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+
             <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokens</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">[</span><span class="s2">&quot;&lt;|end|&gt;&quot;</span><span class="p">]]</span> <span class="o">+</span> <span class="n">new_line_token_id</span>
             <span class="n">tokenized_messages</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
             <span class="n">mask</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">masked</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
