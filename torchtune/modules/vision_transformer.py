@@ -177,7 +177,7 @@ class VisionTransformer(nn.Module):
             outputted, instead of all tokens.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
-            before they go through a next layer. For example, ``out_indices=[0, 3]`` will
+            before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
@@ -253,7 +253,7 @@ class VisionTransformer(nn.Module):
         """
         Processes images and returns the tokens and hidden states.
 
-        Concurrent Media: we add a dimension n_imgs to the input. This is useful when a single
+        Multiple images per sample: we add a dimension n_imgs to the input. This is useful when a single
         sample constains multiple images, for example:
 
         - sample 1: "<image> what animal is this?"
@@ -304,7 +304,7 @@ class VisionTransformer(nn.Module):
             >>> batch_image = tile_cropped_image.unsqueeze(0)
             >>> batch_aspect_ratio = aspect_ratio.unsqueeze(0)
             >>>
-            >>> # make it have only 1 concurrent media per sample
+            >>> # make it have only 1 image per sample
             >>> batch_image = tile_cropped_image.unsqueeze(1)
             >>> batch_aspect_ratio = aspect_ratio.unsqueeze(1)
             >>>

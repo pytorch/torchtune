@@ -21,11 +21,11 @@ def clip_vision_encoder(
     in_channels: int = 3,
 ) -> VisionTransformer:
     """
-    Build the vision encoder associated with the clip model. This includes:
+    Builds the vision encoder associated with the clip model. This includes:
     
     - TransformerEncoderLayer
     - positional embeddings
-    - cls projection (optional)
+    - CLS projection (optional)
 
     For details, please check the documentation of
     :class:`torchtune.modules.vision_transformer.VisionTransformer`.
@@ -36,7 +36,7 @@ def clip_vision_encoder(
         num_heads (int): The number of attention heads in each transformer layer.
         out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
-            before they go through a next layer. For example, out_indices = [0, 3] will
+            before they go through a next layer. For example, ``out_indices=[0,3]`` will
             return the tokens before they go through the first and fourth layers.
         output_cls_projection (bool): If True, only the CLS token projection will be outputted,
             instead of all tokens. Defaults to False.
