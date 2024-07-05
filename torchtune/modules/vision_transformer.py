@@ -175,9 +175,9 @@ class VisionTransformer(nn.Module):
             of shape (bsz * n_tiles, n_tokens, embed_dim) and output a tensor of shape
             (bsz * n_tiles, cls_output_dim). If provided, only the CLS token projection will be
             outputted, instead of all tokens.
-        indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
-            before they go through a next layer. For example, ``indices_return_hidden=[0, 3]`` will
+            before they go through a next layer. For example, ``out_indices=[0, 3]`` will
             return the tokens before they go through the first and fourth layers.
         tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,
             the size of the input image. In this case, the function will consider your image as a single tile.
@@ -188,48 +188,39 @@ class VisionTransformer(nn.Module):
         in_channels (int): The number of image input channels.
 
     Raises:
-        ValueError: If `num_layers` is not greater than 0.
-        ValueError: If `embed_dim` is not greater than 0.
-        ValueError: If `in_channels` is not greater than 0.
         ValueError: If `tile_size` is not greater than 0.
         ValueError: If `patch_size` is not greater than 0.
-        ValueError: If `len(indices_return_hidden)` is greater than `num_layers`.
+        ValueError: If `len(out_indices)` is greater than `num_layers`.
     """
 
     def __init__(
         self,
+        patch_size: int,
         tile_size: int,
         num_layers: int,
+        embed_dim: int,
         layer: nn.Module,
         token_pos_embedding: nn.Module,
         pre_tile_pos_embed: Optional[nn.Module] = None,
         post_tile_pos_embed: Optional[nn.Module] = None,
         cls_projection: Optional[nn.Module] = None,
-        indices_return_hidden: Optional[List[int]] = None,
-        patch_size: int = 14,
-        embed_dim: int = 1280,
+        out_indices: Optional[List[int]] = None,
         in_channels: int = 3,
     ) -> None:
         super().__init__()
 
-        if num_layers <= 0:
-            raise ValueError("num_layers must be > 0")
-        if embed_dim <= 0:
-            raise ValueError("embed_dim must be > 0")
-        if in_channels <= 0:
-            raise ValueError("in_channels must be > 0")
         if tile_size <= 0:
             raise ValueError("tile_size must be > 0")
         if patch_size <= 0:
             raise ValueError("patch_size must be > 0")
-        if indices_return_hidden and len(indices_return_hidden) > num_layers:
+        if out_indices and (len(out_indices) > num_layers):
             raise ValueError(
-                f"len(indices_return_hidden) must be <= num_layers. Got {indices_return_hidden=} and {num_layers=}"
+                f"len(out_indices) must be <= num_layers. Got {out_indices=} and {num_layers=}"
             )
         # constants
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
-        self.indices_return_hidden = indices_return_hidden
+        self.out_indices = out_indices
 
         # input modules
         self.pre_tile_pos_embed = pre_tile_pos_embed
@@ -262,28 +253,28 @@ class VisionTransformer(nn.Module):
         """
         Processes images and returns the tokens and hidden states.
 
-        Concurrent Media: we add a dimension num_concurrent_media to the input. This is useful when a single
+        Concurrent Media: we add a dimension n_imgs to the input. This is useful when a single
         sample constains multiple images, for example:
 
         - sample 1: "<image> what animal is this?"
         - sample 2: "I like <image> more than <image>"
 
-        In this case, sample 1 has one image, and sample 2 has two images. max_num_concurrent_media = max(2,1) = 2.
-        So your input should have shape (bsz=2, num_concurrent_media=2, num_tiles, n_channels, tile_size, tile_size).
+        In this case, sample 1 has one image, and sample 2 has two images. max_n_imgs = max(2,1) = 2.
+        So your input should have shape (bsz=2, n_imgs=2, num_tiles, n_channels, tile_size, tile_size).
 
-        Notice that to batch it, you will have to pad num_concurrent_media to max_num_concurrent_media and max_num_tiles.
+        Notice that to batch it, you will have to pad n_imgs to max_n_imgs and max_num_tiles.
 
         Args:
-            images (torch.Tensor): Tensor with shape (bsz, num_concurrent_media, n_tiles, n_channels, tile_size, tile_size).
-            aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, num_concurrent_media, 2). If all
+            images (torch.Tensor): Tensor with shape (bsz, n_imgs, n_tiles, n_channels, tile_size, tile_size).
+            aspect_ratio (Optional[torch.Tensor]): Tensor with shape (bsz, n_imgs, 2). If all
                 images have a single tile, i.e. they were not tile-cropped, it should be None.
                 Used to calculate the positional embeddings for the tiles.
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: A tuple of tensors: (x, hidden_states),
-                where x has shape (bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim) and hidden_states has shape
-                (bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim, len(indices_return_hidden))
-                if indices_return_hidden is provided, or is an empty tensor otherwise.
+                where x has shape (bsz, n_imgs, n_tiles, n_tokens, embed_dim) and hidden_states has shape
+                (bsz, n_imgs, n_tiles, n_tokens, embed_dim, len(out_indices))
+                if out_indices is provided, or is an empty tensor otherwise.
 
         Raises:
             ValueError: If aspect_ratio is None, but n_tiles > 1 in the batch.
@@ -320,7 +311,7 @@ class VisionTransformer(nn.Module):
             >>> # For a detailed example, please check
             >>> # torchtune.models.clip._position_embeddings.clip_vision_encoder
             >>> # model = VisionTransformer(
-            ... #           indices_return_hidden = [1,2,3,4,5],
+            ... #           out_indices = [1,2,3,4,5],
             ... #           patch_size=40,
             ... #           patch_grid_size = patch_grid_size,
             ... #           embed_dim = 32,
@@ -330,45 +321,45 @@ class VisionTransformer(nn.Module):
             >>>
             >>> x, hidden_states = model(images = batch_image, aspect_ratio = batch_aspect_ratio)
             >>>
-            >>> # (bsz, num_concurrent_media, num_tiles, num_patches_per_tile + CLS token, embed_dim)
+            >>> # (bsz, n_imgs, num_tiles, num_patches_per_tile + CLS token, embed_dim)
             >>> print(x.shape)
             torch.Size([1, 1, 2, 101, 32])
             >>>
-            >>> # (bsz, num_concurrent_media, num_tiles, num_patches_per_tile + CLS token, embed_dim, len(indices_return_hidden))
+            >>> # (bsz, n_imgs, num_tiles, num_patches_per_tile + CLS token, embed_dim, len(out_indices))
             >>> print(hidden_states.shape)
             torch.Size([1, 1, 2, 101, 32, 5])
         """
         hidden_states = []
 
         # parse inputs
-        bsz, num_concurrent_media, n_tiles, nch, w, h = images.shape
-        bsz_and_num_concurrent_media = bsz * num_concurrent_media
+        bsz, n_imgs, n_tiles, nch, w, h = images.shape
+        bsz_and_n_imgs = bsz * n_imgs
 
         # if aspect_ratio is not provided, it defaults to one tile [1,1]
         if aspect_ratio is None:
-            aspect_ratio = torch.tensor(
-                [[1, 1]] * bsz * num_concurrent_media, device=images.device
+            aspect_ratio = torch.ones(
+                (bsz_and_n_imgs, 2), dtype=torch.int, device=images.device
             )
             if n_tiles > 1:
                 raise ValueError(
                     f"aspect_ratio was not provided, but found n_tiles>1 for {images.shape=}. Please provide aspect_ratio."
                 )
 
-        images = images.reshape(bsz_and_num_concurrent_media * n_tiles, nch, w, h)
-        aspect_ratio = aspect_ratio.reshape(bsz_and_num_concurrent_media, 2)
+        images = images.reshape(bsz_and_n_imgs * n_tiles, nch, w, h)
+        aspect_ratio = aspect_ratio.reshape(bsz_and_n_imgs, 2)
 
         # patch embeddings (tokens)
         # A tile becomes a grid of patch_grid_size X patch_grid_size patches
         # these patches are flatenned, and called tokens from here on.
 
-        # out: (bsz * num_concurrent_media * n_tiles, embed_dim, patch_grid_size, patch_grid_size)
+        # out: (bsz * n_imgs * n_tiles, embed_dim, patch_grid_size, patch_grid_size)
         x = self.conv(images)
 
-        # out: (bsz * num_concurrent_media, n_tiles, n_tokens, embed_dim)
-        x = x.reshape(
-            bsz_and_num_concurrent_media, n_tiles, -1, self.patches_per_tile
-        ).permute(0, 1, 3, 2)
-        bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim = x.shape
+        # out: (bsz * n_imgs, n_tiles, n_tokens, embed_dim)
+        x = x.reshape(bsz_and_n_imgs, n_tiles, -1, self.patches_per_tile).permute(
+            0, 1, 3, 2
+        )
+        bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
 
         # pre_tile_pos_embed
         if self.pre_tile_pos_embed:
@@ -385,12 +376,12 @@ class VisionTransformer(nn.Module):
         x = self.ln_pre(x)
 
         # transformer with optional hidden layer outputs
-        x = x.reshape(bsz_and_num_concurrent_media, n_tiles * n_tokens, embed_dim)
+        x = x.reshape(bsz_and_n_imgs, n_tiles * n_tokens, embed_dim)
         for layer_idx, transformer_layer in enumerate(self.transformer_layers):
-            if self.indices_return_hidden and layer_idx in self.indices_return_hidden:
+            if self.out_indices and layer_idx in self.out_indices:
                 hidden_states.append(x)
             x = transformer_layer(x)
-        x = x.reshape(bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim)
+        x = x.reshape(bsz_and_n_imgs, n_tiles, n_tokens, embed_dim)
 
         # norm
         x = self.ln_post(x)
@@ -400,16 +391,16 @@ class VisionTransformer(nn.Module):
             x = self.post_tile_pos_embed(x, aspect_ratio)
 
         # reshape outputs
-        x = x.reshape(bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim)
-        if self.indices_return_hidden:
+        x = x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+        if self.out_indices:
             hidden_states = torch.stack(hidden_states, dim=-1)
             hidden_states = hidden_states.reshape(
                 bsz,
-                num_concurrent_media,
+                n_imgs,
                 n_tiles,
                 n_tokens,
                 embed_dim,
-                len(self.indices_return_hidden),
+                len(self.out_indices),
             )
         else:
             hidden_states = torch.empty(0)  # dummy tensor
@@ -443,10 +434,8 @@ class CLSEmbedding(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
 
         # add 1 CLS token to every tile
-        bsz_and_num_concurrent_media, n_tiles, n_tokens, embed_dim = x.shape
-        cls_emb = self.cls_embedding.broadcast_to(
-            bsz_and_num_concurrent_media, n_tiles, 1, embed_dim
-        )
+        bsz_and_n_imgs, n_tiles, n_tokens, embed_dim = x.shape
+        cls_emb = self.cls_embedding.broadcast_to(bsz_and_n_imgs, n_tiles, 1, embed_dim)
         return torch.cat([cls_emb, x], dim=2)
 
 
@@ -468,12 +457,12 @@ class CLSProjection(nn.Module):
         self.projection = nn.Parameter(scale * torch.randn(embed_dim, cls_output_dim))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        bsz, num_concurrent_media, n_tiles, n_tokens, embed_dim = x.shape
-        x = x.reshape(bsz * num_concurrent_media * n_tiles, n_tokens, embed_dim)
+        bsz, n_imgs, n_tiles, n_tokens, embed_dim = x.shape
+        x = x.reshape(bsz * n_imgs * n_tiles, n_tokens, embed_dim)
 
         # out: (bsz * n_tiles, cls_output_dim)
         x = x[:, 0, :] @ self.projection
 
         # num_tokens becomes 1 because we only return the CLS token projection
-        x = x.reshape(bsz, num_concurrent_media, n_tiles, 1, -1)
+        x = x.reshape(bsz, n_imgs, n_tiles, 1, -1)
         return x

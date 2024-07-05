@@ -1,4 +1,4 @@
-from typing import List, Optional, Callable
+from typing import List, Optional
 
 import torch
 from torchtune.modules.vision_transformer import VisionTransformer, CLSProjection
@@ -9,20 +9,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 def clip_vision_encoder(
+    tile_size: int,
+    patch_size: int,
     embed_dim: int,
     num_layers: int,
     num_heads: int,
-    act_layer: Callable,
-    indices_return_hidden: Optional[List[int]] = None,
-    output_cls_projection: bool = False,
-    tile_size: int = 512,
-    patch_size: int = 14,
-    max_num_tiles: int = 4,
-    mlp_ratio: float = 4.0,
-    in_channels: int = 3,
-    attn_dropout: float = 0.0,
-    norm_eps: float = 1e-5,
     cls_output_dim: int = 512,
+    out_indices: Optional[List[int]] = None,
+    output_cls_projection: bool = False,
+    max_num_tiles: int = 4,
+    in_channels: int = 3,
 ) -> VisionTransformer:
     """
     Build the vision encoder associated with the clip model. This includes:
@@ -38,10 +34,9 @@ def clip_vision_encoder(
         embed_dim (int): The dimensionality of each patch embedding (token).
         num_layers (int): The number of transformer layers.
         num_heads (int): The number of attention heads in each transformer layer.
-        act_layer (Callable): The activation function used in the transformer layers.
-        indices_return_hidden (Optional[List[int]]): The indices of hidden layers to return.
+        out_indices (Optional[List[int]]): The indices of hidden layers to return.
             If provided, it will return the intermediate results of the transformer layers
-            before they go through a next layer. For example, indices_return_hidden = [0, 3] will
+            before they go through a next layer. For example, out_indices = [0, 3] will
             return the tokens before they go through the first and fourth layers.
         output_cls_projection (bool): If True, only the CLS token projection will be outputted,
             instead of all tokens. Defaults to False.
@@ -52,28 +47,24 @@ def clip_vision_encoder(
             with shape (40, 40) each.
         max_num_tiles (int): The maximum number of tiles that can be processed. This is used to
             determine the size of the positional embeddings.
-        mlp_ratio (float): The ratio of the feedforward network size to the size of the transformer layers.
         in_channels (int): The number of image input channels.
-        attn_dropout (float): The dropout rate applied to the attention weights.
-        norm_eps (float): The epsilon used for layer normalization to prevent division by zero.
         cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.
 
     Returns:
         A `VisionTransformer` object.
     """
 
-    patch_grid_size = tile_size // patch_size
-
     cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
     
     # TODO (Felipe): Replace with torchtune native encoder module
+    mlp_ratio = 4.0
     transformer_layer = torch.nn.TransformerEncoderLayer(
         d_model=embed_dim, 
         nhead=num_heads, 
         dim_feedforward=int(mlp_ratio * embed_dim), 
-        dropout=attn_dropout, 
-        activation=act_layer, 
-        layer_norm_eps=norm_eps, 
+        dropout=0.0, 
+        activation=torch.nn.SiLU(), 
+        layer_norm_eps=1e-5, 
         batch_first=True, 
         norm_first=True, 
         bias=True)
@@ -104,7 +95,7 @@ def clip_vision_encoder(
         pre_tile_pos_embed=pre_tile_pos_embed,
         post_tile_pos_embed=post_tile_pos_embed,
         cls_projection=cls_projection,
-        indices_return_hidden=indices_return_hidden,
+        out_indices=out_indices,
         tile_size=tile_size,
         patch_size=patch_size,
         embed_dim=embed_dim,

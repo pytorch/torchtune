@@ -23,14 +23,14 @@ class TestPositionalEmbeddings:
         self.embed_dim = 16
         self.tile_size = 14
         self.max_num_tiles = 3
-        self.bsz_and_num_concurrent_media = 2
+        self.bsz_and_n_imgs = 2
         self.patch_size = 2
         self.aspect_ratio = torch.tensor([[3, 1], [1, 2]])
         self.patch_grid_size = self.tile_size // self.patch_size
 
         input_tensor = torch.randn(
             (
-                self.bsz_and_num_concurrent_media,
+                self.bsz_and_n_imgs,
                 self.max_num_tiles,
                 self.patch_grid_size**2 + 1,
                 self.embed_dim,
@@ -46,7 +46,7 @@ class TestPositionalEmbeddings:
         fixed_init_model(embedding, min_val=-1, max_val=1)
 
         inpt = self.input_tensor.clone().reshape(
-            self.bsz_and_num_concurrent_media * self.max_num_tiles, -1, self.embed_dim
+            self.bsz_and_n_imgs * self.max_num_tiles, -1, self.embed_dim
         )
         output = embedding(inpt)
 
