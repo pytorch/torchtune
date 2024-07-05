@@ -44,6 +44,8 @@ _FROM_HF = {
     "lm_head.weight": "output.weight",
 }
 
+_FROM_TUNE_0_2_0 = {"layers.{}.sa_norm.scale": "layers.{}.attn_norm.scale"}
+
 
 def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
     try:
@@ -199,6 +201,30 @@ def tune_to_hf(
             value = _permute(value, num_heads)
         elif "k_proj" in key:
             value = _permute(value, num_kv_heads)
+        converted_state_dict[new_key] = value
+
+    return converted_state_dict
+
+
+def _legacy_to_tune(
+    state_dict: Dict[str, torch.Tensor], version: str
+) -> Dict[str, torch.Tensor]:
+    """
+    Convert a state dict from older torchtune format's to the current format. State dicts
+    from multiple checkpoint files should be consolidated into a single state dict
+    before calling this function.
+
+    Args:
+        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
+        version (str): version string in the format "x.x.x"
+
+    Returns:
+        Dict[str, torch.Tensor]: State dict in torchtune's format.
+    """
+    converted_state_dict = {}
+    v1, v2, v3 = version.split(".")
+    for key, value in state_dict.items():
+        new_key = get_mapped_key(key, eval(f"_FROM_TUNE_{v1}_{v2}_{v3}"))
         converted_state_dict[new_key] = value
 
     return converted_state_dict
