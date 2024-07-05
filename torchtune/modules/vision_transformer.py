@@ -217,10 +217,13 @@ class VisionTransformer(nn.Module):
             raise ValueError(
                 f"len(out_indices) must be <= num_layers. Got {out_indices=} and {num_layers=}"
             )
+
         # constants
         patch_grid_size = tile_size // patch_size
         self.patches_per_tile = patch_grid_size**2
         self.out_indices = out_indices
+        if not out_indices:
+            self.out_indices = []
 
         # input modules
         self.pre_tile_pos_embed = pre_tile_pos_embed
@@ -378,7 +381,7 @@ class VisionTransformer(nn.Module):
         # transformer with optional hidden layer outputs
         x = x.reshape(bsz_and_n_imgs, n_tiles * n_tokens, embed_dim)
         for layer_idx, transformer_layer in enumerate(self.transformer_layers):
-            if self.out_indices and layer_idx in self.out_indices:
+            if layer_idx in self.out_indices:
                 hidden_states.append(
                     x.reshape(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
                 )
