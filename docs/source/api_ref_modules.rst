@@ -18,7 +18,9 @@ Modeling Components and Building Blocks
     RotaryPositionalEmbeddings
     RMSNorm
     TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
     TransformerDecoder
+    TanhGate
 
 Tokenizers
 ------------------------
