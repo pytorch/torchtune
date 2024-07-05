@@ -10,10 +10,10 @@ from functools import partial
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    GroupedQueryAttention,
     FeedForward,
     RotaryPositionalEmbeddings,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 from torchtune.models.gemma.rms_norm import GemmaRMSNorm
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
@@ -26,7 +26,7 @@ Component builders for the Gemma 2B models and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``GroupedQueryAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -50,7 +50,7 @@ def gemma(
     """
     Build the decoder associated with the gemma model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -78,7 +78,7 @@ def gemma(
         GemmaTransformerDecoder: Instantiation of gemma model.
     """
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_att = CausalSelfAttention(
+    self_att = GroupedQueryAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -93,7 +93,7 @@ def gemma(
         attn_dropout=attn_dropout,
     )
     mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_att,
         mlp=mlp,
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
@@ -214,7 +214,7 @@ def lora_gemma(
     else:
         mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
         sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
@@ -252,7 +252,7 @@ def lora_gemma(
 def lora_gemma_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # GroupedQueryAttention args
     embed_dim: int,
     num_heads: int,
     head_dim: int,
@@ -265,7 +265,7 @@ def lora_gemma_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> GroupedQueryAttention:
     if not lora_modules:
         raise ValueError(
             f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
@@ -323,7 +323,7 @@ def lora_gemma_self_attention(
     )
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = CausalSelfAttention(
+    self_attn = GroupedQueryAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,

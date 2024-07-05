@@ -233,7 +233,7 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layer (TransformerDecoderLayer): Transformer Decoder layer.
+        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`

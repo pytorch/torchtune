@@ -19,11 +19,11 @@ from torchtune.models.llama2._component_builders import llama2_mlp
 
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 from torchtune.modules import (
-    CausalSelfAttention,
+    GroupedQueryAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 from torchtune.utils.seed import set_seed
 
@@ -33,9 +33,9 @@ def random():
     set_seed(16)
 
 
-class TestTransformerDecoderLayer:
+class TestTransformerSelfAttentionLayer:
     """
-    Class for testing our TransformerDecoderLayer implementation.
+    Class for testing our TransformerSelfAttentionLayer implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
@@ -66,11 +66,11 @@ class TestTransformerDecoderLayer:
     @pytest.fixture
     def transformer_layer(
         self, layer_params: Tuple[int, int, int, int]
-    ) -> TransformerDecoderLayer:
+    ) -> TransformerSelfAttentionLayer:
         num_heads, num_kv_heads, embed_dim, max_seq_len = layer_params
         head_dim = embed_dim // num_heads
         rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-        self_attn = CausalSelfAttention(
+        self_attn = GroupedQueryAttention(
             embed_dim=embed_dim,
             num_heads=num_heads,
             num_kv_heads=num_kv_heads,
@@ -84,7 +84,7 @@ class TestTransformerDecoderLayer:
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-        transformer_layer = TransformerDecoderLayer(
+        transformer_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
             sa_norm=RMSNorm(dim=embed_dim),
@@ -97,7 +97,7 @@ class TestTransformerDecoderLayer:
         return transformer_layer
 
     def test_forward(
-        self, input: Tensor, transformer_layer: TransformerDecoderLayer
+        self, input: Tensor, transformer_layer: TransformerSelfAttentionLayer
     ) -> None:
         with torch.no_grad():
             output = transformer_layer(input)
@@ -107,7 +107,7 @@ class TestTransformerDecoderLayer:
 
 class TestTransformerDecoder:
     """
-    Class for testing our TransformerDecoderLayer implementation.
+    Class for testing our TransformerSelfAttentionLayer implementation.
 
     The expected tensors are computed from the reference implementation
     below by using the same seed, same params and same initialization used
