@@ -22,11 +22,7 @@ def transformer_config():
         "tile_size": 49,
         "patch_size": 9,
         "max_num_tiles": 4,
-        "mlp_ratio": 4.0,
-        "act_layer": torch.nn.SiLU(),
         "in_channels": 3,
-        "attn_dropout": 0.0,
-        "norm_eps": 1e-5,
         "output_cls_projection": False,
         "out_indices": None,
     }
@@ -166,20 +162,30 @@ class TestVisionTransformer:
             self.num_tiles,
             model_with_hidden.get_image_tokens_per_tile(),
             transformer_config["embed_dim"],
-            num_hidden_layers_expected,
         )
+
         assert (
-            hidden_layers.shape == expected_shape_hidden_layers
-        ), f"Expected shape {expected_shape_hidden_layers}, but got {hidden_layers.shape=}"
+            len(hidden_layers) == num_hidden_layers_expected
+        ), f"Expected {num_hidden_layers_expected} hidden layers, but got {len(hidden_layers)}"
+
+        for hidden_layer in hidden_layers:
+            assert (
+                hidden_layer.shape == expected_shape_hidden_layers
+            ), f"Expected shape {expected_shape_hidden_layers}, but got {hidden_layer.shape=}"
 
         assert_expected(
-            hidden_layers.mean(), torch.tensor(6.6938), atol=1e-3, rtol=1e-3
+            torch.stack(hidden_layers, dim=-1).mean(),
+            torch.tensor(6.6938),
+            atol=1e-3,
+            rtol=1e-3,
         )
 
     def test_vision_transformer_single_tile(self, transformer_config):
         transformer_config = transformer_config.copy()
         transformer_config["max_num_tiles"] = 1
-        images = self.image[:, :, [0], :, :, :]  # single tile
+
+        # get single tile: (bsz, n_imgs, 1, num_channels, tile_size, tile_size)
+        images = self.image[:, :, [0], :, :, :]
 
         # call model
         model_with_multiple_tiles = clip_vision_encoder(**transformer_config)
