@@ -134,7 +134,6 @@ def compare_decoder_layer(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=0.0,
     )
     hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
@@ -144,7 +143,7 @@ def compare_decoder_layer(
     transformer_layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     for p in transformer_layer.parameters():

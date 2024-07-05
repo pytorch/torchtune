@@ -86,7 +86,6 @@ def compare_lora_attention(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=kv_cache,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     lora_config_ref = LoraConfig(

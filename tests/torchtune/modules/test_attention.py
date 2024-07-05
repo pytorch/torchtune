@@ -106,7 +106,6 @@ class TestGroupedQueryAttention:
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
-            max_seq_len=max_seq_len,
         )
 
         fixed_init_model(attn)
@@ -139,7 +138,6 @@ class TestGroupedQueryAttention:
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
-            max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -161,7 +159,6 @@ class TestGroupedQueryAttention:
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
-            max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -193,7 +190,6 @@ class TestGroupedQueryAttention:
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
-            max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -215,7 +211,6 @@ class TestGroupedQueryAttention:
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
-            max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
         attn.eval()
@@ -247,7 +242,6 @@ class TestGroupedQueryAttention:
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
             kv_cache=kv_cache,
-            max_seq_len=max_seq_len,
         )
         fixed_init_model(attn)
         attn.eval()

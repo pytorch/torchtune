@@ -299,7 +299,6 @@ def compare_attn(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=kv_cache,
-        max_seq_len=max_seq_len,
     )
     mapped_sd = map_state_dict(attn_ref.state_dict(), head_dim, num_heads, num_kv_heads)
     attn.load_state_dict(mapped_sd)

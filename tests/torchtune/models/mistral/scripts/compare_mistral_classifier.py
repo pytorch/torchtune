@@ -79,14 +79,13 @@ def mistral(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)

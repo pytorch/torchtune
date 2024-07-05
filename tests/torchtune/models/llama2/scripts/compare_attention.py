@@ -214,7 +214,6 @@ def compare_attention(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=0.0,
     )
     for p in attn.parameters():

@@ -80,14 +80,13 @@ class TestTransformerSelfAttentionLayer:
             v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
             output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
             pos_embeddings=rope,
-            max_seq_len=max_seq_len,
         )
         hidden_dim = scale_hidden_dim_for_mlp(embed_dim)
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
         transformer_layer = TransformerSelfAttentionLayer(
             attn=self_attn,
             mlp=mlp,
-            sa_norm=RMSNorm(dim=embed_dim),
+            attn_norm=RMSNorm(dim=embed_dim),
             mlp_norm=RMSNorm(dim=embed_dim),
         )
         # TODO: fix weight initialization to use fixed_init_model

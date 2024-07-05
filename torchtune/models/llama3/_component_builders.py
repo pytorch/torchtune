@@ -92,7 +92,6 @@ def llama3(
         v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
@@ -100,7 +99,7 @@ def llama3(
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -223,7 +222,7 @@ def lora_llama3(
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
 
@@ -369,7 +368,6 @@ def lora_llama3_self_attention(
         v_proj=v_proj,
         output_proj=output_proj,
         pos_embeddings=rope,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     return self_attn

@@ -89,14 +89,13 @@ def gemma(
         output_proj=nn.Linear(num_heads * head_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     mlp = gemma_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
     layer = TransformerSelfAttentionLayer(
         attn=self_att,
         mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        attn_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -217,7 +216,7 @@ def lora_gemma(
     layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
+        attn_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
         mlp_norm=GemmaRMSNorm(embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -333,7 +332,6 @@ def lora_gemma_self_attention(
         v_proj=v_proj,
         output_proj=output_proj,
         pos_embeddings=rope,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     return self_attn
