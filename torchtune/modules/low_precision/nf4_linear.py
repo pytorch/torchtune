@@ -40,7 +40,7 @@ class FrozenNF4Linear(nn.Linear):
 
         super().__init__(in_dim, out_dim, device=device, bias=False, **kwargs)
         self.weight.requires_grad_(False)
-        self.nf4_weight = to_nf4(self.weight.data)
+        self.nf4_weight = to_nf4(self.weight)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
         self.weight = torch.nn.Parameter(self.nf4_weight, requires_grad=False)
