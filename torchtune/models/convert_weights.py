@@ -44,7 +44,20 @@ _FROM_HF = {
     "lm_head.weight": "output.weight",
 }
 
-_FROM_TUNE_0_2_0 = {"layers.{}.sa_norm.scale": "layers.{}.attn_norm.scale"}
+_FROM_TUNE_0_2_0 = {
+    "tok_embeddings.weight": "tok_embeddings.weight",
+    "norm.scale": "norm.scale",
+    "output.weight": "output.weight",
+    "layers.{}.attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
+    "layers.{}.attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
+    "layers.{}.attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
+    "layers.{}.attn.output_proj.weight": "layers.{}.attn.output_proj.weight",
+    "layers.{}.sa_norm.scale": "layers.{}.attn_norm.scale",
+    "layers.{}.mlp_norm.scale": "layers.{}.mlp_norm.scale",
+    "layers.{}.mlp.w1.weight": "layers.{}.mlp.w1.weight",
+    "layers.{}.mlp.w2.weight": "layers.{}.mlp.w2.weight",
+    "layers.{}.mlp.w3.weight": "layers.{}.mlp.w3.weight",
+}
 
 
 def get_mapped_key(key: str, mapping_dict: Dict[str, str]) -> str:
