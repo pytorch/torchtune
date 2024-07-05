@@ -3,7 +3,6 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-import copy
 from typing import Optional
 
 from torch import nn, Tensor
@@ -56,10 +55,11 @@ class GroupedQueryAttention(nn.Module):
         v_proj (nn.Module): projection layer for value.
         output_proj (nn.Module): projection layer for output.
         pos_embeddings (Optional[nn.Module]): positional embeddings layer, e.g. RotaryPositionalEmbeddings.
-        qk_norm (Optional[nn.Module]): normalization layer for query and key, e.g. RMSNorm
+        q_norm (Optional[nn.Module]): normalization layer for query, e.g. RMSNorm
+        k_norm (Optional[nn.Module]): normalization layer for key, must be set if q_norm is.
         kv_cache (Optional[KVCache]): KVCache object used to cache key and value
             If not specified, then no caching is used.
-        is_causal (bool): sets the default mask when no mask is provided
+        default_causal_mask (bool): sets the default mask to causal when no mask is provided
         attn_dropout (float): dropout value passed onto the
             scaled_dot_product_attention function. This argument is ignored if the
             self.training is False. Default value is 0.0.
@@ -68,6 +68,7 @@ class GroupedQueryAttention(nn.Module):
         ValueError: If `num_heads` % `num_kv_heads` != 0
         ValueError: If `embed_dim` % `num_heads` != 0
         ValueError: If `attn_dropout` < 0 or > 1
+        ValueError: if q_norm is defined without k_norm or vice versa
     """
 
     def __init__(
@@ -82,9 +83,10 @@ class GroupedQueryAttention(nn.Module):
         v_proj: nn.Module,
         output_proj: nn.Module,
         pos_embeddings: Optional[nn.Module] = None,
-        qk_norm: Optional[nn.Module] = None,
+        q_norm: Optional[nn.Module] = None,
+        k_norm: Optional[nn.Module] = None,
         kv_cache: Optional[KVCache] = None,
-        is_causal: bool = True,
+        default_causal_mask: bool = True,
         attn_dropout: float = 0.0,
     ) -> None:
         super().__init__()
@@ -103,13 +105,16 @@ class GroupedQueryAttention(nn.Module):
         if attn_dropout < 0 or attn_dropout > 1:
             raise ValueError(f"attn_dropout ({embed_dim}) must be between 0.0 and 1.0")
 
+        if bool(q_norm) ^ bool(k_norm):
+            raise ValueError("q and k norm must be set together")
+
         # Set attributes
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
         self.embed_dim = embed_dim
         self.attn_dropout = attn_dropout
         self.head_dim = head_dim
-        self.is_causal = is_causal
+        self.is_causal = default_causal_mask
 
         # Set layers
         self.kv_cache = kv_cache
@@ -117,8 +122,8 @@ class GroupedQueryAttention(nn.Module):
         self.k_proj = k_proj
         self.v_proj = v_proj
         self.output_proj = output_proj
-        self.q_norm = qk_norm
-        self.k_norm = copy.deepcopy(qk_norm)
+        self.q_norm = q_norm
+        self.k_norm = k_norm
         self.pos_embeddings = pos_embeddings
 
     def forward(
@@ -133,7 +138,7 @@ class GroupedQueryAttention(nn.Module):
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
-            y (Optional[Tensor]): secondary input tensor with shape
+            y (Optional[Tensor]): second input tensor for cross attentin with shape
                 [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
             mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
                 with shape [batch_size x seq_length x seq_length]. This is applied after

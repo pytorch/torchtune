@@ -10,15 +10,11 @@ from torch import nn, Tensor
 
 
 class TanhGate(nn.Module):
-    """Implements a basic learnable gate to scale layer outputs
+    """Implements a basic learnable gate to scale layer outputs"""
 
-    Args:
-        dim (int): parameter dim
-    """
-
-    def __init__(self, dim: int) -> None:
+    def __init__(self) -> None:
         super().__init__()
-        self.scale = nn.Parameter(torch.zeros(dim))
+        self.scale = nn.Parameter(torch.zeros(1))
 
     def forward(self, x: Tensor) -> Tensor:
         """

@@ -4,41 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from abc import abstractmethod
-from typing import Optional, Protocol, runtime_checkable
+from typing import Optional
 
 import torch
 from torch import nn, Tensor
 
 from torchtune.modules import GroupedQueryAttention, KVCache
-
-
-@runtime_checkable
-class TransformerLayer(Protocol):
-    """Transformer layer meant to by used in TransformerDecoder"""
-
-    @abstractmethod
-    def forward(
-        self,
-        x: Tensor,
-        *,
-        mask: Optional[Tensor] = None,
-        encoder_input: Optional[Tensor] = None,
-        encoder_mask: Optional[Tensor] = None,
-        input_pos: Optional[Tensor] = None,
-    ) -> Tensor:
-        """
-        Args:
-            x (Tensor): input sequence tensor
-            mask (Optional[Tensor]): boolean tensor which contains the attention mask
-            encoder_input (Optional[Tensor]): secondary input sequence tensor
-                transformer layers. This input is ignored and does nothing in self attention.
-            encoder_mask (Optional[Tensor]):  boolearn tensor to mask connections between x and encoder_input
-            input_pos (Optional[Tensor]): Optional tensor which contains the position ids of each token.
-
-        Returns:
-            Tensor: output tensor with same shape as input
-        """
 
 
 class TransformerSelfAttentionLayer(nn.Module):
@@ -76,9 +47,8 @@ class TransformerSelfAttentionLayer(nn.Module):
         x: Tensor,
         *,
         mask: Optional[Tensor] = None,
-        encoder_input: Optional[Tensor] = None,
-        encoder_mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
+        **kwargs,
     ) -> Tensor:
         """
         Args:
@@ -90,15 +60,12 @@ class TransformerSelfAttentionLayer(nn.Module):
                 and column j means token i attends to token j. A value of False means token i
                 does not attend to token j. If no mask is specified, a causal mask
                 is used by default. Default is None.
-            encoder_input (Optional[Tensor]): input to keep a consistent signature accross
-                transformer layers. This input is ignored and does nothing in self attention.
-            encoder_mask (Optional[Tensor]):  input to keep a consistent signature accross
-                transformer layers. This input is ignored and does nothing in self attention.
             input_pos (Optional[Tensor]): Optional tensor which contains the position ids
                 of each token. During training, this is used to indicate the positions
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
+            kwargs (Dict): transformer layer inputs not relevant to self attention.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -121,7 +88,7 @@ class TransformerSelfAttentionLayer(nn.Module):
 
 
 class TransformerCrossAttentionLayer(nn.Module):
-    """Cross attention Transformer layer derived from the Llama2 model self attention layer.
+    """Cross attention Transformer layer following the same conventions as the TransformerSelfAttentionLayer.
        Normalization is applied before the attention **and** FF layer.
 
     Args:
@@ -154,7 +121,25 @@ class TransformerCrossAttentionLayer(nn.Module):
         self.attn_scale = attn_scale or nn.Identity()
         self.mlp_scale = mlp_scale or nn.Identity()
 
-    def output_mask(self, mask: Optional[Tensor]) -> Optional[Tensor]:
+    def _skip_mask(self, mask: Optional[Tensor]) -> Optional[Tensor]:
+        """Some tokens in x may not attend to any encoder inputs
+        due to the cross attention mask (encoder_mask). This results in
+        a full row of the attention matrix being masked out.
+
+        In the example below, the word "the" is masked from every embedding.
+
+        .. code-block:: text
+
+            |emb||emb||emb|
+        |The| x    x    x
+        |red|      x
+        |car| x
+
+        This results in no inputs into the softmax layer which causes a NaN.
+        The skip mask removes the output of the attention module and
+        mlp resulting in the token being skipped.
+
+        """
         if mask is None:
             return None
         if mask.dtype == torch.bool:
@@ -202,7 +187,7 @@ class TransformerCrossAttentionLayer(nn.Module):
             return x
 
         # A mask of tokens (x) with no encoder_input
-        output_mask = self.output_mask(encoder_mask)
+        skip_mask = self._skip_mask(encoder_mask)
 
         # Input tensor and attention output have the same shape
         # [b, s, d]
@@ -210,16 +195,16 @@ class TransformerCrossAttentionLayer(nn.Module):
         attn_out = self.attn(
             self.attn_norm(x), encoder_input, mask=encoder_mask, input_pos=input_pos
         )
-        if output_mask is not None:
-            attn_out.masked_fill_(output_mask, 0)
+        if skip_mask is not None:
+            attn_out.masked_fill_(skip_mask, 0)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = self.attn_scale(attn_out) + x
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
-        if output_mask is not None:
-            mlp_out.masked_fill_(output_mask, 0)
+        if skip_mask is not None:
+            mlp_out.masked_fill_(skip_mask, 0)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         out = h + self.mlp_scale(mlp_out)
@@ -271,7 +256,7 @@ class TransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layer: TransformerLayer,
+        layer: nn.Module,
         num_layers: int,
         max_seq_len: int,
         num_heads: int,
