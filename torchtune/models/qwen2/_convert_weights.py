@@ -67,7 +67,9 @@ def qwen2_hf_to_tune(
         head_dim = dim // num_heads
 
     for key, value in state_dict.items():
-        if tie_word_embeddings and QWEN2_TIED_KEY not in key:     # Skip loading the output projection weights
+        if (
+            tie_word_embeddings and QWEN2_TIED_KEY not in key
+        ):  # Skip loading the output projection weights
             continue
         if "rotary_emb.inv_freq" in key:  # Skip loading the position embeddings
             continue

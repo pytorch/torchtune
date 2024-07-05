@@ -275,7 +275,7 @@ class TestQwen2Tokenizer:
             60,
             2002,
             94,
-            2000
+            2000,
         ]
         expected_mask = [True] * 90 + [False] * 146
         assert expected_tokens == tokens

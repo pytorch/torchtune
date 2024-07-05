@@ -29,10 +29,10 @@ class Qwen2RotaryPositionalEmbeddings(nn.Module):
     """
 
     def __init__(
-            self,
-            dim: int,
-            max_seq_len: int = 4096,
-            base: float = 1_000_000.0,
+        self,
+        dim: int,
+        max_seq_len: int = 4096,
+        base: float = 1_000_000.0,
     ) -> None:
         super().__init__()
         self.dim = dim
@@ -42,8 +42,8 @@ class Qwen2RotaryPositionalEmbeddings(nn.Module):
 
     def _rope_init(self):
         theta = 1.0 / (
-                self.base
-                ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
+            self.base
+            ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
         )
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)

@@ -6,12 +6,11 @@
 
 import pytest
 import torch
-from torch import nn
 
 from tests.test_utils import assert_expected, fixed_init_model
-from torchtune.models.qwen2 import qwen2, lora_qwen2
+from torch import nn
+from torchtune.models.qwen2 import lora_qwen2, qwen2
 from torchtune.models.qwen2._component_builders import lora_qwen2_self_attention
-from torchtune.modules.peft import LoRALinear
 from torchtune.utils.seed import set_seed
 
 RANK = 4

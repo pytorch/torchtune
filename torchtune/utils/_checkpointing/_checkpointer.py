@@ -21,11 +21,8 @@ from torchtune.models.mistral import (
     mistral_reward_hf_to_tune,
     mistral_reward_tune_to_hf,
 )
-from torchtune.models.qwen2 import (
-    qwen2_hf_to_tune,
-    qwen2_tune_to_hf,
-)
 from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
+from torchtune.models.qwen2 import qwen2_hf_to_tune, qwen2_tune_to_hf
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
     ModelType,
