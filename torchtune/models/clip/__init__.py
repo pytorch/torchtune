@@ -10,10 +10,12 @@ from ._position_embeddings import (
     TilePositionalEmbedding,
     TokenPositionalEmbedding,
 )
+from ._model_builders import clip_vit_224_transform  # noqa
 
 __all__ = [
     "clip_vision_encoder",
     "TokenPositionalEmbedding",
     "TiledTokenPositionalEmbedding",
     "TilePositionalEmbedding",
+    "clip_vit_224_transform"
 ]
