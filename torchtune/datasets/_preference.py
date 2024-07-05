@@ -12,7 +12,7 @@ from torch.utils.data import Dataset
 
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX, InstructTemplate, Message
 
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class PreferenceDataset(Dataset):
@@ -27,7 +27,7 @@ class PreferenceDataset(Dataset):
     then the `column_map` argument can be used to provide this mapping.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         template (InstructTemplate): template used to format the prompt. If the placeholder variable
@@ -44,7 +44,7 @@ class PreferenceDataset(Dataset):
 
     def __init__(
         self,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         template: InstructTemplate,
         transform: Optional[Callable] = None,
