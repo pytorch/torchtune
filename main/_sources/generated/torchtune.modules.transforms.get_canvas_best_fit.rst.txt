@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.modules.transforms
+
+
+get_canvas_best_fit
+===================
+
+.. autofunction:: get_canvas_best_fit

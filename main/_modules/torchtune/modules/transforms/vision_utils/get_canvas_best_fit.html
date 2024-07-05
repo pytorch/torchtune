@@ -7,11 +7,10 @@
 <head>
   <meta name="robots" content="noindex">
   <meta charset="utf-8">
-  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
-
+  
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>DPOLoss &mdash; torchtune main documentation</title>
+  <title>torchtune.modules.transforms.vision_utils.get_canvas_best_fit &mdash; torchtune main documentation</title>
   
 
   
@@ -27,22 +26,20 @@
 
   
 
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <!-- <link rel="stylesheet" href="../_static/pygments.css" type="text/css" /> -->
-  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/copybutton.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-binder.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-dataframe.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sg_gallery-rendered-html.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/tabs.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
-  <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
-    <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_canvas_best_fit" href="torchtune.modules.transforms.get_canvas_best_fit.html" />
-    <link rel="prev" title="reparametrize_as_dtype_state_dict_post_hook" href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <!-- <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" /> -->
+  <link rel="stylesheet" href="../../../../../_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/copybutton.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-binder.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-dataframe.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sg_gallery-rendered-html.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/tabs.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/sphinx-design.5ea377869091fd0449014c60fc090103.min.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../../_static/css/custom_torchtune.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../search.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -53,16 +50,16 @@
   
 
   
-  <script src="../_static/js/modernizr.min.js"></script>
+  <script src="../../../../../_static/js/modernizr.min.js"></script>
 
   <!-- Preload the theme fonts -->
 
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
-<link rel="preload" href="../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-book.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-Medium.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-bold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/FreightSans/freight-sans-medium-italic.woff2" as="font" type="font/woff2" crossorigin="anonymous">
+<link rel="preload" href="../../../../../_static/fonts/IBMPlexMono/IBMPlexMono-SemiBold.woff2" as="font" type="font/woff2" crossorigin="anonymous">
 
 <!-- Preload the katex fonts -->
 
@@ -282,7 +279,7 @@
 
 
 <div role="search">
-  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search Docs" />
     <input type="hidden" name="check_keywords" value="yes" />
     <input type="hidden" name="area" value="default" />
@@ -299,35 +296,35 @@
             
               <p class="caption" role="heading"><span class="caption-text">Getting Started</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../overview.html">torchtune Overview</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../install.html">Install Instructions</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tune_cli.html">torchtune CLI</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../overview.html">torchtune Overview</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../install.html">Install Instructions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/first_finetune_tutorial.html">Fine-Tune Your First LLM</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tune_cli.html">torchtune CLI</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Deep-Dives</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/configs.html">All About Configs</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/checkpointer.html">Checkpointing in torchtune</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/configs.html">All About Configs</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/recipe_deepdive.html">What Are Recipes?</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../deep_dives/wandb_logging.html">Logging to Weights &amp; Biases</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">API Reference</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_config.html">torchtune.config</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_data.html">torchtune.data</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_datasets.html">torchtune.datasets</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_models.html">torchtune.models</a></li>
-<li class="toctree-l1 current"><a class="reference internal" href="../api_ref_modules.html">torchtune.modules</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../api_ref_utilities.html">torchtune.utils</a></li>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_config.html">torchtune.config</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_data.html">torchtune.data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_datasets.html">torchtune.datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_models.html">torchtune.models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_modules.html">torchtune.modules</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../api_ref_utilities.html">torchtune.utils</a></li>
 </ul>
 
             
@@ -360,7 +357,7 @@
   <ul class="pytorch-breadcrumbs">
     
       <li>
-        <a href="../index.html">
+        <a href="../../../../../index.html">
           
             Docs
           
@@ -368,16 +365,12 @@
       </li>
 
         
-          <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
+          <li><a href="../../../../index.html">Module code</a> &gt;</li>
         
-      <li>DPOLoss</li>
+      <li>torchtune.modules.transforms.vision_utils.get_canvas_best_fit</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
-        
-            
-            <a href="../_sources/generated/torchtune.modules.loss.DPOLoss.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
-          
         
       </li>
     
@@ -406,78 +399,192 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="dpoloss">
-<h1>DPOLoss<a class="headerlink" href="#dpoloss" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.loss.DPOLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">DPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sigmoid'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.</p>
-<p>Based on the implementation in HF’s TRL library:
-<a class="reference external" href="https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844">https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.</p></li>
-<li><p><strong>label_smoothing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Parameter encoding uncertainty about the labels. Default is 0.</p></li>
-<li><p><strong>loss_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Type of loss function to be used. Should be one of [‘sigmoid’, ‘hinge’, ‘ipo’, ‘kto_pair’].</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.loss.DPOLoss.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute the DPO loss for a batch of policy and reference model log probabilities.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>policy_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the policy model
-for the chosen responses. Shape: (batch_size)</p></li>
-<li><p><strong>policy_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the policy model
-for the rejected responses. Shape: (batch_size)</p></li>
-<li><p><strong>reference_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the reference model
-for the chosen responses. Shape: (batch_size)</p></li>
-<li><p><strong>reference_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the reference model
-for the rejected responses. Shape: (batch_size)</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A tuple of three tensors:</dt><dd><ul class="simple">
-<li><p>losses: The DPO loss for each example in the batch.</p></li>
-<li><p>chosen_rewards: Rewards for the chosen responses.</p></li>
-<li><p>rejected_rewards: Rewards for the rejected responses.</p></li>
-</ul>
-</dd>
-</dl>
-</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If an unknown loss type is specified.</p>
-</dd>
-</dl>
-</dd></dl>
+  <h1>Source code for torchtune.modules.transforms.vision_utils.get_canvas_best_fit</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) Meta Platforms, Inc. and affiliates.</span>
+<span class="c1"># All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># This source code is licensed under the BSD-style license found in the</span>
+<span class="c1"># LICENSE file in the root directory of this source tree.</span>
 
-</dd></dl>
+<span class="kn">import</span> <span class="nn">logging</span>
 
-</section>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span>
 
+<span class="kn">import</span> <span class="nn">torch</span>
+
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="get_canvas_best_fit"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.get_canvas_best_fit.html#torchtune.modules.transforms.get_canvas_best_fit">[docs]</a><span class="k">def</span> <span class="nf">get_canvas_best_fit</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">possible_resolutions</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">resize_to_max_canvas</span><span class="p">:</span> <span class="nb">bool</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Determines the best canvas possible from a list of possible resolutions to</span>
+<span class="sd">    resize an image to, without distortion.</span>
+
+<span class="sd">    For each possible resolution, calculates the scaling factors for</span>
+<span class="sd">    width and height, and selects the smallest one, which is the limiting side.</span>
+<span class="sd">    E.g. if to match a canvas shape you have to upscale an image&#39;s height by 2x, and width by 1.5x,</span>
+<span class="sd">    then the maximum upscaling without distortion is min(2, 1.5) = 1.5.</span>
+
+<span class="sd">    If there are multiple canvases that satisfy the conditions,</span>
+<span class="sd">    we pick the one with the lowest area to minimize padding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        image (torch.Tensor): The image we want to fit into a canvas.</span>
+<span class="sd">        possible_resolutions (torch.Tensor): A tensor of shape (N, 2) where each</span>
+<span class="sd">            row represents a possible canvas.</span>
+<span class="sd">        resize_to_max_canvas (bool): If True, pick the canvas that allows maximum scaling.</span>
+<span class="sd">            If False, pick the canvas that minimizes downscaling, including no downscaling at all.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[int, int]: The best resolution to fit the image into.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; image = torch.rand(3, 200, 300)</span>
+<span class="sd">        &gt;&gt;&gt; possible_resolutions = torch.tensor([</span>
+<span class="sd">        ...     [224, 672],</span>
+<span class="sd">        ...     [672, 224],</span>
+<span class="sd">        ...     [224, 448],</span>
+<span class="sd">        ...     [448, 224],</span>
+<span class="sd">        ...     [224, 224]</span>
+<span class="sd">        ... ])</span>
+<span class="sd">        &gt;&gt;&gt; get_canvas_best_fit(image, possible_resolutions, resize_to_max_canvas=False)</span>
+<span class="sd">        (224, 448)</span>
+
+<span class="sd">        In the example above, we calculate the scaling factors for each possible resolution</span>
+
+<span class="sd">        &gt;&gt;&gt; scale_height = torch.tensor([1.1200, 3.3600, 1.1200, 2.2400, 1.1200])</span>
+<span class="sd">        &gt;&gt;&gt; scale_width = torch.tensor([2.2400, 0.7467, 1.4933, 0.7467, 0.7467])</span>
+<span class="sd">        &gt;&gt;&gt; scales = torch.tensor([1.1200, 0.7467, 1.1200, 0.7467, 0.7467])</span>
+
+<span class="sd">        Two options have scaling_factor &gt; 1, since resize_to_max_canvas is False, we pick the smallest</span>
+
+<span class="sd">        &gt;&gt;&gt; upscaling_options = torch.tensor([1.1200, 1.1200])</span>
+<span class="sd">        &gt;&gt;&gt; selected_scale = torch.tensor(1.1200)</span>
+
+<span class="sd">        There are two possible options, so we pick the one with the smallest area</span>
+
+<span class="sd">        &gt;&gt;&gt; areas = torch.tensor([150528, 100352])  # for resolutions [672, 224] and [224, 448], respectively</span>
+<span class="sd">        &gt;&gt;&gt; optimal_canvas = torch.tensor([224, 448])  # resolution with the smallest area</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">original_height</span><span class="p">,</span> <span class="n">original_width</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">:]</span>
+
+    <span class="c1"># possible resolutions heights/widths</span>
+    <span class="n">target_heights</span><span class="p">,</span> <span class="n">target_widths</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">possible_resolutions</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="n">possible_resolutions</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">)</span>
+
+    <span class="c1"># scaling factors to resize the image without distortion</span>
+    <span class="n">scale_w</span> <span class="o">=</span> <span class="n">target_widths</span> <span class="o">/</span> <span class="n">original_width</span>
+    <span class="n">scale_h</span> <span class="o">=</span> <span class="n">target_heights</span> <span class="o">/</span> <span class="n">original_height</span>
+
+    <span class="c1"># get limiting side scaling -&gt; no distortion</span>
+    <span class="n">scales</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">scale_w</span> <span class="o">&gt;</span> <span class="n">scale_h</span><span class="p">,</span> <span class="n">scale_h</span><span class="p">,</span> <span class="n">scale_w</span><span class="p">)</span>
+
+    <span class="c1"># filter only scales that allow upscaling</span>
+    <span class="n">upscaling_options</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[</span><span class="n">scales</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">upscaling_options</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">resize_to_max_canvas</span><span class="p">:</span>
+            <span class="n">selected_scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">upscaling_options</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">selected_scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">upscaling_options</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># no upscaling possible,</span>
+        <span class="c1"># get the minimum downscaling (max scale for scales&lt;1)</span>
+        <span class="n">downscaling_options</span> <span class="o">=</span> <span class="n">scales</span><span class="p">[</span><span class="n">scales</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">selected_scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">downscaling_options</span><span class="p">)</span>
+
+    <span class="c1"># get all resolutions that support this scaling factor,</span>
+    <span class="c1"># e.g. you can upscale to 224x224, 224x448, 224x672 without distortion</span>
+    <span class="n">chosen_canvas</span> <span class="o">=</span> <span class="n">possible_resolutions</span><span class="p">[</span><span class="n">scales</span> <span class="o">==</span> <span class="n">selected_scale</span><span class="p">]</span>
+
+    <span class="c1"># if there are multiple resolutions,</span>
+    <span class="c1"># get the one with minimum area to reduce padding</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">chosen_canvas</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">areas</span> <span class="o">=</span> <span class="n">chosen_canvas</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">chosen_canvas</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">optimal_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">areas</span><span class="p">)</span>
+        <span class="n">optimal_canvas</span> <span class="o">=</span> <span class="n">chosen_canvas</span><span class="p">[</span><span class="n">optimal_idx</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">optimal_canvas</span> <span class="o">=</span> <span class="n">chosen_canvas</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">optimal_canvas</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="find_supported_resolutions"><a class="viewcode-back" href="../../../../../generated/torchtune.modules.transforms.find_supported_resolutions.html#torchtune.modules.transforms.find_supported_resolutions">[docs]</a><span class="k">def</span> <span class="nf">find_supported_resolutions</span><span class="p">(</span>
+    <span class="n">max_num_tiles</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tile_size</span><span class="p">:</span> <span class="nb">int</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Computes all combinations of resolutions, multiple of tile_size,</span>
+<span class="sd">    that contain up to max_num_tiles. Useful for when dividing an image into tiles.</span>
+
+<span class="sd">    For example, if we want at most 2 tiles per image, then we can support the</span>
+<span class="sd">    following resolutions: (1x1, 1x2, 2x1) * tile_size</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_num_tiles (int): Maximum number of tiles.</span>
+<span class="sd">        tile_size (int): Size of the side of the tile.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List[Tuple[int, int]]: List of possible resolutions as tuples (height, width).</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">        &gt;&gt;&gt; max_num_tiles = 4</span>
+<span class="sd">        &gt;&gt;&gt; tile_size = 224</span>
+<span class="sd">        &gt;&gt;&gt; find_supported_resolutions(max_num_tiles, tile_size)</span>
+<span class="sd">        [(224, 896), (448, 448), (224, 224), (896, 224), (224, 672), (672, 224), (224, 448), (448, 224)]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># create dictionary {aspect_ratio: [resolution1, ..., resolution n]}</span>
+    <span class="c1"># example {0.25: [(1,4)], 1.0: [(2,2), (1,1)], 4.0: [(4,1)]}</span>
+    <span class="n">asp_dict</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">_tile_size</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">max_num_tiles</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">factors</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">_get_factors</span><span class="p">(</span><span class="n">_tile_size</span><span class="p">))</span>
+        <span class="n">asp_ratios</span> <span class="o">=</span> <span class="p">[(</span><span class="n">factor</span><span class="p">,</span> <span class="n">_tile_size</span> <span class="o">//</span> <span class="n">factor</span><span class="p">)</span> <span class="k">for</span> <span class="n">factor</span> <span class="ow">in</span> <span class="n">factors</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="n">asp_ratios</span><span class="p">:</span>
+            <span class="n">ratio_float</span> <span class="o">=</span> <span class="n">height</span> <span class="o">/</span> <span class="n">width</span>
+            <span class="n">asp_dict</span><span class="p">[</span><span class="n">ratio_float</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">height</span><span class="p">,</span> <span class="n">width</span><span class="p">))</span>
+
+    <span class="c1"># get the resolutions multiplied by the tile_size</span>
+    <span class="n">possible_resolutions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ar</span><span class="p">,</span> <span class="n">resolution</span> <span class="ow">in</span> <span class="n">asp_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">height</span><span class="p">,</span> <span class="n">width</span> <span class="ow">in</span> <span class="n">resolution</span><span class="p">:</span>
+            <span class="n">possible_resolutions</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">height</span> <span class="o">*</span> <span class="n">tile_size</span><span class="p">,</span> <span class="n">width</span> <span class="o">*</span> <span class="n">tile_size</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="n">possible_resolutions</span></div>
+
+
+<span class="k">def</span> <span class="nf">_get_factors</span><span class="p">(</span><span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Set</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calculate all factors of a given number, i.e. a divisor that leaves no remainder.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        n (int): The number to find factors for.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        set: A set containing all factors of the number.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; _get_factors(n=12)</span>
+<span class="sd">        {1, 2, 3, 4, 6, 12}</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">factors_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">n</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">%</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">factors_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+            <span class="n">factors_set</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n</span> <span class="o">//</span> <span class="n">i</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">factors_set</span>
+</pre></div>
 
              </article>
              
             </div>
             <footer>
-  
-    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
-      
-        <a href="torchtune.modules.transforms.get_canvas_best_fit.html" class="btn btn-neutral float-right" title="get_canvas_best_fit" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
-      
-      
-        <a href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
-      
-    </div>
   
 
   
@@ -506,10 +613,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
         <div class="pytorch-content-right" id="pytorch-content-right">
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
-              <ul>
-<li><a class="reference internal" href="#">DPOLoss</a></li>
-</ul>
-
+              
             </div>
           </div>
         </div>
@@ -522,23 +626,24 @@ for the rejected responses. Shape: (batch_size)</p></li>
   
 
      
-       <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
-         <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
-         <script src="../_static/jquery.js"></script>
-         <script src="../_static/underscore.js"></script>
-         <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
-         <script src="../_static/doctools.js"></script>
-         <script src="../_static/clipboard.min.js"></script>
-         <script src="../_static/copybutton.js"></script>
-         <script src="../_static/design-tabs.js"></script>
+       <script type="text/javascript" id="documentation_options" data-url_root="../../../../../" src="../../../../../_static/documentation_options.js"></script>
+         <script data-url_root="../../../../../" id="documentation_options" src="../../../../../_static/documentation_options.js"></script>
+         <script src="../../../../../_static/jquery.js"></script>
+         <script src="../../../../../_static/underscore.js"></script>
+         <script src="../../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+         <script src="../../../../../_static/doctools.js"></script>
+         <script src="../../../../../_static/clipboard.min.js"></script>
+         <script src="../../../../../_static/copybutton.js"></script>
+         <script src="../../../../../_static/tabs.js"></script>
+         <script src="../../../../../_static/design-tabs.js"></script>
      
 
   
 
-  <script type="text/javascript" src="../_static/js/vendor/popper.min.js"></script>
-  <script type="text/javascript" src="../_static/js/vendor/bootstrap.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/popper.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/bootstrap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/1.5.0/list.min.js"></script>
-  <script type="text/javascript" src="../_static/js/theme.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/theme.js"></script>
 
   <script type="text/javascript">
       jQuery(function () {
@@ -653,7 +758,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
   <div class="cookie-banner-wrapper">
   <div class="container">
     <p class="gdpr-notice">To analyze traffic and optimize your experience, we serve cookies on this site. By clicking or navigating, you agree to allow our usage of cookies. As the current maintainers of this site, Facebook’s Cookies Policy applies. Learn more, including about available controls: <a href="https://www.facebook.com/policies/cookies/">Cookies Policy</a>.</p>
-    <img class="close-button" src="../_static/images/pytorch-x.svg">
+    <img class="close-button" src="../../../../../_static/images/pytorch-x.svg">
   </div>
 </div>
 
@@ -786,7 +891,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
 
   <!-- End Mobile Menu -->
 
-  <script type="text/javascript" src="../_static/js/vendor/anchor.min.js"></script>
+  <script type="text/javascript" src="../../../../../_static/js/vendor/anchor.min.js"></script>
 
   <script type="text/javascript">
     $(document).ready(function() {

@@ -11,7 +11,7 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>DPOLoss &mdash; torchtune main documentation</title>
+  <title>get_canvas_best_fit &mdash; torchtune main documentation</title>
   
 
   
@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_canvas_best_fit" href="torchtune.modules.transforms.get_canvas_best_fit.html" />
-    <link rel="prev" title="reparametrize_as_dtype_state_dict_post_hook" href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
+    <link rel="next" title="resize_with_pad" href="torchtune.modules.transforms.resize_with_pad.html" />
+    <link rel="prev" title="DPOLoss" href="torchtune.modules.loss.DPOLoss.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
@@ -370,13 +370,13 @@
         
           <li><a href="../api_ref_modules.html">torchtune.modules</a> &gt;</li>
         
-      <li>DPOLoss</li>
+      <li>get_canvas_best_fit</li>
     
     
       <li class="pytorch-breadcrumbs-aside">
         
             
-            <a href="../_sources/generated/torchtune.modules.loss.DPOLoss.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
+            <a href="../_sources/generated/torchtune.modules.transforms.get_canvas_best_fit.rst.txt" rel="nofollow"><img src="../_static/images/view-page-source-icon.svg"></a>
           
         
       </li>
@@ -406,60 +406,65 @@
             <div role="main" class="main-content" itemscope="itemscope" itemtype="http://schema.org/Article">
              <article itemprop="articleBody" id="pytorch-article" class="pytorch-article">
               
-  <section id="dpoloss">
-<h1>DPOLoss<a class="headerlink" href="#dpoloss" title="Permalink to this heading">¶</a></h1>
-<dl class="py class">
-<dt class="sig sig-object py" id="torchtune.modules.loss.DPOLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">DPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sigmoid'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.</p>
-<p>Based on the implementation in HF’s TRL library:
-<a class="reference external" href="https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844">https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844</a></p>
+  <section id="get-canvas-best-fit">
+<h1>get_canvas_best_fit<a class="headerlink" href="#get-canvas-best-fit" title="Permalink to this heading">¶</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="torchtune.modules.transforms.get_canvas_best_fit">
+<span class="sig-prename descclassname"><span class="pre">torchtune.modules.transforms.</span></span><span class="sig-name descname"><span class="pre">get_canvas_best_fit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">possible_resolutions</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">resize_to_max_canvas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><span class="pre">bool</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/transforms/vision_utils/get_canvas_best_fit.html#get_canvas_best_fit"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.transforms.get_canvas_best_fit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the best canvas possible from a list of possible resolutions to
+resize an image to, without distortion.</p>
+<p>For each possible resolution, calculates the scaling factors for
+width and height, and selects the smallest one, which is the limiting side.
+E.g. if to match a canvas shape you have to upscale an image’s height by 2x, and width by 1.5x,
+then the maximum upscaling without distortion is min(2, 1.5) = 1.5.</p>
+<p>If there are multiple canvases that satisfy the conditions,
+we pick the one with the lowest area to minimize padding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.</p></li>
-<li><p><strong>label_smoothing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Parameter encoding uncertainty about the labels. Default is 0.</p></li>
-<li><p><strong>loss_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Type of loss function to be used. Should be one of [‘sigmoid’, ‘hinge’, ‘ipo’, ‘kto_pair’].</p></li>
-</ul>
-</dd>
-</dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="torchtune.modules.loss.DPOLoss.forward">
-<span class="sig-name descname"><span class="pre">forward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">policy_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">policy_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_chosen_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference_rejected_logps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Tuple" title="(in Python v3.12)"><span class="pre">Tuple</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><span class="pre">Tensor</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss.forward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute the DPO loss for a batch of policy and reference model log probabilities.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>policy_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the policy model
-for the chosen responses. Shape: (batch_size)</p></li>
-<li><p><strong>policy_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the policy model
-for the rejected responses. Shape: (batch_size)</p></li>
-<li><p><strong>reference_chosen_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the reference model
-for the chosen responses. Shape: (batch_size)</p></li>
-<li><p><strong>reference_rejected_logps</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Log probabilities of the reference model
-for the rejected responses. Shape: (batch_size)</p></li>
+<li><p><strong>image</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – The image we want to fit into a canvas.</p></li>
+<li><p><strong>possible_resolutions</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – A tensor of shape (N, 2) where each
+row represents a possible canvas.</p></li>
+<li><p><strong>resize_to_max_canvas</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – If True, pick the canvas that allows maximum scaling.
+If False, pick the canvas that minimizes downscaling, including no downscaling at all.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A tuple of three tensors:</dt><dd><ul class="simple">
-<li><p>losses: The DPO loss for each example in the batch.</p></li>
-<li><p>chosen_rewards: Rewards for the chosen responses.</p></li>
-<li><p>rejected_rewards: Rewards for the rejected responses.</p></li>
-</ul>
-</dd>
-</dl>
-</p>
+<dd class="field-even"><p>The best resolution to fit the image into.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>]</p>
-</dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If an unknown loss type is specified.</p>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)">int</a>]</p>
 </dd>
 </dl>
-</dd></dl>
-
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">image</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">200</span><span class="p">,</span> <span class="mi">300</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">possible_resolutions</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">672</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">672</span><span class="p">,</span> <span class="mi">224</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">448</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">448</span><span class="p">,</span> <span class="mi">224</span><span class="p">],</span>
+<span class="gp">... </span>    <span class="p">[</span><span class="mi">224</span><span class="p">,</span> <span class="mi">224</span><span class="p">]</span>
+<span class="gp">... </span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_canvas_best_fit</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">possible_resolutions</span><span class="p">,</span> <span class="n">resize_to_max_canvas</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="go">(224, 448)</span>
+</pre></div>
+</div>
+<p>In the example above, we calculate the scaling factors for each possible resolution</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">scale_height</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.1200</span><span class="p">,</span> <span class="mf">3.3600</span><span class="p">,</span> <span class="mf">1.1200</span><span class="p">,</span> <span class="mf">2.2400</span><span class="p">,</span> <span class="mf">1.1200</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scale_width</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">2.2400</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">,</span> <span class="mf">1.4933</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scales</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.1200</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">,</span> <span class="mf">1.1200</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">,</span> <span class="mf">0.7467</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Two options have scaling_factor &gt; 1, since resize_to_max_canvas is False, we pick the smallest</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">upscaling_options</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">1.1200</span><span class="p">,</span> <span class="mf">1.1200</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">selected_scale</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mf">1.1200</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There are two possible options, so we pick the one with the smallest area</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">areas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">150528</span><span class="p">,</span> <span class="mi">100352</span><span class="p">])</span>  <span class="c1"># for resolutions [672, 224] and [224, 448], respectively</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimal_canvas</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">224</span><span class="p">,</span> <span class="mi">448</span><span class="p">])</span>  <span class="c1"># resolution with the smallest area</span>
+</pre></div>
+</div>
 </dd></dl>
 
 </section>
@@ -472,10 +477,10 @@ for the rejected responses. Shape: (batch_size)</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.get_canvas_best_fit.html" class="btn btn-neutral float-right" title="get_canvas_best_fit" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.transforms.resize_with_pad.html" class="btn btn-neutral float-right" title="resize_with_pad" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
-        <a href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
+        <a href="torchtune.modules.loss.DPOLoss.html" class="btn btn-neutral" title="DPOLoss" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
       
     </div>
   
@@ -507,7 +512,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
           <div class="pytorch-right-menu" id="pytorch-right-menu">
             <div class="pytorch-side-scroll" id="pytorch-side-scroll-right">
               <ul>
-<li><a class="reference internal" href="#">DPOLoss</a></li>
+<li><a class="reference internal" href="#">get_canvas_best_fit</a></li>
 </ul>
 
             </div>
