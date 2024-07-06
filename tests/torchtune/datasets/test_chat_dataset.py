@@ -7,46 +7,10 @@
 from unittest import mock
 
 import pytest
-from datasets import Dataset
-from tests.test_utils import DummyTokenizer
-from torchtune.data import ChatFormat, Message
+from tests.test_utils import DummyChatFormat, DummyTokenizer
+from torchtune.data import Message
 from torchtune.data._common import CROSS_ENTROPY_IGNORE_IDX
 from torchtune.datasets import ChatDataset
-
-
-class DummyChatFormat(ChatFormat):
-
-    B_SYS, E_SYS = "System:\n", "\n"
-    B_INST, E_INST = "User:\n", "\nAssistant:\n"
-    B_ASST, E_ASST = "", ""
-    system = f"{B_SYS}{{content}}{E_SYS}"
-    user = f"{B_INST}{{content}}{E_INST}"
-    assistant = f"{B_ASST}{{content}}{E_ASST}"
-
-    @classmethod
-    def format(
-        cls,
-        messages,
-    ):
-        formats = {"system": cls.system, "user": cls.user, "assistant": cls.assistant}
-        formatted_dialogue = []
-        for message in messages:
-            content = formats.get(message["role"]).format(content=message["content"])
-            formatted_dialogue.append(
-                Message(
-                    role=message["role"], content=content, masked=message["masked"]
-                ),
-            )
-        return formatted_dialogue
-
-
-def _are_messages_equal(messages_a, messages_b):
-    for ma, mb in zip(messages_a, messages_b):
-        if ma.role != mb.role:
-            return False
-        if ma.content != mb.content:
-            return False
-    return True
 
 
 class TestChatDataset:
@@ -59,30 +23,44 @@ class TestChatDataset:
         return [
             {
                 "dialogue": [
-                    {
-                        "role": "system",
-                        "content": "You are an AI assistant.",
-                        "masked": True,
-                    },
-                    {
-                        "role": "user",
-                        "content": "What is the meaning of life?",
-                        "masked": True,
-                    },
-                    {
-                        "role": "assistant",
-                        "content": "The meaning of life is 42.",
-                        "masked": False,
-                    },
-                    {"role": "user", "content": "That's ridiculous.", "masked": True},
-                    {"role": "assistant", "content": "I agree.", "masked": False},
+                    Message.from_dict(
+                        {
+                            "role": "system",
+                            "content": "You are an AI assistant.",
+                            "masked": True,
+                        }
+                    ),
+                    Message.from_dict(
+                        {
+                            "role": "user",
+                            "content": "What is the meaning of life?",
+                            "masked": True,
+                        }
+                    ),
+                    Message.from_dict(
+                        {
+                            "role": "assistant",
+                            "content": "The meaning of life is 42.",
+                            "masked": False,
+                        }
+                    ),
+                    Message.from_dict(
+                        {
+                            "role": "user",
+                            "content": "That's ridiculous.",
+                            "masked": True,
+                        }
+                    ),
+                    Message.from_dict(
+                        {"role": "assistant", "content": "I agree.", "masked": False}
+                    ),
                 ],
             },
         ]
 
     @mock.patch("torchtune.datasets._chat.load_dataset")
     def test_get_item(self, mock_load_dataset, chat_format, dialogue):
-        mock_load_dataset.return_value = Dataset.from_list(dialogue)
+        mock_load_dataset.return_value = dialogue
         expected_tokenized_prompts = [
             [
                 0,

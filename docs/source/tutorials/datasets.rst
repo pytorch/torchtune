@@ -522,7 +522,7 @@ to add a custom instruct template as well.
 .. code-block:: python
 
     def stack_exchanged_paired_dataset(
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         max_seq_len: int = 1024,
     ) -> PreferenceDataset:
         return PreferenceDataset(

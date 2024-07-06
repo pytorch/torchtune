@@ -37,6 +37,7 @@ Types
     :nosignatures:
 
     Message
+    Role
 
 Converters
 ----------
