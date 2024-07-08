@@ -63,5 +63,7 @@ class TestTextCompletionDataset:
 
         for i in range(len(dataset)):
             prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
+            # trimming EOS IDs from the expected tokens, assertion is against:
+            # [0, 4, 2, 2, 7, 5]
             assert prompt == self.expected_tokenized_prompts[i][:-1]
             assert label == expected_labels[i][:-1]
