@@ -7,11 +7,11 @@ def flamingo_vision(
     embed_dim: int,
     num_layers: int,
     num_heads: int,
+    num_adapter_layers: int,
+    proj_out: int,
     out_indices: Optional[List[int]] = None,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-    num_adapter_layers: int,
-    proj_out: int,
 )
     vision_encoder = clip_vision_encoder(
         tile_size=tile_size,
@@ -28,7 +28,7 @@ def flamingo_vision(
     # we concatenate the output with hidden layers
     # and project it to proj_out
     clip_emb_size = clip.get_image_tokens_per_tile()
-    proj_in = clip_emb_size + (hidden_emb_size*len(num_adapter_layers))
+    proj_in = clip_emb_size + (hidden_emb_size * len(num_adapter_layers))
 
     adapter = FlamingoVisionAdapter(
         embed_dim=embed_dim,
@@ -38,6 +38,6 @@ def flamingo_vision(
         proj_out=proj_out,
     )
 
-    vision_encoder = FlamingoVisionEncoder(vision_encoder=vision_encoder, adapter=adapter)
+    flamingo_vision_encoder = FlamingoVisionEncoder(vision_encoder=vision_encoder, adapter=adapter)
     
-    return vision_encoder
+    return flamingo_vision_encoder
