@@ -10,7 +10,7 @@ import torch
 
 from torch import nn
 
-from torchtune.modules import CausalSelfAttention, RotaryPositionalEmbeddings
+from torchtune.modules import GroupedQueryAttention, RotaryPositionalEmbeddings
 
 
 """
@@ -203,7 +203,7 @@ def compare_attention(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    attn = CausalSelfAttention(
+    attn = GroupedQueryAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -214,7 +214,6 @@ def compare_attention(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=0.0,
     )
     for p in attn.parameters():
