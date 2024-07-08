@@ -10,6 +10,9 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
+    # multimodality
+    "torchvision",
+
     # Hugging Face integrations
     "datasets",
     "huggingface_hub",
@@ -21,11 +24,12 @@ dependencies = [
     "blobfile>=2",
 
     # Miscellaneous
+    "numpy<=1.26.4", # Pin here until https://github.com/tensorflow/tensorboard/issues/6869 is addressed
     "tqdm",
     "omegaconf",
 
     # Quantization
-    "torchao==0.1",
+    "torchao==0.3.1",
 ]
 dynamic = ["version"]
 

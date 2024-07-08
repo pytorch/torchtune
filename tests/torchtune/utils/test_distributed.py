@@ -12,11 +12,14 @@ from itertools import chain
 import pytest
 import torch
 import torch.nn as nn
+from packaging import version
 from tests.test_utils import gpu_test, single_box_init
 from torch.distributed import launcher
 
 from torch.distributed._composable.fsdp import fully_shard
-from torch.distributed._tensor import DTensor
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointWrapper,
+)
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from torch.testing._internal.common_fsdp import FSDPTest, MLP
@@ -395,8 +398,20 @@ class TestFullyShardState(FSDPTest):
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
 
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0",
+        reason="torch >= 2.4 required",
+    )
     @gpu_test(gpu_count=2)
     def test_qlora_state_dict(self):
+        self.run_subtests(
+            {
+                "enable_activation_checkpointing": [False, True],
+            },
+            self._test_qlora_state_dict,
+        )
+
+    def _test_qlora_state_dict(self, enable_activation_checkpointing: bool):
         is_rank_zero = self.rank == 0
         torch.manual_seed(42)
         kwargs = {
@@ -411,28 +426,86 @@ class TestFullyShardState(FSDPTest):
             "max_seq_len": 64,
             "lora_rank": 4,
             "lora_alpha": 1.0,
+            "quantize_base": True,
         }
+        # single-device model as groundtruth
         with torch.device("cuda"):
-            lora_kwargs = dict({"quantize_base": False}, **kwargs)
-            model_lora = lora_llama2(**lora_kwargs)
-        full_sd = model_lora.cpu().state_dict()
-        with torch.device("meta"):
-            qlora_kwargs = dict({"quantize_base": True}, **kwargs)
-            model_qlora = lora_llama2(**qlora_kwargs)
-        set_trainable_params(model_qlora, get_adapter_params(model_qlora))
-        for m in model_qlora.modules():
-            if isinstance(m, modules.TransformerDecoderLayer):
-                fully_shard(m)
-        fully_shard(model_qlora)
-        utils.load_from_full_model_state_dict(
-            model_qlora, full_sd, "cuda", is_rank_zero
+            base_model = lora_llama2(**kwargs)
+        set_trainable_params(base_model, get_adapter_params(base_model))
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                base_model, auto_wrap_policy={modules.TransformerDecoderLayer}
+            )
+
+        # fsdp model for saving state dict
+        fsdp_model_to_save = copy.deepcopy(base_model)
+        for m in fsdp_model_to_save.modules():
+            if enable_activation_checkpointing:
+                if isinstance(m, CheckpointWrapper):
+                    fully_shard(m)
+            else:
+                if isinstance(m, modules.TransformerDecoderLayer):
+                    fully_shard(m)
+        fully_shard(fsdp_model_to_save)
+
+        # one forward pass for lazy init
+        torch.manual_seed(42 + self.rank)
+        inp = torch.randint(
+            low=0,
+            high=kwargs["vocab_size"],
+            size=(2, kwargs["max_seq_len"]),
+            device="cuda",
         )
-        # LoRALinear base weights should be DTensor(NF4)
-        for name, module in model_qlora.named_modules():
-            if isinstance(module, LoRALinear):
-                self.assertTrue(isinstance(module.weight, DTensor))
-                self.assertTrue(isinstance(module.weight._local_tensor, NF4Tensor))
-                self.assertEqual(module.weight.device.type, "cuda")
+        base_model(inp)
+        fsdp_model_to_save(inp)
+
+        expected_model_sd = {k: v.cpu() for k, v in base_model.state_dict().items()}
+        model_full_sd = utils.get_full_model_state_dict(
+            fsdp_model_to_save, is_rank_zero
+        )
+        if is_rank_zero:
+            self.assertEqual(set(model_full_sd.keys()), set(expected_model_sd.keys()))
+            for key, value in model_full_sd.items():
+                self.assertEqual(value, expected_model_sd[key])
+
+        # fsdp model for loading tate dict
+        torch.manual_seed(42)
+        with torch.device("meta"):
+            fsdp_model_to_load = lora_llama2(**kwargs)
+        set_trainable_params(fsdp_model_to_load, get_adapter_params(fsdp_model_to_load))
+        if enable_activation_checkpointing:
+            utils.set_activation_checkpointing(
+                fsdp_model_to_load, auto_wrap_policy={modules.TransformerDecoderLayer}
+            )
+        # init rope since it's not covered in state dict
+        for m in fsdp_model_to_load.modules():
+            if isinstance(m, modules.RotaryPositionalEmbeddings):
+                m.reset_parameters()
+        for m in fsdp_model_to_load.modules():
+            if enable_activation_checkpointing:
+                if isinstance(m, CheckpointWrapper):
+                    fully_shard(m)
+            else:
+                if isinstance(m, modules.TransformerDecoderLayer):
+                    fully_shard(m)
+        fully_shard(fsdp_model_to_load)
+        utils.load_from_full_model_state_dict(
+            fsdp_model_to_load, expected_model_sd, torch.device("cuda"), is_rank_zero
+        )
+        fsdp_model_to_load(inp)
+        sharded_model_sd = fsdp_model_to_load.state_dict()
+        expected_sharded_model_sd = fsdp_model_to_save.state_dict()
+        self.assertEqual(
+            set(sharded_model_sd.keys()), set(expected_sharded_model_sd.keys())
+        )
+        for key, value in sharded_model_sd.items():
+            if isinstance(value._local_tensor, NF4Tensor):
+                self.assertEqual(
+                    value._local_tensor.get_original_weight(),
+                    expected_sharded_model_sd[key]._local_tensor.get_original_weight(),
+                )
+            else:
+                self.assertEqual(value, expected_sharded_model_sd[key])
 
     def _broadcast_full_state_dict(self, full_sd):
         result = []

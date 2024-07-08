@@ -62,11 +62,6 @@ class TransformerDecoderLayer(nn.Module):
             Tensor: output tensor with same shape as input
                 [batch_size x seq_length x embed_dim]
 
-        Notation used for tensor shapes:
-            - b: batch size
-            - s: sequence length
-            - d: embed dim
-
         TODO:
             - Make position of norm configurable
         """
@@ -75,13 +70,13 @@ class TransformerDecoderLayer(nn.Module):
         # Norm applied before self-attention
         attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos)
 
-        # Residual connection; shape: [b, s, d]
+        # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = attn_out + x
 
         # Norm applied before the feedforward layer
         mlp_out = self.mlp(self.mlp_norm(h))
 
-        # Residual connection; shape: [b, s, d]
+        # Residual connection; shape: [batch_size, seq_length, embed_dim]
         out = h + mlp_out
         return out
 

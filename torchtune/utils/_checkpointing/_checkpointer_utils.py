@@ -10,21 +10,40 @@ from pathlib import Path
 from typing import Any, Dict
 
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from safetensors import safe_open
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-
-from torchtune.utils._distributed import contains_fsdp
 
 
 class ModelType(Enum):
+    """ModelType is used by the checkpointer to distinguish between different model architectures.
+
+    If you are adding a new model that follows a different format than those in the repo already,
+    you can add a new ModelType to gate on weight conversion logic unique to that model.
+
+    Example:
+        >>> # Usage in a checkpointer class
+        >>> def load_checkpoint(self, ...):
+        >>>     ...
+        >>>     if self._model_type == MY_NEW_MODEL:
+        >>>         state_dict = my_custom_state_dict_mapping(state_dict)
+    """
+
     GEMMA = "gemma"
+    """Gemma family of models. See :func:`~torchtune.models.gemma.gemma`"""
+
     LLAMA2 = "llama2"
+    """Llama2 family of models. See :func:`~torchtune.models.llama2.llama2`"""
+
     LLAMA3 = "llama3"
+    """Llama3 family of models. See :func:`~torchtune.models.llama3.llama3`"""
+
     MISTRAL = "mistral"
+    """Mistral family of models. See :func:`~torchtune.models.mistral.mistral`"""
+
     PHI3_MINI = "phi3_mini"
+    """Phi-3 family of models. See :func:`~torchtune.models.phi3.phi3`"""
+
     MISTRAL_REWARD = "mistral_reward"
+    """Mistral model with a classification head. See :func:`~torchtune.models.mistral.mistral_classifier`"""
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
@@ -53,9 +72,24 @@ def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
     return file_path
 
 
-def safe_torch_load(checkpoint_path: Path, weights_only: bool = True) -> Dict[str, Any]:
+def safe_torch_load(
+    checkpoint_path: Path, weights_only: bool = True, mmap: bool = True
+) -> Dict[str, Any]:
     """
-    Utility to load a checkpoint file in a safe manner.
+    Utility to load a checkpoint file onto CPU in a safe manner. Provides separate handling for
+    safetensors files.
+
+    Args:
+        checkpoint_path (Path): Path to the checkpoint file.
+        weights_only (bool): Whether to load only tensors, primitive types, and dictionaries
+            (passthrough to torch.load). Default: True
+        mmap (bool): Whether to mmap from disk into CPU memory. Default: True
+
+    Returns:
+        Dict[str, Any]: State dict from the checkpoint file.
+
+    Raises:
+        ValueError: If the checkpoint file is not found or cannot be loaded.
     """
     try:
         # convert the path into a string since pathlib Path and mmap don't work
@@ -73,36 +107,12 @@ def safe_torch_load(checkpoint_path: Path, weights_only: bool = True) -> Dict[st
             state_dict = torch.load(
                 str(checkpoint_path),
                 map_location="cpu",
-                mmap=True,
+                mmap=mmap,
                 weights_only=weights_only,
             )
     except Exception as e:
         raise ValueError(f"Unable to load checkpoint from {checkpoint_path}. ") from e
     return state_dict
-
-
-def transform_opt_state_dict(
-    opt_state_dict: Dict[str, Any], model: nn.Module, optimizer: optim.Optimizer
-) -> Dict[str, Any]:
-    """
-    Transforms the optimizer state dict for FSDP using the ``optim_state_dict_to_load``
-    from distributed library within PyTorch. If FSDP is not used, the optimizer state dict is returned as is.
-
-    Args:
-        opt_state_dict (Dict[str, Any]): Optimizer state dict extracted from the checkpoint
-        model (nn.Module): Model that checkpoint will be loaded into.
-        optimizer (optim.Optimizer): Optimizer that optimizer state checkpoints will be loaded into.
-
-    Returns:
-        ckpt_dict (Dict[str, Any]): Transformed optimizer state dict.
-    """
-    optim_state_dict_to_load = (
-        FSDP.optim_state_dict_to_load(model, optimizer, opt_state_dict)
-        if contains_fsdp(model)
-        else opt_state_dict
-    )
-
-    return optim_state_dict_to_load
 
 
 def save_config(path: Path, config: Dict[str, Any]) -> None:
