@@ -1,7 +1,7 @@
 from torchtune.models.clip._component_builders import clip_vision_encoder
 from torchtune.torchtune.models.flamingo._encoders import FlamingoVisionAdapter
 
-def flamingo_vision(
+def flamingo_vision_encoder(
     tile_size: int,
     patch_size: int,
     embed_dim: int,
@@ -12,8 +12,9 @@ def flamingo_vision(
     out_indices: Optional[List[int]] = None,
     max_num_tiles: int = 4,
     in_channels: int = 3,
-)
-    vision_encoder = clip_vision_encoder(
+    ) -> FlamingoVisionEncoder:
+
+    clip = clip_vision_encoder(
         tile_size=tile_size,
         patch_size=patch_size,
         embed_dim=embed_dim,
@@ -38,6 +39,4 @@ def flamingo_vision(
         proj_out=proj_out,
     )
 
-    flamingo_vision_encoder = FlamingoVisionEncoder(vision_encoder=vision_encoder, adapter=adapter)
-    
-    return flamingo_vision_encoder
+    return FlamingoVisionEncoder(vision_encoder=clip, adapter=adapter)
