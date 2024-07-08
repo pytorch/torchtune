@@ -17,7 +17,7 @@ _PHI3_MINI = {
     "model.layers.{}.self_attn.o_proj.weight": "layers.{}.attn.output_proj.weight",
     "model.layers.{}.mlp.gate_up_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
+    "model.layers.{}.input_layernorm.weight": "layers.{}.attn_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
     "model.norm.weight": "norm.scale",
     "lm_head.weight": "output.weight",

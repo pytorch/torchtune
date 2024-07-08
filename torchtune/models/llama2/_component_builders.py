@@ -13,12 +13,12 @@ from torch import nn
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
-    CausalSelfAttention,
+    GroupedQueryAttention,
     FeedForward,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerDecoderLayer,
+    TransformerSelfAttentionLayer,
 )
 
 
@@ -30,7 +30,7 @@ Component builders for the Llama2 model and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
+- The building blocks themselves are very flexible. For example, ``GroupedQueryAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -54,7 +54,7 @@ def llama2(
     """
     Build the decoder associated with the Llama2 model. This includes:
     - Token embeddings
-    - num_layers number of TransformerDecoderLayer blocks
+    - num_layers number of TransformerSelfAttentionLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -82,7 +82,7 @@ def llama2(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    self_attn = CausalSelfAttention(
+    self_attn = GroupedQueryAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -93,17 +93,16 @@ def llama2(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     hidden_dim = (
         intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     )
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -223,10 +222,10 @@ def lora_llama2(
     else:
         mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
 
-    layer = TransformerDecoderLayer(
+    layer = TransformerSelfAttentionLayer(
         attn=self_attn,
         mlp=mlp,
-        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
 
@@ -268,7 +267,7 @@ def lora_llama2(
 def lora_llama2_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # CausalSelfAttention args
+    # GroupedQueryAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -279,9 +278,9 @@ def lora_llama2_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> CausalSelfAttention:
+) -> GroupedQueryAttention:
     """
-    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.GroupedQueryAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -305,7 +304,7 @@ def lora_llama2_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        CausalSelfAttention: instantiation of self-attention module with LoRA
+        GroupedQueryAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -367,7 +366,7 @@ def lora_llama2_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    self_attn = CausalSelfAttention(
+    self_attn = GroupedQueryAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -378,7 +377,6 @@ def lora_llama2_self_attention(
         output_proj=output_proj,
         pos_embeddings=rope,
         kv_cache=None,
-        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     return self_attn

@@ -11,14 +11,16 @@ Modeling Components and Building Blocks
     :toctree: generated/
     :nosignatures:
 
-    CausalSelfAttention
+    GroupedQueryAttention
     FeedForward
     KVCache
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
-    TransformerDecoderLayer
+    TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
     TransformerDecoder
+    TanhGate
 
 Base Tokenizers
 ---------------
@@ -60,6 +62,18 @@ PEFT Components
     peft.validate_missing_and_unexpected_for_lora
     peft.validate_state_dict_for_lora
     peft.disable_adapter
+
+
+Fusion Components
+_________________
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    model_fusion.FusionLayer
+    model_fusion.FusionEmbedding
+
 
 Module Utilities
 ------------------

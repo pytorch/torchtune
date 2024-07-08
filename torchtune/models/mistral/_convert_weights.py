@@ -19,7 +19,7 @@ _MISTRAL_REWARD = {
     "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
     "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
+    "model.layers.{}.input_layernorm.weight": "layers.{}.attn_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
     "model.norm.weight": "norm.scale",
     "score.weight": "output.weight",
