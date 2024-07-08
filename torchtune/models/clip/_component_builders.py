@@ -4,10 +4,6 @@ import torch
 from torchtune.modules.vision_transformer import VisionTransformer, CLSProjection
 from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
 
-import logging
-
-logger = logging.getLogger(__name__)
-
 def clip_vision_encoder(
     tile_size: int,
     patch_size: int,

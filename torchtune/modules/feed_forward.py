@@ -8,7 +8,7 @@ from torch import nn, Tensor
 
 
 class FeedForward(nn.Module):
-    """This class implements the feed-forward network derived from Llama2.
+    """This class implements the SwiGLU feedforward block as described in https://arxiv.org/pdf/2002.05202v1.
 
     Args:
         gate_proj (nn.Module): Projection from input dim to hidden dim, fed through activation
