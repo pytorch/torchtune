@@ -77,10 +77,11 @@ class FlamingoVisionAdapter(nn.Module):
         for layer_idx, transformer_layer in enumerate(self.transformer_layers):
             x = transformer_layer(x)
 
-        # concat
+        # projection
         x = x.view(bsz, n_ims, n_tiles, n_tokens, embed_dim)
         x = torch.cat([x, hidden_states], dim=-1)
         x = self.projection(x)
+
         return x
 
 
