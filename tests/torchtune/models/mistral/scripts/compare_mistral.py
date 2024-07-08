@@ -78,7 +78,7 @@ def compare_decoder(
         )
         new_k = new_k.replace("mlp", "feed_forward")
         new_k = new_k.replace("feed_forward_norm.scale", "ffn_norm.weight")
-        new_k = new_k.replace("attn_norm.scale", "attention_norm.weight")
+        new_k = new_k.replace("sa_norm.scale", "attention_norm.weight")
 
         new_k = new_k.replace("norm.scale", "norm.weight")
         mapped_sd[new_k] = v
