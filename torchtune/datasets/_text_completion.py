@@ -72,6 +72,7 @@ def text_completion_dataset(
     source: str,
     column: Optional[str] = None,
     max_seq_len: Optional[int] = None,
+    add_eos: bool = True,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -88,6 +89,7 @@ def text_completion_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
     Examples:
@@ -117,5 +119,6 @@ def text_completion_dataset(
         source=source,
         column=column,
         max_seq_len=max_seq_len,
+        add_eos=add_eos,
         **load_dataset_kwargs,
     )
