@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import Optional
+from typing import List, Optional, Union
 
 import torch
 from torch import nn, Tensor
@@ -228,8 +228,9 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
-        num_layers (int): Number of Transformer Decoder layers.
+        layer (List[nn.Module]): Transformer Decoder layer or a list of layers.
+        num_layers (Optional[int]): Number of Transformer Decoder layers, only define when
+            layer is not a list.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
         num_heads (int): number of query heads. For MHA this is also the
@@ -250,9 +251,10 @@ class TransformerDecoder(nn.Module):
 
     def __init__(
         self,
+        *,
         tok_embeddings: nn.Embedding,
-        layer: nn.Module,
-        num_layers: int,
+        layer: Union[nn.Module, List[nn.Module]],
+        num_layers: Optional[int],
         max_seq_len: int,
         num_heads: int,
         head_dim: int,
@@ -260,9 +262,17 @@ class TransformerDecoder(nn.Module):
         output: nn.Linear,
     ) -> None:
         super().__init__()
+        if num_layers is None:
+            assert isinstance(
+                layer, List
+            ), "If num_layers is undefined, it is assumed that a list of layers is provided."
+            layers = nn.ModuleList(layer)
+        else:
+            assert isinstance(layer, nn.Module), "num_layers is defined"
+            layers = _get_clones(layer, num_layers)
 
         self.tok_embeddings = tok_embeddings
-        self.layers = _get_clones(layer, num_layers)
+        self.layers = layers
         self.norm = norm
         self.output = output
         self.max_seq_len = max_seq_len

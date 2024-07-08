@@ -63,6 +63,18 @@ PEFT Components
     peft.validate_state_dict_for_lora
     peft.disable_adapter
 
+
+Fusion Components
+_________________
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    model_fusion.FusionLayer
+    model_fusion.FusionEmbedding
+
+
 Module Utilities
 ------------------
 These are utilities that are common to and can be used by all modules.
