@@ -567,7 +567,7 @@ dataset.packed<span class="o">=</span>True
 <h2>Custom unstructured text corpus<a class="headerlink" href="#custom-unstructured-text-corpus" title="Permalink to this heading">¶</a></h2>
 <p>For continued pre-training, typically a similar data setup to pre-training is used
 for a simple text completion task. This means no instruct templates, chat formats,
-and minimal special tokens (only BOS and EOS). To specify an unstructured text corpus,
+and minimal special tokens (only BOS and, optionally,  EOS). To specify an unstructured text corpus,
 you can use the <a class="reference internal" href="../generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-func docutils literal notranslate"><span class="pre">text_completion_dataset()</span></code></a> builder with
 a Hugging Face dataset or a custom local corpus. Here is how to specify it for local
 files:</p>
