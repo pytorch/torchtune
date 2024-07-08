@@ -58,8 +58,8 @@ class FlamingoVisionAdapter(nn.Module):
             layer = TransformerSelfAttentionLayer(
                 attn=attn,
                 mlp=mlp,
-                attn_norm=Fp32LayerNorm(embed_dim),
-                mlp_norm=Fp32LayerNorm(embed_dim),
+                attn_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
+                mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
                 attn_scale=TanhGate(),
                 mlp_scale=TanhGate(),
             )
@@ -91,9 +91,9 @@ class FlamingoVisionEncoder(nn.Module):
         self.adapter = adapter
 
     def forward(
-        self, x: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
+        self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
-        x, hidden_states = self.vision_encoder(x, aspect_ratio)
+        x, hidden_states = self.vision_encoder(images, aspect_ratio)
         x = self.adapter(x, hidden_states)
         return x
 
