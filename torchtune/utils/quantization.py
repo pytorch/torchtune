@@ -10,9 +10,16 @@ import torch
 from torchao.quantization.quant_api import (
     Int4WeightOnlyGPTQQuantizer,
     Int4WeightOnlyQuantizer,
-    quantize,
     Quantizer,
 )
+
+from torchtune.modules.low_precision._utils import _get_torchao_version
+
+ao_version, is_nightly = _get_torchao_version()
+if is_nightly and (ao_version >= "2024.7.3"):
+    from torchao.quantization.quant_api import quantize_ as quantize
+else:
+    from torchao.quantization.quant_api import quantize
 
 # importing TORCH_VERSION_AFTER_2_3 because `Int8DynActInt4WeightQuantizer`
 # is only available after 2.3 so we have to guard the pytorch versions to decide

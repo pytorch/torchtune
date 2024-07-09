@@ -262,6 +262,10 @@ class TestFullyShardState(FSDPTest):
         return 2
 
     @gpu_test(gpu_count=2)
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0",
+        reason="torch >= 2.4 required",
+    )
     def test_lora_state_dict(self):
         rank = self.rank
         is_rank_zero = rank == 0
