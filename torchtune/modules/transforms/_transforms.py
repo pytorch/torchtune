@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Protocol, Tuple
+from typing import Any, Dict, List, Mapping, Protocol
 
 import torch
 
@@ -27,8 +27,8 @@ class VisionCrossAttentionMask(Transform):
     participate in cross-attention with an image token will show True in the mask
     and follow the interleaved structure laid out in Fig. 7 of the Flamingo paper
     (https://arxiv.org/pdf/2204.14198):
-    1) Text tokens immediately following the image token up until the next image token
-    2) Consecutive image tokens attend to subsequent text tokens
+        1) Text tokens immediately following the image token up until the next image token
+        2) Consecutive image tokens attend to subsequent text tokens
 
     ::
 
@@ -45,9 +45,10 @@ class VisionCrossAttentionMask(Transform):
 
 
 
-    Resultant mask is of shape (text_seq_len, image_seq_len), where True indicates
-    that the token outputted from the image encoder attends to the token in the
-    text sequence.
+    Resultant mask is constructed per image and is of shape (text_seq_len, image_seq_len),
+    where True indicates that the token outputted from the image encoder attends
+    to the token in the text sequence in cross-attention. A list of these masks
+    are returned with length equal to number of images in the sample.
 
     Args:
         tile_size (int): The size of the image tiles from the image transform
@@ -62,18 +63,16 @@ class VisionCrossAttentionMask(Transform):
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
 
-    def _get_image_attention_intervals(
-        self, tokens: List[int]
-    ) -> List[Tuple[int, int]]:
+    def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int, int]]:
         """
-        Returns a list of tuples of the form (start, end) where start is the index
+        Returns a list of lists of the form [start, end) where start is the index
         of the current image token and end is the index of the next image token, exclusive.
 
         Args:
             tokens (List[int]): List of token IDs in the text sequence
 
         Returns:
-            List[Tuple[int, int]]: List of tuples of the form [start, end) indicating
+            List[List[int, int]]: List of lists of the form [start, end) indicating
                 range of positions in text sequence that should attend to the image
 
         Example:
@@ -83,7 +82,7 @@ class VisionCrossAttentionMask(Transform):
             >>> transform = VisionCrossAttentionMask(tile_size=400, patch_size=40, image_token_id=1)
             >>> intervals = transform._get_image_attention_intervals(tokens)
             >>> print(intervals)
-            [(0, 7), (1, 7), (7, 12)]
+            [[0, 7], [1, 7], [7, 12]]
         """
         end = len(tokens)
         vision_token_locations = [
@@ -116,35 +115,38 @@ class VisionCrossAttentionMask(Transform):
             last_mask_end = vision_mask[1]
         return vision_masks
 
-    def __call__(self, *, tokens: List[int], images: List[torch.Tensor], **kwargs):
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generates the vision cross-attention mask for the given sample based on
         the image token locations interleaved in the text sequence.
 
         Args:
-            tokens (List[int]): List of token IDs in the text sequence. Number of
-                image token IDs in the sequence must match the number of images.
-            images (List[torch.Tensor]): List of image Tensors post-tiling of shape
-                (n_tiles, c, h, w) each.
-            **kwargs (Dict[str, Any]): all other keys within the sample that will
-                not be altered by this transform.
+            sample (Dict[str, Any]): Sample dict containing the following keys:
+                - tokens (List[int]): List of token IDs in the text sequence. Number of
+                    image token IDs in the sequence must match the number of images.
+                - images (List[torch.Tensor]): List of image Tensors post-tiling of shape
+                    (n_tiles, c, h, w) each.
 
         Returns:
             Dict[str, Any]: updated sample with the following keys:
-                - encoder_mask (List[torch.Tensor]): masks of shape (text_seq_len, image_seq_len)
+                - encoder_mask (List[torch.Tensor]): list of masks with shape (text_seq_len, image_seq_len),
+                    where length of list == number of images in sample
                 - tokens (List[int]): original tokens
                 - images (List[torch.Tensor]): original images
         """
-
+        tokens, images = sample["tokens"], sample["images"]
         # One sample can have multiple images - verify the number of image tokens
         # is the same
         n_img = len(images)
         intervals = self._get_image_attention_intervals(tokens)
-        assert len(intervals) == n_img
+        if len(intervals) != n_img:
+            raise RuntimeError(
+                f"The number of image tokens ({len(intervals)}) does not match the number of images ({n_img})."
+            )
 
         # Create mask for each individual image based on its number of tokens,
-        # which can vary based on number of tiles. The masks are padded and concatenated
-        # together in the batch collator
+        # which can vary based on number of tiles since they are not yet tile padded.
+        # The masks are padded and concatenated together in the batch collator
         text_seq_len = len(tokens)
         masks = []
         for image_num, interval in enumerate(intervals):
@@ -160,5 +162,5 @@ class VisionCrossAttentionMask(Transform):
             mask[start:end, :] = True
             masks.append(mask)
 
-        kwargs.update({"encoder_mask": masks, "tokens": tokens, "images": images})
-        return kwargs
+        sample.update({"encoder_mask": masks})
+        return sample

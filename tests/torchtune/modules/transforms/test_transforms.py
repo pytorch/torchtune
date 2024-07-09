@@ -38,11 +38,16 @@ class TestVisionCrossAttentionMask:
 
     @pytest.fixture
     def images(self, num_tiles, tokens):
-        n_img = len([i for i in tokens if i == IMAGE_TOKEN_ID])
-        return [torch.ones(num_tiles, 3, 2, 2) for _ in range(n_img)]
+        n_img = len([token_id for token_id in tokens if token_id == IMAGE_TOKEN_ID])
+        n_channels = 3
+        tile_size = 2
+        return [
+            torch.ones(num_tiles, n_channels, tile_size, tile_size)
+            for _ in range(n_img)
+        ]
 
     @pytest.fixture
-    def transform(self, tile_size, patch_size):
+    def cross_attn_mask_transform(self, tile_size, patch_size):
         # patches per tile = 4
         return VisionCrossAttentionMask(
             tile_size=tile_size,
@@ -50,14 +55,16 @@ class TestVisionCrossAttentionMask:
             image_token_id=IMAGE_TOKEN_ID,
         )
 
-    def test_get_image_attention_intervals(self, transform, tokens):
-        actual = transform._get_image_attention_intervals(tokens)
+    def test_get_image_attention_intervals(self, cross_attn_mask_transform, tokens):
+        actual = cross_attn_mask_transform._get_image_attention_intervals(tokens)
         expected = [[2, 6], [3, 6], [6, 9]]
         assert actual == expected
 
-    def test_call(self, transform, tokens, images, image_num_tokens):
+    def test_call(self, cross_attn_mask_transform, tokens, images, image_num_tokens):
+        sample = {"tokens": tokens, "images": images}
         dummy_kwargs = {"hello": 8}
-        actual = transform(tokens=tokens, images=images, **dummy_kwargs)
+        sample.update(dummy_kwargs)
+        actual = cross_attn_mask_transform(sample)
         expected = [
             torch.zeros(len(tokens), image_num_tokens, dtype=torch.bool)
             for _ in range(len(images))
