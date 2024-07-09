@@ -110,7 +110,6 @@ class Llama3Tokenizer(ModelTokenizer):
             "<|eom_id|>",
             "<|eot_id|>",
             "<|python_tag|>",
-            "<|image|>",
         ]:
             if token not in self.special_tokens:
                 raise ValueError(f"{token} missing from special_tokens")

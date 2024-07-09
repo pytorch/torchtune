@@ -27,12 +27,12 @@ class Message:
             you can pass in a string. If it is multimodal content, pass in a list of dictionaries formatted
             as follows::
 
-            [
-                {"type": "image"}
-                {"type": "text", "content": "hello"},
-                {"type": "image"}
-                {"type": "text", "content": "world"},
-            ]
+                [
+                    {"type": "image"}
+                    {"type": "text", "content": "hello"},
+                    {"type": "image"}
+                    {"type": "text", "content": "world"},
+                ]
 
         masked (bool): whether the message is masked in the sample. If True, do not use
             in loss calculation. Default: False

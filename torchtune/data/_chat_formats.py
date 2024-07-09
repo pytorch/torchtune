@@ -13,7 +13,7 @@ from torchtune.data._types import Message, Role
 class ChatFormat(ABC):
     """
     Interface for chat formats. Each chat format should include tags for system,
-    user, and assistant messages. that are prepended or appended to the message
+    user, and assistant roles that are prepended or appended to the message
     content.
     """
 
