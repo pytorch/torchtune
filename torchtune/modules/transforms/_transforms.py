@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Protocol
+from typing import Any, List, Mapping, Protocol
 
 import torch
 
@@ -12,12 +12,10 @@ import torch
 class Transform(Protocol):
     """
     Loose interface for all data and model transforms. Transforms operate at the
-    sample level and perform operations on a sample dict which is contained in
-    kwargs. Any fields that will be processed are unfolded with explicit keyword-arguments,
-    then the updated dict is returned.
+    sample level and perform operations on a sample dict, returning the updated dict.
     """
 
-    def __call__(self, **kwargs) -> Mapping[str, Any]:
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         pass
 
 
@@ -116,20 +114,20 @@ class VisionCrossAttentionMask(Transform):
             last_mask_end = vision_mask[1]
         return vision_masks
 
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
         """
         Generates the vision cross-attention mask for the given sample based on
         the image token locations interleaved in the text sequence.
 
         Args:
-            sample (Dict[str, Any]): Sample dict containing the following keys:
+            sample (Mapping[str, Any]): Sample dict containing the following keys:
                 - tokens (List[int]): List of token IDs in the text sequence. Number of
                     image token IDs in the sequence must match the number of images.
                 - images (List[torch.Tensor]): List of image Tensors post-tiling of shape
                     (n_tiles, c, h, w) each.
 
         Returns:
-            Dict[str, Any]: updated sample with the following keys:
+            Mapping[str, Any]: updated sample with the following keys:
                 - encoder_mask (List[torch.Tensor]): list of masks with shape (text_seq_len, image_seq_len),
                     where length of list == number of images in sample
                 - tokens (List[int]): original tokens
