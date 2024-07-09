@@ -63,7 +63,7 @@ class VisionCrossAttentionMask(Transform):
         self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
 
-    def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int, int]]:
+    def _get_image_attention_intervals(self, tokens: List[int]) -> List[List[int]]:
         """
         Returns a list of lists of the form [start, end) where start is the index
         of the current image token and end is the index of the next image token, exclusive.
@@ -72,7 +72,7 @@ class VisionCrossAttentionMask(Transform):
             tokens (List[int]): List of token IDs in the text sequence
 
         Returns:
-            List[List[int, int]]: List of lists of the form [start, end) indicating
+            List[List[int]]: List of lists of the form [start, end) indicating
                 range of positions in text sequence that should attend to the image
 
         Example:
