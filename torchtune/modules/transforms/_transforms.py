@@ -27,8 +27,9 @@ class VisionCrossAttentionMask(Transform):
     participate in cross-attention with an image token will show True in the mask
     and follow the interleaved structure laid out in Fig. 7 of the Flamingo paper
     (https://arxiv.org/pdf/2204.14198):
-        1) Text tokens immediately following the image token up until the next image token
-        2) Consecutive image tokens attend to subsequent text tokens
+    
+        (1) Text tokens immediately following the image token up until the next image token
+        (2) Consecutive image tokens attend to subsequent text tokens
 
     ::
 
