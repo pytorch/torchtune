@@ -45,3 +45,25 @@ class TestTextCompletionDataset:
             prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
             assert prompt == self.expected_tokenized_prompts[i]
             assert label == expected_labels[i]
+
+    @mock.patch("torchtune.datasets._text_completion.load_dataset")
+    def test_get_item_no_eos(self, mock_load_dataset):
+        mock_load_dataset.return_value = self.get_samples()
+        expected_labels = self.expected_tokenized_prompts
+
+        dataset = TextCompletionDataset(
+            tokenizer=DummyTokenizer(),
+            source="iam/agoofy/goober",
+            column="text",
+            max_seq_len=100,
+            add_eos=False,
+        )
+        assert len(dataset) == 2
+        mock_load_dataset.assert_called_once()
+
+        for i in range(len(dataset)):
+            prompt, label = dataset[i]["tokens"], dataset[i]["labels"]
+            # trimming EOS IDs from the expected tokens, assertion is against:
+            # [0, 4, 2, 2, 7, 5]
+            assert prompt == self.expected_tokenized_prompts[i][:-1]
+            assert label == expected_labels[i][:-1]
