@@ -18,9 +18,9 @@ class RotaryPositionalEmbeddings(nn.Module):
 
     Reference implementation (used for correctness verfication)
     can be found here:
-    https://github.com/facebookresearch/llama/blob/main/llama/model.py#L450
+    https://github.com/huggingface/transformers/blob/4c2538b863d8949a98d6b8dc1dea9ed4cf96a5df/src/transformers/models/llama/modeling_llama.py#L94
 
-    In this implementation we cache the embeddings for each position upto
+    In this implementation we cache the embeddings for each position up to
     ``max_seq_len`` by computing this during init.
 
     Args:
@@ -68,8 +68,9 @@ class RotaryPositionalEmbeddings(nn.Module):
         idx_theta = torch.einsum("i, j -> ij", seq_idx, self.theta).float()
 
         # cache includes both the cos and sin components and so the output shape is
-        # [max_seq_len, dim // 2, 2]
-        cache = torch.stack([torch.cos(idx_theta), torch.sin(idx_theta)], dim=-1)
+        # [max_seq_len, dim * 2]
+        freqs = torch.cat([idx_theta, idx_theta], dim=-1)
+        cache = torch.cat([freqs.cos(), freqs.sin()], dim=-1)
         self.register_buffer("cache", cache, persistent=False)
 
     def forward(self, x: Tensor, *, input_pos: Optional[Tensor] = None) -> Tensor:
@@ -97,33 +98,32 @@ class RotaryPositionalEmbeddings(nn.Module):
         """
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
+        head_dim = x.size(-1)
+
+        assert (
+            self.dim == head_dim
+        ), f"Input's last dim should match RoPE dimension ({dim}), got {head_dim}"
 
         # extract the values based on whether input_pos is set or not
         rope_cache = (
             self.cache[:seq_len] if input_pos is None else self.cache[input_pos]
         )
 
-        # reshape input; the last dimension is used for computing the output.
-        # Cast to float to match the reference implementation
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
-        xshaped = x.float().reshape(*x.shape[:-1], -1, 2)
-
         # reshape the cache for broadcasting
-        # tensor has shape [b, s, 1, h_d // 2, 2] if packed samples,
-        # otherwise has shape [1, s, 1, h_d // 2, 2]
-        rope_cache = rope_cache.view(-1, xshaped.size(1), 1, xshaped.size(3), 2)
+        # tensor has shape [b, s, 1, h_d * 2] if packed samples,
+        # otherwise has shape [1, s, 1, h_d * 2]
+        rope_cache = rope_cache.view(-1, seq_len, 1, head_dim * 2)
 
-        # tensor has shape [b, s, n_h, h_d // 2, 2]
-        x_out = torch.stack(
-            [
-                xshaped[..., 0] * rope_cache[..., 0]
-                - xshaped[..., 1] * rope_cache[..., 1],
-                xshaped[..., 1] * rope_cache[..., 0]
-                + xshaped[..., 0] * rope_cache[..., 1],
-            ],
-            -1,
-        )
+        # [1, s, 1, h_d]
+        cos = rope_cache[..., :head_dim].to(x.dtype)
+        sin = rope_cache[..., head_dim:].to(x.dtype)
 
-        # tensor has shape [b, s, n_h, h_d]
-        x_out = x_out.flatten(3)
+        # [b, s, n_h, h_d // 2]
+        x1 = x[..., : head_dim // 2]
+        x2 = x[..., head_dim // 2 :]
+        # [b, s, n_h, h_d]
+        rotated = torch.cat((-x2, x1), dim=-1)
+
+        # [b, s, n_h, h_d]
+        x_out = (x * cos) + (rotated * sin)
         return x_out.type_as(x)
