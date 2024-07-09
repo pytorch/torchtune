@@ -4,10 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping, Protocol
+from typing import Any, List, Mapping, Protocol, Tuple
 
-from torchtune.data import Message
-from torchtune.modules.tokenizers import ModelTokenizer
+import torch
 
 
 class Transform(Protocol):
@@ -22,64 +21,45 @@ class Transform(Protocol):
         pass
 
 
-class Compose(Transform):
-    """
-    Compose multiple transforms together, inspired by torchvision's ``Compose`` API
-
-    Args:
-        transforms (List[Transform]): List of transforms to compose together in sequential order.
-    """
-
-    def __init__(self, transforms: List[Transform]) -> None:
-        self.transforms = transforms
-
-    def __call__(self, **kwargs) -> Mapping[str, Any]:
-        for transform in self.transforms:
-            kwargs = transform(**kwargs)
-        return kwargs
-
-
-class TokenizeMessages(Transform):
-    """
-    Apply the ``tokenize_messages`` method from a given
-    :class:`~torchtune.modules.tokenizers.ModelTokenizer` on the ``messages`` field of the sample.
-
-    Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements
-            the ``tokenize_messages`` method.
-    """
-
-    def __init__(self, tokenizer: ModelTokenizer, max_seq_len: int) -> None:
-        self.tokenizer = tokenizer
-        self.max_seq_len = max_seq_len
-
-    def __call__(self, *, messages: List[Message], **kwargs) -> Mapping[str, Any]:
-        tokens, mask = self.tokenizer.tokenize_messages(
-            messages, max_seq_len=self.max_seq_len
-        )
-        kwargs.update({"tokens": tokens, "mask": mask})
-        return kwargs
-
-
-class CrossAttentionMask(Transform):
+class VisionCrossAttentionMask(Transform):
     """
     Computes the cross-attention mask for text + image inputs. Text tokens that
     participate in cross-attention with an image token will show True in the mask
-    and follow these rules:
+    and follow the interleaved structure laid out in Fig. 7 of the Flamingo paper
+    (https://arxiv.org/pdf/2204.14198):
     1) Text tokens immediately following the image token up until the next image token
-    2) Consecutive image tokens attend to all subsequent text tokens
+    2) Consecutive image tokens attend to subsequent text tokens
+
+    ::
+
+             ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+        img1 │ ■ │ │ ■ │ │ ■ │ │ ■ │ │ ■ │ │ ■ │ │   │ │   │ │   │ │   │ │   │
+             └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+             ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+        img2 │   │ │ ■ │ │ ■ │ │ ■ │ │ ■ │ │ ■ │ │   │ │   │ │   │ │   │ │   │
+             └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+             ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐ ┌───┐
+        img3 │   │ │   │ │   │ │   │ │   │ │   │ │ ■ │ │ ■ │ │ ■ │ │ ■ │ │ ■ │
+             └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘ └───┘
+            <img1> <img2>These  are   two  dogs. <img3> This   is    a    cat.
+
+
 
     Resultant mask is of shape (text_seq_len, image_seq_len), where True indicates
     that the token outputted from the image encoder attends to the token in the
     text sequence.
 
     Args:
-        num_patches (int): Number of patches per image, excluding class token.
+        tile_size (int): The size of the image tiles from the image transform
+        patch_size (int): The size of each patch. Used to divide the tiles into patches.
+            E.g. for patch_size = 40, a tile of shape (400, 400) will have 10x10 grid of patches
+            with shape (40, 40) each.
         image_token_id (int): Token ID of the image special token.
     """
 
-    def __init__(self, num_patches: int, image_token_id: int):
-        self.num_patches = num_patches
+    def __init__(self, tile_size: int, patch_size: int, image_token_id: int):
+        patch_grid_size = tile_size // patch_size
+        self.patches_per_tile = patch_grid_size**2
         self.image_token_id = image_token_id
 
     def _get_image_attention_intervals(
@@ -88,8 +68,24 @@ class CrossAttentionMask(Transform):
         """
         Returns a list of tuples of the form (start, end) where start is the index
         of the current image token and end is the index of the next image token, exclusive.
-        If the image token attends until the end of the sequence, end will be -1.
+
+        Args:
+            tokens (List[int]): List of token IDs in the text sequence
+
+        Returns:
+            List[Tuple[int, int]]: List of tuples of the form [start, end) indicating
+                range of positions in text sequence that should attend to the image
+
+        Example:
+            >>> text = "<img1><img2>These are two dogs. <img3>This is a cat."
+            >>> image_token_id = 1
+            >>> tokens = [1, 1, 9673, 527, 1403, 12875, 13, 1, 1115, 374, 264, 8415]
+            >>> transform = VisionCrossAttentionMask(tile_size=400, patch_size=40, image_token_id=1)
+            >>> intervals = transform._get_image_attention_intervals(tokens)
+            >>> print(intervals)
+            [(0, 7), (1, 7), (7, 12)]
         """
+        end = len(tokens)
         vision_token_locations = [
             i for i, token in enumerate(tokens) if token == self.image_token_id
         ]
@@ -98,16 +94,18 @@ class CrossAttentionMask(Transform):
             return []
         # If there is only one image, it will attend to subsequent text until end
         if len(vision_token_locations) == 1:
-            return [[vision_token_locations[0], -1]]
+            return [[vision_token_locations[0], end]]
 
+        # Construct intervals from previous image token to next image token
         vision_masks = [
-            [tok1, tok2]
-            for tok1, tok2 in zip(
+            [tok_idx_prev, tok_idx_next]
+            # Offset by one to get consecutive indices
+            for tok_idx_prev, tok_idx_next in zip(
                 vision_token_locations[:-1], vision_token_locations[1:]
             )
         ]
         # Last image will attend to subsequent text until end
-        vision_masks.append([vision_token_locations[-1], -1])
+        vision_masks.append([vision_token_locations[-1], end])
 
         # If there are consecutive vision tokens, they should all attend to the
         # same subsequent text
@@ -118,25 +116,49 @@ class CrossAttentionMask(Transform):
             last_mask_end = vision_mask[1]
         return vision_masks
 
-    def __call__(self, *, tokens, images, **kwargs):
-        # We are still at sample level pre-collating
-        n_img, n_tiles, _, _, _ = images.shape
-        text_seq_len = len(tokens)
-        single_image_seq_len = n_tiles * self.num_patches + 1
-        image_seq_len = single_image_seq_len * n_img
+    def __call__(self, *, tokens: List[int], images: List[torch.Tensor], **kwargs):
+        """
+        Generates the vision cross-attention mask for the given sample based on
+        the image token locations interleaved in the text sequence.
+
+        Args:
+            tokens (List[int]): List of token IDs in the text sequence. Number of
+                image token IDs in the sequence must match the number of images.
+            images (List[torch.Tensor]): List of image Tensors post-tiling of shape
+                (n_tiles, c, h, w) each.
+            **kwargs (Dict[str, Any]): all other keys within the sample that will
+                not be altered by this transform.
+
+        Returns:
+            Dict[str, Any]: updated sample with the following keys:
+                - encoder_mask (List[torch.Tensor]): masks of shape (text_seq_len, image_seq_len)
+                - tokens (List[int]): original tokens
+                - images (List[torch.Tensor]): original images
+        """
+
+        # One sample can have multiple images - verify the number of image tokens
+        # is the same
+        n_img = len(images)
         intervals = self._get_image_attention_intervals(tokens)
         assert len(intervals) == n_img
 
-        mask = torch.zeros(text_seq_len, image_seq_len, dtype=torch.bool)
+        # Create mask for each individual image based on its number of tokens,
+        # which can vary based on number of tiles. The masks are padded and concatenated
+        # together in the batch collator
+        text_seq_len = len(tokens)
+        masks = []
         for image_num, interval in enumerate(intervals):
+            # Identify what part of text sequence should be attended
             start, end = interval
-            end = text_seq_len if end == -1 else end
-            mask[
-                start:end,
-                image_num
-                * single_image_seq_len : (image_num + 1)
-                * single_image_seq_len,
-            ] = True
+            # Compute this image's number of tokens based on num tiles, patches per tile
+            n_tiles = images[image_num].shape[0]
+            image_seq_len = n_tiles * (self.patches_per_tile + 1)  # +1 for CLS token
+            # Mask will be block of 1s at the corresponding interval in the text.
+            # It is not a causal block because all the image tokens correspond
+            # to a single image, so text tokens attend to all the image's tokens
+            mask = torch.zeros(text_seq_len, image_seq_len, dtype=torch.bool)
+            mask[start:end, :] = True
+            masks.append(mask)
 
-        kwargs.update({"encoder_mask": mask, "tokens": tokens, "images": images})
+        kwargs.update({"encoder_mask": masks, "tokens": tokens, "images": images})
         return kwargs
