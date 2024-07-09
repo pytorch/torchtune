@@ -39,7 +39,7 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Install dependencies
         run: |
-          python -m pip install torch
+          python -m pip install torch torchvision
           python -m pip install -e ".[dev]"
           python -m pip install lm-eval==0.4.*
       - name: Run recipe tests with coverage

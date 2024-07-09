@@ -156,7 +156,16 @@ You can find a full list of all our Llama3 configs [here.](recipes/configs/llama
 
 ## Installation
 
-**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version.
+**Step 1:** [Install PyTorch](https://pytorch.org/get-started/locally/). torchtune is tested with the latest stable PyTorch release as well as the preview nightly version. For multimodality
+be sure to also install torchvision.
+
+```
+# Install stable version of PyTorch using pip
+pip3 install torch torchvision
+
+# Nightly install for latest features
+pip3 install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu121
+```
 
 **Step 2:** The latest stable version of torchtune is hosted on PyPI and can be downloaded with the following command:
 

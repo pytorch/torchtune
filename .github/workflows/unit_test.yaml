@@ -33,7 +33,7 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Install dependencies
         run: |
-          python -m pip install torch
+          python -m pip install torch torchvision
           python -m pip install -e ".[dev]"
       - name: Run unit tests with coverage
         run: pytest tests --cov=. --cov-report=xml --durations=20 -vv
