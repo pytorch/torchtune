@@ -7,16 +7,9 @@
 
 import pytest
 import torch
+from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.utils.seed import set_seed
-
-try:
-    from torchao.dtypes.nf4tensor import NF4Tensor
-except ImportError as e:
-    raise RuntimeError(
-        "Please install torchao to run this test."
-        "Example: pip install git+https://github.com/pytorch-labs/ao.git"
-    ) from e
 
 import bitsandbytes as bnb
 
