@@ -43,7 +43,9 @@ class FrozenNF4Linear(nn.Linear):
         self.nf4_weight = to_nf4(self.weight)
         # re-register self.weight as the nf4 weight, so that the nf4 weight
         # shows up as expected in .parameters, state_dict, etc.
-        torch.utils.swap_tensors(self.weight, torch.nn.Parameter(self.nf4_weight, requires_grad=False))
+        torch.utils.swap_tensors(
+            self.weight, torch.nn.Parameter(self.nf4_weight, requires_grad=False)
+        )
 
     def forward(self, input: Tensor) -> Tensor:
         """

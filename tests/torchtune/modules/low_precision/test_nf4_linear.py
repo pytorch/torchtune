@@ -5,13 +5,12 @@
 # LICENSE file in the root directory of this source tree.
 
 
+import bitsandbytes as bnb
 import pytest
 import torch
 from torchao.dtypes.nf4tensor import NF4Tensor
 from torchtune.modules.low_precision import FrozenNF4Linear
 from torchtune.utils.seed import set_seed
-
-import bitsandbytes as bnb
 
 
 @pytest.fixture(autouse=True)
