@@ -28,7 +28,7 @@ class FlamingoVisionAdapter(nn.Module):
 
         # encoding layers
         x = x.view(bsz * n_imgs, n_tiles * n_tokens, embed_dim)
-        for layer_idx, layers in enumerate(self.layers):
+        for layers in self.layers:
             x = layers(x)
 
         # projection

@@ -164,7 +164,7 @@ class VisionTransformer(nn.Module):
 
     Args:
         num_layers (int): The number of transformer layers.
-        layers (List[nn.Module]): A list with the transformer layers.
+        layers (nn.ModuleList): nn.ModuleList with the transformer layers.
         token_pos_embedding (nn.Module): The token positional embedding module.
         pre_tile_pos_embed (Optional[nn.Module]): The pre-tile positional embedding module. It should be
             None if your image was not tile-cropped in advance.
