@@ -20,7 +20,7 @@ from torchtune.data._instruct_templates import (
     SummarizeTemplate,
 )
 from torchtune.data._types import Message, Role
-from torchtune.data._utils import truncate, validate_messages
+from torchtune.data._utils import split_text_by_image_tag, truncate, validate_messages
 
 __all__ = [
     "AlpacaInstructTemplate",
@@ -39,4 +39,5 @@ __all__ = [
     "validate_messages",
     "StackExchangedPairedTemplate",
     "Role",
+    "split_text_by_image_tag",
 ]

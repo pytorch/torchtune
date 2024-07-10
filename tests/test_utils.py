@@ -69,15 +69,16 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
+            tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = self.encode(
+                    tokens = tokens + self.encode(
                         item["content"],
                         add_bos=False,
                         add_eos=False,
                     )
                 elif item["type"] == "image":
-                    tokens = [self.image_id]
+                    tokens = tokens + [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))

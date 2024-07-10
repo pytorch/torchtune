@@ -10,7 +10,6 @@ from torchtune.datasets._cnn_dailymail import cnn_dailymail_articles_dataset
 from torchtune.datasets._concat import ConcatDataset
 from torchtune.datasets._grammar import grammar_dataset
 from torchtune.datasets._instruct import instruct_dataset, InstructDataset
-from torchtune.datasets._multimodal import multimodal_dataset, MultimodalDataset
 from torchtune.datasets._packed import PackedDataset
 from torchtune.datasets._preference import PreferenceDataset
 from torchtune.datasets._samsum import samsum_dataset
@@ -20,8 +19,9 @@ from torchtune.datasets._text_completion import (
     text_completion_dataset,
     TextCompletionDataset,
 )
-from torchtune.datasets._the_cauldron import the_cauldron_dataset
 from torchtune.datasets._wikitext import wikitext_dataset
+from torchtune.datasets.multimodal._multimodal import MultimodalDataset
+from torchtune.datasets.multimodal._the_cauldron import the_cauldron_dataset
 
 __all__ = [
     "alpaca_dataset",
@@ -41,7 +41,6 @@ __all__ = [
     "ConcatDataset",
     "wikitext_dataset",
     "PreferenceDataset",
-    "multimodal_dataset",
     "MultimodalDataset",
     "the_cauldron_dataset",
 ]

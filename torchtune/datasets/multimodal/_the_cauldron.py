@@ -4,45 +4,70 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
-from torchtune.data import Message
-from torchtune.datasets._multimodal import MultimodalDataset
+from torchtune.config._utils import _get_component_from_path
+
+from torchtune.data import ChatFormat, Message
+from torchtune.datasets.multimodal._multimodal import MultimodalDataset
 from torchtune.modules.transforms import Transform
 
 
-def get_cauldron_messages(
-    sample: Mapping[str, Any], train_on_input: bool = False
-) -> List[Message]:
+class TheCauldronMessageTransform(Transform):
     """
     Construct messages from a sample formatted similarly to
     `The Cauldron dataset<https://huggingface.co/datasets/HuggingFaceM4/the_cauldron>_`.
 
-    Images are including as a ``Message`` prepended to the user input.
+    Image placeholders are prepended to the text in the ``Message`` content.
+
+    Attributes:
+        train_on_input (bool): Whether to train on the input or not.
 
     Args:
         sample (Mapping[str, Any]): A sample from the dataset.
-        train_on_input (bool): Whether to train on the input or not.
 
     Returns:
-        List[Message]: A list of messages representing the single sample
+        Mapping[str, Any]: updated sample dict with the following keys:
+            - messages (List[Message]): A list of messages representing the single sample
     """
-    messages = []
-    for message in sample["texts"]:
-        messages.append(
-            Message(
-                role="user", content=message["user"], masked=not self.train_on_input
+
+    def __init__(
+        self, train_on_input: bool = False, chat_format: Optional[ChatFormat] = None
+    ):
+        self.train_on_input = train_on_input
+        self.chat_format = chat_format
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        messages = []
+        for message in sample["texts"]:
+            messages.append(
+                Message(
+                    role="user",
+                    content=[
+                        {"type": "image"},
+                        {"type": "text", "content": message["user"]},
+                    ],
+                    masked=not self.train_on_input,
+                )
             )
-        )
-        messages.append(Message(role="assistant", content=message["assistant"]))
-    # First message is a user message that should have the image attachment
-    messages[0].media = ["image"]
-    return messages
+            messages.append(
+                Message(
+                    role="assistant",
+                    content=[{"type": "text", "content": message["assistant"]}],
+                )
+            )
+
+        if self.chat_format is not None:
+            messages = self.chat_format.format(messages)
+
+        sample.update({"messages": messages})
+        return sample
 
 
 def the_cauldron_dataset(
     model_transform: Transform,
     *,
+    subset: str,
     source: str = "HuggingFaceM4/the_cauldron",
     chat_format: Optional[str] = None,
     train_on_input: bool = False,
@@ -70,13 +95,15 @@ def the_cauldron_dataset(
         MultimodalDataset: the configured :class:`~torchtune.datasets.MultimodalDataset`
     """
 
+    message_transform = TheCauldronMessageTransform(
+        train_on_input=train_on_input, chat_format=_get_component_from_path(chat_format)
+    )
+
     return MultimodalDataset(
         model_transform=model_transform,
         source=source,
-        convert_to_messages=get_cauldron_messages,
-        chat_format=_get_component_from_path(chat_format)
-        if chat_format is not None
-        else None,
-        train_on_input=train_on_input,
+        message_transform=message_transform,
+        name=subset,
+        split="train",
         **load_dataset_kwargs,
     )

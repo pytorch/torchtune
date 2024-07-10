@@ -4,6 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
+from ._transforms import Transform
 from .vision_utils.get_canvas_best_fit import (  # noqa
     find_supported_resolutions,
     get_canvas_best_fit,
@@ -16,4 +17,5 @@ __all__ = [
     "resize_with_pad",
     "tile_crop",
     "find_supported_resolutions",
+    "Transform",
 ]

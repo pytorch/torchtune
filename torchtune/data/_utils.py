@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from torchtune.data._types import Message
 
@@ -73,3 +73,32 @@ def validate_messages(
                 f"System message at index {i} in messages, but system messages must come first"
             )
         last_turn = message.role
+
+
+def split_text_by_image_tag(content: str, image_tag: str) -> List[Dict[str, str]]:
+    """
+    Given a raw text string, split by the specified ``image_tag``
+    and form into list of dictionaries to be used in the ``Message`` content
+    field.
+
+    Args:
+        content (str): raw message text
+        image_tag (str): string to split the text by
+
+    Returns:
+        List[Dict[str, str]]: list of dictionaries to be used in the ``Message`` content field
+
+    Example:
+        >>> content = split_text_by_image_tag("<image>hello <image>world", "<image>")
+        >>> print(content)
+        [{"type": "image"}, {"type": "text", "content": "hello "}, {"type": "image"}, {"type": "text", "content": "world"}]
+    """
+    split_content = content.split(image_tag)
+    final_content_list = []
+    for i, substr in enumerate(split_content):
+        if len(substr) > 0:
+            final_content_list.append({"type": "text", "content": substr})
+        if i < len(split_content) - 1:
+            final_content_list.append({"type": "image"})
+
+    return final_content_list

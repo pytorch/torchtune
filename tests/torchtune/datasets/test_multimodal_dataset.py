@@ -4,13 +4,12 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, List, Mapping
+from typing import Any, Mapping
 from unittest import mock
 
 import torch
 from datasets import Dataset
-from PIL.Image import Image
-from tests.test_utils import DummyChatFormat, DummyTokenizer
+from tests.test_utils import DummyTokenizer
 from torchtune.data import Message
 from torchtune.datasets import MultimodalDataset
 from torchvision.transforms.v2 import functional as F
@@ -23,7 +22,6 @@ SAMPLE = [
             {
                 "role": "user",
                 "content": "What is in the center of the picture?",
-                "media": ["image"],
                 "masked": True,
             },
             {
@@ -50,25 +48,39 @@ class DummyModelTransform:
     def __init__(self) -> None:
         self.tokenizer = DummyTokenizer()
 
-    def __call__(
-        self, *, images: Image, messages: List[Message], **kwargs
-    ) -> Mapping[str, Any]:
-        tokens, mask = self.tokenizer.tokenize_messages(messages, max_seq_len=1000)
-        kwargs.update(
-            {"tokens": tokens, "mask": mask, "images": F.pil_to_tensor(images).sum()}
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        tokens, mask = self.tokenizer.tokenize_messages(
+            sample["messages"], max_seq_len=1000
         )
-        return kwargs
+        sample.update(
+            {
+                "tokens": tokens,
+                "mask": mask,
+                "images": F.pil_to_tensor(sample["images"]).sum(),
+            }
+        )
+        return sample
+
+
+class DummyMessageTransform:
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        sample["messages"] = [
+            Message.from_dict(message) for message in sample["messages"]
+        ]
+        sample["messages"][0].content = [{"type": "image"}] + sample["messages"][
+            0
+        ].content
+        return sample
 
 
 class TestMultimodalDataset:
-    @mock.patch("torchtune.datasets._multimodal.load_dataset")
+    @mock.patch("torchtune.datasets.multimodal._multimodal.load_dataset")
     def test_get_item(self, mock_load_dataset):
         mock_load_dataset.return_value = Dataset.from_list(SAMPLE)
         expected_tokenized_prompts = [
             [
                 0,
                 -2,
-                5,
                 4,
                 2,
                 2,
@@ -77,7 +89,6 @@ class TestMultimodalDataset:
                 2,
                 3,
                 8,
-                10,
                 3,
                 6,
                 2,
@@ -88,13 +99,11 @@ class TestMultimodalDataset:
                 7,
                 -1,
                 0,
-                5,
                 4,
                 2,
                 3,
                 6,
                 6,
-                10,
                 3,
                 6,
                 2,
@@ -117,8 +126,6 @@ class TestMultimodalDataset:
                 -100,
                 -100,
                 -100,
-                -100,
-                -100,
                 3,
                 6,
                 2,
@@ -128,8 +135,6 @@ class TestMultimodalDataset:
                 1,
                 7,
                 -1,
-                -100,
-                -100,
                 -100,
                 -100,
                 -100,
@@ -148,10 +153,8 @@ class TestMultimodalDataset:
         ]
         ds = MultimodalDataset(
             source="iam/agoofy/goober",
-            convert_to_messages=lambda x, y: x["messages"],
-            chat_format=DummyChatFormat,
+            message_transform=DummyMessageTransform(),
             model_transform=DummyModelTransform(),
-            train_on_input=False,
         )
         assert len(ds) == 1
         mock_load_dataset.assert_called_once()

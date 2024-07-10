@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import pytest
-from torchtune.data import Message, truncate, validate_messages
+from torchtune.data import Message, split_text_by_image_tag, truncate, validate_messages
 
 
 def test_truncate():
@@ -88,3 +88,25 @@ def test_validate_messages():
         match="Assistant message before expected user message at index 0 in messages",
     ):
         validate_messages(messages)
+
+
+def test_split_text_by_image_tag():
+    text = "hello <image>world"
+    assert split_text_by_image_tag(text, "<image>") == [
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    text = "[image]hello [image]world"
+    assert split_text_by_image_tag(text, "[image]") == [
+        {"type": "image"},
+        {"type": "text", "content": "hello "},
+        {"type": "image"},
+        {"type": "text", "content": "world"},
+    ]
+
+    text = "hello world"
+    assert split_text_by_image_tag(text, "asdfghjkl;") == [
+        {"type": "text", "content": "hello world"}
+    ]
