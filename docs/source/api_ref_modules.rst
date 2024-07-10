@@ -20,6 +20,19 @@ Modeling Components and Building Blocks
     TransformerDecoderLayer
     TransformerDecoder
 
+Multimodal Modeling Components and Building Blocks
+---------------------------------------
+
+.. autosummary::
+    :toctree: generated/
+    :nosignatures:
+
+    GroupedQueryAttention
+    MMTransformerDecoder
+    TransformerSelfAttentionLayer
+    TransformerCrossAttentionLayer
+    TanhGate
+
 Tokenizers
 ------------------------
 
