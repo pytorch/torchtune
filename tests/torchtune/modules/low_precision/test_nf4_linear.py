@@ -89,7 +89,9 @@ class TestNF4Linear:
             torch.eye(dim, dim, dtype=dtype, device="cuda")
         )
         # Ensure nf4_linear and bnb reconstructions are close to each other.
-        assert torch.allclose(bnb_reconstruction.T, nf4_linear.weight.get_original_weight(), 1e-2)
+        assert torch.allclose(
+            bnb_reconstruction.T, nf4_linear.weight.get_original_weight(), 1e-2
+        )
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="Need CUDA available")
     @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
