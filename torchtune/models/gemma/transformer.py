@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch import Tensor
 from torchtune.modules import KVCache
 
-from torchtune.modules.transformer import _get_clones, TransformerSelfAttentionLayer
+from torchtune.modules.transformer import _get_clones, TransformerDecoderLayer
 
 
 class GemmaTransformerDecoder(nn.Module):
@@ -26,7 +26,7 @@ class GemmaTransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space and as the output projection.
-        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
+        layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`
@@ -49,7 +49,7 @@ class GemmaTransformerDecoder(nn.Module):
     def __init__(
         self,
         tok_embeddings: nn.Embedding,
-        layer: TransformerSelfAttentionLayer,
+        layer: TransformerDecoderLayer,
         num_layers: int,
         max_seq_len: int,
         num_heads: int,

@@ -248,7 +248,7 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
         validate_state_dict_for_lora(

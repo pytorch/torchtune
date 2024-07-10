@@ -350,7 +350,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
         base_missing, base_unexpected = model.load_state_dict(

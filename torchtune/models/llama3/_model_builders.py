@@ -6,12 +6,14 @@
 from typing import List, Optional
 from functools import partial
 
+from torch import nn
+
 from torchtune.models.llama3._component_builders import llama3, lora_llama3
+from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import TransformerDecoder
-from torchtune.models.llama3._tokenizer import Llama3Tokenizer
+from torchtune.modules.tokenizers import TikTokenTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
-from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
 
 """
@@ -63,21 +65,19 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
+def llama3_tokenizer(path: str) -> TikTokenTokenizer:
     """
     Tokenizer for Llama3.
 
     Args:
         path (str): path to the tokenizer
-        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
-            model files that contains all registered special tokens, or a local json file 
-            structured similarly. Default is None to use the canonical Llama3 special tokens.
-    
+
     Returns:
-        Llama3Tokenizer: Instantiation of the Llama3 tokenizer
+        TikTokenTokenizer: Instantiation of the Llama3 tokenizer
     """
-    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
+    tiktoken = TikTokenTokenizer(path)
+    tiktoken.pad_id = 0
+    return tiktoken
 
 
 def lora_llama3_8b(

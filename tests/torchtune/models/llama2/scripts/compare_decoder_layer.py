@@ -18,11 +18,11 @@ from torch import nn
 from torchtune.models.llama2._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import (
+    CausalSelfAttention,
     FeedForward,
-    GroupedQueryAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
-    TransformerSelfAttentionLayer,
+    TransformerDecoderLayer,
 )
 
 
@@ -123,7 +123,7 @@ def compare_decoder_layer(
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
-    self_attn = GroupedQueryAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -134,16 +134,17 @@ def compare_decoder_layer(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
+        max_seq_len=max_seq_len,
         attn_dropout=0.0,
     )
     hidden_dim = _scale_hidden_dim_for_mlp(embed_dim)
     mlp = FeedForward(
         dim=embed_dim, hidden_dim=hidden_dim, linear_class=torch.nn.Linear
     )
-    transformer_layer = TransformerSelfAttentionLayer(
+    transformer_layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     for p in transformer_layer.parameters():

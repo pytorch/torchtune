@@ -4,7 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from tests.test_utils import assert_dialogue_equal
 from torchtune.data import get_openai_messages, get_sharegpt_messages
 from torchtune.data._types import Message
 
@@ -61,11 +60,15 @@ class TestShareGPTToLlama2Messages:
 
     def test_conversion(self):
         converted_messages = get_sharegpt_messages(self.samples)
-        assert_dialogue_equal(converted_messages, EXPECTED_MESSAGE)
+        for converted, expected in zip(converted_messages, EXPECTED_MESSAGE):
+            assert converted == expected
 
     def test_conversion_train_on_input(self):
         converted_messages = get_sharegpt_messages(self.samples, train_on_input=True)
-        assert_dialogue_equal(converted_messages, EXPECTED_MESSAGE_TRAIN_ON_INPUT)
+        for converted, expected in zip(
+            converted_messages, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected
 
 
 class TestOpenAIToLlama2Messages:
@@ -107,16 +110,24 @@ class TestOpenAIToLlama2Messages:
 
     def test_conversion_conversations_key(self):
         converted_messages_1 = get_openai_messages(self.samples_1)
-        assert_dialogue_equal(converted_messages_1, EXPECTED_MESSAGE)
+        for converted, expected in zip(converted_messages_1, EXPECTED_MESSAGE):
+            assert converted == expected
 
     def test_conversion_messages_key(self):
         converted_messages_2 = get_openai_messages(self.samples_2)
-        assert_dialogue_equal(converted_messages_2, EXPECTED_MESSAGE)
+        for converted, expected in zip(converted_messages_2, EXPECTED_MESSAGE):
+            assert converted == expected
 
     def test_conversion_conversations_key_train_on_input(self):
         converted_messages_1 = get_openai_messages(self.samples_1, train_on_input=True)
-        assert_dialogue_equal(converted_messages_1, EXPECTED_MESSAGE_TRAIN_ON_INPUT)
+        for converted, expected in zip(
+            converted_messages_1, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected
 
     def test_conversion_messages_key_train_on_input(self):
         converted_messages_2 = get_openai_messages(self.samples_2, train_on_input=True)
-        assert_dialogue_equal(converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT)
+        for converted, expected in zip(
+            converted_messages_2, EXPECTED_MESSAGE_TRAIN_ON_INPUT
+        ):
+            assert converted == expected

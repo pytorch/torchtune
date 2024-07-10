@@ -20,7 +20,7 @@ _FROM_META = {
     "layers.{}.attention.wq.weight": "layers.{}.attn.q_proj.weight",
     "layers.{}.attention.wv.weight": "layers.{}.attn.v_proj.weight",
     "layers.{}.attention.wo.weight": "layers.{}.attn.output_proj.weight",
-    "layers.{}.attention_norm.weight": "layers.{}.attn_norm.scale",
+    "layers.{}.attention_norm.weight": "layers.{}.sa_norm.scale",
     "layers.{}.ffn_norm.weight": "layers.{}.mlp_norm.scale",
     "layers.{}.feed_forward.w1.weight": "layers.{}.mlp.w1.weight",
     "layers.{}.feed_forward.w2.weight": "layers.{}.mlp.w2.weight",
@@ -38,25 +38,10 @@ _FROM_HF = {
     "model.layers.{}.mlp.gate_proj.weight": "layers.{}.mlp.w1.weight",
     "model.layers.{}.mlp.up_proj.weight": "layers.{}.mlp.w3.weight",
     "model.layers.{}.mlp.down_proj.weight": "layers.{}.mlp.w2.weight",
-    "model.layers.{}.input_layernorm.weight": "layers.{}.attn_norm.scale",
+    "model.layers.{}.input_layernorm.weight": "layers.{}.sa_norm.scale",
     "model.layers.{}.post_attention_layernorm.weight": "layers.{}.mlp_norm.scale",
     "model.norm.weight": "norm.scale",
     "lm_head.weight": "output.weight",
-}
-
-_FROM_TUNE_0_2_0 = {
-    "tok_embeddings.weight": "tok_embeddings.weight",
-    "norm.scale": "norm.scale",
-    "output.weight": "output.weight",
-    "layers.{}.attn.k_proj.weight": "layers.{}.attn.k_proj.weight",
-    "layers.{}.attn.q_proj.weight": "layers.{}.attn.q_proj.weight",
-    "layers.{}.attn.v_proj.weight": "layers.{}.attn.v_proj.weight",
-    "layers.{}.attn.output_proj.weight": "layers.{}.attn.output_proj.weight",
-    "layers.{}.sa_norm.scale": "layers.{}.attn_norm.scale",
-    "layers.{}.mlp_norm.scale": "layers.{}.mlp_norm.scale",
-    "layers.{}.mlp.w1.weight": "layers.{}.mlp.w1.weight",
-    "layers.{}.mlp.w2.weight": "layers.{}.mlp.w2.weight",
-    "layers.{}.mlp.w3.weight": "layers.{}.mlp.w3.weight",
 }
 
 
@@ -214,30 +199,6 @@ def tune_to_hf(
             value = _permute(value, num_heads)
         elif "k_proj" in key:
             value = _permute(value, num_kv_heads)
-        converted_state_dict[new_key] = value
-
-    return converted_state_dict
-
-
-def _legacy_to_tune(
-    state_dict: Dict[str, torch.Tensor], version: str
-) -> Dict[str, torch.Tensor]:
-    """
-    Convert a state dict from older torchtune format's to the current format. State dicts
-    from multiple checkpoint files should be consolidated into a single state dict
-    before calling this function.
-
-    Args:
-        state_dict (Dict[str, torch.Tensor]): State dict in Meta's format.
-        version (str): version string in the format "x.x.x"
-
-    Returns:
-        Dict[str, torch.Tensor]: State dict in torchtune's format.
-    """
-    converted_state_dict = {}
-    v1, v2, v3 = version.split(".")
-    for key, value in state_dict.items():
-        new_key = get_mapped_key(key, eval(f"_FROM_TUNE_{v1}_{v2}_{v3}"))
         converted_state_dict[new_key] = value
 
     return converted_state_dict

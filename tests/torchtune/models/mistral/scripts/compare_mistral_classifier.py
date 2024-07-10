@@ -11,11 +11,11 @@ from torch import nn
 from torchtune.models.mistral import mistral_classifier
 from torchtune.models.mistral._component_builders import mistral_mlp
 from torchtune.modules import (
-    GroupedQueryAttention,
+    CausalSelfAttention,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerSelfAttentionLayer,
+    TransformerDecoderLayer,
 )
 
 
@@ -36,7 +36,7 @@ def mistral(
     """
     Build the decoder associated with the mistral model. This includes:
     - Token embeddings
-    - num_layers number of TransformerSelfAttentionLayer blocks
+    - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -68,7 +68,7 @@ def mistral(
     rope = RotaryPositionalEmbeddings(
         dim=head_dim, max_seq_len=max_seq_len, base=rope_base
     )
-    self_attn = GroupedQueryAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -79,13 +79,14 @@ def mistral(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
+        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
+    layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)

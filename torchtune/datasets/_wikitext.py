@@ -7,12 +7,11 @@
 from typing import Any, Dict, Optional
 
 from torchtune.datasets._text_completion import TextCompletionDataset
-
-from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.tokenizers import Tokenizer
 
 
 def wikitext_dataset(
-    tokenizer: ModelTokenizer,
+    tokenizer: Tokenizer,
     source: str = "wikitext",
     subset: str = "wikitext-103-raw-v1",
     max_seq_len: Optional[int] = None,
@@ -23,7 +22,7 @@ def wikitext_dataset(
     an unstructured text corpus consisting of articles from Wikipedia.
 
     Args:
-        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
+        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         subset (str): name of subset of data to use, see the `wikitext page <https://huggingface.co/datasets/wikitext#data-fields>`_

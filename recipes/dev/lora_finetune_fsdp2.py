@@ -297,7 +297,7 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
 
         fsdp_kwargs = {}
@@ -310,13 +310,13 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
         for m in reversed(list(model.modules())):
             if isinstance(m, nn.Linear) and m.weight.requires_grad:
                 fully_shard(m, **fsdp_kwargs)
-            # TransformerSelfAttentionLayer is wrapped by CheckpointWrapper
+            # TransformerDecoderLayer is wrapped by CheckpointWrapper
             # when enable_activation_checkpointing
             if enable_activation_checkpointing:
                 if isinstance(m, CheckpointWrapper):
                     fully_shard(m, **fsdp_kwargs)
             else:
-                if isinstance(m, modules.TransformerSelfAttentionLayer):
+                if isinstance(m, modules.TransformerDecoderLayer):
                     fully_shard(m, **fsdp_kwargs)
         fully_shard(model, **fsdp_kwargs)
 

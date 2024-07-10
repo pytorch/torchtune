@@ -198,17 +198,9 @@ class FullModelTorchTuneCheckpointer(_CheckpointerInterface):
             Dict[str, Any]: state_dict from the input checkpoint
         """
         state_dict: Dict[str:Any] = {}
-        model_state_dict = safe_torch_load(
+        state_dict[utils.MODEL_KEY] = safe_torch_load(
             self._checkpoint_path, weights_only=weights_only
         )
-        if "layers.0.sa_norm.scale" in model_state_dict:
-            logger.info(
-                "This is an older checkpoint format. Converting to the current version."
-            )
-            model_state_dict = convert_weights._legacy_to_tune(
-                model_state_dict, "0.2.0"
-            )
-        state_dict[utils.MODEL_KEY] = model_state_dict
 
         if self._adapter_checkpoint:
             adapter_state_dict = safe_torch_load(self._adapter_checkpoint)

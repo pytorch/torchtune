@@ -346,7 +346,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
         model = FSDP(
             module=model,
             auto_wrap_policy=utils.lora_fsdp_wrap_policy(
-                modules_to_wrap={modules.TransformerSelfAttentionLayer}
+                modules_to_wrap={modules.TransformerDecoderLayer}
             ),
             sharding_strategy=torch.distributed.fsdp.ShardingStrategy.FULL_SHARD,
             device_id=self._device,
@@ -369,7 +369,7 @@ class LoRADPORecipeDistributed(FTRecipeInterface):
 
         if enable_activation_checkpointing:
             utils.set_activation_checkpointing(
-                model, auto_wrap_policy={modules.TransformerSelfAttentionLayer}
+                model, auto_wrap_policy={modules.TransformerDecoderLayer}
             )
         if self._is_rank_zero:
             memory_stats = utils.get_memory_stats(device=self._device)

@@ -4,39 +4,22 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
+from sentencepiece import SentencePieceProcessor
 from torchtune.data import Message, truncate
-from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
-
-PHI3_SPECIAL_TOKENS = {
-    "<|endoftext|>": 32000,
-    "<|assistant|>": 32001,
-    "<|placeholder1|>": 32002,
-    "<|placeholder2|>": 32003,
-    "<|placeholder3|>": 32004,
-    "<|placeholder4|>": 32005,
-    "<|system|>": 32006,
-    "<|end|>": 32007,
-    "<|placeholder5|>": 32008,
-    "<|placeholder6|>": 32009,
-    "<|user|>": 32010,
-}
 
 
-class Phi3MiniTokenizer(ModelTokenizer):
-    """
-    SentencePiece tokenizer configured with Phi3 Mini's special tokens.
+class Phi3MiniSentencePieceTokenizer:
+    """A wrapper around SentencePieceProcessor.
 
     Args:
         path (str): Path to pretrained tokenizer file.
-        special_tokens (Optional[Dict[str, int]]): mapping containing special text tokens and
-            their registered token IDs. If left as None, this will be set to the canonical
-            Phi3 special tokens.
 
-    Examples:
-        >>> tokenizer = Phi3MiniTokenizer("/path/to/spm_model")
-        >>> tokenized_text = tokenizer.encode("Hello world!", add_bos=True, add_eos=True)
+    Example:
+        # Accepts only non-batched input for now
+        >>> tokenizer = SentencePieceTokenizer("/path/to/spm_model")
+        >>> tokenized_text = SentencePieceTokenizer.encode("Hello world!", add_bos=True, add_eos=True)
         >>> print(tokenized_text)
         [1, 31587, 29644, 102, 2]
     """
@@ -44,28 +27,32 @@ class Phi3MiniTokenizer(ModelTokenizer):
     def __init__(
         self,
         path: str,
-        special_tokens: Optional[Dict[str, int]] = None,
     ):
-        self._spm_model = SentencePieceBaseTokenizer(path)
+        spm_model = SentencePieceProcessor()
+        spm_model.load(path)
+        self.spm_model = spm_model
 
-        self.special_tokens = (
-            special_tokens if special_tokens is not None else PHI3_SPECIAL_TOKENS
-        )
+        self.special_tokens = {
+            "<|endoftext|>": 32000,
+            "<|assistant|>": 32001,
+            "<|placeholder1|>": 32002,
+            "<|placeholder2|>": 32003,
+            "<|placeholder3|>": 32004,
+            "<|placeholder4|>": 32005,
+            "<|system|>": 32006,
+            "<|end|>": 32007,
+            "<|placeholder5|>": 32008,
+            "<|placeholder6|>": 32009,
+            "<|user|>": 32010,
+        }
 
-        # Use custom EOS and pad ids instead of SentencePiece's
+        self.vocab_size = spm_model.vocab_size()
+        self.bos_id = spm_model.bos_id()
         self.eos_id = self.special_tokens["<|endoftext|>"]
         self.pad_id = self.special_tokens["<|endoftext|>"]
 
         # During generation, stop when eos_id is encountered
         self.stop_tokens = [self.eos_id]
-
-    @property
-    def vocab_size(self):
-        return self._spm_model.vocab_size
-
-    @property
-    def bos_id(self):
-        return self._spm_model.bos_id
 
     def encode(
         self,
@@ -73,13 +60,45 @@ class Phi3MiniTokenizer(ModelTokenizer):
         add_bos: bool = True,
         add_eos: bool = True,
         trim_leading_whitespace: bool = False,
+        prefix: Optional[str] = None,
     ) -> List[int]:
-        return self._spm_model.encode(
-            text,
-            add_bos=add_bos,
-            add_eos=add_eos,
-            trim_leading_whitespace=trim_leading_whitespace,
-        )
+        """Encode text into token IDs.
+
+        Args:
+            text (str): The input text to be encoded, unbatched.
+            add_bos (bool): Whether to prepend BOS to the input, defaults to True.
+            add_eos (bool): Whether to append EOS to the input, defaults to True.
+            trim_leading_whitespace (bool): Whether to trim leading whitespace from
+                underlying sentencepiece tokenization. Sentencepiece normally prepends
+                whitespace to any tokenized text, which can cause differences where
+                encode(s1) + encode(s2) != encode(s1 + s2) due to leading whitespace
+                added to s2. Default: False
+            prefix (Optional[str]): Optional string to encode for trimming leading
+                whitespaces. Used only if trim_leading_whitespace=True. Default: None
+        Returns:
+            List[int]: The encoded token IDs.
+        """
+        if trim_leading_whitespace:
+            # Can define our own custom prefix depending on vocab if needed
+            if not hasattr(self, "prefix"):
+                self.prefix = prefix or "\n"
+                self.encoded_prefix = self.spm_model.encode(
+                    self.prefix, add_bos=False, add_eos=False
+                )
+            start_idx = len(self.encoded_prefix) + int(add_bos)
+            return self.spm_model.encode(
+                self.prefix + text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )[start_idx:]
+        else:
+            return self.spm_model.encode(
+                text,
+                add_bos=add_bos,
+                add_eos=add_eos,
+                out_type=int,
+            )
 
     def decode(self, ids: List[int]) -> str:
         """Decode token IDs to strings.
@@ -98,7 +117,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
                 continue
             else:
                 ids_for_decode.append(token_id)
-        return self._spm_model.decode(ids_for_decode)
+        return self.spm_model.decode(ids_for_decode)
 
     def tokenize_messages(
         self,
@@ -112,12 +131,12 @@ class Phi3MiniTokenizer(ModelTokenizer):
         returning a list of tokens and a list of masks.
 
         Example:
-            >>> tokenizer = Phi3MiniTokenizer(tokenizer_path)
+            >>> tokenizer = SentencePieceTokenizer(tokenizer_path)
             >>> messages = [
                 Message(role="system", content="system message\n", masked=True),
                 Message(role="user", content="user prompt\n", masked=True),
                 Message(role="assistant", content="assistant response\n"),
-            ]
+                ]
             # tokenize_messages encodes messages separately and concats
             >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
@@ -144,6 +163,7 @@ class Phi3MiniTokenizer(ModelTokenizer):
         """
         start_of_turn = True
         end_of_turn = False
+        prev_ends_with_space = False
         tokenized_messages = []
         mask = []
 
@@ -182,21 +202,14 @@ class Phi3MiniTokenizer(ModelTokenizer):
             mask.extend([message.masked] * len(new_line_token_id))
 
             # Tokenize current message, append with masks
-            tokens = []
-            for item in message.content:
-                if item["type"] == "text":
-                    tokens = tokens + self.encode(
-                        item["content"].rstrip(" "),
-                        add_bos=False,
-                        add_eos=False,
-                        trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
-                    )
-                else:
-                    raise RuntimeError(
-                        f"Unsupported message content type: {item['type']}"
-                    )
-
+            tokens = self.encode(
+                message.content.rstrip(" "),
+                add_bos=False,
+                add_eos=False,
+                trim_leading_whitespace=True,  # Always trim whitespace (just to match HF tokenizer implementation)
+            )
             tokens = tokens + [self.special_tokens["<|end|>"]] + new_line_token_id
+            prev_ends_with_space = message.content.endswith(" ")
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
 

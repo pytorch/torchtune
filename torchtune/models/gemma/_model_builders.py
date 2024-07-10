@@ -8,7 +8,7 @@ from typing import List
 from torchtune.models.gemma._component_builders import gemma, lora_gemma
 from torchtune.models.gemma.transformer import GemmaTransformerDecoder
 
-from torchtune.models.gemma._tokenizer import GemmaTokenizer
+from torchtune.modules.tokenizers import SentencePieceTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
 
 from functools import partial
@@ -41,7 +41,7 @@ def gemma_2b() -> GemmaTransformerDecoder:
     )
 
 
-def gemma_tokenizer(path: str) -> GemmaTokenizer:
+def gemma_tokenizer(path: str) -> SentencePieceTokenizer:
     """
     Tokenizer for Gemma.
 
@@ -49,9 +49,11 @@ def gemma_tokenizer(path: str) -> GemmaTokenizer:
         path (str): path to the tokenizer
 
     Returns:
-        GemmaTokenizer: Instantiation of the Gemma tokenizer
+        SentencePieceTokenizer: Instantiation of the Gemma tokenizer
     """
-    return GemmaTokenizer(path)
+    tokenizer = SentencePieceTokenizer(path)
+    tokenizer.pad_id = 0
+    return tokenizer
 
 
 def lora_gemma_2b(

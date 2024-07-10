@@ -153,15 +153,21 @@ class TransformerCrossAttentionLayer(nn.Module):
         self,
         x: Tensor,
         *,
+        mask: Optional[Tensor] = None,
         encoder_input: Optional[Tensor] = None,
         encoder_mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
-        **kwargs,
     ) -> Tensor:
         """
         Args:
             x (Tensor): input tensor with shape
                 [batch_size x seq_length x embed_dim]
+            mask (Optional[Tensor]): Optional boolean tensor which contains the attention mask
+                with shape [batch_size x seq_length x seq_length]. This is applied after
+                the query-key multiplication and before the softmax. A value of True in row i
+                and column j means token i attends to token j. A value of False means token i
+                does not attend to token j. If no mask is specified, a causal mask
+                is used by default. Default is None.
             encoder_input (Optional[Tensor]): Optional second input to cross attend with x. Shape
                 [batch_size x seq_length x embed_dim] (seq_length and embed_dim may very from x)
             encoder_mask (Optional[Tensor]):  Cross attention boolean tensor with shape
@@ -171,7 +177,6 @@ class TransformerCrossAttentionLayer(nn.Module):
                 of each token relative to its sample when packed, shape [b x s].
                 During inference, this indicates the position of the current token.
                 If none, assume the index of the token is its position id. Default is None.
-            kwargs (Dict): transformer layer inputs not relevant to cross attention.
 
         Returns:
             Tensor: output tensor with same shape as input
@@ -228,7 +233,7 @@ class TransformerDecoder(nn.Module):
     Args:
         tok_embeddings (nn.Embedding): PyTorch embedding layer, to be used to move
             tokens to an embedding space.
-        layer (TransformerSelfAttentionLayer): Transformer Decoder layer.
+        layer (TransformerDecoderLayer): Transformer Decoder layer.
         num_layers (int): Number of Transformer Decoder layers.
         max_seq_len (int): maximum sequence length the model will be run with, as used
             by :func:`~torchtune.modules.KVCache`

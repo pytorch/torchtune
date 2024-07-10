@@ -11,12 +11,12 @@ from typing import List
 from torch import nn
 
 from torchtune.modules import (
-    GroupedQueryAttention,
+    CausalSelfAttention,
     FeedForward,
     RMSNorm,
     RotaryPositionalEmbeddings,
     TransformerDecoder,
-    TransformerSelfAttentionLayer,
+    TransformerDecoderLayer,
 )
 
 from torchtune.modules.peft import LORA_ATTN_MODULES, LoRALinear
@@ -27,7 +27,7 @@ Component builders for the Mistral 7B models and popular variants such as LoRA.
 torchtune provides composable building blocks. Builder functions help
 stitch these building blocks into higher-level components. This design has
 two benefits:
-- The building blocks themselves are very flexible. For example, ``GroupedQueryAttention``
+- The building blocks themselves are very flexible. For example, ``CausalSelfAttention``
 can take either nn.Linear or nn.LoRALinear for ``q_proj``.
 - Builder functions expose a set of configurable params which keep the constructors of
 the building blocks simple.
@@ -49,7 +49,7 @@ def mistral(
     """
     Build the decoder associated with the mistral model. This includes:
     - Token embeddings
-    - num_layers number of TransformerSelfAttentionLayer blocks
+    - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
     - Final projection into token space
 
@@ -79,7 +79,7 @@ def mistral(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = GroupedQueryAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -90,13 +90,14 @@ def mistral(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
+        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
+    layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -210,10 +211,10 @@ def lora_mistral(
     else:
         mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerSelfAttentionLayer(
+    layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
 
@@ -255,7 +256,7 @@ def lora_mistral(
 def lora_mistral_self_attention(
     lora_modules: List[LORA_ATTN_MODULES],
     *,
-    # GroupedQueryAttention args
+    # CausalSelfAttention args
     embed_dim: int,
     num_heads: int,
     num_kv_heads: int,
@@ -267,9 +268,9 @@ def lora_mistral_self_attention(
     lora_alpha: float,
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
-) -> GroupedQueryAttention:
+) -> CausalSelfAttention:
     """
-    Return an instance of :func:`~torchtune.modules.GroupedQueryAttention` with LoRA
+    Return an instance of :func:`~torchtune.modules.CausalSelfAttention` with LoRA
     applied to a subset of its linear layers
 
     Args:
@@ -293,7 +294,7 @@ def lora_mistral_self_attention(
             LoRA is being applied to. Default is ``False``.
 
     Returns:
-        GroupedQueryAttention: instantiation of self-attention module with LoRA
+        CausalSelfAttention: instantiation of self-attention module with LoRA
         applied to a subset of Q, K, V, output projections.
 
     Raises:
@@ -354,7 +355,7 @@ def lora_mistral_self_attention(
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = GroupedQueryAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -364,6 +365,7 @@ def lora_mistral_self_attention(
         v_proj=v_proj,
         output_proj=output_proj,
         pos_embeddings=rope,
+        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     return self_attn
@@ -453,7 +455,7 @@ def mistral_classifier(
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
 
     rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
-    self_attn = GroupedQueryAttention(
+    self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
         num_kv_heads=num_kv_heads,
@@ -464,13 +466,14 @@ def mistral_classifier(
         output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
         pos_embeddings=rope,
         kv_cache=None,
+        max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
     mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
-    layer = TransformerSelfAttentionLayer(
+    layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
@@ -576,10 +579,10 @@ def lora_mistral_classifier(
     else:
         mlp = mistral_mlp(dim=embed_dim, hidden_dim=intermediate_dim)
 
-    layer = TransformerSelfAttentionLayer(
+    layer = TransformerDecoderLayer(
         attn=self_attn,
         mlp=mlp,
-        attn_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
         mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
     )
 
