@@ -35,3 +35,25 @@ class FeedForward(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         return self.w2(self.activation(self.w1(x)) * self.w3(x))
+
+
+class MLP(nn.Module):
+    def __init__(
+        self,
+        in_dim: int,
+        hidden_dim: int,
+        out_dim: int,
+        act_layer: nn.Module,
+        dropout: int = 0.0,
+    ):
+        super().__init__()
+        self.layer1 = nn.Linear(in_dim, hidden_dim)
+        self.layer2 = nn.Linear(hidden_dim, out_dim)
+        self.activation = act_layer
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, x: Tensor) -> Tensor:
+        x = self.layer1(x)
+        x = self.activation(x.float()).type_as(x)
+        x = self.dropout(x)
+        return self.layer2(x)

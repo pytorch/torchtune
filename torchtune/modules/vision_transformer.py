@@ -10,7 +10,6 @@ import torch
 from torch import nn
 
 from torchtune.modules import Fp32LayerNorm
-from torchtune.modules.transformer import _get_clones
 
 
 class VisionTransformer(nn.Module):
@@ -165,7 +164,7 @@ class VisionTransformer(nn.Module):
 
     Args:
         num_layers (int): The number of transformer layers.
-        layer (nn.Module): The transformer layer module.
+        layers (List[nn.Module]): A list with the transformer layers.
         token_pos_embedding (nn.Module): The token positional embedding module.
         pre_tile_pos_embed (Optional[nn.Module]): The pre-tile positional embedding module. It should be
             None if your image was not tile-cropped in advance.
@@ -199,7 +198,7 @@ class VisionTransformer(nn.Module):
         tile_size: int,
         num_layers: int,
         embed_dim: int,
-        layer: nn.Module,
+        layers: nn.ModuleList,
         token_pos_embedding: nn.Module,
         pre_tile_pos_embed: Optional[nn.Module] = None,
         post_tile_pos_embed: Optional[nn.Module] = None,
@@ -231,7 +230,7 @@ class VisionTransformer(nn.Module):
         self.token_pos_embedding = token_pos_embedding
 
         self.cls_projection = cls_projection
-        self.transformer_layers = _get_clones(layer, num_layers)
+        self.transformer_layers = layers
 
         # other modules
         self.conv = nn.Conv2d(

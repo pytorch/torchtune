@@ -6,80 +6,43 @@
 
 from typing import Optional
 
-from torch import nn
+import torch
 
-from torchtune.modules import (
-    Fp32LayerNorm,
-    GroupedQueryAttention,
-    TanhGate,
-    TransformerSelfAttentionLayer,
-)
+from torch import nn, Tensor
 
 
 class FlamingoVisionAdapter(nn.Module):
     def __init__(
         self,
-        embed_dim: int,
-        num_layers: int,
-        num_heads: int,
-        proj_in: int,
-        proj_out: int,
+        layers: nn.ModuleList,
+        projection: nn.Module,
     ) -> None:
         super().__init__()
 
-        mlp_ratio = 4
-        hidden_dim = int(mlp_ratio * embed_dim)
-        head_dim = embed_dim // num_heads
-        num_kv_heads = num_heads
+        self.layers = layers
+        self.projection = projection
 
-        transformer_layers = []
-        for idx in range(1, num_layers + 1):
-            self_attn = GroupedQueryAttention(
-                embed_dim=embed_dim,
-                num_heads=num_heads,
-                num_kv_heads=num_heads,
-                head_dim=head_dim,
-                q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
-                k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-                v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
-                output_proj=nn.Linear(embed_dim, embed_dim, bias=True),
-                pos_embeddings=None,
-                attn_dropout=0.0,
-                default_causal_mask=False,
-            )
+    def forward(self, x: Tensor, hidden_states: Tensor) -> Tensor:
 
-            mlp = FlamingoMLP(
-                in_dim=embed_dim,
-                hidden_dim=hidden_dim,
-                out_dim=embed_dim,
-                act_layer=nn.GELU,
-            )
+        bsz, n_imgs, n_tiles, n_tokens, embed_dim = x.shape
 
-            layer = TransformerSelfAttentionLayer(
-                attn=attn,
-                mlp=mlp,
-                attn_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
-                mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
-                attn_scale=TanhGate(),
-                mlp_scale=TanhGate(),
-            )
-
-            transformer_layers.append(layer)
-
-        self.projection = nn.Linear(proj_in, proj_out)
-
-    def forward(self, x: torch.Tensor, hidden_states: torch.Tensor) -> torch.Tensor:
-
-        bsz, n_ims, n_tiles, n_tokens, embed_dim = x
-
-        # transformer
-        x = x.view(bsz * n_ims, n_tiles * n_tokens, embed_dim)
-        for layer_idx, transformer_layer in enumerate(self.transformer_layers):
-            x = transformer_layer(x)
+        # encoding layers
+        x = x.view(bsz * n_imgs, n_tiles * n_tokens, embed_dim)
+        for layer_idx, layers in enumerate(self.layers):
+            x = layers(x)
 
         # projection
-        x = x.view(bsz, n_ims, n_tiles, n_tokens, embed_dim)
-        x = torch.cat([x, hidden_states], dim=-1)
+        x = x.view(bsz, n_imgs, n_tiles, n_tokens, embed_dim)
+
+        # stack and reshape hidden states
+        num_hidden_states = len(hidden_states)
+        if num_hidden_states > 0:
+            hidden_states = torch.stack(hidden_states, dim=-1)
+            hidden_states = hidden_states.reshape(
+                bsz, n_imgs, n_tiles, n_tokens, embed_dim * num_hidden_states
+            )
+            x = torch.cat([x, hidden_states], dim=-1)
+
         x = self.projection(x)
 
         return x
@@ -91,31 +54,7 @@ class FlamingoVisionEncoder(nn.Module):
         self.vision_encoder = vision_encoder
         self.adapter = adapter
 
-    def forward(
-        self, images: torch.Tensor, aspect_ratio: Optional[torch.Tensor] = None
-    ) -> torch.Tensor:
+    def forward(self, images: Tensor, aspect_ratio: Optional[Tensor] = None) -> Tensor:
         x, hidden_states = self.vision_encoder(images, aspect_ratio)
         x = self.adapter(x, hidden_states)
         return x
-
-
-class FlamingoMLP(nn.Module):
-    def __init__(
-        self,
-        in_dim: int,
-        hidden_dim: int,
-        out_dim: int,
-        act_layer: nn.Module,
-        dropout=0.0,
-    ):
-        super().__init__()
-        self.layer1 = nn.Linear(in_dim, hidden_dim)
-        self.layer2 = nn.Linear(hidden_dim, out_dim)
-        self.activation = act_layer
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.layer1(x)
-        x = self.activation(x.float()).type_as(x)
-        x = self.dropout(x)
-        return self.layer2(x)

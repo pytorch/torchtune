@@ -1,8 +1,18 @@
 from typing import List, Optional
 
 import torch
+from torch import nn
+
 from torchtune.modules.vision_transformer import VisionTransformer, CLSProjection
 from torchtune.models.clip._position_embeddings import TokenPositionalEmbedding, TiledTokenPositionalEmbedding, TilePositionalEmbedding
+from torchtune.modules.feed_forward import MLP
+
+from torchtune.modules import (
+    TransformerSelfAttentionLayer,
+    GroupedQueryAttention,
+    TanhGate,
+    Fp32LayerNorm
+)
 
 def clip_vision_encoder(
     tile_size: int,
@@ -52,18 +62,47 @@ def clip_vision_encoder(
 
     cls_projection = CLSProjection(embed_dim=embed_dim, cls_output_dim=cls_output_dim) if output_cls_projection else None
     
-    # TODO (Felipe): Replace with torchtune native encoder module
-    mlp_ratio = 4.0
-    transformer_layer = torch.nn.TransformerEncoderLayer(
-        d_model=embed_dim, 
-        nhead=num_heads, 
-        dim_feedforward=int(mlp_ratio * embed_dim), 
-        dropout=0.0, 
-        activation=torch.nn.SiLU(), 
-        layer_norm_eps=1e-5, 
-        batch_first=True, 
-        norm_first=True, 
-        bias=True)
+    # transformer block
+    mlp_ratio = 4
+    hidden_dim = int(mlp_ratio * embed_dim)
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_heads
+
+    transformer_layers = []
+    for _ in range(num_layers):
+        self_attn = GroupedQueryAttention(
+                embed_dim=embed_dim,
+                num_heads=num_heads,
+                num_kv_heads=num_heads,
+                head_dim=head_dim,
+                q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=True),
+                k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+                v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=True),
+                output_proj=nn.Linear(embed_dim, embed_dim, bias=True),
+                pos_embeddings=None,
+                attn_dropout=0.0,
+                default_causal_mask=False,
+            )
+
+        mlp = MLP(
+            in_dim=embed_dim,
+            hidden_dim=int(mlp_ratio * embed_dim),
+            out_dim=embed_dim,
+            act_layer=torch.nn.SiLU(),
+        )
+
+        transformer_layer = TransformerSelfAttentionLayer(
+            attn=self_attn,
+            mlp=mlp,
+            attn_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
+            mlp_norm=Fp32LayerNorm(embed_dim, eps=1e-5),
+            attn_scale=None,
+            mlp_scale=None,
+        )
+
+        transformer_layers.append(transformer_layer)
+
+    transformer_layers = nn.ModuleList(transformer_layers)
 
     # position embeddings
     if max_num_tiles == 1:
@@ -84,7 +123,7 @@ def clip_vision_encoder(
 
     return VisionTransformer(
         num_layers=num_layers,
-        layer=transformer_layer,
+        layers=transformer_layers,
         token_pos_embedding=token_pos_embedding,
         pre_tile_pos_embed=pre_tile_pos_embed,
         post_tile_pos_embed=post_tile_pos_embed,
