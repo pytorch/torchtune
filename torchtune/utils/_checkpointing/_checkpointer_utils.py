@@ -44,7 +44,7 @@ class ModelType(Enum):
 
     REWARD = "reward"
     """A Llama2, Llama3, or Mistral model with a classification head projecting to a single class for reward modelling.
-    See :func:`~torchtune.models.mistral.mistral_classifier` or :func:`~torchtune.models.llama2.llama2_classifier`"""
+    See :func:`~torchtune.models.mistral.mistral_reward_7b` or :func:`~torchtune.models.llama2.llama2_reward_7b`"""
 
 
 def get_path(input_dir: Path, filename: str, missing_ok: bool = False) -> Path:
