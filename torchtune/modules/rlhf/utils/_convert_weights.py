@@ -66,10 +66,12 @@ def reward_hf_to_tune(
         )
 
     for key, value in state_dict.items():
-        # Skip loading the position embeddings and output bias
-        # these are not used in the reward model and some HF pipelines (e.g. TRL)
-        # may save them
-        if "rotary_emb.inv_freq" not in key and "score.bias" not in key:
+        # ignore output layer bias - these are not used in the reward model
+        # and some HF pipelines (e.g. TRL) may save them
+        if key == "score.bias":
+            continue
+        # Skip loading the position embeddings
+        if "rotary_emb.inv_freq" not in key:
             new_key = get_mapped_key(key, _REWARD)
         if "q_proj" in key:
             value = _permute(value, num_heads)
