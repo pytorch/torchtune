@@ -23,6 +23,20 @@ class TestTuneListCommand:
         captured = capsys.readouterr()
         output = captured.out.rstrip("\n")
 
+        for recipe in get_all_recipes(include_experimental=False):
+            assert recipe.name in output
+            for config in recipe.configs:
+                assert config.name in output
+
+    def test_ls_lists_all_recipes_and_configs_experimental(self, capsys, monkeypatch):
+        testargs = "tune ls --experimental".split()
+
+        monkeypatch.setattr(sys, "argv", testargs)
+        runpy.run_path(TUNE_PATH, run_name="__main__")
+
+        captured = capsys.readouterr()
+        output = captured.out.rstrip("\n")
+
         for recipe in get_all_recipes():
             assert recipe.name in output
             for config in recipe.configs:

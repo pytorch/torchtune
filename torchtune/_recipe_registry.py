@@ -20,6 +20,7 @@ class Recipe:
     file_path: str
     configs: List[Config]
     supports_distributed: bool
+    experimental: bool = False
 
 
 _ALL_RECIPES = [
@@ -187,6 +188,7 @@ _ALL_RECIPES = [
             ),
         ],
         supports_distributed=True,
+        experimental=True,
     ),
     Recipe(
         name="generate",
@@ -224,6 +226,9 @@ _ALL_RECIPES = [
 ]
 
 
-def get_all_recipes():
+def get_all_recipes(include_experimental: bool = True) -> List[Recipe]:
     """List of recipes available from the CLI."""
-    return _ALL_RECIPES
+    if include_experimental:
+        return _ALL_RECIPES
+    else:
+        return [r for r in _ALL_RECIPES if not r.experimental]
