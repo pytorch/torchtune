@@ -12,7 +12,6 @@ from itertools import chain
 import pytest
 import torch
 import torch.nn as nn
-import torchao
 from packaging import version
 from tests.test_utils import gpu_test, single_box_init
 from torch.distributed import launcher
@@ -263,6 +262,10 @@ class TestFullyShardState(FSDPTest):
         return 2
 
     @gpu_test(gpu_count=2)
+    @pytest.mark.skipif(
+        version.parse(torch.__version__).base_version < "2.4.0",
+        reason="torch >= 2.4 required",
+    )
     def test_lora_state_dict(self):
         rank = self.rank
         is_rank_zero = rank == 0
@@ -399,10 +402,6 @@ class TestFullyShardState(FSDPTest):
         for key, value in sharded_model_sd.items():
             self.assertEqual(value, expected_sharded_model_sd[key])
 
-    # torchao does not have __version__ defined for < 0.3
-    @pytest.mark.skipif(
-        "__version__" not in dir(torchao), reason="torchao>=0.3 required"
-    )
     @pytest.mark.skipif(
         version.parse(torch.__version__).base_version < "2.4.0",
         reason="torch >= 2.4 required",

@@ -10,6 +10,7 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
+
     # Hugging Face integrations
     "datasets",
     "huggingface_hub",
@@ -26,7 +27,7 @@ dependencies = [
     "omegaconf",
 
     # Quantization
-    "torchao==0.1",
+    "torchao==0.3.1",
 ]
 dynamic = ["version"]
 

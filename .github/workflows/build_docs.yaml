@@ -39,7 +39,7 @@ jobs:
         run: python -m pip install --upgrade pip
       - name: Install dependencies
         run: |
-          python -m pip install torch
+          python -m pip install torch torchvision
           python -m pip install -e .
           cd docs
           python -m pip install -r requirements.txt
@@ -108,21 +108,21 @@ jobs:
         run: |
           git remote set-url origin https://pytorchbot:${GITHUB_PYTORCHBOT_TOKEN}@github.com/pytorch/torchtune.git
           set -euo pipefail
-          
-          # Convert refs/tags/v1.12.0rc3 into 1.12. 
+
+          # Convert refs/tags/v1.12.0rc3 into 1.12.
           # Adopted from https://github.com/pytorch/pytorch/blob/main/.github/workflows/_docs.yml#L150C11-L155C13
-          GITHUB_REF=${{ github.ref }} 
+          GITHUB_REF=${{ github.ref }}
           if [[ "${GITHUB_REF}" =~ ^refs/tags/v([0-9]+\.[0-9]+)\.* ]]; then
             TARGET_FOLDER="${BASH_REMATCH[1]}"
           else
             TARGET_FOLDER="main"
           fi
- 
+
           echo "Target Folder: ${TARGET_FOLDER}"
           mkdir -p "${TARGET_FOLDER}"
           rm -rf "${TARGET_FOLDER}"/*
           mv docs/* "${TARGET_FOLDER}"
-          
+
           git config user.name 'pytorchbot'
           git config user.email 'soumith+bot@pytorch.org'
           git add "${TARGET_FOLDER}" || true

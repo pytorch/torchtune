@@ -47,10 +47,10 @@ jobs:
           python3 -m pip install awscli==1.32.6
       - name: Install torch nightly
         if: ${{ matrix.torch-version == 'nightly' }}
-        run: python -m pip install --pre torch --index-url https://download.pytorch.org/whl/nightly/cu118
+        run: python -m pip install --pre torch torchvision --index-url https://download.pytorch.org/whl/nightly/cu118
       - name: Install torch stable
         if: ${{ matrix.torch-version == 'stable' }}
-        run: python -m pip install torch
+        run: python -m pip install torch torchvision
       - name: Install remaining dependencies
         run: |
           python -m pip install -e ".[dev]"
