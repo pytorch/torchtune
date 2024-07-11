@@ -1,6 +1,9 @@
 # Config for single device QLoRA with lora_finetune_fsdp2.py
 # using a Llama2 7B model
 #
+# This config requires PyTorch nightlies to run. You can install PyTorch nightlies by
+# following the instructions at https://pytorch.org/get-started/locally/
+#
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download meta-llama/Llama-2-7b-hf --output-dir /tmp/Llama-2-7b-hf --hf-token <HF_TOKEN>
