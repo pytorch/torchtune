@@ -56,6 +56,9 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     llama2.qlora_llama2_70b
     llama2.llama2_tokenizer
     llama2.Llama2Tokenizer
+    llama2.llama2_reward_7b
+    llama2.lora_llama2_reward_7b
+    llama2.qlora_llama2_reward_7b
 
 
 code llama
@@ -124,9 +127,9 @@ Pre-trained models can be downloaded from the Hugging Face Hub with the followin
     mistral.mistral_7b
     mistral.lora_mistral_7b
     mistral.qlora_mistral_7b
-    mistral.mistral_classifier_7b
-    mistral.lora_mistral_classifier_7b
-    mistral.qlora_mistral_classifier_7b
+    mistral.mistral_reward_7b
+    mistral.lora_mistral_reward_7b
+    mistral.qlora_mistral_reward_7b
     mistral.mistral_tokenizer
     mistral.MistralTokenizer
 

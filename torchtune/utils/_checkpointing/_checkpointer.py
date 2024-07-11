@@ -17,11 +17,8 @@ from torchtune import utils
 
 from torchtune.models import convert_weights
 from torchtune.models.gemma import gemma_hf_to_tune, gemma_tune_to_hf
-from torchtune.models.mistral import (
-    mistral_reward_hf_to_tune,
-    mistral_reward_tune_to_hf,
-)
 from torchtune.models.phi3 import phi3_hf_to_tune, phi3_tune_to_hf
+from torchtune.modules.rlhf.utils import reward_hf_to_tune, reward_tune_to_hf
 from torchtune.utils._checkpointing._checkpointer_utils import (
     get_path,
     ModelType,
@@ -420,8 +417,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 "Note that conversion of adapter weights into PEFT format is not supported."
             )
             converted_state_dict[utils.MODEL_KEY] = phi3_hf_to_tune(merged_state_dict)
-        elif self._model_type == ModelType.MISTRAL_REWARD:
-            converted_state_dict[utils.MODEL_KEY] = mistral_reward_hf_to_tune(
+        elif self._model_type == ModelType.REWARD:
+            converted_state_dict[utils.MODEL_KEY] = reward_hf_to_tune(
                 merged_state_dict,
                 num_heads=self._config["num_attention_heads"],
                 num_kv_heads=self._config["num_key_value_heads"],
@@ -478,8 +475,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
         # convert the state_dict back to hf format; do this inplace
         if self._model_type == ModelType.PHI3_MINI:
             state_dict[utils.MODEL_KEY] = phi3_tune_to_hf(state_dict[utils.MODEL_KEY])
-        elif self._model_type == ModelType.MISTRAL_REWARD:
-            state_dict[utils.MODEL_KEY] = mistral_reward_tune_to_hf(
+        elif self._model_type == ModelType.REWARD:
+            state_dict[utils.MODEL_KEY] = reward_tune_to_hf(
                 state_dict[utils.MODEL_KEY],
                 num_heads=self._config["num_attention_heads"],
                 num_kv_heads=self._config["num_key_value_heads"],

@@ -528,7 +528,7 @@ class TestHFMistralRewardModelFullModelCheckpointer:
         return FullModelHFCheckpointer(
             checkpoint_dir=tmp_path,
             checkpoint_files=[checkpoint_file],
-            model_type="MISTRAL_REWARD",
+            model_type="REWARD",
             output_dir=tmp_path,
         )
 

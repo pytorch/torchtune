@@ -526,6 +526,7 @@ def lora_mistral_classifier(
             Default: False
         apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
             Default: False
+        num_classes (int): number of classes for the classification layer.
         vocab_size (int): number of tokens in vocabulary.
         num_layers (int): number of layers in the transformer decoder.
         num_heads (int): number of query heads. For MHA this is also the
