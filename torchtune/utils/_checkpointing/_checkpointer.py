@@ -537,6 +537,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_heads=self._config["num_attention_heads"],
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 peft_output_path = Path.joinpath(
                     self._output_dir, "adapter_model"
