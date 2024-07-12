@@ -12,7 +12,7 @@ from torch import nn, Tensor
 class RMSNorm(nn.Module):
     """
     Implements Root Mean Square Normalization introduced in
-    https://arxiv.org/pdf/1910.07467.pdf.
+    https://arxiv.org/abs/1910.07467.
 
     Reference implementation (used for correctness verfication)
     can be found here:
