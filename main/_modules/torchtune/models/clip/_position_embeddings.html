@@ -451,11 +451,11 @@
 
 <div class="viewcode-block" id="TiledTokenPositionalEmbedding"><a class="viewcode-back" href="../../../../generated/torchtune.models.clip.TiledTokenPositionalEmbedding.html#torchtune.models.clip.TiledTokenPositionalEmbedding">[docs]</a><span class="k">class</span> <span class="nc">TiledTokenPositionalEmbedding</span><span class="p">(</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+
 <span class="sd">    Token positional embedding for tiled images. There are two positional embeddings in this module:</span>
 
-<span class="sd">    * local_token_positional_embedding: same for every tile, different for every token. Equivalent</span>
+<span class="sd">    * local_token_positional_embedding: same for every tile, different for every token. Equivalent \</span>
 <span class="sd">        to :class:`torchtune.models.clip._position_embeddings.TokenPositionalEmbedding`, but gated.</span>
-
 <span class="sd">    * global_token_positional_embedding: different for every tile, different for every token.</span>
 
 <span class="sd">    Notice that tile is different from patch (token). For details, please check the documentation of</span>
@@ -503,7 +503,8 @@
 <span class="sd">        Args:</span>
 <span class="sd">            x (torch.Tensor): Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</span>
 <span class="sd">            aspect_ratio (torch.Tensor): Tensor with shape (bsz * n_imgs, 2),</span>
-<span class="sd">                representing the aspect ratio of the image before tile-cropping, e.g. (2,1).</span>
+<span class="sd">                where aspect_ratio[k] represents the aspect ratio of the k^th image</span>
+<span class="sd">                of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: The input tensor with added positional embeddings.</span>
 <span class="sd">        &quot;&quot;&quot;</span>

@@ -409,7 +409,13 @@
 <section id="llama3">
 <h2>llama3<a class="headerlink" href="#llama3" title="Permalink to this heading">¶</a></h2>
 <p>All models from the <a class="reference external" href="https://llama.meta.com/llama3/">Llama3 family</a>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;
+<p>To download the Llama3-8B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-8B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<p>To download the Llama3-70B-Instruct model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Meta-Llama-3-70B-Instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+--ignore-patterns<span class="w"> </span><span class="s2">&quot;original/consolidated*&quot;</span>
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -444,8 +450,16 @@
 <section id="llama2">
 <h2>llama2<a class="headerlink" href="#llama2" title="Permalink to this heading">¶</a></h2>
 <p>All models from the <a class="reference external" href="https://llama.meta.com/llama2/">Llama2 family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;
+<p>To download the Llama2-7B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-7b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<p>To download the Llama2-13B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-13b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
+</pre></div>
+</div>
+<p>To download the Llama2-70B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>meta-llama/Llama-2-70b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -489,8 +503,8 @@
 <section id="code-llama">
 <h2>code llama<a class="headerlink" href="#code-llama" title="Permalink to this heading">¶</a></h2>
 <p>Models from the <a class="reference external" href="https://arxiv.org/pdf/2308.12950">Code Llama family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>codellama/CodeLlama-7b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;
+<p>To download the CodeLlama-7B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>codellama/CodeLlama-7b-hf<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -528,7 +542,7 @@
 <section id="phi-3">
 <h2>phi-3<a class="headerlink" href="#phi-3" title="Permalink to this heading">¶</a></h2>
 <p>Models from the <a class="reference external" href="https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/">Phi-3 mini family</a>.</p>
-<p>Pre-trained models can be download from the Hugging Face Hub with the following command:</p>
+<p>To download the Phi-3 Mini 4k instruct model:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>microsoft/Phi-3-mini-4k-instruct<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
 </pre></div>
 </div>
@@ -555,8 +569,8 @@
 <section id="mistral">
 <h2>mistral<a class="headerlink" href="#mistral" title="Permalink to this heading">¶</a></h2>
 <p>All models from <a class="reference external" href="https://mistral.ai/technology/#models">Mistral AI family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1
+<p>To download the Mistral 7B v0.1 model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>mistralai/Mistral-7B-v0.1<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">
@@ -591,8 +605,12 @@
 <section id="gemma">
 <h2>gemma<a class="headerlink" href="#gemma" title="Permalink to this heading">¶</a></h2>
 <p>Models of size 2B and 7B from the <a class="reference external" href="https://blog.google/technology/developers/gemma-open-models/">Gemma family</a>.</p>
-<p>Pre-trained models can be downloaded from the Hugging Face Hub with the following command:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;ACCESS_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
+<p>To download the Gemma 2B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-2b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;&quot;</span>
+</pre></div>
+</div>
+<p>To download the Gemma 7B model:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>tune<span class="w"> </span>download<span class="w"> </span>google/gemma-7b<span class="w"> </span>--hf-token<span class="w"> </span>&lt;HF_TOKEN&gt;<span class="w"> </span>--ignore-patterns<span class="w"> </span><span class="s2">&quot;gemma-7b.gguf&quot;</span>
 </pre></div>
 </div>
 <table class="autosummary longtable docutils align-default">

@@ -520,12 +520,12 @@
 <span class="sd">                Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
 <span class="sd">                Message(role=&quot;assistant&quot;, content=&quot;assistant response\n&quot;),</span>
 <span class="sd">            ]</span>
-<span class="sd">            # tokenize_messages encodes messages separately and concats</span>
+
+<span class="sd">            &gt;&gt;&gt; # tokenize_messages encodes messages separately and concats</span>
 <span class="sd">            &gt;&gt;&gt; tokenizer.tokenize_messages(messages, max_seq_len)[0]</span>
 <span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
 
-
-<span class="sd">            # Same result as encoding the full string in one go</span>
+<span class="sd">            &gt;&gt;&gt; # Same result as encoding the full string in one go</span>
 <span class="sd">            &gt;&gt;&gt; tokenizer.encode(&#39;&#39;.join([message.content for message in messages]))</span>
 <span class="sd">            [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
 

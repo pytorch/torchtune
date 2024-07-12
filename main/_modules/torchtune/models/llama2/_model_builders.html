@@ -481,6 +481,7 @@
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
+<span class="sd">        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied</span>
@@ -560,6 +561,7 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>
@@ -641,6 +643,7 @@
 <span class="sd">            Default: False</span>
 <span class="sd">        lora_rank (int): rank of each low-rank approximation</span>
 <span class="sd">        lora_alpha (float): scaling factor for the low-rank approximation</span>
+<span class="sd">        lora_dropout (float): dropout probability for LoRA linear layers. Default: 0.05</span>
 <span class="sd">        quantize_base (bool): Whether to quantize base model weights</span>
 
 <span class="sd">    Returns:</span>

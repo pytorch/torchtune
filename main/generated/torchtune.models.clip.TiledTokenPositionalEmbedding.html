@@ -413,11 +413,7 @@
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.models.clip.</span></span><span class="sig-name descname"><span class="pre">TiledTokenPositionalEmbedding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_num_tiles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">embed_dim</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tile_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/models/clip/_position_embeddings.html#TiledTokenPositionalEmbedding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.models.clip.TiledTokenPositionalEmbedding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Token positional embedding for tiled images. There are two positional embeddings in this module:</p>
 <ul class="simple">
-<li><dl class="simple">
-<dt>local_token_positional_embedding: same for every tile, different for every token. Equivalent</dt><dd><p>to <a class="reference internal" href="torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></a>, but gated.</p>
-</dd>
-</dl>
-</li>
+<li><p>local_token_positional_embedding: same for every tile, different for every token. Equivalent         to <a class="reference internal" href="torchtune.models.clip.TokenPositionalEmbedding.html#torchtune.models.clip.TokenPositionalEmbedding" title="torchtune.models.clip._position_embeddings.TokenPositionalEmbedding"><code class="xref py py-class docutils literal notranslate"><span class="pre">torchtune.models.clip._position_embeddings.TokenPositionalEmbedding</span></code></a>, but gated.</p></li>
 <li><p>global_token_positional_embedding: different for every tile, different for every token.</p></li>
 </ul>
 <p>Notice that tile is different from patch (token). For details, please check the documentation of
@@ -443,7 +439,8 @@ with shape (40, 40) each.</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>x</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Tensor with shape (bsz * n_imgs, n_tiles, n_tokens, embed_dim).</p></li>
 <li><p><strong>aspect_ratio</strong> (<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)"><em>torch.Tensor</em></a>) – Tensor with shape (bsz * n_imgs, 2),
-representing the aspect ratio of the image before tile-cropping, e.g. (2,1).</p></li>
+where aspect_ratio[k] represents the aspect ratio of the k^th image
+of the batch before tile-cropping,  e.g. aspect_ratio[k] = (2,1).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

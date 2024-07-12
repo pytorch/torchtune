@@ -425,7 +425,7 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Builds the vision encoder associated with the clip model. This includes:</span>
 <span class="sd">    </span>
-<span class="sd">    - TransformerEncoderLayer</span>
+<span class="sd">    - num_layers TransformerEncoderLayers</span>
 <span class="sd">    - positional embeddings</span>
 <span class="sd">    - CLS projection (optional)</span>
 
@@ -433,24 +433,24 @@
 <span class="sd">    :class:`torchtune.modules.vision_transformer.VisionTransformer`.</span>
 
 <span class="sd">    Args:</span>
+<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
+<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
+<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
+<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
+<span class="sd">            with shape (40, 40) each.</span>
 <span class="sd">        embed_dim (int): The dimensionality of each patch embedding (token).</span>
 <span class="sd">        num_layers (int): The number of transformer layers.</span>
 <span class="sd">        num_heads (int): The number of attention heads in each transformer layer.</span>
+<span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
 <span class="sd">        out_indices (Optional[List[int]]): The indices of hidden layers to return.</span>
 <span class="sd">            If provided, it will return the intermediate results of the transformer layers</span>
 <span class="sd">            before they go through a next layer. For example, ``out_indices=[0,3]`` will</span>
 <span class="sd">            return the tokens before they go through the first and fourth layers.</span>
 <span class="sd">        output_cls_projection (bool): If True, only the CLS token projection will be outputted,</span>
 <span class="sd">            instead of all tokens. Defaults to False.</span>
-<span class="sd">        tile_size (int): The size of your image tiles, if the image was tile-cropped in advance. Otherwise,</span>
-<span class="sd">            the size of the input image. In this case, the function will consider your image as a single tile.</span>
-<span class="sd">        patch_size (int): The size of each patch. Used to divide the tiles into patches.</span>
-<span class="sd">            E.g. for ``patch_size=40``, a tile of shape (400, 400) will have 10x10 grid of patches</span>
-<span class="sd">            with shape (40, 40) each.</span>
 <span class="sd">        max_num_tiles (int): The maximum number of tiles that can be processed. This is used to</span>
 <span class="sd">            determine the size of the positional embeddings.</span>
 <span class="sd">        in_channels (int): The number of image input channels.</span>
-<span class="sd">        cls_output_dim (int): The dimensionality of the output tensor from the CLS projection module.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        A `VisionTransformer` object.</span>

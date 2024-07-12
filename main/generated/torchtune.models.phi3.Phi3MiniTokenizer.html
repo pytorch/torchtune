@@ -458,14 +458,18 @@ returning a list of tokens and a list of masks.</p>
 <span class="go">    Message(role=&quot;user&quot;, content=&quot;user prompt\n&quot;, masked=True),</span>
 <span class="go">    Message(role=&quot;assistant&quot;, content=&quot;assistant response\n&quot;),</span>
 <span class="go">]</span>
-<span class="go"># tokenize_messages encodes messages separately and concats</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># tokenize_messages encodes messages separately and concats</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">,</span> <span class="n">max_seq_len</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 <span class="go">[1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
 </pre></div>
 </div>
-<p># Same result as encoding the full string in one go
-&gt;&gt;&gt; tokenizer.encode(‘’.join([message.content for message in messages]))
-[1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Same result as encoding the full string in one go</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">message</span><span class="o">.</span><span class="n">content</span> <span class="k">for</span> <span class="n">message</span> <span class="ow">in</span> <span class="n">messages</span><span class="p">]))</span>
+<span class="go">[1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]</span>
+</pre></div>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
