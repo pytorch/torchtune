@@ -415,21 +415,21 @@
 configurable template.</p>
 <p>The general flow from loading a sample to tokenized prompt is:
 load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</p>
-<p>If the column/key names differ from the expected names in the <cite>InstructTemplate</cite>,
-then the <cite>column_map</cite> argument can be used to provide this mapping.</p>
-<p>Masking of the prompt during training is controlled by the <cite>train_on_input</cite> flag, which is
-set to <cite>False</cite> by default.
-- If <cite>train_on_input</cite> is True, the prompt is used during training and
+<p>If the column/key names differ from the expected names in the <a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><code class="xref py py-class docutils literal notranslate"><span class="pre">InstructTemplate</span></code></a>,
+then the <code class="docutils literal notranslate"><span class="pre">column_map</span></code> argument can be used to provide this mapping.</p>
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default.
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
 contributes to the loss.
-- If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<em>ModelTokenizer</em>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>
 (<a class="reference external" href="https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path">https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path</a>)</p></li>
 <li><p><strong>template</strong> (<a class="reference internal" href="torchtune.data.InstructTemplate.html#torchtune.data.InstructTemplate" title="torchtune.data.InstructTemplate"><em>InstructTemplate</em></a>) – template used to format the prompt. If the placeholder variable
-names in the template do not match the column/key names in the dataset, use <cite>column_map</cite> to map them.</p></li>
+names in the template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them.</p></li>
 <li><p><strong>transform</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – transform to apply to the sample before formatting to the template.
 Default is None.</p></li>
 <li><p><strong>column_map</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>]</em><em>]</em>) – a mapping from the expected placeholder names in the template
@@ -438,7 +438,7 @@ to the column/key names in the sample. If None, assume these are identical.</p><
 <li><p><strong>max_seq_len</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a><em>]</em>) – Maximum number of tokens in the returned input and label token id lists.
 Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
 and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</p></li>
-<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <cite>load_dataset</cite>.</p></li>
+<li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
 </ul>
 </dd>
 </dl>

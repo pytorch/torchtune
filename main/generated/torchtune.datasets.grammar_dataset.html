@@ -414,17 +414,17 @@
 <dd><p>Support for grammar correction datasets and their variants from Hugging Face Datasets.
 Here is an <a class="reference external" href="https://huggingface.co/datasets/liweili/c4_200m">example</a> of a grammar correction dataset.</p>
 <p>The prompt template mirrors what is used in the <a class="reference external" href="https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/grammar_dataset/grammar_dataset.py#L50">llama_recipes codebase</a></p>
-<p>where <cite>input</cite> and <cite>output</cite> are fields from the dataset.</p>
-<p>Masking of the prompt during training is controlled by the <cite>train_on_input</cite> flag, which is
-set to <cite>False</cite> by default
-- If <cite>train_on_input</cite> is True, the prompt is used during training and
+<p>where <code class="docutils literal notranslate"><span class="pre">input</span></code> and <code class="docutils literal notranslate"><span class="pre">output</span></code> are fields from the dataset.</p>
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
 contributes to the loss.
-- If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<em>ModelTokenizer</em>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>.</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>packed</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether or not to pack the dataset to <code class="docutils literal notranslate"><span class="pre">max_seq_len</span></code> prior to training. Default is False.</p></li>
 </ul>

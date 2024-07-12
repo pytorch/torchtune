@@ -414,7 +414,7 @@
 <dd><p>Class that supports any custom dataset with multiturn conversations.</p>
 <p>The general flow from loading a sample to tokenized prompt is:
 load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</p>
-<p>If the column/key names differ from the expected names in the <code class="docutils literal notranslate"><span class="pre">ChatFormat</span></code>,
+<p>If the column/key names differ from the expected names in the <a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a>,
 then the <code class="docutils literal notranslate"><span class="pre">column_map</span></code> argument can be used to provide this mapping.</p>
 <p>Use <code class="docutils literal notranslate"><span class="pre">convert_to_messages</span></code> to prepare your dataset into the Llama2 chat format
 and roles:</p>

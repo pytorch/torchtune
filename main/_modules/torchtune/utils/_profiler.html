@@ -592,33 +592,55 @@
     <span class="n">output_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">profiler</span><span class="o">.</span><span class="n">profile</span><span class="p">,</span> <span class="n">DictConfig</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Sets up torch.profiler.profile and returns the profiler config with post-setup updates.</span>
+<span class="sd">    Sets up :class:`~torch.profiler.profile` and returns the profiler config with post-setup updates.</span>
 
-<span class="sd">    The profiler config can be provided in configs under the `profiler` key with the following layout:</span>
+<span class="sd">    The profiler config can be provided in configs under the ``profiler`` key with the following layout:</span>
 
 <span class="sd">    .. code-block:: yaml</span>
 
 <span class="sd">        profiler:</span>
-<span class="sd">            enabled: bool</span>
+<span class="sd">          _component_: torchtune.utils.setup_torch_profiler</span>
+<span class="sd">          enabled: bool</span>
+<span class="sd">          # Output directory of trace artifacts</span>
+<span class="sd">          output_dir: str</span>
 
-<span class="sd">            #Output directory of trace artifacts</span>
-<span class="sd">            output_dir: str</span>
+<span class="sd">          # torch.profiler.ProfilerActivity types to trace</span>
+<span class="sd">          cpu: bool</span>
+<span class="sd">          cuda: bool</span>
 
-<span class="sd">        #`torch.profiler.ProfilerActivity` types to trace</span>
-<span class="sd">        cpu: bool</span>
-<span class="sd">        cuda: bool</span>
+<span class="sd">          # Trace options</span>
+<span class="sd">          profile_memory: bool</span>
+<span class="sd">          with_stack: bool</span>
+<span class="sd">          record_shapes: bool</span>
+<span class="sd">          with_flops: bool</span>
 
-<span class="sd">            #Trace options</span>
-<span class="sd">            profile_memory: bool</span>
-<span class="sd">            with_stack: bool</span>
-<span class="sd">            record_shapes: bool</span>
-<span class="sd">            with_flops: bool</span>
+<span class="sd">          # torch.profiler.schedule args</span>
+<span class="sd">          wait_steps: int</span>
+<span class="sd">          warmup_steps: int</span>
+<span class="sd">          active_steps: int</span>
+<span class="sd">          num_cycles: int</span>
 
-<span class="sd">        #`torch.profiler.schedule` args</span>
-<span class="sd">        wait_steps: int</span>
-<span class="sd">        warmup_steps: int</span>
-<span class="sd">        active_steps: int</span>
-<span class="sd">        num_cycles: int</span>
+<span class="sd">    The profiler schedule updates with respect to an optimizer step (e.g., if</span>
+<span class="sd">    ``gradient_accumulation = 2``, then the profiler will step every 2 batches).</span>
+
+<span class="sd">    Sensible defaults will be chosen if the config is missing options:</span>
+
+<span class="sd">    - If no activities are specified, profiler will default to CPU + CUDA</span>
+<span class="sd">    - If no schedule is specified, profiler will default to ``DEFAULT_SCHEDULE``</span>
+<span class="sd">    - Certain options will be overridden (``with_stack`` and ``record_shapes``) \</span>
+<span class="sd">    depending on requirements of other options (e.g., ``profile_memory`` requires \</span>
+<span class="sd">    ``with_stack`` and ``record_shapes``).</span>
+
+
+<span class="sd">    Note:</span>
+<span class="sd">        - Enabling the profiler will result in training speed reduction.</span>
+<span class="sd">        - Setting ``profile_memory: True`` will generate large trace files.</span>
+<span class="sd">        - The profiler schedule is context dependent. Calling ``profiler.step()`` \</span>
+<span class="sd">        at each batch iteration but **outside** the gradient accumulation scope will \</span>
+<span class="sd">        ``step`` the profiler each forward / backward step. Calling ``profiler.step()`` \</span>
+<span class="sd">        each batch iteration but **within** the gradient accumulation scope  will ``step`` \</span>
+<span class="sd">        the profiler each optimizer update step such that each ``step`` contains multiple \</span>
+<span class="sd">        forward / backward passes.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        enabled (bool): Enable pytorch profiler. Default is False.</span>
@@ -628,33 +650,14 @@
 <span class="sd">        with_stack (bool): Profile stack. Default is False.</span>
 <span class="sd">        record_shapes (bool): Record shapes. Default is True.</span>
 <span class="sd">        with_flops (bool): Profile flops. Default is False.</span>
-<span class="sd">        wait_steps (Optional[int]): Wait time in steps. Maps to `wait` kwarg of `torch.profiler.schedule`.</span>
-<span class="sd">        warmup_steps (Optional[int]): Warmup time in steps. Maps to `warmup` kwarg of `torch.profiler.schedule`.</span>
-<span class="sd">        active_steps (Optional[int]): Active time in steps. Maps to `active` kwarg of `torch.profiler.schedule`.</span>
-<span class="sd">        num_cycles (Optional[int]): Number of profiling cycles. Maps to `repeat` kwarg of `torch.profiler.schedule`.</span>
+<span class="sd">        wait_steps (Optional[int]): Wait time in steps. Maps to ``wait`` kwarg of ``torch.profiler.schedule``.</span>
+<span class="sd">        warmup_steps (Optional[int]): Warmup time in steps. Maps to ``warmup`` kwarg of ``torch.profiler.schedule``.</span>
+<span class="sd">        active_steps (Optional[int]): Active time in steps. Maps to ``active`` kwarg of ``torch.profiler.schedule``.</span>
+<span class="sd">        num_cycles (Optional[int]): Number of profiling cycles. Maps to ``repeat`` kwarg of ``torch.profiler.schedule``.</span>
 <span class="sd">        output_dir (Optional[str]): Tracing file output path.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        tuple: [torch.profiler.profile, DictConfig]</span>
-
-<span class="sd">    NOTE:</span>
-<span class="sd">    - Enabling the profiler will result in training speed reduction.</span>
-<span class="sd">    - Setting ``profile_memory: true`` will generate large trace files.</span>
-<span class="sd">    - The profiler schedule is context dependent:</span>
-<span class="sd">    * Calling ``profiler.step()`` at each batch iteration but outside the gradient accumulation</span>
-<span class="sd">    scope will ``step`` the profiler each forward / backward step</span>
-<span class="sd">    * Calling ``profiler.step()`` each batch iteration but within the gradient accumulation scope</span>
-<span class="sd">    will ``step`` the profiler each optimizer update step such that each ``step`` contains multiple</span>
-<span class="sd">    forward / backward passes.</span>
-
-<span class="sd">    Additional notes:</span>
-<span class="sd">        - the profiler schedule updates with respect to an optimizer step:</span>
-<span class="sd">            - e.g., if `gradient_accumulation = 2`, then the profiler will step every 2 batches.</span>
-<span class="sd">        - sensible defaults will be chosen if the config is missing options</span>
-<span class="sd">            - if no activities are specified, profiler will default to CPU + CUDA</span>
-<span class="sd">            - similarly, if no schedule is specified, profiler will default to DEFAULT_SCHEDULE</span>
-<span class="sd">            - certain options will be overridden (`with_stack` and `record_shapes`) depending on requirements of other options</span>
-<span class="sd">                - e.g., `profile_memory` requires `with_stack` and `record_shapes`</span>
+<span class="sd">        Tuple[torch.profiler.profile, DictConfig]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>

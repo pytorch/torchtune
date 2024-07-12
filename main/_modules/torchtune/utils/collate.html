@@ -428,22 +428,22 @@
 <span class="sd">        ignore_idx (int): Padding index for labels. Defaults to -100.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        Collated input and label tensors.</span>
+<span class="sd">        Dict[str, torch.Tensor]: Collated input and label tensors.</span>
 
 <span class="sd">    Example:</span>
 <span class="sd">        &gt;&gt;&gt; token_pairs = [</span>
 <span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [1, 2, 3], &quot;labels&quot;: [4, 5, 6]},</span>
 <span class="sd">        &gt;&gt;&gt;    {&quot;tokens&quot;: [7,], &quot;labels&quot;: [10,]},</span>
 <span class="sd">        &gt;&gt;&gt; ]</span>
-<span class="sd">        &gt;&gt;&gt; inputs, labels = padded_collate(</span>
+<span class="sd">        &gt;&gt;&gt; collated = padded_collate(</span>
 <span class="sd">        &gt;&gt;&gt;    batch=token_pairs,</span>
 <span class="sd">        &gt;&gt;&gt;    padding_idx=padding_idx,</span>
 <span class="sd">        &gt;&gt;&gt;    ignore_idx=ignore_idx,</span>
 <span class="sd">        &gt;&gt;&gt; )</span>
-<span class="sd">        &gt;&gt;&gt; inputs</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;tokens&quot;]</span>
 <span class="sd">        &gt;&gt;&gt; tensor([[1, 2, 3], [7, 0, 0]])</span>
-<span class="sd">        &gt;&gt;&gt; labels</span>
-<span class="sd">        &gt;&gt;&gt; tensor([[4,5,6], [10,-100,-100]])</span>
+<span class="sd">        &gt;&gt;&gt; collated[&quot;labels&quot;]</span>
+<span class="sd">        &gt;&gt;&gt; tensor([[4, 5, 6], [10, -100, -100]])</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">input_ids</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span>
         <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>

@@ -430,21 +430,21 @@
 <span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
 <span class="sd">    load sample -&gt; apply transform -&gt; format into template -&gt; tokenize</span>
 
-<span class="sd">    If the column/key names differ from the expected names in the `InstructTemplate`,</span>
-<span class="sd">    then the `column_map` argument can be used to provide this mapping.</span>
+<span class="sd">    If the column/key names differ from the expected names in the :class:`~torchtune.data.InstructTemplate`,</span>
+<span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
 
-<span class="sd">    Masking of the prompt during training is controlled by the `train_on_input` flag, which is</span>
-<span class="sd">    set to `False` by default.</span>
-<span class="sd">    - If `train_on_input` is True, the prompt is used during training and</span>
+<span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
+<span class="sd">    set to ``False`` by default.</span>
+<span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
 <span class="sd">    contributes to the loss.</span>
-<span class="sd">    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        template (InstructTemplate): template used to format the prompt. If the placeholder variable</span>
-<span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
+<span class="sd">            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.</span>
 <span class="sd">        transform (Optional[Callable]): transform to apply to the sample before formatting to the template.</span>
 <span class="sd">            Default is None.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
@@ -453,7 +453,7 @@
 <span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -528,14 +528,14 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Build a configurable dataset with instruction prompts. This method should be</span>
 <span class="sd">    used to configure a custom instruct dataset from the yaml config instead of</span>
-<span class="sd">    using `InstructDataset` directly, as it is made to be config friendly.</span>
+<span class="sd">    using :class:`~torchtune.datasets.InstructDataset` directly, as it is made to be config friendly.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``</span>
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        template (str): full import path of class used to format the prompt. If the placeholder variable</span>
-<span class="sd">            names in the template do not match the column/key names in the dataset, use `column_map` to map them.</span>
+<span class="sd">            names in the template do not match the column/key names in the dataset, use ``column_map`` to map them.</span>
 <span class="sd">        column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template</span>
 <span class="sd">            to the column/key names in the sample. If None, assume these are identical.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
@@ -543,7 +543,7 @@
 <span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; from torchtune.datasets import instruct_dataset</span>

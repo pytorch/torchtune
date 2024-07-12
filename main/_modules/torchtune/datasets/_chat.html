@@ -432,7 +432,7 @@
 <span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
 <span class="sd">    load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</span>
 
-<span class="sd">    If the column/key names differ from the expected names in the ``ChatFormat``,</span>
+<span class="sd">    If the column/key names differ from the expected names in the :class:`~torchtune.data.ChatFormat`,</span>
 <span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
 
 <span class="sd">    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format</span>
@@ -533,13 +533,13 @@
 <span class="sd">            (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)</span>
 <span class="sd">        conversation_style (str): string specifying expected style of conversations in the dataset</span>
 <span class="sd">            for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: &quot;sharegpt&quot;, &quot;openai&quot;</span>
-<span class="sd">        chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in</span>
-<span class="sd">            :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,</span>
-<span class="sd">            check out :ref:`chat_formats`. Default: None.</span>
+<span class="sd">        chat_format (Optional[str]): full import path of :class:`~torchtune.data.ChatFormat` class used to format the messages.</span>
+<span class="sd">            See the description in :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all</span>
+<span class="sd">            possible chat formats, check out :ref:`chat_formats`. Default: None.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
-<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to `load_dataset`.</span>
+<span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        &gt;&gt;&gt; from torchtune.datasets import chat_dataset</span>

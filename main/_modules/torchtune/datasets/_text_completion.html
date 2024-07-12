@@ -480,9 +480,10 @@
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TextCompletionDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Build a configurable freeform text dataset with instruction prompts. This method should be</span>
+<span class="sd">    Build a configurable dataset from a freeform, unstructured text corpus similar</span>
+<span class="sd">    to datasets used in pre-training. This method should be</span>
 <span class="sd">    used to configure a custom text dataset from the yaml config instead of</span>
-<span class="sd">    using `TextDataset` directly, as it is made to be config friendly.</span>
+<span class="sd">    using :class:`~torchtune.datasets.TextCompletionDataset` directly, as it is made to be config friendly.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>

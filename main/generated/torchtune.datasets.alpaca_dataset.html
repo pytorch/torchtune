@@ -414,18 +414,18 @@
 <dd><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using
 the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a>
 and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a>
-from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite>
+from the original alpaca codebase, where <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code>, and <code class="docutils literal notranslate"><span class="pre">output</span></code>
 are fields from the dataset.</p>
-<p>Masking of the prompt during training is controlled by the <cite>train_on_input</cite> flag, which is
-set to <cite>True</cite> by <a class="reference external" href="https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49">default</a>
-- If <cite>train_on_input</cite> is True, the prompt is used during training and
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
+set to <code class="docutils literal notranslate"><span class="pre">True</span></code> by <a class="reference external" href="https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49">default</a>
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
 contributes to the loss.
-- If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>tokenizer</strong> (<em>ModelTokenizer</em>) – Tokenizer used by the model that implements the <code class="docutils literal notranslate"><span class="pre">tokenize_messages</span></code> method.</p></li>
-<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <cite>load_dataset</cite>.</p></li>
+<li><p><strong>source</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – path string of dataset, anything supported by Hugging Face’s <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is True.</p></li>
 <li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of tokens in the returned input and label token id lists.
 Default is 512, but we recommend setting this to the highest you can fit in memory and

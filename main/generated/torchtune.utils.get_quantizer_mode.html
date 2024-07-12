@@ -413,7 +413,15 @@
 <span class="sig-prename descclassname"><span class="pre">torchtune.utils.</span></span><span class="sig-name descname"><span class="pre">get_quantizer_mode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">quantizer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.12)"><span class="pre">Callable</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Optional" title="(in Python v3.12)"><span class="pre">Optional</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/torchtune/utils/quantization.html#get_quantizer_mode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.utils.get_quantizer_mode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a quantizer object, returns a string that specifies the type of quantization.</p>
 <p>For example, in the case of int4 weight only quantization, we’ll return “4w”.
-If the quantizer is not recognized as a known quantizer, we’ll return None</p>
+If the quantizer is not recognized as a known quantizer, we’ll return None.</p>
+<p>Currently supported:</p>
+<ul class="simple">
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int4WeightOnlyQuantizer</span></code>: “4w”</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int8WeightOnlyQuantizer</span></code>: “8w”</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int4WeightOnlyGPTQQuantizer</span></code>: “4w-gptq”</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int8DynActInt4WeightQuantizer</span></code>: “8da4w” (requires <code class="docutils literal notranslate"><span class="pre">torch&gt;=2.3.0</span></code>)</p></li>
+<li><p><code class="xref py py-class docutils literal notranslate"><span class="pre">Int8DynActInt4WeightQATQuantizer</span></code>: “8da4w-qat” (requires <code class="docutils literal notranslate"><span class="pre">torch&gt;=2.4.0</span></code>)</p></li>
+</ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>quantizer</strong> (<em>Optional</em><em>[</em><em>Callable</em><em>]</em>) – A callable object that implements the <cite>quantize</cite> method.</p>

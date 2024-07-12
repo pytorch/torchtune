@@ -476,7 +476,15 @@
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Given a quantizer object, returns a string that specifies the type of quantization.</span>
 
 <span class="sd">    For example, in the case of int4 weight only quantization, we&#39;ll return &quot;4w&quot;.</span>
-<span class="sd">    If the quantizer is not recognized as a known quantizer, we&#39;ll return None</span>
+<span class="sd">    If the quantizer is not recognized as a known quantizer, we&#39;ll return None.</span>
+
+<span class="sd">    Currently supported:</span>
+
+<span class="sd">    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyQuantizer`: &quot;4w&quot;</span>
+<span class="sd">    - :class:`~torchao.quantization.quant_api.Int8WeightOnlyQuantizer`: &quot;8w&quot;</span>
+<span class="sd">    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyGPTQQuantizer`: &quot;4w-gptq&quot;</span>
+<span class="sd">    - :class:`~torchao.quantization.quant_api.Int8DynActInt4WeightQuantizer`: &quot;8da4w&quot; (requires ``torch&gt;=2.3.0``)</span>
+<span class="sd">    - :class:`~torchao.quantization.prototype.qat.Int8DynActInt4WeightQATQuantizer`: &quot;8da4w-qat&quot; (requires ``torch&gt;=2.4.0``)</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        quantizer (Optional[Callable]): A callable object that implements the `quantize` method.</span>

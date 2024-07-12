@@ -414,12 +414,12 @@
 <dd><p>Support for summarization datasets and their variants from Hugging Face Datasets.
 An example is the <a class="reference external" href="https://huggingface.co/datasets/samsum">SAMsum dataset</a>.</p>
 <p>The prompt template mirrors what is used in the llama_recipes <a class="reference external" href="https://github.com/meta-llama/llama-recipes/blob/main/src/llama_recipes/datasets/samsum_dataset.py#L13">codebase</a></p>
-<p>where <cite>dialogue</cite> and <cite>summary</cite> are fields from the dataset.</p>
-<p>Masking of the prompt during training is controlled by the <cite>train_on_input</cite> flag, which is
-set to <cite>False</cite> by default
-- If <cite>train_on_input</cite> is True, the prompt is used during training and
+<p>where <code class="docutils literal notranslate"><span class="pre">dialogue</span></code> and <code class="docutils literal notranslate"><span class="pre">summary</span></code> are fields from the dataset.</p>
+<p>Masking of the prompt during training is controlled by the <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> flag, which is
+set to <code class="docutils literal notranslate"><span class="pre">False</span></code> by default
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is True, the prompt is used during training and
 contributes to the loss.
-- If <cite>train_on_input</cite> is False, the prompt is masked out (tokens replaced with -100)</p>
+- If <code class="docutils literal notranslate"><span class="pre">train_on_input</span></code> is False, the prompt is masked out (tokens replaced with -100)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">

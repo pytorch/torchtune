@@ -424,21 +424,24 @@ convert integer lists to tensors.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>Collated input and label tensors.</p>
 </dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)">str</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>]</p>
+</dd>
 </dl>
 <p class="rubric">Example</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">token_pairs</span> <span class="o">=</span> <span class="p">[</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]},</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="p">{</span><span class="s2">&quot;tokens&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">7</span><span class="p">,],</span> <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">10</span><span class="p">,]},</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">]</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">inputs</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="n">padded_collate</span><span class="p">(</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">collated</span> <span class="o">=</span> <span class="n">padded_collate</span><span class="p">(</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="n">batch</span><span class="o">=</span><span class="n">token_pairs</span><span class="p">,</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="n">padding_idx</span><span class="o">=</span><span class="n">padding_idx</span><span class="p">,</span>
 <span class="gp">&gt;&gt;&gt; </span>   <span class="n">ignore_idx</span><span class="o">=</span><span class="n">ignore_idx</span><span class="p">,</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">inputs</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">collated</span><span class="p">[</span><span class="s2">&quot;tokens&quot;</span><span class="p">]</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">tensor</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">tensor</span><span class="p">([[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span><span class="o">-</span><span class="mi">100</span><span class="p">,</span><span class="o">-</span><span class="mi">100</span><span class="p">]])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">collated</span><span class="p">[</span><span class="s2">&quot;labels&quot;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tensor</span><span class="p">([[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">],</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">,</span> <span class="o">-</span><span class="mi">100</span><span class="p">]])</span>
 </pre></div>
 </div>
 </dd></dl>

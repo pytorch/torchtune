@@ -425,18 +425,18 @@
 <span class="sd">    Support for family of Alpaca-style datasets from Hugging Face Datasets using</span>
 <span class="sd">    the `data input format &lt;https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances&gt;`_</span>
 <span class="sd">    and `prompt template &lt;https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31&gt;`_</span>
-<span class="sd">    from the original alpaca codebase, where `instruction`, `input`, and `output`</span>
+<span class="sd">    from the original alpaca codebase, where ``instruction``, ``input``, and ``output``</span>
 <span class="sd">    are fields from the dataset.</span>
 
-<span class="sd">    Masking of the prompt during training is controlled by the `train_on_input` flag, which is</span>
-<span class="sd">    set to `True` by `default &lt;https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49&gt;`_</span>
-<span class="sd">    - If `train_on_input` is True, the prompt is used during training and</span>
+<span class="sd">    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is</span>
+<span class="sd">    set to ``True`` by `default &lt;https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49&gt;`_</span>
+<span class="sd">    - If ``train_on_input`` is True, the prompt is used during training and</span>
 <span class="sd">    contributes to the loss.</span>
-<span class="sd">    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)</span>
+<span class="sd">    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.</span>
-<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
+<span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is True.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            Default is 512, but we recommend setting this to the highest you can fit in memory and</span>
@@ -466,6 +466,11 @@
 
 
 <span class="n">alpaca_cleaned_dataset</span> <span class="o">=</span> <span class="n">partial</span><span class="p">(</span><span class="n">alpaca_dataset</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">&quot;yahma/alpaca-cleaned&quot;</span><span class="p">)</span>
+<span class="n">alpaca_cleaned_dataset</span><span class="o">.</span><span class="vm">__doc__</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+<span class="s2">Builder for a variant of Alpaca-style datasets with the cleaned version of the</span>
+<span class="s2">original Alpaca dataset, `yahma/alpaca-cleaned &lt;https://huggingface.co/datasets/yahma/alpaca-cleaned&gt;`_.</span>
+<span class="s2">See the dataset page and :func:`~torchtune.datasets.alpaca_dataset` for more details.</span>
+<span class="s2">&quot;&quot;&quot;</span>
 </pre></div>
 
              </article>

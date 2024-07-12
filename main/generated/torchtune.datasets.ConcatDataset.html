@@ -418,8 +418,8 @@ training models on multiple sources of data simultaneously.</p>
 However, it requires all constituent datasets to be fully loaded into memory, which might not be optimal for
 very large datasets.</p>
 <p>Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping
-of indices to the respective datasets. This approach allows the <cite>ConcatDataset</cite> to delegate data retrieval to
-the appropriate sub-dataset transparently when a particular index is accessed.</p>
+of indices to the respective datasets. This approach allows the <a class="reference internal" href="#torchtune.datasets.ConcatDataset" title="torchtune.datasets.ConcatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConcatDataset</span></code></a>
+to delegate data retrieval to the appropriate sub-dataset transparently when a particular index is accessed.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to
@@ -428,7 +428,7 @@ be loaded into memory. For large-scale scenarios, consider other strategies that
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>datasets</strong> (<em>List</em><em>[</em><em>Dataset</em><em>]</em>) – A list of datasets to concatenate. Each dataset must be an instance of a class
-derived from <cite>torch.utils.data.Dataset</cite>.</p>
+derived from <a class="reference external" href="https://pytorch.org/docs/stable/data.html#torch.utils.data.Dataset" title="(in PyTorch v2.3)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dataset</span></code></a>.</p>
 </dd>
 <dt class="field-even">Variables<span class="colon">:</span></dt>
 <dd class="field-even"><ul class="simple">

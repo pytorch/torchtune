@@ -413,11 +413,10 @@
 <table class="autosummary longtable docutils align-default">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_dataset.html#torchtune.datasets.alpaca_dataset" title="torchtune.datasets.alpaca_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_dataset</span></code></a></p></td>
-<td><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a> and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a> from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite> are fields from the dataset.</p></td>
+<td><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a> and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a> from the original alpaca codebase, where <code class="docutils literal notranslate"><span class="pre">instruction</span></code>, <code class="docutils literal notranslate"><span class="pre">input</span></code>, and <code class="docutils literal notranslate"><span class="pre">output</span></code> are fields from the dataset.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/torchtune.datasets.alpaca_cleaned_dataset.html#torchtune.datasets.alpaca_cleaned_dataset" title="torchtune.datasets.alpaca_cleaned_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">alpaca_cleaned_dataset</span></code></a></p></td>
-<td><p><p>Support for family of Alpaca-style datasets from Hugging Face Datasets using the <a class="reference external" href="https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances">data input format</a> and <a class="reference external" href="https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31">prompt template</a> from the original alpaca codebase, where <cite>instruction</cite>, <cite>input</cite>, and <cite>output</cite> are fields from the dataset.</p>
-</p></td>
+<td><p>Builder for a variant of Alpaca-style datasets with the cleaned version of the original Alpaca dataset, <a class="reference external" href="https://huggingface.co/datasets/yahma/alpaca-cleaned">yahma/alpaca-cleaned</a>.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.grammar_dataset.html#torchtune.datasets.grammar_dataset" title="torchtune.datasets.grammar_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">grammar_dataset</span></code></a></p></td>
 <td><p>Support for grammar correction datasets and their variants from Hugging Face Datasets.</p></td>
@@ -453,7 +452,7 @@ These are especially useful for specifying from a YAML config.</p>
 <td><p>Build a configurable dataset with conversations.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/torchtune.datasets.text_completion_dataset.html#torchtune.datasets.text_completion_dataset" title="torchtune.datasets.text_completion_dataset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">text_completion_dataset</span></code></a></p></td>
-<td><p>Build a configurable freeform text dataset with instruction prompts.</p></td>
+<td><p>Build a configurable dataset from a freeform, unstructured text corpus similar to datasets used in pre-training.</p></td>
 </tr>
 </tbody>
 </table>
