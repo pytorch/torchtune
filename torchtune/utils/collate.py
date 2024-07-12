@@ -26,22 +26,22 @@ def padded_collate(
         ignore_idx (int): Padding index for labels. Defaults to -100.
 
     Returns:
-        Collated input and label tensors.
+        Dict[str, torch.Tensor]: Collated input and label tensors.
 
     Example:
         >>> token_pairs = [
         >>>    {"tokens": [1, 2, 3], "labels": [4, 5, 6]},
         >>>    {"tokens": [7,], "labels": [10,]},
         >>> ]
-        >>> inputs, labels = padded_collate(
+        >>> collated = padded_collate(
         >>>    batch=token_pairs,
         >>>    padding_idx=padding_idx,
         >>>    ignore_idx=ignore_idx,
         >>> )
-        >>> inputs
+        >>> collated["tokens"]
         >>> tensor([[1, 2, 3], [7, 0, 0]])
-        >>> labels
-        >>> tensor([[4,5,6], [10,-100,-100]])
+        >>> collated["labels"]
+        >>> tensor([[4, 5, 6], [10, -100, -100]])
     """
     input_ids = pad_sequence(
         [torch.tensor(x["tokens"]) for x in batch],

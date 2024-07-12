@@ -286,8 +286,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Note:
-        HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure \
-        we read the files in the right order, we sort the checkpoint file names before reading
+        HF checkpoint names are usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure \
+        we read the files in the right order, we sort the checkpoint file names before reading.
 
     Note:
         Checkpoint conversion to and from HF's format requires access to model params which are \
