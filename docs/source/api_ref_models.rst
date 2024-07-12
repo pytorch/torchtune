@@ -11,9 +11,18 @@ llama3
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
+To download the Llama3-8B-Instruct model:
+
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <ACCESS_TOKEN>
+    tune download meta-llama/Meta-Llama-3-8B-Instruct --hf-token <HF_TOKEN>
+
+To download the Llama3-70B-Instruct model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
+    --ignore-patterns "original/consolidated*"
 
 
 .. autosummary::
@@ -35,11 +44,23 @@ llama2
 
 All models from the `Llama2 family <https://llama.meta.com/llama2/>`_.
 
-Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
+To download the Llama2-7B model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Llama-2-7b-hf --hf-token <ACCESS_TOKEN>
+    tune download meta-llama/Llama-2-7b-hf --hf-token <HF_TOKEN>
+
+To download the Llama2-13B model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-2-13b-hf --hf-token <HF_TOKEN>
+
+To download the Llama2-70B model:
+
+.. code-block:: bash
+
+    tune download meta-llama/Llama-2-70b-hf --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -63,11 +84,11 @@ code llama
 
 Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
 
-Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
+To download the CodeLlama-7B model:
 
 .. code-block:: bash
 
-    tune download codellama/CodeLlama-7b-hf --hf-token <ACCESS_TOKEN>
+    tune download codellama/CodeLlama-7b-hf --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -89,7 +110,7 @@ phi-3
 
 Models from the `Phi-3 mini family <https://news.microsoft.com/source/features/ai/the-phi-3-small-language-models-with-big-potential/>`_.
 
-Pre-trained models can be download from the Hugging Face Hub with the following command:
+To download the Phi-3 Mini 4k instruct model:
 
 .. code-block:: bash
 
@@ -111,11 +132,11 @@ mistral
 
 All models from `Mistral AI family <https://mistral.ai/technology/#models>`_.
 
-Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
+To download the Mistral 7B v0.1 model:
 
 .. code-block:: bash
 
-    tune download mistralai/Mistral-7B-v0.1
+    tune download mistralai/Mistral-7B-v0.1 --hf-token <HF_TOKEN>
 
 .. autosummary::
     :toctree: generated/
@@ -136,11 +157,17 @@ gemma
 
 Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
-Pre-trained models can be downloaded from the Hugging Face Hub with the following command:
+To download the Gemma 2B model:
 
 .. code-block:: bash
 
-    tune download google/gemma-2b --hf-token <ACCESS_TOKEN> --ignore-patterns ""
+    tune download google/gemma-2b --hf-token <HF_TOKEN> --ignore-patterns ""
+
+To download the Gemma 7B model:
+
+.. code-block:: bash
+
+    tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
 
 .. autosummary::
     :toctree: generated/
