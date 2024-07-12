@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.transforms import Transform
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -38,7 +39,7 @@ RESERVED_TOKENS = {
 LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
 
-class Llama3Tokenizer(ModelTokenizer):
+class Llama3Tokenizer(ModelTokenizer, Transform):
     """
     tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in
     https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3

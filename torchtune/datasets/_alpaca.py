@@ -12,11 +12,9 @@ from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def alpaca_dataset(
-    tokenizer: ModelTokenizer,
+    model_transform: Transform,
     *,
     source: str = "tatsu-lab/alpaca",
-    train_on_input: bool = True,
-    max_seq_len: int = 512,
     packed: bool = False,
 ) -> InstructDataset:
     """
