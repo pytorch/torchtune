@@ -10,7 +10,6 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
-
     # Hugging Face integrations
     "datasets",
     "huggingface_hub",

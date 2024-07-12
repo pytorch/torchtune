@@ -5,21 +5,21 @@
 # LICENSE file in the root directory of this source tree.
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Tuple
+from typing import List
 
-from torchtune.data._types import Message, Role
+from torchtune.data._types import Message
 
 
 class ChatFormat(ABC):
     """
-    Interface for chat formats. Each chat format should include tags for system,
-    user, and assistant roles that are prepended or appended to the message
-    content.
+    Interface for chat formats. Each chat format should include template
+    prompts with placeholders for the data inputs. There should be a template
+    for each role: system, user, assistant.
     """
 
-    # Template should map role to a tuple containing the tag to prepend to the text
-    # and tag to append to the text. Leave as empty strings to not prepend or append
-    template: Dict[Role, Tuple[str, str]]
+    system = ""
+    user = ""
+    assistant = ""
 
     @classmethod
     @abstractmethod
@@ -57,12 +57,12 @@ class Llama2ChatFormat(ChatFormat):
 
     """
 
-    template = {
-        "system": ("<<SYS>>\n", "\n<</SYS>>\n\n"),
-        "user": ("[INST] ", " [/INST] "),
-        "assistant": ("", ""),
-        "ipython": ("", ""),
-    }
+    B_INST, E_INST = "[INST]", "[/INST]"
+    B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+
+    system = f"{B_SYS}{{content}}{E_SYS}"
+    user = f"{B_INST} {{system_message}}{{content}} {E_INST} "
+    assistant = ""
 
     @classmethod
     def format(
@@ -79,38 +79,27 @@ class Llama2ChatFormat(ChatFormat):
         Returns:
             The formatted list of messages
         """
-        system_message = []
+        system_message = ""
         formatted_dialogue = []
         for message in sample:
+            content = ""
             if message.role == "system":
-                system_message = (
-                    [{"type": "text", "content": cls.template["system"][0]}]
-                    + message.content
-                    + [{"type": "text", "content": cls.template["system"][1]}]
-                )
+                content = cls.system.format(content=message.content)
+                system_message = content
                 # Incorporate the system message in the user message - Llama2 only
                 # looks for the <<SYS>> tags and not the explicit role so this will
                 # be treated the same as an actual system message. We do this because
                 # of the nesting of the system prompt in the user message.
                 continue
             elif message.role == "user":
-                content = (
-                    [{"type": "text", "content": cls.template["user"][0]}]
-                    + system_message
-                    + message.content
-                    + [{"type": "text", "content": cls.template["user"][1]}]
+                content = cls.user.format(
+                    system_message=system_message, content=message.content
                 )
             elif message.role == "assistant":
                 # No special formatting needed for assistant message
                 content = message.content
             formatted_dialogue.append(
-                Message(
-                    role=message.role,
-                    content=content,
-                    masked=message.masked,
-                    ipython=message.ipython,
-                    eot=message.eot,
-                ),
+                Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
 
@@ -129,12 +118,10 @@ class MistralChatFormat(ChatFormat):
 
     """
 
-    template = {
-        "system": None,
-        "user": ("[INST] ", " [/INST] "),
-        "assistant": ("", ""),
-        "ipython": ("", ""),
-    }
+    B_INST, E_INST = "[INST]", "[/INST]"
+    system = None
+    user = f"{B_INST} {{content}} {E_INST} "
+    assistant = ""
 
     @classmethod
     def format(
@@ -156,24 +143,20 @@ class MistralChatFormat(ChatFormat):
         """
         formatted_dialogue = []
         for message in sample:
+            content = ""
             if message.role == "system":
                 raise ValueError(
                     "System prompts are not supported in MistralChatFormat"
                 )
-            else:
-                content = (
-                    [{"type": "text", "content": cls.template[message.role][0]}]
-                    + message.content
-                    + [{"type": "text", "content": cls.template[message.role][1]}]
+            elif message.role == "user":
+                content = cls.user.format(
+                    content=message.content,
                 )
+            elif message.role == "assistant":
+                # No special formatting needed for assistant message
+                content = message.content
             formatted_dialogue.append(
-                Message(
-                    role=message.role,
-                    content=content,
-                    masked=message.masked,
-                    ipython=message.ipython,
-                    eot=message.eot,
-                ),
+                Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
 
@@ -197,12 +180,10 @@ class ChatMLFormat(ChatFormat):
 
     """
 
-    template = {
-        "system": ("<|im_start|>system\n", "<|im_end|>\n"),
-        "user": ("<|im_start|>user\n", "<|im_end|>\n"),
-        "assistant": ("<|im_start|>assistant\n", "<|im_end|>"),
-        "ipython": ("", ""),
-    }
+    IM_START, IM_END = "<|im_start|>", "<|im_end|>"
+    system = f"{IM_START}system\n{{content}}{IM_END}\n"
+    user = f"{IM_START}user\n{{content}}{IM_END}\n"
+    assistant = f"{IM_START}assistant\n{{content}}{IM_END}"
 
     @classmethod
     def format(
@@ -221,18 +202,18 @@ class ChatMLFormat(ChatFormat):
         """
         formatted_dialogue = []
         for message in sample:
-            content = (
-                [{"type": "text", "content": cls.template[message.role][0]}]
-                + message.content
-                + [{"type": "text", "content": cls.template[message.role][1]}]
-            )
+            content = ""
+            if message.role == "system":
+                content = cls.system.format(content=message.content)
+            elif message.role == "user":
+                content = cls.user.format(
+                    content=message.content,
+                )
+            elif message.role == "assistant":
+                content = cls.assistant.format(
+                    content=message.content,
+                )
             formatted_dialogue.append(
-                Message(
-                    role=message.role,
-                    content=content,
-                    masked=message.masked,
-                    ipython=message.ipython,
-                    eot=message.eot,
-                ),
+                Message(role=message.role, content=content, masked=message.masked),
             )
         return formatted_dialogue
