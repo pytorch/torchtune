@@ -74,9 +74,10 @@ def text_completion_dataset(
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
-    Build a configurable freeform text dataset with instruction prompts. This method should be
+    Build a configurable dataset from a freeform, unstructured text corpus similar
+    to datasets used in pre-training. This method should be
     used to configure a custom text dataset from the yaml config instead of
-    using `TextDataset` directly, as it is made to be config friendly.
+    using :class:`~torchtune.datasets.TextCompletionDataset` directly, as it is made to be config friendly.
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.

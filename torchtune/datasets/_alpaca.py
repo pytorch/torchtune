@@ -22,14 +22,14 @@ def alpaca_dataset(
     Support for family of Alpaca-style datasets from Hugging Face Datasets using
     the `data input format <https://huggingface.co/datasets/tatsu-lab/alpaca#data-instances>`_
     and `prompt template <https://github.com/tatsu-lab/stanford_alpaca/blob/main/train.py#L31>`_
-    from the original alpaca codebase, where `instruction`, `input`, and `output`
+    from the original alpaca codebase, where ``instruction``, ``input``, and ``output``
     are fields from the dataset.
 
-    Masking of the prompt during training is controlled by the `train_on_input` flag, which is
-    set to `True` by `default <https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49>`_
-    - If `train_on_input` is True, the prompt is used during training and
+    Masking of the prompt during training is controlled by the ``train_on_input`` flag, which is
+    set to ``True`` by `default <https://github.com/tloen/alpaca-lora/blob/main/finetune.py#L49>`_
+    - If ``train_on_input`` is True, the prompt is used during training and
     contributes to the loss.
-    - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
+    - If ``train_on_input`` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
         tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
@@ -63,3 +63,8 @@ def alpaca_dataset(
 
 
 alpaca_cleaned_dataset = partial(alpaca_dataset, source="yahma/alpaca-cleaned")
+alpaca_cleaned_dataset.__doc__ = """
+Builder for a variant of Alpaca-style datasets with the cleaned version of the
+original Alpaca dataset, `yahma/alpaca-cleaned <https://huggingface.co/datasets/yahma/alpaca-cleaned>`_.
+See the dataset page and :func:`~torchtune.datasets.alpaca_dataset` for more details.
+"""
