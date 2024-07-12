@@ -47,7 +47,7 @@ class InstructDataset(Dataset):
             Default is None.
         column_map (Optional[Dict[str, str]]): a mapping from the expected placeholder names in the template
             to the column/key names in the sample. If None, assume these are identical. 
-            the output ground truth field can be provided to through the `output` key mapping. 
+            The output column can be indicated using the ``output`` key mapping. 
             If no placeholder for the `output` field is provided in `column_map` it is assumed to be `output`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
