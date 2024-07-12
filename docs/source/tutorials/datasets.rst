@@ -303,7 +303,7 @@ This often includes:
 
 - The current directory from which your Python interpreter or script is run.
 - Directories where Python packages are installed (like :code:`site-packages`).
-- Any directories added to :code:`sys.path` at runtime or through the :code:`PYTHONPATH` environment variable.
+- Any directories added to :code:`sys.path` at runtime using :code:`sys.path.append` or through the :code:`PYTHONPATH` environment variable.
 
 If you are working within a cloned repository of torchtune you can just define your custom template 
 class in the same file as other similar components, in this situation you can change the class name 
