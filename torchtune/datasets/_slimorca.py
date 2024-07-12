@@ -28,7 +28,7 @@ def slimorca_dataset(
     The Llama3 models do not prescribe a particular format.
 
     The returned data is a tuple of input token id list and label token id
-    list. If `max_seq_len` keyword argument is provided, the returned
+    list. If ``max_seq_len`` keyword argument is provided, the returned
     input token id list is ensured (by truncation if necessary) to be within
     that length.
 
