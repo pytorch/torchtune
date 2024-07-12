@@ -296,7 +296,7 @@ and create your own class.
 
 
 Under the hood, torchtune is using :code:`importlib.import_module`. 
-You can place your custom template class in any Python module as long as the module is 
+You can place your custom template class in any Python file as long as the file is 
 accessible by Python's import mechanism. This means the module should be in a directory 
 that is included in Python's search paths (:code:`sys.path`). 
 This often includes:
