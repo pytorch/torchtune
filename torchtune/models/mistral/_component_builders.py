@@ -429,7 +429,7 @@ def mistral_classifier(
     """
     Build a base mistral model with an added classification layer.
     See :func:`~torchtune.models.mistral.mistral_classifier`
-        for details on the base mistral classifier model.
+    for details on the base mistral classifier model.
 
     Args:
         num_classes (int): number of classes for the classification layer.

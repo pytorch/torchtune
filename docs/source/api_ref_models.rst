@@ -29,6 +29,8 @@ To download the Llama3-70B-Instruct model:
     :toctree: generated/
     :nosignatures:
 
+    llama3.llama3
+    llama3.lora_llama3
     llama3.llama3_8b
     llama3.lora_llama3_8b
     llama3.qlora_llama3_8b
@@ -65,6 +67,8 @@ To download the Llama2-70B model:
     :toctree: generated/
     :nosignatures:
 
+    llama2.llama2
+    llama2.lora_llama2
     llama2.llama2_7b
     llama2.lora_llama2_7b
     llama2.qlora_llama2_7b
@@ -118,6 +122,8 @@ To download the Phi-3 Mini 4k instruct model:
     :toctree: generated/
     :nosignatures:
 
+    phi3.phi3
+    phi3.lora_phi3
     phi3.phi3_mini
     phi3.lora_phi3_mini
     phi3.qlora_phi3_mini
@@ -139,6 +145,10 @@ To download the Mistral 7B v0.1 model:
     :toctree: generated/
     :nosignatures:
 
+    mistral.mistral
+    mistral.lora_mistral
+    mistral.mistral_classifier
+    mistral.lora_mistral_classifier
     mistral.mistral_7b
     mistral.lora_mistral_7b
     mistral.qlora_mistral_7b
@@ -169,6 +179,8 @@ To download the Gemma 7B model:
     :toctree: generated/
     :nosignatures:
 
+    gemma.gemma
+    gemma.lora_gemma
     gemma.gemma_2b
     gemma.lora_gemma_2b
     gemma.qlora_gemma_2b

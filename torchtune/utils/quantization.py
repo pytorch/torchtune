@@ -67,7 +67,15 @@ def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
     """Given a quantizer object, returns a string that specifies the type of quantization.
 
     For example, in the case of int4 weight only quantization, we'll return "4w".
-    If the quantizer is not recognized as a known quantizer, we'll return None
+    If the quantizer is not recognized as a known quantizer, we'll return None.
+
+    Currently supported:
+
+    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyQuantizer`: "4w"
+    - :class:`~torchao.quantization.quant_api.Int8WeightOnlyQuantizer`: "8w"
+    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyGPTQQuantizer`: "4w-gptq"
+    - :class:`~torchao.quantization.quant_api.Int8DynActInt4WeightQuantizer`: "8da4w" (requires ``torch>=2.3.0``)
+    - :class:`~torchao.quantization.prototype.qat.Int8DynActInt4WeightQATQuantizer`: "8da4w-qat" (requires ``torch>=2.4.0``)
 
     Args:
         quantizer (Optional[Callable]): A callable object that implements the `quantize` method.
