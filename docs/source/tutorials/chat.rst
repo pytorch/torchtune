@@ -2,24 +2,25 @@
 Fine-tuning Llama3 with Chat Data
 =================================
 
-Llama3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
+Llama3 Instruct introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we'll cover what you need to know to get you quickly started on preparing your own
-custom chat dataset for fine-tuning Llama3.
+custom chat dataset for fine-tuning Llama3 Instruct.
 
 .. grid:: 2
 
     .. grid-item-card:: :octicon:`mortar-board;1em;` You will learn:
 
-      * How the Llama3 format differs from Llama2
+      * How the Llama3 Instruct format differs from Llama2
       * All about prompt templates and special tokens
-      * How to use your own chat dataset to fine-tune Llama3
+      * How to use your own chat dataset to fine-tune Llama3 Instruct
 
     .. grid-item-card:: :octicon:`list-unordered;1em;` Prerequisites
 
       * Be familiar with :ref:`configuring datasets<dataset_tutorial_label>`
-      * Know how to :ref:`download Llama3 weights <llama3_label>`
+      * Know how to :ref:`download Llama3 Instruct weights <llama3_label>`
 
-Note: this tutorial requires a version of torchtune > 0.1.1
+.. note::
+    This tutorial requires a version of torchtune > 0.1.1
 
 Template changes from Llama2 to Llama3
 --------------------------------------
@@ -42,9 +43,9 @@ for the Llama2 chat model, we can see that special tags are added:
 
     Hi! I am a human. [/INST] Hello there! Nice to meet you! I'm Meta AI, your friendly AI assistant </s>
 
-Llama3 `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
+Llama3 Instruct `overhauled <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_
 the template from Llama2 to better support multiturn conversations. The same text
-in the Llama3 format would look like this:
+in the Llama3 Instruct format would look like this:
 
 .. code-block:: text
 
@@ -59,6 +60,15 @@ in the Llama3 format would look like this:
 The tags are entirely different, and they are actually encoded differently than in
 Llama2. Let's walk through tokenizing an example with the Llama2 template and the
 Llama3 template to understand how.
+
+.. note::
+    The Llama3 Base model uses a `different prompt template
+    <https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3>`_ than Llama3 Instruct
+    because it has not yet been instruct tuned and the extra special tokens are untrained. If you
+    are running inference on the Llama3 Base model without fine-tuning we recommend the base
+    template for optimal performance. Generally, for instruct and chat data, we recommend using
+    Llama3 Instruct with its prompt template. The rest of this tutorial assumes you are using
+    Llama3 Instruct.
 
 
 Tokenizing prompt templates & special tokens
@@ -122,7 +132,7 @@ why.
     from torchtune.models.llama2 import llama2_tokenizer
 
     tokenizer = llama2_tokenizer("/tmp/Llama-2-7b-hf/tokenizer.model")
-    user_message = formatted_messages[0].content
+    user_message = formatted_messages[0].text_content
     tokens = tokenizer.encode(user_message, add_bos=True, add_eos=True)
     print(tokens)
     # [1, 518, 25580, 29962, 3532, 14816, 29903, 6778, ..., 2]
@@ -132,9 +142,9 @@ as IDs 1 and 2. We can verify that these are our BOS and EOS tokens.
 
 .. code-block:: python
 
-    print(tokenizer.spm_model.piece_to_id("<s>"))
+    print(tokenizer._spm_model.spm_model.piece_to_id("<s>"))
     # 1
-    print(tokenizer.spm_model.piece_to_id("</s>"))
+    print(tokenizer._spm_model.spm_model.piece_to_id("</s>"))
     # 2
 
 The BOS and EOS tokens are what we call special tokens, because they have their own
@@ -169,7 +179,7 @@ than Llama2.
 
     from torchtune.models.llama3 import llama3_tokenizer
 
-    tokenizer = llama3_tokenizer("/tmp/Meta-Llama-3-8B/original/tokenizer.model")
+    tokenizer = llama3_tokenizer("/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model")
     messages = [Message.from_dict(msg) for msg in sample]
     tokens, mask = tokenizer.tokenize_messages(messages)
     print(tokenizer.decode(tokens))
@@ -191,9 +201,9 @@ as their own token IDs.
 
 .. code-block:: python
 
-    print(tokenizer._encode_special_token("<|begin_of_text|>"))
+    print(tokenizer.special_tokens["<|begin_of_text|>"])
     # 128000
-    print(tokenizer._encode_special_token("<|eot_id|>"))
+    print(tokenizer.special_tokens["<|eot_id|>"])
     # 128009
 
 The best part is - all these special tokens are handled purely by the tokenizer.
@@ -314,7 +324,9 @@ object.
 
 Now we're ready to start fine-tuning! We'll use the built-in LoRA single device recipe.
 Use the :code:`tune cp` command to get a copy of the :code:`8B_lora_single_device.yaml`
-config and update it to use your new dataset.
+config and update it to use your new dataset. Create a new folder for your project
+and make sure the dataset builder and message converter are saved in that directory,
+then specify it in the config.
 
 .. code-block:: yaml
 
