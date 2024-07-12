@@ -116,6 +116,7 @@ Utilities for working with data and datasets.
 
     padded_collate
     padded_collate_dpo
+    padded_collate_tiled_images_with_cross_attention
 
 .. _gen_label:
 

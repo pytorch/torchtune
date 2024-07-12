@@ -40,7 +40,11 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .collate import padded_collate, padded_collate_dpo
+from .collate import (
+    padded_collate,
+    padded_collate_dpo,
+    padded_collate_tiled_images_with_cross_attention,
+)
 from .constants import (  # noqa
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -80,6 +84,7 @@ __all__ = [
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
     "padded_collate_dpo",
+    "padded_collate_tiled_images_with_cross_attention",
     "set_activation_checkpointing",
     "set_default_dtype",
     "set_seed",
