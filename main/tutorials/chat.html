@@ -406,9 +406,9 @@
               
   <section id="fine-tuning-llama3-with-chat-data">
 <h1>Fine-tuning Llama3 with Chat Data<a class="headerlink" href="#fine-tuning-llama3-with-chat-data" title="Permalink to this heading">¶</a></h1>
-<p>Llama3 introduced a new prompt template for fine-tuning with chat data. In this tutorial,
+<p>Llama3 Instruct introduced a new prompt template for fine-tuning with chat data. In this tutorial,
 we’ll cover what you need to know to get you quickly started on preparing your own
-custom chat dataset for fine-tuning Llama3.</p>
+custom chat dataset for fine-tuning Llama3 Instruct.</p>
 <div class="sd-container-fluid sd-sphinx-override sd-mb-4 docutils">
 <div class="sd-row sd-row-cols-2 sd-row-cols-xs-2 sd-row-cols-sm-2 sd-row-cols-md-2 sd-row-cols-lg-2 docutils">
 <div class="sd-col sd-d-flex-row docutils">
@@ -417,9 +417,9 @@ custom chat dataset for fine-tuning Llama3.</p>
 <div class="sd-card-title sd-font-weight-bold docutils">
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-mortar-board" viewBox="0 0 16 16" aria-hidden="true"><path d="M7.693 1.066a.747.747 0 0 1 .614 0l7.25 3.25a.75.75 0 0 1 0 1.368L13 6.831v2.794c0 1.024-.81 1.749-1.66 2.173-.893.447-2.075.702-3.34.702-.278 0-.55-.012-.816-.036a.75.75 0 0 1 .133-1.494c.22.02.45.03.683.03 1.082 0 2.025-.221 2.67-.543.69-.345.83-.682.83-.832V7.503L8.307 8.934a.747.747 0 0 1-.614 0L4 7.28v1.663c.296.105.575.275.812.512.438.438.688 1.059.688 1.796v3a.75.75 0 0 1-.75.75h-3a.75.75 0 0 1-.75-.75v-3c0-.737.25-1.358.688-1.796.237-.237.516-.407.812-.512V6.606L.443 5.684a.75.75 0 0 1 0-1.368ZM2.583 5 8 7.428 13.416 5 8 2.572ZM2.5 11.25v2.25H4v-2.25c0-.388-.125-.611-.25-.735a.697.697 0 0 0-.5-.203.707.707 0 0 0-.5.203c-.125.124-.25.347-.25.735Z"></path></svg> You will learn:</div>
 <ul class="simple">
-<li><p class="sd-card-text">How the Llama3 format differs from Llama2</p></li>
+<li><p class="sd-card-text">How the Llama3 Instruct format differs from Llama2</p></li>
 <li><p class="sd-card-text">All about prompt templates and special tokens</p></li>
-<li><p class="sd-card-text">How to use your own chat dataset to fine-tune Llama3</p></li>
+<li><p class="sd-card-text">How to use your own chat dataset to fine-tune Llama3 Instruct</p></li>
 </ul>
 </div>
 </div>
@@ -431,14 +431,17 @@ custom chat dataset for fine-tuning Llama3.</p>
 <svg version="1.1" width="1.0em" height="1.0em" class="sd-octicon sd-octicon-list-unordered" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.75 2.5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5Zm0 5h8.5a.75.75 0 0 1 0 1.5h-8.5a.75.75 0 0 1 0-1.5ZM2 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2Zm1-6a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM2 4a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"></path></svg> Prerequisites</div>
 <ul class="simple">
 <li><p class="sd-card-text">Be familiar with <a class="reference internal" href="datasets.html#dataset-tutorial-label"><span class="std std-ref">configuring datasets</span></a></p></li>
-<li><p class="sd-card-text">Know how to <a class="reference internal" href="llama3.html#llama3-label"><span class="std std-ref">download Llama3 weights</span></a></p></li>
+<li><p class="sd-card-text">Know how to <a class="reference internal" href="llama3.html#llama3-label"><span class="std std-ref">download Llama3 Instruct weights</span></a></p></li>
 </ul>
 </div>
 </div>
 </div>
 </div>
 </div>
-<p>Note: this tutorial requires a version of torchtune &gt; 0.1.1</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This tutorial requires a version of torchtune &gt; 0.1.1</p>
+</div>
 <section id="template-changes-from-llama2-to-llama3">
 <h2>Template changes from Llama2 to Llama3<a class="headerlink" href="#template-changes-from-llama2-to-llama3" title="Permalink to this heading">¶</a></h2>
 <p>The Llama2 chat model requires a specific template when prompting the pre-trained
@@ -456,9 +459,9 @@ You are a helpful, respectful, and honest assistant.
 Hi! I am a human. [/INST] Hello there! Nice to meet you! I&#39;m Meta AI, your friendly AI assistant &lt;/s&gt;
 </pre></div>
 </div>
-<p>Llama3 <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">overhauled</a>
+<p>Llama3 Instruct <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">overhauled</a>
 the template from Llama2 to better support multiturn conversations. The same text
-in the Llama3 format would look like this:</p>
+in the Llama3 Instruct format would look like this:</p>
 <div class="highlight-text notranslate"><div class="highlight"><pre><span></span>&lt;|begin_of_text|&gt;&lt;|start_header_id|&gt;system&lt;|end_header_id|&gt;
 
 You are a helpful, respectful, and honest assistant.&lt;|eot_id|&gt;&lt;|start_header_id|&gt;user&lt;|end_header_id|&gt;
@@ -471,6 +474,15 @@ Hello there! Nice to meet you! I&#39;m Meta AI, your friendly AI assistant&lt;|e
 <p>The tags are entirely different, and they are actually encoded differently than in
 Llama2. Let’s walk through tokenizing an example with the Llama2 template and the
 Llama3 template to understand how.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Llama3 Base model uses a <a class="reference external" href="https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3">different prompt template</a> than Llama3 Instruct
+because it has not yet been instruct tuned and the extra special tokens are untrained. If you
+are running inference on the Llama3 Base model without fine-tuning we recommend the base
+template for optimal performance. Generally, for instruct and chat data, we recommend using
+Llama3 Instruct with its prompt template. The rest of this tutorial assumes you are using
+Llama3 Instruct.</p>
+</div>
 </section>
 <section id="tokenizing-prompt-templates-special-tokens">
 <h2>Tokenizing prompt templates &amp; special tokens<a class="headerlink" href="#tokenizing-prompt-templates-special-tokens" title="Permalink to this heading">¶</a></h2>
@@ -525,7 +537,7 @@ why.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama2</span> <span class="kn">import</span> <span class="n">llama2_tokenizer</span>
 
 <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama2_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Llama-2-7b-hf/tokenizer.model&quot;</span><span class="p">)</span>
-<span class="n">user_message</span> <span class="o">=</span> <span class="n">formatted_messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">content</span>
+<span class="n">user_message</span> <span class="o">=</span> <span class="n">formatted_messages</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">text_content</span>
 <span class="n">tokens</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">user_message</span><span class="p">,</span> <span class="n">add_bos</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">add_eos</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
 <span class="c1"># [1, 518, 25580, 29962, 3532, 14816, 29903, 6778, ..., 2]</span>
@@ -533,9 +545,9 @@ why.</p>
 </div>
 <p>We’ve added the BOS and EOS tokens when encoding our example text. This shows up
 as IDs 1 and 2. We can verify that these are our BOS and EOS tokens.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">piece_to_id</span><span class="p">(</span><span class="s2">&quot;&lt;s&gt;&quot;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">_spm_model</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">piece_to_id</span><span class="p">(</span><span class="s2">&quot;&lt;s&gt;&quot;</span><span class="p">))</span>
 <span class="c1"># 1</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">piece_to_id</span><span class="p">(</span><span class="s2">&quot;&lt;/s&gt;&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">_spm_model</span><span class="o">.</span><span class="n">spm_model</span><span class="o">.</span><span class="n">piece_to_id</span><span class="p">(</span><span class="s2">&quot;&lt;/s&gt;&quot;</span><span class="p">))</span>
 <span class="c1"># 2</span>
 </pre></div>
 </div>
@@ -564,7 +576,7 @@ token.</p>
 than Llama2.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">torchtune.models.llama3</span> <span class="kn">import</span> <span class="n">llama3_tokenizer</span>
 
-<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B/original/tokenizer.model&quot;</span><span class="p">)</span>
+<span class="n">tokenizer</span> <span class="o">=</span> <span class="n">llama3_tokenizer</span><span class="p">(</span><span class="s2">&quot;/tmp/Meta-Llama-3-8B-Instruct/original/tokenizer.model&quot;</span><span class="p">)</span>
 <span class="n">messages</span> <span class="o">=</span> <span class="p">[</span><span class="n">Message</span><span class="o">.</span><span class="n">from_dict</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span> <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">sample</span><span class="p">]</span>
 <span class="n">tokens</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenize_messages</span><span class="p">(</span><span class="n">messages</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">tokens</span><span class="p">))</span>
@@ -585,9 +597,9 @@ places after encoding the individual messages.</p>
 template. It turns out that all of the additional tags are special tokens, and we don’t require
 a separate prompt template. We can verify this by checking if the tags get encoded
 as their own token IDs.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="s2">&quot;&lt;|begin_of_text|&gt;&quot;</span><span class="p">))</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">[</span><span class="s2">&quot;&lt;|begin_of_text|&gt;&quot;</span><span class="p">])</span>
 <span class="c1"># 128000</span>
-<span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">_encode_special_token</span><span class="p">(</span><span class="s2">&quot;&lt;|eot_id|&gt;&quot;</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">special_tokens</span><span class="p">[</span><span class="s2">&quot;&lt;|eot_id|&gt;&quot;</span><span class="p">])</span>
 <span class="c1"># 128009</span>
 </pre></div>
 </div>
@@ -695,7 +707,9 @@ such as specifying the data split with <code class="code docutils literal notran
 </div>
 <p>Now we’re ready to start fine-tuning! We’ll use the built-in LoRA single device recipe.
 Use the <code class="code docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span></code> command to get a copy of the <code class="code docutils literal notranslate"><span class="pre">8B_lora_single_device.yaml</span></code>
-config and update it to use your new dataset.</p>
+config and update it to use your new dataset. Create a new folder for your project
+and make sure the dataset builder and message converter are saved in that directory,
+then specify it in the config.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path.to.my.custom_dataset</span>
 <span class="w">  </span><span class="nt">max_seq_len</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2048</span>
