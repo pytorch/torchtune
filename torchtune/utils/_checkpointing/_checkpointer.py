@@ -16,7 +16,6 @@ from safetensors.torch import save_file
 from torchtune import utils
 
 from torchtune.models import convert_weights
-from torchtune.models.gemma import gemma_hf_to_tune, gemma_tune_to_hf
 from torchtune.models.mistral import (
     mistral_reward_hf_to_tune,
     mistral_reward_tune_to_hf,
@@ -287,8 +286,8 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
     the Llama-2-7b-hf model from the meta-llama repo (https://huggingface.co/meta-llama/Llama-2-7b-hf).
 
     Note:
-        HF checkpoint names usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure \
-        we read the files in the right order, we sort the checkpoint file names before reading
+        HF checkpoint names are usually ordered by ID (eg: 0001_of_0003, 0002_of_0003, etc.) To ensure \
+        we read the files in the right order, we sort the checkpoint file names before reading.
 
     Note:
         Checkpoint conversion to and from HF's format requires access to model params which are \
@@ -427,14 +426,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
             )
-        elif self._model_type == ModelType.GEMMA:
-            converted_state_dict[utils.MODEL_KEY] = gemma_hf_to_tune(
-                merged_state_dict,
-                num_heads=self._config["num_attention_heads"],
-                num_kv_heads=self._config["num_key_value_heads"],
-                dim=self._config["hidden_size"],
-                head_dim=self._config["head_dim"],
-            )
         else:
             converted_state_dict[utils.MODEL_KEY] = convert_weights.hf_to_tune(
                 merged_state_dict,
@@ -484,14 +475,6 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                 num_heads=self._config["num_attention_heads"],
                 num_kv_heads=self._config["num_key_value_heads"],
                 dim=self._config["hidden_size"],
-            )
-        elif self._model_type == ModelType.GEMMA:
-            state_dict[utils.MODEL_KEY] = gemma_tune_to_hf(
-                state_dict[utils.MODEL_KEY],
-                num_heads=self._config["num_attention_heads"],
-                num_kv_heads=self._config["num_key_value_heads"],
-                dim=self._config["hidden_size"],
-                head_dim=self._config["head_dim"],
             )
         else:
             state_dict[utils.MODEL_KEY] = convert_weights.tune_to_hf(
@@ -554,6 +537,7 @@ class FullModelHFCheckpointer(_CheckpointerInterface):
                     num_heads=self._config["num_attention_heads"],
                     num_kv_heads=self._config["num_key_value_heads"],
                     dim=self._config["hidden_size"],
+                    head_dim=self._config.get("head_dim", None),
                 )
                 peft_output_path = Path.joinpath(
                     self._output_dir, "adapter_model"

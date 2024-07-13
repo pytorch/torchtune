@@ -13,10 +13,13 @@ from torchao.quantization.quant_api import (
     Quantizer,
 )
 
-from torchtune.modules.low_precision._utils import _get_torchao_version
+from torchtune.modules.low_precision._utils import (
+    _get_torchao_version,
+    _nightly_version_ge,
+)
 
 ao_version, is_nightly = _get_torchao_version()
-if is_nightly and (ao_version >= "2024.7.3"):
+if is_nightly and _nightly_version_ge(ao_version, "2024-07-03"):
     from torchao.quantization.quant_api import quantize_ as quantize
 else:
     from torchao.quantization.quant_api import quantize
@@ -74,7 +77,15 @@ def get_quantizer_mode(quantizer: Optional[Callable]) -> Optional[str]:
     """Given a quantizer object, returns a string that specifies the type of quantization.
 
     For example, in the case of int4 weight only quantization, we'll return "4w".
-    If the quantizer is not recognized as a known quantizer, we'll return None
+    If the quantizer is not recognized as a known quantizer, we'll return None.
+
+    Currently supported:
+
+    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyQuantizer`: "4w"
+    - :class:`~torchao.quantization.quant_api.Int8WeightOnlyQuantizer`: "8w"
+    - :class:`~torchao.quantization.quant_api.Int4WeightOnlyGPTQQuantizer`: "4w-gptq"
+    - :class:`~torchao.quantization.quant_api.Int8DynActInt4WeightQuantizer`: "8da4w" (requires ``torch>=2.3.0``)
+    - :class:`~torchao.quantization.prototype.qat.Int8DynActInt4WeightQATQuantizer`: "8da4w-qat" (requires ``torch>=2.4.0``)
 
     Args:
         quantizer (Optional[Callable]): A callable object that implements the `quantize` method.

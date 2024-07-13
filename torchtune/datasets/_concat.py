@@ -24,8 +24,8 @@ class ConcatDataset(Dataset):
     very large datasets.
 
     Upon initialization, this class computes the cumulative length of all datasets and maintains an internal mapping
-    of indices to the respective datasets. This approach allows the `ConcatDataset` to delegate data retrieval to
-    the appropriate sub-dataset transparently when a particular index is accessed.
+    of indices to the respective datasets. This approach allows the :class:`~torchtune.datasets.ConcatDataset`
+    to delegate data retrieval to the appropriate sub-dataset transparently when a particular index is accessed.
 
     Note:
         Using this class with very large datasets can lead to high memory consumption, as it requires all datasets to
@@ -33,7 +33,7 @@ class ConcatDataset(Dataset):
 
     Args:
         datasets (List[Dataset]): A list of datasets to concatenate. Each dataset must be an instance of a class
-            derived from `torch.utils.data.Dataset`.
+            derived from :class:`~torch.utils.data.Dataset`.
 
     Attributes:
         _datasets (List[Dataset]): Stores the list of datasets passed during initialization.
