@@ -90,7 +90,7 @@ def _validate_device_from_env(device: torch.device) -> None:
                 Device specified is {device} but was assigned cuda:{local_rank}"
             )
 
-    if device.type == "mps" and torch_version_ge("2.4.0"):
+    if device.type == "mps" and not torch_version_ge("2.4.0"):
         raise RuntimeError(
                 f"MPS support requires torch version >= 2.4.0."
             )
