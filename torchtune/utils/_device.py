@@ -6,6 +6,7 @@
 
 import os
 from typing import Optional
+from ._version import torch_version_ge
 
 import torch
 
