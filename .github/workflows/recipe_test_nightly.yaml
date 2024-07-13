@@ -4,6 +4,7 @@ on:
   schedule:
     # Runs at midnight every day
     - cron:  '0 0 * * *'
+  pull_request: # TODO: remove before landing (just for testing)
   workflow_dispatch:
 
 concurrency:
