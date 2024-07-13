@@ -13,10 +13,13 @@ from torchao.quantization.quant_api import (
     Quantizer,
 )
 
-from torchtune.modules.low_precision._utils import _get_torchao_version
+from torchtune.modules.low_precision._utils import (
+    _get_torchao_version,
+    _nightly_version_ge,
+)
 
 ao_version, is_nightly = _get_torchao_version()
-if is_nightly and (ao_version >= "2024.7.3"):
+if is_nightly and _nightly_version_ge(ao_version, "2024-07-03"):
     from torchao.quantization.quant_api import quantize_ as quantize
 else:
     from torchao.quantization.quant_api import quantize
