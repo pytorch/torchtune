@@ -51,18 +51,18 @@ class ConcatDataset(Dataset):
     This can also be accomplished by passing in a list of datasets to the YAML config::
 
         dataset:
-            - _component_: torchtune.datasets.instruct_dataset
-                source: vicgalle/alpaca-gpt4
-                template: torchtune.data.AlpacaInstructTemplate
-                split: train
-                train_on_input: True
-            - _component_: torchtune.datasets.instruct_dataset
-                source: samsum
-                template: torchtune.data.SummarizeTemplate
-                column_map: {"output": "summary"}
-                output: summary
-                split: train
-                train_on_input: False
+          - _component_: torchtune.datasets.instruct_dataset
+            source: vicgalle/alpaca-gpt4
+            template: torchtune.data.AlpacaInstructTemplate
+            split: train
+            train_on_input: True
+          - _component_: torchtune.datasets.instruct_dataset
+            source: samsum
+            template: torchtune.data.SummarizeTemplate
+            column_map: {"output": "summary"}
+            output: summary
+            split: train
+            train_on_input: False
 
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,
     enhancing the flexibility in handling diverse data sources for training machine learning models.
