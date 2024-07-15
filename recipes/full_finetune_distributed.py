@@ -397,7 +397,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             ds = ConcatDataset(datasets=datasets)
             packed = False
         else:
-            ds = config.instantiate(cfg_dataset, tokenizer=self._tokenizer)
+            ds = config.instantiate(cfg_dataset, self._tokenizer)
             packed = cfg_dataset.get("packed", False)
 
         sampler = DistributedSampler(

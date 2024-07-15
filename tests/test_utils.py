@@ -12,7 +12,7 @@ import unittest
 from contextlib import contextmanager
 from io import StringIO
 from pathlib import Path
-from typing import Any, Dict, Generator, List, Optional, TextIO, Tuple, Union
+from typing import Any, Dict, Generator, List, Mapping, Optional, TextIO, Tuple, Union
 
 import pytest
 
@@ -20,6 +20,7 @@ import torch
 from torch import nn
 from torchtune.data import ChatFormat, Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer
+from torchtune.modules.transforms import Transform
 
 skip_if_cuda_not_available = unittest.skipIf(
     not torch.cuda.is_available(), "CUDA is not available"
@@ -39,7 +40,7 @@ TOKENIZER_PATHS = {
 }
 
 
-class DummyTokenizer(ModelTokenizer):
+class DummyTokenizer(ModelTokenizer, Transform):
     def encode(self, text, add_bos=True, add_eos=True, **kwargs) -> List[int]:
         words = text.split()
         tokens = [len(word) for word in words]
@@ -69,15 +70,16 @@ class DummyTokenizer(ModelTokenizer):
                 mask.append(message.masked)
 
             # Tokenize current message, append with masks
+            tokens = []
             for item in message.content:
                 if item["type"] == "text":
-                    tokens = self.encode(
+                    tokens = tokens + self.encode(
                         item["content"],
                         add_bos=False,
                         add_eos=False,
                     )
                 elif item["type"] == "image":
-                    tokens = [self.image_id]
+                    tokens = tokens + [self.image_id]
 
             tokenized_messages.extend(tokens)
             mask.extend([message.masked] * len(tokens))
@@ -101,6 +103,13 @@ class DummyTokenizer(ModelTokenizer):
             mask = truncate(mask, max_seq_len, message.masked)
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample
 
     @property
     def eos_id(self):
