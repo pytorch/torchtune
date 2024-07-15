@@ -439,12 +439,28 @@ ending index, and the dataset index for quick lookup and access during indexing 
 </ul>
 </dd>
 </dl>
-<p class="rubric">Example</p>
+<p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">dataset1</span> <span class="o">=</span> <span class="n">MyCustomDataset</span><span class="p">(</span><span class="n">params1</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">dataset2</span> <span class="o">=</span> <span class="n">MyCustomDataset</span><span class="p">(</span><span class="n">params2</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">concat_dataset</span> <span class="o">=</span> <span class="n">ConcatDataset</span><span class="p">([</span><span class="n">dataset1</span><span class="p">,</span> <span class="n">dataset2</span><span class="p">])</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">concat_dataset</span><span class="p">))</span>  <span class="c1"># Total length of both datasets</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">data_point</span> <span class="o">=</span> <span class="n">concat_dataset</span><span class="p">[</span><span class="mi">1500</span><span class="p">]</span>  <span class="c1"># Accesses an element from the appropriate dataset</span>
+</pre></div>
+</div>
+<p>This can also be accomplished by passing in a list of datasets to the YAML config:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">dataset</span><span class="p">:</span>
+  <span class="o">-</span> <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">instruct_dataset</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">vicgalle</span><span class="o">/</span><span class="n">alpaca</span><span class="o">-</span><span class="n">gpt4</span>
+    <span class="n">template</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">AlpacaInstructTemplate</span>
+    <span class="n">split</span><span class="p">:</span> <span class="n">train</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">True</span>
+  <span class="o">-</span> <span class="n">_component_</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">datasets</span><span class="o">.</span><span class="n">instruct_dataset</span>
+    <span class="n">source</span><span class="p">:</span> <span class="n">samsum</span>
+    <span class="n">template</span><span class="p">:</span> <span class="n">torchtune</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">SummarizeTemplate</span>
+    <span class="n">column_map</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;output&quot;</span><span class="p">:</span> <span class="s2">&quot;summary&quot;</span><span class="p">}</span>
+    <span class="n">output</span><span class="p">:</span> <span class="n">summary</span>
+    <span class="n">split</span><span class="p">:</span> <span class="n">train</span>
+    <span class="n">train_on_input</span><span class="p">:</span> <span class="kc">False</span>
 </pre></div>
 </div>
 <p>This class primarily focuses on providing a unified interface to access elements from multiple datasets,

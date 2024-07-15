@@ -768,8 +768,9 @@ dataset.conversation_style<span class="o">=</span>openai<span class="w"> </span>
 </section>
 <section id="multiple-in-memory-datasets">
 <h2>Multiple in-memory datasets<a class="headerlink" href="#multiple-in-memory-datasets" title="Permalink to this heading">¶</a></h2>
-<p>It is also possible to train on multiple datasets and configure them individually.
-You can even mix instruct and chat datasets or other custom datasets.</p>
+<p>It is also possible to train on multiple datasets and configure them individually using
+our <a class="reference internal" href="../generated/torchtune.datasets.ConcatDataset.html#torchtune.datasets.ConcatDataset" title="torchtune.datasets.ConcatDataset"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConcatDataset</span></code></a> interface. You can even mix instruct and chat datasets
+or other custom datasets.</p>
 <div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># YAML config</span>
 <span class="nt">dataset</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">_component_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchtune.datasets.instruct_dataset</span>
