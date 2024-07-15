@@ -519,7 +519,7 @@ full_finetune_distributed<span class="w">                </span>llama2/7B_full
 </section>
 <section id="copy-a-built-in-recipe-or-config">
 <h2>Copy a built-in recipe or config<a class="headerlink" href="#copy-a-built-in-recipe-or-config" title="Permalink to this heading">¶</a></h2>
-<p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span> <span class="pre">&lt;config&gt;</span> <span class="pre">&lt;path&gt;</span></code> command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
+<p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">cp</span> <span class="pre">&lt;recipe|config&gt;</span> <span class="pre">&lt;path&gt;</span></code> command copies built-in recipes and configs to a provided location. This allows you to make a local copy of a library
 recipe or config to edit directly for yourself.</p>
 <table class="docutils align-default">
 <colgroup>
@@ -527,7 +527,10 @@ recipe or config to edit directly for yourself.</p>
 <col style="width: 67%" />
 </colgroup>
 <tbody>
-<tr class="row-odd"><td><p>--make-parents</p></td>
+<tr class="row-odd"><td><p>-n, --no-clobber</p></td>
+<td><p>Do not overwrite destination if it already exists</p></td>
+</tr>
+<tr class="row-even"><td><p>--make-parents</p></td>
 <td><p>Create parent directories for destination if they do not exist. If not set to True, will error if parent directories do not exist</p></td>
 </tr>
 </tbody>
@@ -596,7 +599,8 @@ Further information on config overrides can be found <a class="reference interna
 <section id="validate-a-config">
 <h2>Validate a config<a class="headerlink" href="#validate-a-config" title="Permalink to this heading">¶</a></h2>
 <p>The <code class="docutils literal notranslate"><span class="pre">tune</span> <span class="pre">validate</span> <span class="pre">&lt;config&gt;</span></code> command will validate that your config is formatted properly.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tune<span class="w"> </span>validate<span class="w"> </span>recipes/configs/full_finetune_distributed.yaml
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># If you&#39;ve copied over a built-in config and want to validate custom changes</span>
+$<span class="w"> </span>tune<span class="w"> </span>validate<span class="w"> </span>my_configs/llama3/8B_full.yaml
 Config<span class="w"> </span>is<span class="w"> </span>well-formed!
 </pre></div>
 </div>
