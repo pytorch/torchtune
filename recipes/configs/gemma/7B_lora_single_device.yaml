@@ -36,7 +36,7 @@ model:
 
 checkpointer:
   _component_: torchtune.utils.FullModelHFCheckpointer
-  checkpoint_dir: /tmp/gemma-7b
+  checkpoint_dir: /tmp/gemma-7b/
   checkpoint_files: [
     model-00001-of-00004.safetensors,
     model-00002-of-00004.safetensors,
@@ -44,7 +44,7 @@ checkpointer:
     model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma-7b
+  output_dir: /tmp/gemma-7b/
   model_type: GEMMA
 resume_from_checkpoint: False
 
