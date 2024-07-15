@@ -6,7 +6,6 @@
 
 from ._component_builders import clip_vision_encoder
 
-from ._model_builders import clip_vit_224_transform  # noqa
 from ._position_embeddings import (
     TiledTokenPositionalEmbedding,
     TilePositionalEmbedding,
@@ -18,5 +17,4 @@ __all__ = [
     "TokenPositionalEmbedding",
     "TiledTokenPositionalEmbedding",
     "TilePositionalEmbedding",
-    "clip_vit_224_transform",
 ]

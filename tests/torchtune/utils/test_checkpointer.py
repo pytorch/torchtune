@@ -628,7 +628,6 @@ class TestHFGemmaFullModelCheckpointer:
             ),
             "model.norm.weight": randn(_DIM, dtype=weight_dtype),
         }
-        state_dict["lm_head.weight"] = state_dict["model.embed_tokens.weight"]
         return state_dict
 
     @pytest.fixture
@@ -704,8 +703,7 @@ class TestHFGemmaFullModelCheckpointer:
         # Converted state dict from the checkpointer
 
         state_dict = single_file_checkpointer.load_checkpoint()
-        # Check that we've loaded all the keys - we're loading one less key in: lm_head.weight
-        assert len(state_dict["model"].keys()) == (len(orig_state_dict.keys()) - 1)
+        assert len(state_dict["model"].keys()) == len(orig_state_dict.keys())
 
         # the keys in original state dict should match up with the keys in the weight_map
         for key in orig_state_dict.keys():

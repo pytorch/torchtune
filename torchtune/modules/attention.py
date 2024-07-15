@@ -12,7 +12,7 @@ from torchtune.modules.kv_cache import KVCache
 
 class CausalSelfAttention(nn.Module):
     """Multi-headed grouped query self-attention (GQA) layer introduced
-    in https://arxiv.org/pdf/2305.13245v1.pdf.
+    in https://arxiv.org/abs/2305.13245v1.
 
     GQA is a version of multiheaded attention (MHA) which uses fewer
     key/value heads than query heads by grouping n query heads for each
