@@ -171,7 +171,7 @@ Custom unstructured text corpus
 
 For continued pre-training, typically a similar data setup to pre-training is used
 for a simple text completion task. This means no instruct templates, chat formats,
-and minimal special tokens (only BOS and EOS). To specify an unstructured text corpus,
+and minimal special tokens (only BOS and, optionally,  EOS). To specify an unstructured text corpus,
 you can use the :func:`~torchtune.datasets.text_completion_dataset` builder with
 a Hugging Face dataset or a custom local corpus. Here is how to specify it for local
 files:
@@ -395,8 +395,9 @@ you can also add more advanced behavior.
 Multiple in-memory datasets
 ---------------------------
 
-It is also possible to train on multiple datasets and configure them individually.
-You can even mix instruct and chat datasets or other custom datasets.
+It is also possible to train on multiple datasets and configure them individually using
+our :class:`~torchtune.datasets.ConcatDataset` interface. You can even mix instruct and chat datasets
+or other custom datasets.
 
 .. code-block:: yaml
 

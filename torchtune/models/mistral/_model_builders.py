@@ -121,7 +121,7 @@ def mistral_classifier_7b() -> TransformerDecoder:
 
 
     Returns:
-        TransformerClassifier: Instantiation of Mistral 7B classifier model
+        TransformerDecoder: Instantiation of Mistral 7B classifier model
     """
     return mistral_classifier(
         num_classes=1,

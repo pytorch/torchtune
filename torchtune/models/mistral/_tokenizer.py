@@ -107,10 +107,11 @@ class MistralTokenizer(ModelTokenizer):
         r"""Tokenize a list of messages one at a time then concatenate them,
         returning a list of tokens and a list of masks.
 
-        Note: sentencepiece has problems where in general
-        encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
-        We can get around this by prepending s2 with a known token and slicing the
-        beginning off the tokenized s2.
+        Note:
+            sentencepiece has problems where in general
+            encode(s1 + s2) != encode(s1) + encode(s2) due to whitespace handling.
+            We can get around this by prepending s2 with a known token and slicing the
+            beginning off the tokenized s2.
 
         Example:
             >>> tokenizer = MistralTokenizer(tokenizer_path)
@@ -119,12 +120,13 @@ class MistralTokenizer(ModelTokenizer):
                 Message(role="user", content="user prompt\n", masked=True),
                 Message(role="assistant", content="assistant response\n"),
             ]
-            # tokenize_messages encodes messages separately and concats
+
+            >>> # tokenize_messages encodes messages separately and concats
             >>> tokenizer.tokenize_messages(messages, max_seq_len)[0]
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 
 
-            # Same result as encoding the full string in one go
+            >>> # Same result as encoding the full string in one go
             >>> tokenizer.encode(''.join([message.content for message in messages]))
             [1, 1788, 2643, 13, 1792, 9508, 13, 465, 22137, 2933, 2]
 

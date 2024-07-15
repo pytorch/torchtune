@@ -20,7 +20,8 @@
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.qwen2._tokenizer.Qwen2Tokenizer
-  path: /tmp/Qwen2-7B-Instruct/tokenizer.json
+  vocab_file: /tmp/Qwen2-7B-Instruct/vocab.json
+  merges_file: /tmp/Qwen2-7B-Instruct/merges.txt
 
 # Dataset
 dataset:

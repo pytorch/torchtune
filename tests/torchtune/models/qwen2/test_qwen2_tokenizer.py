@@ -7,6 +7,7 @@
 from pathlib import Path
 
 import pytest
+
 from torchtune.data import Message
 from torchtune.models.qwen2 import qwen2_tokenizer
 
@@ -16,8 +17,11 @@ ASSETS = Path(__file__).parent.parent.parent.parent / "assets"
 class TestQwen2Tokenizer:
     @pytest.fixture
     def tokenizer(self):
-        # tiny_bpe_tokenizer.json is a pretrained tokenizers BPE tokenizer model.
-        return qwen2_tokenizer(str(ASSETS / "tiny_bpe_tokenizer.json"))
+        return qwen2_tokenizer(
+            vocab_file=str(ASSETS / "tiny_bpe_vocab.json"),
+            merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
+            special_tokens_path=str(ASSETS / "tiny_bpe_tokenizer.json"),
+        )
 
     def test_tokenize_messages(self, tokenizer):
         messages = [
@@ -44,26 +48,6 @@ class TestQwen2Tokenizer:
             273,
             105,
             94,
-            58,
-            90,
-            6,
-            83,
-            574,
-            68,
-            6,
-            25,
-            1032,
-            757,
-            480,
-            6,
-            11,
-            1032,
-            661,
-            83,
-            144,
-            6,
-            25,
-            1032,
             33,
             214,
             174,
@@ -93,16 +77,16 @@ class TestQwen2Tokenizer:
             103,
             874,
             269,
-            160,
-            77,
-            145,
+            13,
+            94,
+            94,
             2,
             2,
             2,
             483,
             197,
-            349,
-            77,
+            25,
+            94,
             885,
             98,
             1226,
@@ -113,9 +97,9 @@ class TestQwen2Tokenizer:
             399,
             1583,
             78,
-            160,
-            77,
-            145,
+            13,
+            94,
+            94,
             2,
             2,
             2,
@@ -123,11 +107,8 @@ class TestQwen2Tokenizer:
             1733,
             102,
             182,
-            349,
-            77,
-            6,
-            92,
-            60,
+            25,
+            94,
             2002,
             94,
             2001,
@@ -135,26 +116,6 @@ class TestQwen2Tokenizer:
             251,
             249,
             94,
-            58,
-            90,
-            6,
-            83,
-            574,
-            68,
-            6,
-            25,
-            1032,
-            757,
-            480,
-            6,
-            11,
-            1032,
-            661,
-            83,
-            144,
-            6,
-            25,
-            111,
             40,
             1791,
             194,
@@ -270,13 +231,18 @@ class TestQwen2Tokenizer:
             318,
             1278,
             13,
-            1,
-            92,
-            60,
             2002,
             94,
             2000,
         ]
-        expected_mask = [True] * 90 + [False] * 146
+        expected_mask = [True] * 67 + [False] * 123
         assert expected_tokens == tokens
         assert expected_mask == mask
+
+        formatted_messages = tokenizer.decode(tokens)
+        expected_formatted_messages = (
+            f"<|im_start|>user\n{messages[0].text_content}<|im_end|>\n"
+            f"<|im_start|>assistant\n{messages[1].text_content}<|im_end|>\n"
+            "<|endoftext|>"
+        )
+        assert expected_formatted_messages == formatted_messages

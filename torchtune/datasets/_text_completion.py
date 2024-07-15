@@ -28,6 +28,7 @@ class TextCompletionDataset(Dataset):
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
     """
 
@@ -37,12 +38,14 @@ class TextCompletionDataset(Dataset):
         source: str,
         column: str = "text",
         max_seq_len: Optional[int] = None,
+        add_eos: bool = True,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self.max_seq_len = max_seq_len
         self._column = column
+        self.add_eos = add_eos
 
     def __len__(self):
         return len(self._data)
@@ -53,7 +56,7 @@ class TextCompletionDataset(Dataset):
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
         prompt = sample[self._column]
-        tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=True)
+        tokens = self._tokenizer.encode(text=prompt, add_bos=True, add_eos=self.add_eos)
 
         # Truncate if needed, but don't coerce EOS id
         if self.max_seq_len is not None:
@@ -70,13 +73,15 @@ def text_completion_dataset(
     source: str,
     column: Optional[str] = None,
     max_seq_len: Optional[int] = None,
+    add_eos: bool = True,
     packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
-    Build a configurable freeform text dataset with instruction prompts. This method should be
+    Build a configurable dataset from a freeform, unstructured text corpus similar
+    to datasets used in pre-training. This method should be
     used to configure a custom text dataset from the yaml config instead of
-    using `TextDataset` directly, as it is made to be config friendly.
+    using :class:`~torchtune.datasets.TextCompletionDataset` directly, as it is made to be config friendly.
 
     Args:
         tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
@@ -87,6 +92,7 @@ def text_completion_dataset(
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.
             Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory
             and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.
+        add_eos (bool): Whether to add an EOS token to the end of the sequence. Default is True.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.
         **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.
 
@@ -120,6 +126,7 @@ def text_completion_dataset(
         source=source,
         column=column,
         max_seq_len=max_seq_len,
+        add_eos=add_eos,
         **load_dataset_kwargs,
     )
     return (

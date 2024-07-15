@@ -10,7 +10,7 @@ from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_pos
 
 from torch import nn
 
-from torchtune.models.qwen2.transformer import Qwen2TransformerDecoder
+from torchtune.modules.transformer import TransformerDecoder, TiedEmbeddingTransformerDecoder
 from torchtune.models.qwen2._positional_embeddings import Qwen2RotaryPositionalEmbeddings
 
 from torchtune.modules import (
@@ -48,7 +48,7 @@ def qwen2(
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
     tie_word_embeddings: bool = False,
-) -> Qwen2TransformerDecoder:
+) -> TransformerDecoder:
     """
     Build the decoder associated with the Qwen2 model. This includes:
     - Token embeddings
@@ -76,7 +76,7 @@ def qwen2(
         tie_word_embeddings (bool): whether the model's input and output word embeddings should be tied.
 
     Returns:
-        Qwen2TransformerDecoder: Instantiation of Qwen2 model.
+        TransformerDecoder: Instantiation of Qwen2 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -105,16 +105,27 @@ def qwen2(
     )
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
     output_proj = None if tie_word_embeddings else nn.Linear(embed_dim, vocab_size, bias=False)
-    return Qwen2TransformerDecoder(
-        tok_embeddings=tok_embeddings,
-        layer=layer,
-        num_layers=num_layers,
-        max_seq_len=max_seq_len,
-        num_heads=num_heads,
-        head_dim=head_dim,
-        norm=RMSNorm(embed_dim, eps=norm_eps),
-        output=output_proj,
-    )
+    if output_proj is None:
+        return TiedEmbeddingTransformerDecoder(
+            tok_embeddings=tok_embeddings,
+            layer=layer,
+            num_layers=num_layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=head_dim,
+            norm=RMSNorm(embed_dim, eps=norm_eps),
+        )
+    else:
+        return TransformerDecoder(
+            tok_embeddings=tok_embeddings,
+            layer=layer,
+            num_layers=num_layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=head_dim,
+            norm=RMSNorm(embed_dim, eps=norm_eps),
+            output=output_proj,
+        )
 
 
 def qwen2_mlp(dim: int, hidden_dim: int) -> FeedForward:
@@ -150,7 +161,7 @@ def lora_qwen2(
         lora_dropout: float = 0.0,
         # Quantization args
         quantize_base: bool = False,
-) -> Qwen2TransformerDecoder:
+) -> TransformerDecoder:
     """
     Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
@@ -188,7 +199,7 @@ def lora_qwen2(
             supported for quantization currently.
 
     Returns:
-        Qwen2TransformerDecoder: Instantiation of Qwen2 model with LoRA applied to
+        TransformerDecoder: Instantiation of Qwen2 model with LoRA applied to
         a subset of the attention projections in each layer.
 
     """
@@ -237,16 +248,27 @@ def lora_qwen2(
             if apply_lora_to_output
             else nn.Linear(embed_dim, vocab_size, bias=False)
         )
-    model = Qwen2TransformerDecoder(
-        tok_embeddings=tok_embeddings,
-        layer=layer,
-        num_layers=num_layers,
-        max_seq_len=max_seq_len,
-        num_heads=num_heads,
-        head_dim=(embed_dim // num_heads),
-        norm=RMSNorm(embed_dim, eps=norm_eps),
-        output=output_proj,
-    )
+    if output_proj is None:
+        model = TiedEmbeddingTransformerDecoder(
+            tok_embeddings=tok_embeddings,
+            layer=layer,
+            num_layers=num_layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=(embed_dim // num_heads),
+            norm=RMSNorm(embed_dim, eps=norm_eps),
+        )
+    else:
+        model = TransformerDecoder(
+            tok_embeddings=tok_embeddings,
+            layer=layer,
+            num_layers=num_layers,
+            max_seq_len=max_seq_len,
+            num_heads=num_heads,
+            head_dim=(embed_dim // num_heads),
+            norm=RMSNorm(embed_dim, eps=norm_eps),
+            output=output_proj,
+        )
 
     if quantize_base:
         # For QLoRA, we reparametrize 4-bit tensors to higher precision, and offload to CPU on the fly
@@ -397,7 +419,6 @@ def lora_qwen2_mlp(
     lora_dropout: float = 0.0,
     quantize_base: bool = False,
 ) -> FeedForward:
-    # TODO(suyang.fy): check code.
     gate_proj = LoRALinear(
         in_dim=dim,
         out_dim=hidden_dim,

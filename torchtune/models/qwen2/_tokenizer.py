@@ -3,18 +3,73 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
+import json
+import unicodedata
+from functools import lru_cache
+from typing import Dict, List, Optional, Tuple
 
-from typing import List, Optional, Tuple
-
-from tokenizers import Tokenizer as TokenizerFast
+import regex as re
 
 from torchtune.data import Message, truncate
+from torchtune.models.qwen2._trie import Trie
 from torchtune.modules.tokenizers import ModelTokenizer
+
+PRETOKENIZE_REGEX = (
+    r"(?i:'s|'t|'re|'ve|'m|'ll|'d)|"
+    r"[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"
+)
+
+QWEN2_SPECIAL_TOKENS = {
+    "<|endoftext|>": 151643,
+    "<|im_start|>": 151644,
+    "<|im_end|>": 151645,
+}
 
 
 ENDOFTEXT = "<|endoftext|>"
 IM_START = "<|im_start|>"
 IM_END = "<|im_end|>"
+
+
+@lru_cache()
+def bytes_to_unicode():
+    """
+    Returns list of utf-8 byte and a mapping to unicode strings. We specifically avoid mapping to whitespace/control
+    characters the bpe code barfs on.
+
+    The reversible bpe codes work on unicode strings. This means you need a large # of unicode characters in your vocab
+    if you want to avoid UNKs. When you're at something like a 10B token dataset you end up needing around 5K for
+    decent coverage. This is a significant percentage of your normal, say, 32K bpe vocab. To avoid that, we want lookup
+    tables between utf-8 bytes and unicode strings.
+    """
+    bs = (
+        list(range(ord("!"), ord("~") + 1))
+        + list(range(ord("¡"), ord("¬") + 1))
+        + list(range(ord("®"), ord("ÿ") + 1))
+    )
+    cs = bs[:]
+    n = 0
+    for b in range(2**8):
+        if b not in bs:
+            bs.append(b)
+            cs.append(2**8 + n)
+            n += 1
+    cs = [chr(n) for n in cs]
+    return dict(zip(bs, cs))
+
+
+def get_pairs(word):
+    """
+    Return set of symbol pairs in a word.
+
+    Word is represented as tuple of symbols (symbols being variable-length strings).
+    """
+    pairs = set()
+    prev_char = word[0]
+    for char in word[1:]:
+        pairs.add((prev_char, char))
+        prev_char = char
+    return pairs
 
 
 class Qwen2Tokenizer(ModelTokenizer):
@@ -23,10 +78,11 @@ class Qwen2Tokenizer(ModelTokenizer):
     See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2_fast.py>.
 
     Args:
-        path (str): Path to tokenizer.json file.
+        vocab_file (str): Path to vocab.json file.
+        merges_file (str): Path to merges.txt file.
 
     Example:
-        >>> tokenizer = Qwen2Tokenizer("/path/to/tokenizer.json")
+        >>> tokenizer = Qwen2Tokenizer(vocab_file="/path/to/vocab.json", merges_file="/path/to/merges.txt")
         >>> tokenized_text = tokenizer.encode("Hello world!")
         >>> print(tokenized_text)
         []
@@ -39,34 +95,112 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def __init__(
         self,
-        path: str,
+        vocab_file: str,
+        merges_file: str,
         *,
+        special_tokens: Optional[Dict[str, int]] = None,
+        errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
         eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
     ):
-        # Build backend tokenizer.
-        self._tokenizer = TokenizerFast.from_file(path)
+        with open(vocab_file, encoding="utf-8") as vocab_handle:
+            self.encoder = json.load(vocab_handle)
 
-        _truncation = self._tokenizer.truncation
-        if _truncation is not None:
-            self._tokenizer.enable_truncation(**_truncation)
-        else:
-            self._tokenizer.no_truncation()
+        self.decoder = {v: k for k, v in self.encoder.items()}
+        self.errors = errors  # how to handle errors in decoding
+        self.byte_encoder = bytes_to_unicode()
+        self.byte_decoder = {v: k for k, v in self.byte_encoder.items()}
+        bpe_merges = []
+        with open(merges_file, encoding="utf-8") as merges_handle:
+            for i, line in enumerate(merges_handle):
+                line = line.strip()
+                if (i == 0 and line.startswith("#version:")) or not line:
+                    continue
+                bpe_merges.append(tuple(line.split()))
+        self.bpe_ranks = dict(zip(bpe_merges, range(len(bpe_merges))))
+        # NOTE: the cache can grow without bound and will get really large for long running processes
+        # (esp. for texts of language that do not use space between word, e.g. Chinese); technically
+        # not a memory leak but appears as one.
+        # GPT2Tokenizer has the same problem, so let's be consistent.
+        self.cache = {}
 
-        _padding = self._tokenizer.padding
-        if _padding is not None:
-            self._tokenizer.enable_padding(**_padding)
+        self.pat = re.compile(PRETOKENIZE_REGEX)
 
-        vocab = self._tokenizer.get_vocab()
-        self.unk_id = None if unk_token is None else vocab[unk_token]
-        self.bos_id = None if bos_token is None else vocab[bos_token]
-        self.eos_id = None if eos_token is None else vocab[eos_token]
-        self.pad_id = None if pad_token is None else vocab[pad_token]
-        self.im_start_id = vocab[IM_START]
-        self.im_end_id = vocab[IM_END]
+        self.special_tokens = (
+            special_tokens if special_tokens is not None else QWEN2_SPECIAL_TOKENS
+        )
+        self._special_tokens_reversed = {v: k for k, v in self.special_tokens.items()}
+
+        self.unk_id = None if unk_token is None else self.special_tokens[unk_token]
+        self.bos_id = None if bos_token is None else self.special_tokens[bos_token]
+        self.eos_id = None if eos_token is None else self.special_tokens[eos_token]
+        self.pad_id = None if pad_token is None else self.special_tokens[pad_token]
+        self.im_start_id = self.special_tokens[IM_START]
+        self.im_end_id = self.special_tokens[IM_END]
         self.stop_tokens = [self.eos_id, self.im_end_id]
+
+        # Tokens trie for special tokens.
+        self.tokens_trie = Trie()
+        for special_token in self.special_tokens:
+            self.tokens_trie.add(special_token)
+
+    def _bpe(self, token):
+        if token in self.cache:
+            return self.cache[token]
+        word = tuple(token)
+        pairs = get_pairs(word)
+
+        if not pairs:
+            return token
+
+        while True:
+            bigram = min(pairs, key=lambda pair: self.bpe_ranks.get(pair, float("inf")))
+            if bigram not in self.bpe_ranks:
+                break
+            first, second = bigram
+            new_word = []
+            i = 0
+            while i < len(word):
+                try:
+                    j = word.index(first, i)
+                except ValueError:
+                    new_word.extend(word[i:])
+                    break
+                else:
+                    new_word.extend(word[i:j])
+                    i = j
+
+                if word[i] == first and i < len(word) - 1 and word[i + 1] == second:
+                    new_word.append(first + second)
+                    i += 2
+                else:
+                    new_word.append(word[i])
+                    i += 1
+            new_word = tuple(new_word)
+            word = new_word
+            if len(word) == 1:
+                break
+            else:
+                pairs = get_pairs(word)
+        word = " ".join(word)
+        self.cache[token] = word
+        return word
+
+    def _tokenize(self, text):
+        """Tokenize a string."""
+        bpe_tokens = []
+        for token in re.findall(self.pat, text):
+            token = "".join(
+                self.byte_encoder[b] for b in token.encode("utf-8")
+            )  # Maps all our bytes to unicode strings, avoiding control tokens of the BPE (spaces in our case)
+            bpe_tokens.extend(bpe_token for bpe_token in self._bpe(token).split(" "))
+        return bpe_tokens
+
+    def _convert_token_to_id(self, token):
+        """Converts a token (str) in an id using the vocab."""
+        return self.encoder.get(token, self.unk_id)
 
     def encode(
         self, text: str, add_bos: bool = True, add_eos: bool = True, **kwargs
@@ -81,8 +215,40 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         Returns:
             List[int]: The list of token ids.
+
+        Notes:
+            This method follows
+            <https://github.com/huggingface/transformers/blob/v4.41.2/src/transformers/tokenization_utils.py#L541> and
+            <https://github.com/huggingface/transformers/blob/v4.41.2/src/transformers/models/qwen2/tokenization_qwen2.py#L262>.
         """
-        return self.encode_batch([text], add_bos=add_bos, add_eos=add_eos, **kwargs)[0]
+
+        text = unicodedata.normalize("NFC", text)
+
+        tokens = self.tokens_trie.split(text)
+
+        tokenized_text = []
+        for token in tokens:
+            if not token:
+                continue
+            if token in self.special_tokens:
+                tokenized_text.append(token)
+            else:
+                tokenized_text.extend(self._tokenize(token))
+
+        # Convert tokenized text to token ids.
+        token_ids = []
+        if add_bos and self.bos_id is not None:
+            token_ids.append(self.bos_id)
+        for token in tokenized_text:
+            if token in self.special_tokens:
+                token_id = self.special_tokens[token]
+            else:
+                token_id = self._convert_token_to_id(token)
+            token_ids.append(token_id)
+        if add_eos and self.eos_id is not None:
+            token_ids.append(self.eos_id)
+
+        return token_ids
 
     def encode_batch(
         self,
@@ -101,16 +267,26 @@ class Qwen2Tokenizer(ModelTokenizer):
         Returns:
             List[List[int]]: A batch of lists of token ids.
         """
-        encodings = self._tokenizer.encode_batch(batch_text)
-        encoded_token_ids = []
-        for encoding in encodings:
-            encoding_ids = encoding.ids[:]
-            if add_bos and self.bos_id is not None:
-                encoding_ids.insert(0, self.bos_id)
-            if add_eos and self.eos_id is not None:
-                encoding_ids.append(self.eos_id)
-            encoded_token_ids.append(encoding_ids)
-        return encoded_token_ids
+        batch_token_ids = []
+        for text in batch_text:
+            token_ids = self.encode(text, add_bos=add_bos, add_eos=add_eos, **kwargs)
+            batch_token_ids.append(token_ids)
+        return batch_token_ids
+
+    def _convert_id_to_token(self, index: int) -> str:
+        """Converts an index (integer) in a token (str) using the vocab."""
+        token = self._special_tokens_reversed.get(index, None)
+        if token is None:
+            return self.decoder.get(index)
+        return token
+
+    def convert_tokens_to_string(self, tokens: List[str]) -> str:
+        """Converts a sequence of tokens (string) in a single string."""
+        text = "".join(tokens)
+        text = bytearray([self.byte_decoder[c] for c in text]).decode(
+            "utf-8", errors=self.errors
+        )
+        return text
 
     def decode(
         self,
@@ -128,9 +304,24 @@ class Qwen2Tokenizer(ModelTokenizer):
         Returns:
             str: The decoded string.
         """
-        text = self._tokenizer.decode(
-            token_ids, skip_special_tokens=skip_special_tokens
-        )
+        sub_texts = []
+        current_sub_text = []
+        for token_id in token_ids:
+            token = self._convert_id_to_token(token_id)
+            if token_id in self._special_tokens_reversed:
+                if current_sub_text:
+                    string = self.convert_tokens_to_string(current_sub_text)
+                    if string:
+                        sub_texts.append(string)
+                    current_sub_text = []
+                if not skip_special_tokens:
+                    sub_texts.append(token)
+            else:
+                current_sub_text.append(token)
+        if current_sub_text:
+            sub_texts.append(self.convert_tokens_to_string(current_sub_text))
+
+        text = "".join(sub_texts)
         return text
 
     def tokenize_messages(
@@ -158,15 +349,15 @@ class Qwen2Tokenizer(ModelTokenizer):
         for index, message in enumerate(messages):
             content = ""
             if message.role == "system":
-                content = self.system.format(content=message.content)
+                content = self.system.format(content=message.text_content)
             elif message.role == "user":
-                content = self.user.format(content=message.content)
+                content = self.user.format(content=message.text_content)
             elif message.role == "assistant":
-                if index == len(messages) - 1 and not message.content:
+                if index == len(messages) - 1 and not message.text_content:
                     content = self.assistant_for_generation
                     is_generation = True
                 else:
-                    content = self.assistant.format(content=message.content)
+                    content = self.assistant.format(content=message.text_content)
             tokenized_message = self.encode(content, add_bos=False, add_eos=False)
             tokens.extend(tokenized_message)
             mask.extend([message.masked] * len(tokenized_message))
