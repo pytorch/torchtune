@@ -41,12 +41,28 @@ class ConcatDataset(Dataset):
         _indexes (List[Tuple[int, int, int]]): A list of tuples where each tuple contains the starting index, the
             ending index, and the dataset index for quick lookup and access during indexing operations.
 
-    Example:
+    Examples:
         >>> dataset1 = MyCustomDataset(params1)
         >>> dataset2 = MyCustomDataset(params2)
         >>> concat_dataset = ConcatDataset([dataset1, dataset2])
         >>> print(len(concat_dataset))  # Total length of both datasets
         >>> data_point = concat_dataset[1500]  # Accesses an element from the appropriate dataset
+
+    This can also be accomplished by passing in a list of datasets to the YAML config::
+
+        dataset:
+          - _component_: torchtune.datasets.instruct_dataset
+            source: vicgalle/alpaca-gpt4
+            template: torchtune.data.AlpacaInstructTemplate
+            split: train
+            train_on_input: True
+          - _component_: torchtune.datasets.instruct_dataset
+            source: samsum
+            template: torchtune.data.SummarizeTemplate
+            column_map: {"output": "summary"}
+            output: summary
+            split: train
+            train_on_input: False
 
     This class primarily focuses on providing a unified interface to access elements from multiple datasets,
     enhancing the flexibility in handling diverse data sources for training machine learning models.
