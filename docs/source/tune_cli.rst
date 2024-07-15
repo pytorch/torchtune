@@ -132,6 +132,8 @@ recipe or config to edit directly for yourself.
 .. list-table::
    :widths: 30 60
 
+   * - \-n, \--no-clobber
+     - Do not overwrite destination if it already exists
    * - \--make-parents
      - Create parent directories for destination if they do not exist. If not set to True, will error if parent directories do not exist
 
@@ -207,5 +209,5 @@ The ``tune validate <config>`` command will validate that your config is formatt
 
 .. code-block:: bash
 
-    $ tune validate recipes/configs/full_finetune_distributed.yaml
+    $ tune validate recipes/configs/llama3/8B_full.yaml
     Config is well-formed!
