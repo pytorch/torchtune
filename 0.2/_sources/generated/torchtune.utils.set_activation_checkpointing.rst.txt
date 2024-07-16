@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils
+
+
+set_activation_checkpointing
+============================
+
+.. autofunction:: set_activation_checkpointing

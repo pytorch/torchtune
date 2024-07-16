@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils
+
+
+create_optim_in_bwd_wrapper
+===========================
+
+.. autofunction:: create_optim_in_bwd_wrapper

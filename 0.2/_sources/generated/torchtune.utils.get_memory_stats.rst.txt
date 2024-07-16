@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.utils
+
+
+get_memory_stats
+================
+
+.. autofunction:: get_memory_stats

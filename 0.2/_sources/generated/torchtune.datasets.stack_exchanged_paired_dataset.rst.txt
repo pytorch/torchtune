@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.datasets
+
+
+stack_exchanged_paired_dataset
+==============================
+
+.. autofunction:: stack_exchanged_paired_dataset

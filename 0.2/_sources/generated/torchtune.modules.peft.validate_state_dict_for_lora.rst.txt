@@ -1,0 +1,9 @@
+﻿.. role:: hidden
+    :class: hidden-section
+.. currentmodule:: torchtune.modules.peft
+
+
+validate_state_dict_for_lora
+============================
+
+.. autofunction:: validate_state_dict_for_lora
