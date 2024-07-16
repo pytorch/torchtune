@@ -417,11 +417,12 @@
 
 <span class="kn">from</span> <span class="nn">torchtune.modules.low_precision._utils</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">_get_torchao_version</span><span class="p">,</span>
+    <span class="n">_is_fbcode</span><span class="p">,</span>
     <span class="n">_nightly_version_ge</span><span class="p">,</span>
 <span class="p">)</span>
 
 <span class="n">ao_version</span><span class="p">,</span> <span class="n">is_nightly</span> <span class="o">=</span> <span class="n">_get_torchao_version</span><span class="p">()</span>
-<span class="k">if</span> <span class="n">is_nightly</span> <span class="ow">and</span> <span class="n">_nightly_version_ge</span><span class="p">(</span><span class="n">ao_version</span><span class="p">,</span> <span class="s2">&quot;2024-07-03&quot;</span><span class="p">):</span>
+<span class="k">if</span> <span class="n">_is_fbcode</span><span class="p">()</span> <span class="ow">or</span> <span class="p">(</span><span class="n">is_nightly</span> <span class="ow">and</span> <span class="n">_nightly_version_ge</span><span class="p">(</span><span class="n">ao_version</span><span class="p">,</span> <span class="s2">&quot;2024-07-03&quot;</span><span class="p">)):</span>
     <span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize_</span> <span class="k">as</span> <span class="n">quantize</span>
 <span class="k">else</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">torchao.quantization.quant_api</span> <span class="kn">import</span> <span class="n">quantize</span>
