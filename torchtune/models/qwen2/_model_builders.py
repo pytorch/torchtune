@@ -8,7 +8,6 @@ from functools import partial
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
-from torchtune.models.qwen2.transformer import Qwen2TransformerDecoder
 
 from torchtune.modules import TransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
