@@ -4,10 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from importlib.metadata import version
-
 import torch
 from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl, to_nf4
+from torchtune.modules.low_precision._utils import _get_torchao_version
 
 
 @nf4_tensor_impl([torch.ops.aten.clone.default])
@@ -21,7 +20,15 @@ def clone(func, *args, **kwargs):
     return to_nf4(args[0][0].get_original_weight())
 
 
-if version("torchao") < "0.2.0":
+should_define_inplace_copy = True
+ao_version, is_nightly = _get_torchao_version()
+if ao_version:
+    if (is_nightly and ao_version >= "2024.5.20") or (
+        not is_nightly and ao_version >= "0.2.0"
+    ):
+        should_define_inplace_copy = False
+
+if should_define_inplace_copy:
     # TorchAO have `NF4.copy_` starting from `0.2.0`
     # it's a superset of `inplace_copy` since it covers `NF4.copy_(NF4)`
     @nf4_tensor_impl([torch.ops.aten.copy_.default])

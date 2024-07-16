@@ -5,11 +5,11 @@
 # LICENSE file in the root directory of this source tree.
 
 from torchtune.datasets import instruct_dataset, InstructDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def samsum_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     *,
     source: str = "samsum",
     train_on_input: bool = False,
@@ -31,7 +31,7 @@ def samsum_dataset(
     - If `train_on_input` is False, the prompt is masked out (tokens replaced with -100)
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an `encode` and `decode` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's `load_dataset`.
         train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.
         packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.

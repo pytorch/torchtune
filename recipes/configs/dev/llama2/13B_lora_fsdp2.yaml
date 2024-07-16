@@ -1,6 +1,10 @@
 # Config for multi-device LoRA with FSDP2 in lora_finetune_fsdp2.py
 # using a Llama2 13B model
 #
+# This config requires PyTorch nightlies to run.
+# See https://github.com/pytorch/torchtune/blob/main/recipes/dev/fsdp2_recipes.md
+# for setup instructions.
+#
 # This config assumes that you've run the following command before launching
 # this run:
 #   tune download meta-llama/Llama-2-13b-hf --output-dir /tmp/Llama-2-13b-hf --hf-token <HF_TOKEN>

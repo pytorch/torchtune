@@ -6,14 +6,12 @@
 from typing import List, Optional
 from functools import partial
 
-from torch import nn
-
 from torchtune.models.llama3._component_builders import llama3, lora_llama3
-from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
 
 from torchtune.modules import TransformerDecoder
-from torchtune.modules.tokenizers import TikTokenTokenizer
+from torchtune.models.llama3._tokenizer import Llama3Tokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
+from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
 
 """
@@ -65,10 +63,21 @@ def llama3_70b() -> TransformerDecoder:
     )
 
 
-def llama3_tokenizer(path: str) -> TikTokenTokenizer:
-    tiktoken = TikTokenTokenizer(path)
-    tiktoken.pad_id = 0
-    return tiktoken
+def llama3_tokenizer(path: str, special_tokens_path: Optional[str] = None) -> Llama3Tokenizer:
+    """
+    Tokenizer for Llama3.
+
+    Args:
+        path (str): path to the tokenizer
+        special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
+            model files that contains all registered special tokens, or a local json file 
+            structured similarly. Default is None to use the canonical Llama3 special tokens.
+    
+    Returns:
+        Llama3Tokenizer: Instantiation of the Llama3 tokenizer
+    """
+    special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
+    return Llama3Tokenizer(path=path, special_tokens=special_tokens)
 
 
 def lora_llama3_8b(
@@ -150,7 +159,7 @@ def lora_llama3_70b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 8B model with LoRA applied
+        TransformerDecoder: Instantiation of Llama3 70B model with LoRA applied
     """
     return lora_llama3(
         lora_attn_modules=lora_attn_modules,
@@ -176,7 +185,15 @@ def lora_llama3_70b(
 qlora_llama3_8b = partial(lora_llama3_8b, quantize_base=True)
 
 qlora_llama3_8b.__doc__ = """
-Builder for creating a Llama3 model with QLoRA enabled. Base model weights in linear layers
+Builder for creating a Llama3 8B model with QLoRA enabled. Base model weights in linear layers
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_llama3_8b` for full API arguments.
+"""
+
+qlora_llama3_70b = partial(lora_llama3_70b, quantize_base=True)
+
+qlora_llama3_70b.__doc__ = """
+Builder for creating a Llama3 70B model with QLoRA enabled. Base model weights in linear layers
+that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
+Please see `lora_llama3_70b` for full API arguments.
 """

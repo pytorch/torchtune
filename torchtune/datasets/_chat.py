@@ -14,13 +14,13 @@ from torchtune.config._utils import _get_component_from_path
 from torchtune.data import (
     ChatFormat,
     CROSS_ENTROPY_IGNORE_IDX,
+    get_openai_messages,
+    get_sharegpt_messages,
     Message,
-    openai_to_llama2_messages,
-    sharegpt_to_llama2_messages,
     validate_messages,
 )
 from torchtune.datasets._packed import PackedDataset
-from torchtune.modules.tokenizers import Tokenizer
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 class ChatDataset(Dataset):
@@ -48,7 +48,7 @@ class ChatDataset(Dataset):
     turns does not fit within ``max_seq_len`` then it is truncated.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         convert_to_messages (Callable[[Mapping[str, Any]], List[Message]]): function that keys into the desired field in the sample
@@ -67,7 +67,7 @@ class ChatDataset(Dataset):
     def __init__(
         self,
         *,
-        tokenizer: Tokenizer,
+        tokenizer: ModelTokenizer,
         source: str,
         convert_to_messages: Callable[[Mapping[str, Any]], List[Message]],
         chat_format: Optional[ChatFormat] = None,
@@ -111,7 +111,7 @@ class ChatDataset(Dataset):
 
 def chat_dataset(
     *,
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str,
     conversation_style: str,
     chat_format: Optional[str] = None,
@@ -126,11 +126,11 @@ def chat_dataset(
     using :class:`~torchtune.datasets.ChatDataset` directly, as it is made to be config friendly.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         conversation_style (str): string specifying expected style of conversations in the dataset
-            for automatic conversion to the Llama style. Supported styles are: "sharegpt", "openai"
+            for automatic conversion to the :class:`~torchtune.data.Message` structure. Supported styles are: "sharegpt", "openai"
         chat_format (Optional[str]): full import path of ``ChatFormat`` class used to format the messages. See the description in
             :class:`~torchtune.datasets.ChatDataset` for more details. For a list of all possible chat formats,
             check out :ref:`chat_formats`. Default: None.
@@ -168,9 +168,9 @@ def chat_dataset(
         ValueError: if the conversation format is not supported
     """
     if conversation_style == "sharegpt":
-        convert_to_messages = sharegpt_to_llama2_messages
+        convert_to_messages = get_sharegpt_messages
     elif conversation_style == "openai":
-        convert_to_messages = openai_to_llama2_messages
+        convert_to_messages = get_openai_messages
     else:
         raise ValueError(f"Unsupported conversation style: {conversation_style}")
 
@@ -185,4 +185,8 @@ def chat_dataset(
         train_on_input=train_on_input,
         **load_dataset_kwargs,
     )
-    return PackedDataset(ds, max_seq_len=max_seq_len) if packed else ds
+    return (
+        PackedDataset(ds, max_seq_len=max_seq_len, padding_idx=tokenizer.pad_id)
+        if packed
+        else ds
+    )

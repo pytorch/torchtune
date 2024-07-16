@@ -241,23 +241,43 @@ def get_merged_lora_ckpt(
 
 @contextlib.contextmanager
 def disable_adapter(model: nn.Module) -> Generator[None, None, None]:
-    for _, v in model.named_modules():
+    """
+    Temporarily disable the adapters in a neural network model. This can be used,
+    for example, in DPO for treating the lora adapters as the policy model
+    and disabling it to treat the base model as the reference model.
+
+    This context manager goes through all modules in the provided neural network model,
+    and if a module has an 'adapter_params' attribute that is callable and a 'disabled' attribute,
+    it sets 'disabled' to True. Then, the control is given back to caller. Once that finalizes,
+    it sets 'disabled' back to False for all modules that were temporarily disabled.
+
+    Args:
+        model (nn.Module): The neural network model whose adapters are to be temporarily disabled.
+    Yields:
+        None: This function yields control back to the caller, with the adapters disabled.
+    Example:
+        >>> with disable_adapter(model):
+        ...     # Perform operations with adapters disabled
+        ...     pass
+
+    """
+    for _, module in model.named_modules():
         if (
-            hasattr(v, "adapter_params")
-            and callable(v.adapter_params)
-            and hasattr(v, "disabled")
+            hasattr(module, "adapter_params")
+            and callable(module.adapter_params)
+            and hasattr(module, "disabled")
         ):
-            v.disabled = True
+            module.disabled = True
     try:
         yield
     finally:
-        for _, v in model.named_modules():
+        for _, module in model.named_modules():
             if (
-                hasattr(v, "adapter_params")
-                and callable(v.adapter_params)
-                and hasattr(v, "disabled")
+                hasattr(module, "adapter_params")
+                and callable(module.adapter_params)
+                and hasattr(module, "disabled")
             ):
-                v.disabled = False
+                module.disabled = False
 
 
 def validate_missing_and_unexpected_for_lora(
@@ -272,7 +292,7 @@ def validate_missing_and_unexpected_for_lora(
     """
     A more memory-efficient way to validate that LoRA state dict loading was done properly.
 
-    Similar to validate_state_dict_for_lora, this function uses a model's LoRA config to
+    Similar to :func:`validate_state_dict_for_lora`, this function uses a model's LoRA config to
     check that LoRA and/or base model weights are loaded into the full model correctly.
     Unlike that function, this method relies only on the values of missing and unexpected
     as returned by the load_state_dict API with strict=False. This allows us to do the

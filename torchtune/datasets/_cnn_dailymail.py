@@ -7,11 +7,12 @@
 from typing import Any, Dict, Optional
 
 from torchtune.datasets._text_completion import TextCompletionDataset
-from torchtune.modules.tokenizers import Tokenizer
+
+from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def cnn_dailymail_articles_dataset(
-    tokenizer: Tokenizer,
+    tokenizer: ModelTokenizer,
     source: str = "ccdv/cnn_dailymail",
     max_seq_len: Optional[int] = None,
     **load_dataset_kwargs: Dict[str, Any],
@@ -22,7 +23,7 @@ def cnn_dailymail_articles_dataset(
     general text completion tasks.
 
     Args:
-        tokenizer (Tokenizer): Tokenizer used to encode data. Tokenize must implement an ``encode`` and ``decode`` method.
+        tokenizer (ModelTokenizer): Tokenizer used by the model that implements the ``tokenize_messages`` method.
         source (str): path string of dataset, anything supported by Hugging Face's ``load_dataset``
             (https://huggingface.co/docs/datasets/en/package_reference/loading_methods#datasets.load_dataset.path)
         max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.

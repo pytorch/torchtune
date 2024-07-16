@@ -9,7 +9,6 @@ from ._checkpointing import (  # noqa
     FullModelMetaCheckpointer,
     FullModelTorchTuneCheckpointer,
     ModelType,
-    transform_opt_state_dict,
 )
 
 from ._device import get_device
@@ -30,7 +29,15 @@ from ._distributed import (  # noqa
     validate_no_params_on_meta_device,
 )
 from ._generation import generate
-from ._profiler import profiler
+from ._profiler import (
+    DEFAULT_PROFILE_DIR,
+    DEFAULT_PROFILER_ACTIVITIES,
+    DEFAULT_SCHEDULE,
+    DEFAULT_TRACE_OPTS,
+    DummyProfiler,
+    PROFILER_KEY,
+    setup_torch_profiler,
+)
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
 from .collate import padded_collate, padded_collate_dpo
@@ -57,17 +64,11 @@ from .memory import (  # noqa
 )
 from .pooling import get_last_non_masked_token
 
-from .precision import (
-    get_dtype,
-    list_dtypes,
-    set_default_dtype,
-    validate_expected_param_dtype,
-)
+from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .quantization import get_quantizer_mode
 from .seed import set_seed
 
 __all__ = [
-    "transform_opt_state_dict",
     "get_memory_stats",
     "FSDPPolicyType",
     "log_memory_stats",
@@ -77,7 +78,6 @@ __all__ = [
     "get_world_size_and_rank",
     "init_distributed",
     "is_distributed",
-    "list_dtypes",
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
@@ -92,7 +92,13 @@ __all__ = [
     "OptimizerInBackwardWrapper",
     "create_optim_in_bwd_wrapper",
     "register_optim_in_bwd_hooks",
-    "profiler",
+    "DEFAULT_PROFILE_DIR",
+    "DEFAULT_PROFILER_ACTIVITIES",
+    "DEFAULT_SCHEDULE",
+    "DEFAULT_TRACE_OPTS",
+    "DummyProfiler",
+    "PROFILER_KEY",
+    "setup_torch_profiler",
     "get_quantizer_mode",
     "generate",
 ]

@@ -50,7 +50,7 @@ class KVCache(nn.Module):
     def update(
         self, input_pos: Tensor, k_val: Tensor, v_val: Tensor
     ) -> Tuple[Tensor, Tensor]:
-        """Update KV cache and return the updated cache.
+        """Update KV cache with the new k_val, v_val and return the updated cache.
 
         Args:
             input_pos (Tensor): Current position tensor with shape [S]

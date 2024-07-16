@@ -93,6 +93,10 @@ def padded_collate_dpo(
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing concatenated and padded
         input ids and labels.
 
+    Raises:
+        AssertionError: if the length of chosen_input_ids and rejected_input_ids differ.
+        AssertionError: if the length of chosen_labels and rejected_labels differ.
+
     Example:
         >>> batch = [
         >>>    {'chosen_input_ids': [1, 2, 3], 'rejected_input_ids': [4, 5],
