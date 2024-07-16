@@ -193,6 +193,7 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
         # should be called before ``_setup_optimizer`` since transforming the optimizer
         # state dict requires the model
         self._model_compile = cfg.compile
+        self._optimizer_in_bwd = cfg.optimizer_in_bwd
         (
             self._policy_model,
             self._value_model,
@@ -208,7 +209,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             value_model_state_dict=value_model_checkpoint_dict,
             reward_model_state_dict=reward_model_state_dict,
         )
-        self.cfg_model = cfg.policy_model
 
         # setup tokenizer
         self._tokenizer = config.instantiate(cfg.tokenizer)
@@ -249,7 +249,6 @@ class PPOFullFinetuneRecipeSingleDevice(FTRecipeInterface):
             * self._ppo_epochs
             * (self.batch_size // self._ppo_batch_size)
         )
-        self._optimizer_in_bwd = cfg.optimizer_in_bwd
 
     def _setup_training_hyperparameters(self, cfg) -> None:
         """
