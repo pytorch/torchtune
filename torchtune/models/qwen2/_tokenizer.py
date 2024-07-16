@@ -11,7 +11,6 @@ from typing import Dict, List, Optional, Tuple
 import regex as re
 
 from torchtune.data import Message, truncate
-from torchtune.models.qwen2._trie import Trie
 from torchtune.modules.tokenizers import ModelTokenizer
 
 PRETOKENIZE_REGEX = (
@@ -142,9 +141,9 @@ class Qwen2Tokenizer(ModelTokenizer):
         self.stop_tokens = [self.eos_id, self.im_end_id]
 
         # Tokens trie for special tokens.
-        self.tokens_trie = Trie()
-        for special_token in self.special_tokens:
-            self.tokens_trie.add(special_token)
+        self._pattern_split_special_tokens = re.compile(
+            r"(\L<options>)", options=self.special_tokens.keys()
+        )
 
     def _bpe(self, token):
         if token in self.cache:
@@ -224,7 +223,7 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         text = unicodedata.normalize("NFC", text)
 
-        tokens = self.tokens_trie.split(text)
+        tokens = self._pattern_split_special_tokens.split(text)
 
         tokenized_text = []
         for token in tokens:
@@ -250,29 +249,6 @@ class Qwen2Tokenizer(ModelTokenizer):
 
         return token_ids
 
-    def encode_batch(
-        self,
-        batch_text: List[str],
-        add_bos: bool = True,
-        add_eos: bool = True,
-        **kwargs,
-    ) -> List[List[int]]:
-        """Encode a batch of strings into lists of token ids.
-
-        Args:
-            batch_text (List[str]): The batch of strings to encode.
-            add_bos (bool): (Optional) Whether to add the beginning of sequence token.
-            add_eos (bool): (Optional) Whether to add the end of sequence token.
-
-        Returns:
-            List[List[int]]: A batch of lists of token ids.
-        """
-        batch_token_ids = []
-        for text in batch_text:
-            token_ids = self.encode(text, add_bos=add_bos, add_eos=add_eos, **kwargs)
-            batch_token_ids.append(token_ids)
-        return batch_token_ids
-
     def _convert_id_to_token(self, index: int) -> str:
         """Converts an index (integer) in a token (str) using the vocab."""
         token = self._special_tokens_reversed.get(index, None)
@@ -280,7 +256,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             return self.decoder.get(index)
         return token
 
-    def convert_tokens_to_string(self, tokens: List[str]) -> str:
+    def _convert_tokens_to_string(self, tokens: List[str]) -> str:
         """Converts a sequence of tokens (string) in a single string."""
         text = "".join(tokens)
         text = bytearray([self.byte_decoder[c] for c in text]).decode(
@@ -310,7 +286,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             token = self._convert_id_to_token(token_id)
             if token_id in self._special_tokens_reversed:
                 if current_sub_text:
-                    string = self.convert_tokens_to_string(current_sub_text)
+                    string = self._convert_tokens_to_string(current_sub_text)
                     if string:
                         sub_texts.append(string)
                     current_sub_text = []
@@ -319,7 +295,7 @@ class Qwen2Tokenizer(ModelTokenizer):
             else:
                 current_sub_text.append(token)
         if current_sub_text:
-            sub_texts.append(self.convert_tokens_to_string(current_sub_text))
+            sub_texts.append(self._convert_tokens_to_string(current_sub_text))
 
         text = "".join(sub_texts)
         return text

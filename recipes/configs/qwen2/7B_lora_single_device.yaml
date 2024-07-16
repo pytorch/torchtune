@@ -26,7 +26,7 @@ model:
   lora_alpha: 16
 
 tokenizer:
-  _component_: torchtune.models.qwen2._tokenizer.Qwen2Tokenizer
+  _component_: torchtune.models.qwen2.qwen2_tokenizer
   vocab_file: /tmp/Qwen2-7B-Instruct/vocab.json
   merges_file: /tmp/Qwen2-7B-Instruct/merges.txt
 

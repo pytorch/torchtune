@@ -42,7 +42,10 @@ def qwen2_7b() -> TransformerDecoder:
     )
 
 
-def qwen2_tokenizer(vocab_file: str, merges_file: str, special_tokens_path: Optional[str] = None) -> Qwen2Tokenizer:
+def qwen2_tokenizer(
+        vocab_file: str, merges_file: str, special_tokens_path: Optional[str] = None,
+        **kwargs,
+) -> Qwen2Tokenizer:
     """
     Tokenizer for Qwen2.
 
@@ -57,7 +60,7 @@ def qwen2_tokenizer(vocab_file: str, merges_file: str, special_tokens_path: Opti
         Llama3Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(vocab_file=vocab_file, merges_file=merges_file, special_tokens=special_tokens)
+    return Qwen2Tokenizer(vocab_file=vocab_file, merges_file=merges_file, special_tokens=special_tokens, **kwargs)
 
 
 def lora_qwen2_7b(
