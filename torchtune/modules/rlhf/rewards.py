@@ -9,26 +9,67 @@ from typing import Optional, Tuple
 import torch
 
 
-def get_rewards(
+def get_reward_penalty_mask(
+    padding_masks: torch.Tensor,
+    seq_lens: torch.Tensor,
+    penalise_no_eos: bool = True,
+    min_response_length: int = None,
+) -> torch.Tensor:
+    """
+    Calculates a mask to penalise scores corresponding to sequences generated during PPO, where True indicates the score
+    at the corresponding position should be penalised.
+    This function assumes sequences have already been truncated at an EOS, if present, and padded to length,
+    e.g. by :func:`torchtune.modules.rlhf.sequence_processing.truncate_sequence_at_first_stop_token`.
+
+    Scores are penalised such that:
+    - If ``min_response_length`` is set, scores for sequences with ``length < min_response_length`` are penalised.
+    - If ``penalise_no_eos`` is True, scores for sequences with no EOS token are penalised.
+
+    Args:
+        padding_masks (torch.Tensor): Tensor where True indicates a padding token in the generated
+            sequence, and False otherwise. Shape: (b, reponse_len)
+        seq_lens (torch.Tensor): The length of each generated sequence. Shape: (b,)
+        penalise_no_eos (bool, optional): Whether to penalise sequences with no EOS token. Defaults to True.
+        min_response_length (int, optional): The minimum length of the response. If set, any responses is shorter
+            than this length will be penalised. Defaults to None.
+    Returns:
+        torch.Tensor: A mask tensor with shape (b,) where True indicates the corresponding score should be penalised.
+    """
+    reward_penalty_mask = torch.zeros_like(seq_lens).to(bool)
+
+    # since sequences will have been truncated at EOS, we can mask based on the presence of any padding tokens
+    if penalise_no_eos:
+        reward_penalty_mask = ~padding_masks.any(-1)
+
+    if min_response_length is not None:
+        reward_penalty_mask |= ~(seq_lens >= min_response_length)
+    return reward_penalty_mask
+
+
+def get_rewards_ppo(
     scores: torch.Tensor,
     logprobs: torch.Tensor,
     ref_logprobs: torch.Tensor,
-    kl_controller_value: float,
+    kl_coeff: float,
+    valid_score_idxs: Optional[torch.Tensor] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
-    Calculates the rewards for the given scores, logprobs, and reference logprobs.
+    Calculates PPO rewards for the given scores, logprobs, and reference logprobs.
 
     Args:
         scores (torch.Tensor): Reward model scores, shape (b,).
         logprobs (torch.Tensor): Policy logprobs, shape (b, reponse_len).
         ref_logprobs (torch.Tensor): Reference base model, shape (b, reponse_len).
-        kl_controller_value (float): Adaptive KL controller value.
+        kl_coeff (float): KL reward contribution coefficient.
+        valid_score_idxs (torch.Tensor, optional): A tensor of indexes for valid (non-padded) token predictions.
+            This is useful when calculating rewards for padded sequences, as scores and value estimates are defined
+            for the last valid predicted token. Shape: (b,).
 
     Returns:
-        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of three tensors with shape [b, response_len] each:
-            - total_reward
-            - kl between policy and reference base model
-            - reward corresponding to kl above
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: A tuple of tensors with shape [b, response_len] each:
+            - total_reward: total reward combining per-token kl rewards and reward model score.
+            - kl: kl divergence between policy and reference policy logprobs.
+            - kl_reward: kl divergence scaled by ``kl_coeff``.
 
     Notation used for tensor shapes:
         - b: batch size
@@ -40,13 +81,19 @@ def get_rewards(
     # 3. calculate total reward by summing above
     # return all
     kl = logprobs - ref_logprobs
-    kl_reward = -kl_controller_value * kl
+    kl_reward = -kl_coeff * kl
 
     total_reward = kl_reward.clone()
 
-    # adding reward to kl at final position
+    # adding reward to kl at final valid position
     # https://github.com/openai/lm-human-preferences/blob/cbfd210bb8b08f6bc5c26878c10984b90f516c66/lm_human_preferences/train_policy.py#L153
-    total_reward[:, -1] += scores
+
+    if valid_score_idxs is not None:
+        total_reward[
+            torch.arange(scores.shape[0], device=scores.device), valid_score_idxs
+        ] += scores
+    else:
+        total_reward[:, -1] += scores
 
     return total_reward, kl, kl_reward
 
@@ -56,13 +103,12 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
     Whitens (normalizes) the input tensor.
 
     Args:
-        advantages (torch.Tensor): The advantages.
+        x (torch.Tensor): input tensor.
 
     Returns:
         torch.Tensor: The whitened tensor.
     """
     mean, var = x.mean(), x.var()
-    print(f"func mean: {mean}, var: {var}")
     whitened = (x - mean) * torch.rsqrt(var + 1e-8)
     if shift_mean:
         whitened += mean
@@ -70,23 +116,21 @@ def whiten(x: torch.Tensor, shift_mean: bool = True) -> torch.Tensor:
 
 
 def masked_mean(
-    values: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
+    x: torch.Tensor, mask: torch.Tensor, dim: Optional[int] = None
 ) -> torch.Tensor:
     """
-    Compute mean of tensor with a masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
+    Compute mean of tensor with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
 
     Args:
-        values (torch.Tensor): The input tensor.
-        mask (torch.Tensor): The bool mask tensor, where True indicates the value should be masked.
+        x (torch.Tensor): The input tensor.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
+            should participate in the mean calculation.
         dim (int): The axis to calculate the mean over.
 
     Returns:
         torch.Tensor: The mean tensor.
     """
-    if dim is not None:
-        return (values * mask).sum(dim=dim) / mask.sum(dim=dim)
-    else:
-        return (values * mask).sum() / mask.sum()
+    return (x * mask).sum(dim=dim) / mask.sum(dim=dim)
 
 
 def masked_var(
@@ -97,7 +141,8 @@ def masked_var(
 
     Args:
         x (torch.Tensor): The input tensor.
-        mask (torch.Tensor): The mask tensor.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
+            should participate in the mean calculation.
         unbiased (bool): Whether to use the unbiased variance.
 
     Returns:
@@ -113,8 +158,8 @@ def masked_var(
         mask_sum = mask.sum()
         if mask_sum == 0:
             raise ValueError(
-                "The sum of the mask is zero, which can happen when `ppo_batch_size=1`;"
-                "try increase the `ppo_batch_size` or `gradient_accumulation_steps`"
+                "The sum of the mask is zero, which can happen when ``ppo_batch_size=1``;"
+                "try increase the ``ppo_batch_size`` or ``gradient_accumulation_steps``"
             )
         # note that if mask_sum == 1, then there is a division by zero issue
         # to avoid it you just need to use a larger minibatch_size
@@ -130,7 +175,8 @@ def masked_whiten(
     Whiten (normalises) values with masked values. Taken from https://github.com/huggingface/trl/blob/main/trl/core.py
     Args:
         x (torch.Tensor): The input tensor.
-        mask (torch.Tensor): The bool mask tensor, where True indicates the value should be masked.
+        mask (torch.Tensor): The bool mask tensor, where True indicates the corresponding value in ``x``
+            should participate in the mean calculation.
         shift_mean (bool): Whether to shift normalised values by the mean.
 
     Returns:
@@ -160,9 +206,8 @@ def estimate_advantages(
         rewards (torch.Tensor): The rewards received at each time step. Shape: (b, reponse_len)
         gamma (float): The discount factor.
         lmbda (float): The GAE-Lambda parameter.
-        masks (torch.Tensor, optional): A boolean tensor used to correctly calculate means during whitening
-            for masked values/rewards. True indicates the value should be masked. Shape: (b, reponse_len)
-
+        masks (torch.Tensor, optional): A bool mask tensor, where True indicates the corresponding value in ``values``
+            should participate in the mean calculation.
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: A tuple containing the estimated advantages and returns.
             - advantages (torch.Tensor): The estimated advantages. Shape: (b, reponse_len)

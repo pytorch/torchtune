@@ -9,12 +9,59 @@ import pytest
 import torch
 from tests.test_utils import fixed_init_model
 from torchtune.models.llama2 import llama2
-from torchtune.utils import ppo_utils
+from torchtune.modules import rlhf
+from torchtune.utils._generation import sample
+
+
+class TestGenerateNextTokenWithLogits:
+    @pytest.fixture
+    def generation_model(self):
+        model = llama2(
+            vocab_size=4_000,
+            embed_dim=128,
+            num_layers=2,
+            num_heads=4,
+            num_kv_heads=4,
+            max_seq_len=2048,
+        )
+        fixed_init_model(model)
+        model.eval()
+        return model
+
+    def test_generate_next_token_with_logits(self, generation_model):
+
+        inputs = torch.tensor(
+            [
+                [3, 4, 5],
+                [6, 7, 8],
+                [9, 10, 11],
+            ]
+        )
+
+        input_pos = torch.tensor(
+            [
+                [0, 1, 2],
+                [0, 1, 2],
+                [0, 1, 2],
+            ]
+        )
+
+        torch.manual_seed(42)
+        logits, generation = rlhf.generate_next_token_with_logits(
+            generation_model, input_pos, inputs
+        )
+
+        torch.manual_seed(42)
+        expected_logits = generation_model(inputs, input_pos=input_pos)
+        expected_generation = sample(logits[:, -1], temperature=1.0, top_k=None)
+
+        torch.testing.assert_close(logits, expected_logits, atol=1e-4, rtol=1e-5)
+        torch.testing.assert_close(generation, expected_generation, atol=0, rtol=0)
 
 
 class TestGenerate:
     """
-    Test class for text generation functionality in :func:`~torchtune.utils.ppo_utils.generate`.
+    Test class for text generation functionality in :func:`~torchtune.modules.rlhf.generate`.
     See `torchtune.tests.utils.test_generation` for context.
     """
 
@@ -40,6 +87,13 @@ class TestGenerate:
         return torch.arange(2, 10)
 
     @pytest.fixture
+    def prompt_tokens_batched(self):
+        """
+        Pytest fixture to create a list of batched prompt tokens for testing.
+        """
+        return torch.arange(2, 10).repeat(3, 1)
+
+    @pytest.fixture
     def prompt_tokens_padded(self):
         """
         Pytest fixture to create a list of left-padded prompt tokens for testing.
@@ -47,20 +101,16 @@ class TestGenerate:
         return torch.cat([torch.tensor([0, 0]), torch.arange(2, 10)])
 
     @pytest.fixture
-    def prompt_tokens_batched_padded(self):
+    def prompt_tokens_batched_left_padded(self):
         """
         Pytest fixture to create a list of left-padded batched prompt tokens for testing.
         """
         return torch.cat([torch.tensor([0, 0]), torch.arange(2, 10)]).repeat(3, 1)
 
-    @pytest.fixture
-    def prompt_tokens_batched(self):
-        return torch.arange(2, 10).repeat(3, 1)
-
     def test_reproducability_with_and_without_padding_batched(
         self,
         generation_model,
-        prompt_tokens_batched_padded,
+        prompt_tokens_batched_left_padded,
         prompt_tokens_batched,
     ):
         """
@@ -71,16 +121,16 @@ class TestGenerate:
         top_k = 100
 
         torch.manual_seed(42)
-        outputs = ppo_utils.generate(
+        outputs, _ = rlhf.generate_with_logits(
             model=generation_model,
-            prompt=prompt_tokens_batched_padded,
+            prompt=prompt_tokens_batched_left_padded,
             max_generated_tokens=10,
             temperature=temperature,
             top_k=top_k,
         )
 
         torch.manual_seed(42)
-        expected_outputs = ppo_utils.generate(
+        expected_outputs, _ = rlhf.generate_with_logits(
             model=generation_model,
             prompt=prompt_tokens_batched,
             max_generated_tokens=10,
@@ -88,7 +138,6 @@ class TestGenerate:
             top_k=top_k,
         )
 
-        print(outputs[:, 2:], expected_outputs)
         torch.testing.assert_close(outputs[:, 2:], expected_outputs, atol=0, rtol=0)
 
     def test_reproducability_with_and_without_padding(
@@ -102,7 +151,8 @@ class TestGenerate:
         top_k = 100
 
         torch.manual_seed(42)
-        outputs = ppo_utils.generate(
+
+        outputs, _ = rlhf.generate_with_logits(
             model=generation_model,
             prompt=prompt_tokens_padded,
             max_generated_tokens=10,
@@ -111,7 +161,7 @@ class TestGenerate:
         )
 
         torch.manual_seed(42)
-        expected_outputs = ppo_utils.generate(
+        expected_outputs, _ = rlhf.generate_with_logits(
             model=generation_model,
             prompt=prompt_tokens,
             max_generated_tokens=10,
@@ -120,91 +170,6 @@ class TestGenerate:
         )
 
         torch.testing.assert_close(outputs[:, 2:], expected_outputs, atol=0, rtol=0)
-
-    def test_stop_tokens(self, generation_model, prompt_tokens):
-        """
-        Test to check if the `generate` function produces the right output when stop tokens are
-        provided.
-        """
-        temperature = 0.6
-        top_k = 100
-
-        # This is the first token generated by the model
-        # so it should stop immediately
-        stop_tokens = [3983]
-
-        torch.manual_seed(42)
-        outputs = ppo_utils.generate(
-            model=generation_model,
-            prompt=prompt_tokens,
-            max_generated_tokens=10,
-            temperature=temperature,
-            top_k=top_k,
-            stop_tokens=stop_tokens,
-        )
-
-        expected_output = [[2, 3, 4, 5, 6, 7, 8, 9, 3983]]
-        assert outputs == expected_output
-
-    def test_stop_tokens_batched(self, generation_model, prompt_tokens_batched):
-        """
-        Test to check if the `generate` function produces the right output when stop tokens are
-        provided, but this time in batched format.
-        """
-        temperature = 0.6
-        top_k = 100
-
-        # These are the first tokens generated by the model
-        # so it should stop immediately
-        stop_tokens = [3983, 3953, 3989]
-
-        torch.manual_seed(42)
-
-        outputs = ppo_utils.generate(
-            model=generation_model,
-            prompt=prompt_tokens_batched,
-            max_generated_tokens=10,
-            temperature=temperature,
-            top_k=top_k,
-            stop_tokens=stop_tokens,
-        )
-
-        expected_outputs = [
-            [2, 3, 4, 5, 6, 7, 8, 9, 3983],
-            [2, 3, 4, 5, 6, 7, 8, 9, 3953],
-            [2, 3, 4, 5, 6, 7, 8, 9, 3989],
-        ]
-
-        assert outputs == expected_outputs
-
-    def test_stop_tokens_batched_uneven(self, generation_model, prompt_tokens_batched):
-        """
-        Test to check if the `generate` function produces the right output when stop tokens are
-        provided, but this time in batched format with different stopping lengths.
-        """
-        temperature = 0.6
-        top_k = 100
-
-        stop_tokens = [3962, 3953, 3999]
-
-        torch.manual_seed(42)
-
-        outputs = ppo_utils.generate(
-            model=generation_model,
-            prompt=prompt_tokens_batched,
-            max_generated_tokens=10,
-            temperature=temperature,
-            top_k=top_k,
-            stop_tokens=stop_tokens,
-        )
-
-        expected_outputs = [
-            [2, 3, 4, 5, 6, 7, 8, 9, 3983, 3950, 3962],
-            [2, 3, 4, 5, 6, 7, 8, 9, 3953, 0, 0],
-            [2, 3, 4, 5, 6, 7, 8, 9, 3989, 3999, 0],
-        ]
-
-        assert outputs == expected_outputs
 
 
 class TestGetCausalMask:
@@ -273,7 +238,7 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = ppo_utils.get_causal_mask(left_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask(left_padded_prompt_tokens != 0)
         torch.testing.assert_close(causal_mask, expected_casual_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_left_padded_inputs_batched(
@@ -311,7 +276,7 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = ppo_utils.get_causal_mask(left_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask(left_padded_prompt_tokens_batched != 0)
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_right_padded_inputs(self, right_padded_prompt_tokens):
@@ -329,7 +294,7 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = ppo_utils.get_causal_mask(right_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask(right_padded_prompt_tokens != 0)
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_right_padded_inputs_batched(
@@ -367,7 +332,7 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = ppo_utils.get_causal_mask(right_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask(right_padded_prompt_tokens_batched != 0)
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_mixed_padding_inputs(self, mixed_padded_prompt_tokens):
@@ -387,7 +352,7 @@ class TestGetCausalMask:
             ]
         ).unsqueeze(0)
 
-        causal_mask = ppo_utils.get_causal_mask(mixed_padded_prompt_tokens != 0)
+        causal_mask = rlhf.get_causal_mask(mixed_padded_prompt_tokens != 0)
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)
 
     def test_get_causal_mask_for_mixed_padded_inputs_batched(
@@ -425,5 +390,5 @@ class TestGetCausalMask:
             ]
         )
 
-        causal_mask = ppo_utils.get_causal_mask(mixed_padded_prompt_tokens_batched != 0)
+        causal_mask = rlhf.get_causal_mask(mixed_padded_prompt_tokens_batched != 0)
         torch.testing.assert_close(causal_mask, expected_causal_mask, atol=0, rtol=0)

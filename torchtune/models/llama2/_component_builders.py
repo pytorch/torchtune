@@ -96,9 +96,7 @@ def llama2(
         max_seq_len=max_seq_len,
         attn_dropout=attn_dropout,
     )
-    hidden_dim = (
-        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
-    )
+    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
     layer = TransformerDecoderLayer(
         attn=self_attn,
@@ -208,9 +206,7 @@ def lora_llama2(
         quantize_base=quantize_base,
     )
 
-    hidden_dim = (
-        intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
-    )
+    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
     if apply_lora_to_mlp:
         mlp = lora_llama2_mlp(
             dim=embed_dim,
@@ -312,9 +308,7 @@ def lora_llama2_self_attention(
         ValueError: If lora_modules arg is an empty list
     """
     if not lora_modules:
-        raise ValueError(
-            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
-        )
+        raise ValueError(f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules")
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
@@ -421,4 +415,84 @@ def lora_llama2_mlp(
         gate_proj=gate_proj,
         down_proj=down_proj,
         up_proj=up_proj,
+    )
+
+
+# ------------------ Llama2 Classifier ------------------
+
+
+def llama2_classifier(
+    num_classes: int,
+    *,
+    vocab_size: int,
+    num_layers: int,
+    num_heads: int,
+    num_kv_heads: int,
+    embed_dim: int,
+    max_seq_len: int,
+    attn_dropout: float = 0.0,
+    intermediate_dim: Optional[int] = None,
+    norm_eps: float = 1e-5,
+) -> TransformerDecoder:
+    """
+    Build a base Llama2 model with the final projection replaced with a classification layer.
+
+    Args:
+        num_classes (int): number of classes for classification.
+        vocab_size (int): number of tokens in vocabulary.
+        num_layers (int): number of layers in the transformer decoder.
+        num_heads (int): number of query heads. For MHA this is also the
+            number of heads for key and value
+        num_kv_heads (int): number of key and value heads. If specified,
+            user should ensure `num_heads` % `num_kv_heads` == 0. Default value is
+            `None`, in which case this is the same as MHA
+        embed_dim (int): embedding dimension for self-attention
+        max_seq_len (int): maximum sequence length the model will be run with, as used
+            by :func:`~torchtune.modules.KVCache`
+        attn_dropout (float): dropout value passed onto scaled_dot_product_attention.
+            Default: 0.0
+        intermediate_dim (Optional[int]): intermediate dimension for MLP. If not specified,
+            this is computed using :func:`~torchtune.modules.scale_hidden_dim_for_mlp`
+        norm_eps (float): epsilon in RMS norms.
+
+    Returns:
+        TransformerDecoder: Instantiation of Llama2 model.
+    """
+    head_dim = embed_dim // num_heads
+    num_kv_heads = num_kv_heads if num_kv_heads else num_heads
+
+    rope = RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len)
+    self_attn = CausalSelfAttention(
+        embed_dim=embed_dim,
+        num_heads=num_heads,
+        num_kv_heads=num_kv_heads,
+        head_dim=head_dim,
+        q_proj=nn.Linear(embed_dim, num_heads * head_dim, bias=False),
+        k_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        v_proj=nn.Linear(embed_dim, num_kv_heads * head_dim, bias=False),
+        output_proj=nn.Linear(embed_dim, embed_dim, bias=False),
+        pos_embeddings=rope,
+        kv_cache=None,
+        max_seq_len=max_seq_len,
+        attn_dropout=attn_dropout,
+    )
+    hidden_dim = intermediate_dim if intermediate_dim else scale_hidden_dim_for_mlp(embed_dim)
+    mlp = llama2_mlp(dim=embed_dim, hidden_dim=hidden_dim)
+    layer = TransformerDecoderLayer(
+        attn=self_attn,
+        mlp=mlp,
+        sa_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+        mlp_norm=RMSNorm(dim=embed_dim, eps=norm_eps),
+    )
+    tok_embeddings = nn.Embedding(vocab_size, embed_dim)
+    output_proj = nn.Linear(embed_dim, num_classes, bias=False)
+    return TransformerDecoder(
+        tok_embeddings=tok_embeddings,
+        layer=layer,
+        num_layers=num_layers,
+        max_seq_len=max_seq_len,
+        num_heads=num_heads,
+        head_dim=head_dim,
+        norm=RMSNorm(embed_dim, eps=norm_eps),
+        output=output_proj,
     )

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torchtune.utils import ppo_utils
+from torchtune.modules import rlhf
 
 
 class TestGetRewards:
@@ -54,7 +54,7 @@ class TestGetRewards:
             ]
         )
 
-        rewards, kl, kl_rewards = ppo_utils.get_rewards(
+        rewards, kl, kl_rewards = rlhf.get_rewards_ppo(
             scores, logprobs, ref_logprobs, kl_controller_value
         )
 
@@ -72,7 +72,7 @@ class TestWhiten:
         expected_mean, expected_var = x.mean(), x.var()  # should be ~1.0, ~4.0
         expected = (x - expected_mean) / (torch.sqrt(expected_var) + 1e-8)
         expected += expected_mean
-        output = ppo_utils.whiten(x, shift_mean=True)
+        output = rlhf.whiten(x, shift_mean=True)
 
         torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)
 
@@ -81,7 +81,7 @@ class TestWhiten:
 
         expected_mean, expected_var = x.mean(), x.var()  # should be ~1.0, ~4.0
         expected = (x - expected_mean) / (torch.sqrt(expected_var) + 1e-8)
-        output = ppo_utils.whiten(x, shift_mean=False)
+        output = rlhf.whiten(x, shift_mean=False)
 
         torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)
 
@@ -99,7 +99,7 @@ class TestWhiten:
         expected = (x - expected_mean) / (torch.sqrt(expected_var) + 1e-8)
         expected += expected_mean
 
-        output = ppo_utils.masked_whiten(x, mask)
+        output = rlhf.masked_whiten(x, mask)
 
         torch.testing.assert_close(output, expected, rtol=1e-4, atol=1e-4)
 
@@ -110,7 +110,7 @@ class TestMaskedMean:
         mask = torch.tensor([True, True, True, False, False])
 
         expected_mean = torch.tensor(2.0)
-        output = ppo_utils.masked_mean(x, mask)
+        output = rlhf.masked_mean(x, mask)
 
         torch.testing.assert_close(output, expected_mean, rtol=1e-4, atol=1e-4)
 
@@ -126,7 +126,7 @@ class TestMaskedMean:
         )
 
         expected_means = torch.tensor([2.0, 5.0])
-        output = ppo_utils.masked_mean(x, mask, dim=1)
+        output = rlhf.masked_mean(x, mask, dim=1)
 
         torch.testing.assert_close(output, expected_means, rtol=1e-4, atol=1e-4)
 
@@ -137,7 +137,7 @@ class TestMaskedVar:
         mask = torch.tensor([True, True, True, False, False])
 
         expected_var = torch.tensor(1.0)
-        output = ppo_utils.masked_var(x, mask)
+        output = rlhf.masked_var(x, mask)
 
         torch.testing.assert_close(output, expected_var, rtol=1e-4, atol=1e-4)
 
@@ -161,7 +161,7 @@ class TestEstimateAdvantages:
             ]
         )
 
-        _, returns = ppo_utils.estimate_advantages(values, rewards, gamma, lmbda)
+        _, returns = rlhf.estimate_advantages(values, rewards, gamma, lmbda)
         torch.testing.assert_close(returns, expected_returns, rtol=1e-4, atol=1e-4)
 
     def test_estimate_advantages_with_whitening(self):
@@ -182,12 +182,10 @@ class TestEstimateAdvantages:
             ]
         )
 
-        # see `torchtune.utils.ppo_utils.estimate_advantages`
+        # see `torchtune.modules.rlhf.estimate_advantages`
         expected_advantages = returns - values
-        expected_whitened_advantages = ppo_utils.whiten(
-            expected_advantages, shift_mean=True
-        )
-        advantages, _ = ppo_utils.estimate_advantages(values, rewards, gamma, lmbda)
+        expected_whitened_advantages = rlhf.whiten(expected_advantages, shift_mean=True)
+        advantages, _ = rlhf.estimate_advantages(values, rewards, gamma, lmbda)
         torch.testing.assert_close(
             expected_whitened_advantages, advantages, rtol=1e-4, atol=1e-4
         )
@@ -211,10 +209,10 @@ class TestEstimateAdvantages:
             ]
         )
 
-        # see `torchtune.utils.ppo_utils.estimate_advantages`
+        # see `torchtune.modules.rlhf.estimate_advantages`
         expected_advantages = returns - values
-        expected_advantages = ppo_utils.masked_whiten(expected_advantages, masks)
-        advantages, _ = ppo_utils.estimate_advantages(
+        expected_advantages = rlhf.masked_whiten(expected_advantages, masks)
+        advantages, _ = rlhf.estimate_advantages(
             values, rewards, gamma, lmbda, masks=masks
         )
         torch.testing.assert_close(

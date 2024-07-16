@@ -81,6 +81,7 @@ Loss
    :nosignatures:
 
    loss.DPOLoss
+   loss.PPOLoss
 
 
 Vision Transforms
@@ -96,3 +97,17 @@ Functions used for preprocessing images.
     transforms.tile_crop
     transforms.find_supported_resolutions
     transforms.VisionCrossAttentionMask
+
+Reinforcement Learning From Human Feedback (RLHF)
+--------------------------------------------------
+Components for RLHF algorithms like PPO.
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+    rlhf.estimate_advantages
+    rlhf.get_rewards_ppo
+    rlhf.truncate_sequence_at_first_stop_token
+    rlhf.left_padded_collate
+    rlhf.padded_collate_dpo

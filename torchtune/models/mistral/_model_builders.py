@@ -10,12 +10,8 @@ from torchtune.models.mistral._component_builders import (
     lora_mistral,
     mistral_classifier,
     lora_mistral_classifier,
-    lora_mistral_lm,
-    mistral_lm,
-    lora_mistral_lm_with_value_head,
 )
 
-from torchtune.models.mistral.modules.transformer import TransformerLM, TransformerLMWithValueHead
 from torchtune.modules import TransformerDecoder
 from torchtune.models.mistral._tokenizer import MistralTokenizer
 from torchtune.modules.peft import LORA_ATTN_MODULES
@@ -129,8 +125,7 @@ def mistral_classifier_7b() -> TransformerDecoder:
     """
     return mistral_classifier(
         num_classes=1,
-        # a vocab size of 32_001 is used to account for the extra class token
-        vocab_size=32_001,
+        vocab_size=32_000,
         num_layers=32,
         num_heads=32,
         num_kv_heads=8,
@@ -197,119 +192,3 @@ Builder for creating a Mistral classifier model with QLoRA enabled. Base model w
 that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
 Please see `lora_mistral_classifier_7b` for full API arguments.
 """
-
-
-def lora_mistral_lm_7b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
-    lora_rank: int = 8,
-    lora_alpha: float = 16,
-    quantize_base: bool = False,
-) -> TransformerLMWithValueHead:
-    """
-    Builder for creating a Mistral 7B model with a value head and LoRA enabled.
-
-    Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
-            LoRA should be applied to in each self-attention block. Options are
-            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
-        lora_rank (int): rank of each low-rank approximation
-        lora_alpha (float): scaling factor for the low-rank approximation
-        quantize_base (bool): Whether to quantize base model weights
-
-
-    Returns:
-        TransformerLMWithValueHead: Instantiation of Mistral 7B model with a value head and LoRA applied.
-    """
-    return lora_mistral_lm(
-        lora_attn_modules=lora_attn_modules,
-        apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
-        vocab_size=32_000,
-        num_layers=32,
-        num_heads=32,
-        num_kv_heads=8,
-        embed_dim=4096,
-        intermediate_dim=14336,
-        max_seq_len=32768,
-        attn_dropout=0.0,
-        norm_eps=1e-5,
-        rope_base=10_000,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=0.05,
-        quantize_base=quantize_base,
-    )
-
-
-def lora_mistral_lm_with_value_head_7b(
-    lora_attn_modules: List[LORA_ATTN_MODULES],
-    apply_lora_to_mlp: bool = False,
-    apply_lora_to_output: bool = False,
-    lora_rank: int = 8,
-    lora_alpha: float = 16,
-    quantize_base: bool = False,
-) -> TransformerLMWithValueHead:
-    """
-    Builder for creating a Mistral 7B model with a value head and LoRA enabled.
-
-    Args:
-        lora_attn_modules (List[LORA_ATTN_MODULES]): list of which linear layers
-            LoRA should be applied to in each self-attention block. Options are
-            ``{"q_proj", "k_proj", "v_proj", "output_proj"}``.
-        apply_lora_to_mlp (bool): whether to apply LoRA to the MLP in each transformer layer.
-            Default: False
-        apply_lora_to_output (bool): whether to apply LoRA to the model's final output projection.
-            Default: False
-        lora_rank (int): rank of each low-rank approximation
-        lora_alpha (float): scaling factor for the low-rank approximation
-        quantize_base (bool): Whether to quantize base model weights
-
-
-    Returns:
-        TransformerLMWithValueHead: Instantiation of Mistral 7B model with a value head and LoRA applied.
-    """
-    return lora_mistral_lm_with_value_head(
-        lora_attn_modules=lora_attn_modules,
-        apply_lora_to_mlp=apply_lora_to_mlp,
-        apply_lora_to_output=apply_lora_to_output,
-        vocab_size=32_000,
-        num_layers=32,
-        num_heads=32,
-        num_kv_heads=8,
-        embed_dim=4096,
-        intermediate_dim=14336,
-        max_seq_len=32768,
-        attn_dropout=0.0,
-        norm_eps=1e-5,
-        rope_base=10_000,
-        lora_rank=lora_rank,
-        lora_alpha=lora_alpha,
-        lora_dropout=0.05,
-        quantize_base=quantize_base,
-    )
-
-
-def mistral_lm_7b() -> TransformerLM:
-    """
-    Builder for creating a Mistral 7B model initialized w/ the default 7b parameter values
-    from https://mistral.ai/news/announcing-mistral-7b/
-
-
-    Returns:
-        TransformerDecoder: Instantiation of Mistral 7B model
-    """
-    return mistral_lm(
-        vocab_size=32_000,
-        num_layers=32,
-        num_heads=32,
-        num_kv_heads=8,
-        embed_dim=4096,
-        intermediate_dim=14336,
-        max_seq_len=32768,
-    )

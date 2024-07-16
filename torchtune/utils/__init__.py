@@ -40,7 +40,7 @@ from ._profiler import (
 )
 from ._version import torch_version_ge
 from .argparse import TuneRecipeArgumentParser
-from .collate import padded_collate, padded_collate_dpo
+from .collate import padded_collate
 from .constants import (  # noqa
     ADAPTER_CONFIG,
     ADAPTER_KEY,
@@ -48,9 +48,10 @@ from .constants import (  # noqa
     MAX_STEPS_KEY,
     MODEL_KEY,
     OPT_KEY,
+    RNG_KEY,
     SEED_KEY,
+    STEPS_KEY,
     TOTAL_EPOCHS_KEY,
-    VALUE_HEAD_KEY,
 )
 from .logging import get_logger
 from .memory import (  # noqa
@@ -62,7 +63,7 @@ from .memory import (  # noqa
     register_optim_in_bwd_hooks,
     set_activation_checkpointing,
 )
-from .pooling import get_last_non_masked_token
+from .pooling import get_unmasked_sequence_lengths
 
 from .precision import get_dtype, set_default_dtype, validate_expected_param_dtype
 from .quantization import get_quantizer_mode
@@ -81,8 +82,7 @@ __all__ = [
     "lora_fsdp_wrap_policy",
     "get_full_finetune_fsdp_wrap_policy",
     "padded_collate",
-    "padded_collate_dpo",
-    "get_last_non_masked_token",
+    "get_unmasked_sequence_lengths",
     "set_activation_checkpointing",
     "set_default_dtype",
     "set_seed",
