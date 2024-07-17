@@ -75,6 +75,7 @@ def text_completion_dataset(
     max_seq_len: Optional[int] = None,
     add_eos: bool = True,
     packed: bool = False,
+    split_across_pack: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
 ) -> TextCompletionDataset:
     """
@@ -130,7 +131,12 @@ def text_completion_dataset(
         **load_dataset_kwargs,
     )
     return (
-        PackedDataset(ds, max_seq_len=max_seq_len, padding_idx=tokenizer.pad_id)
+        PackedDataset(
+            ds,
+            max_seq_len=max_seq_len,
+            padding_idx=tokenizer.pad_id,
+            split_across_pack=split_across_pack,
+        )
         if packed
         else ds
     )

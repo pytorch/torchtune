@@ -4,20 +4,26 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
-from torchtune.datasets._text_completion import TextCompletionDataset
+from torchtune.datasets._packed import PackedDataset
+
+from torchtune.datasets._text_completion import (
+    text_completion_dataset,
+    TextCompletionDataset,
+)
 
 from torchtune.modules.tokenizers import ModelTokenizer
 
 
 def wikitext_dataset(
     tokenizer: ModelTokenizer,
-    source: str = "wikitext",
-    subset: str = "wikitext-103-raw-v1",
+    source: str = "EleutherAI/wikitext_document_level",
+    subset: str = "wikitext-103-v1",
     max_seq_len: Optional[int] = None,
+    packed: bool = False,
     **load_dataset_kwargs: Dict[str, Any],
-) -> TextCompletionDataset:
+) -> Union[TextCompletionDataset, PackedDataset]:
     """
     Support for family of datasets similar to `wikitext <https://huggingface.co/datasets/wikitext>`_,
     an unstructured text corpus consisting of articles from Wikipedia.
@@ -37,10 +43,10 @@ def wikitext_dataset(
         TextCompletionDataset: the configured TextCompletionDataset
     """
 
-    return TextCompletionDataset(
+    return text_completion_dataset(
         tokenizer=tokenizer,
         source=source,
-        column="text",
+        column="page",
         max_seq_len=max_seq_len,
         name=subset,
         split="train",
