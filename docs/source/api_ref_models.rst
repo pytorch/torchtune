@@ -11,7 +11,7 @@ llama3
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B>`_.
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B>`__.
 
 To download the Llama3-8B-Instruct model:
 
@@ -48,7 +48,7 @@ llama2
 
 All models from the `Llama2 family <https://llama.meta.com/llama2/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`_.
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
 
 To download the Llama2-7B model:
 
@@ -92,7 +92,7 @@ code llama
 
 Models from the `Code Llama family <https://arxiv.org/pdf/2308.12950>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`_.
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Llama-2-7b>`__.
 
 To download the CodeLlama-7B model:
 
@@ -144,7 +144,7 @@ mistral
 
 All models from `Mistral AI family <https://mistral.ai/technology/#models>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/mistralai/Mistral-7B-v0.3>`_.
+Request Access on `Hugging Face <https://huggingface.co/mistralai/Mistral-7B-v0.3>`__.
 
 To download the Mistral 7B v0.1 model:
 
@@ -175,7 +175,7 @@ gemma
 
 Models of size 2B and 7B from the `Gemma family <https://blog.google/technology/developers/gemma-open-models/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/google/gemma-2b>`_`.
+Request Access on `Hugging Face <https://huggingface.co/google/gemma-2b>`__.
 
 To download the Gemma 2B model:
 
