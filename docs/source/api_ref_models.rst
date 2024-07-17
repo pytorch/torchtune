@@ -11,7 +11,7 @@ llama3
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
-Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B>`__.
+Request Access on `Hugging Face <https://huggingface.co/meta-llama/Meta-Llama-3-8B-Instruct>`__.
 
 To download the Llama3-8B-Instruct model:
 
