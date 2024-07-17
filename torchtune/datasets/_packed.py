@@ -256,35 +256,16 @@ class PackedDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """Constructs the attention mask on-the-fly and returns whole sample."""
         current_pack = self.packs[idx]
-
-        num_samples_in_pack = len(current_pack["seq_lens"])
-        total_seq_len = 0
-
-        block_attn_masks = []
-
-        for i, seq_len in enumerate(current_pack["seq_lens"]):
-            total_seq_len += seq_len
-
-            # Append lower triangular matrix for causal mask
-            block_attn_masks.append(
-                torch.tril(torch.ones(seq_len, seq_len, dtype=torch.bool))
-            )
-
-            # If we're at the last sample and the total seq len is less than the max seq len,
-            # we need to pad with identity matrix for the remainder
-            if i == num_samples_in_pack - 1 and total_seq_len < self.max_seq_len:
-                block_attn_masks.append(
-                    torch.eye(
-                        self.max_seq_len - total_seq_len,
-                        self.max_seq_len - total_seq_len,
-                        dtype=torch.bool,
-                    )
-                )
+        document_ids = torch.cat(
+            [
+                torch.full((seq_len,), i, dtype=torch.long)
+                for i, seq_len in enumerate(current_pack["seq_lens"])
+            ]
+        )
 
         return {
             "tokens": current_pack["tokens"],
             "labels": current_pack["labels"],
             "input_pos": current_pack["input_pos"],
-            # Assemble the mask into a block causal matrix
-            "mask": torch.block_diag(*block_attn_masks),
+            "document_ids": document_ids,
         }
