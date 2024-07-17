@@ -40,6 +40,7 @@ class TransformerDecoderLayer(nn.Module):
         x: Tensor,
         *,
         mask: Optional[Tensor] = None,
+        document_ids: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -68,7 +69,7 @@ class TransformerDecoderLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos)
+        attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos, document_ids=document_ids)
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = attn_out + x
@@ -182,6 +183,7 @@ class TransformerDecoder(nn.Module):
         tokens: Tensor,
         *,
         mask: Optional[Tensor] = None,
+        document_ids: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -237,7 +239,7 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask=mask, input_pos=input_pos)
+            h = layer(h, mask=mask, input_pos=input_pos, document_ids=document_ids)
 
         # shape: [b, s, d]
         h = self.norm(h)

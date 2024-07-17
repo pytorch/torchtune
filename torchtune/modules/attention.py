@@ -6,12 +6,10 @@
 
 from typing import Optional
 
-import torch
-
 from torch import nn, Tensor
-from torch.nn.attention.flex_attention import _create_block_mask, flex_attention
+from torch.nn.attention.flex_attention import flex_attention
 from torchtune.modules.kv_cache import KVCache
-from torchtune.utils.attention_bias import sample_packing_block_causal_mask
+from torchtune.utils.attention_bias import sample_packing_block_causal_mask, create_block_mask_cached
 
 
 class CausalSelfAttention(nn.Module):
@@ -121,12 +119,14 @@ class CausalSelfAttention(nn.Module):
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
 
-        self.flex_attention = torch.compile(flex_attention, dynamic=False)
+        # self.flex_attention = torch.compile(flex_attention, dynamic=False)
+        self.flex_attention = flex_attention
 
     def forward(
         self,
         x: Tensor,
         *,
+        mask: Optional[Tensor] = None,
         document_ids: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
@@ -183,15 +183,14 @@ class CausalSelfAttention(nn.Module):
             k, v = self.kv_cache.update(input_pos, k, v)
 
         # Perform flex attention calculation
-        score_mod = sample_packing_block_causal_mask(document_ids)
-        block_mask = _create_block_mask(
-            score_mod, bsz, 1, seq_len, seq_len, device=q.device
+        mask_mod = sample_packing_block_causal_mask(document_ids)
+        block_mask = create_block_mask_cached(
+            mask_mod, bsz, 1, seq_len, seq_len, device=q.device
         )
         output = self.flex_attention(
             q,
             k,
             v,
-            score_mod=score_mod,
             block_mask=block_mask,
         )
 

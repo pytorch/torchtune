@@ -262,6 +262,11 @@ class PackedDataset(Dataset):
                 for i, seq_len in enumerate(current_pack["seq_lens"])
             ]
         )
+        document_ids = F.pad(
+            document_ids,
+            (0, self.max_seq_len - len(document_ids)),
+            value=-1,
+        )
 
         return {
             "tokens": current_pack["tokens"],
