@@ -7,6 +7,7 @@ import math
 from typing import List
 
 import torch.nn.functional as F
+import torch
 
 from torch import nn, Tensor
 
@@ -64,14 +65,14 @@ class MoRALinear(nn.Module, AdapterModule):
             "bias", nn.Parameter(bias) if bias is not None else None
         )
         self.dropout = nn.Dropout(p=dropout)
-        self.mora_a = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
-        self.mora_b = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
+        self.lora_a = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
+        # self.lora_b = nn.Linear(in_features=self.rank, out_features=self.rank, bias=False)
         self.cos, self.sin = self.precompute_freqs(self.rank)
         self.merged = False
         # Note: FSDP's meta device initialization contract assumes that a module's
         # reset_parameters method only initializes its own parameters (i.e. no child
         # params are initialized, as is done in initialize_parameters below).
-        # For that reason, we patch reset_parameters directly on mora_a and mora_b submodules
+        # For that reason, we patch reset_parameters directly on lora_a and lora_b submodules
         # when using meta device. This is done in
         # torchtune.utils.prepare_model_for_fsdp_with_meta_device.
         # See this issue for more details: https://github.com/pytorch/pytorch/issues/104187.
@@ -81,8 +82,8 @@ class MoRALinear(nn.Module, AdapterModule):
     def initialize_parameters(self):
         # Initialize as in
         # https://github.com/microsoft/LoRA/blob/4c0333854cb905966f8cc4e9a74068c1e507c7b7/loralib/layers.py#L119
-        _mora_init_params(self.mora_a)
-        _mora_init_params(self.mora_b)
+        _mora_init_params(self.lora_a)
+        # _mora_init_params(self.lora_b)
 
     def _create_weight_and_bias(self):
         """
@@ -103,12 +104,12 @@ class MoRALinear(nn.Module, AdapterModule):
 
     def adapter_params(self) -> List[str]:
         """
-        Return mora_a.weight and mora_b.weight as adapter params.
-        If bias is enabled, also return mora_a.bias and mora_b.bias.
+        Return lora_a.weight as adapter params.
+        If bias is enabled, also return lora_a.bias
         """
-        # NOTE: this function has to be updated if the names of "mora_a" and "mora_b"
+        # NOTE: this function has to be updated if the names of "lora_a" and "lora_b"
         # in this module change.
-        adapter_params = ["mora_a.weight", "mora_b.weight"]
+        adapter_params = ["lora_a.weight",]   # "lora_b.weight"]
         return adapter_params
 
     def precompute_freqs(self, r: int, base: int = 10000):
@@ -121,7 +122,7 @@ class MoRALinear(nn.Module, AdapterModule):
         return emb.cos().unsqueeze(0), emb.sin().unsqueeze(0)
         
 
-    def _apply_mora(self, x, a, b):
+    def _apply_mora(self, x):
         """
         Taken from the paper author's github (Apache 2 License): 
         https://github.com/kongds/MoRA/blob/0ff64b144e60b54fe7c0ff7b4e76c99c949e923d/peft-mora/src/peft/tuners/lora/layer.py#L229
@@ -136,17 +137,16 @@ class MoRALinear(nn.Module, AdapterModule):
             sum_inter += 1
         in_x = x.view(*x.shape[:-1], sum_inter, r)
         if not hasattr(self, 'cos') and not hasattr(self, 'sin'):
-            self.cos, self.sin = self.precompute_freqs(self.rank)
+            self.cos, self.sin = self.precompute_freqs(r)
         rh_in_x = torch.cat((-in_x[..., r // 2:], in_x[..., :r // 2]), dim=-1)
         in_x = in_x * self.cos + rh_in_x * self.sin
-        out_x = self.mora_a(in_x)
+        out_x = self.lora_a(in_x)
         out_x = out_x.view(*x.shape[:-1], -1)[..., :out_f]
         if out_x.shape[-1] < out_f:
             repeat_time = out_f // out_x.shape[-1]
             if out_f % out_x.shape[-1] != 0:
                 repeat_time += 1
-            out_x = torch.cat([out_x] * repeat_time, dim=-1)[..., :out_f]
-
+            out_x = torch.cat([out_x]*repeat_time, dim=-1)[..., :out_f]
         return out_x
 
 
@@ -165,13 +165,26 @@ class MoRALinear(nn.Module, AdapterModule):
             out = F.linear(x, self.weight, self.bias)
         if self.disabled:
             return out
-        mora_out = self.mora_a(self.dropout(x))
-        mora_out = (self.alpha / self.rank) * self.mora_b(mora_out)
-        return out + mora_out
+
+        out = self.dropout(out)
+
+        return out + self._apply_mora(out)
 
 
 def _mora_init_params(x: nn.Linear) -> None:
     """
-    Initialize MoRA A and B weight to zeros.
+    Initialize MoRA weights to zeros.
     """
     nn.init.zeros_(x.weight)
+
+
+# possible cleaner implementation of ROPE
+# def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor:
+#     freqs = 1.0 / (
+#         base ** (torch.arange(0, n_elem, 2)[: (n_elem // 2)].float() / n_elem)
+#     )
+#     t = torch.arange(seq_len, device=freqs.device)
+#     freqs = torch.outer(t, freqs)
+#     freqs_cis = torch.polar(torch.ones_like(freqs), freqs)
+#     cache = torch.stack([freqs_cis.real, freqs_cis.imag], dim=-1)
+#     return cache.to(dtype=torch.bfloat16)
