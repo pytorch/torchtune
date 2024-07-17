@@ -12,7 +12,7 @@ from torch import nn, Tensor
 
 class Fp32LayerNorm(nn.LayerNorm):
     """
-    Wrapper around :func:`~nn.functional.layer_norm` to support mixed-precision training.
+    Wrapper around :func:`~torch.nn.functional.layer_norm` to support mixed-precision training.
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
