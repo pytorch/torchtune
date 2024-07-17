@@ -248,7 +248,7 @@ class TransformerDecoder(nn.Module):
         return output
 
 
-class TiedEmbeddingTransformerDecoder(TransformerDecoder):
+class TiedEmbeddingTransformerDecoder(nn.Module):
     """
     Transformer Decoder with tied embedding weight. A key difference between
     this class and :class:`~torchtune.modules.TransformerDecoder`
@@ -285,16 +285,47 @@ class TiedEmbeddingTransformerDecoder(TransformerDecoder):
         head_dim: int,
         norm: nn.Module,
     ) -> None:
-        super().__init__(
-            tok_embeddings=tok_embeddings,
-            layer=layer,
-            num_layers=num_layers,
-            max_seq_len=max_seq_len,
-            num_heads=num_heads,
-            head_dim=head_dim,
-            norm=norm,
-            output=None,
+        super().__init__()
+
+        self.tok_embeddings = tok_embeddings
+        self.layers = _get_clones(layer, num_layers)
+        self.norm = norm
+        self.max_seq_len = max_seq_len
+        self.num_heads = num_heads
+        self.head_dim = head_dim
+        self.causal_mask = None
+
+    def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
+        """Setup key value caches for attention calculation.
+
+        Args:
+            batch_size (int): batch size for the caches.
+            dtype (torch.dtype): dtype for the caches.
+        """
+        for layer in self.layers:
+            layer.attn.kv_cache = KVCache(
+                batch_size=batch_size,
+                max_seq_len=self.max_seq_len,
+                num_heads=self.num_heads,
+                head_dim=self.head_dim,
+                dtype=dtype,
+            )
+
+        # causal_mask is used during inference to ensure we're attending
+        # to the right tokens
+        self.causal_mask = torch.tril(
+            torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
+
+    def reset_caches(self):
+        """Reset the key value caches."""
+        if self.layers[0].attn.kv_cache is None:
+            raise RuntimeError(
+                "Key value caches are not setup. Call ``setup_caches()`` first."
+            )
+
+        for layer in self.layers:
+            layer.attn.kv_cache.reset()
 
     def forward(
         self,

@@ -4,6 +4,8 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import json
+import os.path
+
 import unicodedata
 from functools import lru_cache
 from typing import Dict, List, Optional, Tuple
@@ -72,9 +74,9 @@ def get_pairs(word):
 
 
 class Qwen2Tokenizer(ModelTokenizer):
-    """This class construct a "fast" Qwen2 tokenizer (backed by HuggingFace's *tokenizers* library).
+    """This class construct a Qwen2 tokenizer, based on GPT-2 byte-level BPE tokenization.
 
-    See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2_fast.py>.
+    See <https://github.com/huggingface/transformers/blob/v4.40.1/src/transformers/models/qwen2/tokenization_qwen2.py>.
 
     Args:
         vocab_file (str): Path to vocab.json file.
@@ -94,18 +96,20 @@ class Qwen2Tokenizer(ModelTokenizer):
 
     def __init__(
         self,
-        vocab_file: str,
-        merges_file: str,
-        *,
+        path: str,
+        merges_file: str = None,
         special_tokens: Optional[Dict[str, int]] = None,
+        *,
         errors: str = "replace",
         unk_token: Optional[str] = ENDOFTEXT,
         bos_token: Optional[str] = None,
         eos_token: str = ENDOFTEXT,
         pad_token: Optional[str] = ENDOFTEXT,
     ):
-        with open(vocab_file, encoding="utf-8") as vocab_handle:
+        with open(path, encoding="utf-8") as vocab_handle:
             self.encoder = json.load(vocab_handle)
+        if merges_file is None:
+            merges_file = os.path.join(os.path.dirname(path), "merges.txt")
 
         self.decoder = {v: k for k, v in self.encoder.items()}
         self.errors = errors  # how to handle errors in decoding

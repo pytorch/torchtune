@@ -3,13 +3,11 @@
 #
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
-from typing import List, Optional
-from functools import partial
+from typing import List, Optional, Union
 
 from torchtune.models.qwen2._component_builders import qwen2, lora_qwen2
 from torchtune.models.qwen2._tokenizer import Qwen2Tokenizer
-
-from torchtune.modules import TransformerDecoder
+from torchtune.modules import TransformerDecoder, TiedEmbeddingTransformerDecoder
 from torchtune.modules.peft import LORA_ATTN_MODULES
 from torchtune.modules.tokenizers import parse_hf_tokenizer_json
 
@@ -20,13 +18,13 @@ qwen2 7B model.
 """
 
 
-def qwen2_7b() -> TransformerDecoder:
+def qwen2_7b() -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
     """
     Builder for creating a Qwen2 model initialized w/ the default 7B parameter values
     from https://huggingface.co/Qwen/Qwen2-7B-Instruct
 
     Returns:
-        TransformerDecoder: Instantiation of Qwen2 7B model
+        Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]: Instantiation of Qwen2 7B model
     """
     return qwen2(
         vocab_size=152064,
@@ -43,15 +41,15 @@ def qwen2_7b() -> TransformerDecoder:
 
 
 def qwen2_tokenizer(
-        vocab_file: str, merges_file: str, special_tokens_path: Optional[str] = None,
+        path: str, merges_file: str = None, special_tokens_path: Optional[str] = None,
         **kwargs,
 ) -> Qwen2Tokenizer:
     """
     Tokenizer for Qwen2.
 
     Args:
-        vocab_file (str): path to the vocab file.
-        merges_file (str): path to the merges file.
+        path (str): path to the vocab.json file.
+        merges_file (str): path to the merges.txt file.
         special_tokens_path (Optional[str]): Path to ``tokenizer.json`` from Hugging Face
             model files that contains all registered special tokens, or a local json file
             structured similarly. Default is None to use the canonical Qwen2 special tokens.
@@ -60,7 +58,7 @@ def qwen2_tokenizer(
         Llama3Tokenizer: Instantiation of the Qwen2 tokenizer
     """
     special_tokens = parse_hf_tokenizer_json(special_tokens_path) if special_tokens_path is not None else None
-    return Qwen2Tokenizer(vocab_file=vocab_file, merges_file=merges_file, special_tokens=special_tokens, **kwargs)
+    return Qwen2Tokenizer(path=path, merges_file=merges_file, special_tokens=special_tokens, **kwargs)
 
 
 def lora_qwen2_7b(
@@ -71,7 +69,7 @@ def lora_qwen2_7b(
         lora_alpha: float = 16,
         lora_dropout: float = 0.05,
         quantize_base: bool = False,
-) -> TransformerDecoder:
+) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
     """
     Builder for creating a Qwen2 7B model with LoRA enabled.
 
@@ -92,7 +90,7 @@ def lora_qwen2_7b(
         quantize_base (bool): Whether to quantize base model weights
 
     Returns:
-        TransformerDecoder: Instantiation of Qwen2 7B model with LoRA applied
+        Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]: Instantiation of Qwen2 7B model with LoRA applied
     """
     return lora_qwen2(
         lora_attn_modules=lora_attn_modules,
@@ -113,12 +111,3 @@ def lora_qwen2_7b(
         lora_dropout=lora_dropout,
         quantize_base=quantize_base,
     )
-
-
-qlora_qwen2_7b = partial(lora_qwen2_7b, quantize_base=True)
-
-qlora_qwen2_7b.__doc__ = """
-Builder for creating a Qwen2 7B model with QLoRA enabled. Base model weights in linear layers
-that LoRA is applied to are quantized per the QLoRA paper: https://arxiv.org/abs/2305.14314.
-Please see `lora_qwen2_7b` for full API arguments.
-"""

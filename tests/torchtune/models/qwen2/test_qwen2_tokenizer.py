@@ -18,7 +18,7 @@ class TestQwen2Tokenizer:
     @pytest.fixture
     def tokenizer(self):
         return qwen2_tokenizer(
-            vocab_file=str(ASSETS / "tiny_bpe_vocab.json"),
+            path=str(ASSETS / "tiny_bpe_vocab.json"),
             merges_file=str(ASSETS / "tiny_bpe_merges.txt"),
             special_tokens_path=str(ASSETS / "tiny_bpe_tokenizer.json"),
         )

@@ -5,7 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from functools import partial
-from typing import List
+from typing import List, Union
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
 
 from torch import nn
@@ -48,7 +48,7 @@ def qwen2(
     norm_eps: float = 1e-5,
     rope_base: float = 1_000_000.0,
     tie_word_embeddings: bool = False,
-) -> TransformerDecoder:
+) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
     """
     Build the decoder associated with the Qwen2 model. This includes:
     - Token embeddings
@@ -161,7 +161,7 @@ def lora_qwen2(
         lora_dropout: float = 0.0,
         # Quantization args
         quantize_base: bool = False,
-) -> TransformerDecoder:
+) -> Union[TransformerDecoder, TiedEmbeddingTransformerDecoder]:
     """
     Return a version of Qwen2 (an instance of :func:`~torchtune.models.qwen2.transformer.Qwen2TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
