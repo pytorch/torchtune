@@ -4,14 +4,9 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from importlib.metadata import PackageNotFoundError, version
-
 import torch
 from torchao.dtypes.nf4tensor import implements as nf4_tensor_impl, to_nf4
-
-
-def is_fbcode():
-    return not hasattr(torch.version, "git_version")
+from torchtune.modules.low_precision._utils import _get_torchao_version
 
 
 @nf4_tensor_impl([torch.ops.aten.clone.default])
@@ -26,17 +21,12 @@ def clone(func, *args, **kwargs):
 
 
 should_define_inplace_copy = True
-if not is_fbcode():
-    try:
-        ao_version = version("torchao")
-        should_define_inplace_copy = ao_version < "0.2.0"
-    # For importlib metadata, need to check nightly separately
-    except PackageNotFoundError:
-        ao_version = version("torchao-nightly")
-        should_define_inplace_copy = ao_version < "2024.5.20"
-    except Exception as e:
-        raise PackageNotFoundError("Could not find torchao version") from e
-
+ao_version, is_nightly = _get_torchao_version()
+if ao_version:
+    if (is_nightly and ao_version >= "2024.5.20") or (
+        not is_nightly and ao_version >= "0.2.0"
+    ):
+        should_define_inplace_copy = False
 
 if should_define_inplace_copy:
     # TorchAO have `NF4.copy_` starting from `0.2.0`

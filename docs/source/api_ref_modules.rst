@@ -17,8 +17,10 @@ Modeling Components and Building Blocks
     get_cosine_schedule_with_warmup
     RotaryPositionalEmbeddings
     RMSNorm
+    Fp32LayerNorm
     TransformerDecoderLayer
     TransformerDecoder
+    VisionTransformer
 
 Base Tokenizers
 ---------------
@@ -93,3 +95,4 @@ Functions used for preprocessing images.
     transforms.resize_with_pad
     transforms.tile_crop
     transforms.find_supported_resolutions
+    transforms.VisionCrossAttentionMask

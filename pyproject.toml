@@ -10,8 +10,6 @@ authors = [
 ]
 keywords = ["pytorch", "finetuning", "llm"]
 dependencies = [
-    # multimodality
-    "torchvision",
 
     # Hugging Face integrations
     "datasets",

@@ -168,7 +168,12 @@ class CLIPImageTransform:
         image_tensor = tile_crop(image=image_tensor, tile_size=self.tile_size)
 
         aspect_ratio = torch.tensor(best_resolution).reshape(-1) // self.tile_size
-        return {
-            "image": image_tensor,
-            "aspect_ratio": aspect_ratio,
-        }
+
+        kwargs.update(
+            {
+                "image": image_tensor,
+                "aspect_ratio": aspect_ratio,
+            }
+        )
+
+        return kwargs
