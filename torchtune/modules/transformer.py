@@ -69,7 +69,9 @@ class TransformerDecoderLayer(nn.Module):
         # Input tensor and attention output have the same shape
         # [b, s, d]
         # Norm applied before self-attention
-        attn_out = self.attn(self.sa_norm(x), mask=mask, input_pos=input_pos, document_ids=document_ids)
+        attn_out = self.attn(
+            self.sa_norm(x), mask=mask, input_pos=input_pos, document_ids=document_ids
+        )
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
         h = attn_out + x

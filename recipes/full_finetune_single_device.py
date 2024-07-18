@@ -445,9 +445,13 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
-                document_ids = document_ids.to(self._device) if document_ids is not None else None
+                document_ids = (
+                    document_ids.to(self._device) if document_ids is not None else None
+                )
 
-                logits = self._model(tokens, mask=mask, input_pos=input_pos, document_ids=document_ids)
+                logits = self._model(
+                    tokens, mask=mask, input_pos=input_pos, document_ids=document_ids
+                )
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()

@@ -507,6 +507,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # exist. Currently, only sample packing in PackedDataset returns these
                 mask = batch.get("mask", None)  # shape [b, s, s]
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
+                document_ids = batch.get("document_ids", None)
 
                 tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
@@ -515,8 +516,13 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
+                document_ids = (
+                    document_ids.to(self._device) if document_ids is not None else None
+                )
 
-                logits = self._model(tokens, mask=mask, input_pos=input_pos)
+                logits = self._model(
+                    tokens, mask=mask, input_pos=input_pos, document_ids=document_ids
+                )
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()

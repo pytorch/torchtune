@@ -6,10 +6,15 @@
 
 from typing import Optional
 
+import torch
+
 from torch import nn, Tensor
 from torch.nn.attention.flex_attention import flex_attention
 from torchtune.modules.kv_cache import KVCache
-from torchtune.utils.attention_bias import sample_packing_block_causal_mask, create_block_mask_cached
+from torchtune.utils.attention_bias import (
+    create_block_mask_cached,
+    sample_packing_block_causal_mask,
+)
 
 
 class CausalSelfAttention(nn.Module):
@@ -119,8 +124,8 @@ class CausalSelfAttention(nn.Module):
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
 
-        # self.flex_attention = torch.compile(flex_attention, dynamic=False)
-        self.flex_attention = flex_attention
+        self.flex_attention = torch.compile(flex_attention, dynamic=False)
+        # self.flex_attention = flex_attention
 
     def forward(
         self,
