@@ -110,4 +110,10 @@ class PPOLoss(nn.Module):
         )
 
         loss = policy_loss + (value_loss * self.value_coeff)
-        return loss, policy_loss, value_loss, ratios.mean(), clipfrac
+        return (
+            loss,
+            policy_loss.detach(),
+            value_loss.detach(),
+            ratios.mean().detach(),
+            clipfrac.detach(),
+        )
