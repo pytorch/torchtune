@@ -111,3 +111,6 @@ def _get_enable_fake_quant(quantizer_mode: str) -> Callable:
     If the quantizer is not recognized as a known QAT quantizer, return None.
     """
     return _quantizer_mode_to_enable_fake_quant.get(quantizer_mode, None)
+
+
+# test-codev

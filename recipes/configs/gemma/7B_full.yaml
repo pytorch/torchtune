@@ -3,7 +3,7 @@
 #
 # This config assumes that you've run the following command before launching
 # this run:
-#   tune download google/gemma-7b --hf-token <HF_TOKEN> --output-dir /tmp/gemma-7b --ignore-patterns "gemma-7b.gguf"
+#   tune download google/gemma-7b --hf-token <HF_TOKEN> --ignore-patterns "gemma-7b.gguf"
 #
 # To launch on 4 devices, run the following command from root:
 #   tune run --nnodes 1 --nproc_per_node 4 full_finetune_distributed --config gemma/7B_full
@@ -41,7 +41,7 @@ checkpointer:
     model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
-  output_dir: /tmp/gemma
+  output_dir: /tmp/gemma-7b
   model_type: GEMMA
 resume_from_checkpoint: False
 
