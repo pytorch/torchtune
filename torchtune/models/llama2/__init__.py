@@ -32,11 +32,8 @@ from ._tokenizer import Llama2Tokenizer
 __all__ = [
     "Llama2Tokenizer",
     "llama2",
-    "llama2_classifier_7b",
     "llama2_classifier",
     "lora_llama2_classifier",
-    "lora_llama2_classifier_7b",
-    "qlora_llama2_classifier",
     "llama2_reward_7b",
     "lora_llama2_reward_7b",
     "qlora_llama2_reward_7b",

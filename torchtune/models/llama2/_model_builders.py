@@ -6,7 +6,7 @@
 from typing import List
 from functools import partial
 
-from torchtune.models.llama2._component_builders import llama2, lora_llama2
+from torchtune.models.llama2._component_builders import llama2, lora_llama2, llama2_classifier, lora_llama2_classifier
 
 from torchtune.modules import TransformerDecoder
 from torchtune.models.llama2._tokenizer import Llama2Tokenizer
@@ -282,7 +282,7 @@ def llama2_reward_7b() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Llama2 7B model
     """
-    return llama2_classifier_7b(
+    return llama2_classifier(
         num_classes=1,
         vocab_size=32_000,
         num_layers=32,
@@ -326,7 +326,7 @@ def lora_llama2_reward_7b(
     Returns:
         TransformerDecoder: Instantiation of Llama2 7B model with LoRA applied
     """
-    return lora_llama2(
+    return lora_llama2_classifier(
         lora_attn_modules=lora_attn_modules,
         apply_lora_to_mlp=apply_lora_to_mlp,
         apply_lora_to_output=apply_lora_to_output,
