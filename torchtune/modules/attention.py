@@ -9,12 +9,8 @@ from typing import Optional
 import torch
 
 from torch import nn, Tensor
-from torch.nn.attention.flex_attention import flex_attention
+from torch.nn.attention.flex_attention import flex_attention, BlockMask
 from torchtune.modules.kv_cache import KVCache
-from torchtune.utils.attention_bias import (
-    create_block_mask_cached,
-    sample_packing_block_causal_mask,
-)
 
 
 class CausalSelfAttention(nn.Module):
@@ -132,7 +128,7 @@ class CausalSelfAttention(nn.Module):
         x: Tensor,
         *,
         mask: Optional[Tensor] = None,
-        document_ids: Optional[Tensor] = None,
+        block_mask: Optional[BlockMask] = None,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         # input has shape [b, s, d]
@@ -188,10 +184,6 @@ class CausalSelfAttention(nn.Module):
             k, v = self.kv_cache.update(input_pos, k, v)
 
         # Perform flex attention calculation
-        mask_mod = sample_packing_block_causal_mask(document_ids)
-        block_mask = create_block_mask_cached(
-            mask_mod, bsz, 1, seq_len, seq_len, device=q.device
-        )
         output = self.flex_attention(
             q,
             k,

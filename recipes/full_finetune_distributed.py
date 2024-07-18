@@ -30,6 +30,7 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
+from torchtune.utils.attention_bias import sample_packing_block_causal_mask, create_block_mask
 
 from tqdm import tqdm
 
@@ -519,9 +520,16 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 document_ids = (
                     document_ids.to(self._device) if document_ids is not None else None
                 )
+                block_mask = None
+                if document_ids is not None:
+                    bsz, seq_len = document_ids.shape
+                    mask_mod = sample_packing_block_causal_mask(document_ids)
+                    block_mask = create_block_mask(
+                        mask_mod, bsz, 1, seq_len, seq_len, device=self._device
+                    )
 
                 logits = self._model(
-                    tokens, mask=mask, input_pos=input_pos, document_ids=document_ids
+                    tokens, mask=mask, input_pos=input_pos, block_mask=block_mask
                 )
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
