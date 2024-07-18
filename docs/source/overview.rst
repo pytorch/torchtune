@@ -29,6 +29,7 @@ torchtune provides:
 Excited? To get started, checkout some of our tutorials, including:
 
 - our :ref:`quickstart guide <finetune_llama_label>` to finetune your first LLM using torchtune.
+- our :ref:`quickstart guide <custom_recipe_label>` to implement your first custom recipe in torchtune.
 - our :ref:`LoRA tutorial <lora_finetune_label>` to learn about parameter-efficient finetuning with torchtune.
 - our :ref:`QLoRA tutorial <qlora_finetune_label>` to attain maximal memory efficiency with torchtune.
 

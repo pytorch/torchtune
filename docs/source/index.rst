@@ -71,6 +71,14 @@ torchtune tutorials.
    :link: tutorials/e2e_flow.html
    :tags: finetuning,quantization,inference,evals,llama2
 
+
+.. customcarditem::
+   :header: Implementing your first recipe in torchtune
+   :card_description: End-to-end workflow for writing a custom recipe in torchtune.
+   :image: _static/img/generic-pytorch-logo.png
+   :link: tutorials/adding_first_recipe.html
+   :tags:
+
 .. customcardend::
 
 
@@ -100,6 +108,7 @@ torchtune tutorials.
    tutorials/lora_finetune
    tutorials/qlora_finetune
    tutorials/e2e_flow
+   tutorials/adding_first_recipe
    tutorials/datasets
    tutorials/chat
 
