@@ -123,7 +123,7 @@ def mistral_reward_7b() -> TransformerDecoder:
     where the output layer is a classification layer projecting to a single class for reward modelling.
 
     Returns:
-        TransformerClassifier: Instantiation of Mistral 7B classifier model
+        TransformerDecoder: Instantiation of Mistral 7B classifier model
     """
     return mistral_classifier(
         num_classes=1,
