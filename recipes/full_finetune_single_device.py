@@ -413,41 +413,104 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             intermediate_checkpoint=(epoch + 1 < self.total_epochs),
         )
 
-    def train(self) -> None:
-        """
-        The core training loop. Supports training on subsets of the dataset using the
-        ``max_steps_per_epoch``.
-        """
-        if self._model_compile:
-            log.info(
-                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
-            )
-        # zero out the gradients before starting training
-        if not self._optimizer_in_bwd:
-            self._optimizer.zero_grad()
+    def _run_train_epoch(self) -> None:
 
         # Initialize tokens count and running loss (for grad accumulation)
         t0 = time.perf_counter()
         running_loss = 0
         num_tokens = 0
 
-        # self.epochs_run should be non-zero when we're resuming from a checkpoint
-        for curr_epoch in range(self.epochs_run, self.total_epochs):
-            # Update the sampler to ensure data is correctly shuffled across epochs
-            # in case shuffle is True
-            self._sampler.set_epoch(curr_epoch)
+        self._model.train()
 
-            self._model.train()
+        pbar = tqdm(total=self._steps_per_epoch, desc="Training")
+        for idx, batch in enumerate(self._dataloader):
+            if (
+                self.max_steps_per_epoch is not None
+                and (idx // self._gradient_accumulation_steps)
+                == self.max_steps_per_epoch
+            ):
+                break
 
-            pbar = tqdm(total=self._steps_per_epoch, desc="Training")
-            for idx, batch in enumerate(self._dataloader):
-                if (
-                    self.max_steps_per_epoch is not None
-                    and (idx // self._gradient_accumulation_steps)
-                    == self.max_steps_per_epoch
-                ):
-                    break
+            # Both are shape [b, s]
+            tokens, labels = batch["tokens"], batch["labels"]
+            # Get the attention mask and position ids from the dataset if they
+            # exist. Currently, only sample packing in PackedDataset returns these
+            mask = batch.get("mask", None)  # shape [b, s, s]
+            input_pos = batch.get("input_pos", None)  # shape [b, s]
 
+            tokens = tokens.to(self._device)
+            num_tokens += tokens.numel()
+            labels = labels.to(self._device)
+            mask = mask.to(self._device) if mask is not None else None
+            input_pos = input_pos.to(self._device) if input_pos is not None else None
+
+            logits = self._model(tokens, mask=mask, input_pos=input_pos)
+            # Shift so that tokens < n predict n
+            logits = logits[..., :-1, :].contiguous()
+            labels = labels[..., 1:].contiguous()
+            logits = logits.transpose(1, 2)
+            # Compute loss
+            loss = self._loss_fn(logits, labels)
+
+            loss = loss / self._gradient_accumulation_steps
+            running_loss += loss
+            loss.backward()
+
+            # Step with optimizer
+            if (idx + 1) % self._gradient_accumulation_steps == 0:
+                if not self._optimizer_in_bwd:
+                    self._optimizer.step()
+                    self._optimizer.zero_grad(set_to_none=True)
+
+                self.global_step += 1
+
+                loss_to_log = running_loss.item()
+                pbar.update(1)
+                pbar.set_description(
+                    f"{self.epochs_run+1}|{self.global_step}|Loss: {loss_to_log}"
+                )
+
+                # Log per-step metrics
+                if self.global_step % self._log_every_n_steps == 0:
+                    time_per_step = time.perf_counter() - t0
+                    log_dict = {
+                        "loss": loss_to_log,
+                        # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
+                        # true since we don't expose the ability to configure this yet.
+                        "lr": (
+                            self._optim_ckpt_wrapper.get_optim_key("lr")
+                            if self._optimizer_in_bwd
+                            else self._optimizer.param_groups[0]["lr"]
+                        ),
+                        "tokens_per_second_per_gpu": num_tokens / time_per_step,
+                    }
+                    if self._device.type == "cuda" and self._log_peak_memory_stats:
+                        log_dict.update(utils.get_memory_stats(device=self._device))
+                    self._metric_logger.log_dict(
+                        log_dict,
+                        step=self.global_step,
+                    )
+
+                # Reset running stats for the next step
+                running_loss = 0
+                num_tokens = 0
+                t0 = time.perf_counter()
+
+    def _run_valid(self):
+        # Run validation
+
+        num_tokens = 0
+
+        self._model.eval()
+        with torch.no_grad():
+            cum_val_loss = 0
+            num_eval_steps = (
+                min(self._max_validation_steps, len(self._dataloader_validation))
+                if self._max_validation_steps is not None
+                else len(self._dataloader_validation)
+            )
+            pbar_val = tqdm(total=num_eval_steps, desc="Validation")
+            for idx, batch in enumerate(self._dataloader_validation):
                 # Both are shape [b, s]
                 tokens, labels = batch["tokens"], batch["labels"]
                 # Get the attention mask and position ids from the dataset if they
@@ -469,108 +532,57 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 labels = labels[..., 1:].contiguous()
                 logits = logits.transpose(1, 2)
                 # Compute loss
-                loss = self._loss_fn(logits, labels)
+                val_loss = self._loss_fn(logits, labels)
+                cum_val_loss += val_loss
 
-                loss = loss / self._gradient_accumulation_steps
-                running_loss += loss
-                loss.backward()
-
-                # Step with optimizer
-                if (idx + 1) % self._gradient_accumulation_steps == 0:
-                    if not self._optimizer_in_bwd:
-                        self._optimizer.step()
-                        self._optimizer.zero_grad(set_to_none=True)
-
-                    self.global_step += 1
-
-                    loss_to_log = running_loss.item()
-                    pbar.update(1)
-                    pbar.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Loss: {loss_to_log}"
-                    )
-
-                    # Log per-step metrics
-                    if self.global_step % self._log_every_n_steps == 0:
-                        time_per_step = time.perf_counter() - t0
-                        log_dict = {
-                            "loss": loss_to_log,
-                            # NOTE: for optim in backward, this assumes all optimizers have the same LR. This is currently
-                            # true since we don't expose the ability to configure this yet.
-                            "lr": (
-                                self._optim_ckpt_wrapper.get_optim_key("lr")
-                                if self._optimizer_in_bwd
-                                else self._optimizer.param_groups[0]["lr"]
-                            ),
-                            "tokens_per_second_per_gpu": num_tokens / time_per_step,
-                        }
-                        if self._device.type == "cuda" and self._log_peak_memory_stats:
-                            log_dict.update(utils.get_memory_stats(device=self._device))
-                        self._metric_logger.log_dict(
-                            log_dict,
-                            step=self.global_step,
-                        )
-
-                    # Reset running stats for the next step
-                    running_loss = 0
-                    num_tokens = 0
-                    t0 = time.perf_counter()
-
-            # Run validation
-            self._model.eval()
-            with torch.no_grad():
-                cum_val_loss = 0
-                num_eval_steps = (
-                    min(self._max_validation_steps, len(self._dataloader_validation))
-                    if self._max_validation_steps is not None
-                    else len(self._dataloader_validation)
+                pbar_val.update(1)
+                pbar_val.set_description(
+                    f"{self.epochs_run+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
                 )
-                pbar_val = tqdm(total=num_eval_steps, desc="Validation")
-                for idx, batch in enumerate(self._dataloader_validation):
-                    # Both are shape [b, s]
-                    tokens, labels = batch["tokens"], batch["labels"]
-                    # Get the attention mask and position ids from the dataset if they
-                    # exist. Currently, only sample packing in PackedDataset returns these
-                    mask = batch.get("mask", None)  # shape [b, s, s]
-                    input_pos = batch.get("input_pos", None)  # shape [b, s]
 
-                    tokens = tokens.to(self._device)
-                    num_tokens += tokens.numel()
-                    labels = labels.to(self._device)
-                    mask = mask.to(self._device) if mask is not None else None
-                    input_pos = (
-                        input_pos.to(self._device) if input_pos is not None else None
-                    )
+                if (
+                    self._max_validation_steps is not None
+                    and idx == self._max_validation_steps
+                ):
+                    break
 
-                    logits = self._model(tokens, mask=mask, input_pos=input_pos)
-                    # Shift so that tokens < n predict n
-                    logits = logits[..., :-1, :].contiguous()
-                    labels = labels[..., 1:].contiguous()
-                    logits = logits.transpose(1, 2)
-                    # Compute loss
-                    val_loss = self._loss_fn(logits, labels)
-                    cum_val_loss += val_loss
+            mean_val_loss = cum_val_loss / (idx + 1)
+            self._metric_logger.log_dict(
+                {"val_loss": mean_val_loss},
+                step=self.global_step,
+            )
+            pbar_val.close()
 
-                    pbar_val.update(1)
-                    pbar_val.set_description(
-                        f"{curr_epoch+1}|{self.global_step}|Validation Loss: {cum_val_loss / (idx + 1)}"
-                    )
+    def train(self) -> None:
+        """
+        The core training loop. Supports training on subsets of the dataset using the
+        ``max_steps_per_epoch``.
+        """
+        if self._model_compile:
+            log.info(
+                "NOTE: torch.compile is enabled and model is compiled in first forward. Expect a relatively slow first iteration."
+            )
+        # zero out the gradients before starting training
+        if not self._optimizer_in_bwd:
+            self._optimizer.zero_grad()
 
-                    if (
-                        self._max_validation_steps is not None
-                        and idx == self._max_validation_steps
-                    ):
-                        break
+        # self.epochs_run should be non-zero when we're resuming from a checkpoint
+        for curr_epoch in range(self.epochs_run, self.total_epochs):
+            # Update the sampler to ensure data is correctly shuffled across epochs
+            # in case shuffle is True
+            self._sampler.set_epoch(curr_epoch)
 
-                mean_val_loss = cum_val_loss / (idx + 1)
-                self._metric_logger.log_dict(
-                    {"val_loss": mean_val_loss},
-                    step=self.global_step,
-                )
-                pbar_val.close()
+            self._run_valid()
+
+            self._run_train_epoch()
 
             self.epochs_run += 1
+
             if self.save_checkpoints:
-                self.save_checkpoint(epoch=curr_epoch)
+                if self.save_checkpoints == -1 and curr_epoch + 1 == self.total_epochs:
+                    self.save_checkpoint(epoch=curr_epoch)
+                elif curr_epoch % self.save_checkpoints == 0:
+                    self.save_checkpoint(epoch=curr_epoch)
 
     def cleanup(self) -> None:
         self._metric_logger.close()
