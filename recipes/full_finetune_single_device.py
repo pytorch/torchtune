@@ -579,8 +579,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self.epochs_run += 1
 
             if self.save_checkpoints:
-                if self.save_checkpoints == -1 and curr_epoch + 1 == self.total_epochs:
-                    self.save_checkpoint(epoch=curr_epoch)
+                if self.save_checkpoints == -1:
+                    if curr_epoch + 1 == self.total_epochs:
+                        self.save_checkpoint(epoch=curr_epoch)
                 elif curr_epoch % self.save_checkpoints == 0:
                     self.save_checkpoint(epoch=curr_epoch)
 
