@@ -4,12 +4,14 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 import copy
-from typing import Optional
+from collections import OrderedDict
+from typing import List, Optional, Union
 
 import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
+from torchtune.modules import LayerDropout, create_layer_dropout_modules
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -116,6 +118,8 @@ class TransformerDecoder(nn.Module):
             before final MLP.
         output (nn.Linear): Callable that applies a linear transformation to the output of
             the decoder.
+        layer_dropout_prob (float): Probability of skipping samples in the transformer
+            layer.
 
     Note:
         Arg values are checked for correctness (eg: ``attn_dropout`` belongs to [0,1])
@@ -133,6 +137,9 @@ class TransformerDecoder(nn.Module):
         head_dim: int,
         norm: nn.Module,
         output: nn.Linear,
+        layer_dropout_prob: float = 0.0,
+        layer_dropout_prob_layer_scale: str = "exp",
+        layer_dropout_str: str = ":",
     ) -> None:
         super().__init__()
 
@@ -144,6 +151,8 @@ class TransformerDecoder(nn.Module):
         self.num_heads = num_heads
         self.head_dim = head_dim
         self.causal_mask = None
+
+        self.layer_dropouts = create_layer_dropout_modules(num_layers, layer_dropout_prob, layer_dropout_prob_layer_scale, layer_dropout_str)
 
     def setup_caches(self, batch_size: int, dtype: torch.dtype) -> None:
         """Setup key value caches for attention calculation.
@@ -183,6 +192,7 @@ class TransformerDecoder(nn.Module):
         *,
         mask: Optional[Tensor] = None,
         input_pos: Optional[Tensor] = None,
+        output_hidden_states: Union[bool, List[bool]] = False,
     ) -> Tensor:
         """
         Args:
@@ -222,6 +232,9 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.tok_embeddings(tokens)
 
+        if isinstance(output_hidden_states, bool):
+            output_hidden_states = [output_hidden_states] * len(self.layers)
+
         if self.causal_mask is not None:
             if input_pos is None:
                 raise ValueError(
@@ -235,13 +248,22 @@ class TransformerDecoder(nn.Module):
             # in most cases input_pos_len should be 1
             mask = self.causal_mask[None, input_pos]
 
-        for layer in self.layers:
+        if any(output_hidden_states):
+            hidden_states = OrderedDict() # TODO: use tensordict?
+
+        for i, layer in enumerate(self.layers):
             # shape: [b, s, d]
-            h = layer(h, mask=mask, input_pos=input_pos)
+            h = self.layer_dropouts[i](layer, h, mask=mask, input_pos=input_pos)
+            if output_hidden_states[i]:
+                hidden_states[i] = h
 
         # shape: [b, s, d]
         h = self.norm(h)
 
         # shape: [b, s, out_dim] - out_dim is usually the vocab size
         output = self.output(h).float()
-        return output
+
+        if any(output_hidden_states):
+            return output, hidden_states
+        else:
+            return output

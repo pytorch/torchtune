@@ -5,6 +5,7 @@
 # LICENSE file in the root directory of this source tree.
 
 from .attention import CausalSelfAttention  # noqa
+from .layer_dropout import LayerDropout, create_layer_dropout_modules # noqa
 from .common_utils import reparametrize_as_dtype_state_dict_post_hook
 from .feed_forward import FeedForward  # noqa
 from .kv_cache import KVCache  # noqa
@@ -27,4 +28,6 @@ __all__ = [
     "TransformerDecoder",
     "TransformerDecoderLayer",
     "reparametrize_as_dtype_state_dict_post_hook",
+    "LayerDropout",
+    "create_layer_dropout_modules",
 ]
