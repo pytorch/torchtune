@@ -23,6 +23,13 @@ class DPOLoss(nn.Module):
     Based on the implementation in HF's TRL library:
     https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844
 
+    DPO retains similarities to PPO (https://arxiv.org/abs/2009.01325), where it optimizes a policy
+    (language) model to align with human preferences, and regularizes the loss function using a baseline
+    reference (the frozen, initial language model) to prevent over-fitting to the preference dataset.
+    It differs from PPO by optimizing the policy model directly using labelled preference data, rather
+    than using an additional reward model to provide feedback.
+    This significantly simplifies training and reduces compute overhead.
+
     Args:
         beta (float): Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.
         label_smoothing (float): Parameter encoding uncertainty about the labels. Default is 0.
@@ -174,6 +181,7 @@ class IPOLoss(nn.Module):
 
     Based on the implementation in HF's TRL library:
     https://github.com/huggingface/trl/blob/4dce042a3863db1d375358e8c8092b874b02934b/trl/trainer/dpo_trainer.py#L1143
+
 
     Args:
         tau (float): Equivalent temperature scaling parameter (from DPO) for the IPO loss. From the TRL documentation:
