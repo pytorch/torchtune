@@ -41,7 +41,7 @@
   <link rel="stylesheet" href="../_static/css/custom_torchtune.css" type="text/css" />
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="get_canvas_best_fit" href="torchtune.modules.transforms.get_canvas_best_fit.html" />
+    <link rel="next" title="RSOLoss" href="torchtune.modules.loss.RSOLoss.html" />
     <link rel="prev" title="reparametrize_as_dtype_state_dict_post_hook" href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" />
   <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -309,6 +309,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/llama3.html">Meta Llama3 in torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/lora_finetune.html">Finetuning Llama2 with LoRA</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/qlora_finetune.html">Finetuning Llama2 with QLoRA</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/qat_finetune.html">Finetuning Llama3 with QAT</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/e2e_flow.html">End-to-End Workflow with torchtune</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/datasets.html">Configuring Datasets for Fine-Tuning</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../tutorials/chat.html">Fine-tuning Llama3 with Chat Data</a></li>
@@ -410,16 +411,27 @@
 <h1>DPOLoss<a class="headerlink" href="#dpoloss" title="Permalink to this heading">¶</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="torchtune.modules.loss.DPOLoss">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">DPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss_type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'sigmoid'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss" title="Permalink to this definition">¶</a></dt>
-<dd><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.</p>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">torchtune.modules.loss.</span></span><span class="sig-name descname"><span class="pre">DPOLoss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">beta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><span class="pre">float</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/torchtune/modules/loss/dpo.html#DPOLoss"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#torchtune.modules.loss.DPOLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Direct Preference Optimization (DPO) Loss module: <a class="reference external" href="https://arxiv.org/abs/2305.18290">https://arxiv.org/abs/2305.18290</a>.
+Simply stated from the paper:</p>
+<blockquote>
+<div><p>Intuitively, the DPO update increases the relative log probability of preferred to dispreferred responses,
+but it incorporates a dynamic, per-example importance weight that prevents
+the model degeneration that we find occurs with a naive probability ratio objective.</p>
+</div></blockquote>
 <p>Based on the implementation in HF’s TRL library:
 <a class="reference external" href="https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844">https://github.com/huggingface/trl/blob/5d1deb1445828cfd0e947cb3a7925b1c03a283fc/trl/trainer/dpo_trainer.py#L844</a></p>
+<p>DPO retains similarities to PPO (<a class="reference external" href="https://arxiv.org/abs/2009.01325">https://arxiv.org/abs/2009.01325</a>), where it optimizes a policy
+(language) model to align with human preferences, and regularizes the loss function using a baseline
+reference (the frozen, initial language model) to prevent over-fitting to the preference dataset.
+It differs from PPO by optimizing the policy model directly using labelled preference data, rather
+than using an additional reward model to provide feedback.
+This significantly simplifies training and reduces compute overhead.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>beta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Temperature parameter for the DPO loss, typically in the range of 0.1 to 0.5. Default is 0.1.</p></li>
 <li><p><strong>label_smoothing</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.12)"><em>float</em></a>) – Parameter encoding uncertainty about the labels. Default is 0.</p></li>
-<li><p><strong>loss_type</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Type of loss function to be used. Should be one of [‘sigmoid’, ‘hinge’, ‘ipo’, ‘kto_pair’].</p></li>
 </ul>
 </dd>
 </dl>
@@ -454,9 +466,6 @@ for the rejected responses. Shape: (batch_size)</p></li>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Tuple[<a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>, <a class="reference external" href="https://pytorch.org/docs/stable/tensors.html#torch.Tensor" title="(in PyTorch v2.3)">torch.Tensor</a>]</p>
 </dd>
-<dt class="field-even">Raises<span class="colon">:</span></dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3/library/exceptions.html#ValueError" title="(in Python v3.12)"><strong>ValueError</strong></a> – If an unknown loss type is specified.</p>
-</dd>
 </dl>
 </dd></dl>
 
@@ -472,7 +481,7 @@ for the rejected responses. Shape: (batch_size)</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="torchtune.modules.transforms.get_canvas_best_fit.html" class="btn btn-neutral float-right" title="get_canvas_best_fit" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
+        <a href="torchtune.modules.loss.RSOLoss.html" class="btn btn-neutral float-right" title="RSOLoss" accesskey="n" rel="next">Next <img src="../_static/images/chevron-right-orange.svg" class="next-page"></a>
       
       
         <a href="torchtune.modules.common_utils.reparametrize_as_dtype_state_dict_post_hook.html" class="btn btn-neutral" title="reparametrize_as_dtype_state_dict_post_hook" accesskey="p" rel="prev"><img src="../_static/images/chevron-right-orange.svg" class="previous-page"> Previous</a>
