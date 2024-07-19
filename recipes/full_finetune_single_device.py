@@ -131,7 +131,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         self.total_epochs = cfg.epochs
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
-        self.save_checkpoints = bool(cfg.get("save_checkpoints", True))
+        self.save_checkpoints = cfg.get("save_checkpoints", 1)
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """
