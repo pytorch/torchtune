@@ -415,8 +415,6 @@
 <dd><p>Class that supports any custom dataset with multiturn conversations.</p>
 <p>The general flow from loading a sample to tokenized prompt is:
 load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</p>
-<p>If the column/key names differ from the expected names in the <a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><code class="xref py py-class docutils literal notranslate"><span class="pre">ChatFormat</span></code></a>,
-then the <code class="docutils literal notranslate"><span class="pre">column_map</span></code> argument can be used to provide this mapping.</p>
 <p>Use <code class="docutils literal notranslate"><span class="pre">convert_to_messages</span></code> to prepare your dataset into the Llama2 chat format
 and roles:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span>
@@ -441,9 +439,7 @@ and converts to a list of <a class="reference internal" href="torchtune.data.Mes
 <li><p><strong>chat_format</strong> (<em>Optional</em><em>[</em><a class="reference internal" href="torchtune.data.ChatFormat.html#torchtune.data.ChatFormat" title="torchtune.data.ChatFormat"><em>ChatFormat</em></a><em>]</em>) – template used to format the chat. This is used to add structured text around the actual
 messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not
 as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, <code class="docutils literal notranslate"><span class="pre">chat_format</span></code> is not needed,
-unless you want to structure messages in a particular way for inference. If the placeholder variable names in the
-template do not match the column/key names in the dataset, use <code class="docutils literal notranslate"><span class="pre">column_map</span></code> to map them. For a list of all possible
-chat formats, check out <a class="reference internal" href="../api_ref_data.html#chat-formats"><span class="std std-ref">Text templates</span></a>. Default: None.</p></li>
+unless you want to structure messages in a particular way for inference.</p></li>
 <li><p><strong>max_seq_len</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><em>int</em></a>) – Maximum number of tokens in the returned input and label token id lists.</p></li>
 <li><p><strong>train_on_input</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Whether the model is trained on the prompt or not. Default is False.</p></li>
 <li><p><strong>**load_dataset_kwargs</strong> (<em>Dict</em><em>[</em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a><em>, </em><em>Any</em><em>]</em>) – additional keyword arguments to pass to <code class="docutils literal notranslate"><span class="pre">load_dataset</span></code>.</p></li>

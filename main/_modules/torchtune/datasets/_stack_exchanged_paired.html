@@ -417,6 +417,7 @@
     <span class="o">*</span><span class="p">,</span>
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;lvwerra/stack-exchange-paired&quot;</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PreferenceDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Family of preference datasets similar to `StackExchangePaired data</span>
@@ -427,6 +428,8 @@
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s `load_dataset`.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            Default is 1024.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        PreferenceDataset: The preference dataset built from source paired data.</span>
@@ -441,7 +444,7 @@
             <span class="s2">&quot;rejected&quot;</span><span class="p">:</span> <span class="s2">&quot;response_k&quot;</span><span class="p">,</span>
         <span class="p">},</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
-        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
         <span class="n">data_dir</span><span class="o">=</span><span class="s2">&quot;data/rl&quot;</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>

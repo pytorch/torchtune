@@ -433,9 +433,6 @@
 <span class="sd">    The general flow from loading a sample to tokenized prompt is:</span>
 <span class="sd">    load sample -&gt; apply transform -&gt; foreach turn{format into template -&gt; tokenize}</span>
 
-<span class="sd">    If the column/key names differ from the expected names in the :class:`~torchtune.data.ChatFormat`,</span>
-<span class="sd">    then the ``column_map`` argument can be used to provide this mapping.</span>
-
 <span class="sd">    Use ``convert_to_messages`` to prepare your dataset into the Llama2 chat format</span>
 <span class="sd">    and roles::</span>
 
@@ -459,9 +456,7 @@
 <span class="sd">        chat_format (Optional[ChatFormat]): template used to format the chat. This is used to add structured text around the actual</span>
 <span class="sd">            messages, such as the [INST] tags in Llama2 and in Mistral. The extra text will still get tokenized as normal text, not</span>
 <span class="sd">            as special tokens. In models like Llama3 where the tokenizer adds tags as special tokens, ``chat_format`` is not needed,</span>
-<span class="sd">            unless you want to structure messages in a particular way for inference. If the placeholder variable names in the</span>
-<span class="sd">            template do not match the column/key names in the dataset, use ``column_map`` to map them. For a list of all possible</span>
-<span class="sd">            chat formats, check out :ref:`chat_formats`. Default: None.</span>
+<span class="sd">            unless you want to structure messages in a particular way for inference.</span>
 <span class="sd">        max_seq_len (int): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>

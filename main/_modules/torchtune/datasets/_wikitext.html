@@ -419,6 +419,7 @@
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wikitext&quot;</span><span class="p">,</span>
     <span class="n">subset</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;wikitext-103-raw-v1&quot;</span><span class="p">,</span>
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
     <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">TextCompletionDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
@@ -434,6 +435,8 @@
 <span class="sd">        max_seq_len (Optional[int]): Maximum number of tokens in the returned input and label token id lists.</span>
 <span class="sd">            Default is None, disabling truncation. We recommend setting this to the highest you can fit in memory</span>
 <span class="sd">            and is supported by the model. For example, llama2-7B supports up to 4096 for sequence length.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 <span class="sd">        **load_dataset_kwargs (Dict[str, Any]): additional keyword arguments to pass to ``load_dataset``.</span>
 
 <span class="sd">    Returns:</span>
@@ -446,7 +449,7 @@
         <span class="n">column</span><span class="o">=</span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="n">subset</span><span class="p">,</span>
-        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
         <span class="o">**</span><span class="n">load_dataset_kwargs</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>

@@ -417,6 +417,7 @@
     <span class="n">source</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;liweili/c4_200m&quot;</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">InstructDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for grammar correction datasets and their variants from Hugging Face Datasets.</span>
@@ -438,6 +439,8 @@
 <span class="sd">        source (str): path string of dataset, anything supported by Hugging Face&#39;s ``load_dataset``.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        InstructDataset: dataset configured with source data and template</span>
@@ -457,7 +460,7 @@
         <span class="n">column_map</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;sentence&quot;</span><span class="p">:</span> <span class="s2">&quot;input&quot;</span><span class="p">},</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">,</span>
-        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>
 

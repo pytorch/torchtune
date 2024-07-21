@@ -422,6 +422,7 @@
     <span class="n">max_seq_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
     <span class="n">train_on_input</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">packed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">split</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;train&quot;</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ChatDataset</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Support for `SlimOrca-style &lt;https://huggingface.co/datasets/Open-Orca/SlimOrca-Dedup&gt;`_</span>
@@ -445,6 +446,8 @@
 <span class="sd">            Default is 1024.</span>
 <span class="sd">        train_on_input (bool): Whether the model is trained on the prompt or not. Default is False.</span>
 <span class="sd">        packed (bool): Whether or not to pack the dataset to ``max_seq_len`` prior to training. Default is False.</span>
+<span class="sd">        split (str): ``split`` argument for ``datasets.load_dataset``. You can use this argument to load a subset</span>
+<span class="sd">            of a given split, e.g. ``split=&quot;train[:10%]&quot;``. Default is &quot;train&quot;.</span>
 
 <span class="sd">    Raises:</span>
 <span class="sd">        ValueError: If `max_seq_len` is less than 4.</span>
@@ -475,7 +478,7 @@
         <span class="n">max_seq_len</span><span class="o">=</span><span class="n">max_seq_len</span><span class="p">,</span>
         <span class="n">train_on_input</span><span class="o">=</span><span class="n">train_on_input</span><span class="p">,</span>
         <span class="n">packed</span><span class="o">=</span><span class="n">packed</span><span class="p">,</span>
-        <span class="n">split</span><span class="o">=</span><span class="s2">&quot;train&quot;</span><span class="p">,</span>
+        <span class="n">split</span><span class="o">=</span><span class="n">split</span><span class="p">,</span>
     <span class="p">)</span></div>
 </pre></div>
 
