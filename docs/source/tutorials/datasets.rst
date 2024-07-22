@@ -60,7 +60,7 @@ all of our built-in datasets and dataset builders are using Hugging Face's ``loa
 to load in your data, whether local or on the hub.
 
 You can pass in a Hugging Face dataset path to the ``source`` parameter in any of our builders
-to specify which dataset on the hub to download or use from a local directory path. Additionally, all builders accept
+to specify which dataset on the hub to download or use from a local directory path (see `Local and remote datasets`_). Additionally, all builders accept
 any keyword-arguments that ``load_dataset()`` supports. You can see a full list
 on Hugging Face's `documentation. <https://huggingface.co/docs/datasets/en/loading>`_
 
