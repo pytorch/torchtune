@@ -14,14 +14,14 @@ from torch import nn
 from torchao.dtypes.nf4tensor import NF4Tensor, to_nf4
 from torchtune import utils
 from torchtune.modules.common_utils import reparametrize_as_dtype_state_dict_post_hook
-from torchtune.modules.peft import MoraLinear
+from torchtune.modules.peft import MoRALinear
 from torchtune.utils.seed import set_seed
 
 RANK = 4
 ALPHA = 1.0
 BSZ = 2
 SEQ_LEN = 32
-EXPECTED_VAL = 1.1252
+EXPECTED_VAL = 9.394
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +40,7 @@ class TestMoRALinear:
 
     @pytest.fixture
     def out_dim(self) -> int:
-        return 128
+        return 64
 
     @pytest.fixture
     def inputs(self, in_dim) -> torch.Tensor:
@@ -75,20 +75,19 @@ class TestMoRALinear:
 
     @torch.no_grad()
     def set_dummy_weights_for_merge(self, mora_module):
-        mora_module.mora_a.weight = nn.Parameter(
-            torch.zeros_like(mora_module.mora_a.weight)
+        mora_module.lora_a.weight = nn.Parameter(
+            torch.zeros_like(mora_module.lora_a.weight)
         )
-        mora_module.mora_b.weight = nn.Parameter(
-            torch.zeros_like(mora_module.mora_b.weight)
-        )
+        # mora_module.mora_b.weight = nn.Parameter(
+        #     torch.zeros_like(mora_module.mora_b.weight)
+        # )
         mora_module.weight = nn.Parameter(torch.zeros_like(mora_module.weight))
         mora_module.bias = nn.Parameter(torch.zeros_like(mora_module.bias))
 
         # Hardcode some very specific nonzero values to make verification easy
         mora_module.weight[4, 5] = 1
         mora_module.bias[7] = 2
-        mora_module.mora_a.weight[1, 25] = 3
-        mora_module.mora_b.weight[32, 1] = 12
+        mora_module.lora_a.weight[1, 32] = 12
 
     def test_forward(self, inputs, mora_linear, out_dim) -> None:
         expected = torch.tensor(EXPECTED_VAL)
@@ -110,7 +109,7 @@ class TestMoRALinear:
                 quantize_base=True,
             )
 
-    @pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+    @pytest.mark.parametrize("dtype", [torch.float32, torch.bfloat16]) # [torch.bfloat16, torch.float32])
     def test_qmora_parity(self, dtype):
         with utils.set_default_dtype(dtype):
             qmora_linear = MoRALinear(

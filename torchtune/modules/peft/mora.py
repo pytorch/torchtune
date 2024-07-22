@@ -154,7 +154,6 @@ class MoRALinear(nn.Module, AdapterModule):
         """
         Args:
             x (Tensor): input tensor with shape ``(..., in_dim)``
-
         Returns:
             Tensor: output tensor with shape ``(..., out_dim)``
 
@@ -166,9 +165,9 @@ class MoRALinear(nn.Module, AdapterModule):
         if self.disabled:
             return out
 
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
-        return out + self._apply_mora(out)
+        return out + self._apply_mora(self.dropout(out))
 
 
 def _mora_init_params(x: nn.Linear) -> None:
@@ -176,7 +175,6 @@ def _mora_init_params(x: nn.Linear) -> None:
     Initialize MoRA weights to zeros.
     """
     nn.init.zeros_(x.weight)
-
 
 # possible cleaner implementation of ROPE
 # def precompute_freqs_cis(seq_len: int, n_elem: int, base: int = 10000) -> Tensor:
