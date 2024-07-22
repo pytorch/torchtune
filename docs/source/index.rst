@@ -111,6 +111,12 @@ torchtune tutorials.
    tutorials/datasets
    tutorials/chat
 
+.. currentmodule:: torchtune.recipes
+
+.. autoclass:: ..torchtune.recipes.FullFinetuneRecipeSingleDevice
+   :members:
+
+
 .. toctree::
    :glob:
    :maxdepth: 1
