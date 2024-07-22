@@ -4,6 +4,6 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from .dpo import DPOLoss
+from .dpo import DPOLoss, IPOLoss, RSOLoss
 
-__all__ = ["DPOLoss"]
+__all__ = ["DPOLoss", "RSOLoss", "IPOLoss"]
