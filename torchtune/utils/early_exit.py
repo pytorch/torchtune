@@ -91,16 +91,20 @@ def build_early_exit_curriculum(early_exit_curriculum: EarlyExitCurriculumType, 
         case EarlyExitCurriculumType.ROTATIONAL:
             return RotationalEarlyExitCurriculum(*args, **kwargs)
 
+        case EarlyExitCurriculumType.GRADUAL:
+            return GradualEarlyExitCurriculum(*args, **kwargs)
+
         case _:
             raise ValueError(f"Unsupported early loss curriculum {early_exit_curriculum}.")
     
 
 # TODO: create a base curriculum class that can be used for other aspects, e.g., dropout, datasets, etc.
 class EarlyExitCurriculum():
-    def __init__(self, output_hidden_states, verbose=True):
+    def __init__(self, output_hidden_states, max_steps, verbose=False):
         self._init_output_hidden_states = output_hidden_states
         self.output_hidden_states = output_hidden_states
         self.verbose = verbose
+        self.max_steps = max_steps
 
     def step(self):
         pass
@@ -109,10 +113,29 @@ class EarlyExitCurriculum():
         return self.output_hidden_states
 
 class RotationalEarlyExitCurriculum(EarlyExitCurriculum):
-    def __init__(self, output_hidden_states, verbose=True):
-        super().__init__(output_hidden_states)
+    def __init__(self, output_hidden_states, max_steps, verbose=False):
+        super().__init__(output_hidden_states, max_steps, verbose)
 
     def step(self):
-        self.output_hidden_states = torch.roll(self.output_hidden_states, -1)
+        self.output_hidden_states = np.roll(self.output_hidden_states, -1)
+        if self.verbose:
+            log.info(f"Updating self.output_hidden_states to {self.output_hidden_states}.")
+
+class GradualEarlyExitCurriculum(EarlyExitCurriculum):
+    def __init__(self, output_hidden_states, max_steps, verbose=False):
+        super().__init__(output_hidden_states, max_steps, verbose)
+        self._step = 0
+
+    def step(self):
+        percent_trained = self._step / self.max_steps
+        n_layers = len(self.output_hidden_states)
+        for layer_index in range(len(self.output_hidden_states)):
+            # TODO: replace 2 with an argument
+            should_train = (percent_trained * 2) >= ((n_layers - 1 - layer_index) / (n_layers - 1))
+            self.output_hidden_states[layer_index] = should_train
+
+        # TODO: move this to step() in parent class?
+        # TODO: how to ensure we always call parent step() in derived class?
+        self._step += 1
         if self.verbose:
             log.info(f"Updating self.output_hidden_states to {self.output_hidden_states}.")

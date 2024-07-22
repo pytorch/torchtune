@@ -509,7 +509,7 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             output_hidden_states = False
 
         if self.early_exit_curriculum:
-            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states)
+            self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states, self.total_epochs*self._steps_per_epoch)
 
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
