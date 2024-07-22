@@ -137,11 +137,17 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         self.max_steps_per_epoch = cfg.max_steps_per_epoch
         self.global_step = 0
 
-        self.early_exit = cfg.get("early_exit", None)
+        cfg_early_exit = cfg.get("early_exit", None)
         # TODO: create a "setup" function similar to setup_model?
-        if self.early_exit:
-            self.early_exit_layers = cfg.get("early_exit.layers", ":")
-            self.early_exit_curriculum = cfg.get("early_exit.curriculum", "none")
+        # TODO: rename "early_exit" to "early_exit_loss"
+        if cfg_early_exit:
+            self.early_exit_layers = cfg_early_exit.get("layers", ":")
+            self.early_exit_curriculum = cfg_early_exit.get("curriculum", "none")
+            self.early_exit_scale = cfg_early_exit.get("scale", 1.0)
+        else:
+            self.early_exit_layers = None
+            self.early_exit_curriculum = None
+            self.early_exit_scale = None
 
     def load_checkpoint(self, cfg_checkpointer: DictConfig) -> Dict[str, Any]:
         """

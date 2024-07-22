@@ -22,7 +22,7 @@ class LossScaleType(str, Enum):
     SQRT_L = "sqrt_l"
     INV_SQRT_L = "inv_sqrt_l"
 
-def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=0.1, loss_scale_type=LossScaleType.SUM_L):
+def early_exit_loss(model, hidden_states_dict, labels, loss_fn, e_scale: float=1.0, loss_scale_type=LossScaleType.SUM_L):
     batch_loss_fn = copy.deepcopy(loss_fn)
     batch_loss_fn.reduction = "none"
 
