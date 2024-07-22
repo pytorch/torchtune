@@ -39,6 +39,9 @@ from torchtune.utils import DummyProfiler, PROFILER_KEY
 
 from tqdm import tqdm
 
+if utils.torch_version_ge("2.5.0"):
+    from torch.nn.attention.flex_attention import BlockMask
+
 log = utils.get_logger("DEBUG")
 
 
@@ -519,7 +522,10 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
+            ),
         )
 
         if self._is_rank_zero:
@@ -655,7 +661,8 @@ class LoRAFinetuneRecipeDistributed(FTRecipeInterface):
                 tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
+                if utils.torch_version_ge("2.5.0") and not isinstance(mask, BlockMask):
+                    mask = mask.to(self._device) if mask is not None else None
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )

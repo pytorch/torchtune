@@ -30,9 +30,11 @@ from torchtune import config, modules, utils
 from torchtune.datasets import ConcatDataset
 from torchtune.recipe_interfaces import FTRecipeInterface
 from torchtune.utils.activations import apply_selective_activation_checkpointing
-from torchtune.utils.attention_bias import sample_packing_block_causal_mask, create_block_mask
 
 from tqdm import tqdm
+
+if utils.torch_version_ge("2.5.0"):
+    from torch.nn.attention.flex_attention import BlockMask
 
 
 log = utils.get_logger("DEBUG")
@@ -418,7 +420,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
+            ),
         )
 
         if self._is_rank_zero:
@@ -508,28 +513,20 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 # exist. Currently, only sample packing in PackedDataset returns these
                 mask = batch.get("mask", None)  # shape [b, s, s]
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
-                document_ids = batch.get("document_ids", None)
 
                 tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
+                if utils.torch_version_ge("2.5.0") and not isinstance(mask, BlockMask):
+                    mask = mask.to(self._device) if mask is not None else None
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
-                document_ids = (
-                    document_ids.to(self._device) if document_ids is not None else None
-                )
-                block_mask = None
-                if document_ids is not None:
-                    bsz, seq_len = document_ids.shape
-                    mask_mod = sample_packing_block_causal_mask(document_ids)
-                    block_mask = create_block_mask(
-                        mask_mod, bsz, 1, seq_len, seq_len, device=self._device
-                    )
 
                 logits = self._model(
-                    tokens, mask=mask, input_pos=input_pos, block_mask=block_mask
+                    tokens,
+                    mask=mask,
+                    input_pos=input_pos,
                 )
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()

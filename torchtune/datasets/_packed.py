@@ -254,7 +254,7 @@ class PackedDataset(Dataset):
         return len(self.packs)
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
-        """Constructs the attention mask on-the-fly and returns whole sample."""
+        """Constructs the document_ids on-the-fly and returns whole pack."""
         current_pack = self.packs[idx]
         document_ids = torch.cat(
             [

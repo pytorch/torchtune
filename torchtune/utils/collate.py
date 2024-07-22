@@ -10,6 +10,7 @@ import torch
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 from torchtune.data import CROSS_ENTROPY_IGNORE_IDX
+from torchtune.utils.attention_bias import packed_block_causal_mask
 
 
 def padded_collate(
@@ -133,3 +134,45 @@ def padded_collate_dpo(
     )
 
     return concatenated_input_ids, concatenated_labels
+
+
+def padded_collate_packed(
+    batch: List[Dict[str, torch.Tensor]],
+    device: torch.device,
+) -> Dict[str, torch.Tensor]:
+    """Collate packed sequences into a batch. Only convert the document ids into
+    a block mask for use with flex attention. Tokens, labels, and input_pos are
+    already padded to the same length within :class:`~torchtune.datasets.PackedDataset`.
+
+    Args:
+        batch (List[Dict[str, torch.Tensor]]): A list of pack dictionaries containing the following keys:
+            - tokens: input token ids
+            - labels: label token ids
+            - input_pos: relative position ids for each sequence in pack
+            - document_ids: integer ids denoting the sample the tokens belong to within the pack
+
+    Returns:
+        Dict[str, torch.Tensor]: Collated input, label, input_pos, mask tensors.
+    """
+    bsz = len(batch)
+    seq_len = batch[0]["document_ids"].shape[0]
+
+    tokens = torch.stack([x["tokens"] for x in batch])
+    labels = torch.stack([x["labels"] for x in batch])
+    input_pos = torch.stack([x["input_pos"] for x in batch])
+    document_ids = torch.stack([x["document_ids"] for x in batch])
+
+    block_mask = packed_block_causal_mask(
+        document_ids=document_ids,
+        batch_size=bsz,
+        num_heads=1,
+        seq_len=seq_len,
+        device=device,
+    )
+
+    return {
+        "tokens": tokens,
+        "labels": labels,
+        "input_pos": input_pos,
+        "mask": block_mask,
+    }

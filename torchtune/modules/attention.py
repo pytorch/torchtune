@@ -9,8 +9,76 @@ from typing import Optional
 import torch
 
 from torch import nn, Tensor
-from torch.nn.attention.flex_attention import flex_attention, BlockMask
 from torchtune.modules.kv_cache import KVCache
+from torchtune.utils._version import torch_version_ge
+from torchtune.utils.attention_bias import _MaskType
+
+if torch_version_ge("2.5.0"):
+    from torch.nn.attention.flex_attention import BlockMask, flex_attention
+
+    flex_attention_compiled = torch.compile(flex_attention, dynamic=False)
+
+    def _attention_call(
+        q: Tensor,
+        k: Tensor,
+        v: Tensor,
+        mask: _MaskType,
+        dropout_p: float,
+        is_causal: bool,
+    ) -> Tensor:
+
+        # Flex attention uses the BlockMask
+        # (https://github.com/pytorch/pytorch/blob/main/torch/nn/attention/flex_attention.py#L168)
+        # instead of a traditional boolean tensor mask. If this is passed in,
+        # we assume the user wants to use flex attention instead of traditional SDPA.
+        # This will use flash attention under the hood with support for custom masks.
+        # Currently, it is used when sample packing is enabled (see torchtune.datasets.PackedDataset)
+        if isinstance(mask, BlockMask):
+            return flex_attention_compiled(
+                q,
+                k,
+                v,
+                block_mask=mask,
+            )
+        # If mask is a standard boolean tensor or None, then use SDPA
+        else:
+            # shape: [b, 1, s, s]
+            if mask is not None:
+                mask = mask[:, None, :, :]
+
+            # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+            return nn.functional.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=mask,
+                dropout_p=dropout_p,
+                is_causal=is_causal,
+            )
+
+else:
+
+    def _attention_call(
+        q: Tensor,
+        k: Tensor,
+        v: Tensor,
+        mask: _MaskType,
+        dropout_p: float,
+        is_causal: bool,
+    ) -> Tensor:
+        # shape: [b, 1, s, s]
+        if mask is not None:
+            mask = mask[:, None, :, :]
+
+        # Flash attention from https://pytorch.org/blog/accelerating-large-language-models/
+        return nn.functional.scaled_dot_product_attention(
+            q,
+            k,
+            v,
+            attn_mask=mask,
+            dropout_p=dropout_p,
+            is_causal=is_causal,
+        )
 
 
 class CausalSelfAttention(nn.Module):
@@ -120,15 +188,11 @@ class CausalSelfAttention(nn.Module):
         self.output_proj = output_proj
         self.pos_embeddings = pos_embeddings
 
-        self.flex_attention = torch.compile(flex_attention, dynamic=False)
-        # self.flex_attention = flex_attention
-
     def forward(
         self,
         x: Tensor,
         *,
-        mask: Optional[Tensor] = None,
-        block_mask: Optional[BlockMask] = None,
+        mask: _MaskType,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         # input has shape [b, s, d]
@@ -183,12 +247,13 @@ class CausalSelfAttention(nn.Module):
         if self.kv_cache is not None:
             k, v = self.kv_cache.update(input_pos, k, v)
 
-        # Perform flex attention calculation
-        output = self.flex_attention(
+        output = _attention_call(
             q,
             k,
             v,
-            block_mask=block_mask,
+            mask=mask,
+            dropout_p=self.attn_dropout,
+            is_causal=self.kv_cache is None and mask is None,
         )
 
         # reshape the output to be the same shape as the input

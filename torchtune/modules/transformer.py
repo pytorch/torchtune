@@ -10,7 +10,7 @@ import torch
 from torch import nn, Tensor
 
 from torchtune.modules import CausalSelfAttention, KVCache
-from torch.nn.attention.flex_attention import BlockMask
+from torchtune.utils.attention_bias import _MaskType
 
 
 class TransformerDecoderLayer(nn.Module):
@@ -40,8 +40,7 @@ class TransformerDecoderLayer(nn.Module):
         self,
         x: Tensor,
         *,
-        mask: Optional[Tensor] = None,
-        block_mask: Optional[BlockMask] = None,
+        mask: _MaskType,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -71,7 +70,9 @@ class TransformerDecoderLayer(nn.Module):
         # [b, s, d]
         # Norm applied before self-attention
         attn_out = self.attn(
-            self.sa_norm(x), mask=mask, input_pos=input_pos, block_mask=block_mask
+            self.sa_norm(x),
+            mask=mask,
+            input_pos=input_pos,
         )
 
         # Residual connection; shape: [batch_size, seq_length, embed_dim]
@@ -185,8 +186,7 @@ class TransformerDecoder(nn.Module):
         self,
         tokens: Tensor,
         *,
-        mask: Optional[Tensor] = None,
-        block_mask: Optional[BlockMask] = None,
+        mask: _MaskType,
         input_pos: Optional[Tensor] = None,
     ) -> Tensor:
         """
@@ -242,7 +242,7 @@ class TransformerDecoder(nn.Module):
 
         for layer in self.layers:
             # shape: [b, s, d]
-            h = layer(h, mask=mask, input_pos=input_pos, block_mask=block_mask)
+            h = layer(h, mask=mask, input_pos=input_pos)
 
         # shape: [b, s, d]
         h = self.norm(h)

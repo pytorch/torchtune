@@ -24,6 +24,9 @@ from torchtune.recipe_interfaces import FTRecipeInterface
 
 from tqdm import tqdm
 
+if utils.torch_version_ge("2.5.0"):
+    from torch.nn.attention.flex_attention import BlockMask
+
 
 log = utils.get_logger("DEBUG")
 
@@ -364,7 +367,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 ignore_idx=self._loss_fn.ignore_index,
             )
             if not packed
-            else None,
+            else partial(
+                utils.padded_collate_packed,
+                device=self._device,
+            ),
         )
 
         log.info("Dataset and Sampler are initialized.")
@@ -436,21 +442,20 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # exist. Currently, only sample packing in PackedDataset returns these
                 mask = batch.get("mask", None)  # shape [b, s, s]
                 input_pos = batch.get("input_pos", None)  # shape [b, s]
-                document_ids = batch.get("document_ids", None)
 
                 tokens = tokens.to(self._device)
                 num_tokens += tokens.numel()
                 labels = labels.to(self._device)
-                mask = mask.to(self._device) if mask is not None else None
+                if utils.torch_version_ge("2.5.0") and not isinstance(mask, BlockMask):
+                    mask = mask.to(self._device) if mask is not None else None
                 input_pos = (
                     input_pos.to(self._device) if input_pos is not None else None
                 )
-                document_ids = (
-                    document_ids.to(self._device) if document_ids is not None else None
-                )
 
                 logits = self._model(
-                    tokens, mask=mask, input_pos=input_pos, document_ids=document_ids
+                    tokens,
+                    mask=mask,
+                    input_pos=input_pos,
                 )
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
