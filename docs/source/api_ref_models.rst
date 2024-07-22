@@ -6,8 +6,8 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
-llama3
-------
+llama3 & llama3.1
+-----------------
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
@@ -26,6 +26,8 @@ To download the Llama3-70B-Instruct model:
     tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
     --ignore-patterns "original/consolidated*"
 
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
+or `Meta-Llama-3.1-70B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
