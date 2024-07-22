@@ -504,11 +504,10 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
         if self.early_exit_layers:
             output_hidden_states = slice_str_to_array(self.early_exit_layers, len(self._model.layers))
             if True: # TODO: add cli option
-                if len(self._model.layers) - 1 not in output_hidden_states:
-                    # ensure we include last layer
-                    output_hidden_states[len(self._model.layers) - 1] = True
+                output_hidden_states[len(self._model.layers) - 1] = True
         else:
             output_hidden_states = False
+
         if self.early_exit_curriculum:
             self.early_exit_curriculum = build_early_exit_curriculum(self.early_exit_curriculum, output_hidden_states)
 
@@ -604,6 +603,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
                 if self.early_exit_curriculum:
                     self.early_exit_curriculum.step()
                     output_hidden_states = self.early_exit_curriculum.get()
+                    if True: # TODO: add cli option
+                        output_hidden_states[len(self._model.layers) - 1] = True
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
