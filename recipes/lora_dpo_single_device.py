@@ -48,6 +48,12 @@ class LoRADPORecipeSingleDevice(FTRecipeInterface):
             with the base model weights. Note that intra-epoch resumption is not supported.
         - Logging to terminal, WandB, or TensorBoard.
 
+
+    The following losses are supported in this recipe:
+        - :class:`~torchtune.modules.loss.DPOLoss`: Direct Preference Optimization (DPO).
+        - :class:`~torchtune.modules.loss.RSOPLoss`: Rejection Sampling Optimization (RSO).
+        - :class:`~torchtune.modules.loss.IPO`: Identity Preference Optimization (IPO).
+
     Assumptions:
         - Checkpoints are ONLY saved at epoch boundaries. In case of failure, work done
             in ongoing epoch is lost.
