@@ -36,18 +36,28 @@ class TextCompletionDataset(Dataset):
         source: str,
         column: str = "text",
         max_seq_len: Optional[int] = None,
+        num_samples: Optional[int] = None,
         **load_dataset_kwargs: Dict[str, Any],
     ) -> None:
         self._tokenizer = tokenizer
         self._data = load_dataset(source, **load_dataset_kwargs)
         self.max_seq_len = max_seq_len
         self._column = column
+        self._num_samples = num_samples
+        self._streaming = load_dataset_kwargs["streaming"] if "streaming" in load_dataset_kwargs else False
+        self._data_itr = iter(self._data) if self._streaming else None
 
     def __len__(self):
-        return len(self._data)
+        if self._num_samples is None or not self._streaming:
+            return len(self._data)
+        else:
+            return self._num_samples
 
     def __getitem__(self, index: int) -> Dict[str, List[int]]:
-        sample = self._data[index]
+        if self._streaming:
+            sample = next(self._data_itr)
+        else:
+            sample = self._data[index]
         return self._prepare_sample(sample)
 
     def _prepare_sample(self, sample: Mapping[str, Any]) -> Dict[str, List[int]]:
