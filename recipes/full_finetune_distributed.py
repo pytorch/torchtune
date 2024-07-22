@@ -105,8 +105,8 @@ class FullFinetuneRecipeDistributed(FTRecipeInterface):
             )
 
         if (
-            cfg.get("fsdp_cpu_offload", False)
-            and cfg.get("fused", False)
+            cfg.get("fsdp_cpu_offload", True)
+            and cfg.get("optimizer.fused", True)
             and not utils.torch_version_ge("2.4.0")
         ):
             raise RuntimeError(
