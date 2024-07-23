@@ -6,8 +6,8 @@ torchtune.models
 
 .. currentmodule:: torchtune.models
 
-llama3
-------
+llama3 & llama3.1
+-----------------
 
 All models from the `Llama3 family <https://llama.meta.com/llama3/>`_.
 
@@ -21,9 +21,10 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
-    --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 
+To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
+or `Meta-Llama-3.1-70B-Instruct`.
 
 .. autosummary::
     :toctree: generated/
@@ -39,6 +40,21 @@ To download the Llama3-70B-Instruct model:
     llama3.qlora_llama3_70b
     llama3.llama3_tokenizer
 
+    |
+
+    llama3_1.llama3_1
+    llama3_1.lora_llama3_1
+    llama3_1.llama3_1_8b
+    llama3_1.lora_llama3_1_8b
+    llama3_1.qlora_llama3_1_8b
+    llama3_1.llama3_1_70b
+    llama3_1.lora_llama3_1_70b
+    llama3_1.qlora_llama3_1_70b
+
+
+.. note::
+
+    The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
 
 llama2
 ------
