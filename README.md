@@ -8,8 +8,12 @@
 
 &nbsp;
 
+<<<<<<< HEAD
 > [!Note]
 > **July 2024**: torchtune has updated model weights for Llama3.1! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3.1/) of the model. LoRA, QLoRA, and full finetune methods are supported. At this time, 405B will not be featured as it's too large to finetune on consumer-grade hardware.
+=======
+> **July 2024**: torchtune has updated model weights for Llama3.1 in source and nightly builds! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3_1/) of the model. LoRA, QLoRA, and full finetune methods are supported. Support for QLoRA 405B will be added soon.
+>>>>>>> main
 
 ## Introduction
 
@@ -41,7 +45,11 @@ torchtune currently supports the following models.
 
 | Model                                         | Sizes     |
 |-----------------------------------------------|-----------|
+<<<<<<< HEAD
 | [Llama3.1]()    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3.1/)]        |
+=======
+| [Llama3.1](https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1)    | 8B, 70B [[models](torchtune/models/llama3_1/_model_builders.py), [configs](recipes/configs/llama3_1/)]        |
+>>>>>>> main
 | [Llama3](https://llama.meta.com/llama3)    | 8B, 70B [[models](torchtune/models/llama3/_model_builders.py), [configs](recipes/configs/llama3/)]        |
 | [Llama2](https://llama.meta.com/llama2/)   | 7B, 13B, 70B [[models](torchtune/models/llama2/_model_builders.py), [configs](recipes/configs/llama2/)]        |
 | [Code-Llama2](https://ai.meta.com/blog/code-llama-large-language-model-coding/)   | 7B, 13B, 70B [[model](torchtune/models/code_llama2/_model_builders.py), [configs](recipes/configs/code_llama2/)] |
@@ -103,19 +111,31 @@ In our initial experiments for Llama3-8B, QLoRA has a peak allocated memory of `
 LoRA 8B
 
 ```bash
+<<<<<<< HEAD
 tune run lora_finetune_single_device --config llama3.1/8B_lora_single_device
+=======
+tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
+>>>>>>> main
 ```
 
 QLoRA 8B
 
 ```bash
+<<<<<<< HEAD
 tune run lora_finetune_single_device --config llama3.1/8B_qlora_single_device
+=======
+tune run lora_finetune_single_device --config llama3_1/8B_qlora_single_device
+>>>>>>> main
 ```
 
 Full 8B
 
 ```bash
+<<<<<<< HEAD
 tune run full_finetune_single_device --config llama3.1/8B_full_single_device
+=======
+tune run full_finetune_single_device --config llama3_1/8B_full_single_device
+>>>>>>> main
 ```
 
 ### Multi GPU
@@ -123,13 +143,21 @@ tune run full_finetune_single_device --config llama3.1/8B_full_single_device
 Full 8B
 
 ```bash
+<<<<<<< HEAD
 tune run --nproc_per_node 4 full_finetune_distributed --config llama3.1/8B_full
+=======
+tune run --nproc_per_node 4 full_finetune_distributed --config llama3_1/8B_full
+>>>>>>> main
 ```
 
 LoRA 8B
 
 ```bash
+<<<<<<< HEAD
 tune run --nproc_per_node 2 lora_finetune_distributed --config llama3.1/8B_lora
+=======
+tune run --nproc_per_node 2 lora_finetune_distributed --config llama3_1/8B_lora
+>>>>>>> main
 ```
 
 LoRA 70B
@@ -142,10 +170,17 @@ tune download meta-llama/Meta-Llama-3.1-70b --hf-token <> --output-dir /tmp/Meta
 Then, a finetune can be kicked off:
 
 ```bash
+<<<<<<< HEAD
 tune run --nproc_per_node 8 lora_finetune_distributed --config llama3.1/70B_lora.yaml
 ```
 
 You can find a full list of all our Llama3 configs [here](recipes/configs/llama3) and Llama3.1 configs [here.](recipes/configs/llama3.1)
+=======
+tune run --nproc_per_node 8 lora_finetune_distributed --config llama3_1/70B_lora.yaml
+```
+
+You can find a full list of all our Llama3 configs [here](recipes/configs/llama3) and Llama3.1 configs [here.](recipes/configs/llama3_1)
+>>>>>>> main
 
 
 &nbsp;
