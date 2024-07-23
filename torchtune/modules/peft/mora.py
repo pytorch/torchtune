@@ -97,7 +97,7 @@ class MoRALinear(nn.Module, AdapterModule):
         if self.use_bias:
             if self._quantize_base:
                 raise NotImplementedError(
-                    "Quantized LoRALinear does not support bias at the moment."
+                    "Quantized MoRALinear does not support bias at the moment."
                 )
             bias = linear.bias
         return weight, bias
@@ -158,12 +158,12 @@ class MoRALinear(nn.Module, AdapterModule):
             Tensor: output tensor with shape ``(..., out_dim)``
 
         """
+        if self.disabled:
+            return x
         if self._quantize_base:
             out = linear_nf4(input=x, weight=self.weight)
         else:
             out = F.linear(x, self.weight, self.bias)
-        if self.disabled:
-            return out
 
         # out = self.dropout(out)
 
