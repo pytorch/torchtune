@@ -6,19 +6,19 @@
 #   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
 #
 # To launch on a single device, run the following command from root:
-#   tune run lora_finetune_single_device --config llama3.1/8B_lora_single_device
+#   tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device
 #
 # You can add specific overrides through the command line. For example
 # to override the checkpointer directory while launching training
 # you can run:
-#   tune run lora_finetune_single_device --config llama3.1/8B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#   tune run lora_finetune_single_device --config llama3_1/8B_lora_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
 #
 # This config works only for training on single device.
 
 
 # Model Arguments
 model:
-  _component_: torchtune.models.llama3.lora_llama3_8b
+  _component_: torchtune.models.llama3_1.lora_llama3_1_8b
   lora_attn_modules: ['q_proj', 'v_proj']
   apply_lora_to_mlp: False
   apply_lora_to_output: False
