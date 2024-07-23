@@ -301,6 +301,31 @@ class TestHFLlama2FullModelCheckpointer:
         assert len(output_state_dict_1.keys()) + 1 == len(orig_state_dict_1.keys())
         assert len(output_state_dict_2.keys()) + 1 == len(orig_state_dict_2.keys())
 
+    def test_load_save_adapter_only(
+        self, tmp_path, single_file_checkpointer, llama2_hf_checkpoints
+    ):
+        """ """
+        state_dict = single_file_checkpointer.load_checkpoint()
+        # state_dict = {MODEL_KEY: orig_state_dict}
+        with pytest.raises(
+            ValueError, match="Adapter checkpoint not found in state_dict"
+        ):
+            single_file_checkpointer.save_checkpoint(
+                state_dict, epoch=2, adapter_only=True
+            )
+
+        state_dict[ADAPTER_KEY] = {}
+        single_file_checkpointer.save_checkpoint(state_dict, epoch=2, adapter_only=True)
+
+        output_file_1 = Path.joinpath(tmp_path, "hf_model_0001_2.pt")
+        output_file_2 = Path.joinpath(tmp_path, "adapter_2.pt")
+
+        with pytest.raises(ValueError, match="Unable to load checkpoint from"):
+            output_state_dict_1 = safe_torch_load(output_file_1)
+
+        output_state_dict_2 = safe_torch_load(output_file_2)
+        assert len(output_state_dict_2.keys()) == 0
+
     def test_save_checkpoint_in_peft_format(
         self,
         single_file_checkpointer: FullModelHFCheckpointer,
