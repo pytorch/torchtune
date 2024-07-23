@@ -4,7 +4,7 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message
 from torchtune.modules.tokenizers import (
@@ -12,11 +12,12 @@ from torchtune.modules.tokenizers import (
     SentencePieceBaseTokenizer,
     tokenize_messages_no_special_tokens,
 )
+from torchtune.modules.transforms import Transform
 
 WHITESPACE_CHARS = [" ", "\n", "\t", "\r", "\v"]
 
 
-class Llama2Tokenizer(ModelTokenizer):
+class Llama2Tokenizer(ModelTokenizer, Transform):
     """
     Llama2's implementation of the SentencePiece tokenizer. Llama2Tokenizer does
     not include any additional special tokens. The prompt template described in
@@ -131,3 +132,21 @@ class Llama2Tokenizer(ModelTokenizer):
             eos_id=self.eos_id,
             max_seq_len=max_seq_len,
         )
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

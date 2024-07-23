@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, SentencePieceBaseTokenizer
+from torchtune.modules.transforms import Transform
 
 PHI3_SPECIAL_TOKENS = {
     "<|endoftext|>": 32000,
@@ -24,7 +25,7 @@ PHI3_SPECIAL_TOKENS = {
 }
 
 
-class Phi3MiniTokenizer(ModelTokenizer):
+class Phi3MiniTokenizer(ModelTokenizer, Transform):
     """
     SentencePiece tokenizer configured with Phi3 Mini's special tokens.
 
@@ -219,3 +220,21 @@ class Phi3MiniTokenizer(ModelTokenizer):
             mask = truncate(mask, max_seq_len, message.masked)
 
         return tokenized_messages, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample

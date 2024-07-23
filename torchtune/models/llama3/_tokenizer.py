@@ -4,10 +4,11 @@
 # This source code is licensed under the BSD-style license found in the
 # LICENSE file in the root directory of this source tree.
 
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Mapping, Optional, Tuple
 
 from torchtune.data import Message, truncate
 from torchtune.modules.tokenizers import ModelTokenizer, TikTokenBaseTokenizer
+from torchtune.modules.transforms import Transform
 
 
 CL100K_PATTERN = r"""(?i:'s|'t|'re|'ve|'m|'ll|'d)|[^\r\n\p{L}\p{N}]?\p{L}+|\p{N}{1,3}| ?[^\s\p{L}\p{N}]+[\r\n]*|\s*[\r\n]+|\s+(?!\S)|\s+"""  # noqa
@@ -38,7 +39,7 @@ RESERVED_TOKENS = {
 LLAMA3_SPECIAL_TOKENS = {**SPECIAL_TOKENS, **RESERVED_TOKENS}
 
 
-class Llama3Tokenizer(ModelTokenizer):
+class Llama3Tokenizer(ModelTokenizer, Transform):
     """
     tiktoken tokenizer configured with Llama3 Instruct's special tokens, as described in
     https://llama.meta.com/docs/model-cards-and-prompt-formats/meta-llama-3
@@ -60,6 +61,7 @@ class Llama3Tokenizer(ModelTokenizer):
         self,
         path: str,
         special_tokens: Optional[Dict[str, int]] = None,
+        max_seq_len: Optional[int] = None,
     ):
         self.special_tokens = (
             special_tokens if special_tokens is not None else LLAMA3_SPECIAL_TOKENS
@@ -95,6 +97,7 @@ class Llama3Tokenizer(ModelTokenizer):
             eos_id=self.eos_id,
             special_tokens=self.special_tokens,
         )
+        self.max_seq_len = max_seq_len
 
     def _validate_special_tokens(
         self,
@@ -216,7 +219,6 @@ class Llama3Tokenizer(ModelTokenizer):
     def tokenize_messages(
         self,
         messages: List[Message],
-        max_seq_len: Optional[int] = None,
         add_eos: bool = True,
     ) -> Tuple[List[int], List[bool]]:
         """
@@ -237,14 +239,32 @@ class Llama3Tokenizer(ModelTokenizer):
 
             tokens = tokens + tokenized_message
             mask = mask + ([message.masked] * len(tokenized_message))
-            if max_seq_len and len(tokens) >= max_seq_len:
+            if self.max_seq_len and len(tokens) >= self.max_seq_len:
                 break
 
         if add_eos:
             tokens = tokens + [self.eos_id]
             mask = mask + [True]
-        if max_seq_len:
-            tokens = truncate(tokens, max_seq_len, self.eos_id)
-            mask = truncate(mask, max_seq_len, True)
+        if self.max_seq_len:
+            tokens = truncate(tokens, self.max_seq_len, self.eos_id)
+            mask = truncate(mask, self.max_seq_len, True)
 
         return tokens, mask
+
+    def __call__(self, sample: Mapping[str, Any]) -> Mapping[str, Any]:
+        """
+        Apply ``tokenize_messages`` to the "messages" field in the sample.
+
+        Args:
+            sample (Mapping[str, Any]): A sample with a "messages" field containing
+                a List[Message] to tokenize
+
+        Returns:
+            Mapping[str, Any]: The sample with added "tokens" and "mask" fields
+                and the "messages" field removed.
+        """
+        messages = sample.pop("messages")
+        tokens, mask = self.tokenize_messages(messages)
+        sample["tokens"] = tokens
+        sample["mask"] = mask
+        return sample
