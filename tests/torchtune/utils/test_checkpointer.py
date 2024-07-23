@@ -306,7 +306,7 @@ class TestHFLlama2FullModelCheckpointer:
     ):
         """ """
         state_dict = single_file_checkpointer.load_checkpoint()
-        # state_dict = {MODEL_KEY: orig_state_dict}
+
         with pytest.raises(
             ValueError, match="Adapter checkpoint not found in state_dict"
         ):
@@ -324,6 +324,7 @@ class TestHFLlama2FullModelCheckpointer:
             output_state_dict_1 = safe_torch_load(output_file_1)
 
         output_state_dict_2 = safe_torch_load(output_file_2)
+        # Check that the empty adapter we saved is the one loaded succesfully
         assert len(output_state_dict_2.keys()) == 0
 
     def test_save_checkpoint_in_peft_format(
