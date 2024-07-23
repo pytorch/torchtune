@@ -618,6 +618,7 @@
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save torchtune checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -643,19 +644,21 @@
 <span class="sd">                we&#39;re not overwriting intermediate checkpoint files</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, save an additional checkpoint file with the</span>
 <span class="sd">                recipe state</span>
+<span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># Output file is always a .pt file with the epoch number in the name</span>
-        <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span> <span class="n">checkpoint_file</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="s2">&quot;Model checkpoint of size &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;torchtune_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span> <span class="n">checkpoint_file</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Model checkpoint of size &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
@@ -666,6 +669,10 @@
                 <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights.&quot;</span>
             <span class="p">)</span>
 
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
@@ -852,6 +859,7 @@
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save HF checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -866,54 +874,58 @@
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
+<span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
         <span class="c1"># convert the state_dict back to hf format; do this inplace</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">])</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">MISTRAL_REWARD</span><span class="p">:</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">mistral_reward_tune_to_hf</span><span class="p">(</span>
-                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
-                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
-                <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
-                <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-            <span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
-                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
-                <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
-                <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
-                <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
-                <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-            <span class="p">)</span>
-
-        <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
-        <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">if</span> <span class="n">cpt_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="p">:</span>
-                <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
-            <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">weight</span><span class="p">})</span>
-
-        <span class="c1"># write the partitioned state dicts to the right checkpoint file</span>
-        <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">model_state_dict</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;hf_model_</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">phi3_tune_to_hf</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">MISTRAL_REWARD</span><span class="p">:</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">mistral_reward_tune_to_hf</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
-                    <span class="sa">f</span><span class="s2">&quot;model-0</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">-of-0</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">split_state_dicts</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-                <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span>
-                <span class="n">save_file</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">})</span>
-            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-                <span class="s2">&quot;Model checkpoint of size &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
-                <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
-            <span class="p">)</span>
+                <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_hf</span><span class="p">(</span>
+                    <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span>
+                    <span class="n">num_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_attention_heads&quot;</span><span class="p">],</span>
+                    <span class="n">num_kv_heads</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;num_key_value_heads&quot;</span><span class="p">],</span>
+                    <span class="n">dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="p">[</span><span class="s2">&quot;hidden_size&quot;</span><span class="p">],</span>
+                    <span class="n">head_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;head_dim&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">)</span>
+
+            <span class="c1"># split the state_dict into separate dicts, one for each output checkpoint file</span>
+            <span class="n">split_state_dicts</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">weight</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">cpt_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_map</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">cpt_idx</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="p">:</span>
+                    <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">split_state_dicts</span><span class="p">[</span><span class="n">cpt_idx</span><span class="p">]</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="n">key</span><span class="p">:</span> <span class="n">weight</span><span class="p">})</span>
+
+            <span class="c1"># write the partitioned state dicts to the right checkpoint file</span>
+            <span class="k">for</span> <span class="n">cpt_idx</span><span class="p">,</span> <span class="n">model_state_dict</span> <span class="ow">in</span> <span class="n">split_state_dicts</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_safe_serialization</span><span class="p">:</span>
+                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;hf_model_</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span>
+                        <span class="sa">f</span><span class="s2">&quot;model-0</span><span class="si">{</span><span class="n">cpt_idx</span><span class="si">}</span><span class="s2">-of-0</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">split_state_dicts</span><span class="o">.</span><span class="n">keys</span><span class="p">())[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.safetensors&quot;</span><span class="p">)</span>
+                    <span class="n">save_file</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">,</span> <span class="n">output_path</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;format&quot;</span><span class="p">:</span> <span class="s2">&quot;pt&quot;</span><span class="p">})</span>
+                <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Model checkpoint of size &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="c1"># Save torchtune format adapter weights even if we save PEFT format</span>
@@ -951,6 +963,10 @@
                     <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                     <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">peft_output_path</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights.&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_CONFIG</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_type</span> <span class="o">==</span> <span class="n">ModelType</span><span class="o">.</span><span class="n">PHI3_MINI</span><span class="p">:</span>
@@ -1073,6 +1089,7 @@
         <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
         <span class="n">epoch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">intermediate_checkpoint</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">adapter_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Save Meta checkpoint to file. If ``intermediate_checkpoint`` is True, an additional</span>
@@ -1084,21 +1101,24 @@
 <span class="sd">            epoch (int): Epoch number. Used to create the checkpoint file name</span>
 <span class="sd">            intermediate_checkpoint (bool): If True, an additional checkpoint files for recipe state</span>
 <span class="sd">                and (if applicable) adapter weights are created. Default is False</span>
+<span class="sd">            adapter_only (bool): If True, only save the adapter weights. Default is False</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
-        <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_meta</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">)</span>
 
-        <span class="c1"># Output file is always a .pt file with the epoch number in the name</span>
-        <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;meta_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span> <span class="n">checkpoint_file</span><span class="p">)</span>
-        <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="s2">&quot;Model checkpoint of size &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="n">model_state_dict</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span>
+            <span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">]</span> <span class="o">=</span> <span class="n">convert_weights</span><span class="o">.</span><span class="n">tune_to_meta</span><span class="p">(</span><span class="n">model_state_dict</span><span class="p">)</span>
+
+            <span class="c1"># Output file is always a .pt file with the epoch number in the name</span>
+            <span class="n">checkpoint_file</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_output_dir</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;meta_model_</span><span class="si">{</span><span class="n">epoch</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.pt&quot;</span><span class="p">)</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">state_dict</span><span class="p">[</span><span class="n">utils</span><span class="o">.</span><span class="n">MODEL_KEY</span><span class="p">],</span> <span class="n">checkpoint_file</span><span class="p">)</span>
+            <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                <span class="s2">&quot;Model checkpoint of size &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">checkpoint_file</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">checkpoint_file</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="n">utils</span><span class="o">.</span><span class="n">ADAPTER_KEY</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="p">:</span>
             <span class="n">output_path</span> <span class="o">=</span> <span class="n">Path</span><span class="o">.</span><span class="n">joinpath</span><span class="p">(</span>
@@ -1109,6 +1129,10 @@
                 <span class="s2">&quot;Adapter checkpoint of size &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">getsize</span><span class="p">(</span><span class="n">output_path</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">1000</span><span class="o">**</span><span class="mi">3</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> GB &quot;</span>
                 <span class="sa">f</span><span class="s2">&quot;saved to </span><span class="si">{</span><span class="n">output_path</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">adapter_only</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Adapter checkpoint not found in state_dict. Please ensure that the state_dict contains adapter weights.&quot;</span>
             <span class="p">)</span>
 
         <span class="c1"># If the recipe state needs to be output, first remove the model state dict</span>
