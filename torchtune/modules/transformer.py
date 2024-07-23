@@ -167,9 +167,13 @@ class TransformerDecoder(nn.Module):
             torch.ones(self.max_seq_len, self.max_seq_len, dtype=torch.bool)
         )
 
+    def caches_are_enabled(self) -> bool:
+        """Check if the key value caches are setup."""
+        return self.layers[0].attn.kv_cache is not None
+
     def reset_caches(self):
         """Reset the key value caches."""
-        if self.layers[0].attn.kv_cache is None:
+        if not self.caches_are_enabled():
             raise RuntimeError(
                 "Key value caches are not setup. Call ``setup_caches()`` first."
             )
