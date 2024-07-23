@@ -55,7 +55,7 @@ def llama3_1_70b() -> TransformerDecoder:
     Returns:
         TransformerDecoder: Instantiation of Llama3 70 model
     """
-    return llama3(
+    return llama3_1(
         vocab_size=128_256,
         num_layers=80,
         num_heads=64,
