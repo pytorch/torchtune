@@ -10,7 +10,7 @@ from typing import List, Literal, Optional
 from torch import nn
 
 from torchtune.models.llama3._model_utils import scale_hidden_dim_for_mlp
-from torchtune.models.llama3_1._position_embeddings import Llama3_1RotaryPositionalEmbeddings
+from torchtune.models.llama3_1._position_embeddings import Llama31RotaryPositionalEmbeddings
 
 from torchtune.modules import (
     CausalSelfAttention,
@@ -53,7 +53,7 @@ def llama3_1(
     norm_eps: float = 1e-5,
 ) -> TransformerDecoder:
     """
-    Build the decoder associated with the Llama3 model. This includes:
+    Build the decoder associated with the Llama3.1 model. This includes:
     - Token embeddings
     - num_layers number of TransformerDecoderLayer blocks
     - RMS Norm layer applied to the output of the transformer
@@ -77,11 +77,11 @@ def llama3_1(
         norm_eps (float): epsilon in RMS norms.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 model.
+        TransformerDecoder: Instantiation of Llama3.1 model.
     """
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
-    rope = Llama3_1RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama31RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,
@@ -154,7 +154,7 @@ def lora_llama3_1(
     quantize_base: bool = False,
 ) -> TransformerDecoder:
     """
-    Return a version of Llama3 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
+    Return a version of Llama3.1 (an instance of :func:`~torchtune.modules.TransformerDecoder`)
     with LoRA applied based on the passed in configuration.
 
     Args:
@@ -188,7 +188,7 @@ def lora_llama3_1(
             supported for quantization currently.
 
     Returns:
-        TransformerDecoder: Instantiation of Llama3 model with LoRA applied to
+        TransformerDecoder: Instantiation of Llama3.1 model with LoRA applied to
         a subset of the attention projections in each layer.
 
     """
@@ -358,7 +358,7 @@ def lora_llama3_1_self_attention(
         if "output_proj" in lora_modules
         else nn.Linear(embed_dim, embed_dim, bias=False)
     )
-    rope = Llama3_1RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
+    rope = Llama31RotaryPositionalEmbeddings(dim=head_dim, max_seq_len=max_seq_len, base=rope_base)
     self_attn = CausalSelfAttention(
         embed_dim=embed_dim,
         num_heads=num_heads,

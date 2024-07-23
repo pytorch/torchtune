@@ -12,7 +12,7 @@ import torch
 from torch import nn, Tensor
 
 
-class Llama3_1RotaryPositionalEmbeddings(nn.Module):
+class Llama31RotaryPositionalEmbeddings(nn.Module):
     """
     This class implements Rotary Positional Embeddings (RoPE)
     proposed in https://arxiv.org/abs/2104.09864.
@@ -43,7 +43,7 @@ class Llama3_1RotaryPositionalEmbeddings(nn.Module):
         self.dim = dim
         self.base = base
         self.max_seq_len = max_seq_len
-        self._rope_init()
+        self.is_cache_built = False
 
     # We need to explicitly define reset_parameters for FSDP initialization, see
     # https://github.com/pytorch/pytorch/blob/797d4fbdf423dd9320ebe383fb57ffb1135c4a99/torch/distributed/fsdp/_init_utils.py#L885
@@ -51,13 +51,14 @@ class Llama3_1RotaryPositionalEmbeddings(nn.Module):
         self._rope_init()
 
     def _rope_init(self):
-        theta = 1.0 / (
+        freqs = 1.0 / (
             self.base
             ** (torch.arange(0, self.dim, 2)[: (self.dim // 2)].float() / self.dim)
         )
-        theta = self.apply_scaling(theta)
+        theta = self.apply_scaling(freqs)
         self.register_buffer("theta", theta, persistent=False)
         self.build_rope_cache(self.max_seq_len)
+        self.is_cache_built = True
 
     def build_rope_cache(self, max_seq_len: int = 4096) -> None:
         # Create position indexes `[0, 1, ..., max_seq_len - 1]`
@@ -75,7 +76,8 @@ class Llama3_1RotaryPositionalEmbeddings(nn.Module):
         self.register_buffer("cache", cache, persistent=False)
 
     def apply_scaling(self, freqs: torch.Tensor):
-        """Apply scaling from https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41"""
+        """From the following Meta-Llama code:
+        https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41"""
         # Values obtained from grid search
         scale_factor = 8
         low_freq_factor = 1
@@ -122,6 +124,11 @@ class Llama3_1RotaryPositionalEmbeddings(nn.Module):
         TODO: The implementation below can be made more efficient
         for inference.
         """
+        # TODO: Remove this hack for handling scaling for Meta device
+        if not self.is_cache_built:
+            with torch.device(x.device):
+                self._rope_init()
+
         # input tensor has shape [b, s, n_h, h_d]
         seq_len = x.size(1)
 
