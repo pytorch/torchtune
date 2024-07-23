@@ -9,7 +9,7 @@
 &nbsp;
 
 > [!Note]
-> **July 2024**: torchtune has updated model weights for Llama3.1! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3_1/) of the model. LoRA, QLoRA, and full finetune methods are supported. At this time, 405B will not be featured as it's too large to finetune on consumer-grade hardware.
+> **July 2024**: torchtune has updated model weights for Llama3.1 in source and nightly builds! Check out our configs for both the [8B and 70B versions](recipes/configs/llama3_1/) of the model. LoRA, QLoRA, and full finetune methods are supported. At this time, 405B will not be featured as it's too large to finetune on consumer-grade hardware.
 
 ## Introduction
 
