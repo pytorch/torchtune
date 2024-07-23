@@ -164,8 +164,5 @@ def generate(
     # mask out generated tokens in seqs that already hit a stop token
     if stop_tokens is not None:
         generated_tokens = generated_tokens * stop_token_mask
-        # if pad_id is not 0, replace 0 with pad_id
-        if pad_id != 0:
-            generated_tokens[generated_tokens == 0] = pad_id
 
     return generated_tokens.tolist()
