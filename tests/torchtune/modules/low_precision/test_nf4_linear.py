@@ -106,6 +106,7 @@ class TestNF4Linear:
         bnb_nf4_linear = _build_bnb_linear(input_weight=orig_weight)
         bf16_linear = torch.nn.Linear(dim, dim, device="cuda", dtype=dtype)
 
+        torch.manual_seed(42)
         inp = torch.randn(2, 512, dtype=dtype, device="cuda")
 
         out_nf4 = nf4_linear(inp)
