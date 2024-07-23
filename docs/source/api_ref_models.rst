@@ -23,8 +23,7 @@ To download the Llama3-70B-Instruct model:
 
 .. code-block:: bash
 
-    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN>
-    --ignore-patterns "original/consolidated*"
+    tune download meta-llama/Meta-Llama-3-70B-Instruct --hf-token <HF_TOKEN> --ignore-patterns "original/consolidated*"
 
 To download the Llama3.1 weights of the above models, you can instead download from `Meta-Llama-3.1-8B-Instruct`
 or `Meta-Llama-3.1-70B-Instruct`.
@@ -56,7 +55,9 @@ or `Meta-Llama-3.1-70B-Instruct`.
     llama3_1.qlora_llama3_1_70b
 
 
-> Note: The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
+.. note::
+
+    The Llama3.1 tokenizer reuses the `llama3.llama3_tokenizer` builder class.
 
 llama2
 ------

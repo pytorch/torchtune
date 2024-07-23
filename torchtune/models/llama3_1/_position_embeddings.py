@@ -69,7 +69,7 @@ class Llama3_1RotaryPositionalEmbeddings(nn.Module):
         self.register_buffer("cache", cache, persistent=False)
 
     def apply_scaling(self, freqs: torch.Tensor):
-        """Apply scaling from """
+        """Apply scaling from https://github.com/meta-llama/llama-models/blob/dc42f22a3b05502e7296402b019a51f57fa045c9/models/llama3_1/api/model.py#L41"""
         # Values obtained from grid search
         scale_factor = 8
         low_freq_factor = 1

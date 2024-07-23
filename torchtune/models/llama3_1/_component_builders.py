@@ -193,7 +193,7 @@ def lora_llama3_1(
 
     """
 
-    self_attn = lora_llama3_self_attention(
+    self_attn = lora_llama3_1_self_attention(
         lora_modules=lora_attn_modules,
         embed_dim=embed_dim,
         num_heads=num_heads,
