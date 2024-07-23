@@ -1,0 +1,80 @@
+# Config for single device full finetuning in full_finetune_single_device.py
+# using a Llama3.1 8B Instruct model
+#
+# This config assumes that you've run the following command before launching
+# this run:
+#   tune download meta-llama/Meta-Llama-3.1-8B-Instruct --output-dir /tmp/Meta-Llama-3.1-8B-Instruct --ignore-patterns "original/consolidated.00.pth"
+#
+# The default config uses an optimizer from bitsandbytes. If you do not have it installed,
+# you can install it with
+#   pip install bitsandbytes
+#
+# To launch on a single device, run the following command from root:
+#   tune run full_finetune_single_device --config llama3_1/8B_full_single_device
+#
+# You can add specific overrides through the command line. For example
+# to override the checkpointer directory while launching training
+# you can run:
+#   tune run full_finetune_single_device --config llama3_1/8B_full_single_device checkpointer.checkpoint_dir=<YOUR_CHECKPOINT_DIR>
+#
+# This config works only for training on single device.
+
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /tmp/Meta-Llama-3.1-8B-Instruct/original/tokenizer.model
+
+# Dataset
+dataset:
+  _component_: torchtune.datasets.alpaca_dataset
+seed: null
+shuffle: True
+
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3_1.llama3_1_8b
+
+checkpointer:
+  _component_: torchtune.utils.FullModelHFCheckpointer
+  checkpoint_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  checkpoint_files: [
+    model-00001-of-00004.safetensors,
+    model-00002-of-00004.safetensors,
+    model-00003-of-00004.safetensors,
+    model-00004-of-00004.safetensors
+  ]
+  recipe_checkpoint: null
+  output_dir: /tmp/Meta-Llama-3.1-8B-Instruct/
+  model_type: LLAMA3
+resume_from_checkpoint: False
+
+# Fine-tuning arguments
+batch_size: 2
+epochs: 3
+optimizer:
+  _component_: bitsandbytes.optim.PagedAdamW8bit
+  lr: 2e-5
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+optimizer_in_bwd: True
+compile: False
+
+# Training environment
+device: cuda
+
+# Memory management
+enable_activation_checkpointing: True
+
+# Reduced precision
+dtype: bf16
+
+# Logging
+metric_logger:
+  _component_: torchtune.utils.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+output_dir: /tmp/alpaca-llama3.1-finetune
+log_every_n_steps: 1
+log_peak_memory_stats: False
