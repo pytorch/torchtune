@@ -161,5 +161,6 @@ class TikTokenBaseTokenizer(BaseTokenizer):
                 token_id
                 for token_id in token_ids
                 if token_id not in self.tt_model._special_tokens.values()
+                and token_id != self.bos_id
             ]
         return self.tt_model.decode(token_ids)
