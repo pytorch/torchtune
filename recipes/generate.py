@@ -55,6 +55,7 @@ class InferenceRecipe:
         self._model = self._setup_model(
             model_cfg=cfg.model,
             model_state_dict=ckpt_dict[utils.MODEL_KEY],
+            enable_kv_cache=cfg.enable_kv_cache,
         )
         self._tokenizer = config.instantiate(cfg.tokenizer)
 
@@ -62,6 +63,7 @@ class InferenceRecipe:
         self,
         model_cfg: DictConfig,
         model_state_dict: Dict[str, Any],
+        enable_kv_cache: bool = True,
     ) -> nn.Module:
         with utils.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(model_cfg)
@@ -77,8 +79,9 @@ class InferenceRecipe:
         logger.info(f"Model is initialized with precision {self._dtype}.")
 
         # Ensure the cache is setup on the right device
-        with self._device:
-            model.setup_caches(batch_size=1, dtype=self._dtype)
+        if enable_kv_cache:
+            with self._device:
+                model.setup_caches(batch_size=1, dtype=self._dtype)
 
         return model
 

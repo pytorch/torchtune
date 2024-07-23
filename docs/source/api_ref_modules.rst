@@ -81,6 +81,8 @@ Loss
    :nosignatures:
 
    loss.DPOLoss
+   loss.RSOLoss
+   loss.IPOLoss
 
 
 Vision Transforms
